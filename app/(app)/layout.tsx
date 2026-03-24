@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { LayoutDashboard, Search, Calendar, User, LogOut, Settings, Menu } from 'lucide-react'
+import { LayoutDashboard, Search, Calendar, User, LogOut, Settings, Menu, Shield } from 'lucide-react'
 import { MobileNav } from '@/components/layout/MobileNav'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .single()
 
   const isProfissional = profile?.role === 'profissional'
+  const isAdmin = profile?.role === 'admin'
 
   const navItems = [
     { href: '/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
@@ -24,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
     { href: '/perfil', icon: 'User', label: 'Meu Perfil' },
     { href: '/configuracoes', icon: 'Settings', label: 'Configurações' },
+    { href: '/admin', icon: 'Shield', label: 'Admin', hide: !isAdmin },
   ].filter(item => !item.hide)
 
   return (
@@ -47,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               : icon === 'Search' ? Search
               : icon === 'Calendar' ? Calendar
               : icon === 'User' ? User
+              : icon === 'Shield' ? Shield
               : Settings
             return (
               <Link
