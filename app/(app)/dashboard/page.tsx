@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Search, Star, ArrowRight, Clock } from 'lucide-react'
+import { Calendar, Search, Star, ArrowRight, Clock, CalendarClock, Users } from 'lucide-react'
 import { CATEGORIES } from '@/types'
 
 export default async function DashboardPage() {
@@ -58,6 +58,22 @@ export default async function DashboardPage() {
             <Star className="w-6 h-6 mb-3 text-accent-500" />
             <p className="font-semibold">Favoritos</p>
             <p className="text-sm text-neutral-400 mt-0.5">Seus profissionais salvos</p>
+          </Link>
+        </div>
+      )}
+
+      {/* Professional quick actions */}
+      {isProfissional && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <Link href="/agenda" className="group bg-brand-500 hover:bg-brand-600 text-white p-5 rounded-2xl transition-all">
+            <Users className="w-6 h-6 mb-3 opacity-80" />
+            <p className="font-semibold">Minha agenda</p>
+            <p className="text-sm text-white/70 mt-0.5">Gerenciar sessões com clientes</p>
+          </Link>
+          <Link href="/disponibilidade" className="group bg-white hover:shadow-md text-neutral-800 p-5 rounded-2xl border border-neutral-100 transition-all">
+            <CalendarClock className="w-6 h-6 mb-3 text-brand-500" />
+            <p className="font-semibold">Disponibilidade</p>
+            <p className="text-sm text-neutral-400 mt-0.5">Configure seus horários de atendimento</p>
           </Link>
         </div>
       )}

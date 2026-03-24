@@ -20,8 +20,11 @@ const config: Config = {
           900: '#07200f',
         },
         accent: {
+          50:  '#fef8ee',
+          100: '#fdefd5',
           400: '#f5a623',
           500: '#e8950f',
+          700: '#b86a07',
         },
       },
       fontFamily: {

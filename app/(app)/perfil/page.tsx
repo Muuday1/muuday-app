@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Globe, Clock, Shield, MapPin } from 'lucide-react'
+import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 
 export default async function PerfilPage() {
@@ -161,6 +161,28 @@ export default async function PerfilPage() {
               </Link>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Availability link for professionals */}
+      {isProfissional && professional && (
+        <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
+          <h3 className="font-display font-bold text-lg text-neutral-900 mb-4">Agenda e disponibilidade</h3>
+          <Link
+            href="/disponibilidade"
+            className="flex items-center justify-between p-4 bg-brand-50 hover:bg-brand-100 rounded-xl transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-brand-500 rounded-xl flex items-center justify-center">
+                <CalendarClock className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-brand-900">Configurar disponibilidade</p>
+                <p className="text-xs text-brand-600">Defina os dias e horários de atendimento</p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-brand-500 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
       )}
 

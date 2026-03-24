@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Calendar, Clock, Video, ChevronRight, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Calendar, Clock, Video, ChevronRight, Star } from 'lucide-react'
 
 export default async function AgendaPage() {
   const supabase = createClient()
@@ -38,6 +39,21 @@ export default async function AgendaPage() {
 
   const upcoming = upcomingBookings || []
   const past = pastBookings || []
+
+  // Fetch existing reviews for completed bookings (so we can hide the "Avaliar" button if already reviewed)
+  const completedBookingIds = past
+    .filter((b: any) => b.status === 'completed')
+    .map((b: any) => b.id)
+
+  const reviewedBookingIds = new Set<string>()
+  if (!isProfissional && completedBookingIds.length > 0) {
+    const { data: existingReviews } = await supabase
+      .from('reviews')
+      .select('booking_id')
+      .in('booking_id', completedBookingIds)
+      .eq('user_id', user.id)
+    ;(existingReviews || []).forEach((r: any) => reviewedBookingIds.add(r.booking_id))
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto">
@@ -155,8 +171,13 @@ export default async function AgendaPage() {
               }
               const status = statusConfig[booking.status] || statusConfig.completed
 
+              const canReview =
+                !isProfissional &&
+                booking.status === 'completed' &&
+                !reviewedBookingIds.has(booking.id)
+
               return (
-                <div key={booking.id} className="bg-white rounded-xl border border-neutral-100 p-4 flex items-center gap-4 opacity-75">
+                <div key={booking.id} className="bg-white rounded-xl border border-neutral-100 p-4 flex items-center gap-4 opacity-80">
                   <div className="w-10 h-10 rounded-lg bg-neutral-50 flex items-center justify-center text-neutral-400 font-display font-bold text-sm flex-shrink-0">
                     {otherPerson?.charAt(0) || '?'}
                   </div>
@@ -168,9 +189,23 @@ export default async function AgendaPage() {
                       })}
                     </p>
                   </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${status.className}`}>
-                    {status.label}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {canReview && (
+                      <Link
+                        href={`/avaliar/${booking.id}`}
+                        className="flex items-center gap-1.5 bg-accent-50 hover:bg-accent-100 text-accent-700 text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
+                      >
+                        <Star className="w-3 h-3 fill-accent-500 text-accent-500" />
+                        Avaliar
+                      </Link>
+                    )}
+                    {!canReview && booking.status === 'completed' && !isProfissional && (
+                      <span className="text-xs text-neutral-300 font-medium">Avaliado</span>
+                    )}
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${status.className}`}>
+                      {status.label}
+                    </span>
+                  </div>
                 </div>
               )
             })}
