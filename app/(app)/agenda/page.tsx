@@ -1,0 +1,182 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { Calendar, Clock, Video, ChevronRight, AlertCircle } from 'lucide-react'
+
+export default async function AgendaPage() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  const isProfissional = profile?.role === 'profissional'
+
+  // Fetch upcoming bookings
+  const bookingQuery = isProfissional
+    ? supabase
+        .from('bookings')
+        .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles(*))')
+        .eq('professional_id', user.id)
+    : supabase
+        .from('bookings')
+        .select('*, professionals(*, profiles(*))')
+        .eq('user_id', user.id)
+
+  const { data: upcomingBookings } = await bookingQuery
+    .in('status', ['pending', 'confirmed'])
+    .gte('scheduled_at', new Date().toISOString())
+    .order('scheduled_at', { ascending: true })
+
+  const { data: pastBookings } = await bookingQuery
+    .in('status', ['completed', 'cancelled', 'no_show'])
+    .order('scheduled_at', { ascending: false })
+    .limit(10)
+
+  const upcoming = upcomingBookings || []
+  const past = pastBookings || []
+
+  return (
+    <div className="p-6 md:p-8 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">Agenda</h1>
+        <p className="text-neutral-500">
+          {isProfissional
+            ? 'Gerencie suas sessões com clientes'
+            : 'Suas sessões agendadas'}
+        </p>
+      </div>
+
+      {/* Upcoming sessions */}
+      <div className="mb-8">
+        <h2 className="font-display font-bold text-lg text-neutral-900 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-brand-500" />
+          Próximas sessões
+        </h2>
+
+        {upcoming.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-neutral-100 p-8 text-center">
+            <div className="w-14 h-14 bg-neutral-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-7 h-7 text-neutral-300" />
+            </div>
+            <p className="font-semibold text-neutral-900 mb-1">Nenhuma sessão agendada</p>
+            <p className="text-sm text-neutral-500 mb-4">
+              {isProfissional
+                ? 'Quando clientes agendarem sessões, elas aparecerão aqui.'
+                : 'Encontre um profissional e agende sua primeira sessão.'}
+            </p>
+            {!isProfissional && (
+              <a
+                href="/buscar"
+                className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
+              >
+                Buscar profissional
+                <ChevronRight className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {upcoming.map((booking: any) => {
+              const otherPerson = isProfissional
+                ? booking.profiles?.full_name
+                : booking.professionals?.profiles?.full_name
+
+              return (
+                <div key={booking.id} className="bg-white rounded-2xl border border-neutral-100 p-5 hover:shadow-sm transition-all">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 font-display font-bold flex-shrink-0">
+                      {otherPerson?.charAt(0) || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-neutral-900">{otherPerson || 'Profissional'}</p>
+                      <div className="flex items-center gap-3 mt-1.5 text-sm text-neutral-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {new Date(booking.scheduled_at).toLocaleDateString('pt-BR', {
+                            weekday: 'short', day: 'numeric', month: 'short'
+                          })} {' '}
+                          {new Date(booking.scheduled_at).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </span>
+                        <span>{booking.duration_minutes || 50}min</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                        booking.status === 'confirmed'
+                          ? 'bg-green-50 text-green-700'
+                          : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {booking.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                      </span>
+                      {booking.session_link && (
+                        <a
+                          href={booking.session_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-all"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                          Entrar
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Past sessions */}
+      {past.length > 0 && (
+        <div>
+          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-neutral-400" />
+            Histórico
+          </h2>
+          <div className="space-y-2">
+            {past.map((booking: any) => {
+              const otherPerson = isProfissional
+                ? booking.profiles?.full_name
+                : booking.professionals?.profiles?.full_name
+
+              const statusConfig: Record<string, { label: string; className: string }> = {
+                completed: { label: 'Concluído', className: 'bg-green-50 text-green-700' },
+                cancelled: { label: 'Cancelado', className: 'bg-red-50 text-red-600' },
+                no_show: { label: 'Não compareceu', className: 'bg-neutral-100 text-neutral-500' },
+              }
+              const status = statusConfig[booking.status] || statusConfig.completed
+
+              return (
+                <div key={booking.id} className="bg-white rounded-xl border border-neutral-100 p-4 flex items-center gap-4 opacity-75">
+                  <div className="w-10 h-10 rounded-lg bg-neutral-50 flex items-center justify-center text-neutral-400 font-display font-bold text-sm flex-shrink-0">
+                    {otherPerson?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-neutral-700 text-sm">{otherPerson || 'Profissional'}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      {new Date(booking.scheduled_at).toLocaleDateString('pt-BR', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${status.className}`}>
+                    {status.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
