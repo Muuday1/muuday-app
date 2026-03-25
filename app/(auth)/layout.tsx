@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-brand-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-display font-bold">M</span>
             </div>
             <span className="font-display font-bold text-xl text-neutral-900">muuday</span>

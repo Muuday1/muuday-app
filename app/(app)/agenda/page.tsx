@@ -178,7 +178,7 @@ export default async function AgendaPage() {
 
               return (
                 <div key={booking.id} className="bg-white rounded-xl border border-neutral-100 p-4 flex items-center gap-4 opacity-80">
-                  <div className="w-10 h-10 rounded-lg bg-neutral-50 flex items-center justify-center text-neutral-400 font-display font-bold text-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-400 font-display font-bold text-sm flex-shrink-0">
                     {otherPerson?.charAt(0) || '?'}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className="p-6 border-b border-neutral-100">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-brand-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-display font-bold text-sm">M</span>
             </div>
             <span className="font-display font-bold text-xl text-neutral-900 tracking-tight">muuday</span>
@@ -92,7 +92,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Mobile header */}
         <div className="md:hidden sticky top-0 z-20 bg-white/80 backdrop-blur-lg border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center">
+            <div className="w-7 h-7 bg-brand-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-display font-bold text-xs">M</span>
             </div>
             <span className="font-display font-bold text-lg text-neutral-900 tracking-tight">muuday</span>

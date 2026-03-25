@@ -104,7 +104,7 @@ export function ReviewForm({ bookingId, userId, professionalId }: ReviewFormProp
               type="button"
               onClick={() => setRating(star)}
               onMouseEnter={() => setHovered(star)}
-              className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm transition-transform active:scale-95"
+              className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xl transition-transform active:scale-95"
               aria-label={`${star} ${star === 1 ? 'estrela' : 'estrelas'}: ${STAR_LABELS[star]}`}
             >
               <Star

@@ -263,7 +263,7 @@ export default function AdminPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? 'bg-brand-500 text-white shadow-sm'
                 : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'
@@ -288,8 +288,8 @@ export default function AdminPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard icon={<Users className="w-5 h-5" />} label="Utilizadores" value={stats.totalUsers} color="brand" />
-            <StatCard icon={<Shield className="w-5 h-5" />} label="Profissionais" value={stats.totalProfessionals} color="blue" />
-            <StatCard icon={<Calendar className="w-5 h-5" />} label="Agendamentos" value={stats.totalBookings} color="purple" />
+            <StatCard icon={<Shield className="w-5 h-5" />} label="Profissionais" value={stats.totalProfessionals} color="brand" />
+            <StatCard icon={<Calendar className="w-5 h-5" />} label="Agendamentos" value={stats.totalBookings} color="accent" />
             <StatCard icon={<Star className="w-5 h-5" />} label="Avaliações" value={stats.totalReviews} color="amber" />
           </div>
 
@@ -341,7 +341,7 @@ export default function AdminPage() {
                     <p className="text-xs text-neutral-400">{CATEGORIES.find(c => c.slug === pro.category)?.name}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[pro.status]}`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[pro.status]}`}>
                   {statusLabels[pro.status]}
                 </span>
               </div>
@@ -358,7 +358,7 @@ export default function AdminPage() {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
                   statusFilter === status
                     ? 'bg-brand-500 text-white'
                     : 'bg-white border border-neutral-200 text-neutral-600 hover:border-brand-300'
@@ -418,7 +418,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusColors[pro.status]}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[pro.status]}`}>
                           {statusLabels[pro.status]}
                         </span>
                         {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
@@ -598,7 +598,7 @@ export default function AdminPage() {
                       </span>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     review.is_visible ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                   }`}>
                     {review.is_visible ? 'Publicada' : 'Pendente'}
@@ -616,7 +616,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => toggleReviewVisibility(review.id, true)}
                       disabled={actionLoading === review.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-medium transition-all disabled:opacity-50"
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
                       {actionLoading === review.id ? '...' : 'Aprovar e publicar'}
@@ -625,7 +625,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => toggleReviewVisibility(review.id, false)}
                       disabled={actionLoading === review.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-500 hover:bg-neutral-600 text-white rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-500 hover:bg-neutral-600 text-white rounded-xl text-xs font-medium transition-all disabled:opacity-50"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       {actionLoading === review.id ? '...' : 'Ocultar'}
@@ -655,8 +655,7 @@ export default function AdminPage() {
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
   const colorMap: Record<string, string> = {
     brand: 'bg-brand-50 text-brand-600',
-    blue: 'bg-blue-50 text-blue-600',
-    purple: 'bg-purple-50 text-purple-600',
+    accent: 'bg-accent-50 text-accent-600',
     amber: 'bg-amber-50 text-amber-600',
   }
 

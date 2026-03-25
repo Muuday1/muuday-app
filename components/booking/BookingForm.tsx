@@ -284,7 +284,7 @@ export default function BookingForm({
               <button
                 onClick={prevMonth}
                 disabled={!canGoPrev}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-neutral-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="Mês anterior"
               >
                 <ChevronLeft className="w-4 h-4 text-neutral-600" />
@@ -295,7 +295,7 @@ export default function BookingForm({
               <button
                 onClick={nextMonth}
                 disabled={!canGoNext}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-neutral-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label="Próximo mês"
               >
                 <ChevronRight className="w-4 h-4 text-neutral-600" />
@@ -327,7 +327,7 @@ export default function BookingForm({
                     onClick={() => handleDateSelect(date)}
                     disabled={!available}
                     className={cn(
-                      'relative h-9 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all',
+                      'relative h-9 w-full flex items-center justify-center rounded-xl text-sm font-medium transition-all',
                       isSelected
                         ? 'bg-brand-500 text-white shadow-sm'
                         : available
