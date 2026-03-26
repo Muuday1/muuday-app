@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Star, Clock, Globe, MapPin, Calendar, ArrowLeft, MessageCircle } from 'lucide-react'
 import { CATEGORIES } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { FavoriteButton } from '@/components/FavoriteButton'
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -81,14 +82,17 @@ export default async function ProfissionalPage({ params }: { params: { id: strin
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 bg-accent-50 px-3 py-1.5 rounded-full">
-                  <Star className="w-4 h-4 text-accent-500 fill-accent-500" />
-                  <span className="font-semibold text-sm text-accent-700">
-                    {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
-                  </span>
-                  {professional.total_reviews > 0 && (
-                    <span className="text-xs text-accent-500">({professional.total_reviews})</span>
-                  )}
+                <div className="flex items-center gap-2">
+                  <FavoriteButton professionalId={professional.id} />
+                  <div className="flex items-center gap-1.5 bg-accent-50 px-3 py-1.5 rounded-full">
+                    <Star className="w-4 h-4 text-accent-500 fill-accent-500" />
+                    <span className="font-semibold text-sm text-accent-700">
+                      {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
+                    </span>
+                    {professional.total_reviews > 0 && (
+                      <span className="text-xs text-accent-500">({professional.total_reviews})</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
