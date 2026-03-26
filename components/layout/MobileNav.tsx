@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, Calendar, User, Settings } from 'lucide-react'
+import { LayoutDashboard, Search, Calendar, User, Settings, Shield } from 'lucide-react'
 
 type NavItem = {
   href: string
@@ -17,6 +17,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Calendar,
   User,
   Settings,
+  Shield,
 }
 
 export function MobileNav({
@@ -42,19 +43,19 @@ export function MobileNav({
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-[60px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-[60px] ${
                 isActive
                   ? 'text-brand-600'
                   : 'text-neutral-400 hover:text-neutral-600'
               }`}
             >
+              {isActive && (
+                <div className="absolute -top-2 w-8 h-0.5 bg-brand-500 rounded-full" />
+              )}
               <Icon className={`w-5 h-5 ${isActive ? 'text-brand-500' : ''}`} />
               <span className={`text-[10px] font-medium ${isActive ? 'text-brand-600' : ''}`}>
                 {label}
               </span>
-              {isActive && (
-                <div className="absolute -top-0 w-8 h-0.5 bg-brand-500 rounded-full" />
-              )}
             </Link>
           )
         })}

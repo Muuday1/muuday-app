@@ -457,7 +457,7 @@ export default function AdminPage() {
                               <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Idiomas</p>
                               <div className="flex flex-wrap gap-1">
                                 {pro.languages?.map(lang => (
-                                  <span key={lang} className="px-2 py-0.5 bg-neutral-100 rounded text-xs text-neutral-600">{lang}</span>
+                                  <span key={lang} className="px-2 py-0.5 bg-neutral-100 rounded-full text-xs text-neutral-600">{lang}</span>
                                 ))}
                               </div>
                             </div>
@@ -465,7 +465,7 @@ export default function AdminPage() {
                               <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Tags</p>
                               <div className="flex flex-wrap gap-1">
                                 {pro.tags?.map(tag => (
-                                  <span key={tag} className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">{tag}</span>
+                                  <span key={tag} className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-xs">{tag}</span>
                                 ))}
                               </div>
                             </div>
