@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { LayoutDashboard, Search, Calendar, User, LogOut, Settings, Menu, Shield } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { MobileNav } from '@/components/layout/MobileNav'
+import { SidebarNav } from '@/components/layout/SidebarNav'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -43,26 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(({ href, icon, label }) => {
-            const IconComponent = icon === 'LayoutDashboard' ? LayoutDashboard
-              : icon === 'Search' ? Search
-              : icon === 'Calendar' ? Calendar
-              : icon === 'User' ? User
-              : icon === 'Shield' ? Shield
-              : Settings
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 transition-all text-sm font-medium group"
-              >
-                <IconComponent className="w-4 h-4 text-neutral-400 group-hover:text-brand-500 transition-colors" />
-                {label}
-              </Link>
-            )
-          })}
-        </nav>
+        <SidebarNav navItems={navItems} />
 
         {/* User profile */}
         <div className="p-4 border-t border-neutral-100">

@@ -54,7 +54,7 @@ export default async function PerfilPage() {
               <h2 className="font-display font-bold text-xl text-neutral-900">{profile?.full_name}</h2>
               <p className="text-sm text-neutral-500 capitalize flex items-center gap-1.5 mt-0.5">
                 <Shield className="w-3.5 h-3.5" />
-                {profile?.role === 'profissional' ? 'Profissional' : 'Utilizador'}
+                {profile?.role === 'profissional' ? 'Profissional' : profile?.role === 'admin' ? 'Administrador' : 'Utilizador'}
               </p>
             </div>
             {isProfissional && professional && (
