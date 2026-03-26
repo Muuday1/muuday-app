@@ -54,6 +54,16 @@ type AdminReview = {
   professionals: { id: string; profiles: { full_name: string } }
 }
 
+type AdminBooking = {
+  id: string
+  scheduled_at: string
+  status: string
+  price_brl: number
+  duration_minutes: number
+  user_profile: { full_name: string; email: string }
+  professional_profile: { full_name: string }
+}
+
 type Stats = {
   totalUsers: number
   totalProfessionals: number
@@ -71,6 +81,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [professionals, setProfessionals] = useState<AdminProfessional[]>([])
   const [reviews, setReviews] = useState<AdminReview[]>([])
+  const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -146,6 +157,29 @@ export default function AdminPage() {
         .order('created_at', { ascending: false })
 
       setReviews((data as unknown as AdminReview[]) || [])
+    }
+
+    if (activeTab === 'bookings') {
+      const { data } = await supabase
+        .from('bookings')
+        .select('id, scheduled_at, status, price_brl, duration_minutes, profiles!bookings_user_id_fkey(full_name, email), professionals!bookings_professional_id_fkey(profiles!professionals_user_id_fkey(full_name))')
+        .order('scheduled_at', { ascending: false })
+        .limit(50)
+
+      const mapped = (data || []).map((b: Record<string, unknown>) => {
+        const pro = b.professionals as Record<string, unknown> | null
+        return {
+          id: b.id as string,
+          scheduled_at: b.scheduled_at as string,
+          status: b.status as string,
+          price_brl: b.price_brl as number,
+          duration_minutes: b.duration_minutes as number,
+          user_profile: (b.profiles as { full_name: string; email: string }) || { full_name: '—', email: '' },
+          professional_profile: (pro?.profiles as { full_name: string }) || { full_name: '—' },
+        }
+      }) as AdminBooking[]
+
+      setBookings(mapped)
     }
 
     setLoading(false)
@@ -639,12 +673,81 @@ export default function AdminPage() {
       )}
 
       {activeTab === 'bookings' && (
-        <div className="bg-white rounded-2xl border border-neutral-100 p-8 text-center">
-          <Calendar className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-neutral-900 mb-1">Agendamentos</h3>
-          <p className="text-sm text-neutral-500">
-            Visão detalhada de agendamentos em breve. Os agendamentos podem ser gerenciados diretamente no Supabase por enquanto.
-          </p>
+        <div className="space-y-3">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-neutral-100 p-5 animate-pulse">
+                  <div className="h-4 bg-neutral-200 rounded w-48 mb-2" />
+                  <div className="h-3 bg-neutral-100 rounded w-full" />
+                </div>
+              ))}
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-neutral-100 p-12 text-center">
+              <Calendar className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
+              <p className="text-neutral-500">Nenhum agendamento encontrado.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-neutral-100 bg-neutral-50/50">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-neutral-500 uppercase">Utilizador</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-neutral-500 uppercase">Profissional</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-neutral-500 uppercase">Data</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-neutral-500 uppercase">Status</th>
+                      <th className="text-right px-5 py-3 text-xs font-semibold text-neutral-500 uppercase">Preço</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-50">
+                    {bookings.map(booking => {
+                      const bookingStatusColors: Record<string, string> = {
+                        pending: 'bg-amber-50 text-amber-700',
+                        confirmed: 'bg-green-50 text-green-700',
+                        completed: 'bg-green-50 text-green-700',
+                        cancelled: 'bg-red-50 text-red-700',
+                        no_show: 'bg-neutral-100 text-neutral-600',
+                      }
+                      const bookingStatusLabels: Record<string, string> = {
+                        pending: 'Pendente',
+                        confirmed: 'Confirmado',
+                        completed: 'Concluído',
+                        cancelled: 'Cancelado',
+                        no_show: 'Não compareceu',
+                      }
+                      return (
+                        <tr key={booking.id} className="hover:bg-neutral-50/50 transition-colors">
+                          <td className="px-5 py-4">
+                            <p className="font-medium text-neutral-900">{booking.user_profile?.full_name || '—'}</p>
+                            <p className="text-xs text-neutral-400">{booking.user_profile?.email || ''}</p>
+                          </td>
+                          <td className="px-5 py-4 text-neutral-700">
+                            {booking.professional_profile?.full_name || '—'}
+                          </td>
+                          <td className="px-5 py-4 text-neutral-700 whitespace-nowrap">
+                            {new Date(booking.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            <span className="text-neutral-400 ml-1">
+                              {new Date(booking.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${bookingStatusColors[booking.status] || 'bg-neutral-100 text-neutral-600'}`}>
+                              {bookingStatusLabels[booking.status] || booking.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-right font-medium text-neutral-900 whitespace-nowrap">
+                            R$ {booking.price_brl?.toFixed(2) || '0.00'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

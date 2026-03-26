@@ -1,3 +1,5 @@
+export const metadata = { title: 'Buscar Profissionais | Muuday' }
+
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Search, Star, Clock, MapPin } from 'lucide-react'

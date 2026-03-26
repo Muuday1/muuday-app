@@ -1,7 +1,10 @@
+export const metadata = { title: 'Agenda | Muuday' }
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Clock, Video, ChevronRight, Star } from 'lucide-react'
+import BookingActions from '@/components/booking/BookingActions'
 
 export default async function AgendaPage() {
   const supabase = createClient()
@@ -144,6 +147,12 @@ export default async function AgendaPage() {
                       )}
                     </div>
                   </div>
+                  <BookingActions
+                    bookingId={booking.id}
+                    status={booking.status}
+                    sessionLink={booking.session_link}
+                    isProfessional={isProfissional}
+                  />
                 </div>
               )
             })}

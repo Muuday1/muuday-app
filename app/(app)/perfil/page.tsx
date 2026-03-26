@@ -1,7 +1,9 @@
+export const metadata = { title: 'Meu Perfil | Muuday' }
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight } from 'lucide-react'
+import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 
 export default async function PerfilPage() {
@@ -51,7 +53,16 @@ export default async function PerfilPage() {
         <div className="pt-12 px-6 pb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="font-display font-bold text-xl text-neutral-900">{profile?.full_name}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="font-display font-bold text-xl text-neutral-900">{profile?.full_name}</h2>
+                <Link
+                  href="/editar-perfil"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-all"
+                >
+                  <Pencil className="w-3 h-3" />
+                  Editar perfil
+                </Link>
+              </div>
               <p className="text-sm text-neutral-500 capitalize flex items-center gap-1.5 mt-0.5">
                 <Shield className="w-3.5 h-3.5" />
                 {profile?.role === 'profissional' ? 'Profissional' : profile?.role === 'admin' ? 'Administrador' : 'Utilizador'}
@@ -109,7 +120,18 @@ export default async function PerfilPage() {
       {/* Professional details */}
       {isProfissional && professional && (
         <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
-          <h3 className="font-display font-bold text-lg text-neutral-900 mb-4">Perfil Profissional</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-bold text-lg text-neutral-900">Perfil Profissional</h3>
+            {professional.bio && (
+              <Link
+                href="/editar-perfil-profissional"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-all"
+              >
+                <Pencil className="w-3 h-3" />
+                Editar perfil profissional
+              </Link>
+            )}
+          </div>
 
           {professional.bio ? (
             <div className="space-y-4">
