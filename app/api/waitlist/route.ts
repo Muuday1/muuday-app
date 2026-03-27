@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendWaitlistConfirmationEmail } from '@/lib/email/resend'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,10 +29,16 @@ export async function POST(request: NextRequest) {
       // Don't fail — still send the email
     }
 
-    // Send confirmation email via Resend (non-blocking)
-    sendWaitlistConfirmationEmail(email, firstname).catch(e =>
-      console.error('[waitlist] Email error:', e)
-    )
+    // Send confirmation email via Resend (non-blocking).
+    // Dynamic import avoids build-time crashes when RESEND_API_KEY is missing in preview envs.
+    void (async () => {
+      try {
+        const { sendWaitlistConfirmationEmail } = await import('@/lib/email/resend')
+        await sendWaitlistConfirmationEmail(email, firstname)
+      } catch (e) {
+        console.error('[waitlist] Email error:', e)
+      }
+    })()
 
     return NextResponse.json({ success: true })
   } catch (error) {
