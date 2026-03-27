@@ -47,9 +47,16 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Este agendamento não está pendente.' }
   }
 
-  const { error } = await supabase.from('bookings').update({ status: 'confirmed' }).eq('id', bookingId)
+  const { data: updatedBooking, error } = await supabase
+    .from('bookings')
+    .update({ status: 'confirmed' })
+    .eq('id', bookingId)
+    .eq('professional_id', professionalId)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle()
 
-  if (error) {
+  if (error || !updatedBooking) {
     return { success: false, error: 'Erro ao confirmar agendamento. Tente novamente.' }
   }
 
@@ -87,9 +94,23 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     updateData.cancellation_reason = reason
   }
 
-  const { error } = await supabase.from('bookings').update(updateData).eq('id', bookingId)
+  let cancelQuery = supabase
+    .from('bookings')
+    .update(updateData)
+    .eq('id', bookingId)
+    .in('status', ['pending', 'confirmed'])
 
-  if (error) {
+  if (isBookingUser) {
+    cancelQuery = cancelQuery.eq('user_id', user.id)
+  } else if (professionalId) {
+    cancelQuery = cancelQuery.eq('professional_id', professionalId)
+  }
+
+  const { data: cancelledBooking, error } = await cancelQuery
+    .select('id')
+    .maybeSingle()
+
+  if (error || !cancelledBooking) {
     return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
   }
 
@@ -164,9 +185,16 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'Apenas agendamentos confirmados podem ser concluídos.' }
   }
 
-  const { error } = await supabase.from('bookings').update({ status: 'completed' }).eq('id', bookingId)
+  const { data: completedBooking, error } = await supabase
+    .from('bookings')
+    .update({ status: 'completed' })
+    .eq('id', bookingId)
+    .eq('professional_id', professionalId)
+    .eq('status', 'confirmed')
+    .select('id')
+    .maybeSingle()
 
-  if (error) {
+  if (error || !completedBooking) {
     return { success: false, error: 'Erro ao concluir agendamento. Tente novamente.' }
   }
 

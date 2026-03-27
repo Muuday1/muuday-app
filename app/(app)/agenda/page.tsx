@@ -17,17 +17,16 @@ export default async function AgendaPage() {
     .eq('id', user.id)
     .single()
 
-  const isProfissional = profile?.role === 'profissional'
+  // Treat account as professional when it actually has a professional record,
+  // even if role is currently set to "admin".
+  const { data: professional } = await supabase
+    .from('professionals')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
 
-  let professionalId: string | null = null
-  if (isProfissional) {
-    const { data: professional } = await supabase
-      .from('professionals')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    professionalId = professional?.id ?? null
-  }
+  const professionalId: string | null = professional?.id ?? null
+  const isProfissional = Boolean(professionalId)
 
   const upcomingBookingsQuery =
     isProfissional && professionalId

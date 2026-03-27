@@ -38,6 +38,16 @@ CREATE POLICY "Admins can view all bookings"
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
+-- Allow admins to update ALL bookings
+CREATE POLICY "Admins can update all bookings"
+  ON bookings FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
 -- Allow admins to view ALL profiles
 -- (profiles already have "viewable by everyone" policy, so this is just for clarity)
 

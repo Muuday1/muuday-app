@@ -109,7 +109,17 @@ CREATE POLICY "Users see own bookings" ON bookings FOR SELECT USING (
   professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
 );
 CREATE POLICY "Users can create bookings" ON bookings FOR INSERT WITH CHECK (user_id = auth.uid());
-CREATE POLICY "Users can update own bookings" ON bookings FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY "Users and professionals can update bookings" ON bookings FOR UPDATE
+USING (
+  user_id = auth.uid() OR
+  professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid()) OR
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+)
+WITH CHECK (
+  user_id = auth.uid() OR
+  professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid()) OR
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- Reviews: visible approved ones are public
 CREATE POLICY "Visible reviews are public" ON reviews FOR SELECT USING (is_visible = true OR user_id = auth.uid());
