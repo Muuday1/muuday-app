@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -8,6 +9,7 @@ type ActionResult = { success: true } | { success: false; error: string }
 
 async function getAuthenticatedContext() {
   const supabase = createClient()
+  const adminSupabase = createAdminClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -19,11 +21,11 @@ async function getAuthenticatedContext() {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  return { supabase, user, professionalId: professional?.id ?? null }
+  return { supabase, adminSupabase, user, professionalId: professional?.id ?? null }
 }
 
 export async function confirmBooking(bookingId: string): Promise<ActionResult> {
-  const { supabase, professionalId } = await getAuthenticatedContext()
+  const { supabase, adminSupabase, professionalId } = await getAuthenticatedContext()
 
   if (!professionalId) {
     return { success: false, error: 'Apenas o profissional pode confirmar este agendamento.' }
@@ -47,7 +49,9 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Este agendamento não está pendente.' }
   }
 
-  const { data: updatedBooking, error } = await supabase
+  const db = adminSupabase ?? supabase
+
+  const { data: updatedBooking, error } = await db
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', bookingId)
@@ -65,7 +69,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
 }
 
 export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {
-  const { supabase, user, professionalId } = await getAuthenticatedContext()
+  const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
 
   // Both user and assigned professional can cancel
   const { data: booking } = await supabase
@@ -94,7 +98,9 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     updateData.cancellation_reason = reason
   }
 
-  let cancelQuery = supabase
+  const db = adminSupabase ?? supabase
+
+  let cancelQuery = db
     .from('bookings')
     .update(updateData)
     .eq('id', bookingId)
@@ -119,7 +125,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 }
 
 export async function addSessionLink(bookingId: string, link: string): Promise<ActionResult> {
-  const { supabase, professionalId } = await getAuthenticatedContext()
+  const { supabase, adminSupabase, professionalId } = await getAuthenticatedContext()
 
   if (!professionalId) {
     return { success: false, error: 'Apenas o profissional pode adicionar o link da sessão.' }
@@ -147,12 +153,18 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     return { success: false, error: 'Não é possível adicionar link a este agendamento.' }
   }
 
-  const { error } = await supabase
+  const db = adminSupabase ?? supabase
+
+  const { data: updatedBooking, error } = await db
     .from('bookings')
     .update({ session_link: link.trim() })
     .eq('id', bookingId)
+    .eq('professional_id', professionalId)
+    .in('status', ['pending', 'confirmed'])
+    .select('id')
+    .maybeSingle()
 
-  if (error) {
+  if (error || !updatedBooking) {
     return { success: false, error: 'Erro ao salvar o link. Tente novamente.' }
   }
 
@@ -161,7 +173,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
 }
 
 export async function completeBooking(bookingId: string): Promise<ActionResult> {
-  const { supabase, professionalId } = await getAuthenticatedContext()
+  const { supabase, adminSupabase, professionalId } = await getAuthenticatedContext()
 
   if (!professionalId) {
     return { success: false, error: 'Apenas o profissional pode concluir este agendamento.' }
@@ -185,7 +197,9 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'Apenas agendamentos confirmados podem ser concluídos.' }
   }
 
-  const { data: completedBooking, error } = await supabase
+  const db = adminSupabase ?? supabase
+
+  const { data: completedBooking, error } = await db
     .from('bookings')
     .update({ status: 'completed' })
     .eq('id', bookingId)
