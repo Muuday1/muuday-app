@@ -29,12 +29,14 @@ export async function POST(request: NextRequest) {
       // Don't fail — still send the email
     }
 
-    // Send confirmation email via Resend (non-blocking).
-    // Dynamic import avoids build-time crashes when RESEND_API_KEY is missing in preview envs.
+    // Send confirmation email + add to Resend audience (non-blocking).
     void (async () => {
       try {
-        const { sendWaitlistConfirmationEmail } = await import('@/lib/email/resend')
-        await sendWaitlistConfirmationEmail(email, firstname)
+        const { sendWaitlistConfirmationEmail, addContactToResend, SEGMENTS } = await import('@/lib/email/resend')
+        await Promise.all([
+          sendWaitlistConfirmationEmail(email, firstname),
+          addContactToResend(email, firstname, SEGMENTS.waitlist),
+        ])
       } catch (e) {
         console.error('[waitlist] Email error:', e)
       }

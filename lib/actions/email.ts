@@ -3,6 +3,8 @@
 import {
   sendWelcomeEmail,
   sendCompleteAccountEmail,
+  addContactToResend,
+  SEGMENTS,
   sendBookingConfirmationEmail,
   sendNewBookingToProfessionalEmail,
   sendSessionReminder24hEmail,
@@ -34,8 +36,15 @@ async function safe<T>(fn: () => Promise<T>, label: string) {
   try { return await fn() } catch (e) { console.error(`[email] ${label}`, e) }
 }
 
+// ─── Audience management ──────────────────────────────────────────────────
+export async function addUserToResendAction(email: string, firstName: string) {
+  return safe(() => addContactToResend(email, firstName, SEGMENTS.usuarios), 'addContact')
+}
+
 // ─── Transactional ────────────────────────────────────────────────────────
 export async function sendWelcomeEmailAction(to: string, name: string) {
+  // Add to Resend audience at the same time
+  void safe(() => addContactToResend(to, name, SEGMENTS.usuarios), 'addContact')
   return safe(() => sendWelcomeEmail(to, name), 'welcome')
 }
 export async function sendCompleteAccountEmailAction(to: string, name: string) {
