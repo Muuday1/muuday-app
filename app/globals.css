@@ -31,6 +31,11 @@
   }
 }
 
+/* Safe area for mobile bottom nav (notched devices) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Smooth page transitions */
 @layer base {
   main {

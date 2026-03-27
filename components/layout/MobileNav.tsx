@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, Calendar, User, Settings, Shield } from 'lucide-react'
+import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart } from 'lucide-react'
 
 type NavItem = {
   href: string
@@ -18,6 +18,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   User,
   Settings,
   Shield,
+  Heart,
 }
 
 export function MobileNav({

@@ -213,6 +213,24 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
+  async function deleteReview(id: string) {
+    if (!confirm('Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.')) return
+    setActionLoading(id)
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', id)
+
+    if (!error) {
+      setReviews(prev => prev.filter(r => r.id !== id))
+      if (stats) {
+        setStats(prev => prev ? { ...prev, totalReviews: prev.totalReviews - 1, pendingReviews: Math.max(0, prev.pendingReviews - 1) } : prev)
+      }
+      showSuccess('Avaliação rejeitada e excluída!')
+    }
+    setActionLoading(null)
+  }
+
   function showSuccess(msg: string) {
     setSuccessMsg(msg)
     setTimeout(() => setSuccessMsg(''), 3000)
@@ -647,14 +665,24 @@ export default function AdminPage() {
 
                 <div className="flex gap-2">
                   {!review.is_visible ? (
-                    <button
-                      onClick={() => toggleReviewVisibility(review.id, true)}
-                      disabled={actionLoading === review.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-medium transition-all disabled:opacity-50"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      {actionLoading === review.id ? '...' : 'Aprovar e publicar'}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => toggleReviewVisibility(review.id, true)}
+                        disabled={actionLoading === review.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {actionLoading === review.id ? '...' : 'Aprovar'}
+                      </button>
+                      <button
+                        onClick={() => deleteReview(review.id)}
+                        disabled={actionLoading === review.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        {actionLoading === review.id ? '...' : 'Rejeitar'}
+                      </button>
+                    </>
                   ) : (
                     <button
                       onClick={() => toggleReviewVisibility(review.id, false)}

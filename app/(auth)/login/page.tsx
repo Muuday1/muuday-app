@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -80,6 +81,15 @@ export default function LoginPage() {
           {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Entrando...</> : 'Entrar'}
         </button>
       </form>
+
+      <div className="mt-6">
+        <div className="relative flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-neutral-200" />
+          <span className="text-xs text-neutral-400 font-medium">ou entre com</span>
+          <div className="flex-1 h-px bg-neutral-200" />
+        </div>
+        <SocialAuthButtons />
+      </div>
 
       <p className="text-center text-sm text-neutral-500 mt-6">
         Não tem uma conta?{' '}

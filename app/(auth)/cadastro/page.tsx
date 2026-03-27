@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
+import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
+import { sendWelcomeEmailAction } from '@/lib/actions/email'
 
 type Role = 'usuario' | 'profissional'
 
@@ -17,15 +20,26 @@ export default function CadastroPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [country, setCountry] = useState('')
+  const [timezone, setTimezone] = useState('America/Sao_Paulo')
+  const [currency, setCurrency] = useState('BRL')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Auto-fill timezone and currency when country changes
+  useEffect(() => {
+    if (!country) return
+    const selectedCountry = COUNTRIES.find(c => c.code === country)
+    if (selectedCountry) {
+      setTimezone(selectedCountry.timezone)
+      setCurrency(selectedCountry.currency)
+    }
+  }, [country])
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    const selectedCountry = COUNTRIES.find(c => c.code === country)
     const supabase = createClient()
 
     const { error } = await supabase.auth.signUp({
@@ -36,8 +50,8 @@ export default function CadastroPage() {
           full_name: fullName,
           role,
           country,
-          timezone: selectedCountry?.timezone || 'America/Sao_Paulo',
-          currency: selectedCountry?.currency || 'BRL',
+          timezone,
+          currency,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -48,6 +62,9 @@ export default function CadastroPage() {
       setLoading(false)
       return
     }
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmailAction(email, fullName)
 
     router.push('/dashboard')
     router.refresh()
@@ -94,8 +111,19 @@ export default function CadastroPage() {
             onClick={() => setStep(2)}
             className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all"
           >
-            Continuar
+            Continuar com email
           </button>
+
+          {role === 'usuario' && (
+            <>
+              <div className="relative flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-neutral-200" />
+                <span className="text-xs text-neutral-400 font-medium">ou cadastre-se com</span>
+                <div className="flex-1 h-px bg-neutral-200" />
+              </div>
+              <SocialAuthButtons />
+            </>
+          )}
         </div>
       )}
 
@@ -130,6 +158,46 @@ export default function CadastroPage() {
               ))}
             </select>
           </div>
+
+          {/* Timezone — only for usuario */}
+          {role === 'usuario' && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                Fuso horário
+                <span className="text-xs text-neutral-400 font-normal ml-1">(preenchido automaticamente)</span>
+              </label>
+              <select
+                value={timezone}
+                onChange={e => setTimezone(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              >
+                {ALL_TIMEZONES.map(tz => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Currency — only for usuario */}
+          {role === 'usuario' && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                Moeda preferida
+                <span className="text-xs text-neutral-400 font-normal ml-1">(para exibir preços)</span>
+              </label>
+              <select
+                value={currency}
+                onChange={e => setCurrency(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              >
+                {STRIPE_CURRENCIES.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1.5">Email</label>

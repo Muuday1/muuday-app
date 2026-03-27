@@ -1,33 +1,55 @@
-// NOTE: Favorites are currently stored in localStorage keyed by professional ID.
-// TODO: Migrate to a Supabase `favorites` table (user_id, professional_id, created_at)
-// with RLS policy: users can manage their own favorites.
+import { createClient } from '@/lib/supabase/client'
 
-const FAVORITES_KEY = 'muuday_favorites'
+export async function getFavoriteIds(): Promise<string[]> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
 
-export function getFavoriteIds(): string[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  const { data } = await supabase
+    .from('favorites')
+    .select('professional_id')
+    .eq('user_id', user.id)
+
+  return data?.map(f => f.professional_id) || []
 }
 
-export function toggleFavorite(professionalId: string): boolean {
-  const ids = getFavoriteIds()
-  const index = ids.indexOf(professionalId)
-  if (index === -1) {
-    ids.push(professionalId)
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids))
-    return true // now favorited
-  } else {
-    ids.splice(index, 1)
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids))
+export async function toggleFavorite(professionalId: string): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data: existing } = await supabase
+    .from('favorites')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('professional_id', professionalId)
+    .single()
+
+  if (existing) {
+    await supabase
+      .from('favorites')
+      .delete()
+      .eq('id', existing.id)
     return false // removed
+  } else {
+    await supabase
+      .from('favorites')
+      .insert({ user_id: user.id, professional_id: professionalId })
+    return true // added
   }
 }
 
-export function isFavorited(professionalId: string): boolean {
-  return getFavoriteIds().includes(professionalId)
+export async function isFavorited(professionalId: string): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data } = await supabase
+    .from('favorites')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('professional_id', professionalId)
+    .single()
+
+  return !!data
 }

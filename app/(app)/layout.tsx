@@ -23,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const navItems = [
     { href: '/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
     { href: '/buscar', icon: 'Search', label: 'Buscar', hide: isProfissional },
+    { href: '/favoritos', icon: 'Heart', label: 'Favoritos', hide: isProfissional },
     { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
     { href: '/perfil', icon: 'User', label: 'Meu Perfil' },
     { href: '/configuracoes', icon: 'Settings', label: 'Configurações' },

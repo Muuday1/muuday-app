@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Star, Clock, Heart, Search, Trash2 } from 'lucide-react'
 import { CATEGORIES } from '@/types'
 import { formatCurrency } from '@/lib/utils'
-import { getFavoriteIds, toggleFavorite } from '@/lib/favorites'
 
 type Professional = {
   id: string
@@ -19,34 +18,57 @@ type Professional = {
 }
 
 export default function FavoritosPage() {
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [loading, setLoading] = useState(true)
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
-    const ids = getFavoriteIds()
-    setFavoriteIds(ids)
-    if (ids.length === 0) {
+    async function loadFavorites() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const { data: favs } = await supabase
+        .from('favorites')
+        .select('professional_id')
+        .eq('user_id', user.id)
+
+      const ids = favs?.map(f => f.professional_id) || []
+      if (ids.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      const { data } = await supabase
+        .from('professionals')
+        .select('id, category, rating, total_reviews, session_price_brl, session_duration_minutes, profiles(*)')
+        .in('id', ids)
+        .eq('status', 'approved')
+
+      setProfessionals((data as unknown as Professional[]) || [])
       setLoading(false)
-      return
     }
 
-    const supabase = createClient()
-    supabase
-      .from('professionals')
-      .select('id, category, rating, total_reviews, session_price_brl, session_duration_minutes, profiles(*)')
-      .in('id', ids)
-      .eq('status', 'approved')
-      .then(({ data }) => {
-        setProfessionals((data as unknown as Professional[]) || [])
-        setLoading(false)
-      })
+    loadFavorites()
   }, [])
 
   function handleRemove(professionalId: string) {
-    toggleFavorite(professionalId)
-    setFavoriteIds(prev => prev.filter(id => id !== professionalId))
-    setProfessionals(prev => prev.filter(p => p.id !== professionalId))
+    startTransition(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('professional_id', professionalId)
+
+      setProfessionals(prev => prev.filter(p => p.id !== professionalId))
+    })
   }
 
   return (
@@ -74,7 +96,7 @@ export default function FavoritosPage() {
             </div>
           ))}
         </div>
-      ) : favoriteIds.length === 0 || professionals.length === 0 ? (
+      ) : professionals.length === 0 ? (
         /* Empty state */
         <div className="text-center py-20 bg-white rounded-2xl border border-neutral-100">
           <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -113,6 +135,7 @@ export default function FavoritosPage() {
                   {/* Remove button */}
                   <button
                     onClick={() => handleRemove(pro.id)}
+                    disabled={isPending}
                     className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all"
                     aria-label="Remover dos favoritos"
                     title="Remover dos favoritos"

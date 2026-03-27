@@ -1,3 +1,5 @@
+export const metadata = { title: 'Agendar Sessão | Muuday' }
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { CATEGORIES } from '@/types'
