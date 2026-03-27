@@ -19,26 +19,55 @@ export default async function AgendaPage() {
 
   const isProfissional = profile?.role === 'profissional'
 
-  // Fetch upcoming bookings
-  const bookingQuery = isProfissional
-    ? supabase
-        .from('bookings')
-        .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles(*))')
-        .eq('professional_id', user.id)
-    : supabase
-        .from('bookings')
-        .select('*, professionals(*, profiles(*))')
-        .eq('user_id', user.id)
+  let professionalId: string | null = null
+  if (isProfissional) {
+    const { data: professional } = await supabase
+      .from('professionals')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    professionalId = professional?.id ?? null
+  }
 
-  const { data: upcomingBookings } = await bookingQuery
-    .in('status', ['pending', 'confirmed'])
-    .gte('scheduled_at', new Date().toISOString())
-    .order('scheduled_at', { ascending: true })
+  const upcomingBookingsQuery =
+    isProfissional && professionalId
+      ? supabase
+          .from('bookings')
+          .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles(*))')
+          .eq('professional_id', professionalId)
+      : isProfissional
+        ? null
+        : supabase
+            .from('bookings')
+            .select('*, professionals(*, profiles(*))')
+            .eq('user_id', user.id)
 
-  const { data: pastBookings } = await bookingQuery
-    .in('status', ['completed', 'cancelled', 'no_show'])
-    .order('scheduled_at', { ascending: false })
-    .limit(10)
+  const pastBookingsQuery =
+    isProfissional && professionalId
+      ? supabase
+          .from('bookings')
+          .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles(*))')
+          .eq('professional_id', professionalId)
+      : isProfissional
+        ? null
+        : supabase
+            .from('bookings')
+            .select('*, professionals(*, profiles(*))')
+            .eq('user_id', user.id)
+
+  const { data: upcomingBookings } = upcomingBookingsQuery
+    ? await upcomingBookingsQuery
+        .in('status', ['pending', 'confirmed'])
+        .gte('scheduled_at', new Date().toISOString())
+        .order('scheduled_at', { ascending: true })
+    : { data: [] as any[] }
+
+  const { data: pastBookings } = pastBookingsQuery
+    ? await pastBookingsQuery
+        .in('status', ['completed', 'cancelled', 'no_show'])
+        .order('scheduled_at', { ascending: false })
+        .limit(10)
+    : { data: [] as any[] }
 
   const upcoming = upcomingBookings || []
   const past = pastBookings || []

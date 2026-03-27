@@ -6,17 +6,29 @@ import { redirect } from 'next/navigation'
 
 type ActionResult = { success: true } | { success: false; error: string }
 
-async function getAuthenticatedUser() {
+async function getAuthenticatedContext() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  return { supabase, user }
+
+  const { data: professional } = await supabase
+    .from('professionals')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  return { supabase, user, professionalId: professional?.id ?? null }
 }
 
 export async function confirmBooking(bookingId: string): Promise<ActionResult> {
-  const { supabase, user } = await getAuthenticatedUser()
+  const { supabase, professionalId } = await getAuthenticatedContext()
 
-  // Verify the current user is the professional for this booking
+  if (!professionalId) {
+    return { success: false, error: 'Apenas o profissional pode confirmar este agendamento.' }
+  }
+
   const { data: booking } = await supabase
     .from('bookings')
     .select('id, status, professional_id')
@@ -27,7 +39,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Agendamento não encontrado.' }
   }
 
-  if (booking.professional_id !== user.id) {
+  if (booking.professional_id !== professionalId) {
     return { success: false, error: 'Apenas o profissional pode confirmar este agendamento.' }
   }
 
@@ -35,10 +47,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Este agendamento não está pendente.' }
   }
 
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status: 'confirmed' })
-    .eq('id', bookingId)
+  const { error } = await supabase.from('bookings').update({ status: 'confirmed' }).eq('id', bookingId)
 
   if (error) {
     return { success: false, error: 'Erro ao confirmar agendamento. Tente novamente.' }
@@ -49,9 +58,9 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
 }
 
 export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {
-  const { supabase, user } = await getAuthenticatedUser()
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
 
-  // Both user and professional can cancel
+  // Both user and assigned professional can cancel
   const { data: booking } = await supabase
     .from('bookings')
     .select('id, status, professional_id, user_id')
@@ -62,7 +71,10 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     return { success: false, error: 'Agendamento não encontrado.' }
   }
 
-  if (booking.user_id !== user.id && booking.professional_id !== user.id) {
+  const isBookingUser = booking.user_id === user.id
+  const isBookingProfessional = professionalId ? booking.professional_id === professionalId : false
+
+  if (!isBookingUser && !isBookingProfessional) {
     return { success: false, error: 'Você não tem permissão para cancelar este agendamento.' }
   }
 
@@ -75,10 +87,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     updateData.cancellation_reason = reason
   }
 
-  const { error } = await supabase
-    .from('bookings')
-    .update(updateData)
-    .eq('id', bookingId)
+  const { error } = await supabase.from('bookings').update(updateData).eq('id', bookingId)
 
   if (error) {
     return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
@@ -89,7 +98,11 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 }
 
 export async function addSessionLink(bookingId: string, link: string): Promise<ActionResult> {
-  const { supabase, user } = await getAuthenticatedUser()
+  const { supabase, professionalId } = await getAuthenticatedContext()
+
+  if (!professionalId) {
+    return { success: false, error: 'Apenas o profissional pode adicionar o link da sessão.' }
+  }
 
   if (!link || !link.trim()) {
     return { success: false, error: 'O link da sessão é obrigatório.' }
@@ -105,7 +118,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     return { success: false, error: 'Agendamento não encontrado.' }
   }
 
-  if (booking.professional_id !== user.id) {
+  if (booking.professional_id !== professionalId) {
     return { success: false, error: 'Apenas o profissional pode adicionar o link da sessão.' }
   }
 
@@ -127,7 +140,11 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
 }
 
 export async function completeBooking(bookingId: string): Promise<ActionResult> {
-  const { supabase, user } = await getAuthenticatedUser()
+  const { supabase, professionalId } = await getAuthenticatedContext()
+
+  if (!professionalId) {
+    return { success: false, error: 'Apenas o profissional pode concluir este agendamento.' }
+  }
 
   const { data: booking } = await supabase
     .from('bookings')
@@ -139,7 +156,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'Agendamento não encontrado.' }
   }
 
-  if (booking.professional_id !== user.id) {
+  if (booking.professional_id !== professionalId) {
     return { success: false, error: 'Apenas o profissional pode concluir este agendamento.' }
   }
 
@@ -147,10 +164,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'Apenas agendamentos confirmados podem ser concluídos.' }
   }
 
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status: 'completed' })
-    .eq('id', bookingId)
+  const { error } = await supabase.from('bookings').update({ status: 'completed' }).eq('id', bookingId)
 
   if (error) {
     return { success: false, error: 'Erro ao concluir agendamento. Tente novamente.' }
@@ -159,3 +173,4 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
   revalidatePath('/agenda')
   return { success: true }
 }
+

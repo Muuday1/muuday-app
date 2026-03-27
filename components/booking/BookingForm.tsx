@@ -210,8 +210,6 @@ export default function BookingForm({
       const result = await createBooking({
         professionalId: professional.id,
         scheduledAt,
-        durationMinutes: professional.session_duration_minutes,
-        priceBrl: professional.session_price_brl,
         notes: notes.trim() || undefined,
       })
       setBookingResult(result)
