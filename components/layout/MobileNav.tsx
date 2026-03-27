@@ -38,7 +38,7 @@ export function MobileNav({
       <div className="flex items-center justify-around px-2 py-2">
         {mobileItems.map(({ href, icon, label }) => {
           const Icon = iconMap[icon] || LayoutDashboard
-          const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          const isActive = pathname === href || pathname.startsWith(`${href}/`)
 
           return (
             <Link

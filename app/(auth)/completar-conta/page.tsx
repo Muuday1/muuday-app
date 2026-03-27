@@ -63,7 +63,7 @@ export default function CompletarContaPage() {
       sendWelcomeEmailAction(currentUser.email, displayName)
     }
 
-    router.push('/dashboard')
+    router.push('/buscar')
     router.refresh()
   }
 

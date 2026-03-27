@@ -66,7 +66,7 @@ export default function CadastroPage() {
     // Send welcome email (non-blocking)
     sendWelcomeEmailAction(email, fullName)
 
-    router.push('/dashboard')
+    router.push('/buscar')
     router.refresh()
   }
 

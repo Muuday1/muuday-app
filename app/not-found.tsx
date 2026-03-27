@@ -14,7 +14,7 @@ export default function NotFound() {
           A página que você procura não existe ou foi movida.
         </p>
         <Link
-          href="/dashboard"
+          href="/buscar"
           className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl transition-all text-sm"
         >
           Voltar ao início

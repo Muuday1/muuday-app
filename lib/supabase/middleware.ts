@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if (user && ['/login', '/cadastro'].includes(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/buscar'
     return NextResponse.redirect(url)
   }
 

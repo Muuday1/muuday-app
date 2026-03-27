@@ -210,7 +210,15 @@ export default async function PerfilPage() {
 
       {/* Account info */}
       <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-        <h3 className="font-display font-bold text-lg text-neutral-900 mb-4">Conta</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display font-bold text-lg text-neutral-900">Conta</h3>
+          <Link
+            href="/configuracoes"
+            className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
+          >
+            Abrir configuracoes
+          </Link>
+        </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between py-2 border-b border-neutral-50">
             <div>

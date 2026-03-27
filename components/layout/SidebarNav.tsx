@@ -27,7 +27,7 @@ export function SidebarNav({ navItems }: { navItems: NavItem[] }) {
     <nav className="flex-1 p-4 space-y-1">
       {navItems.map(({ href, icon, label }) => {
         const Icon = iconMap[icon] || LayoutDashboard
-        const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+        const isActive = pathname === href || pathname.startsWith(`${href}/`)
 
         return (
           <Link
