@@ -33,15 +33,29 @@ jobs:
             echo "CRON_SECRET is missing in repository secrets."
             exit 1
           fi
-          curl --fail --show-error --silent \
-            -H "x-cron-secret: $CRON_SECRET" \
-            "https://muuday-app.vercel.app/api/cron/booking-reminders"
+          SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
+          echo "CRON_SECRET_LENGTH=${#SECRET}"
+          http_code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
+            -H "x-cron-secret: $SECRET" \
+            "https://muuday-app.vercel.app/api/cron/booking-reminders")
+          echo "booking-reminders status: $http_code"
+          cat response.json
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            exit 22
+          fi
 
       - name: Run booking timeouts (every 15 min)
         if: steps.clock.outputs.run_timeouts == 'true'
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl --fail --show-error --silent \
-            -H "x-cron-secret: $CRON_SECRET" \
-            "https://muuday-app.vercel.app/api/cron/booking-timeouts"
+          SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
+          echo "CRON_SECRET_LENGTH=${#SECRET}"
+          http_code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
+            -H "x-cron-secret: $SECRET" \
+            "https://muuday-app.vercel.app/api/cron/booking-timeouts")
+          echo "booking-timeouts status: $http_code"
+          cat response.json
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            exit 22
+          fi
