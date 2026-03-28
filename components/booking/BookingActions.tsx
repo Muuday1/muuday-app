@@ -28,6 +28,7 @@ export default function BookingActions({
   const [linkValue, setLinkValue] = useState(sessionLink || '')
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+  const fallbackErrorMessage = 'Nao foi possivel concluir a acao. Tente novamente.'
 
   function clearFeedback() {
     setTimeout(() => setFeedback(null), 4000)
@@ -35,11 +36,15 @@ export default function BookingActions({
 
   function handleConfirm() {
     startTransition(async () => {
-      const result = await confirmBooking(bookingId)
-      if (result.success) {
-        setFeedback({ type: 'success', message: 'Agendamento confirmado!' })
-      } else {
-        setFeedback({ type: 'error', message: result.error })
+      try {
+        const result = await confirmBooking(bookingId)
+        if (result?.success) {
+          setFeedback({ type: 'success', message: 'Agendamento confirmado!' })
+        } else {
+          setFeedback({ type: 'error', message: result?.error || fallbackErrorMessage })
+        }
+      } catch {
+        setFeedback({ type: 'error', message: fallbackErrorMessage })
       }
       clearFeedback()
     })
@@ -47,12 +52,16 @@ export default function BookingActions({
 
   function handleCancel() {
     startTransition(async () => {
-      const result = await cancelBooking(bookingId, cancelReason.trim() || undefined)
-      if (result.success) {
-        setFeedback({ type: 'success', message: 'Agendamento cancelado.' })
-        setShowCancelConfirm(false)
-      } else {
-        setFeedback({ type: 'error', message: result.error })
+      try {
+        const result = await cancelBooking(bookingId, cancelReason.trim() || undefined)
+        if (result?.success) {
+          setFeedback({ type: 'success', message: 'Agendamento cancelado.' })
+          setShowCancelConfirm(false)
+        } else {
+          setFeedback({ type: 'error', message: result?.error || fallbackErrorMessage })
+        }
+      } catch {
+        setFeedback({ type: 'error', message: fallbackErrorMessage })
       }
       clearFeedback()
     })
@@ -61,12 +70,16 @@ export default function BookingActions({
   function handleAddLink() {
     if (!linkValue.trim()) return
     startTransition(async () => {
-      const result = await addSessionLink(bookingId, linkValue)
-      if (result.success) {
-        setFeedback({ type: 'success', message: 'Link adicionado!' })
-        setShowLinkInput(false)
-      } else {
-        setFeedback({ type: 'error', message: result.error })
+      try {
+        const result = await addSessionLink(bookingId, linkValue)
+        if (result?.success) {
+          setFeedback({ type: 'success', message: 'Link adicionado!' })
+          setShowLinkInput(false)
+        } else {
+          setFeedback({ type: 'error', message: result?.error || fallbackErrorMessage })
+        }
+      } catch {
+        setFeedback({ type: 'error', message: fallbackErrorMessage })
       }
       clearFeedback()
     })
@@ -74,11 +87,15 @@ export default function BookingActions({
 
   function handleComplete() {
     startTransition(async () => {
-      const result = await completeBooking(bookingId)
-      if (result.success) {
-        setFeedback({ type: 'success', message: 'Sessão concluída!' })
-      } else {
-        setFeedback({ type: 'error', message: result.error })
+      try {
+        const result = await completeBooking(bookingId)
+        if (result?.success) {
+          setFeedback({ type: 'success', message: 'Sessao concluida!' })
+        } else {
+          setFeedback({ type: 'error', message: result?.error || fallbackErrorMessage })
+        }
+      } catch {
+        setFeedback({ type: 'error', message: fallbackErrorMessage })
       }
       clearFeedback()
     })
@@ -254,3 +271,4 @@ export default function BookingActions({
     </div>
   )
 }
+
