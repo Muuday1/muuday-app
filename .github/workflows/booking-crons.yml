@@ -14,7 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      CRON_BASE_URL: https://app.muuday.com
+      PRIMARY_CRON_BASE_URL: https://app.muuday.com
+      FALLBACK_CRON_BASE_URL: https://muuday-app.vercel.app
     steps:
       - name: Prepare time window
         id: clock
@@ -38,8 +39,16 @@ jobs:
           fi
           SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
           echo "CRON_SECRET_LENGTH=${#SECRET}"
-          echo "CRON_BASE_URL=$CRON_BASE_URL"
-          REMINDERS_URL="$CRON_BASE_URL/api/cron/booking-reminders"
+
+          PRIMARY_HOST="$(echo "$PRIMARY_CRON_BASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          if getent hosts "$PRIMARY_HOST" >/dev/null 2>&1; then
+            BASE_URL="$PRIMARY_CRON_BASE_URL"
+          else
+            BASE_URL="$FALLBACK_CRON_BASE_URL"
+          fi
+
+          echo "CRON_BASE_URL=$BASE_URL"
+          REMINDERS_URL="$BASE_URL/api/cron/booking-reminders"
           if [ -n "$VERCEL_BYPASS_TOKEN" ]; then
             REMINDERS_URL="$REMINDERS_URL?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=$VERCEL_BYPASS_TOKEN"
             echo "Using Vercel bypass token for reminders endpoint."
@@ -61,8 +70,16 @@ jobs:
         run: |
           SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
           echo "CRON_SECRET_LENGTH=${#SECRET}"
-          echo "CRON_BASE_URL=$CRON_BASE_URL"
-          TIMEOUTS_URL="$CRON_BASE_URL/api/cron/booking-timeouts"
+
+          PRIMARY_HOST="$(echo "$PRIMARY_CRON_BASE_URL" | sed -E 's#https?://([^/]+).*#\1#')"
+          if getent hosts "$PRIMARY_HOST" >/dev/null 2>&1; then
+            BASE_URL="$PRIMARY_CRON_BASE_URL"
+          else
+            BASE_URL="$FALLBACK_CRON_BASE_URL"
+          fi
+
+          echo "CRON_BASE_URL=$BASE_URL"
+          TIMEOUTS_URL="$BASE_URL/api/cron/booking-timeouts"
           if [ -n "$VERCEL_BYPASS_TOKEN" ]; then
             TIMEOUTS_URL="$TIMEOUTS_URL?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=$VERCEL_BYPASS_TOKEN"
             echo "Using Vercel bypass token for timeouts endpoint."
