@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      CRON_BASE_URL: https://muuday-app-muuday1s-projects.vercel.app
+      CRON_BASE_URL: https://app.muuday.com
     steps:
       - name: Prepare time window
         id: clock
@@ -30,6 +30,7 @@ jobs:
       - name: Run booking reminders (every 5 min)
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_BYPASS_TOKEN: ${{ secrets.VERCEL_BYPASS_TOKEN }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "CRON_SECRET is missing in repository secrets."
@@ -38,9 +39,14 @@ jobs:
           SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
           echo "CRON_SECRET_LENGTH=${#SECRET}"
           echo "CRON_BASE_URL=$CRON_BASE_URL"
+          REMINDERS_URL="$CRON_BASE_URL/api/cron/booking-reminders"
+          if [ -n "$VERCEL_BYPASS_TOKEN" ]; then
+            REMINDERS_URL="$REMINDERS_URL?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=$VERCEL_BYPASS_TOKEN"
+            echo "Using Vercel bypass token for reminders endpoint."
+          fi
           http_code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
             -H "x-cron-secret: $SECRET" \
-            "$CRON_BASE_URL/api/cron/booking-reminders")
+            "$REMINDERS_URL")
           echo "booking-reminders status: $http_code"
           cat response.json
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
@@ -51,13 +57,19 @@ jobs:
         if: steps.clock.outputs.run_timeouts == 'true'
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_BYPASS_TOKEN: ${{ secrets.VERCEL_BYPASS_TOKEN }}
         run: |
           SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
           echo "CRON_SECRET_LENGTH=${#SECRET}"
           echo "CRON_BASE_URL=$CRON_BASE_URL"
+          TIMEOUTS_URL="$CRON_BASE_URL/api/cron/booking-timeouts"
+          if [ -n "$VERCEL_BYPASS_TOKEN" ]; then
+            TIMEOUTS_URL="$TIMEOUTS_URL?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=$VERCEL_BYPASS_TOKEN"
+            echo "Using Vercel bypass token for timeouts endpoint."
+          fi
           http_code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
             -H "x-cron-secret: $SECRET" \
-            "$CRON_BASE_URL/api/cron/booking-timeouts")
+            "$TIMEOUTS_URL")
           echo "booking-timeouts status: $http_code"
           cat response.json
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
