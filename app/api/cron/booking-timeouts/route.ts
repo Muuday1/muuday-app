@@ -7,6 +7,7 @@ type BookingRow = {
   id: string
   created_at: string
   metadata: Record<string, unknown> | null
+  status?: string | null
 }
 
 function parseAuthToken(request: NextRequest) {
@@ -69,16 +70,32 @@ export async function GET(request: NextRequest) {
   const now = new Date()
   const nowIso = now.toISOString()
 
-  const { data: pendingBookings, error: fetchError } = await admin
+  let bookingsResponse = (await admin
     .from('bookings')
-    .select('id, created_at, metadata')
-    .eq('status', 'pending_confirmation')
-    .limit(500)
+    .select('id, created_at, metadata, status')
+    .limit(500)) as { data: BookingRow[] | null; error: { message?: string } | null }
 
-  if (fetchError) {
-    console.error('[cron/booking-timeouts] fetch error:', fetchError)
-    return NextResponse.json({ error: 'Failed to load pending bookings.' }, { status: 500 })
+  if (bookingsResponse.error && bookingsResponse.error.message?.includes('metadata')) {
+    bookingsResponse = (await admin
+      .from('bookings')
+      .select('id, created_at, status')
+      .limit(500)) as { data: BookingRow[] | null; error: { message?: string } | null }
   }
+
+  if (bookingsResponse.error) {
+    console.error('[cron/booking-timeouts] fetch error:', bookingsResponse.error)
+    return NextResponse.json(
+      {
+        error: 'Failed to load pending bookings.',
+        details: bookingsResponse.error.message || 'unknown',
+      },
+      { status: 500 },
+    )
+  }
+
+  const pendingBookings = (bookingsResponse.data || []).filter(
+    booking => String(booking.status || '') === 'pending_confirmation',
+  )
 
   const expired = ((pendingBookings || []) as BookingRow[]).filter(booking => {
     const deadline = getConfirmationDeadline(booking)
@@ -106,7 +123,7 @@ export async function GET(request: NextRequest) {
       auto_cancel_reason: 'professional_confirmation_timeout',
     }
 
-    const { data: updatedBooking, error: cancelError } = await admin
+    let cancelResponse = await admin
       .from('bookings')
       .update({
         status: 'cancelled',
@@ -118,13 +135,28 @@ export async function GET(request: NextRequest) {
       .select('id')
       .maybeSingle()
 
+    if (cancelResponse.error && cancelResponse.error.message?.includes('metadata')) {
+      cancelResponse = await admin
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          cancellation_reason: 'Tempo para confirmacao expirou.',
+        })
+        .eq('id', booking.id)
+        .eq('status', 'pending_confirmation')
+        .select('id')
+        .maybeSingle()
+    }
+
+    const { data: updatedBooking, error: cancelError } = cancelResponse
+
     if (cancelError || !updatedBooking) {
       console.error('[cron/booking-timeouts] cancel error:', booking.id, cancelError?.message)
       continue
     }
     cancelled += 1
 
-    const { error: refundError } = await admin
+    const refundResponse = await admin
       .from('payments')
       .update({
         status: 'refunded',
@@ -133,6 +165,7 @@ export async function GET(request: NextRequest) {
       .eq('booking_id', booking.id)
       .in('status', ['captured'])
 
+    const { error: refundError } = refundResponse
     if (refundError) {
       console.error('[cron/booking-timeouts] refund error:', booking.id, refundError.message)
       continue
