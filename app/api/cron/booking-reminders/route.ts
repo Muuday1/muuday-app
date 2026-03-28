@@ -6,7 +6,11 @@ type ReminderType = 'booking.reminder.24h' | 'booking.reminder.1h' | 'booking.re
 function parseAuthToken(request: NextRequest) {
   const header = request.headers.get('authorization') || ''
   const match = header.match(/^Bearer\s+(.+)$/i)
-  return match?.[1]?.trim() || ''
+  if (match?.[1]?.trim()) return match[1].trim()
+  const altHeader = request.headers.get('x-cron-secret') || ''
+  if (altHeader.trim()) return altHeader.trim()
+  const queryToken = request.nextUrl.searchParams.get('token') || ''
+  return queryToken.trim()
 }
 
 function normalizeSecret(value: string | undefined | null) {
