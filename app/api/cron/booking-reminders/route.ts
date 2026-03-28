@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
   const { data: bookings, error } = await admin
     .from('bookings')
-    .select('id, user_id, scheduled_at, professionals!inner(user_id)')
+    .select('id, user_id, professional_id, scheduled_at')
     .eq('status', 'confirmed')
     .gte('scheduled_at', nowIso)
     .lte('scheduled_at', in24h)
@@ -72,19 +72,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to load bookings.' }, { status: 500 })
   }
 
+  const professionalIds = Array.from(
+    new Set(
+      (bookings || [])
+        .map(booking => String((booking as Record<string, unknown>).professional_id || ''))
+        .filter(Boolean),
+    ),
+  )
+
+  const professionalOwnerById = new Map<string, string>()
+  if (professionalIds.length > 0) {
+    const { data: professionals, error: professionalsError } = await admin
+      .from('professionals')
+      .select('id, user_id')
+      .in('id', professionalIds)
+
+    if (professionalsError) {
+      console.error('[cron/booking-reminders] professionals load error:', professionalsError)
+      return NextResponse.json({ error: 'Failed to load professionals.' }, { status: 500 })
+    }
+
+    for (const professional of professionals || []) {
+      const row = professional as Record<string, unknown>
+      professionalOwnerById.set(String(row.id), String(row.user_id || ''))
+    }
+  }
+
   const notificationsToInsert: Record<string, unknown>[] = []
 
   for (const booking of bookings || []) {
     const bookingId = String((booking as Record<string, unknown>).id)
     const userId = String((booking as Record<string, unknown>).user_id)
+    const professionalId = String((booking as Record<string, unknown>).professional_id || '')
     const scheduledAt = String((booking as Record<string, unknown>).scheduled_at)
-    const professionalRelation = (booking as Record<string, unknown>).professionals as
-      | Record<string, unknown>
-      | Record<string, unknown>[]
-      | null
-    const professionalUserId = Array.isArray(professionalRelation)
-      ? String(professionalRelation[0]?.user_id || '')
-      : String(professionalRelation?.user_id || '')
+    const professionalUserId = professionalOwnerById.get(professionalId) || ''
 
     const minutesUntil = Math.round((new Date(scheduledAt).getTime() - now.getTime()) / (1000 * 60))
     const reminderType = resolveReminderType(minutesUntil)
