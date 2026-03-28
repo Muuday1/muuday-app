@@ -1,5 +1,14 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
+function normalizeKey(key: string | undefined | null) {
+  if (!key) return ''
+  let normalized = key.trim()
+  if (normalized.startsWith('"') && normalized.endsWith('"') && normalized.length >= 2) {
+    normalized = normalized.slice(1, -1)
+  }
+  return normalized.replace(/\s+/g, '')
+}
+
 function isServiceRoleLikeKey(key: string) {
   if (!key) return false
 
@@ -19,8 +28,9 @@ function isServiceRoleLikeKey(key: string) {
 
 export function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
-  const serviceRoleKey =
+  const serviceRoleKey = normalizeKey(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY
+  )
 
   if (!supabaseUrl || !serviceRoleKey || !isServiceRoleLikeKey(serviceRoleKey)) {
     return null
