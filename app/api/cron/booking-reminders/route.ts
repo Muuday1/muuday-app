@@ -59,22 +59,44 @@ export async function GET(request: NextRequest) {
   const nowIso = now.toISOString()
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: bookings, error } = await admin
+  let bookings: Record<string, unknown>[] = []
+  let loadError: { message?: string } | null = null
+
+  let bookingsQuery = await admin
     .from('bookings')
-    .select('id, user_id, professional_id, scheduled_at')
-    .eq('status', 'confirmed')
+    .select('id, user_id, professional_id, scheduled_at, status')
     .gte('scheduled_at', nowIso)
     .lte('scheduled_at', in24h)
     .limit(1000)
 
-  if (error) {
-    console.error('[cron/booking-reminders] load error:', error)
-    return NextResponse.json({ error: 'Failed to load bookings.' }, { status: 500 })
+  if (bookingsQuery.error && bookingsQuery.error.message?.includes('professional_id')) {
+    bookingsQuery = await admin
+      .from('bookings')
+      .select('id, user_id, scheduled_at, status')
+      .gte('scheduled_at', nowIso)
+      .lte('scheduled_at', in24h)
+      .limit(1000)
   }
+
+  if (bookingsQuery.error) {
+    loadError = bookingsQuery.error
+  } else {
+    bookings = (bookingsQuery.data as Record<string, unknown>[]) || []
+  }
+
+  if (loadError) {
+    console.error('[cron/booking-reminders] load error:', loadError)
+    return NextResponse.json(
+      { error: 'Failed to load bookings.', details: loadError.message || 'unknown' },
+      { status: 500 },
+    )
+  }
+
+  bookings = bookings.filter(booking => String(booking.status || '') === 'confirmed')
 
   const professionalIds = Array.from(
     new Set(
-      (bookings || [])
+      bookings
         .map(booking => String((booking as Record<string, unknown>).professional_id || ''))
         .filter(Boolean),
     ),
@@ -89,7 +111,10 @@ export async function GET(request: NextRequest) {
 
     if (professionalsError) {
       console.error('[cron/booking-reminders] professionals load error:', professionalsError)
-      return NextResponse.json({ error: 'Failed to load professionals.' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to load professionals.', details: professionalsError.message || 'unknown' },
+        { status: 500 },
+      )
     }
 
     for (const professional of professionals || []) {
@@ -100,7 +125,7 @@ export async function GET(request: NextRequest) {
 
   const notificationsToInsert: Record<string, unknown>[] = []
 
-  for (const booking of bookings || []) {
+  for (const booking of bookings) {
     const bookingId = String((booking as Record<string, unknown>).id)
     const userId = String((booking as Record<string, unknown>).user_id)
     const professionalId = String((booking as Record<string, unknown>).professional_id || '')
@@ -150,7 +175,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       inserted: 0,
-      checked: (bookings || []).length,
+      checked: bookings.length,
       at: nowIso,
     })
   }
@@ -167,7 +192,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    checked: (bookings || []).length,
+    checked: bookings.length,
     inserted: notificationsToInsert.length,
     at: nowIso,
   })
