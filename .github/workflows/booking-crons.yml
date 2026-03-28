@@ -13,6 +13,8 @@ jobs:
   run-crons:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      CRON_BASE_URL: https://muuday-app-muuday1s-projects.vercel.app
     steps:
       - name: Prepare time window
         id: clock
@@ -35,9 +37,10 @@ jobs:
           fi
           SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
           echo "CRON_SECRET_LENGTH=${#SECRET}"
+          echo "CRON_BASE_URL=$CRON_BASE_URL"
           http_code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
             -H "x-cron-secret: $SECRET" \
-            "https://muuday-app.vercel.app/api/cron/booking-reminders")
+            "$CRON_BASE_URL/api/cron/booking-reminders")
           echo "booking-reminders status: $http_code"
           cat response.json
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
@@ -51,9 +54,10 @@ jobs:
         run: |
           SECRET="$(printf "%s" "$CRON_SECRET" | tr -d '\r\n' | sed 's/^"//;s/"$//')"
           echo "CRON_SECRET_LENGTH=${#SECRET}"
+          echo "CRON_BASE_URL=$CRON_BASE_URL"
           http_code=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
             -H "x-cron-secret: $SECRET" \
-            "https://muuday-app.vercel.app/api/cron/booking-timeouts")
+            "$CRON_BASE_URL/api/cron/booking-timeouts")
           echo "booking-timeouts status: $http_code"
           cat response.json
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
