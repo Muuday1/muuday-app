@@ -44,7 +44,8 @@ CREATE TABLE availability (
   day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Sunday
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
-  is_active BOOLEAN DEFAULT TRUE
+  is_active BOOLEAN DEFAULT TRUE,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Bookings
@@ -60,9 +61,19 @@ CREATE TABLE bookings (
   price_user_currency DECIMAL(10,2),
   user_currency TEXT DEFAULT 'BRL',
   notes TEXT,
+  cancellation_reason TEXT,
   stripe_payment_intent_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Favorites
+CREATE TABLE favorites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  professional_id UUID REFERENCES professionals(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, professional_id)
 );
 
 -- Reviews
@@ -85,11 +96,17 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE professionals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 
--- Profiles: users can read all, only update own
-CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+-- Profiles: only authenticated users can read, only update own
+CREATE POLICY "Authenticated users can view profiles" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id
+    AND role = (SELECT p.role FROM profiles p WHERE p.id = auth.uid())
+  );
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Professionals: approved ones are public
@@ -121,6 +138,11 @@ WITH CHECK (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+-- Favorites: users manage only their own list
+CREATE POLICY "Users can view own favorites" ON favorites FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own favorites" ON favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own favorites" ON favorites FOR DELETE USING (auth.uid() = user_id);
+
 -- Reviews: visible approved ones are public
 CREATE POLICY "Visible reviews are public" ON reviews FOR SELECT USING (is_visible = true OR user_id = auth.uid());
 CREATE POLICY "Users can create reviews" ON reviews FOR INSERT WITH CHECK (user_id = auth.uid());
@@ -130,13 +152,22 @@ CREATE POLICY "Users can create reviews" ON reviews FOR INSERT WITH CHECK (user_
 -- ============================================
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  _role TEXT;
 BEGIN
+  -- Only allow 'usuario' or 'profissional' from client metadata.
+  -- 'admin' can NEVER be set via signup — must be promoted via SQL manually.
+  _role := COALESCE(NEW.raw_user_meta_data->>'role', 'usuario');
+  IF _role NOT IN ('usuario', 'profissional') THEN
+    _role := 'usuario';
+  END IF;
+
   INSERT INTO profiles (id, email, full_name, role, country, timezone, currency)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'usuario'),
+    _role,
     NEW.raw_user_meta_data->>'country',
     COALESCE(NEW.raw_user_meta_data->>'timezone', 'America/Sao_Paulo'),
     COALESCE(NEW.raw_user_meta_data->>'currency', 'BRL')

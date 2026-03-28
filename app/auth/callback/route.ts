@@ -1,9 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Use app URL from env to prevent open redirect attacks
+function getBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+}
+
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
+  const baseUrl = getBaseUrl()
 
   if (code) {
     const supabase = createClient()
@@ -21,10 +27,10 @@ export async function GET(request: NextRequest) {
 
       // If no country set, redirect to complete account (social login flow)
       if (!profile?.country) {
-        return NextResponse.redirect(`${origin}/completar-conta`)
+        return NextResponse.redirect(`${baseUrl}/completar-conta`)
       }
     }
   }
 
-  return NextResponse.redirect(`${origin}/buscar`)
+  return NextResponse.redirect(`${baseUrl}/buscar`)
 }

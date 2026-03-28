@@ -232,7 +232,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
         <li class="fi"><div class="ficon">📅</div><div><div class="ftitle">Agendar sessões</div><p class="fdesc">Reserve horários diretamente na agenda — no seu fuso</p></div></li>
         <li class="fi"><div class="ficon">💳</div><div><div class="ftitle">Pagar em libra, euro ou dólar</div><p class="fdesc">Sem complicação, sem conversão manual</p></div></li>
       </ul>
-      ${cta(`${APP_URL}/explorar`, 'Explorar profissionais →')}
+      ${cta(`${APP_URL}/buscar`, 'Explorar profissionais →')}
       ${signoff()}`
     ),
   })
@@ -276,7 +276,7 @@ export async function sendBookingConfirmationEmail(
         { label: '🕐 Horário', value: `${time} (${timezone})` },
       ])}
       <p class="bt" style="font-size:13px;">Você receberá um lembrete 24h antes da sessão. Caso precise cancelar, faça com pelo menos 24h de antecedência.</p>
-      ${cta(`${APP_URL}/dashboard`, 'Ver meus agendamentos →')}
+      ${cta(`${APP_URL}/agenda`, 'Ver meus agendamentos →')}
       ${signoff()}`
     ),
   })
@@ -329,7 +329,7 @@ export async function sendSessionReminder24hEmail(
         { label: '🕐 Horário', value: `${time} (${timezone})` },
       ])}
       <div class="hbox"><p>Precisa cancelar ou reagendar? Faça pelo painel com pelo menos 24h de antecedência.</p></div>
-      ${cta(`${APP_URL}/dashboard`, 'Ver detalhes →')}
+      ${cta(`${APP_URL}/agenda`, 'Ver detalhes →')}
       ${signoff()}`
     ),
   })
@@ -349,7 +349,7 @@ export async function sendSessionReminder1hEmail(
       `<p class="greet">Olá, ${name}!</p>
       <p class="bt">Sua sessão com <strong>${professionalName}</strong> começa às <strong>${time} (${timezone})</strong>.</p>
       <div class="success"><p>✅ Certifique-se de estar em um local tranquilo e com boa conexão à internet.</p></div>
-      ${cta(`${APP_URL}/dashboard`, 'Acessar sessão →')}
+      ${cta(`${APP_URL}/agenda`, 'Acessar sessão →')}
       ${signoff()}`
     ),
   })
@@ -401,7 +401,7 @@ export async function sendBookingCancelledEmail(
         { label: '🕐 Horário', value: time },
       ])}
       ${cancelledBy === 'professional' ? '<div class="warn"><p>⚠️ O profissional cancelou esta sessão. Pedimos desculpas pelo inconveniente. Se houver cobrança, o reembolso será processado automaticamente.</p></div>' : ''}
-      ${cta(`${APP_URL}/explorar`, 'Buscar outros profissionais →')}
+      ${cta(`${APP_URL}/buscar`, 'Buscar outros profissionais →')}
       ${signoff()}`
     ),
   })
@@ -428,7 +428,7 @@ export async function sendPaymentConfirmationEmail(
         { label: '📅 Data', value: date },
       ])}
       <div class="hbox"><p>Guarde este email como comprovante. O valor foi processado com segurança via Stripe.</p></div>
-      ${cta(`${APP_URL}/dashboard`, 'Ver meus agendamentos →')}
+      ${cta(`${APP_URL}/agenda`, 'Ver meus agendamentos →')}
       ${signoff()}`
     ),
   })
@@ -448,7 +448,7 @@ export async function sendPaymentFailedEmail(
       <p class="bt">Não conseguimos processar o pagamento para <strong>${service}</strong>.</p>
       <div class="danger"><p>⚠️ Seu agendamento pode ser cancelado se o pagamento não for concluído em 24h.</p></div>
       <p class="bt">Por favor, verifique se o cartão está válido e tente novamente.</p>
-      ${cta(`${APP_URL}/dashboard`, 'Atualizar pagamento →')}
+      ${cta(`${APP_URL}/agenda`, 'Atualizar pagamento →')}
       ${signoff()}`
     ),
   })
@@ -468,7 +468,7 @@ export async function sendRefundEmail(
       `<p class="greet">Olá, ${name}!</p>
       <p class="bt">Seu reembolso de <strong>${amount}</strong> referente a <strong>${service}</strong> foi processado com sucesso.</p>
       <div class="hbox"><p>O valor aparecerá na sua conta em até 5 dias úteis, dependendo do seu banco.</p></div>
-      ${cta(`${APP_URL}/dashboard`, 'Ver meu histórico →')}
+      ${cta(`${APP_URL}/agenda`, 'Ver meu histórico →')}
       ${signoff()}`
     ),
   })
@@ -538,7 +538,7 @@ export async function sendProfileRejectedEmail(
         <p>${reason}</p>
       </div>
       <p class="bt">Após atualizar, seu perfil será revisado novamente.</p>
-      ${cta(`${APP_URL}/profissional/perfil/editar`, 'Atualizar meu perfil →')}
+      ${cta(`${APP_URL}/editar-perfil-profissional`, 'Atualizar meu perfil →')}
       ${signoff()}`
     ),
   })
@@ -578,7 +578,7 @@ export async function sendRequestReviewEmail(
       <p class="bt">Sua sessão de <strong>${service}</strong> com <strong>${professionalName}</strong> foi concluída. O que você achou?</p>
       <p class="bt">Avaliações ajudam outros brasileiros no exterior a encontrar os melhores profissionais — e levam menos de 1 minuto.</p>
       <div class="hbox"><p>Sua avaliação é anônima para outros usuários e ajuda o profissional a melhorar.</p></div>
-      ${cta(`${APP_URL}/dashboard`, 'Avaliar sessão →', 'Leva menos de 1 minuto')}
+      ${cta(`${APP_URL}/agenda`, 'Avaliar sessão →', 'Leva menos de 1 minuto')}
       ${signoff()}`
     ),
   })
@@ -612,7 +612,7 @@ export async function sendRescheduledEmail(
           <p style="font-size:14px;font-weight:600;color:#15803d;margin:4px 0 0;">🕐 ${newTime} (${timezone})</p>
         </div>
       </div>
-      ${cta(`${APP_URL}/dashboard`, 'Ver meus agendamentos →')}
+      ${cta(`${APP_URL}/agenda`, 'Ver meus agendamentos →')}
       ${signoff()}`
     ),
   })
@@ -635,7 +635,7 @@ export async function sendIncompleteProfileReminderEmail(
       <p class="bt">Seu perfil ainda está incompleto. Perfis completos aparecem nas buscas e convertem muito mais clientes.</p>
       <p class="bt" style="font-weight:600;color:#1e1d18;">O que ainda falta:</p>
       <ul class="flist">${items}</ul>
-      ${cta(`${APP_URL}/profissional/perfil/editar`, 'Completar meu perfil →', 'Leva menos de 5 minutos')}
+      ${cta(`${APP_URL}/editar-perfil-profissional`, 'Completar meu perfil →', 'Leva menos de 5 minutos')}
       ${signoff()}`
     ),
   })
@@ -767,7 +767,7 @@ export async function sendFirstBookingNudgeEmail(to: string, name: string) {
       `<p class="greet">Olá, ${name}!</p>
       <p class="bt">Você criou sua conta há alguns dias mas ainda não agendou sua primeira sessão. Está tudo pronto — leva menos de 2 minutos para encontrar e reservar com um profissional.</p>
       <div class="hbox"><p>Mais de X profissionais brasileiros estão disponíveis agora. Você pode filtrar por especialidade, idioma e horário.</p></div>
-      ${cta(`${APP_URL}/explorar`, 'Ver profissionais disponíveis →')}
+      ${cta(`${APP_URL}/buscar`, 'Ver profissionais disponíveis →')}
       ${signoff()}`
     ),
   })
@@ -788,7 +788,7 @@ export async function sendReengagementEmail(to: string, name: string) {
         <li class="fi"><div class="ficon">📅</div><div><div class="ftitle">Agenda melhorada</div><p class="fdesc">Mais fácil de encontrar horários disponíveis</p></div></li>
         <li class="fi"><div class="ficon">💬</div><div><div class="ftitle">Avaliações reais</div><p class="fdesc">Mais avaliações de clientes para ajudar na sua escolha</p></div></li>
       </ul>
-      ${cta(`${APP_URL}/explorar`, 'Voltar para a Muuday →')}
+      ${cta(`${APP_URL}/buscar`, 'Voltar para a Muuday →')}
       ${signoff()}`
     ),
   })
@@ -816,3 +816,4 @@ export async function sendLaunchEmail(to: string, name: string) {
     ),
   })
 }
+

@@ -33,20 +33,37 @@ export type Professional = {
   created_at: string
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+export type BookingStatus =
+  | 'draft'
+  | 'pending_payment'
+  | 'pending_confirmation'
+  | 'pending' // legacy compatibility
+  | 'confirmed'
+  | 'completed'
+  | 'cancelled'
+  | 'no_show'
+  | 'rescheduled'
 
 export type Booking = {
   id: string
   user_id: string
   professional_id: string
   scheduled_at: string
+  start_time_utc?: string
+  end_time_utc?: string
+  timezone_user?: string
+  timezone_professional?: string
   duration_minutes: number
   status: BookingStatus
+  booking_type?: 'one_off' | 'recurring_parent' | 'recurring_child'
+  parent_booking_id?: string | null
   session_link?: string
   price_brl: number
   price_user_currency: number
+  price_total?: number
   user_currency: string
   notes?: string
+  session_purpose?: string
   professional: Professional
   created_at: string
 }

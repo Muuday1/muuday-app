@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { checkRateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
+import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
 
 const LEAD_TYPES = ['usuario', 'profissional', 'empresa', 'parceiro'] as const
 
@@ -14,6 +14,7 @@ const waitlistSchema = z.object({
 })
 
 function getAllowedOrigins() {
+  const isDev = process.env.NODE_ENV === 'development'
   const candidates = [
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.NEXT_PUBLIC_APP_URL,
@@ -21,7 +22,7 @@ function getAllowedOrigins() {
     process.env.WAITLIST_CORS_ORIGINS,
     'https://muuday.com',
     'https://www.muuday.com',
-    'http://localhost:3000',
+    isDev ? 'http://localhost:3000' : null,
   ].filter(Boolean) as string[]
 
   const origins = new Set<string>()
@@ -96,17 +97,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const rateLimit = await checkRateLimit({
-      key: `waitlist:ip:${getClientIp(request)}`,
-      limit: 10,
-      windowSeconds: 300,
-    })
+    const rl = await rateLimit('waitlist', getClientIp(request))
     const responseHeaders = {
       ...buildCorsHeaders(corsContext.origin),
-      ...buildRateLimitHeaders(rateLimit),
+      ...buildRateLimitHeaders(rl),
     }
 
-    if (!rateLimit.allowed) {
+    if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again in a few minutes.' },
         { status: 429, headers: responseHeaders }
@@ -142,6 +139,10 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error('[waitlist] DB error:', dbError)
+      return NextResponse.json(
+        { error: 'Unable to save waitlist entry right now. Please try again shortly.' },
+        { status: 500, headers: responseHeaders }
+      )
     }
 
     void (async () => {

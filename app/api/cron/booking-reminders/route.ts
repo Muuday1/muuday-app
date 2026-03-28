@@ -1,0 +1,139 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+type ReminderType = 'booking.reminder.24h' | 'booking.reminder.1h' | 'booking.reminder.10m'
+
+function parseAuthToken(request: NextRequest) {
+  const header = request.headers.get('authorization') || ''
+  const match = header.match(/^Bearer\s+(.+)$/i)
+  return match?.[1]?.trim() || ''
+}
+
+function isAuthorizedCronRequest(request: NextRequest) {
+  const expectedSecret = process.env.CRON_SECRET
+  if (!expectedSecret) return process.env.NODE_ENV !== 'production'
+  return parseAuthToken(request) === expectedSecret
+}
+
+function resolveReminderType(minutesUntil: number): ReminderType | null {
+  if (minutesUntil <= 24 * 60 + 15 && minutesUntil >= 24 * 60 - 15) {
+    return 'booking.reminder.24h'
+  }
+  if (minutesUntil <= 60 + 15 && minutesUntil >= 60 - 15) {
+    return 'booking.reminder.1h'
+  }
+  if (minutesUntil <= 10 + 5 && minutesUntil >= 10 - 5) {
+    return 'booking.reminder.10m'
+  }
+  return null
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const admin = createAdminClient()
+  if (!admin) {
+    return NextResponse.json(
+      { error: 'Admin client not configured. Set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY.' },
+      { status: 500 },
+    )
+  }
+
+  const now = new Date()
+  const nowIso = now.toISOString()
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: bookings, error } = await admin
+    .from('bookings')
+    .select('id, user_id, scheduled_at, professionals!inner(user_id)')
+    .eq('status', 'confirmed')
+    .gte('scheduled_at', nowIso)
+    .lte('scheduled_at', in24h)
+    .limit(1000)
+
+  if (error) {
+    console.error('[cron/booking-reminders] load error:', error)
+    return NextResponse.json({ error: 'Failed to load bookings.' }, { status: 500 })
+  }
+
+  const notificationsToInsert: Record<string, unknown>[] = []
+
+  for (const booking of bookings || []) {
+    const bookingId = String((booking as Record<string, unknown>).id)
+    const userId = String((booking as Record<string, unknown>).user_id)
+    const scheduledAt = String((booking as Record<string, unknown>).scheduled_at)
+    const professionalRelation = (booking as Record<string, unknown>).professionals as
+      | Record<string, unknown>
+      | Record<string, unknown>[]
+      | null
+    const professionalUserId = Array.isArray(professionalRelation)
+      ? String(professionalRelation[0]?.user_id || '')
+      : String(professionalRelation?.user_id || '')
+
+    const minutesUntil = Math.round((new Date(scheduledAt).getTime() - now.getTime()) / (1000 * 60))
+    const reminderType = resolveReminderType(minutesUntil)
+    if (!reminderType) continue
+
+    const title =
+      reminderType === 'booking.reminder.24h'
+        ? 'Sua sessao e amanha'
+        : reminderType === 'booking.reminder.1h'
+          ? 'Sua sessao comeca em 1 hora'
+          : 'Sua sessao comeca em 10 minutos'
+
+    const body =
+      reminderType === 'booking.reminder.24h'
+        ? 'Revise horario e preparacao para a sessao.'
+        : reminderType === 'booking.reminder.1h'
+          ? 'Prepare-se para entrar na sessao no horario.'
+          : 'A sessao esta prestes a comecar.'
+
+    notificationsToInsert.push({
+      user_id: userId,
+      booking_id: bookingId,
+      type: reminderType,
+      title,
+      body,
+      payload: { role: 'user' },
+    })
+
+    if (professionalUserId) {
+      notificationsToInsert.push({
+        user_id: professionalUserId,
+        booking_id: bookingId,
+        type: reminderType,
+        title,
+        body,
+        payload: { role: 'professional' },
+      })
+    }
+  }
+
+  if (notificationsToInsert.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      inserted: 0,
+      checked: (bookings || []).length,
+      at: nowIso,
+    })
+  }
+
+  const { error: insertError } = await admin.from('notifications').upsert(notificationsToInsert, {
+    onConflict: 'booking_id,type,user_id',
+    ignoreDuplicates: true,
+  })
+
+  if (insertError) {
+    console.error('[cron/booking-reminders] insert error:', insertError)
+    return NextResponse.json({ error: 'Failed to save reminders.' }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    checked: (bookings || []).length,
+    inserted: notificationsToInsert.length,
+    at: nowIso,
+  })
+}

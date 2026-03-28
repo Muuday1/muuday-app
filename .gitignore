@@ -1,5 +1,7 @@
 .env.local
 .env
+.env.vercel-check
+.env.*
 node_modules/
 .next/
 out/

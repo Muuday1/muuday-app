@@ -109,7 +109,7 @@ export default function DisponibilidadePage() {
       const newState = buildDefaultState()
       for (const row of rows) {
         newState[row.day_of_week] = {
-          is_available: row.is_available,
+          is_available: Boolean(row.is_active ?? row.is_available),
           start_time: row.start_time.slice(0, 5), // "HH:MM:SS" -> "HH:MM"
           end_time: row.end_time.slice(0, 5),
         }
@@ -166,8 +166,7 @@ export default function DisponibilidadePage() {
         day_of_week: day.value,
         start_time: availability[day.value].start_time + ':00',
         end_time: availability[day.value].end_time + ':00',
-        is_available: availability[day.value].is_available,
-        updated_at: new Date().toISOString(),
+        is_active: availability[day.value].is_available,
       }))
 
     // Delete existing rows and insert new ones (clean upsert)

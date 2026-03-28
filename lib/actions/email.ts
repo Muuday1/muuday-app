@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/security/rate-limit'
 import {
   sendWelcomeEmail,
   sendCompleteAccountEmail,
@@ -37,6 +38,18 @@ async function safe<T>(fn: () => Promise<T>, label: string) {
   try { return await fn() } catch (e) { console.error(`[email] ${label}`, e) }
 }
 
+// Auth guard — ensures only authenticated users can trigger emails + rate limit
+async function requireAuth(): Promise<string | null> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const rl = await rateLimit('email', user.id)
+  if (!rl.allowed) return null
+
+  return user.id
+}
+
 type NotifKey = 'booking_emails' | 'session_reminders' | 'news_promotions'
 
 // Returns false if the user has explicitly disabled this category
@@ -59,16 +72,19 @@ async function canSend(userId: string | null | undefined, key: NotifKey): Promis
 
 // ─── Audience management ──────────────────────────────────────────────────
 export async function addUserToResendAction(email: string, firstName: string) {
+  if (!await requireAuth()) return
   return safe(() => addContactToResend(email, firstName, SEGMENTS.usuarios), 'addContact')
 }
 
 // ─── Transactional ────────────────────────────────────────────────────────
 // Welcome & account setup — always send (no preference check)
 export async function sendWelcomeEmailAction(to: string, name: string) {
+  if (!await requireAuth()) return
   void safe(() => addContactToResend(to, name, SEGMENTS.usuarios), 'addContact')
   return safe(() => sendWelcomeEmail(to, name), 'welcome')
 }
 export async function sendCompleteAccountEmailAction(to: string, name: string) {
+  if (!await requireAuth()) return
   return safe(() => sendCompleteAccountEmail(to, name), 'completeAccount')
 }
 
@@ -78,6 +94,7 @@ export async function sendBookingConfirmationEmailAction(
   date: string, time: string, timezone: string,
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendBookingConfirmationEmail(to, name, professionalName, service, date, time, timezone), 'bookingConfirmation')
 }
@@ -85,7 +102,7 @@ export async function sendNewBookingToProfessionalEmailAction(
   to: string, professionalName: string, clientName: string,
   service: string, date: string, time: string,
 ) {
-  // Professional notifications always send (no user preference)
+  if (!await requireAuth()) return
   return safe(() => sendNewBookingToProfessionalEmail(to, professionalName, clientName, service, date, time), 'newBookingProfessional')
 }
 export async function sendBookingCancelledEmailAction(
@@ -93,6 +110,7 @@ export async function sendBookingCancelledEmailAction(
   date: string, time: string, cancelledBy: 'user' | 'professional',
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendBookingCancelledEmail(to, name, professionalName, date, time, cancelledBy), 'bookingCancelled')
 }
@@ -101,14 +119,16 @@ export async function sendPaymentConfirmationEmailAction(
   service: string, amount: string, date: string,
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendPaymentConfirmationEmail(to, name, professionalName, service, amount, date), 'paymentConfirmation')
 }
 export async function sendPaymentFailedEmailAction(to: string, name: string, service: string, userId?: string) {
-  // Payment failures always send regardless of preferences
+  if (!await requireAuth()) return
   return safe(() => sendPaymentFailedEmail(to, name, service), 'paymentFailed')
 }
 export async function sendRefundEmailAction(to: string, name: string, amount: string, service: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendRefundEmail(to, name, amount, service), 'refund')
 }
@@ -116,7 +136,7 @@ export async function sendNewReviewEmailAction(
   to: string, professionalName: string,
   clientName: string, rating: number, comment: string,
 ) {
-  // Professional notifications always send
+  if (!await requireAuth()) return
   return safe(() => sendNewReviewEmail(to, professionalName, clientName, rating, comment), 'newReview')
 }
 
@@ -126,6 +146,7 @@ export async function sendSessionReminder24hEmailAction(
   date: string, time: string, timezone: string,
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'session_reminders')) return
   return safe(() => sendSessionReminder24hEmail(to, name, professionalName, service, date, time, timezone), 'reminder24h')
 }
@@ -133,6 +154,7 @@ export async function sendSessionReminder1hEmailAction(
   to: string, name: string, professionalName: string, time: string, timezone: string,
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'session_reminders')) return
   return safe(() => sendSessionReminder1hEmail(to, name, professionalName, time, timezone), 'reminder1h')
 }
@@ -140,12 +162,14 @@ export async function sendProfessionalReminder24hEmailAction(
   to: string, professionalName: string, clientName: string,
   service: string, date: string, time: string,
 ) {
+  if (!await requireAuth()) return
   return safe(() => sendProfessionalReminder24hEmail(to, professionalName, clientName, service, date, time), 'professionalReminder24h')
 }
 export async function sendRequestReviewEmailAction(
   to: string, name: string, professionalName: string, service: string,
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'session_reminders')) return
   return safe(() => sendRequestReviewEmail(to, name, professionalName, service), 'requestReview')
 }
@@ -155,6 +179,7 @@ export async function sendRescheduledEmailAction(
   timezone: string, rescheduledBy: 'user' | 'professional',
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendRescheduledEmail(to, name, professionalName, service, oldDate, oldTime, newDate, newTime, timezone, rescheduledBy), 'rescheduled')
 }
@@ -165,45 +190,55 @@ export async function sendNewsletterEmailAction(
   headline: string, body: string, ctaLabel: string, ctaUrl: string, ctaSub?: string,
   userId?: string,
 ) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendNewsletterEmail(to, name, subject, badge, headline, body, ctaLabel, ctaUrl, ctaSub), 'newsletter')
 }
 export async function sendIncompleteProfileReminderEmailAction(
   to: string, professionalName: string, missingItems: string[],
 ) {
+  if (!await requireAuth()) return
   return safe(() => sendIncompleteProfileReminderEmail(to, professionalName, missingItems), 'incompleteProfile')
 }
 
 // ─── Marketing & Lifecycle (news_promotions) ──────────────────────────────
 export async function sendWaitlistConfirmationEmailAction(to: string, name: string) {
+  // No auth required — called from public waitlist API route (which has its own rate limiting)
   return safe(() => sendWaitlistConfirmationEmail(to, name), 'waitlistConfirmation')
 }
 export async function sendWelcomeSeries1EmailAction(to: string, name: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendWelcomeSeries1Email(to, name), 'welcomeSeries1')
 }
 export async function sendWelcomeSeries2EmailAction(to: string, name: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendWelcomeSeries2Email(to, name), 'welcomeSeries2')
 }
 export async function sendWelcomeSeries3EmailAction(to: string, name: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendWelcomeSeries3Email(to, name), 'welcomeSeries3')
 }
 export async function sendReferralInviteEmailAction(
   to: string, inviterName: string, referralLink: string,
 ) {
+  if (!await requireAuth()) return
   return safe(() => sendReferralInviteEmail(to, inviterName, referralLink), 'referralInvite')
 }
 export async function sendFirstBookingNudgeEmailAction(to: string, name: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendFirstBookingNudgeEmail(to, name), 'firstBookingNudge')
 }
 export async function sendReengagementEmailAction(to: string, name: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendReengagementEmail(to, name), 'reengagement')
 }
 export async function sendLaunchEmailAction(to: string, name: string, userId?: string) {
+  if (!await requireAuth()) return
   if (!await canSend(userId, 'news_promotions')) return
   return safe(() => sendLaunchEmail(to, name), 'launch')
 }

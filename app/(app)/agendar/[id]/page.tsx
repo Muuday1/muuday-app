@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { CATEGORIES } from '@/types'
 import BookingForm from '@/components/booking/BookingForm'
+import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 
 export default async function AgendarPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -33,13 +34,47 @@ export default async function AgendarPage({ params }: { params: { id: string } }
     .eq('id', user.id)
     .single()
 
+  const { data: settingsRow, error: settingsError } = await supabase
+    .from('professional_settings')
+    .select(
+      'timezone, session_duration_minutes, buffer_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose'
+    )
+    .eq('professional_id', professional.id)
+    .maybeSingle()
+
+  const professionalProfile = Array.isArray(professional.profiles)
+    ? professional.profiles[0]
+    : professional.profiles
+
+  const bookingSettings = normalizeProfessionalSettingsRow(
+    settingsError ? null : (settingsRow as Record<string, unknown> | null),
+    professionalProfile?.timezone || 'America/Sao_Paulo'
+  )
+
   // Fetch professional's weekly availability
-  const { data: availability } = await supabase
+  const { data: availabilityRulesRows, error: availabilityRulesError } = await supabase
+    .from('availability_rules')
+    .select('weekday, start_time_local, end_time_local, is_active')
+    .eq('professional_id', professional.id)
+    .eq('is_active', true)
+    .order('weekday')
+
+  const { data: legacyAvailability } = await supabase
     .from('availability')
     .select('id, day_of_week, start_time, end_time')
     .eq('professional_id', professional.id)
     .eq('is_active', true)
     .order('day_of_week')
+
+  const availability =
+    !availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0
+      ? availabilityRulesRows.map(rule => ({
+          id: `rule-${rule.weekday}-${rule.start_time_local}-${rule.end_time_local}`,
+          day_of_week: rule.weekday,
+          start_time: rule.start_time_local,
+          end_time: rule.end_time_local,
+        }))
+      : legacyAvailability || []
 
   // Fetch existing bookings for the next 30 days to block already-booked slots
   const now = new Date()
@@ -50,11 +85,11 @@ export default async function AgendarPage({ params }: { params: { id: string } }
     .from('bookings')
     .select('scheduled_at, duration_minutes')
     .eq('professional_id', professional.id)
-    .in('status', ['pending', 'confirmed'])
+    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
     .gte('scheduled_at', now.toISOString())
     .lte('scheduled_at', thirtyDaysLater.toISOString())
 
-  const profProfile = professional.profiles as any
+  const profProfile = professionalProfile as any
   const category = CATEGORIES.find(c => c.slug === professional.category)
 
   return (
@@ -78,7 +113,7 @@ export default async function AgendarPage({ params }: { params: { id: string } }
         professional={{
           id: professional.id,
           session_price_brl: professional.session_price_brl,
-          session_duration_minutes: professional.session_duration_minutes,
+          session_duration_minutes: bookingSettings.sessionDurationMinutes || professional.session_duration_minutes,
           category: professional.category,
         }}
         profileName={profProfile?.full_name || 'Profissional'}
@@ -86,6 +121,12 @@ export default async function AgendarPage({ params }: { params: { id: string } }
         existingBookings={existingBookings || []}
         userTimezone={profile?.timezone || 'America/Sao_Paulo'}
         userCurrency={profile?.currency || 'BRL'}
+        professionalTimezone={bookingSettings.timezone}
+        minimumNoticeHours={bookingSettings.minimumNoticeHours}
+        maxBookingWindowDays={bookingSettings.maxBookingWindowDays}
+        confirmationMode={bookingSettings.confirmationMode}
+        requireSessionPurpose={bookingSettings.requireSessionPurpose}
+        enableRecurring={bookingSettings.enableRecurring}
       />
     </div>
   )
