@@ -23,7 +23,7 @@ export default async function AgendarPage({ params }: { params: { id: string } }
 
   // Prevent professionals from booking themselves
   if (professional.user_id === user.id) {
-    redirect(`/profissional/${params.id}`)
+    redirect(`/profissional/${params.id}?erro=auto-agendamento`)
   }
 
   // Fetch user profile for timezone and currency

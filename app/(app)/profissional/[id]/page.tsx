@@ -10,7 +10,13 @@ import { FavoriteButton } from '@/components/FavoriteButton'
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
-export default async function ProfissionalPage({ params }: { params: { id: string } }) {
+export default async function ProfissionalPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams?: { erro?: string }
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -45,6 +51,7 @@ export default async function ProfissionalPage({ params }: { params: { id: strin
 
   const category = CATEGORIES.find(c => c.slug === professional.category)
   const profile = professional.profiles as any
+  const isOwnProfessional = professional.user_id === user.id
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
@@ -190,12 +197,35 @@ export default async function ProfissionalPage({ params }: { params: { id: strin
               </p>
             </div>
 
-            <Link
-              href={`/agendar/${professional.id}`}
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm"
-            >
-              <Calendar className="w-4 h-4" /> Agendar sessão
-            </Link>
+            {isOwnProfessional ? (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  disabled
+                  className="w-full bg-neutral-100 text-neutral-400 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed"
+                >
+                  <Calendar className="w-4 h-4" /> Este e seu perfil
+                </button>
+                <p className="text-xs text-neutral-500 text-center">
+                  Nao e possivel agendar sessao com voce mesmo.
+                </p>
+              </div>
+            ) : (
+              <Link
+                href={`/agendar/${professional.id}`}
+                className="block w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all text-sm text-center"
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Calendar className="w-4 h-4" /> Agendar sessao
+                </span>
+              </Link>
+            )}
+
+            {searchParams?.erro === 'auto-agendamento' && (
+              <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
+                Nao e permitido agendar sessao com o proprio perfil profissional.
+              </div>
+            )}
 
             <div className="mt-4 pt-4 border-t border-neutral-100">
               <div className="space-y-2 text-xs text-neutral-500">
@@ -219,3 +249,4 @@ export default async function ProfissionalPage({ params }: { params: { id: strin
     </div>
   )
 }
+

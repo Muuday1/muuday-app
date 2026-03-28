@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
 
 const LEAD_TYPES = ['usuario', 'profissional', 'empresa', 'parceiro'] as const
 
@@ -57,6 +58,33 @@ function buildCorsHeaders(origin: string | null): Record<string, string> {
   return headers
 }
 
+function getClientIp(request: NextRequest) {
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(',')[0]?.trim()
+    if (firstIp) return firstIp
+  }
+
+  const realIp = request.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+
+  return 'unknown'
+}
+
+function buildRateLimitHeaders(rateLimit: RateLimitResult): Record<string, string> {
+  const headers: Record<string, string> = {
+    'X-RateLimit-Limit': String(rateLimit.limit),
+    'X-RateLimit-Remaining': String(rateLimit.remaining),
+    'X-RateLimit-Source': rateLimit.source,
+  }
+
+  if (!rateLimit.allowed && rateLimit.retryAfterSeconds > 0) {
+    headers['Retry-After'] = String(rateLimit.retryAfterSeconds)
+  }
+
+  return headers
+}
+
 export async function POST(request: NextRequest) {
   const corsContext = getCorsContext(request)
 
@@ -68,13 +96,30 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const rateLimit = await checkRateLimit({
+      key: `waitlist:ip:${getClientIp(request)}`,
+      limit: 10,
+      windowSeconds: 300,
+    })
+    const responseHeaders = {
+      ...buildCorsHeaders(corsContext.origin),
+      ...buildRateLimitHeaders(rateLimit),
+    }
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again in a few minutes.' },
+        { status: 429, headers: responseHeaders }
+      )
+    }
+
     const body = await request.json()
     const parsed = waitlistSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: parsed.error.flatten().fieldErrors },
-        { status: 400, headers: buildCorsHeaders(corsContext.origin) }
+        { status: 400, headers: responseHeaders }
       )
     }
 
@@ -111,7 +156,7 @@ export async function POST(request: NextRequest) {
       }
     })()
 
-    return NextResponse.json({ success: true }, { headers: buildCorsHeaders(corsContext.origin) })
+    return NextResponse.json({ success: true }, { headers: responseHeaders })
   } catch (error) {
     console.error('[waitlist] Error:', error)
     return NextResponse.json(
