@@ -15,12 +15,22 @@ function parseAuthToken(request: NextRequest) {
   return match?.[1]?.trim() || ''
 }
 
+function normalizeSecret(value: string | undefined | null) {
+  if (!value) return ''
+  let normalized = value.trim()
+  if (normalized.startsWith('"') && normalized.endsWith('"') && normalized.length >= 2) {
+    normalized = normalized.slice(1, -1)
+  }
+  normalized = normalized.replace(/\\n/g, '').trim()
+  return normalized
+}
+
 function isAuthorizedCronRequest(request: NextRequest) {
-  const expectedSecret = process.env.CRON_SECRET
+  const expectedSecret = normalizeSecret(process.env.CRON_SECRET)
   if (!expectedSecret) {
     return process.env.NODE_ENV !== 'production'
   }
-  return parseAuthToken(request) === expectedSecret
+  return normalizeSecret(parseAuthToken(request)) === expectedSecret
 }
 
 function getConfirmationDeadline(booking: BookingRow) {
