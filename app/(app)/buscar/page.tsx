@@ -24,6 +24,8 @@ type BuscarSearchParams = {
   horario?: string
   localizacao?: string
   idioma?: string
+  ordenar?: string
+  pagina?: string
 }
 
 type AvailabilityRow = {
@@ -32,6 +34,8 @@ type AvailabilityRow = {
   start_time: string
   end_time: string
 }
+
+const PAGE_SIZE = 10
 
 function normalizeText(value?: string | null) {
   return (value || '').toLowerCase().trim()
@@ -43,6 +47,34 @@ function parseOptionalNumber(value?: string) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function parsePage(value?: string) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 1) return 1
+  return Math.floor(parsed)
+}
+
+function getSortedProfessionals(list: any[], sort: string) {
+  const cloned = [...list]
+
+  if (sort === 'preco-menor') {
+    return cloned.sort((a, b) => Number(a.session_price_brl || 0) - Number(b.session_price_brl || 0))
+  }
+
+  if (sort === 'preco-maior') {
+    return cloned.sort((a, b) => Number(b.session_price_brl || 0) - Number(a.session_price_brl || 0))
+  }
+
+  if (sort === 'melhor-avaliacao') {
+    return cloned.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+  }
+
+  if (sort === 'mais-agendados') {
+    return cloned.sort((a, b) => Number(b.total_bookings || 0) - Number(a.total_bookings || 0))
+  }
+
+  return cloned
+}
+
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
   const supabase = createClient()
 
@@ -52,6 +84,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const selectedAvailability = searchParams.horario || 'qualquer'
   const selectedLocation = (searchParams.localizacao || '').trim()
   const selectedLanguage = searchParams.idioma || 'qualquer'
+  const selectedSort = searchParams.ordenar || 'relevancia'
   const minPrice = parseOptionalNumber(searchParams.precoMin)
   const maxPrice = parseOptionalNumber(searchParams.precoMax)
 
@@ -138,7 +171,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       selectedLanguage !== 'qualquer'
   )
 
-  const displayedProfessionals = hasActiveFilters
+  const baseDisplayProfessionals = hasActiveFilters
     ? filteredProfessionals
     : (() => {
         const grouped = new Map<string, any[]>()
@@ -161,6 +194,15 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         return uniqueById.size > 0 ? Array.from(uniqueById.values()) : filteredProfessionals
       })()
 
+  const sortedProfessionals = getSortedProfessionals(baseDisplayProfessionals, selectedSort)
+
+  const totalResults = sortedProfessionals.length
+  const totalPages = Math.max(1, Math.ceil(totalResults / PAGE_SIZE))
+  const currentPage = Math.min(parsePage(searchParams.pagina), totalPages)
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+  const endIndex = startIndex + PAGE_SIZE
+  const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
+
   const specialtyOptions = getSpecialtyOptions(selectedCategory)
 
   const locationOptions = Array.from(
@@ -181,6 +223,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       horario: selectedAvailability,
       localizacao: selectedLocation,
       idioma: selectedLanguage,
+      ordenar: selectedSort,
+      pagina: String(currentPage),
       ...overrides,
     }
 
@@ -188,12 +232,18 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     Object.entries(merged).forEach(([key, value]) => {
       if (!value) return
       if ((key === 'horario' || key === 'idioma') && value === 'qualquer') return
+      if (key === 'ordenar' && value === 'relevancia') return
+      if (key === 'pagina' && value === '1') return
       params.set(key, value)
     })
 
     const query = params.toString()
     return query ? `/buscar?${query}` : '/buscar'
   }
+
+  const pageRangeStart = Math.max(1, currentPage - 2)
+  const pageRangeEnd = Math.min(totalPages, currentPage + 2)
+  const pageNumbers = Array.from({ length: pageRangeEnd - pageRangeStart + 1 }, (_, i) => pageRangeStart + i)
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -205,6 +255,16 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       </div>
 
       <form action="/buscar" method="get" className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+        <input type="hidden" name="categoria" value={selectedCategory} />
+        <input type="hidden" name="especialidade" value={selectedSpecialty} />
+        <input type="hidden" name="precoMin" value={searchParams.precoMin || ''} />
+        <input type="hidden" name="precoMax" value={searchParams.precoMax || ''} />
+        <input type="hidden" name="horario" value={selectedAvailability} />
+        <input type="hidden" name="localizacao" value={selectedLocation} />
+        <input type="hidden" name="idioma" value={selectedLanguage} />
+        <input type="hidden" name="ordenar" value={selectedSort} />
+        <input type="hidden" name="pagina" value="1" />
+
         <div className="flex flex-col md:flex-row gap-3 md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -228,7 +288,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-6 items-start">
         <aside className="lg:sticky lg:top-24">
           <form action="/buscar" method="get" className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 space-y-4 shadow-sm">
-            {queryText && <input type="hidden" name="q" value={queryText} />}
+            <input type="hidden" name="q" value={queryText} />
+            <input type="hidden" name="ordenar" value={selectedSort} />
+            <input type="hidden" name="pagina" value="1" />
 
             <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
               <SlidersHorizontal className="w-4 h-4 text-brand-500" />
@@ -363,7 +425,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         <section>
           <div className="flex flex-wrap gap-2 mb-4">
             <Link
-              href={buildHref({ categoria: '' })}
+              href={buildHref({ categoria: '', especialidade: '', pagina: '1' })}
               className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
                 !selectedCategory
                   ? 'bg-brand-500 text-white'
@@ -375,7 +437,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             {SEARCH_CATEGORIES.map(category => (
               <Link
                 key={category.slug}
-                href={buildHref({ categoria: category.slug, especialidade: '' })}
+                href={buildHref({ categoria: category.slug, especialidade: '', pagina: '1' })}
                 className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
                   selectedCategory === category.slug
                     ? 'bg-brand-500 text-white'
@@ -387,87 +449,159 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             ))}
           </div>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div>
-              <p className="text-sm font-semibold text-neutral-900">{displayedProfessionals.length} profissionais</p>
+              <p className="text-sm font-semibold text-neutral-900">{totalResults} profissionais</p>
               <p className="text-xs text-neutral-500">
                 {hasActiveFilters
                   ? 'Resultados filtrados com base na sua busca.'
                   : 'Sugestoes iniciais variadas para te ajudar a comecar.'}
               </p>
             </div>
+
+            <form action="/buscar" method="get" className="flex items-center gap-2">
+              <input type="hidden" name="q" value={queryText} />
+              <input type="hidden" name="categoria" value={selectedCategory} />
+              <input type="hidden" name="especialidade" value={selectedSpecialty} />
+              <input type="hidden" name="precoMin" value={searchParams.precoMin || ''} />
+              <input type="hidden" name="precoMax" value={searchParams.precoMax || ''} />
+              <input type="hidden" name="horario" value={selectedAvailability} />
+              <input type="hidden" name="localizacao" value={selectedLocation} />
+              <input type="hidden" name="idioma" value={selectedLanguage} />
+              <input type="hidden" name="pagina" value="1" />
+
+              <select
+                name="ordenar"
+                defaultValue={selectedSort}
+                className="px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+              >
+                <option value="relevancia">Ordenar: Relevancia</option>
+                <option value="melhor-avaliacao">Ordenar: Melhor avaliacao</option>
+                <option value="mais-agendados">Ordenar: Mais agendados</option>
+                <option value="preco-menor">Ordenar: Menor preco</option>
+                <option value="preco-maior">Ordenar: Maior preco</option>
+              </select>
+              <button
+                type="submit"
+                className="bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
+              >
+                Aplicar
+              </button>
+            </form>
           </div>
 
-          {displayedProfessionals.length === 0 ? (
+          {pagedProfessionals.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-neutral-100">
               <div className="text-5xl mb-4">🔎</div>
               <p className="font-semibold text-neutral-900 mb-2">Nenhum profissional encontrado</p>
               <p className="text-neutral-500 text-sm">Ajuste os filtros para ampliar os resultados.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {displayedProfessionals.map((professional: any) => (
-                <Link
-                  key={professional.id}
-                  href={`/profissional/${professional.id}`}
-                  className="bg-white rounded-2xl border border-neutral-100 hover:shadow-md transition-all p-4 md:p-5"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
-                      {professional.profiles?.full_name?.charAt(0) || 'P'}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold text-neutral-900 leading-tight">
-                            {professional.profiles?.full_name || 'Profissional'}
-                          </h3>
-                          <p className="text-xs text-neutral-500 mt-1">
-                            {getSearchCategoryLabel(professional.category)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-neutral-900">
-                            {formatCurrency(professional.session_price_brl)}
-                          </p>
-                          <p className="text-[11px] text-neutral-400">por sessao</p>
-                        </div>
+            <>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                {pagedProfessionals.map((professional: any) => (
+                  <Link
+                    key={professional.id}
+                    href={`/profissional/${professional.id}`}
+                    className="bg-white rounded-2xl border border-neutral-100 hover:shadow-md transition-all p-4 md:p-5"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
+                        {professional.profiles?.full_name?.charAt(0) || 'P'}
                       </div>
 
-                      <p className="text-sm text-neutral-600 mt-3 line-clamp-2">
-                        {professional.bio || 'Profissional verificado pronto para te atender.'}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
-                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">
-                          <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                          {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
-                        </span>
-                        <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
-                          <Clock className="w-3 h-3" />
-                          {professional.session_duration_minutes || 60} min
-                        </span>
-                        <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
-                          <MapPin className="w-3 h-3" />
-                          {professional.profiles?.country || 'Online'}
-                        </span>
-                      </div>
-
-                      {(professional.languages || []).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {(professional.languages || []).slice(0, 3).map((language: string) => (
-                            <span key={language} className="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-full">
-                              {language}
-                            </span>
-                          ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-semibold text-neutral-900 leading-tight">
+                              {professional.profiles?.full_name || 'Profissional'}
+                            </h3>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              {getSearchCategoryLabel(professional.category)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-neutral-900">
+                              {formatCurrency(professional.session_price_brl)}
+                            </p>
+                            <p className="text-[11px] text-neutral-400">por sessao</p>
+                          </div>
                         </div>
-                      )}
+
+                        <p className="text-sm text-neutral-600 mt-3 line-clamp-2">
+                          {professional.bio || 'Profissional verificado pronto para te atender.'}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                            {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
+                            <Clock className="w-3 h-3" />
+                            {professional.session_duration_minutes || 60} min
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
+                            <MapPin className="w-3 h-3" />
+                            {professional.profiles?.country || 'Online'}
+                          </span>
+                        </div>
+
+                        {(professional.languages || []).length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {(professional.languages || []).slice(0, 3).map((language: string) => (
+                              <span key={language} className="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-full">
+                                {language}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+                  <Link
+                    href={buildHref({ pagina: String(Math.max(1, currentPage - 1)) })}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
+                      currentPage === 1
+                        ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
+                        : 'border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
+                    }`}
+                  >
+                    Anterior
+                  </Link>
+
+                  {pageNumbers.map(pageNumber => (
+                    <Link
+                      key={pageNumber}
+                      href={buildHref({ pagina: String(pageNumber) })}
+                      className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                        pageNumber === currentPage
+                          ? 'bg-brand-500 border-brand-500 text-white'
+                          : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {pageNumber}
+                    </Link>
+                  ))}
+
+                  <Link
+                    href={buildHref({ pagina: String(Math.min(totalPages, currentPage + 1)) })}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
+                      currentPage === totalPages
+                        ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
+                        : 'border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
+                    }`}
+                  >
+                    Proxima
+                  </Link>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
