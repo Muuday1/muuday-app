@@ -1,0 +1,30 @@
+- generic [active]:
+  - alert [ref=e1]
+  - dialog "Server Error" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - navigation [ref=e8]:
+          - button "previous" [disabled] [ref=e9]:
+            - img "previous" [ref=e10]
+          - button "next" [disabled] [ref=e12]:
+            - img "next" [ref=e13]
+          - generic [ref=e15]: 1 of 1 error
+          - generic [ref=e16]:
+            - text: Next.js (14.2.5) is outdated
+            - link "(learn more)" [ref=e18] [cursor=pointer]:
+              - /url: https://nextjs.org/docs/messages/version-staleness
+        - heading "Server Error" [level=1] [ref=e19]
+        - paragraph [ref=e20]:
+          - text: "Error: Dynamic server usage: Route /buscar couldn't be rendered statically because it used `cookies`. See more info here:"
+          - link "https://nextjs.org/docs/messages/dynamic-server-error" [ref=e21] [cursor=pointer]:
+            - /url: https://nextjs.org/docs/messages/dynamic-server-error
+        - generic [ref=e22]: This error happened while generating the page. Any console logs will be displayed in the terminal window.
+      - generic [ref=e23]:
+        - heading "Source" [level=2] [ref=e24]
+        - generic [ref=e25]:
+          - link "lib\\supabase\\server.ts (5:30) @ cookies" [ref=e27] [cursor=pointer]:
+            - generic [ref=e28]: lib\supabase\server.ts (5:30) @ cookies
+            - img [ref=e29]
+          - generic [ref=e33]: "3 | 4 | export function createClient() { > 5 | const cookieStore = cookies() | ^ 6 | return createServerClient( 7 | process.env.NEXT_PUBLIC_SUPABASE_URL!, 8 | process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,"
+        - heading "Call Stack" [level=2] [ref=e34]
+        - button "Show collapsed frames" [ref=e35] [cursor=pointer]

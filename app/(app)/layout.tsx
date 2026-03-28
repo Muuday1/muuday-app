@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: '/buscar', icon: 'Search', label: 'Buscar' },
     { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
     { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
-    { href: '/perfil', icon: 'User', label: 'Perfil e Configuracoes' },
+    { href: '/perfil', icon: 'User', label: 'Perfil' },
     { href: '/admin', icon: 'Shield', label: 'Admin', hide: !isAdmin },
   ].filter(item => !item.hide)
 
@@ -71,6 +71,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="font-display font-bold text-lg text-neutral-900 tracking-tight">muuday</span>
           </Link>
           <div className="flex items-center gap-3">
+            <form action="/auth/signout" method="POST">
+              <button
+                type="submit"
+                aria-label="Sair da conta"
+                className="h-8 px-2.5 rounded-full border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-xs font-medium">Sair</span>
+              </button>
+            </form>
             <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
               {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
             </div>

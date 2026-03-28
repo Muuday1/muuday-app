@@ -1,0 +1,30 @@
+[    1451ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico:0
+[   20834ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/cadastro?_rsc=10x2f:0
+[   25282ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/recuperar-senha?_rsc=10x2f:0
+[   62142ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/buscar?_rsc=tj1mm:0
+[   62395ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/buscar?_rsc=1c5gs:0
+[   62607ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/buscar:0
+[   63611ms] Error: Dynamic server usage: Route /buscar couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at trackDynamicDataAccessed (webpack-internal:///(rsc)/./node_modules/next/dist/server/app-render/dynamic-rendering.js:117:25)
+    at cookies (webpack-internal:///(rsc)/./node_modules/next/dist/client/components/headers.js:54:60)
+    at createClient (webpack-internal:///(rsc)/./lib/supabase/server.ts:10:78)
+    at AppLayout (webpack-internal:///(rsc)/./app/(app)/layout.tsx:21:88)
+    at eC (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:265189)
+    at e (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:269321)
+    at eL (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:269809)
+    at eJ (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:275773)
+    at eR (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:266017)
+    at eC (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:265059)
+    at e (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:269321)
+    at eL (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:269809)
+    at <unknown> (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:267040)
+    at Array.toJSON (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:267504)
+    at stringify (<anonymous>)
+    at eJ (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:275872)
+    at eV (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:276390)
+    at Timeout._onTimeout (file://C:\Users\igorp\Downloads\muuday-app\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:266177)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[  121117ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/components/react-dev-overlay/pages/websocket.js:63
+[  141639ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/_next/static/webpack/e4028ce71ae405b5.webpack.hot-update.json:0
+[  141639ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ webpack-internal:///./node_modules/next/dist/client/components/react-dev-overlay/pages/hot-reloader-client.js:349

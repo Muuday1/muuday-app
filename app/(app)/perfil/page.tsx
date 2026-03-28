@@ -3,7 +3,7 @@ export const metadata = { title: 'Meu Perfil | Muuday' }
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil } from 'lucide-react'
+import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, Bell } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 
 export default async function PerfilPage() {
@@ -216,7 +216,7 @@ export default async function PerfilPage() {
             href="/configuracoes"
             className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
           >
-            Abrir configuracoes
+            Notificacoes e preferencias
           </Link>
         </div>
         <div className="space-y-3">
@@ -241,6 +241,21 @@ export default async function PerfilPage() {
             >
               Alterar
             </a>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-brand-500" />
+              <div>
+                <p className="text-sm font-medium text-neutral-700">Notificacoes</p>
+                <p className="text-xs text-neutral-400">Ative e ajuste lembretes, emails e novidades</p>
+              </div>
+            </div>
+            <Link
+              href="/configuracoes"
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
+            >
+              Gerir
+            </Link>
           </div>
         </div>
       </div>

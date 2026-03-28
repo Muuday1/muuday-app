@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { COUNTRIES } from '@/lib/utils'
+import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
@@ -38,7 +39,7 @@ export default function EditarPerfilPage() {
         setFullName(profile.full_name || '')
         setCountry(profile.country || '')
         setTimezone(profile.timezone || '')
-        setCurrency(profile.currency || '')
+        setCurrency((profile.currency || '').toUpperCase())
       }
       setLoading(false)
     }
@@ -73,7 +74,7 @@ export default function EditarPerfilPage() {
         full_name: fullName.trim(),
         country,
         timezone,
-        currency,
+        currency: currency.toUpperCase(),
       })
       .eq('id', user.id)
 
@@ -169,14 +170,20 @@ export default function EditarPerfilPage() {
             <label htmlFor="timezone" className="block text-sm font-medium text-neutral-700 mb-1.5">
               Fuso horario
             </label>
-            <input
+            <select
               id="timezone"
-              type="text"
               value={timezone}
-              readOnly
-              className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 text-sm text-neutral-500 cursor-not-allowed"
-            />
-            <p className="text-xs text-neutral-400 mt-1">Definido automaticamente com base no pais</p>
+              onChange={e => setTimezone(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-neutral-900 bg-white"
+            >
+              <option value="">Selecione um fuso horario</option>
+              {ALL_TIMEZONES.map(tz => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-400 mt-1">Voce pode ajustar manualmente mesmo apos escolher o pais.</p>
           </div>
 
           {/* Currency */}
@@ -184,14 +191,20 @@ export default function EditarPerfilPage() {
             <label htmlFor="currency" className="block text-sm font-medium text-neutral-700 mb-1.5">
               Moeda
             </label>
-            <input
+            <select
               id="currency"
-              type="text"
               value={currency}
-              readOnly
-              className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 bg-neutral-50 text-sm text-neutral-500 cursor-not-allowed"
-            />
-            <p className="text-xs text-neutral-400 mt-1">Definida automaticamente com base no pais</p>
+              onChange={e => setCurrency(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-neutral-900 bg-white"
+            >
+              <option value="">Selecione uma moeda</option>
+              {STRIPE_CURRENCIES.map(currencyOption => (
+                <option key={currencyOption.value} value={currencyOption.value}>
+                  {currencyOption.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-400 mt-1">Lista completa de moedas suportadas pela Stripe.</p>
           </div>
         </div>
 

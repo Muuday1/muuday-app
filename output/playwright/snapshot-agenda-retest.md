@@ -1,0 +1,102 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "M muuday" [ref=e5] [cursor=pointer]:
+        - /url: /dashboard
+        - generic [ref=e7]: M
+        - generic [ref=e8]: muuday
+      - navigation [ref=e9]:
+        - link "Dashboard" [ref=e10] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e11]
+          - text: Dashboard
+        - link "Buscar" [ref=e16] [cursor=pointer]:
+          - /url: /buscar
+          - img [ref=e17]
+          - text: Buscar
+        - link "Favoritos" [ref=e20] [cursor=pointer]:
+          - /url: /favoritos
+          - img [ref=e21]
+          - text: Favoritos
+        - link "Agenda" [ref=e23] [cursor=pointer]:
+          - /url: /agenda
+          - img [ref=e24]
+          - text: Agenda
+        - link "Meu Perfil" [ref=e26] [cursor=pointer]:
+          - /url: /perfil
+          - img [ref=e27]
+          - text: Meu Perfil
+        - link "Configurações" [ref=e30] [cursor=pointer]:
+          - /url: /configuracoes
+          - img [ref=e31]
+          - text: Configurações
+        - link "Admin" [ref=e34] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e35]
+          - text: Admin
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: I
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: Igor Pinto
+            - paragraph [ref=e42]: admin
+        - button "Sair" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - text: Sair
+    - main [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - heading "Agenda" [level=1] [ref=e51]
+          - paragraph [ref=e52]: Gerencie suas sessões com clientes
+        - generic [ref=e53]:
+          - heading "Próximas sessões" [level=2] [ref=e54]:
+            - img [ref=e55]
+            - text: Próximas sessões
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e60]: I
+                - generic [ref=e61]:
+                  - paragraph [ref=e62]: Igor Pinto
+                  - generic [ref=e63]:
+                    - generic [ref=e64]:
+                      - img [ref=e65]
+                      - text: dom., 29 de mar. 14:00
+                    - generic [ref=e68]: 60min
+                - generic [ref=e70]: Pendente
+              - generic [ref=e72]:
+                - button "Confirmar" [ref=e73] [cursor=pointer]:
+                  - img [ref=e74]
+                  - text: Confirmar
+                - button "Cancelar" [ref=e76] [cursor=pointer]:
+                  - img [ref=e77]
+                  - text: Cancelar
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - generic [ref=e82]: I
+                - generic [ref=e83]:
+                  - paragraph [ref=e84]: Igor Pinto
+                  - generic [ref=e85]:
+                    - generic [ref=e86]:
+                      - img [ref=e87]
+                      - text: seg., 30 de mar. 15:00
+                    - generic [ref=e90]: 60min
+                - generic [ref=e92]: Pendente
+              - generic [ref=e94]:
+                - button "Confirmar" [ref=e95] [cursor=pointer]:
+                  - img [ref=e96]
+                  - text: Confirmar
+                - button "Cancelar" [ref=e98] [cursor=pointer]:
+                  - img [ref=e99]
+                  - text: Cancelar
+        - generic [ref=e102]:
+          - heading "Histórico" [level=2] [ref=e103]:
+            - img [ref=e104]
+            - text: Histórico
+          - generic [ref=e108]:
+            - generic [ref=e109]: I
+            - generic [ref=e110]:
+              - paragraph [ref=e111]: Igor Pinto
+              - paragraph [ref=e112]: 30 de mar. de 2026
+            - generic [ref=e114]: Cancelado
+  - alert [ref=e115]

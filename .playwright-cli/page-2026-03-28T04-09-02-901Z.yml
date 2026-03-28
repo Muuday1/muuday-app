@@ -1,0 +1,43 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - img [ref=e5]
+    - generic [ref=e8]:
+      - generic [ref=e10]: M
+      - generic [ref=e11]: muuday
+    - generic [ref=e12]:
+      - blockquote [ref=e13]:
+        - text: "\"Especialistas brasileiros,"
+        - text: onde você estiver."
+      - generic [ref=e14]:
+        - generic [ref=e15]: 🌎
+        - paragraph [ref=e16]: Para brasileiros que recusam abrir mão da qualidade
+  - generic [ref=e19]:
+    - heading "Bem-vindo de volta" [level=1] [ref=e20]
+    - paragraph [ref=e21]: Entre na sua conta Muuday
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: Email
+        - textbox "seu@email.com" [ref=e25]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: Senha
+          - link "Esqueceu a senha?" [ref=e29] [cursor=pointer]:
+            - /url: /recuperar-senha
+        - textbox "••••••••" [ref=e30]
+      - button "Entrar" [ref=e31] [cursor=pointer]
+    - generic [ref=e32]:
+      - generic [ref=e35]: ou entre com
+      - generic [ref=e37]:
+        - button "Continuar com Google" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: Continuar com Google
+        - button "Continuar com Apple" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - text: Continuar com Apple
+        - button "Continuar com Facebook" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+          - text: Continuar com Facebook
+    - paragraph [ref=e50]:
+      - text: Não tem uma conta?
+      - link "Cadastre-se" [ref=e51] [cursor=pointer]:
+        - /url: /cadastro

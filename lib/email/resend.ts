@@ -88,8 +88,8 @@ const THEME = {
 
   // Signoff
   signoffText:    'Qualquer dúvida, responde este email. A gente lê tudo.',
-  signoffName:    'Igor, Natália e a equipe Muuday',
-  signoffRole:    'Fundadores · muuday.com',
+  signoffName:    'Equipe Muuday',
+  signoffRole:    'muuday.com',
 
   // Footer tagline
   tagline:        'Especialistas brasileiros, onde você estiver.',
@@ -649,18 +649,14 @@ export async function sendIncompleteProfileReminderEmail(
 export async function sendWaitlistConfirmationEmail(to: string, name: string) {
   return resend.emails.send({
     from: from(), to,
-    subject: `Você está na lista, ${name}! 🎉`,
+    subject: `Você está na lista! 🎉`,
     html: emailLayout(
       'Lista de espera',
-      'Você está dentro. 🎉',
+      'Recebemos seu cadastro. 🎉',
       `<p class="greet">Olá, ${name}!</p>
-      <p class="bt">Recebemos seu cadastro na lista de espera da Muuday. Você vai ser um dos primeiros a ter acesso quando abrirmos.</p>
-      <div class="hbox"><p>Você tem <strong>acesso prioritário</strong> — vai entrar antes de qualquer pessoa que se cadastrar depois de hoje.</p></div>
-      <ul class="flist">
-        <li class="fi"><div class="ficon">🧠</div><div><div class="ftitle">Profissionais verificados</div><p class="fdesc">Psicólogos, contadores, advogados, nutricionistas e mais</p></div></li>
-        <li class="fi"><div class="ficon">🕐</div><div><div class="ftitle">Agenda no seu fuso</div><p class="fdesc">Você vê os horários no seu fuso automaticamente</p></div></li>
-        <li class="fi"><div class="ficon">💳</div><div><div class="ftitle">Pagamento em libra, euro ou dólar</div><p class="fdesc">Sem Pix, sem transferência complicada</p></div></li>
-      </ul>
+      <p class="bt">Você entrou na lista de espera da Muuday. Assim que abrirmos, você será um dos primeiros a saber.</p>
+      <div class="hbox"><p>Seu lugar está guardado — você tem <strong>acesso prioritário</strong> e vai entrar antes de qualquer pessoa que se cadastrar depois de hoje.</p></div>
+      <p class="bt">A Muuday conecta brasileiros no exterior a profissionais qualificados — psicólogos, contadores, advogados, nutricionistas e mais — no seu idioma e no seu fuso.</p>
       ${cta(`${APP_URL}`, 'Conhecer a Muuday →')}
       ${signoff()}`
     ),

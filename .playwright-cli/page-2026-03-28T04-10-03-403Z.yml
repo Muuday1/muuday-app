@@ -1,0 +1,234 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e52]: Buscar Profissionais | Muuday
+  - generic [ref=e56]:
+    - complementary [ref=e57]:
+      - link "M muuday" [ref=e59] [cursor=pointer]:
+        - /url: /buscar
+        - generic [ref=e61]: M
+        - generic [ref=e62]: muuday
+      - navigation [ref=e63]:
+        - link "Buscar" [ref=e64] [cursor=pointer]:
+          - /url: /buscar
+          - img [ref=e65]
+          - text: Buscar
+        - link "Favoritos" [ref=e68] [cursor=pointer]:
+          - /url: /favoritos
+          - img [ref=e69]
+          - text: Favoritos
+        - link "Agenda" [ref=e71] [cursor=pointer]:
+          - /url: /agenda
+          - img [ref=e72]
+          - text: Agenda
+        - link "Perfil e Configuracoes" [ref=e74] [cursor=pointer]:
+          - /url: /perfil
+          - img [ref=e75]
+          - text: Perfil e Configuracoes
+        - link "Admin" [ref=e78] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e79]
+          - text: Admin
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic [ref=e83]: I
+          - generic [ref=e84]:
+            - paragraph [ref=e85]: Igor Pinto
+            - paragraph [ref=e86]: admin
+        - button "Sair" [ref=e88] [cursor=pointer]:
+          - img [ref=e89]
+          - text: Sair
+    - main [ref=e92]:
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - heading "Buscar profissionais" [level=1] [ref=e95]
+          - paragraph [ref=e96]: "Estilo marketplace: busca rapida, filtros fixos e comparacao clara de perfis."
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - img [ref=e100]
+            - textbox "Busque por profissional, categoria ou especialidade..." [ref=e103]
+          - button "Buscar" [ref=e104] [cursor=pointer]
+        - generic [ref=e105]:
+          - complementary [ref=e106]:
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - img [ref=e109]
+                - text: Filtros
+              - generic [ref=e110]:
+                - generic [ref=e111]: Categoria
+                - combobox [ref=e112]:
+                  - option "Todas as categorias" [selected]
+                  - option "Saude Mental e Bem-estar Emocional"
+                  - option "Saude, Corpo e Movimento"
+                  - option "Educacao e Desenvolvimento"
+                  - option "Contabilidade, Impostos e Financas"
+                  - option "Direito e Suporte Juridico"
+                  - option "Carreira, Negocios e Desenvolvimento Profissional"
+                  - option "Traducao e Suporte Documental"
+                  - option "Outro"
+              - generic [ref=e113]:
+                - generic [ref=e114]: Especialidade
+                - combobox [ref=e115]:
+                  - option "Todas as especialidades" [selected]
+                  - option "Abertura de Empresa"
+                  - option "Acompanhamento Pedagogico"
+                  - option "Alfabetizacao"
+                  - option "Ansiedade"
+                  - option "Apostilamento"
+                  - option "Apostilamento e Legalizacao"
+                  - option "Aulas de Ciencias"
+                  - option "Aulas de Idiomas"
+                  - option "Aulas de Matematica"
+                  - option "BPO Financeiro"
+                  - option "Burnout"
+                  - option "Carta de Motivacao"
+                  - option "Clinica Geral"
+                  - option "Coaching Emocional"
+                  - option "Consultoria Personalizada"
+                  - option "Consultoria Preventiva"
+                  - option "Contabilidade para Expatriados"
+                  - option "Controle de Caixa"
+                  - option "Curriculo e LinkedIn"
+                  - option "Curriculo Internacional"
+                  - option "Declaracoes Fiscais"
+                  - option "Depressao"
+                  - option "Direito Contratual"
+                  - option "Direito de Familia"
+                  - option "Direito do Consumidor"
+                  - option "Direito Empresarial"
+                  - option "Direito Trabalhista"
+                  - option "Documentos Academicos"
+                  - option "Documentos para Imigracao"
+                  - option "Dor Cronica"
+                  - option "Educacao Infantil"
+                  - option "Emagrecimento Saudavel"
+                  - option "Estrategia de Negocios"
+                  - option "Fisioterapia Esportiva"
+                  - option "Formulario e Burocracia"
+                  - option "Imigracao"
+                  - option "Imposto de Renda"
+                  - option "Interpretacao Remota"
+                  - option "Investimentos Basicos"
+                  - option "Lideranca"
+                  - option "Marketing para Profissionais"
+                  - option "MEI e Simples Nacional"
+                  - option "Mentoria de Carreira"
+                  - option "Mentoria Universitaria"
+                  - option "Mindfulness"
+                  - option "Nutricao Clinica"
+                  - option "Orientacao Geral"
+                  - option "Orientacao Parental"
+                  - option "Planejamento de Metas"
+                  - option "Planejamento Financeiro Pessoal"
+                  - option "Planejamento Tributario"
+                  - option "Postura e Ergonomia"
+                  - option "Preparacao Fisica"
+                  - option "Preparacao para Entrevistas"
+                  - option "Preparacao para Vestibular"
+                  - option "Procuracoes"
+                  - option "Produtividade"
+                  - option "Projetos Especiais"
+                  - option "Psicanalise"
+                  - option "Reabilitacao Fisica"
+                  - option "Reforco Escolar"
+                  - option "Regularizacao Documental"
+                  - option "Revisao de Textos"
+                  - option "Saude da Mulher"
+                  - option "Saude Preventiva"
+                  - option "Suporte Tecnico"
+                  - option "Tecnicas de Estudo"
+                  - option "Terapia Cognitivo-Comportamental"
+                  - option "Terapia de Casal"
+                  - option "Terapia Familiar"
+                  - option "Traducao Juramentada"
+                  - option "Traducao Simples"
+                  - option "Transicao de Carreira"
+                  - option "Vendas e Negociacao"
+              - generic [ref=e116]:
+                - generic [ref=e117]:
+                  - generic [ref=e118]: Preco min (R$)
+                  - spinbutton [ref=e119]
+                - generic [ref=e120]:
+                  - generic [ref=e121]: Preco max (R$)
+                  - spinbutton [ref=e122]
+              - generic [ref=e123]:
+                - generic [ref=e124]: Horario disponivel
+                - combobox [ref=e125]:
+                  - option "Qualquer horario" [selected]
+                  - option "Manha (06:00-12:00)"
+                  - option "Tarde (12:00-18:00)"
+                  - option "Noite (18:00-23:00)"
+                  - option "Fim de semana"
+              - generic [ref=e126]:
+                - generic [ref=e127]: Localizacao
+                - combobox "Pais, cidade ou regiao" [ref=e128]
+              - generic [ref=e129]:
+                - generic [ref=e130]:
+                  - img [ref=e131]
+                  - text: Idiomas falados
+                - combobox [ref=e135]:
+                  - option "Qualquer idioma" [selected]
+                  - option "Portugues"
+                  - option "English"
+                  - option "Espanol"
+                  - option "Frances"
+                  - option "Italiano"
+                  - option "Alemao"
+              - generic [ref=e136]:
+                - button "Aplicar" [ref=e137] [cursor=pointer]
+                - link "Limpar" [ref=e138] [cursor=pointer]:
+                  - /url: /buscar
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - link "Todas" [ref=e141] [cursor=pointer]:
+                - /url: /buscar
+              - link "🧠 Saude Mental e Bem-estar Emocional" [ref=e142] [cursor=pointer]:
+                - /url: /buscar?categoria=saude-mental-bem-estar
+              - link "💪 Saude, Corpo e Movimento" [ref=e143] [cursor=pointer]:
+                - /url: /buscar?categoria=saude-corpo-movimento
+              - link "📚 Educacao e Desenvolvimento" [ref=e144] [cursor=pointer]:
+                - /url: /buscar?categoria=educacao-desenvolvimento
+              - link "📊 Contabilidade, Impostos e Financas" [ref=e145] [cursor=pointer]:
+                - /url: /buscar?categoria=contabilidade-financas
+              - link "⚖️ Direito e Suporte Juridico" [ref=e146] [cursor=pointer]:
+                - /url: /buscar?categoria=direito-suporte-juridico
+              - link "🚀 Carreira, Negocios e Desenvolvimento Profissional" [ref=e147] [cursor=pointer]:
+                - /url: /buscar?categoria=carreira-negocios-desenvolvimento
+              - link "🌐 Traducao e Suporte Documental" [ref=e148] [cursor=pointer]:
+                - /url: /buscar?categoria=traducao-suporte-documental
+              - link "🧩 Outro" [ref=e149] [cursor=pointer]:
+                - /url: /buscar?categoria=outro
+            - generic [ref=e150]:
+              - generic [ref=e151]:
+                - paragraph [ref=e152]: 1 profissionais
+                - paragraph [ref=e153]: Sugestoes iniciais variadas para te ajudar a comecar.
+              - generic [ref=e154]:
+                - combobox [ref=e155]:
+                  - 'option "Ordenar: Relevancia" [selected]'
+                  - 'option "Ordenar: Melhor avaliacao"'
+                  - 'option "Ordenar: Mais agendados"'
+                  - 'option "Ordenar: Menor preco"'
+                  - 'option "Ordenar: Maior preco"'
+                - button "Aplicar" [ref=e156] [cursor=pointer]
+            - link "I Igor Pinto Saude Mental e Bem-estar Emocional R$ 220.00 por sessao Psicologo com experiencia em atendimento online para brasileiros no exterior. Foco em adaptacao cultural, ansiedade e rotina de expatriados. Novo 60 min GB Português" [ref=e158] [cursor=pointer]:
+              - /url: /profissional/22c31c2a-3aba-49d8-a8fb-afff28704405
+              - generic [ref=e159]:
+                - generic [ref=e160]: I
+                - generic [ref=e161]:
+                  - generic [ref=e162]:
+                    - generic [ref=e163]:
+                      - heading "Igor Pinto" [level=3] [ref=e164]
+                      - paragraph [ref=e165]: Saude Mental e Bem-estar Emocional
+                    - generic [ref=e166]:
+                      - paragraph [ref=e167]: R$ 220.00
+                      - paragraph [ref=e168]: por sessao
+                  - paragraph [ref=e169]: Psicologo com experiencia em atendimento online para brasileiros no exterior. Foco em adaptacao cultural, ansiedade e rotina de expatriados.
+                  - generic [ref=e170]:
+                    - generic [ref=e171]:
+                      - img [ref=e172]
+                      - text: Novo
+                    - generic [ref=e174]:
+                      - img [ref=e175]
+                      - text: 60 min
+                    - generic [ref=e178]:
+                      - img [ref=e179]
+                      - text: GB
+                  - generic [ref=e183]: Português
