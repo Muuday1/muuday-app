@@ -1,6 +1,6 @@
 /**
  * Test script — sends all email templates to a given address.
- * Run: npx tsx scripts/test-emails.ts igopinto.lds@gmail.com
+ * Run: npx tsx scripts/ops/test-emails.ts igopinto.lds@gmail.com
  */
 import * as path from 'path'
 import * as fs from 'fs'
@@ -49,7 +49,7 @@ async function main() {
     sendFirstBookingNudgeEmail,
     sendReengagementEmail,
     sendLaunchEmail,
-  } = await import('../lib/email/resend')
+  } = await import('../../lib/email/resend')
 
   const emails: Array<{ name: string; fn: () => Promise<unknown> }> = [
     { name: '1. Boas-vindas',          fn: () => sendWelcomeEmail(to, 'Igor') },

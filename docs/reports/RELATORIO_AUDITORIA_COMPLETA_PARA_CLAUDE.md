@@ -42,13 +42,13 @@ Escopo: seguranca, logica de negocio, confiabilidade, UI/UX, operacao, prontidao
 - Acao recomendada: validar payload estritamente (schema), aplicar rate limit (IP + email), opcional captcha e bloquear envio de email quando persistencia falhar.
 
 5. Persistencia da waitlist provavelmente bloqueada por RLS
-- Evidencia: policy atual `USING (false)` em [supabase-waitlist-migration.sql](C:\Users\igorp\Downloads\muuday-app\supabase-waitlist-migration.sql:17), [18](C:\Users\igorp\Downloads\muuday-app\supabase-waitlist-migration.sql:18)
+- Evidencia: policy atual `USING (false)` em [supabase-waitlist-migration.sql](C:\Users\igorp\Downloads\muuday-app\db\sql\migrations\supabase-waitlist-migration.sql:17), [18](C:\Users\igorp\Downloads\muuday-app\db\sql\migrations\supabase-waitlist-migration.sql:18)
 - Evidencia: cliente server usa anon key em [lib/supabase/server.ts](C:\Users\igorp\Downloads\muuday-app\lib\supabase\server.ts:8), nao service role.
 - Risco: gravação pode falhar para publico anonimo enquanto API responde sucesso.
 - Acao recomendada: criar endpoint waitlist com service role dedicado server-only (nunca exposto), ou criar policy de insert anon com validacoes fortes.
 
 6. Exposicao de dados de perfil para todos
-- Evidencia: policy publica em [supabase-schema.sql](C:\Users\igorp\Downloads\muuday-app\supabase-schema.sql:91) e coluna de email em [supabase-schema.sql](C:\Users\igorp\Downloads\muuday-app\supabase-schema.sql:9)
+- Evidencia: policy publica em [supabase-schema.sql](C:\Users\igorp\Downloads\muuday-app\db\sql\schema\supabase-schema.sql:91) e coluna de email em [supabase-schema.sql](C:\Users\igorp\Downloads\muuday-app\db\sql\schema\supabase-schema.sql:9)
 - Risco: privacidade (emails/atributos) e scraping.
 - Acao recomendada: separar `public_profiles` de `profiles` sensivel e restringir select de `profiles` para dono/admin.
 
@@ -56,7 +56,7 @@ Escopo: seguranca, logica de negocio, confiabilidade, UI/UX, operacao, prontidao
 
 7. Integridade de reviews depende de input de cliente
 - Evidencia: `user_id` e `professional_id` vindos de props no client em [ReviewForm.tsx](C:\Users\igorp\Downloads\muuday-app\app\(app)\avaliar\[bookingId]\ReviewForm.tsx:48), [49](C:\Users\igorp\Downloads\muuday-app\app\(app)\avaliar\[bookingId]\ReviewForm.tsx:49)
-- Evidencia de policy fraca para consistencia de booking/profissional: [supabase-schema.sql](C:\Users\igorp\Downloads\muuday-app\supabase-schema.sql:116)
+- Evidencia de policy fraca para consistencia de booking/profissional: [supabase-schema.sql](C:\Users\igorp\Downloads\muuday-app\db\sql\schema\supabase-schema.sql:116)
 - Risco: inconsistencias e abuso de dados (mesmo com `user_id = auth.uid()`).
 - Acao recomendada: inserir review via server action/SQL function que derive `user_id` do token e valide `booking_id -> professional_id` no servidor.
 
@@ -72,7 +72,7 @@ Escopo: seguranca, logica de negocio, confiabilidade, UI/UX, operacao, prontidao
 
 10. Modelo de notificacoes desalinhado entre UI e migration
 - Evidencia UI: [app/(app)/configuracoes/page.tsx](C:\Users\igorp\Downloads\muuday-app\app\(app)\configuracoes\page.tsx:8-11) e defaults [15-17]
-- Evidencia migration: [supabase-notifications-migration.sql](C:\Users\igorp\Downloads\muuday-app\supabase-notifications-migration.sql:4-12)
+- Evidencia migration: [supabase-notifications-migration.sql](C:\Users\igorp\Downloads\muuday-app\db\sql\migrations\supabase-notifications-migration.sql:4-12)
 - Risco: preferencias parcialmente ignoradas/gravadas em chaves divergentes.
 - Acao recomendada: definir contrato unico de `notification_preferences` e migrar dados existentes.
 
@@ -230,4 +230,3 @@ Para cada fase, entregue:
 - Build: `npm.cmd run build` (sucesso).
 - Lint: `npm.cmd run lint` (bloqueado por setup interativo do ESLint).
 - Security scan: `npm.cmd audit --json` (19 vulnerabilidades, incluindo 1 critica em dependencias).
-

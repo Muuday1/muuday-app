@@ -27,7 +27,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### 3. Configurar banco de dados
 - Acesse seu projeto no [Supabase](https://supabase.com)
 - Vá em **SQL Editor**
-- Cole e execute o conteúdo de `supabase-schema.sql`
+- Cole e execute o conteúdo de `db/sql/schema/supabase-schema.sql`
 
 ### 4. Rodar localmente
 ```bash
@@ -45,6 +45,11 @@ app/
 lib/
   supabase/        # Clients do Supabase (browser, server, middleware)
   utils/           # Funções utilitárias (moedas, datas, países)
+db/
+  sql/
+    schema/        # Schema base
+    migrations/    # Migrations SQL incrementais
+docs/              # Handoffs, roadmaps, setup e relatórios
+artifacts/         # Logs/snapshots arquivados (não usados em runtime)
 types/             # Tipos TypeScript
-supabase-schema.sql  # Schema completo do banco
 ```

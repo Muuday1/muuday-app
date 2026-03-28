@@ -4,9 +4,9 @@ Objetivo: preparar materiais e estrutura que ajudam o Claude depois, sem alterar
 
 ## O que já foi preparado
 
-1. [ROADMAP_CLAUDE_MAKE_HUBSPOT.md](C:\Users\igorp\Downloads\muuday-app\ROADMAP_CLAUDE_MAKE_HUBSPOT.md)
-2. [RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.md](C:\Users\igorp\Downloads\muuday-app\RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.md)
-3. [RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.pdf](C:\Users\igorp\Downloads\muuday-app\RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.pdf)
+1. [ROADMAP_CLAUDE_MAKE_HUBSPOT.md](../roadmaps/ROADMAP_CLAUDE_MAKE_HUBSPOT.md)
+2. [RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.md](../reports/RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.md)
+3. [RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.pdf](../reports/RELATORIO_AUDITORIA_COMPLETA_PARA_CLAUDE.pdf)
 
 ## Coisas que posso configurar AGORA sem risco de produção
 
@@ -41,4 +41,3 @@ Objetivo: preparar materiais e estrutura que ajudam o Claude depois, sem alterar
 1. Somente arquivos de documentação/templates.
 2. Nenhuma mudança no runtime do app.
 3. Nenhuma mudança em infraestrutura de produção.
-

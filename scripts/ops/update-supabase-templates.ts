@@ -1,6 +1,6 @@
 /**
  * Updates ALL Supabase auth email templates to match the Muuday branded design.
- * Run: npx tsx scripts/update-supabase-templates.ts YOUR_SUPABASE_MGMT_TOKEN
+ * Run: npx tsx scripts/ops/update-supabase-templates.ts YOUR_SUPABASE_MGMT_TOKEN
  *
  * Get token at: https://supabase.com/dashboard/account/tokens
  */

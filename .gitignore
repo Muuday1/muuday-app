@@ -8,3 +8,7 @@ out/
 tsconfig.tsbuildinfo
 tsconfig.typecheck.tsbuildinfo
 .claude/
+
+# Local generated automation/browser artifacts
+.playwright-cli/
+output/
