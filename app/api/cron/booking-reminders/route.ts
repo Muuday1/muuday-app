@@ -62,26 +62,29 @@ export async function GET(request: NextRequest) {
   let bookings: Record<string, unknown>[] = []
   let loadError: { message?: string } | null = null
 
-  let bookingsQuery = await admin
+  let bookingsResponse = (await admin
     .from('bookings')
     .select('id, user_id, professional_id, scheduled_at, status')
     .gte('scheduled_at', nowIso)
     .lte('scheduled_at', in24h)
-    .limit(1000)
+    .limit(1000)) as { data: Record<string, unknown>[] | null; error: { message?: string } | null }
 
-  if (bookingsQuery.error && bookingsQuery.error.message?.includes('professional_id')) {
-    bookingsQuery = await admin
+  if (bookingsResponse.error && bookingsResponse.error.message?.includes('professional_id')) {
+    bookingsResponse = (await admin
       .from('bookings')
       .select('id, user_id, scheduled_at, status')
       .gte('scheduled_at', nowIso)
       .lte('scheduled_at', in24h)
-      .limit(1000)
+      .limit(1000)) as {
+      data: Record<string, unknown>[] | null
+      error: { message?: string } | null
+    }
   }
 
-  if (bookingsQuery.error) {
-    loadError = bookingsQuery.error
+  if (bookingsResponse.error) {
+    loadError = bookingsResponse.error
   } else {
-    bookings = (bookingsQuery.data as Record<string, unknown>[]) || []
+    bookings = bookingsResponse.data || []
   }
 
   if (loadError) {
