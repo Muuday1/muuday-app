@@ -1,0 +1,47 @@
+name: Booking Cron Jobs
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: booking-crons
+  cancel-in-progress: false
+
+jobs:
+  run-crons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Prepare time window
+        id: clock
+        run: |
+          minute="$(date -u +'%M')"
+          minute_num=$((10#$minute))
+          if (( minute_num % 15 == 0 )); then
+            echo "run_timeouts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_timeouts=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run booking reminders (every 5 min)
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is missing in repository secrets."
+            exit 1
+          fi
+          curl --fail --show-error --silent \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "https://muuday-app.vercel.app/api/cron/booking-reminders"
+
+      - name: Run booking timeouts (every 15 min)
+        if: steps.clock.outputs.run_timeouts == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --show-error --silent \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "https://muuday-app.vercel.app/api/cron/booking-timeouts"
