@@ -49,9 +49,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Este agendamento não está pendente.' }
   }
 
-  const db = adminSupabase ?? supabase
-
-  const { data: updatedBooking, error } = await db
+  let { data: updatedBooking, error } = await supabase
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', bookingId)
@@ -59,6 +57,17 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     .eq('status', 'pending')
     .select('id')
     .maybeSingle()
+
+  if ((!updatedBooking || error) && adminSupabase) {
+    ;({ data: updatedBooking, error } = await adminSupabase
+      .from('bookings')
+      .update({ status: 'confirmed' })
+      .eq('id', bookingId)
+      .eq('professional_id', professionalId)
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle())
+  }
 
   if (error || !updatedBooking) {
     return { success: false, error: 'Erro ao confirmar agendamento. Tente novamente.' }
@@ -98,9 +107,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     updateData.cancellation_reason = reason
   }
 
-  const db = adminSupabase ?? supabase
-
-  let cancelQuery = db
+  let cancelQuery = supabase
     .from('bookings')
     .update(updateData)
     .eq('id', bookingId)
@@ -112,9 +119,27 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     cancelQuery = cancelQuery.eq('professional_id', professionalId)
   }
 
-  const { data: cancelledBooking, error } = await cancelQuery
+  let { data: cancelledBooking, error } = await cancelQuery
     .select('id')
     .maybeSingle()
+
+  if ((!cancelledBooking || error) && adminSupabase) {
+    let adminCancelQuery = adminSupabase
+      .from('bookings')
+      .update(updateData)
+      .eq('id', bookingId)
+      .in('status', ['pending', 'confirmed'])
+
+    if (isBookingUser) {
+      adminCancelQuery = adminCancelQuery.eq('user_id', user.id)
+    } else if (professionalId) {
+      adminCancelQuery = adminCancelQuery.eq('professional_id', professionalId)
+    }
+
+    ;({ data: cancelledBooking, error } = await adminCancelQuery
+      .select('id')
+      .maybeSingle())
+  }
 
   if (error || !cancelledBooking) {
     return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
@@ -153,9 +178,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     return { success: false, error: 'Não é possível adicionar link a este agendamento.' }
   }
 
-  const db = adminSupabase ?? supabase
-
-  const { data: updatedBooking, error } = await db
+  let { data: updatedBooking, error } = await supabase
     .from('bookings')
     .update({ session_link: link.trim() })
     .eq('id', bookingId)
@@ -163,6 +186,17 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     .in('status', ['pending', 'confirmed'])
     .select('id')
     .maybeSingle()
+
+  if ((!updatedBooking || error) && adminSupabase) {
+    ;({ data: updatedBooking, error } = await adminSupabase
+      .from('bookings')
+      .update({ session_link: link.trim() })
+      .eq('id', bookingId)
+      .eq('professional_id', professionalId)
+      .in('status', ['pending', 'confirmed'])
+      .select('id')
+      .maybeSingle())
+  }
 
   if (error || !updatedBooking) {
     return { success: false, error: 'Erro ao salvar o link. Tente novamente.' }
@@ -197,9 +231,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'Apenas agendamentos confirmados podem ser concluídos.' }
   }
 
-  const db = adminSupabase ?? supabase
-
-  const { data: completedBooking, error } = await db
+  let { data: completedBooking, error } = await supabase
     .from('bookings')
     .update({ status: 'completed' })
     .eq('id', bookingId)
@@ -207,6 +239,17 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     .eq('status', 'confirmed')
     .select('id')
     .maybeSingle()
+
+  if ((!completedBooking || error) && adminSupabase) {
+    ;({ data: completedBooking, error } = await adminSupabase
+      .from('bookings')
+      .update({ status: 'completed' })
+      .eq('id', bookingId)
+      .eq('professional_id', professionalId)
+      .eq('status', 'confirmed')
+      .select('id')
+      .maybeSingle())
+  }
 
   if (error || !completedBooking) {
     return { success: false, error: 'Erro ao concluir agendamento. Tente novamente.' }
