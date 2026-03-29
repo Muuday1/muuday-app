@@ -1,7 +1,8 @@
 import { Resend } from 'resend'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://muuday.com'
+const APP_URL = getAppBaseUrl()
 
 // ─── Resend Topics (notification preferences) ─────────────────────────────
 export const TOPICS = {

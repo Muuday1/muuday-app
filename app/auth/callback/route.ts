@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 
 // Use app URL from env to prevent open redirect attacks
 function getBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  return getAppBaseUrl()
 }
 
 export async function GET(request: NextRequest) {

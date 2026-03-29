@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
+import { getWaitlistAllowedOrigins } from '@/lib/config/app-url'
 
 const LEAD_TYPES = ['usuario', 'profissional', 'empresa', 'parceiro'] as const
 
@@ -14,26 +15,7 @@ const waitlistSchema = z.object({
 })
 
 function getAllowedOrigins() {
-  const isDev = process.env.NODE_ENV === 'development'
-  const candidates = [
-    process.env.NEXT_PUBLIC_SITE_URL,
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null,
-    process.env.WAITLIST_CORS_ORIGINS,
-    'https://muuday.com',
-    'https://www.muuday.com',
-    isDev ? 'http://localhost:3000' : null,
-  ].filter(Boolean) as string[]
-
-  const origins = new Set<string>()
-  for (const candidate of candidates) {
-    for (const rawValue of candidate.split(',')) {
-      const value = rawValue.trim()
-      if (!value) continue
-      origins.add(value.replace(/\/+$/, ''))
-    }
-  }
-  return origins
+  return getWaitlistAllowedOrigins()
 }
 
 function getCorsContext(request: NextRequest) {

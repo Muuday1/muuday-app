@@ -21,8 +21,17 @@ Copie `.env.local.example` para `.env.local` e preencha:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+APP_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_PRIMARY_DOMAIN=muuday.com
+WAITLIST_CORS_ORIGINS=http://localhost:3000
 ```
+
+Para troca de domÃ­nio em produÃ§Ã£o (ex.: `muuday-app.vercel.app` -> `muuday.com`), altere apenas:
+- `APP_BASE_URL`
+- `NEXT_PUBLIC_APP_URL`
+- `APP_PRIMARY_DOMAIN`
+- `WAITLIST_CORS_ORIGINS` (se precisar manter domÃ­nios antigos durante transiÃ§Ã£o)
 
 ### 3. Configurar banco de dados
 - Acesse seu projeto no [Supabase](https://supabase.com)
