@@ -6,15 +6,13 @@ Execute in this order.
 
 ## Priority 1 - Monitoring activation (no product logic changes)
 
-1. Configure Checkly account auth (`CHECKLY_API_KEY`, `CHECKLY_ACCOUNT_ID`) locally and in GitHub secrets.
-2. Deploy monitoring-as-code (`npm run checkly:deploy -- --config checkly.config.js`).
-3. Set project vars in Checkly (`BASE_URL`, `CRON_SECRET`, `CHECKLY_USER_EMAIL`, `CHECKLY_USER_PASSWORD`, `CHECKLY_BOOKING_PROFESSIONAL_ID`).
-4. Validate alert channels (email/Slack) with a controlled failure test.
-5. Record completion in `current-state.md` and `session-log.md`.
-6. Create a dedicated bookable professional fixture and point `CHECKLY_BOOKING_PROFESSIONAL_ID` to it (to enforce full booking-screen assertions without fallback).
+1. Validate alert channels (email/Slack) with a controlled failure test.
+2. Define check ownership/escalation response policy.
+3. Create a dedicated bookable professional fixture and point `CHECKLY_BOOKING_PROFESSIONAL_ID` to it (to enforce full booking-screen assertions without fallback).
+4. Record completion in `current-state.md` and `session-log.md`.
 
 Dependencies:
-- Checkly account auth + `BASE_URL` and `CRON_SECRET`.
+- Checkly alert channels available.
 
 ## Priority 2 - Observability activation (operational)
 

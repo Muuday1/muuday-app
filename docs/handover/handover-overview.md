@@ -42,7 +42,7 @@ Muuday is a marketplace connecting Brazilians abroad with Brazilian professional
 1. Payment flow still uses legacy capture placeholder in booking action.
 2. Calendar integration schema exists but runtime sync is not implemented.
 3. Monitoring/observability activation in production still depends on external provider setup.
-4. Checkly checks are already codified in repo, but deployment is blocked until Checkly account auth vars are configured.
+4. Checkly checks are deployed and passing, but alert routing and ownership policy still need completion.
 
 ## Where to start (new contributor)
 

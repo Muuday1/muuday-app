@@ -9,8 +9,8 @@ External health monitoring for production endpoint availability, cron operations
 ## Status
 
 - `In progress`
-- Monitoring-as-code is implemented in repository and validated in CI.
-- Remaining blocker is Checkly account authentication (`CHECKLY_API_KEY` + `CHECKLY_ACCOUNT_ID`) for deploy/run.
+- Monitoring-as-code is implemented, deployed in Checkly, and validated in cloud run.
+- Remaining work is alert routing/governance hardening.
 
 ## Implemented in repository
 
@@ -67,15 +67,19 @@ npm.cmd run test:checkly-local
 
 ## Current blocker
 
-`checkly whoami` / `checkly test` / `checkly deploy` fail without account auth env vars.
+No hard blocker at the moment.
 
 ## Next steps
 
-1. Add `CHECKLY_API_KEY` and `CHECKLY_ACCOUNT_ID` to local env and GitHub secrets.
-2. Configure Checkly env vars listed above in the Checkly project.
-3. Run `npm run checkly:deploy -- --config checkly.config.js`.
-4. Configure alert channels (email/Slack) and set failure/recovery notifications.
-5. Trigger one controlled failure and confirm alert + recovery delivery.
+1. Configure alert channels (email/Slack) and set failure/recovery notifications.
+2. Trigger one controlled failure and confirm alert + recovery delivery.
+3. Add check ownership/escalation policy for operational response.
+
+## Latest validation
+
+- Checkly project deployed successfully to account `igor@muuday.com`.
+- Checkly environment variables were configured (`BASE_URL`, `CRON_SECRET`, `CHECKLY_USER_EMAIL`, `CHECKLY_USER_PASSWORD`, `CHECKLY_BOOKING_PROFESSIONAL_ID`).
+- `checkly test` result: `6 passed, 6 total`.
 
 ## Current fixture caveat
 

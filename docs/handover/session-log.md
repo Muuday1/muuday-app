@@ -51,3 +51,9 @@ Use this for meaningful checkpoints only.
 - Executed local Checkly validation (`npm run checkly:validate`) successfully.
 - Executed local Checkly browser journeys successfully with provided credentials.
 - Hardened `checkly/tests/search-booking-journey.spec.js` to support self-profile redirect fallback (`erro=auto-agendamento`) while production has a single approved professional fixture.
+
+### Entry 10
+- Authenticated Checkly CLI account and deployed monitoring resources to account `igor@muuday.com`.
+- Configured Checkly account environment variables for runtime checks.
+- Fixed cloud-runtime browser check issue by switching browser scripts to absolute URL navigation based on `BASE_URL`.
+- Executed `checkly test` successfully with cloud result `6 passed, 6 total`.

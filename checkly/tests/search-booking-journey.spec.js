@@ -1,5 +1,5 @@
 const { expect, test } = require('@playwright/test')
-const { loginWithPassword } = require('./helpers/auth')
+const { loginWithPassword, toAppUrl } = require('./helpers/auth')
 
 test('search-booking journey: open booking page and validate safety UI', async ({ page }) => {
   const professionalId = process.env.CHECKLY_BOOKING_PROFESSIONAL_ID
@@ -8,7 +8,7 @@ test('search-booking journey: open booking page and validate safety UI', async (
   }
 
   await loginWithPassword(page)
-  await page.goto(`/agendar/${professionalId}`)
+  await page.goto(toAppUrl(`/agendar/${professionalId}`))
 
   try {
     await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })

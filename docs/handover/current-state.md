@@ -41,7 +41,8 @@ Last updated: 2026-03-29
 2. Notifications/monitoring:
 - Internal notifications + cron generation exist.
 - External monitoring-as-code is implemented (`checkly/` + `checkly.config.js`) and validated in CI.
-- Checkly account deploy/alert activation still pending auth/env setup.
+- Checkly project is deployed with env vars configured and cloud checks passing (`6/6`).
+- Alert channel policy/escalation ownership still needs completion.
 3. Resend:
 - templates and helpers exist.
 - production lifecycle coverage and monitoring still incomplete.
@@ -95,3 +96,8 @@ No active code WIP at this moment after finishing observability/schema/booking-U
 - `npm run checkly:validate` passed
 - `npm run test:checkly-local` passed with configured credentials
 - search-booking journey now handles self-profile redirect fallback when only one approved professional fixture exists
+8. `2026-03-29` - Checkly cloud activation completed
+- authenticated Checkly CLI account and deployed project resources
+- configured required Checkly environment variables in account
+- fixed browser checks to use absolute URLs from `BASE_URL`
+- executed `checkly test` in cloud runtime with result `6 passed, 6 total`
