@@ -6,7 +6,7 @@ Last updated: 2026-03-29
 
 - App deploy: `Done` (Vercel production active)
 - Core booking flow: `In progress` (production-grade base implemented, payments/calendar integrations still pending)
-- Ops monitoring baseline: `In progress` (GitHub cron workflow active, Checkly monitoring-as-code deployed/passing, controlled fail/recovery test executed)
+- Ops monitoring baseline: `In progress` (GitHub cron workflow active, Checkly monitoring-as-code deployed/passing, controlled fail/recovery test executed, free-first profile applied)
 - Observability baseline: `In progress` (Sentry/PostHog instrumentation in code, production activation pending)
 - Growth integrations: `Planned` (Make + HubSpot blueprint and event contracts documented)
 

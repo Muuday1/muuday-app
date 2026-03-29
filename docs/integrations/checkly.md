@@ -89,6 +89,17 @@ No hard blocker at the moment.
 - Controlled recovery test executed on ops checks:
   - Session: `https://chkly.link/l/YLBJF` (`2 passed`, expected, valid `CRON_SECRET`)
 
+## Cost profile (pre-launch / free-first)
+
+- Active Muuday checks now run in single location (`us-east-1`).
+- Frequencies tuned down:
+  - API: `15m` (login + booking reminders), `30m` (booking timeouts)
+  - Browser journeys: `1h`
+- Retry policy tuned down:
+  - API: single retry
+  - Browser: no retries
+- Legacy non-tagged checks (`muuday-app`, `muuday-site`) marked inactive to avoid unnecessary consumption.
+
 ## Current fixture caveat
 
 Current production sample data has only one approved professional. The `search-booking` browser journey therefore supports a fallback assertion for self-profile redirect (`erro=auto-agendamento`) so monitoring stays reliable until a dedicated bookable fixture professional is created.

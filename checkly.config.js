@@ -13,8 +13,8 @@ module.exports = defineConfig({
   checks: {
     activated: true,
     muted: false,
-    frequency: Frequency.EVERY_10M,
-    locations: ['us-east-1', 'eu-west-1'],
+    frequency: Frequency.EVERY_15M,
+    locations: ['us-east-1'],
     tags: ['env:prod', 'app:muuday'],
     checkMatch: 'checkly/checks/**/*.check.js',
     playwrightConfig: {
@@ -23,7 +23,7 @@ module.exports = defineConfig({
       },
     },
     browserChecks: {
-      frequency: Frequency.EVERY_15M,
+      frequency: Frequency.EVERY_1H,
       testMatch: 'checkly/tests/**/*.spec.js',
     },
   },

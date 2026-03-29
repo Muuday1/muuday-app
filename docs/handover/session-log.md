@@ -63,3 +63,8 @@ Use this for meaningful checkpoints only.
 - Added Checkly alerting resources in code (`EmailAlertChannel` + group subscription).
 - Executed controlled ops failure session (`2 failed`, expected with invalid secret): `https://chkly.link/l/PsQns`.
 - Executed controlled ops recovery session (`2 passed`, expected with valid secret): `https://chkly.link/l/YLBJF`.
+
+### Entry 12
+- Shifted Checkly to free-first pre-launch profile: single location (`us-east-1`), API at `15m/30m`, browser at `1h`.
+- Reduced retries (API single retry, browser no retry).
+- Disabled inactive legacy checks (`muuday-app`, `muuday-site`) to reduce unnecessary run consumption.

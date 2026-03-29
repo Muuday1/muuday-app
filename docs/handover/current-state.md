@@ -106,3 +106,7 @@ No active code WIP at this moment after finishing observability/schema/booking-U
 - added `EmailAlertChannel` + `AlertChannelSubscription` in monitoring code
 - executed controlled failure test for ops checks (`2 failed`) and controlled recovery test (`2 passed`)
 - sessions recorded in Checkly for auditability
+10. `2026-03-29` - Checkly free-first optimization
+- reduced active check cost profile (single location + lower frequencies + reduced retries)
+- set legacy non-tagged checks to inactive to avoid unnecessary usage
+- kept production-critical journey coverage active

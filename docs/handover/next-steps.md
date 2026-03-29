@@ -7,6 +7,8 @@ Execute in this order.
 ## Priority 1 - Monitoring activation (no product logic changes)
 
 1. Confirm inbox delivery for controlled fail/recovery sessions already triggered in Checkly.
+   - Check inbox and spam/junk for `igorpinto.lds@gmail.com`.
+   - If still missing, add Checkly sender/domain allowlist and rerun controlled fail/recovery.
 2. Add secondary alert channel (Slack) and subscribe it to the monitoring group.
 3. Define check ownership/escalation response policy.
 4. Create a dedicated bookable professional fixture and point `CHECKLY_BOOKING_PROFESSIONAL_ID` to it (to enforce full booking-screen assertions without fallback).

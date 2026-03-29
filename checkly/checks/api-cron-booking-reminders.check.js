@@ -1,17 +1,17 @@
-const { ApiCheck, AssertionBuilder, Frequency, RetryStrategyBuilder } = require('checkly/constructs')
-const { prodJourneyGroup } = require('../check-group')
+const { ApiCheck, AssertionBuilder, Frequency, RetryStrategyBuilder, AlertChannelSubscription } = require('checkly/constructs')
+const { prodJourneyGroup, opsEmailAlerts } = require('../check-group')
 
-new ApiCheck('prod-cron-booking-reminders', {
+const bookingRemindersCheck = new ApiCheck('prod-cron-booking-reminders', {
   name: 'Prod Cron Booking Reminders',
   group: prodJourneyGroup,
   tags: ['journey:ops', 'type:api', 'cron:booking-reminders'],
-  frequency: Frequency.EVERY_5M,
-  locations: ['us-east-1', 'eu-west-1'],
-  retryStrategy: RetryStrategyBuilder.fixedStrategy({
-    maxRetries: 2,
+  frequency: Frequency.EVERY_15M,
+  locations: ['us-east-1'],
+  retryStrategy: RetryStrategyBuilder.singleRetry({
     baseBackoffSeconds: 30,
     sameRegion: true,
   }),
+  useGlobalAlertSettings: false,
   request: {
     url: '{{BASE_URL}}/api/cron/booking-reminders',
     method: 'GET',
@@ -23,3 +23,8 @@ new ApiCheck('prod-cron-booking-reminders', {
   },
 })
 
+new AlertChannelSubscription('sub-prod-cron-booking-reminders-email', {
+  alertChannelId: opsEmailAlerts.ref(),
+  checkId: bookingRemindersCheck.ref(),
+  activated: true,
+})

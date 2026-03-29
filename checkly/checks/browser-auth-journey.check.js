@@ -1,18 +1,21 @@
-const { BrowserCheck, Frequency, RetryStrategyBuilder } = require('checkly/constructs')
-const { prodJourneyGroup } = require('../check-group')
+const { BrowserCheck, Frequency, RetryStrategyBuilder, AlertChannelSubscription } = require('checkly/constructs')
+const { prodJourneyGroup, opsEmailAlerts } = require('../check-group')
 
-new BrowserCheck('prod-browser-auth-journey', {
+const browserAuthJourneyCheck = new BrowserCheck('prod-browser-auth-journey', {
   name: 'Prod Browser Auth Journey',
   group: prodJourneyGroup,
   tags: ['journey:auth', 'type:browser'],
-  frequency: Frequency.EVERY_10M,
-  locations: ['us-east-1', 'eu-west-1'],
-  retryStrategy: RetryStrategyBuilder.fixedStrategy({
-    maxRetries: 1,
-    baseBackoffSeconds: 30,
-    sameRegion: true,
-  }),
+  frequency: Frequency.EVERY_1H,
+  locations: ['us-east-1'],
+  retryStrategy: RetryStrategyBuilder.noRetries(),
+  useGlobalAlertSettings: false,
   code: {
     entrypoint: '../tests/auth-journey.spec.js',
   },
+})
+
+new AlertChannelSubscription('sub-prod-browser-auth-journey-email', {
+  alertChannelId: opsEmailAlerts.ref(),
+  checkId: browserAuthJourneyCheck.ref(),
+  activated: true,
 })

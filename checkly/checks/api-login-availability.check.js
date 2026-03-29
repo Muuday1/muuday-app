@@ -1,17 +1,17 @@
-const { ApiCheck, AssertionBuilder, Frequency, RetryStrategyBuilder } = require('checkly/constructs')
-const { prodJourneyGroup } = require('../check-group')
+const { ApiCheck, AssertionBuilder, Frequency, RetryStrategyBuilder, AlertChannelSubscription } = require('checkly/constructs')
+const { prodJourneyGroup, opsEmailAlerts } = require('../check-group')
 
-new ApiCheck('prod-login-availability', {
+const loginAvailabilityCheck = new ApiCheck('prod-login-availability', {
   name: 'Prod Login Availability',
   group: prodJourneyGroup,
   tags: ['journey:auth', 'type:api'],
-  frequency: Frequency.EVERY_5M,
-  locations: ['us-east-1', 'eu-west-1'],
-  retryStrategy: RetryStrategyBuilder.fixedStrategy({
-    maxRetries: 2,
+  frequency: Frequency.EVERY_15M,
+  locations: ['us-east-1'],
+  retryStrategy: RetryStrategyBuilder.singleRetry({
     baseBackoffSeconds: 30,
     sameRegion: true,
   }),
+  useGlobalAlertSettings: false,
   degradedResponseTime: 5000,
   maxResponseTime: 20000,
   request: {
@@ -25,3 +25,8 @@ new ApiCheck('prod-login-availability', {
   },
 })
 
+new AlertChannelSubscription('sub-prod-login-availability-email', {
+  alertChannelId: opsEmailAlerts.ref(),
+  checkId: loginAvailabilityCheck.ref(),
+  activated: true,
+})
