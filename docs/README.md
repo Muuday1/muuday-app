@@ -22,6 +22,14 @@ This folder is the source of truth for product context, technical architecture, 
 
 ## Documentation map
 
+- [Handover Overview](./handover/handover-overview.md)
+- [Handover Current State](./handover/current-state.md)
+- [Handover Next Steps](./handover/next-steps.md)
+- [Handover Operating Manual](./handover/how-to-work.md)
+- [Handover Rules and Constraints](./handover/rules-and-constraints.md)
+- [Handover Context Map](./handover/context-map.md)
+- [Handover Session Log](./handover/session-log.md)
+
 - [Project Overview](./project/project-overview.md)
 - [Project Status](./project/project-status.md)
 - [Roadmap](./project/roadmap.md)

@@ -40,6 +40,7 @@ npm run build
 ## Documentation
 
 Documentation source of truth is in [`docs/README.md`](./docs/README.md).
+Fast takeover instructions are in [`docs/handover/`](./docs/handover/).
 
 Main sections:
 

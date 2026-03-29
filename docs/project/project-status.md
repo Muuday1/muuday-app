@@ -38,3 +38,7 @@ Last updated: 2026-03-29
 1. Finish Checkly setup in production and validate alert channels.
 2. Add Stripe integration plan and implementation milestones to execution board.
 3. Add observability baseline (Sentry + PostHog) with explicit ownership.
+
+## Handover continuity
+
+Handover files under `docs/handover/` must be updated during execution whenever state or priorities change.
