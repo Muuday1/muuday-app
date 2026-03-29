@@ -1,0 +1,67 @@
+﻿{
+  "version": "1.1.0",
+  "description": "Canonical event contracts for Make + HubSpot sync",
+  "events": [
+    {
+      "name": "waitlist_submitted",
+      "required": ["event_id", "occurred_at", "email", "firstname"],
+      "optional": ["pais_residencia", "tipo_lead", "origem_lead"],
+      "idempotency_key": "event_id"
+    },
+    {
+      "name": "account_created",
+      "required": ["event_id", "occurred_at", "user_id", "email", "role"],
+      "optional": ["country", "timezone", "currency"],
+      "idempotency_key": "event_id"
+    },
+    {
+      "name": "professional_profile_pending_review",
+      "required": ["event_id", "occurred_at", "user_id", "professional_id", "email"],
+      "optional": ["category", "years_experience"],
+      "idempotency_key": "event_id"
+    },
+    {
+      "name": "professional_approved",
+      "required": ["event_id", "occurred_at", "professional_id", "email"],
+      "optional": ["approved_by"],
+      "idempotency_key": "event_id"
+    },
+    {
+      "name": "booking_confirmed",
+      "required": [
+        "event_id",
+        "occurred_at",
+        "booking_id",
+        "user_id",
+        "professional_id",
+        "scheduled_at"
+      ],
+      "optional": ["timezone", "user_email", "professional_email"],
+      "idempotency_key": "event_id"
+    },
+    {
+      "name": "booking_completed",
+      "required": [
+        "event_id",
+        "occurred_at",
+        "booking_id",
+        "user_id",
+        "professional_id"
+      ],
+      "optional": ["user_email", "professional_email"],
+      "idempotency_key": "event_id"
+    },
+    {
+      "name": "booking_no_show",
+      "required": [
+        "event_id",
+        "occurred_at",
+        "booking_id",
+        "user_id",
+        "professional_id"
+      ],
+      "optional": ["reason", "cancelled_by"],
+      "idempotency_key": "event_id"
+    }
+  ]
+}

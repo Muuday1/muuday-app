@@ -1,64 +1,56 @@
-# Muuday App
+﻿# Muuday App
 
-Plataforma que conecta brasileiros no exterior a profissionais brasileiros.
+Muuday is a marketplace connecting Brazilians living abroad with Brazilian professionals.
 
-## Stack
-- **Frontend**: Next.js 14 (App Router)
-- **Backend/DB/Auth**: Supabase
-- **Estilo**: Tailwind CSS
-- **Deploy**: Vercel
+## Core stack
 
-## Setup
+- Frontend: Next.js 14 (App Router)
+- Backend/Auth/DB: Supabase
+- Styling: Tailwind CSS
+- Deploy: Vercel
 
-### 1. Instalar dependências
+## Local setup
+
+1. Install dependencies
+
 ```bash
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
-Copie `.env.local.example` para `.env.local` e preencha:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-APP_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-APP_PRIMARY_DOMAIN=muuday.com
-WAITLIST_CORS_ORIGINS=http://localhost:3000
+2. Create env file
+
+```bash
+cp .env.local.example .env.local
 ```
 
-Para troca de domÃ­nio em produÃ§Ã£o (ex.: `muuday-app.vercel.app` -> `muuday.com`), altere apenas:
-- `APP_BASE_URL`
-- `NEXT_PUBLIC_APP_URL`
-- `APP_PRIMARY_DOMAIN`
-- `WAITLIST_CORS_ORIGINS` (se precisar manter domÃ­nios antigos durante transiÃ§Ã£o)
+3. Run app
 
-### 3. Configurar banco de dados
-- Acesse seu projeto no [Supabase](https://supabase.com)
-- Vá em **SQL Editor**
-- Cole e execute o conteúdo de `db/sql/schema/supabase-schema.sql`
-
-### 4. Rodar localmente
 ```bash
 npm run dev
 ```
 
-Acesse: http://localhost:3000
+## Quality checks
 
-## Estrutura do projeto
+```bash
+npm run typecheck
+npm run lint
+npm run build
 ```
-app/
-  (auth)/          # Login, cadastro, recuperar senha
-  (app)/           # Área logada - dashboard, busca, perfil
-  auth/            # Callbacks de autenticação
-lib/
-  supabase/        # Clients do Supabase (browser, server, middleware)
-  utils/           # Funções utilitárias (moedas, datas, países)
-db/
-  sql/
-    schema/        # Schema base
-    migrations/    # Migrations SQL incrementais
-docs/              # Handoffs, roadmaps, setup e relatórios
-artifacts/         # Logs/snapshots arquivados (não usados em runtime)
-types/             # Tipos TypeScript
-```
+
+## Documentation
+
+Documentation source of truth is in [`docs/README.md`](./docs/README.md).
+
+Main sections:
+
+- Project status and roadmap
+- Product journeys
+- Architecture and ADRs
+- Engineering setup/runbooks
+- Integrations and rollout status
+
+## Important notes
+
+1. Use migration files in `db/sql/migrations` as the authoritative DB evolution source.
+2. Keep app URL/domain changes env-driven (`APP_BASE_URL`, `NEXT_PUBLIC_APP_URL`, `APP_PRIMARY_DOMAIN`).
+3. Update docs together with meaningful code/architecture changes.
