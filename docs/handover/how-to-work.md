@@ -36,6 +36,7 @@ Always update:
 3. `docs/handover/session-log.md`
 4. affected domain docs (journeys, architecture, integrations, project status)
 5. `docs/README.md` and context map when new docs artifacts are introduced
+6. `docs/architecture/tech-stack.md` whenever a tool/component changes phase/status/trigger
 
 ## 5) Consistency guardrails
 

@@ -68,3 +68,4 @@ Dependencies:
 3. Decide open tools from `docs/human-actions/tool-options-and-stack-gaps.md`.
 4. Update blockers in `docs/project/project-status.md` whenever a human decision is closed.
 5. Approve final retention windows/legal-hold exceptions and then implement lifecycle cleanup jobs from `docs/engineering/data-governance-and-lifecycle.md`.
+6. At each Wave close, run tech-stack phase review and update `docs/architecture/tech-stack.md` + `docs/project/roadmap.md`.

@@ -12,18 +12,18 @@ Status definitions:
 - `Open`: approved/planned capability with no final tool lock
 - `Evaluate`: optional but important for risk reduction
 
-## A) Open capabilities -> 3 tool options each
+## A) Open capabilities -> 3 tool options each (with phase entry)
 
-| Capability (Open) | Why it matters | Option 1 | Option 2 | Option 3 | Recommendation for Muuday now |
-| --- | --- | --- | --- | --- | --- |
-| Session provider runtime | Session reliability, no-show evidence, future in-call controls | LiveKit (preferred target) | Google Meet (fallback) | Daily (alternative if needed) | Keep provider-agnostic abstraction and run LiveKit vs Google Meet validation from `docs/spec/consolidated/open-validations.md`. |
-| Case queue subsystem | Disputes, no-shows, trust ops, exception handling | In-app queue (Supabase + Next.js) | Linear (ops triage workflow) | Zendesk | Start with in-app queue as source of truth; mirror high-level ops tasks into Linear. |
-| Notification orchestration | Reliable reminders and event fan-out | Inngest | Trigger.dev | Upstash QStash | Use Inngest or Trigger.dev for durable event jobs; keep provider adapters for Resend/WhatsApp/SMS. |
-| Internal ledger implementation | Financial auditability and reconciliation | Postgres double-entry (custom) | Medici (Node ledger library) | TigerBeetle | MVP: Postgres double-entry in existing DB for lowest complexity and full control. |
-| Compliance disclaimer management | Versioned legal text, acceptance snapshots | In-app versioned tables | Termly | iubenda | MVP: in-app versioned text and acceptance snapshots; legal tooling can come later. |
-| Tax automation path (phase 2+) | Cross-border tax handling at scale | Stripe Tax | Quaderno | Avalara | Defer deep automation until corridor + legal model are locked; document triggers for adoption. |
-| Feature flags / controlled rollout | Safer incremental rollout by segment | PostHog Feature Flags | GrowthBook | Unleash | Use PostHog flags first (already in stack) to avoid extra complexity. |
-| Search scaling (future) | Better relevance and performance at scale | Postgres FTS + trigram | Typesense | Algolia | Keep Postgres-first until clear scale/relevance pressure appears. |
+| Capability (Open) | Why it matters | Entry wave target | Option 1 | Option 2 | Option 3 | Recommendation for Muuday now |
+| --- | --- | --- | --- | --- | --- | --- |
+| Session provider runtime | Session reliability, no-show evidence, future in-call controls | Wave 5 | LiveKit (preferred target) | Google Meet (fallback) | Daily (alternative if needed) | Keep provider-agnostic abstraction and run LiveKit vs Google Meet validation from `docs/spec/consolidated/open-validations.md`. |
+| Case queue subsystem | Disputes, no-shows, trust ops, exception handling | Wave 4 | In-app queue (Supabase + Next.js) | Linear (ops triage workflow) | Zendesk | Start with in-app queue as source of truth; mirror high-level ops tasks into Linear. |
+| Notification orchestration | Reliable reminders and event fan-out | Wave 4 | Inngest | Trigger.dev | Upstash QStash | Use Inngest or Trigger.dev for durable event jobs; keep provider adapters for Resend/WhatsApp/SMS. |
+| Internal ledger implementation | Financial auditability and reconciliation | Wave 3 | Postgres double-entry (custom) | Medici (Node ledger library) | TigerBeetle | MVP: Postgres double-entry in existing DB for lowest complexity and full control. |
+| Compliance disclaimer management | Versioned legal text, acceptance snapshots | Wave 5 | In-app versioned tables | Termly | iubenda | MVP: in-app versioned text and acceptance snapshots; legal tooling can come later. |
+| Tax automation path (phase 2+) | Cross-border tax handling at scale | Post-MVP | Stripe Tax | Quaderno | Avalara | Defer deep automation until corridor + legal model are locked; document triggers for adoption. |
+| Feature flags / controlled rollout | Safer incremental rollout by segment | Wave 1 | PostHog Feature Flags | GrowthBook | Unleash | Use PostHog flags first (already in stack) to avoid extra complexity. |
+| Search scaling (future) | Better relevance and performance at scale | Post-MVP trigger-based | Postgres FTS + trigram | Typesense | Algolia | Keep Postgres-first until clear scale/relevance pressure appears. |
 
 ## B) What may be missing in tech stack (consider now)
 
@@ -68,3 +68,11 @@ Status definitions:
 
 3. Move from basic legal text versioning to specialized compliance tooling when:
 - regulated categories or geographies require legal workflow automation.
+
+## E) Platform growth maintenance rule
+
+At each Wave close:
+
+1. Confirm all stack items in `docs/architecture/tech-stack.md` still have valid phase/trigger metadata.
+2. Promote or demote items between `Current`, `Open`, and `Evaluate` based on implementation reality.
+3. Update this file when new tools are proposed so they never stay as name-only placeholders.

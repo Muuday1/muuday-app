@@ -58,12 +58,32 @@ Source baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Approved future stack additions
 
-| Component | Purpose | Status |
-| --- | --- | --- |
-| Stripe full integration | Marketplace charging, refunds, payouts, billing | Planned |
-| Admin case queue | Operational exception handling | Planned |
-| Notification dispatcher and inbox hardening | Reliable operational communication | In progress |
-| Session provider abstraction | Video/session execution flexibility | Planned |
+| Component | Purpose | Status | Entry wave |
+| --- | --- | --- | --- |
+| Stripe full integration | Marketplace charging, refunds, payouts, billing | Planned | Wave 3 |
+| Admin case queue | Operational exception handling | Planned | Wave 4 |
+| Notification dispatcher and inbox hardening | Reliable operational communication | In progress | Wave 4 |
+| Session provider abstraction | Video/session execution flexibility | Planned | Wave 5 |
+
+## Stack adoption by wave (mandatory tracking)
+
+1. Wave 0:
+- stabilize observability/testing baseline (Checkly, Sentry, Playwright, PostHog, Zod hardening)
+
+2. Wave 1:
+- feature flag rollout baseline (PostHog Feature Flags recommended)
+
+3. Wave 3:
+- Stripe full lifecycle and internal ledger
+
+4. Wave 4:
+- case queue and event/job orchestration for notification reliability
+
+5. Wave 5:
+- session provider lock (LiveKit vs Google Meet) and compliance versioning hardening
+
+6. Post-MVP:
+- tax automation expansion and advanced search scaling only if triggers are met
 
 ## Under evaluation
 

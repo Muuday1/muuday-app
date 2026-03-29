@@ -81,3 +81,8 @@ Use this for meaningful checkpoints only.
 ### Entry 16
 - Added explicit "by when" deadlines per wave for human decisions in `docs/human-actions/decision-backlog.md`.
 - Linked handover execution queue to those wave-gated decision deadlines.
+
+### Entry 17
+- Updated tech-stack governance to require phase entry and growth trigger metadata for all active/proposed components.
+- Added wave-based stack adoption mapping in roadmap and human-actions tool matrix.
+- Added handover rule to review/update stack phase tracking at every Wave close.

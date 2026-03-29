@@ -92,3 +92,4 @@ Important rule:
 5. Archive or remove stale planning and prompt artifacts.
 6. Keep docs aligned with active workstreams tracked in execution tools.
 7. Update `docs/` continuously during each section/prompt of work, including any new docs files created.
+8. Keep `docs/architecture/tech-stack.md` phase-aware (entry wave + growth trigger) for all proposed and active components.
