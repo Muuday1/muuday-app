@@ -53,7 +53,9 @@ Last updated: 2026-03-29
 4. Sentry/PostHog operations:
 - Instrumentation is in code, but production dashboards/alerts/ownership still need completion.
 5. E2E execution readiness:
-- `npm run test:e2e` now includes 3 booking smoke tests, but current production sample data has only one approved professional (same account as the E2E user), so booking tests are skipped until dedicated fixtures are created.
+- `npm run test:e2e` now includes 3 booking smoke tests.
+- Dedicated non-self fixture professional was created and regular booking smoke tests now pass in production (`2 passed`).
+- Manual confirmation smoke remains skipped because `professional_settings` is not available in current production schema/API.
 
 ## Not implemented (`Planned`)
 
@@ -121,3 +123,8 @@ No active code WIP at this moment after finishing observability/schema/booking-U
   - manual confirmation CTA smoke test (`Pagar ... solicitar`)
 - validated `npm run test:e2e` execution path against production URL with configured credentials
 - confirmed current blocker for pass state is fixture data (no dedicated non-self approved professional)
+12. `2026-03-29` - E2E fixture and production run hardening
+- created a dedicated non-self professional fixture account for E2E booking runs
+- stabilized selector ambiguity in booking safety smoke assertion
+- validated production run with `E2E_BASE_URL=https://muuday-app.vercel.app` (`2 passed`, `1 skipped`)
+- confirmed remaining blocker for full `3/3` is production schema drift (`professional_settings` missing from API)

@@ -29,17 +29,16 @@ Dependencies:
 
 ## Priority 3 - Quality expansion (safe)
 
-1. Create dedicated fixture professionals for E2E:
-   - one approved/bookable professional not owned by `E2E_USER_EMAIL`
-   - one approved/bookable professional in manual confirmation mode
-2. Set/update env vars:
+1. Resolve production schema drift for booking foundation:
+   - apply migration `005-production-booking-foundation.sql` (or equivalent) so `professional_settings` and `availability_rules` are available through API.
+2. Configure one professional fixture with `confirmation_mode = manual` after schema is available.
+3. Set/update env vars:
    - `E2E_BASE_URL`, `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`
-3. Re-run `npm run test:e2e` and require `3 passed, 3 total` (no skips) before promoting to release gate.
-4. Keep tests non-destructive and environment-gated.
-5. If fixtures are unavailable, explicitly document skip reason in `project-status.md`.
+4. Re-run `npm run test:e2e` and require `3 passed, 3 total` (no skips) before promoting to release gate.
+5. Keep tests non-destructive and environment-gated.
 
 Dependencies:
-- dedicated E2E credentials and two stable professional fixtures (regular + manual confirmation).
+- dedicated E2E credentials, regular fixture (done), and manual-confirmation fixture (blocked by schema drift).
 
 ## Priority 4 - Payment lifecycle hardening (deferred by product decision)
 

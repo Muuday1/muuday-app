@@ -39,7 +39,7 @@ test.describe('Booking critical journey', () => {
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ver no meu fuso' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ver no fuso do profissional' })).toBeVisible()
-    await expect(page.getByText('Politica de cancelamento')).toBeVisible()
+    await expect(page.getByText('Politica de cancelamento', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Cancelamento com 48h ou mais: reembolso de 100%')).toBeVisible()
   })
 

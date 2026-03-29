@@ -76,3 +76,12 @@ Use this for meaningful checkpoints only.
   - manual confirmation CTA assertion (`Pagar ... solicitar`) via dedicated env-gated fixture
 - Added `E2E_*` variable contract to `.env.local.example`.
 - Validation run completed against `E2E_BASE_URL=https://muuday-app.vercel.app`; current data constraint keeps tests skipped because only one approved professional exists and belongs to the E2E user.
+
+### Entry 14
+- Created dedicated non-self professional fixture for production E2E booking runs (`igorsouzadiaspinto@gmail.com` account).
+- Updated availability fixture to ensure bookable slots for smoke tests.
+- Re-ran production e2e with configured `E2E_*` credentials:
+  - booking safety policy/timezone smoke: passed
+  - checkout gating smoke: passed
+  - manual confirmation smoke: skipped (manual mode infra unavailable in current production API)
+- Confirmed schema drift blocker: `professional_settings` is not available through current production API, preventing manual fixture configuration.

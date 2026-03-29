@@ -50,12 +50,18 @@ Required env vars for `test:e2e`:
 2. Checkout remains blocked until cancellation + timezone confirmations are accepted.
 3. Manual confirmation submit CTA copy (`Pagar ... solicitar`) when professional requires approval.
 
+Latest production execution snapshot:
+
+- `2 passed`
+- `1 skipped` (manual confirmation fixture blocked by schema drift)
+
 ## Known quality gaps
 
 1. Lint warnings remain in some client pages for hook dependencies.
 2. E2E suite depends on dedicated fixture professionals:
 - `E2E_PROFESSIONAL_ID` must not belong to the logged-in `E2E_USER_EMAIL`.
 - `E2E_MANUAL_PROFESSIONAL_ID` must be a bookable professional configured with manual confirmation mode.
+3. Current production API does not expose `professional_settings`, which blocks manual-confirmation fixture setup and full `3/3` smoke completion.
 
 ## Related docs
 
