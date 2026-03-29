@@ -17,6 +17,7 @@ Help users discover professionals and create one-off or recurring bookings safel
 - `/buscar`
 - `/profissional/[id]`
 - `/agendar/[id]`
+- `/configuracoes-agendamento` (professional setup for booking rules)
 
 ## Happy path
 
@@ -24,9 +25,10 @@ Help users discover professionals and create one-off or recurring bookings safel
 2. User filters by category, specialty, price, availability window, location, and language.
 3. User opens professional profile and reviews details.
 4. User opens booking page.
-5. User selects slot and optionally recurring package.
-6. Server validates slot, notice window, booking window, conflicts, and availability constraints.
-7. Slot lock is acquired, booking record is created, and payment row is recorded.
+5. Professional-configured booking rules are applied (timezone, notice window, confirmation mode, recurring flag).
+6. User selects slot and optionally recurring package.
+7. Server validates slot, notice window, booking window, conflicts, and availability constraints.
+8. Slot lock is acquired, booking record is created, and payment row is recorded.
 
 ## Edge cases
 
@@ -38,6 +40,7 @@ Help users discover professionals and create one-off or recurring bookings safel
 ## Current implementation status
 
 - `Done` for core search experience and booking creation flow.
+- `Done` for professional-side pending confirmation visibility (agenda SLA/deadline signals).
 - `In progress` for provider-backed payment lifecycle and advanced recurring conflict handling.
 
 ## Gaps

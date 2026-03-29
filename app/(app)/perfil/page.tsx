@@ -3,7 +3,7 @@ export const metadata = { title: 'Meu Perfil | Muuday' }
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, Bell } from 'lucide-react'
+import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, Bell, SlidersHorizontal } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 
 export default async function PerfilPage() {
@@ -190,21 +190,39 @@ export default async function PerfilPage() {
       {isProfissional && professional && (
         <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
           <h3 className="font-display font-bold text-lg text-neutral-900 mb-4">Agenda e disponibilidade</h3>
-          <Link
-            href="/disponibilidade"
-            className="flex items-center justify-between p-4 bg-brand-50 hover:bg-brand-100 rounded-xl transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-brand-500 rounded-xl flex items-center justify-center">
-                <CalendarClock className="w-4 h-4 text-white" />
+          <div className="space-y-3">
+            <Link
+              href="/disponibilidade"
+              className="flex items-center justify-between p-4 bg-brand-50 hover:bg-brand-100 rounded-xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-brand-500 rounded-xl flex items-center justify-center">
+                  <CalendarClock className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-brand-900">Configurar disponibilidade</p>
+                  <p className="text-xs text-brand-600">Defina os dias e horarios de atendimento</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-brand-900">Configurar disponibilidade</p>
-                <p className="text-xs text-brand-600">Defina os dias e horários de atendimento</p>
+              <ArrowRight className="w-4 h-4 text-brand-500 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+
+            <Link
+              href="/configuracoes-agendamento"
+              className="flex items-center justify-between p-4 bg-neutral-50 hover:bg-neutral-100 rounded-xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-neutral-900 rounded-xl flex items-center justify-center">
+                  <SlidersHorizontal className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">Regras de agendamento</p>
+                  <p className="text-xs text-neutral-600">Buffer, confirmacao, recorrencia e antecedencia</p>
+                </div>
               </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-brand-500 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+              <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
         </div>
       )}
 
@@ -262,3 +280,4 @@ export default async function PerfilPage() {
     </div>
   )
 }
+

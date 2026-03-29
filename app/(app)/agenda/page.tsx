@@ -1,12 +1,32 @@
 export const metadata = { title: 'Agenda | Muuday' }
 
 import Link from 'next/link'
-import { Calendar, Clock, Video, ChevronRight, Star } from 'lucide-react'
+import { Calendar, Clock, Video, ChevronRight, Star, AlertTriangle } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
+
+function getConfirmationDeadline(booking: Record<string, any>): Date | null {
+  const deadlineRaw = booking?.metadata?.confirmation_deadline_utc
+  if (!deadlineRaw || typeof deadlineRaw !== 'string') return null
+
+  const deadline = new Date(deadlineRaw)
+  if (Number.isNaN(deadline.getTime())) return null
+  return deadline
+}
+
+function getSlaLabel(deadline: Date): string {
+  const diffMs = deadline.getTime() - Date.now()
+  if (diffMs <= 0) return 'SLA expirado'
+
+  const diffHours = Math.ceil(diffMs / (60 * 60 * 1000))
+  if (diffHours < 24) return `Expira em ${diffHours}h`
+
+  const diffDays = Math.ceil(diffHours / 24)
+  return `Expira em ${diffDays} dia${diffDays === 1 ? '' : 's'}`
+}
 
 export default async function AgendaPage() {
   const supabase = createClient()
@@ -72,6 +92,10 @@ export default async function AgendaPage() {
   const upcoming = upcomingBookings || []
   const past = pastBookings || []
 
+  const pendingConfirmations = isProfessional
+    ? upcoming.filter((booking: any) => booking.status === 'pending_confirmation')
+    : []
+
   const completedBookingIds = past
     .filter((booking: any) => booking.status === 'completed')
     .map((booking: any) => booking.id)
@@ -101,6 +125,22 @@ export default async function AgendaPage() {
           Proximas sessoes
         </h2>
 
+        {isProfessional && pendingConfirmations.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-amber-800">
+                  {pendingConfirmations.length} solicitacao{pendingConfirmations.length === 1 ? '' : 'oes'} aguardando confirmacao
+                </p>
+                <p className="mt-0.5 text-xs text-amber-700">
+                  Confirme ou recuse dentro do SLA para evitar cancelamento automatico com reembolso.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {upcoming.length === 0 ? (
           <div className="rounded-2xl border border-neutral-100 bg-white p-8 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-50">
@@ -128,6 +168,9 @@ export default async function AgendaPage() {
               const otherPerson = isProfessional
                 ? booking.profiles?.full_name
                 : booking.professionals?.profiles?.full_name
+              const confirmationDeadline =
+                booking.status === 'pending_confirmation' ? getConfirmationDeadline(booking) : null
+              const slaLabel = confirmationDeadline ? getSlaLabel(confirmationDeadline) : null
 
               const statusLabel =
                 booking.status === 'confirmed'
@@ -170,6 +213,17 @@ export default async function AgendaPage() {
                       >
                         {statusLabel}
                       </span>
+                      {slaLabel && (
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            slaLabel === 'SLA expirado'
+                              ? 'bg-red-50 text-red-700'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {slaLabel}
+                        </span>
+                      )}
                       {booking.session_link && (
                         <a
                           href={booking.session_link}
@@ -183,6 +237,11 @@ export default async function AgendaPage() {
                       )}
                     </div>
                   </div>
+                  {slaLabel && (
+                    <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      Prazo de confirmacao: {confirmationDeadline?.toLocaleString('pt-BR', { hour12: false })}
+                    </div>
+                  )}
                   <BookingActions
                     bookingId={booking.id}
                     status={booking.status}

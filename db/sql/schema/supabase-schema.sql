@@ -1,11 +1,22 @@
 -- ============================================
--- MUUDAY DATABASE SCHEMA
--- Run this in Supabase SQL Editor
+-- MUUDAY CANONICAL SCHEMA SNAPSHOT
+-- ============================================
+-- Snapshot aligned with migrations through:
+-- - 006-booking-operations-and-reminders.sql
+--
+-- Notes:
+-- 1) Ordered migrations in db/sql/migrations remain the source of truth for evolution.
+-- 2) This snapshot is for clean bootstrap/reference and should be kept in sync.
 -- ============================================
 
--- Profiles (extends Supabase auth.users)
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- ============================================
+-- CORE TABLES
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   full_name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'usuario' CHECK (role IN ('usuario', 'profissional', 'admin')),
@@ -13,20 +24,30 @@ CREATE TABLE profiles (
   timezone TEXT DEFAULT 'America/Sao_Paulo',
   currency TEXT DEFAULT 'BRL',
   avatar_url TEXT,
+  notification_preferences JSONB DEFAULT '{
+    "booking_confirmation": true,
+    "session_reminder_24h": true,
+    "session_reminder_1h": true,
+    "payment_confirmation": true,
+    "payment_failed": true,
+    "booking_cancelled": true,
+    "new_booking_received": true,
+    "new_review": true,
+    "news_promotions": true
+  }'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Professionals
-CREATE TABLE professionals (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft','pending_review','approved','rejected','suspended')),
+CREATE TABLE IF NOT EXISTS professionals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending_review', 'approved', 'rejected', 'suspended')),
   bio TEXT,
   category TEXT NOT NULL,
   subcategories TEXT[] DEFAULT '{}',
   tags TEXT[] DEFAULT '{}',
-  languages TEXT[] DEFAULT ARRAY['Português'],
+  languages TEXT[] DEFAULT ARRAY['Portugues'],
   years_experience INTEGER DEFAULT 0,
   session_price_brl DECIMAL(10,2) NOT NULL DEFAULT 0,
   session_duration_minutes INTEGER DEFAULT 60,
@@ -37,59 +58,258 @@ CREATE TABLE professionals (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Availability (weekly schedule)
-CREATE TABLE availability (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS availability (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   professional_id UUID REFERENCES professionals(id) ON DELETE CASCADE,
-  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Sunday
+  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Bookings
-CREATE TABLE bookings (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  professional_id UUID REFERENCES professionals(id) NOT NULL,
+CREATE TABLE IF NOT EXISTS bookings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id),
+  professional_id UUID NOT NULL REFERENCES professionals(id),
   scheduled_at TIMESTAMPTZ NOT NULL,
+  start_time_utc TIMESTAMPTZ,
+  end_time_utc TIMESTAMPTZ,
+  timezone_user TEXT,
+  timezone_professional TEXT,
   duration_minutes INTEGER DEFAULT 60,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','confirmed','completed','cancelled','no_show')),
+  status TEXT DEFAULT 'pending' CHECK (
+    status IN (
+      'draft',
+      'pending_payment',
+      'pending_confirmation',
+      'pending',
+      'confirmed',
+      'cancelled',
+      'completed',
+      'no_show',
+      'rescheduled'
+    )
+  ),
+  booking_type TEXT DEFAULT 'one_off' CHECK (booking_type IN ('one_off', 'recurring_parent', 'recurring_child')),
+  parent_booking_id UUID REFERENCES bookings(id),
   session_link TEXT,
   price_brl DECIMAL(10,2) NOT NULL,
   price_user_currency DECIMAL(10,2),
+  price_total DECIMAL(10,2),
   user_currency TEXT DEFAULT 'BRL',
   notes TEXT,
+  session_purpose TEXT,
   cancellation_reason TEXT,
   stripe_payment_intent_id TEXT,
+  confirmation_mode_snapshot TEXT DEFAULT 'auto_accept' CHECK (confirmation_mode_snapshot IN ('auto_accept', 'manual')),
+  cancellation_policy_snapshot JSONB DEFAULT '{
+    "code":"platform_default",
+    "refund_48h_or_more":100,
+    "refund_24h_to_48h":50,
+    "refund_under_24h":0
+  }'::jsonb,
+  metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Favorites
-CREATE TABLE favorites (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
-  professional_id UUID REFERENCES professionals(id) ON DELETE CASCADE NOT NULL,
+CREATE TABLE IF NOT EXISTS favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, professional_id)
 );
 
--- Reviews
-CREATE TABLE reviews (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  booking_id UUID REFERENCES bookings(id) UNIQUE NOT NULL,
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  professional_id UUID REFERENCES professionals(id) NOT NULL,
+CREATE TABLE IF NOT EXISTS reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID UNIQUE NOT NULL REFERENCES bookings(id),
+  user_id UUID NOT NULL REFERENCES profiles(id),
+  professional_id UUID NOT NULL REFERENCES professionals(id),
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
   comment TEXT,
-  is_visible BOOLEAN DEFAULT FALSE, -- Admin approves
+  is_visible BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
--- ROW LEVEL SECURITY
+-- BOOKING FOUNDATION TABLES
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS professional_settings (
+  professional_id UUID PRIMARY KEY REFERENCES professionals(id) ON DELETE CASCADE,
+  timezone TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
+  session_duration_minutes INTEGER NOT NULL DEFAULT 60 CHECK (session_duration_minutes BETWEEN 15 AND 240),
+  buffer_minutes INTEGER NOT NULL DEFAULT 0 CHECK (buffer_minutes BETWEEN 0 AND 120),
+  minimum_notice_hours INTEGER NOT NULL DEFAULT 24 CHECK (minimum_notice_hours BETWEEN 1 AND 168),
+  max_booking_window_days INTEGER NOT NULL DEFAULT 30 CHECK (max_booking_window_days BETWEEN 1 AND 365),
+  enable_recurring BOOLEAN NOT NULL DEFAULT false,
+  confirmation_mode TEXT NOT NULL DEFAULT 'auto_accept' CHECK (confirmation_mode IN ('auto_accept', 'manual')),
+  cancellation_policy_code TEXT NOT NULL DEFAULT 'platform_default',
+  require_session_purpose BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS availability_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  weekday INTEGER NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+  start_time_local TIME NOT NULL,
+  end_time_local TIME NOT NULL,
+  timezone TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (start_time_local < end_time_local)
+);
+
+CREATE TABLE IF NOT EXISTS availability_exceptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  date_local DATE NOT NULL,
+  is_available BOOLEAN NOT NULL DEFAULT false,
+  start_time_local TIME,
+  end_time_local TIME,
+  timezone TEXT NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (
+    (is_available = false AND start_time_local IS NULL AND end_time_local IS NULL)
+    OR
+    (is_available = true AND start_time_local IS NOT NULL AND end_time_local IS NOT NULL AND start_time_local < end_time_local)
+  )
+);
+
+CREATE TABLE IF NOT EXISTS slot_locks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  start_time_utc TIMESTAMPTZ NOT NULL,
+  end_time_utc TIMESTAMPTZ NOT NULL,
+  booking_type TEXT NOT NULL DEFAULT 'one_off' CHECK (booking_type IN ('one_off', 'recurring')),
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL DEFAULT 'stripe',
+  provider_payment_id TEXT,
+  amount_total DECIMAL(10,2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'BRL',
+  status TEXT NOT NULL CHECK (status IN ('requires_payment', 'captured', 'partial_refunded', 'refunded', 'failed')),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  captured_at TIMESTAMPTZ,
+  refunded_at TIMESTAMPTZ,
+  refunded_amount DECIMAL(10,2),
+  refund_percentage INTEGER CHECK (refund_percentage BETWEEN 0 AND 100),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS booking_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  start_time_utc TIMESTAMPTZ NOT NULL,
+  end_time_utc TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL CHECK (
+    status IN (
+      'pending_payment',
+      'pending_confirmation',
+      'confirmed',
+      'cancelled',
+      'completed',
+      'no_show',
+      'rescheduled'
+    )
+  ),
+  session_number INTEGER NOT NULL CHECK (session_number >= 1),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(parent_booking_id, session_number)
+);
+
+CREATE TABLE IF NOT EXISTS calendar_integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID NOT NULL UNIQUE REFERENCES professionals(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL CHECK (provider IN ('google')),
+  provider_account_email TEXT,
+  access_token_encrypted TEXT,
+  refresh_token_encrypted TEXT,
+  token_expires_at TIMESTAMPTZ,
+  sync_enabled BOOLEAN NOT NULL DEFAULT true,
+  last_sync_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+  rate_key TEXT PRIMARY KEY,
+  hits INTEGER NOT NULL DEFAULT 0,
+  window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS waitlist (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  firstname TEXT NOT NULL,
+  country TEXT,
+  tipo_lead TEXT DEFAULT 'usuario' CHECK (tipo_lead IN ('usuario', 'profissional')),
+  origem_lead TEXT,
+  status TEXT DEFAULT 'na_lista',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- INDEXES
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS favorites_user_id_idx ON favorites(user_id);
+CREATE INDEX IF NOT EXISTS favorites_professional_id_idx ON favorites(professional_id);
+CREATE INDEX IF NOT EXISTS bookings_start_time_utc_idx ON bookings(start_time_utc);
+CREATE INDEX IF NOT EXISTS bookings_end_time_utc_idx ON bookings(end_time_utc);
+CREATE INDEX IF NOT EXISTS bookings_parent_booking_id_idx ON bookings(parent_booking_id);
+CREATE UNIQUE INDEX IF NOT EXISTS availability_rules_unique_window_idx
+  ON availability_rules(professional_id, weekday, start_time_local, end_time_local);
+CREATE INDEX IF NOT EXISTS availability_rules_professional_weekday_idx
+  ON availability_rules(professional_id, weekday);
+CREATE UNIQUE INDEX IF NOT EXISTS availability_exceptions_unique_day_idx
+  ON availability_exceptions(professional_id, date_local);
+CREATE UNIQUE INDEX IF NOT EXISTS slot_locks_unique_slot_idx
+  ON slot_locks(professional_id, start_time_utc);
+CREATE INDEX IF NOT EXISTS slot_locks_expires_at_idx ON slot_locks(expires_at);
+CREATE INDEX IF NOT EXISTS payments_booking_id_idx ON payments(booking_id);
+CREATE INDEX IF NOT EXISTS payments_user_id_idx ON payments(user_id);
+CREATE INDEX IF NOT EXISTS payments_professional_id_idx ON payments(professional_id);
+CREATE INDEX IF NOT EXISTS booking_sessions_parent_idx ON booking_sessions(parent_booking_id);
+CREATE INDEX IF NOT EXISTS booking_sessions_start_idx ON booking_sessions(start_time_utc);
+CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS notifications_booking_idx ON notifications(booking_id);
+CREATE UNIQUE INDEX IF NOT EXISTS notifications_unique_booking_type_user_idx
+  ON notifications(booking_id, type, user_id)
+  WHERE booking_id IS NOT NULL AND user_id IS NOT NULL;
+
+-- ============================================
+-- RLS ENABLEMENT
 -- ============================================
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -98,65 +318,370 @@ ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE professional_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE availability_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE availability_exceptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE slot_locks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calendar_integrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_rate_limits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 
--- Profiles: only authenticated users can read, only update own
-CREATE POLICY "Authenticated users can view profiles" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE
+-- ============================================
+-- RLS POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Authenticated users can view profiles" ON profiles;
+CREATE POLICY "Authenticated users can view profiles" ON profiles
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+CREATE POLICY "Users can update own profile" ON profiles
+  FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (
     auth.uid() = id
     AND role = (SELECT p.role FROM profiles p WHERE p.id = auth.uid())
   );
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Professionals: approved ones are public
-CREATE POLICY "Approved professionals are viewable" ON professionals FOR SELECT USING (status = 'approved' OR user_id = auth.uid());
-CREATE POLICY "Professionals can update own profile" ON professionals FOR UPDATE USING (user_id = auth.uid());
-CREATE POLICY "Professionals can insert own profile" ON professionals FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+CREATE POLICY "Users can insert own profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Availability: public read for approved professionals
-CREATE POLICY "Availability is viewable" ON availability FOR SELECT USING (true);
-CREATE POLICY "Professionals manage own availability" ON availability FOR ALL USING (
-  professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
-);
+DROP POLICY IF EXISTS "Approved professionals are viewable" ON professionals;
+CREATE POLICY "Approved professionals are viewable" ON professionals
+  FOR SELECT USING (
+    status = 'approved'
+    OR user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
 
--- Bookings: users see own bookings, professionals see their bookings
-CREATE POLICY "Users see own bookings" ON bookings FOR SELECT USING (
-  user_id = auth.uid() OR
-  professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
-);
-CREATE POLICY "Users can create bookings" ON bookings FOR INSERT WITH CHECK (user_id = auth.uid());
-CREATE POLICY "Users and professionals can update bookings" ON bookings FOR UPDATE
-USING (
-  user_id = auth.uid() OR
-  professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid()) OR
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+DROP POLICY IF EXISTS "Professionals can update own profile" ON professionals;
+CREATE POLICY "Professionals can update own profile" ON professionals
+  FOR UPDATE USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Professionals can insert own profile" ON professionals;
+CREATE POLICY "Professionals can insert own profile" ON professionals
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Availability is viewable" ON availability;
+CREATE POLICY "Availability is viewable" ON availability
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Professionals manage own availability" ON availability;
+CREATE POLICY "Professionals manage own availability" ON availability
+  FOR ALL
+  USING (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users can view own favorites" ON favorites;
+CREATE POLICY "Users can view own favorites" ON favorites
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own favorites" ON favorites;
+CREATE POLICY "Users can insert own favorites" ON favorites
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own favorites" ON favorites;
+CREATE POLICY "Users can delete own favorites" ON favorites
+  FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Visible reviews are public" ON reviews;
+CREATE POLICY "Visible reviews are public" ON reviews
+  FOR SELECT USING (
+    is_visible = true
+    OR user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users can create reviews" ON reviews;
+CREATE POLICY "Users can create reviews" ON reviews
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users see own bookings" ON bookings;
+CREATE POLICY "Users see own bookings" ON bookings
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users can create bookings" ON bookings;
+CREATE POLICY "Users can create bookings" ON bookings
+  FOR INSERT WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users and professionals can update bookings" ON bookings;
+CREATE POLICY "Users and professionals can update bookings" ON bookings
+  FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Professional settings are viewable" ON professional_settings;
+CREATE POLICY "Professional settings are viewable" ON professional_settings
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Professionals manage own settings" ON professional_settings;
+CREATE POLICY "Professionals manage own settings" ON professional_settings
+  FOR ALL
+  USING (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Availability rules are viewable" ON availability_rules;
+CREATE POLICY "Availability rules are viewable" ON availability_rules
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Professionals manage own availability rules" ON availability_rules;
+CREATE POLICY "Professionals manage own availability rules" ON availability_rules
+  FOR ALL
+  USING (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Availability exceptions are viewable" ON availability_exceptions;
+CREATE POLICY "Availability exceptions are viewable" ON availability_exceptions
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Professionals manage own availability exceptions" ON availability_exceptions;
+CREATE POLICY "Professionals manage own availability exceptions" ON availability_exceptions
+  FOR ALL
+  USING (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users manage own slot locks" ON slot_locks;
+CREATE POLICY "Users manage own slot locks" ON slot_locks
+  FOR ALL
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users and professionals view own payments" ON payments;
+CREATE POLICY "Users and professionals view own payments" ON payments
+  FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "System creates payments for booking owner" ON payments;
+CREATE POLICY "System creates payments for booking owner" ON payments
+  FOR INSERT
+  WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users and professionals update own payments" ON payments;
+CREATE POLICY "Users and professionals update own payments" ON payments
+  FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Booking sessions follow parent booking visibility" ON booking_sessions;
+CREATE POLICY "Booking sessions follow parent booking visibility" ON booking_sessions
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM bookings b
+      WHERE b.id = booking_sessions.parent_booking_id
+      AND (
+        b.user_id = auth.uid()
+        OR b.professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+      )
+    )
+  );
+
+DROP POLICY IF EXISTS "Professionals manage own booking sessions" ON booking_sessions;
+CREATE POLICY "Professionals manage own booking sessions" ON booking_sessions
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM bookings b
+      WHERE b.id = booking_sessions.parent_booking_id
+      AND (
+        b.professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+      )
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM bookings b
+      WHERE b.id = booking_sessions.parent_booking_id
+      AND (
+        b.professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+      )
+    )
+  );
+
+DROP POLICY IF EXISTS "Professionals manage own calendar integration" ON calendar_integrations;
+CREATE POLICY "Professionals manage own calendar integration" ON calendar_integrations
+  FOR ALL
+  USING (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users read own notifications" ON notifications;
+CREATE POLICY "Users read own notifications" ON notifications
+  FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users update own notifications" ON notifications;
+CREATE POLICY "Users update own notifications" ON notifications
+  FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users insert own notifications" ON notifications;
+CREATE POLICY "Users insert own notifications" ON notifications
+  FOR INSERT
+  WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "No direct access to api_rate_limits" ON api_rate_limits;
+CREATE POLICY "No direct access to api_rate_limits" ON api_rate_limits
+  FOR ALL
+  USING (false)
+  WITH CHECK (false);
+
+DROP POLICY IF EXISTS "Service role only" ON waitlist;
+CREATE POLICY "Service role only" ON waitlist
+  USING (false);
+
+-- ============================================
+-- RATE LIMIT FUNCTION
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.check_rate_limit(
+  p_key TEXT,
+  p_limit INTEGER,
+  p_window_seconds INTEGER
 )
-WITH CHECK (
-  user_id = auth.uid() OR
-  professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid()) OR
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
+RETURNS TABLE (
+  allowed BOOLEAN,
+  remaining INTEGER,
+  retry_after_seconds INTEGER
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  now_ts TIMESTAMPTZ := NOW();
+  window_interval INTERVAL := make_interval(secs => p_window_seconds);
+  row_state api_rate_limits;
+BEGIN
+  INSERT INTO api_rate_limits AS rl (rate_key, hits, window_started_at, updated_at)
+  VALUES (p_key, 1, now_ts, now_ts)
+  ON CONFLICT (rate_key) DO UPDATE
+    SET hits = CASE
+      WHEN rl.window_started_at + window_interval <= now_ts THEN 1
+      ELSE rl.hits + 1
+    END,
+    window_started_at = CASE
+      WHEN rl.window_started_at + window_interval <= now_ts THEN now_ts
+      ELSE rl.window_started_at
+    END,
+    updated_at = now_ts
+  RETURNING * INTO row_state;
 
--- Favorites: users manage only their own list
-CREATE POLICY "Users can view own favorites" ON favorites FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own favorites" ON favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own favorites" ON favorites FOR DELETE USING (auth.uid() = user_id);
+  IF row_state.hits <= p_limit THEN
+    RETURN QUERY SELECT TRUE, GREATEST(0, p_limit - row_state.hits), 0;
+  ELSE
+    RETURN QUERY
+      SELECT
+        FALSE,
+        0,
+        GREATEST(
+          1,
+          CEIL(EXTRACT(EPOCH FROM ((row_state.window_started_at + window_interval) - now_ts)))::INTEGER
+        );
+  END IF;
+END;
+$$;
 
--- Reviews: visible approved ones are public
-CREATE POLICY "Visible reviews are public" ON reviews FOR SELECT USING (is_visible = true OR user_id = auth.uid());
-CREATE POLICY "Users can create reviews" ON reviews FOR INSERT WITH CHECK (user_id = auth.uid());
+GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER)
+  TO anon, authenticated, service_role;
 
 -- ============================================
--- AUTO-CREATE PROFILE ON SIGNUP
+-- AUTH TRIGGER
 -- ============================================
+
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
   _role TEXT;
 BEGIN
-  -- Only allow 'usuario' or 'profissional' from client metadata.
-  -- 'admin' can NEVER be set via signup — must be promoted via SQL manually.
   _role := COALESCE(NEW.raw_user_meta_data->>'role', 'usuario');
   IF _role NOT IN ('usuario', 'profissional') THEN
     _role := 'usuario';
@@ -176,6 +701,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();

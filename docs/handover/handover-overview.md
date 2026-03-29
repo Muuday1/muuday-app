@@ -14,8 +14,9 @@ Muuday is a marketplace connecting Brazilians abroad with Brazilian professional
 
 1. Keep booking lifecycle reliable in production.
 2. Keep cron-based reminders/timeouts stable and monitored.
-3. Complete monitoring baseline (Checkly activation + alert channels).
-4. Implement payment-provider lifecycle (Stripe) and observability baseline.
+3. Complete monitoring activation (Checkly + alert channels).
+4. Activate observability providers (Sentry/PostHog dashboards + alerts).
+5. Implement payment-provider lifecycle (Stripe) when approved.
 
 ## Major components
 
@@ -31,14 +32,16 @@ Muuday is a marketplace connecting Brazilians abroad with Brazilian professional
 - Resend (`In progress`)
 - Upstash rate limiting (`In progress`)
 - Checkly (`In progress`)
+- Sentry (`In progress`)
+- PostHog (`In progress`)
 - Make + HubSpot (`Planned`)
 - Stripe full lifecycle (`Planned`)
 
 ## Biggest risks / unknowns
 
-1. `db/sql/schema/supabase-schema.sql` is not fully aligned with latest migrations.
-2. Payment flow still uses legacy capture placeholder in booking action.
-3. Calendar integration schema exists but runtime sync is not implemented.
+1. Payment flow still uses legacy capture placeholder in booking action.
+2. Calendar integration schema exists but runtime sync is not implemented.
+3. Monitoring/observability activation in production still depends on external provider setup.
 
 ## Where to start (new contributor)
 

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import * as Sentry from '@sentry/nextjs'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
@@ -22,6 +23,22 @@ type SessionSlot = {
 }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
+
+function reportBookingError(
+  error: unknown,
+  context: Record<string, unknown>,
+  message: string,
+) {
+  Sentry.captureException(error, {
+    tags: { area: 'booking_create' },
+    extra: context,
+  })
+  Sentry.captureMessage(message, {
+    level: 'error',
+    tags: { area: 'booking_create' },
+    extra: context,
+  })
+}
 
 function hhmmToMinutes(value: string) {
   const [hours, minutes] = value.slice(0, 5).split(':').map(Number)
@@ -389,6 +406,7 @@ export async function createBooking(data: {
         .single()
 
       if (error || !booking) {
+        reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
         return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
       }
       bookingId = booking.id
@@ -429,6 +447,7 @@ export async function createBooking(data: {
         .single()
 
       if (parentError || !parentBooking) {
+        reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
         return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
       }
       parentBookingId = parentBooking.id
@@ -463,6 +482,7 @@ export async function createBooking(data: {
 
       const { error: childError } = await supabase.from('bookings').insert(childBookingsPayload)
       if (childError) {
+        reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
         return { success: false, error: 'Erro ao criar sessoes recorrentes. Tente novamente.' }
       }
@@ -477,6 +497,7 @@ export async function createBooking(data: {
 
       const { error: sessionsError } = await supabase.from('booking_sessions').insert(sessionsPayload)
       if (sessionsError) {
+        reportBookingError(sessionsError, { parentBookingId: parentBooking.id, bookingType }, 'booking_sessions_insert_failed')
         await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
         return { success: false, error: 'Erro ao criar estrutura de pacote recorrente.' }
@@ -510,6 +531,7 @@ export async function createBooking(data: {
   })
 
   if (paymentError) {
+    reportBookingError(paymentError, { parentBookingId, bookingType }, 'booking_payment_record_failed')
     await supabase
       .from('bookings')
       .update({

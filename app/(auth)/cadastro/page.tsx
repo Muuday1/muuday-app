@@ -9,6 +9,7 @@ import { COUNTRIES } from '@/lib/utils'
 import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { sendWelcomeEmailAction } from '@/lib/actions/email'
+import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 
 type Role = 'usuario' | 'profissional'
 
@@ -58,6 +59,7 @@ export default function CadastroPage() {
     })
 
     if (error) {
+      captureEvent('auth_signup_failed', { role, reason: error.message })
       setError(error.message)
       setLoading(false)
       return
@@ -65,6 +67,14 @@ export default function CadastroPage() {
 
     // Send welcome email (non-blocking)
     sendWelcomeEmailAction(email, fullName)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      identifyEventUser(user.id, { email: user.email || email, role })
+    }
+    captureEvent('auth_signup_succeeded', { role, country, timezone, currency })
 
     router.push('/buscar')
     router.refresh()

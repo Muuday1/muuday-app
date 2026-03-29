@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createBooking } from '@/lib/actions/booking'
 import { cn, formatCurrency } from '@/lib/utils'
+import { captureEvent } from '@/lib/analytics/posthog-client'
 
 interface AvailabilitySlot {
   id: string
@@ -139,6 +140,9 @@ export default function BookingForm({
   requireSessionPurpose,
   enableRecurring,
 }: BookingFormProps) {
+  const bookingViewTracked = useRef(false)
+  const slotSelectionTracked = useRef(false)
+
   const today = useMemo(() => {
     const date = new Date()
     date.setHours(0, 0, 0, 0)
@@ -320,6 +324,25 @@ export default function BookingForm({
         ? 'Pagar pacote e confirmar'
         : 'Pagar e confirmar agendamento'
 
+  useEffect(() => {
+    if (bookingViewTracked.current) return
+    bookingViewTracked.current = true
+
+    captureEvent('booking_form_viewed', {
+      professional_id: professional.id,
+      confirmation_mode: confirmationMode,
+      recurring_enabled: enableRecurring,
+      min_notice_hours: minimumNoticeHours,
+      max_window_days: maxBookingWindowDays,
+    })
+  }, [
+    confirmationMode,
+    enableRecurring,
+    maxBookingWindowDays,
+    minimumNoticeHours,
+    professional.id,
+  ])
+
   function prevMonth() {
     if (!canGoPrev) return
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
@@ -336,6 +359,12 @@ export default function BookingForm({
     setSelectedTime(null)
     setAcceptPolicy(false)
     setAcceptTimezone(false)
+    slotSelectionTracked.current = false
+    captureEvent('booking_date_selected', {
+      professional_id: professional.id,
+      selected_date: toLocalDateStr(date),
+      booking_type: bookingType,
+    })
   }
 
   function renderSlotLabel(time: string) {
@@ -348,6 +377,13 @@ export default function BookingForm({
   function handleConfirm() {
     if (!selectedDate || !selectedTime || !canSubmit) return
 
+    captureEvent('booking_submit_clicked', {
+      professional_id: professional.id,
+      booking_type: bookingType,
+      confirmation_mode: confirmationMode,
+      recurring_sessions_count: bookingType === 'recurring' ? recurringSessionsCount : 1,
+    })
+
     startTransition(async () => {
       const scheduledAt = buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
       const result = await createBooking({
@@ -359,6 +395,20 @@ export default function BookingForm({
         recurringSessionsCount: bookingType === 'recurring' ? recurringSessionsCount : undefined,
       })
       setBookingResult(result)
+      if (result.success) {
+        captureEvent('booking_created', {
+          professional_id: professional.id,
+          booking_type: bookingType,
+          confirmation_mode: confirmationMode,
+          recurring_sessions_count: bookingType === 'recurring' ? recurringSessionsCount : 1,
+        })
+      } else {
+        captureEvent('booking_create_failed', {
+          professional_id: professional.id,
+          booking_type: bookingType,
+          reason: result.error,
+        })
+      }
     })
   }
 
@@ -627,7 +677,17 @@ export default function BookingForm({
                   {timeSlots.map(time => (
                     <button
                       key={time}
-                      onClick={() => setSelectedTime(time)}
+                      onClick={() => {
+                        setSelectedTime(time)
+                        if (!slotSelectionTracked.current) {
+                          slotSelectionTracked.current = true
+                          captureEvent('booking_time_selected', {
+                            professional_id: professional.id,
+                            selected_time: time,
+                            booking_type: bookingType,
+                          })
+                        }
+                      }}
                       className={cn(
                         'rounded-xl border px-3 py-2.5 text-sm font-medium transition-all',
                         selectedTime === time

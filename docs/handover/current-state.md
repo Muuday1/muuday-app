@@ -19,6 +19,19 @@ Last updated: 2026-03-29
 8. Cron workflow and protected cron endpoints.
 9. Canonical app URL config helper (`lib/config/app-url.ts`).
 10. Docs governance baseline (new docs architecture and cleanup).
+11. Professional booking settings UI:
+- New self-service screen at `/configuracoes-agendamento`.
+- Professional can now manage timezone, session duration, buffer, minimum notice, booking window, confirmation mode, recurring toggle, and session-purpose requirement.
+- Perfil + disponibilidade now link to this screen.
+12. Observability instrumentation baseline in code:
+- Sentry init on client/server/edge + global error capture.
+- PostHog provider + auth and booking funnel events.
+13. Booking operations UX improvements:
+- Professional agenda highlights pending confirmations and SLA deadline labels.
+14. E2E baseline committed:
+- Playwright config and critical booking journey spec.
+15. Canonical schema snapshot updated:
+- `db/sql/schema/supabase-schema.sql` aligned to migrations through `006`.
 
 ## Partially implemented (`In progress`)
 
@@ -27,28 +40,28 @@ Last updated: 2026-03-29
 - Booking flow still inserts legacy captured payment records.
 2. Notifications/monitoring:
 - Internal notifications + cron generation exist.
-- External monitoring setup documented, activation pending.
+- External monitoring setup documented; Checkly activation/alerts pending.
 3. Resend:
 - templates and helpers exist.
 - production lifecycle coverage and monitoring still incomplete.
+4. Sentry/PostHog operations:
+- Instrumentation is in code, but production dashboards/alerts/ownership still need completion.
 
 ## Not implemented (`Planned`)
 
 1. Stripe full payment lifecycle (capture/refund via provider webhooks).
 2. Google Calendar read/write sync flow.
-3. Sentry production instrumentation.
-4. PostHog funnel instrumentation baseline.
-5. Live Make + HubSpot scenario rollout.
+3. Live Make + HubSpot scenario rollout.
 
 ## Broken or unstable (`Blocked` / risk)
 
 1. No confirmed Sev-1 production blocker currently.
-2. Structural risk: schema source drift (`schema.sql` vs migrations).
+2. Payment provider/webhook gap still creates reconciliation risk.
 3. Domain transition risk if envs are changed inconsistently.
 
 ## Active work in progress
 
-No active code WIP in repository at this moment. Branch is clean after documentation governance updates.
+No active code WIP at this moment after finishing observability/schema/booking-UX/e2e baseline updates.
 
 ## Last meaningful changes
 
@@ -62,3 +75,13 @@ No active code WIP in repository at this moment. Branch is clean after documenta
 3. `2026-03-29` - production validation
 - cron endpoints returned `200`
 - alias `muuday-app.vercel.app` pointed to latest ready deployment
+4. `2026-03-29` - professional booking settings delivery
+- added `/configuracoes-agendamento` screen bound to `professional_settings`
+- linked profile/disponibilidade to advanced settings flow
+- validated with `typecheck` and `lint` (existing unrelated lint warnings remain)
+5. `2026-03-29` - reliability and observability baseline package (local working tree)
+- added Sentry client/server/edge instrumentation + global error capture
+- added PostHog provider and booking/auth funnel events
+- updated canonical schema snapshot through migration `006`
+- improved professional agenda UX for pending confirmation SLA visibility
+- added Playwright critical booking e2e baseline

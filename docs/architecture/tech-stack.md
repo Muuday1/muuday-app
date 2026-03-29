@@ -14,6 +14,9 @@ Last updated: 2026-03-29
 | Vercel | Deployment platform | Done | Production hosting |
 | GitHub Actions (`ci.yml`) | CI checks | Done | Typecheck, lint, build |
 | GitHub Actions (`booking-crons.yml`) | Scheduled cron execution | Done | Reminders every 5m, timeouts every 15m |
+| Sentry SDK | Error observability instrumentation | In progress | Wired in client/server/edge; production activation pending |
+| PostHog SDK | Funnel and behavior analytics instrumentation | In progress | Provider + auth/booking events + route pageviews |
+| Playwright | End-to-end critical journey tests | In progress | Baseline specs added, env-gated execution |
 | Zod | Input validation | In progress | Implemented in key server actions and API routes |
 | Resend | Transactional/lifecycle email service | In progress | Templates and helper code implemented |
 | Upstash Rate Limit | Abuse protection | In progress | Active when env configured, memory fallback exists |
@@ -23,8 +26,6 @@ Last updated: 2026-03-29
 | Technology | Purpose | Status | Expected role |
 | --- | --- | --- | --- |
 | Stripe (full flow) | Capture/refund/payment lifecycle | Planned | Replace legacy payment placeholder flow |
-| Sentry | Error observability | Planned | Production incident detection |
-| PostHog | Funnel and behavior analytics | Planned | Conversion and retention analytics |
 | Make | Ops and growth automation | Planned | Event-driven external workflows |
 | HubSpot | CRM for supply/demand operations | Planned | Lifecycle and pipeline management |
 | Checkly | Uptime/API checks | In progress | External monitoring and alerting |

@@ -24,9 +24,9 @@ Last updated: 2026-03-29
 - Implement Stripe-based capture/refund flow.
 - Add webhook handling and idempotency controls.
 
-2. Observability baseline
-- Add Sentry for server/client errors in production.
-- Add PostHog funnel instrumentation for key conversion stages.
+2. Observability operations
+- Activate Sentry and PostHog in production environment variables.
+- Create and validate dashboards, alerts, and ownership routines.
 
 3. Integration operations
 - Execute Make + HubSpot scenarios based on documented contracts.
@@ -49,8 +49,8 @@ Last updated: 2026-03-29
 | Component | Why | Status |
 | --- | --- | --- |
 | Stripe full integration | Production-safe payments and refunds | Approved / planned |
-| Sentry | Production error visibility and alerting | Approved / blocked by setup |
-| PostHog | Funnel and behavior analytics | Approved / blocked by setup |
+| Sentry | Production error visibility and alerting | Approved / in progress |
+| PostHog | Funnel and behavior analytics | Approved / in progress |
 | Checkly | External uptime and endpoint monitoring | Approved / in progress |
 | Make + HubSpot | Ops and growth automation | Approved / planned rollout |
 

@@ -31,6 +31,8 @@ Muuday is a Next.js App Router application deployed on Vercel, backed by Supabas
 5. Integrations
 - Resend (email templates and contact actions)
 - Upstash Redis (rate limiting primary backend, in-memory fallback)
+- Sentry (error instrumentation baseline in app runtime)
+- PostHog (funnel/event instrumentation baseline in client runtime)
 - Make + HubSpot (planned rollout with documented contracts)
 
 ## High-level data flow
@@ -50,9 +52,9 @@ Muuday is a Next.js App Router application deployed on Vercel, backed by Supabas
 
 ## Current architecture risks
 
-1. Legacy schema file is behind current migration reality.
-2. Payment provider integration is not complete yet.
-3. Calendar integration foundation exists but runtime sync flows are still planned.
+1. Payment provider integration is not complete yet.
+2. Calendar integration foundation exists but runtime sync flows are still planned.
+3. Monitoring/analytics provider activation depends on external env/dashboard setup.
 
 ## Related docs
 

@@ -42,7 +42,8 @@ Last updated: 2026-03-29
 4. Booking architecture: `docs/architecture/overview.md` + `lib/booking/`
 5. Operational procedures: `docs/engineering/runbooks/`
 6. Monitoring setup: `docs/integrations/checkly.md`
-7. Make/HubSpot contracts: `docs/integrations/make-hubspot*.{md,json}`
+7. Observability setup: `docs/integrations/sentry.md` and `docs/integrations/posthog.md`
+8. Make/HubSpot contracts: `docs/integrations/make-hubspot*.{md,json}`
 
 ## How docs connect
 

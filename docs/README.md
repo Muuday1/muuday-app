@@ -54,6 +54,8 @@ This folder is the source of truth for product context, technical architecture, 
 - [Integration: Supabase](./integrations/supabase.md)
 - [Integration: Vercel and GitHub Actions](./integrations/vercel-github-actions.md)
 - [Integration: Resend](./integrations/resend.md)
+- [Integration: Sentry](./integrations/sentry.md)
+- [Integration: PostHog](./integrations/posthog.md)
 - [Integration: Upstash Rate Limiting](./integrations/upstash-rate-limit.md)
 - [Integration: Checkly Monitoring](./integrations/checkly.md)
 - [Integration: Make and HubSpot](./integrations/make-hubspot.md)

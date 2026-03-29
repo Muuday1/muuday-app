@@ -259,8 +259,17 @@ export default function DisponibilidadePage() {
       <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
         <Clock className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-brand-700">
-          Os horários são exibidos para clientes no fuso horário local deles. Configure os dias que você está disponível para sessões.
+          Os horarios sao exibidos para clientes no fuso horario local deles. Configure os dias que voce esta disponivel para sessoes.
         </p>
+      </div>
+
+      <div className="mb-6">
+        <Link
+          href="/configuracoes-agendamento"
+          className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 bg-white border border-neutral-200 hover:border-neutral-300 px-4 py-2 rounded-xl transition-all"
+        >
+          Ajustar regras de agendamento
+        </Link>
       </div>
 
       {/* Weekly schedule */}
@@ -460,3 +469,4 @@ export default function DisponibilidadePage() {
     </div>
   )
 }
+

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
+import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -23,10 +24,19 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
+      captureEvent('auth_login_failed', { reason: 'invalid_credentials' })
       setError('Email ou senha incorretos.')
       setLoading(false)
       return
     }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      identifyEventUser(user.id, { email: user.email || email })
+    }
+    captureEvent('auth_login_succeeded')
 
     router.push('/buscar')
     router.refresh()

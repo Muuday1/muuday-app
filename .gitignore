@@ -14,3 +14,6 @@ tsconfig.typecheck.tsbuildinfo
 # Local generated automation/browser artifacts
 .playwright-cli/
 output/
+test-results/
+playwright-report/
+build.out

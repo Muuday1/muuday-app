@@ -17,6 +17,7 @@ GitHub Actions workflow `ci.yml` runs on push and PR to `main`:
 npm run typecheck
 npm run lint
 npm run build
+npm run test:e2e
 ```
 
 ## Current quality status
@@ -24,7 +25,7 @@ npm run build
 - Build pipeline: `Done`
 - Typecheck gate: `Done`
 - Lint gate: `Done` (with known hook dependency warnings)
-- Automated integration/e2e tests: `Planned`
+- Automated integration/e2e tests: `In progress` (Playwright baseline added)
 
 ## Smoke tests to run after deploy
 
@@ -38,7 +39,7 @@ npm run build
 ## Known quality gaps
 
 1. Lint warnings remain in some client pages for hook dependencies.
-2. No full automated e2e suite committed yet.
+2. E2E suite is currently baseline-only and depends on configured test credentials/fixtures.
 
 ## Related docs
 
