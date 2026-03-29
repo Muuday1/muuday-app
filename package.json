@@ -8,7 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:checkly-local": "playwright test --config playwright.checkly.config.ts",
+    "checkly:validate": "checkly debug parse-project --config checkly.config.js",
+    "checkly:test": "checkly test",
+    "checkly:deploy": "checkly deploy",
+    "checkly:plan": "checkly account plan --output json"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.46.0",
@@ -34,6 +39,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "checkly": "^7.7.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",

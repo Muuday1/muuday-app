@@ -1,0 +1,40 @@
+name: Checkly Validate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "checkly.config.js"
+      - "checkly/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/checkly-validate.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "checkly.config.js"
+      - "checkly/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/checkly-validate.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-checkly-project:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Parse and validate Checkly project
+        run: npm run checkly:validate

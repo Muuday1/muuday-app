@@ -10,7 +10,7 @@ Last updated: 2026-03-29
 - Maintain timezone and slot-lock safety.
 
 2. Operational readiness
-- Activate Checkly checks and alert channels.
+- Deploy Checkly checks (monitoring-as-code already in repo) and activate alert channels.
 - Keep release/incident/rollback runbooks current.
 - Maintain CI baseline (`typecheck`, `lint`, `build`).
 

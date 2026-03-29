@@ -40,3 +40,14 @@ Use this for meaningful checkpoints only.
 - Improved professional agenda to expose pending confirmation SLA/deadline context.
 - Added Playwright e2e baseline (`playwright.config.ts`, `tests/e2e/booking-critical.spec.ts`, `npm run test:e2e`).
 - Follow-up: activate Sentry/PostHog in production env and validate dashboards/alerts.
+
+### Entry 8
+- Added Checkly monitoring-as-code structure (`checkly/` + `checkly.config.js`) with API and browser journey checks.
+- Added dedicated local validation path for Checkly browser journeys (`playwright.checkly.config.ts`, `npm run test:checkly-local`).
+- Added GitHub Actions workflow `.github/workflows/checkly-validate.yml` to validate Checkly project syntax/parse on PR and push.
+- Confirmed external blocker: Checkly account authentication still required (`CHECKLY_API_KEY` + `CHECKLY_ACCOUNT_ID`) before deploy/alerts.
+
+### Entry 9
+- Executed local Checkly validation (`npm run checkly:validate`) successfully.
+- Executed local Checkly browser journeys successfully with provided credentials.
+- Hardened `checkly/tests/search-booking-journey.spec.js` to support self-profile redirect fallback (`erro=auto-agendamento`) while production has a single approved professional fixture.

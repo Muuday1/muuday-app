@@ -40,7 +40,8 @@ Last updated: 2026-03-29
 - Booking flow still inserts legacy captured payment records.
 2. Notifications/monitoring:
 - Internal notifications + cron generation exist.
-- External monitoring setup documented; Checkly activation/alerts pending.
+- External monitoring-as-code is implemented (`checkly/` + `checkly.config.js`) and validated in CI.
+- Checkly account deploy/alert activation still pending auth/env setup.
 3. Resend:
 - templates and helpers exist.
 - production lifecycle coverage and monitoring still incomplete.
@@ -79,9 +80,18 @@ No active code WIP at this moment after finishing observability/schema/booking-U
 - added `/configuracoes-agendamento` screen bound to `professional_settings`
 - linked profile/disponibilidade to advanced settings flow
 - validated with `typecheck` and `lint` (existing unrelated lint warnings remain)
-5. `2026-03-29` - reliability and observability baseline package (local working tree)
+5. `2026-03-29` - reliability and observability baseline package
 - added Sentry client/server/edge instrumentation + global error capture
 - added PostHog provider and booking/auth funnel events
 - updated canonical schema snapshot through migration `006`
 - improved professional agenda UX for pending confirmation SLA visibility
 - added Playwright critical booking e2e baseline
+6. `2026-03-29` - Checkly monitoring-as-code hardening
+- added Checkly browser/API check definitions under `checkly/`
+- added dedicated local Playwright config for journey validation (`playwright.checkly.config.ts`)
+- added CI workflow to validate Checkly project parse (`.github/workflows/checkly-validate.yml`)
+- confirmed blocker remains external Checkly auth (`CHECKLY_API_KEY` and `CHECKLY_ACCOUNT_ID`)
+7. `2026-03-29` - Checkly local journey execution validated
+- `npm run checkly:validate` passed
+- `npm run test:checkly-local` passed with configured credentials
+- search-booking journey now handles self-profile redirect fallback when only one approved professional fixture exists

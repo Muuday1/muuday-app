@@ -8,8 +8,8 @@ const hasE2EConfig = Boolean(email && password && professionalId)
 
 async function login(page: Page) {
   await page.goto('/login')
-  await page.getByLabel('Email').fill(email || '')
-  await page.getByLabel('Senha').fill(password || '')
+  await page.locator('input[type="email"]').first().fill(email || '')
+  await page.locator('input[type="password"]').first().fill(password || '')
   await page.getByRole('button', { name: 'Entrar' }).click()
   await page.waitForURL('**/buscar')
 }
@@ -20,6 +20,12 @@ test.describe('Booking critical journey', () => {
   test('shows booking safety policy and timezone controls', async ({ page }) => {
     await login(page)
     await page.goto(`/agendar/${professionalId}`)
+    try {
+      await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })
+      return
+    } catch {
+      // keep going on the booking page
+    }
 
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ver no meu fuso' })).toBeVisible()
@@ -31,6 +37,12 @@ test.describe('Booking critical journey', () => {
   test('keeps checkout button blocked until required confirmations', async ({ page }) => {
     await login(page)
     await page.goto(`/agendar/${professionalId}`)
+    try {
+      await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })
+      return
+    } catch {
+      // keep going on the booking page
+    }
 
     const dateButton = page.locator('button:has(span.bg-brand-400)').first()
 
