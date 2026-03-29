@@ -30,6 +30,9 @@ Last updated: 2026-03-29
 - Professional agenda highlights pending confirmations and SLA deadline labels.
 14. E2E baseline committed:
 - Playwright config and critical booking journey spec.
+15. E2E quality expansion baseline:
+- Added smoke coverage for manual-confirmation CTA copy and explicit cancellation/timezone checkout gating.
+- Added `E2E_*` env contract in `.env.local.example` for reproducible execution.
 15. Canonical schema snapshot updated:
 - `db/sql/schema/supabase-schema.sql` aligned to migrations through `006`.
 
@@ -49,6 +52,8 @@ Last updated: 2026-03-29
 - production lifecycle coverage and monitoring still incomplete.
 4. Sentry/PostHog operations:
 - Instrumentation is in code, but production dashboards/alerts/ownership still need completion.
+5. E2E execution readiness:
+- `npm run test:e2e` now includes 3 booking smoke tests, but current production sample data has only one approved professional (same account as the E2E user), so booking tests are skipped until dedicated fixtures are created.
 
 ## Not implemented (`Planned`)
 
@@ -110,3 +115,9 @@ No active code WIP at this moment after finishing observability/schema/booking-U
 - reduced active check cost profile (single location + lower frequencies + reduced retries)
 - set legacy non-tagged checks to inactive to avoid unnecessary usage
 - kept production-critical journey coverage active
+11. `2026-03-29` - Priority 3 quality expansion
+- expanded Playwright booking smoke tests with:
+  - explicit policy/timezone gating assertions before checkout enablement
+  - manual confirmation CTA smoke test (`Pagar ... solicitar`)
+- validated `npm run test:e2e` execution path against production URL with configured credentials
+- confirmed current blocker for pass state is fixture data (no dedicated non-self approved professional)

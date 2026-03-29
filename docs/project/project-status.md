@@ -23,7 +23,7 @@ Last updated: 2026-03-29
 | Calendar integration | Planned | `calendar_integrations` foundation table exists. | Implement Google Calendar OAuth + read/write sync. |
 | Notifications/reminders | In progress | Internal `notifications` table and cron endpoints for reminders/timeouts are live. | Expand channels and delivery auditability. |
 | Admin operations | Done | Admin dashboard supports moderation and core operational actions. | Add deeper audit trails and role-boundary hardening. |
-| CI and quality gates | In progress | GitHub `ci.yml` runs typecheck/lint/build; Playwright critical booking e2e baseline added. | Wire e2e execution in controlled env and expand critical-path coverage. |
+| CI and quality gates | In progress | GitHub `ci.yml` runs typecheck/lint/build; Playwright booking suite now has 3 smoke tests (policy/timezone visibility, checkout gating, manual-confirmation CTA). | Add dedicated E2E fixtures so smoke tests run without skip and can become release gate signal. |
 | Observability | In progress | Runbooks in place; Checkly monitoring-as-code is deployed and cloud-tested (`6/6`), with controlled fail/recovery sessions executed; Sentry/PostHog now wired in app code. | Confirm alert delivery, add secondary channel, and validate Sentry/PostHog dashboards in production. |
 | Sentry/PostHog | In progress | SDK wiring and key funnel events implemented. | Complete env rollout, alert ownership, and dashboard governance. |
 | Make/HubSpot | Planned | Event contracts and integration blueprint are documented. | Configure live scenarios and CRM properties in external tools. |
@@ -39,7 +39,7 @@ Last updated: 2026-03-29
 
 1. Confirm Checkly alert delivery and add secondary alert channel.
 2. Activate Sentry/PostHog in production and validate event/error ingestion.
-3. Add Stripe integration plan and implementation milestones to execution board.
+3. Create dedicated E2E fixture professionals and switch booking smoke suite from skip-prone to pass/fail signal.
 
 ## Handover continuity
 

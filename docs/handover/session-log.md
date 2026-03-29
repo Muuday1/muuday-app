@@ -68,3 +68,11 @@ Use this for meaningful checkpoints only.
 - Shifted Checkly to free-first pre-launch profile: single location (`us-east-1`), API at `15m/30m`, browser at `1h`.
 - Reduced retries (API single retry, browser no retry).
 - Disabled inactive legacy checks (`muuday-app`, `muuday-site`) to reduce unnecessary run consumption.
+
+### Entry 13
+- Executed Priority 3 quality expansion work on Playwright booking tests.
+- Added two smoke behaviors:
+  - explicit checkout gating assertions for cancellation/timezone acceptance
+  - manual confirmation CTA assertion (`Pagar ... solicitar`) via dedicated env-gated fixture
+- Added `E2E_*` variable contract to `.env.local.example`.
+- Validation run completed against `E2E_BASE_URL=https://muuday-app.vercel.app`; current data constraint keeps tests skipped because only one approved professional exists and belongs to the E2E user.

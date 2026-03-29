@@ -29,13 +29,17 @@ Dependencies:
 
 ## Priority 3 - Quality expansion (safe)
 
-1. Run `npm run test:e2e` with configured `E2E_*` envs against production/staging.
-2. Add one smoke test for professional manual confirmation flow.
-3. Add one smoke test for cancellation/refund policy UX gating.
+1. Create dedicated fixture professionals for E2E:
+   - one approved/bookable professional not owned by `E2E_USER_EMAIL`
+   - one approved/bookable professional in manual confirmation mode
+2. Set/update env vars:
+   - `E2E_BASE_URL`, `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`
+3. Re-run `npm run test:e2e` and require `3 passed, 3 total` (no skips) before promoting to release gate.
 4. Keep tests non-destructive and environment-gated.
+5. If fixtures are unavailable, explicitly document skip reason in `project-status.md`.
 
 Dependencies:
-- dedicated E2E credentials and stable professional fixture.
+- dedicated E2E credentials and two stable professional fixtures (regular + manual confirmation).
 
 ## Priority 4 - Payment lifecycle hardening (deferred by product decision)
 

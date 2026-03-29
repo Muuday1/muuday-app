@@ -20,6 +20,14 @@ npm run build
 npm run test:e2e
 ```
 
+Required env vars for `test:e2e`:
+
+- `E2E_BASE_URL` (recommended for prod/staging runs)
+- `E2E_USER_EMAIL`
+- `E2E_USER_PASSWORD`
+- `E2E_PROFESSIONAL_ID`
+- `E2E_MANUAL_PROFESSIONAL_ID` (optional, only for manual-confirmation smoke test)
+
 ## Current quality status
 
 - Build pipeline: `Done`
@@ -36,10 +44,18 @@ npm run test:e2e
 5. Admin panel access and key actions
 6. Cron endpoints authentication and success response
 
+## Current Playwright booking smoke coverage
+
+1. Booking safety policy and timezone controls visibility.
+2. Checkout remains blocked until cancellation + timezone confirmations are accepted.
+3. Manual confirmation submit CTA copy (`Pagar ... solicitar`) when professional requires approval.
+
 ## Known quality gaps
 
 1. Lint warnings remain in some client pages for hook dependencies.
-2. E2E suite is currently baseline-only and depends on configured test credentials/fixtures.
+2. E2E suite depends on dedicated fixture professionals:
+- `E2E_PROFESSIONAL_ID` must not belong to the logged-in `E2E_USER_EMAIL`.
+- `E2E_MANUAL_PROFESSIONAL_ID` must be a bookable professional configured with manual confirmation mode.
 
 ## Related docs
 

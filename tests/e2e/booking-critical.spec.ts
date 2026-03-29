@@ -3,8 +3,10 @@ import { expect, test, type Page } from '@playwright/test'
 const email = process.env.E2E_USER_EMAIL
 const password = process.env.E2E_USER_PASSWORD
 const professionalId = process.env.E2E_PROFESSIONAL_ID
+const manualProfessionalId = process.env.E2E_MANUAL_PROFESSIONAL_ID
 
 const hasE2EConfig = Boolean(email && password && professionalId)
+const hasManualConfirmationConfig = Boolean(email && password && manualProfessionalId)
 
 async function login(page: Page) {
   await page.goto('/login')
@@ -14,18 +16,25 @@ async function login(page: Page) {
   await page.waitForURL('**/buscar')
 }
 
+async function openBookingPage(page: Page, targetProfessionalId: string) {
+  await login(page)
+  await page.goto(`/agendar/${targetProfessionalId}`)
+
+  try {
+    await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })
+    await expect(page.getByText('Nao e possivel agendar sessao com voce mesmo.')).toBeVisible()
+    return false
+  } catch {
+    return true
+  }
+}
+
 test.describe('Booking critical journey', () => {
   test.skip(!hasE2EConfig, 'Set E2E_USER_EMAIL, E2E_USER_PASSWORD and E2E_PROFESSIONAL_ID to run e2e tests.')
 
   test('shows booking safety policy and timezone controls', async ({ page }) => {
-    await login(page)
-    await page.goto(`/agendar/${professionalId}`)
-    try {
-      await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })
-      return
-    } catch {
-      // keep going on the booking page
-    }
+    const openedBookingPage = await openBookingPage(page, professionalId as string)
+    if (!openedBookingPage) test.skip(true, 'Configured E2E_PROFESSIONAL_ID points to the same logged-in professional.')
 
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ver no meu fuso' })).toBeVisible()
@@ -34,17 +43,11 @@ test.describe('Booking critical journey', () => {
     await expect(page.getByText('Cancelamento com 48h ou mais: reembolso de 100%')).toBeVisible()
   })
 
-  test('keeps checkout button blocked until required confirmations', async ({ page }) => {
-    await login(page)
-    await page.goto(`/agendar/${professionalId}`)
-    try {
-      await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })
-      return
-    } catch {
-      // keep going on the booking page
-    }
+  test('keeps checkout blocked until cancellation and timezone confirmations are checked', async ({ page }) => {
+    const openedBookingPage = await openBookingPage(page, professionalId as string)
+    if (!openedBookingPage) test.skip(true, 'Configured E2E_PROFESSIONAL_ID points to the same logged-in professional.')
 
-    const dateButton = page.locator('button:has(span.bg-brand-400)').first()
+    const dateButton = page.locator('button[aria-label][aria-pressed=\"false\"]:not([disabled])').first()
 
     if ((await dateButton.count()) === 0) test.skip(true, 'No selectable date available for this professional.')
 
@@ -66,9 +69,34 @@ test.describe('Booking critical journey', () => {
       await page.getByPlaceholder('Descreva brevemente o que voce quer trabalhar nesta sessao.').fill('Teste E2E de validacao de formulario.')
     }
 
-    await page.getByText('Li e concordo com a politica de cancelamento e reembolso.').click()
-    await page.getByText('Confirmo que revisei data e horario nos fusos corretos.').click()
+    const policyCheckbox = page
+      .locator('label:has-text("Li e concordo com a politica de cancelamento e reembolso.") input[type="checkbox"]')
+      .first()
+    const timezoneCheckbox = page
+      .locator('label:has-text("Confirmo que revisei data e horario nos fusos corretos.") input[type="checkbox"]')
+      .first()
 
+    await policyCheckbox.check()
+    await expect(submitButton).toBeDisabled()
+
+    await timezoneCheckbox.check()
     await expect(submitButton).toBeEnabled()
+
+    await policyCheckbox.uncheck()
+    await expect(submitButton).toBeDisabled()
+  })
+
+  test('shows manual confirmation submit copy when professional requires approval', async ({ page }) => {
+    test.skip(
+      !hasManualConfirmationConfig,
+      'Set E2E_MANUAL_PROFESSIONAL_ID with E2E_USER_EMAIL and E2E_USER_PASSWORD to validate manual confirmation mode.'
+    )
+
+    const openedBookingPage = await openBookingPage(page, manualProfessionalId as string)
+    if (!openedBookingPage) test.skip(true, 'Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.')
+
+    await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Pagar .*solicitar/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Pagar .*confirmar/i })).toHaveCount(0)
   })
 })
