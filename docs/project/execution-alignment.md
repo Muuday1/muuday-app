@@ -2,25 +2,27 @@
 
 Last updated: 2026-03-29
 
-This document aligns repository context with execution tracking without duplicating ticket-level details.
+This document aligns repository execution with the canonical 5-part specification without duplicating ticket-level details.
 
-## Current workstreams to mirror in Linear
+## Program-level initiatives (Linear)
 
-1. Booking reliability and lifecycle hardening
-2. Payments maturity (Stripe lifecycle)
-3. Ops monitoring and production readiness
-4. Integrations rollout (Make + HubSpot)
-5. Trust and moderation improvements
+1. Wave 0 - Baseline and schema parity.
+2. Wave 1 - Foundations, taxonomy, tiers, and search parity.
+3. Wave 2 - Onboarding and booking lifecycle parity.
+4. Wave 3 - Payments, billing, payouts, and ledger.
+5. Wave 4 - Admin case operations, trust, moderation, notifications.
+6. Wave 5 - Session provider execution and compliance freeze.
 
-## Alignment rules
+## Initiative mapping rules
 
-1. Keep epics/initiatives in Linear mapped to the workstreams above.
-2. Keep implementation details in code + docs, not in ticket comments only.
-3. Update [Project Status](./project-status.md) when major workstream state changes.
-4. Avoid duplicating full ticket lists in documentation.
+1. Every Linear initiative must reference relevant source part(s) from `docs/spec/source-of-truth/`.
+2. Every initiative must define acceptance criteria tied to `docs/spec/consolidated/execution-plan.md`.
+3. Each ticket should map to one domain owner and one state machine impact area when relevant.
+4. Keep product-policy deltas documented in repo docs before changing code behavior.
 
-## Suggested cadence
+## Required weekly alignment cadence
 
-1. Weekly sync between `Project Status` and active Linear initiatives.
-2. Update roadmap if priority order changes.
-3. Mark blockers explicitly in docs when they depend on external setup.
+1. Update `project-status.md` after weekly review.
+2. Reorder `handover/next-steps.md` when priorities move.
+3. Keep journey docs synchronized with active implementation.
+4. Flag any blocked validation in `spec/consolidated/open-validations.md`.

@@ -2,46 +2,52 @@
 
 Last updated: 2026-03-29
 
+Spec baseline: `docs/spec/source-of-truth/part1..part5`
+
 ## Snapshot
 
-- App deploy: `Done` (Vercel production active)
-- Core booking flow: `In progress` (production-grade base implemented, payments/calendar integrations still pending)
-- Ops monitoring baseline: `In progress` (GitHub cron workflow active, Checkly monitoring-as-code deployed/passing, controlled fail/recovery test executed, free-first profile applied)
-- Observability baseline: `In progress` (Sentry/PostHog instrumentation in code, production activation pending)
-- Growth integrations: `Planned` (Make + HubSpot blueprint and event contracts documented)
+- Canonical specification baseline imported: `Done`
+- Documentation consolidation and execution framing: `Done`
+- Product implementation parity with canonical baseline: `In progress`
+- Architecture freeze readiness: `Blocked` (open external validations)
 
-## Status by area
+## Status by domain
 
-| Area | Status | Current reality | Next step |
+| Domain | Target from spec | Current status | Primary gap |
 | --- | --- | --- | --- |
-| Auth and account | Done | Login, signup, social callback, signout, complete-account flow in app routes. | Add stronger auth hardening controls (2FA still not implemented). |
-| Professional onboarding | Done | Professional profile creation/editing, availability management, and advanced booking settings management are live. | Improve verification workflow depth and SLA automation. |
-| Search and discovery | Done | Marketplace-style search page with categories, specialties, price, availability, location, and language filters. | Add ranking/analytics improvements. |
-| Booking engine | In progress | UTC timestamps, booking settings, slot locks, recurring weekly package model, cancellation/refund logic, no-show paths. | Integrate real payment provider flow and stronger recurring edge-case handling. |
-| Session lifecycle | In progress | Confirm/cancel/complete/reschedule actions and agenda views are implemented. | Add richer notifications and calendar write-back. |
-| Payments | In progress | `payments` table and refund fields exist; booking flow currently records legacy captured payments. | Implement Stripe capture/refund lifecycle and webhooks. |
-| Calendar integration | Planned | `calendar_integrations` foundation table exists. | Implement Google Calendar OAuth + read/write sync. |
-| Notifications/reminders | In progress | Internal `notifications` table and cron endpoints for reminders/timeouts are live. | Expand channels and delivery auditability. |
-| Admin operations | Done | Admin dashboard supports moderation and core operational actions. | Add deeper audit trails and role-boundary hardening. |
-| CI and quality gates | In progress | GitHub `ci.yml` runs typecheck/lint/build; Playwright booking suite has 3 smoke tests. Production run currently yields `2 passed / 1 skipped` (manual smoke blocked by schema drift). | Apply booking foundation schema in production and enable manual-confirmation fixture to reach `3/3` pass signal. |
-| Observability | In progress | Runbooks in place; Checkly monitoring-as-code is deployed and cloud-tested (`6/6`), with controlled fail/recovery sessions executed; Sentry/PostHog now wired in app code. | Confirm alert delivery, add secondary channel, and validate Sentry/PostHog dashboards in production. |
-| Sentry/PostHog | In progress | SDK wiring and key funnel events implemented. | Complete env rollout, alert ownership, and dashboard governance. |
-| Make/HubSpot | Planned | Event contracts and integration blueprint are documented. | Configure live scenarios and CRM properties in external tools. |
+| Taxonomy and discovery | Controlled taxonomy, weighted search, tier-aware discovery | In progress | Full governance and ranking parity not complete |
+| Professional tiers | Basic/Professional/Premium with strict entitlements | In progress | Complete entitlement enforcement and UI parity pending |
+| Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | In progress | Full gate logic and admin review workflow parity pending |
+| Booking lifecycle | Explicit state machine + request booking + slot hold | In progress | Request booking and full transition parity pending |
+| Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | Planned/In progress | Full recurring lifecycle parity pending |
+| Payments and revenue | Stripe-backed charge/refund/payout/billing + ledger | In progress | Legacy placeholders still present; webhook/idempotent lifecycle pending |
+| Admin trust operations | Structured case queue and audit-first moderation | In progress | Case queue and full audit workflows pending |
+| Notifications and inbox | Event-driven email + in-app inbox + reminders | In progress | Delivery observability and full event routing pending |
+| Session execution | Provider-agnostic model with delayed provider lock | Planned | Final provider implementation pending |
+| Sensitive-category compliance | Disclaimer versioning and category-aware governance | Planned/In progress | Full compliance layer and legal text freeze pending |
 
-## Known gaps
+## Critical blockers
 
-1. Keep `db/sql/schema/supabase-schema.sql` synced with ordered migrations (snapshot updated through migration `006`).
-2. Payment flow is not yet provider-backed (legacy capture placeholder still present).
-3. Calendar sync logic is not yet implemented despite schema groundwork.
-4. Checkly secondary channel/ownership policy still pending for stronger operational signal quality.
-5. Production schema drift: booking foundation tables expected by app (`professional_settings`, `availability_rules`) are not fully available via API, blocking manual-confirmation e2e coverage.
+1. Production schema parity for booking foundation tables.
+2. Stripe corridor validation for UK-platform to Brazil payout path.
+3. Final legal/compliance wording freeze for sensitive categories.
+
+## Recently completed
+
+1. 5-part source-of-truth package imported into `docs/spec/source-of-truth/`.
+2. Unified spec docs created (`master-spec`, `execution-plan`, `open-validations`, unified AI protocol).
+3. Existing docs and journey mapping updated to execution-wave model.
 
 ## Immediate next actions
 
-1. Confirm Checkly alert delivery and add secondary alert channel.
-2. Activate Sentry/PostHog in production and validate event/error ingestion.
-3. Apply booking foundation schema in production and switch booking smoke suite from `2/3 + skip` to strict `3/3`.
+1. Close Wave 0 schema parity and e2e fixture stability.
+2. Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).
+3. Prepare Stripe corridor validation packet and run external confirmation process.
 
-## Handover continuity
+## Continuity rule
 
-Handover files under `docs/handover/` must be updated during execution whenever state or priorities change.
+Every meaningful implementation change must update:
+
+1. `docs/project/project-status.md`
+2. `docs/handover/current-state.md`
+3. `docs/handover/next-steps.md`

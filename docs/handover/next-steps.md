@@ -2,72 +2,61 @@
 
 Last updated: 2026-03-29
 
-Execute in this order.
+Execute in order. Build one batch at a time.
 
-## Priority 1 - Monitoring activation (no product logic changes)
+## Priority 0 - Foundation lock (must finish first)
 
-1. Confirm inbox delivery for controlled fail/recovery sessions already triggered in Checkly.
-   - Check inbox and spam/junk for `igorpinto.lds@gmail.com`.
-   - If still missing, add Checkly sender/domain allowlist and rerun controlled fail/recovery.
-2. Add secondary alert channel (Slack) and subscribe it to the monitoring group.
-3. Define check ownership/escalation response policy.
-4. Create a dedicated bookable professional fixture and point `CHECKLY_BOOKING_PROFESSIONAL_ID` to it (to enforce full booking-screen assertions without fallback).
-5. Record completion in `current-state.md` and `session-log.md`.
+1. Validate and close production schema parity for booking foundation tables and APIs.
+2. Re-run critical e2e booking tests and require deterministic pass/fail behavior.
+3. Record parity status in:
+- `docs/project/project-status.md`
+- `docs/handover/current-state.md`
 
 Dependencies:
-- Checkly alert channels available.
+- DB migration and API exposure parity.
 
-## Priority 2 - Observability activation (operational)
+## Priority 1 - Wave 1 delivery batch
 
-1. Set Sentry env vars in Vercel and validate controlled frontend/server errors.
-2. Set PostHog env vars in Vercel and validate event ingestion in Live Events.
-3. Create baseline dashboards/alerts and assign ownership.
-4. Record completion in `project-status.md` and integration docs.
-
-Dependencies:
-- provider keys and production deploy.
-
-## Priority 3 - Quality expansion (safe)
-
-1. Resolve production schema drift for booking foundation:
-   - apply migration `005-production-booking-foundation.sql` (or equivalent) so `professional_settings` and `availability_rules` are available through API.
-2. Configure one professional fixture with `confirmation_mode = manual` after schema is available.
-3. Set/update env vars:
-   - `E2E_BASE_URL`, `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`
-4. Re-run `npm run test:e2e` and require `3 passed, 3 total` (no skips) before promoting to release gate.
-5. Keep tests non-destructive and environment-gated.
+1. Finalize taxonomy governance surfaces (category/subcategory/specialty/tag moderation).
+2. Finalize tier entitlement enforcement (limits and feature gating).
+3. Align search relevance/filter/card behavior with Part 1 rules.
+4. Validate review/trust/favorites behavior against Part 1 constraints.
 
 Dependencies:
-- dedicated E2E credentials, regular fixture (done), and manual-confirmation fixture (blocked by schema drift).
+- Priority 0 completed.
 
-## Priority 4 - Payment lifecycle hardening (deferred by product decision)
+## Priority 2 - Wave 2 delivery batch
 
-1. Design Stripe webhook-backed payment state updates.
-2. Replace legacy payment capture placeholder in booking flow.
-3. Add idempotency safeguards and refund reconciliation.
-4. Add integration doc for Stripe before implementation.
+1. Enforce dual gate model for professionals (go-live vs first-booking eligibility).
+2. Finish request-booking lifecycle, proposal expiration, and conversion flow.
+3. Finalize booking state machine transition map and tests.
+4. Finalize recurring scheduling deadlines and reserved-slot release behavior.
 
 Dependencies:
-- Stripe credentials and explicit go-ahead.
+- Wave 1 critical path complete.
 
-## Recently completed
+## Priority 3 - Wave 3 delivery batch
 
-1. Professional booking settings UI delivered (`/configuracoes-agendamento`).
-2. Profile and availability pages now include direct links to advanced booking settings.
-3. Sentry/PostHog baseline instrumentation added in code.
-4. Canonical schema snapshot updated through migration `006`.
-5. Professional agenda now surfaces pending confirmation SLA visibility.
-6. Playwright critical booking e2e baseline added.
+1. Replace legacy payment placeholders with Stripe-backed lifecycle.
+2. Implement payout eligibility and weekly payout batch model.
+3. Implement professional subscription billing with grace/block behavior.
+4. Implement internal ledger and reconciliation projections.
 
-## Do NOT do yet
+Dependencies:
+- Stripe corridor validation packet submitted and response path active.
 
-1. Do not start Stripe implementation until explicit product go-ahead.
-2. Do not change production domain to `muuday.com` until monitoring and env parity are confirmed.
-3. Do not parallelize edits across multiple agents on the same files.
-4. Do not introduce new integrations without updating docs first-class status.
+## Priority 4 - Wave 4 and Wave 5 setup
 
-## Caution areas
+1. Implement structured admin case queue and audit-first moderation controls.
+2. Finalize event-driven notifications + inbox consistency.
+3. Implement provider-agnostic session execution abstraction.
+4. Freeze compliance disclaimer versioning and checkout acceptance snapshots.
 
-1. Booking/payment code paths (`lib/actions/booking.ts`, `lib/actions/manage-booking.ts`).
-2. Cron auth (`CRON_SECRET`) and base URL variables.
-3. RLS-sensitive migrations.
+Dependencies:
+- Wave 3 stable baseline.
+
+## Do not do yet
+
+1. Do not freeze session provider until validation checklist in `docs/spec/consolidated/open-validations.md` is completed.
+2. Do not treat legal/tax wording as final before explicit review.
+3. Do not mark waves done without acceptance criteria in `docs/spec/consolidated/execution-plan.md`.

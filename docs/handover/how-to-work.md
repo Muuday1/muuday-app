@@ -2,56 +2,51 @@
 
 Last updated: 2026-03-29
 
-## 1) Read order for any new contributor
+## 1) Mandatory read order
 
-1. `docs/handover/handover-overview.md`
-2. `docs/handover/current-state.md`
-3. `docs/handover/next-steps.md`
-4. `docs/README.md` for full documentation map
+1. `docs/spec/README.md`
+2. `docs/spec/consolidated/master-spec.md`
+3. `docs/spec/consolidated/execution-plan.md`
+4. `docs/handover/current-state.md`
+5. `docs/handover/next-steps.md`
 
-## 2) How to navigate the repo
+## 2) Core operating rule
 
-1. Product routes and UX: `app/`
-2. Business logic: `lib/actions/`, `lib/booking/`
-3. Platform/config/security helpers: `lib/`
-4. Database model evolution: `db/sql/migrations/`
-5. Operations scripts: `scripts/ops/`
-6. Documentation: `docs/`
+Treat the 5 source files in `docs/spec/source-of-truth/` as canonical truth.
+
+Do not silently override them in code or docs.
+If implementation diverges, document explicit deltas.
 
 ## 3) Task execution workflow
 
-1. Confirm scope and impacted domains.
-2. Implement minimal safe change.
-3. Validate with:
-- `npm run typecheck`
-- `npm run lint`
-- `npm run build`
-4. Run targeted smoke checks for touched flows.
-5. Update handover docs before ending task.
+1. Map task to one wave and one domain.
+2. Identify impacted states (booking/payment/payout/case/review/session).
+3. Implement with deterministic transitions and explicit permissions.
+4. Validate with relevant automated checks and targeted journey smoke tests.
+5. Update docs during work, not only at the end.
 
-## 4) Mandatory handover updates DURING work
+## 4) Required docs updates during execution
 
-Update these files incrementally while working:
+Always update:
 
-1. `current-state.md` when implementation status changes.
-2. `next-steps.md` when priority/order/dependencies change.
-3. `session-log.md` for meaningful progress checkpoints.
-
-Do not wait for the end of a long session.
+1. `docs/handover/current-state.md`
+2. `docs/handover/next-steps.md`
+3. `docs/handover/session-log.md`
+4. affected domain docs (journeys, architecture, integrations, project status)
 
 ## 5) Consistency guardrails
 
-1. Docs must match current code behavior.
-2. If uncertain, mark status explicitly (`Planned`, `In progress`, `Blocked`, `Done`).
-3. Keep one canonical document per topic.
-4. Remove stale files instead of keeping conflicting versions.
+1. Keep booking/payment/payout/case statuses separated.
+2. Keep UTC canonical time storage rules.
+3. Keep role boundaries explicit (user/professional/admin/system).
+4. Keep sensitive admin actions auditable.
+5. Keep docs and implementation parity visible.
 
-## 6) Definition of done (handover perspective)
+## 6) Definition of done
 
-A task is complete only when:
+A task is done only when:
 
-1. Code is updated and validated.
-2. Relevant docs are updated.
-3. `current-state.md` reflects reality.
-4. `next-steps.md` is actionable for the next contributor.
-5. `session-log.md` includes the meaningful change.
+1. behavior is implemented and tested,
+2. status transitions are safe,
+3. docs are updated,
+4. next action is clear for the next contributor.

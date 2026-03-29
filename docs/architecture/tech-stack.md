@@ -2,51 +2,52 @@
 
 Last updated: 2026-03-29
 
-## Current stack
+Status legend:
+- `Done`
+- `In progress`
+- `Planned`
+- `Under evaluation`
+
+## Current stack in use
 
 | Technology | Purpose | Status | Notes |
 | --- | --- | --- | --- |
-| Next.js 14 (App Router) | Web application framework | Done | Core app runtime and routing |
-| React 18 | UI runtime | Done | Used by Next.js app |
-| Tailwind CSS | Styling | Done | Main styling system |
-| Supabase Auth + Postgres | Auth and data layer | Done | Core production backend |
-| Supabase RLS policies | Data access control | Done | Active across main domain tables |
-| Vercel | Deployment platform | Done | Production hosting |
-| GitHub Actions (`ci.yml`) | CI checks | Done | Typecheck, lint, build |
-| GitHub Actions (`booking-crons.yml`) | Scheduled cron execution | Done | Reminders every 5m, timeouts every 15m |
-| Checkly (monitoring as code) | External uptime/API/browser journey checks | In progress | `checkly/` + `checkly.config.js` + parse validation workflow |
-| Sentry SDK | Error observability instrumentation | In progress | Wired in client/server/edge; production activation pending |
-| PostHog SDK | Funnel and behavior analytics instrumentation | In progress | Provider + auth/booking events + route pageviews |
-| Playwright | End-to-end critical journey tests | In progress | Baseline specs added, env-gated execution |
-| Zod | Input validation | In progress | Implemented in key server actions and API routes |
-| Resend | Transactional/lifecycle email service | In progress | Templates and helper code implemented |
-| Upstash Rate Limit | Abuse protection | In progress | Active when env configured, memory fallback exists |
+| Next.js 14 + React 18 | Web app runtime | Done | Core application |
+| Tailwind CSS | UI styling | Done | Active |
+| Supabase Auth + Postgres | Core auth/data | Done | Main backend |
+| Supabase RLS | Access control | Done | Active on main tables |
+| Vercel | Deploy/runtime | Done | Production host |
+| GitHub Actions | CI and cron | Done/In progress | CI active, cron active |
+| Playwright | Critical e2e tests | In progress | Coverage expanding |
+| Zod | Input validation | In progress | Implemented in key flows |
+| Checkly | External monitoring | In progress | Running with free-first profile |
+| Sentry | Error observability | In progress | Instrumented, activation hardening pending |
+| PostHog | Product analytics | In progress | Instrumented, dashboard ops pending |
+| Resend | Transactional email | In progress | Partial lifecycle coverage |
+| Upstash | Rate limiting | In progress | Active with fallback |
 
-## Approved future stack
+## Approved build targets from canonical spec
 
-| Technology | Purpose | Status | Expected role |
-| --- | --- | --- | --- |
-| Stripe (full flow) | Capture/refund/payment lifecycle | Planned | Replace legacy payment placeholder flow |
-| Make | Ops and growth automation | Planned | Event-driven external workflows |
-| HubSpot | CRM for supply/demand operations | Planned | Lifecycle and pipeline management |
-
-## Under evaluation
-
-| Technology | Purpose | Status |
+| Component | Purpose | Status |
 | --- | --- | --- |
-| Cloudflare DNS/WAF tuning | Edge security and performance hardening | Under evaluation |
-| Messaging channel providers | Reminder/support channels beyond email | Under evaluation |
-| LoveKit | in-built videocall | Under evaluation |
+| Stripe Payments + Connect + Billing | Booking charges, refunds, payouts, professional billing | Planned |
+| Internal financial ledger | Booking-finance auditability and reconciliation | Planned |
+| Case queue subsystem | Admin exception handling and trust operations | Planned |
+| Event-driven notification dispatcher | Consistent email + in-app delivery | Planned/In progress |
+| Session provider abstraction | Provider-agnostic video/session execution | Planned |
+| Compliance disclaimer versioning | Sensitive-category checkout/profile governance | Planned |
 
-## Deprecated or discouraged
+## Under evaluation (explicitly provisional)
 
-| Item | Status | Reason |
+| Item | Purpose | Status |
 | --- | --- | --- |
-| Agent-specific handoff/prompt docs as active docs | Deprecated | Replaced by durable domain documentation |
-| Legacy hardcoded domain references | Deprecated | Replaced by central app URL config |
+| Final session provider lock | Embedded vs external-provider launch path | Under evaluation |
+| Stripe corridor architecture details | UK platform to Brazil payout route confirmation | Under evaluation |
+| Deep tax automation | Post-MVP expansion | Under evaluation |
 
-## Stack alignment notes
+## Stack guardrails
 
-1. Keep product invariants in app + DB, not in external automation tools.
-2. Track every new external dependency in this file with explicit status.
-3. Do not mark tools as `Done` until production setup is complete and validated.
+1. Prefer one coherent platform backend over many disconnected services.
+2. Keep cost-effective defaults until metrics justify complexity.
+3. Keep core invariants in Muuday domain layer, not external tooling.
+4. Keep documented status parity with `docs/spec/consolidated/master-spec.md`.

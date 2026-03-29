@@ -2,15 +2,31 @@
 
 Last updated: 2026-03-29
 
-This folder is the source of truth for product context, technical architecture, execution status, and operational readiness.
+This folder is the source of truth for product context, technical architecture, execution status, operational readiness, and handover continuity.
+
+## Canonical spec baseline
+
+The 5-part consolidation package is now the canonical product baseline and is stored under:
+
+- [Spec Index](./spec/README.md)
+- [Master Spec](./spec/consolidated/master-spec.md)
+- [Execution Plan](./spec/consolidated/execution-plan.md)
+- [Unified AI Agent Instructions](./spec/consolidated/ai-agents-unified-instructions.md)
+- [Open Validations](./spec/consolidated/open-validations.md)
+- [Journey Coverage Matrix](./spec/consolidated/journey-coverage-matrix.md)
+
+Important rule:
+- Do not remove or silently override decisions from `docs/spec/source-of-truth/part1..part5`.
+- If implementation differs, document explicit deltas.
 
 ## How to use this documentation
 
 1. Start with project docs for priorities and status.
 2. Read journey docs to understand end-to-end flows.
-3. Use architecture docs for system boundaries and stack decisions.
-4. Use engineering docs for setup, deploy, runbooks, and quality checks.
-5. Use integrations docs for third-party services and implementation state.
+3. Read the spec baseline before major implementation decisions.
+4. Use architecture docs for system boundaries and stack decisions.
+5. Use engineering docs for setup, deploy, runbooks, and quality checks.
+6. Use integrations docs for third-party services and implementation state.
 
 ## Status conventions
 
@@ -21,6 +37,8 @@ This folder is the source of truth for product context, technical architecture, 
 - `Deprecated`: should not be used going forward.
 
 ## Documentation map
+
+- [Spec Baseline](./spec/README.md)
 
 - [Handover Overview](./handover/handover-overview.md)
 - [Handover Current State](./handover/current-state.md)
@@ -44,6 +62,9 @@ This folder is the source of truth for product context, technical architecture, 
 - [User Journey: Search and Booking](./product/journeys/search-booking.md)
 - [User Journey: Session Management](./product/journeys/session-management.md)
 - [User Journey: Admin Operations](./product/journeys/admin-operations.md)
+- [User Journey: Payments and Revenue](./product/journeys/payments-billing-revenue.md)
+- [User Journey: Trust and Compliance](./product/journeys/trust-safety-compliance.md)
+- [User Journey: Session Execution](./product/journeys/video-session-execution.md)
 
 - [Engineering: Setup and Environments](./engineering/setup-and-environments.md)
 - [Engineering: Database and Migrations](./engineering/database-and-migrations.md)
@@ -63,7 +84,8 @@ This folder is the source of truth for product context, technical architecture, 
 ## Governance rules for this repository
 
 1. Documentation updates are part of done.
-2. Do not keep duplicate sources of truth.
-3. Keep explicit implementation status per domain.
-4. Archive or remove stale planning and agent prompt artifacts.
-5. Keep docs aligned with active workstreams tracked in execution tools (including Linear when used).
+2. Keep explicit implementation status per domain.
+3. Keep `docs/spec/source-of-truth/` intact as canonical baseline.
+4. Use one unified AI execution protocol in operational docs.
+5. Archive or remove stale planning and prompt artifacts.
+6. Keep docs aligned with active workstreams tracked in execution tools.

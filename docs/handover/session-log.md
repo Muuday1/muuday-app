@@ -39,49 +39,27 @@ Use this for meaningful checkpoints only.
 - Updated canonical schema snapshot `db/sql/schema/supabase-schema.sql` through migration `006`.
 - Improved professional agenda to expose pending confirmation SLA/deadline context.
 - Added Playwright e2e baseline (`playwright.config.ts`, `tests/e2e/booking-critical.spec.ts`, `npm run test:e2e`).
-- Follow-up: activate Sentry/PostHog in production env and validate dashboards/alerts.
 
 ### Entry 8
 - Added Checkly monitoring-as-code structure (`checkly/` + `checkly.config.js`) with API and browser journey checks.
-- Added dedicated local validation path for Checkly browser journeys (`playwright.checkly.config.ts`, `npm run test:checkly-local`).
-- Added GitHub Actions workflow `.github/workflows/checkly-validate.yml` to validate Checkly project syntax/parse on PR and push.
-- Confirmed external blocker: Checkly account authentication still required (`CHECKLY_API_KEY` + `CHECKLY_ACCOUNT_ID`) before deploy/alerts.
+- Added local Checkly browser journey validation (`playwright.checkly.config.ts`, `npm run test:checkly-local`).
+- Added `.github/workflows/checkly-validate.yml` for parse/syntax checks.
 
 ### Entry 9
-- Executed local Checkly validation (`npm run checkly:validate`) successfully.
-- Executed local Checkly browser journeys successfully with provided credentials.
-- Hardened `checkly/tests/search-booking-journey.spec.js` to support self-profile redirect fallback (`erro=auto-agendamento`) while production has a single approved professional fixture.
+- Completed Checkly cloud activation and controlled fail/recovery validation sessions.
+- Shifted Checkly to free-first pre-launch profile.
 
 ### Entry 10
-- Authenticated Checkly CLI account and deployed monitoring resources to account `igor@muuday.com`.
-- Configured Checkly account environment variables for runtime checks.
-- Fixed cloud-runtime browser check issue by switching browser scripts to absolute URL navigation based on `BASE_URL`.
-- Executed `checkly test` successfully with cloud result `6 passed, 6 total`.
+- Expanded Playwright booking smoke tests and stabilized selectors.
+- Created dedicated non-self professional fixture for production e2e regular-booking coverage.
+- Confirmed remaining manual-confirmation smoke blocker due production schema/API drift.
 
 ### Entry 11
-- Pushed local commits to `origin/main` (branch was ahead by 3 commits).
-- Added Checkly alerting resources in code (`EmailAlertChannel` + group subscription).
-- Executed controlled ops failure session (`2 failed`, expected with invalid secret): `https://chkly.link/l/PsQns`.
-- Executed controlled ops recovery session (`2 passed`, expected with valid secret): `https://chkly.link/l/YLBJF`.
+- Imported 5-part Muuday product specification into `docs/spec/source-of-truth/` as canonical baseline.
+- Added consolidated spec docs (`master-spec`, `execution-plan`, unified AI protocol, open-validations, journey matrix).
+- Updated project, architecture, journey, and handover docs to execution-wave model aligned with the new canonical baseline.
 
 ### Entry 12
-- Shifted Checkly to free-first pre-launch profile: single location (`us-east-1`), API at `15m/30m`, browser at `1h`.
-- Reduced retries (API single retry, browser no retry).
-- Disabled inactive legacy checks (`muuday-app`, `muuday-site`) to reduce unnecessary run consumption.
-
-### Entry 13
-- Executed Priority 3 quality expansion work on Playwright booking tests.
-- Added two smoke behaviors:
-  - explicit checkout gating assertions for cancellation/timezone acceptance
-  - manual confirmation CTA assertion (`Pagar ... solicitar`) via dedicated env-gated fixture
-- Added `E2E_*` variable contract to `.env.local.example`.
-- Validation run completed against `E2E_BASE_URL=https://muuday-app.vercel.app`; current data constraint keeps tests skipped because only one approved professional exists and belongs to the E2E user.
-
-### Entry 14
-- Created dedicated non-self professional fixture for production E2E booking runs (`igorsouzadiaspinto@gmail.com` account).
-- Updated availability fixture to ensure bookable slots for smoke tests.
-- Re-ran production e2e with configured `E2E_*` credentials:
-  - booking safety policy/timezone smoke: passed
-  - checkout gating smoke: passed
-  - manual confirmation smoke: skipped (manual mode infra unavailable in current production API)
-- Confirmed schema drift blocker: `professional_settings` is not available through current production API, preventing manual fixture configuration.
+- Consolidated new journey coverage docs for payments/revenue, trust/compliance, and session execution.
+- Validated docs structure and local markdown links under `docs/` for consistency.
+- Follow-up: execute Wave 0 implementation tasks and keep `current-state`/`next-steps` updated after each shipped batch.

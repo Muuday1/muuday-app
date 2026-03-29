@@ -2,62 +2,76 @@
 
 Last updated: 2026-03-29
 
+Spec baseline: `docs/spec/source-of-truth/part1..part5`
+
 ## System summary
 
-Muuday is a Next.js App Router application deployed on Vercel, backed by Supabase for auth, database, and storage-adjacent data services. Booking business logic is implemented in server actions and domain modules under `lib/booking` and `lib/actions`.
+Muuday is a marketplace platform with a multi-domain architecture:
+
+1. Discovery domain (taxonomy, ranking, trust signals).
+2. Onboarding and professional domain.
+3. Booking and scheduling domain.
+4. Payments, billing, payout, and ledger domain.
+5. Admin case and moderation domain.
+6. Notifications and analytics domain.
+7. Session execution domain (provider-agnostic abstraction).
+8. Compliance and disclaimer governance domain.
+
+## Core architectural boundaries
+
+1. Booking state is not payment state.
+2. Payment state is not payout state.
+3. Case status is not booking status.
+4. Session provider status is not booking truth.
+5. UTC persistence is canonical for scheduling timestamps.
 
 ## Major components
 
-1. Web app
-- Next.js 14 app routes and server/client components.
-- Route groups for auth and logged-in experiences.
+1. Web application
+- Next.js App Router routes for user/professional/admin flows.
 
 2. Domain services
-- Booking engine modules:
-  - availability validation
-  - cancellation and refund policy decisions
-  - slot locking
-  - state transition guards
+- Booking engine, availability engine, state transitions, recurring scheduling.
 
 3. Data platform
-- Supabase PostgreSQL with RLS-backed tables.
-- Auth via Supabase session model.
-- Admin-path access through service-role client where required.
+- Supabase Postgres + RLS + auth model.
 
-4. Operational automation
-- GitHub Actions scheduled workflow runs booking cron endpoints.
-- Cron API routes generate reminders and process confirmation timeouts.
+4. Financial engine (target parity with Part 3)
+- Stripe-backed charge/refund flow.
+- Professional subscription billing.
+- Payout eligibility and payout batching.
+- Internal financial ledger and snapshots.
 
-5. Integrations
-- Resend (email templates and contact actions)
-- Upstash Redis (rate limiting primary backend, in-memory fallback)
-- Sentry (error instrumentation baseline in app runtime)
-- PostHog (funnel/event instrumentation baseline in client runtime)
-- Make + HubSpot (planned rollout with documented contracts)
+5. Operations layer (target parity with Part 4)
+- Structured case queue.
+- Trust flags and moderation controls.
+- Audit logs for sensitive actions.
+
+6. Notification and analytics layer
+- Event-driven notifications (email + in-app).
+- Canonical analytics event schema.
+
+7. Session execution layer
+- Provider abstraction for session execution.
+- Provider implementation chosen later via explicit validation.
 
 ## High-level data flow
 
-1. User action hits page or server action.
-2. Server action validates input (Zod where implemented), rate limits, and applies domain rules.
-3. Supabase read/write persists business state.
-4. Background cron routes process reminder/timeout tasks.
-5. Notifications and integration hooks consume persisted state.
+1. UI triggers domain action.
+2. Domain action validates policy + state transitions.
+3. Persist state and snapshots.
+4. Emit domain events.
+5. Downstream processors update notifications, timeline, analytics, and admin signals.
 
-## Boundary rules
+## Risk and freeze points
 
-1. Product-critical logic must run server-side.
-2. Time values are persisted in UTC where booking engine fields are used.
-3. App URL/domain handling is centralized via config helper (`lib/config/app-url.ts`).
-4. External automations should consume events/contracts, not own core business invariants.
-
-## Current architecture risks
-
-1. Payment provider integration is not complete yet.
-2. Calendar integration foundation exists but runtime sync flows are still planned.
-3. Monitoring/analytics provider activation depends on external env/dashboard setup.
+1. Stripe corridor validation remains open before full payment architecture freeze.
+2. Session provider final lock remains open by design.
+3. Compliance/legal wording finalization remains open.
 
 ## Related docs
 
 - [Tech Stack](./tech-stack.md)
-- [Architecture Decisions](./decisions)
-- [Database and Migrations](../engineering/database-and-migrations.md)
+- [Master Spec](../spec/consolidated/master-spec.md)
+- [Open Validations](../spec/consolidated/open-validations.md)
+- [Execution Plan](../spec/consolidated/execution-plan.md)

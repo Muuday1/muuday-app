@@ -4,49 +4,50 @@ Last updated: 2026-03-29
 
 ## Repository map
 
-- `app/`: routes and UI screens (auth, search, booking, agenda, admin)
-- `components/`: reusable UI and feature components
-- `lib/actions/`: server actions (booking, profile, email)
-- `lib/booking/`: booking domain engine modules
-- `lib/supabase/`: Supabase clients and middleware
-- `lib/config/`: shared runtime config (including app URL resolution)
-- `db/sql/migrations/`: authoritative DB migrations
-- `scripts/ops/`: operational scripts
-- `docs/`: documentation source of truth
+- `app/`: routes and UX surfaces
+- `components/`: reusable UI
+- `lib/actions/`: server actions
+- `lib/booking/`: booking-domain logic
+- `db/sql/migrations/`: DB evolution source-of-truth
+- `docs/`: documentation source-of-truth
 
-## Documentation map
+## Documentation map (updated)
+
+- `docs/spec/`
+  - canonical product baseline (source files + consolidated execution docs)
 
 - `docs/project/`
-- overview, status, roadmap, execution alignment
+  - strategy status, roadmap, and execution alignment
 
 - `docs/product/journeys/`
-- end-to-end user journeys and gaps
+  - journey-by-journey implementation and gaps
 
 - `docs/architecture/`
-- system overview, stack status, ADRs
+  - domain boundaries, target architecture, stack states
 
 - `docs/engineering/`
-- setup, deployment, quality, runbooks
+  - setup, quality, deployment, runbooks
 
 - `docs/integrations/`
-- provider-specific state, risks, next steps
+  - provider-specific state and rollout notes
 
 - `docs/handover/`
-- takeover continuity system for any new contributor
+  - continuity system for any new engineer/agent
 
-## Where to find specific topics
+## Where to find key topics
 
-1. Current priorities: `docs/project/project-status.md`
-2. Exact next actions: `docs/handover/next-steps.md`
-3. Tech stack status: `docs/architecture/tech-stack.md`
-4. Booking architecture: `docs/architecture/overview.md` + `lib/booking/`
-5. Operational procedures: `docs/engineering/runbooks/`
-6. Monitoring setup: `docs/integrations/checkly.md`
-7. Observability setup: `docs/integrations/sentry.md` and `docs/integrations/posthog.md`
-8. Make/HubSpot contracts: `docs/integrations/make-hubspot*.{md,json}`
+1. Canonical decision baseline: `docs/spec/source-of-truth/`
+2. Unified decision view: `docs/spec/consolidated/master-spec.md`
+3. Ordered build plan: `docs/spec/consolidated/execution-plan.md`
+4. External validation blockers: `docs/spec/consolidated/open-validations.md`
+5. Current implementation reality: `docs/handover/current-state.md`
+6. Immediate execution queue: `docs/handover/next-steps.md`
 
-## How docs connect
+## Cross-file dependency rule
 
-1. `docs/README.md` is the entry index.
-2. `docs/handover/*` gives immediate takeover context.
-3. Domain docs provide deeper implementation and roadmap details.
+If you update code for a domain, update:
+
+1. the corresponding journey file,
+2. project status,
+3. handover current-state/next-steps,
+4. spec delta notes if behavior diverges from source-of-truth.

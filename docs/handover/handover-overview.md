@@ -4,49 +4,41 @@ Last updated: 2026-03-29
 
 ## Product summary
 
-Muuday is a marketplace connecting Brazilians abroad with Brazilian professionals for online services (mental health, legal, accounting, education, wellness, career, and related categories).
+Muuday is a services marketplace with integrated discovery, booking, payments, payouts, trust, admin operations, and compliance controls.
+
+## Canonical baseline
+
+The canonical decision baseline is now:
+
+1. `docs/spec/source-of-truth/part1-foundations-search-tiers.md`
+2. `docs/spec/source-of-truth/part2-onboarding-booking-lifecycle.md`
+3. `docs/spec/source-of-truth/part3-payments-billing-revenue-engine.md`
+4. `docs/spec/source-of-truth/part4-admin-ops-notifications-trust.md`
+5. `docs/spec/source-of-truth/part5-video-compliance-open-items.md`
+
+Use `docs/spec/consolidated/master-spec.md` for unified reading and `execution-plan.md` for build order.
 
 ## Current stage
 
-`In progress` - MVP in production with active hardening and operations maturity.
+`In progress` - Implementation exists for major MVP surfaces, but full parity with canonical 5-part spec is not complete.
 
 ## Current priorities
 
-1. Keep booking lifecycle reliable in production.
-2. Keep cron-based reminders/timeouts stable and monitored.
-3. Complete monitoring activation (Checkly + alert channels).
-4. Activate observability providers (Sentry/PostHog dashboards + alerts).
-5. Implement payment-provider lifecycle (Stripe) when approved.
-
-## Major components
-
-1. Next.js app routes (`app/`) for auth, search, booking, agenda, admin.
-2. Booking domain modules (`lib/booking/`, `lib/actions/`).
-3. Supabase auth + PostgreSQL + RLS data model.
-4. GitHub Actions CI and cron workflows.
-
-## Key integrations
-
-- Supabase (`Done`)
-- Vercel + GitHub Actions (`Done`)
-- Resend (`In progress`)
-- Upstash rate limiting (`In progress`)
-- Checkly (`In progress`)
-- Sentry (`In progress`)
-- PostHog (`In progress`)
-- Make + HubSpot (`Planned`)
-- Stripe full lifecycle (`Planned`)
+1. Wave 0 schema parity and deterministic booking test readiness.
+2. Wave 1 parity for taxonomy/tiers/search/trust baseline.
+3. Wave 2 parity for onboarding and booking lifecycle correctness.
+4. Wave 3 payments-revenue implementation (Stripe + ledger + payout lifecycle).
+5. Wave 4 admin case operations and trust/notification system completion.
 
 ## Biggest risks / unknowns
 
-1. Payment flow still uses legacy capture placeholder in booking action.
-2. Calendar integration schema exists but runtime sync is not implemented.
-3. Monitoring/observability activation in production still depends on external provider setup.
-4. Checkly checks are deployed and passing, but alert routing and ownership policy still need completion.
+1. Open Stripe corridor validation for UK platform to Brazil payout structure.
+2. Open final session-provider lock (kept intentionally provisional).
+3. Open legal/tax wording freeze for sensitive categories and final compliance language.
 
 ## Where to start (new contributor)
 
-1. Read `docs/handover/current-state.md`.
-2. Execute `docs/handover/next-steps.md` top to bottom.
-3. Follow `docs/handover/how-to-work.md` during implementation.
-4. Update handover files while you work, not only at the end.
+1. Read `docs/spec/README.md`.
+2. Read `docs/spec/consolidated/master-spec.md`.
+3. Execute `docs/spec/consolidated/execution-plan.md` in wave order.
+4. Use `docs/handover/current-state.md` + `docs/handover/next-steps.md` as real-time operating context.

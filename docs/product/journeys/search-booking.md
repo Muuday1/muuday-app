@@ -4,56 +4,60 @@ Last updated: 2026-03-29
 
 ## Goal
 
-Help users discover professionals and create one-off or recurring bookings safely.
+Help users discover relevant professionals and complete booking safely with clear trust, timezone, and policy context.
 
 ## Actors
 
-1. End user
+1. User
 2. Professional
-3. Booking engine
+3. Discovery engine
+4. Booking engine
 
 ## Entry points
 
 - `/buscar`
 - `/profissional/[id]`
 - `/agendar/[id]`
-- `/configuracoes-agendamento` (professional setup for booking rules)
 
-## Happy path
+## Canonical flow
 
-1. User enters search page with default mixed-category suggestions.
-2. User filters by category, specialty, price, availability window, location, and language.
-3. User opens professional profile and reviews details.
-4. User opens booking page.
-5. Professional-configured booking rules are applied (timezone, notice window, confirmation mode, recurring flag).
-6. User selects slot and optionally recurring package.
-7. Server validates slot, notice window, booking window, conflicts, and availability constraints.
-8. Slot lock is acquired, booking record is created, and payment row is recorded.
+1. User searches with structured filters + free text.
+2. User opens professional profile and reviews trust/price/availability signals.
+3. User selects service and duration context.
+4. User selects slot with timezone clarity.
+5. User reviews booking summary and policy acknowledgements.
+6. User pays and booking enters correct state (confirmed or pending acceptance).
 
-## Edge cases
+## Key rules from canonical spec
 
-1. User cannot book own professional profile.
-2. Conflicting slots return booking error.
-3. Booking blocks when recurring is not enabled for the professional.
-4. Manual confirmation mode creates `pending_confirmation` bookings.
+1. Tags enrich search recall but are not primary filters.
+2. Search cards are rich but not noisy; price shown in user currency.
+3. Service type is not exposed as primary search filter in MVP.
+4. Slot hold is required before payment completion.
+5. Booking state machine is explicit; UI state is simplified.
+6. Recurring booking/scheduling rules follow deadline and reservation constraints.
 
 ## Current implementation status
 
-- `Done` for core search experience and booking creation flow.
-- `Done` for professional-side pending confirmation visibility (agenda SLA/deadline signals).
-- `In progress` for provider-backed payment lifecycle and advanced recurring conflict handling.
+`In progress`
+
+- Core search and booking works.
+- Full request-booking and full recurring parity from source spec is not complete.
 
 ## Gaps
 
-1. Payment capture is still legacy placeholder (not Stripe webhook flow).
-2. Google Calendar conflict checks are not fully integrated.
+1. Full ranking/boost governance parity with tiers.
+2. Full request-booking proposal lifecycle parity.
+3. Full recurring scheduling reservation/release parity.
 
 ## Next steps
 
-1. Implement Stripe-backed payment lifecycle.
-2. Implement calendar conflict sync and event write-back.
+1. Finalize tier-aware ranking and governance controls.
+2. Implement request-booking lifecycle end-to-end.
+3. Expand recurring scheduling and reschedule policy parity.
 
 ## Related docs
 
+- [Master Spec](../../spec/consolidated/master-spec.md)
 - [Session Management Journey](./session-management.md)
-- [Architecture Overview](../../architecture/overview.md)
+- [Payments and Revenue Journey](./payments-billing-revenue.md)

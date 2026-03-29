@@ -2,65 +2,71 @@
 
 Last updated: 2026-03-29
 
-## Now (current cycle)
+Source baseline: `docs/spec/source-of-truth/part1..part5`
 
-1. Booking reliability hardening
-- Keep cron reminders/timeouts stable in production.
-- Ensure booking transitions remain safe and explicit.
-- Maintain timezone and slot-lock safety.
+## Now
 
-2. Operational readiness
-- Deploy Checkly checks (monitoring-as-code already in repo) and activate alert channels.
-- Keep release/incident/rollback runbooks current.
-- Maintain CI baseline (`typecheck`, `lint`, `build`).
+### Wave 0 - Baseline alignment and schema parity
 
-3. Documentation governance
-- Keep status, journeys, and stack docs aligned with code reality.
-- Remove stale planning and agent-specific artifacts.
+1. Resolve production schema drift for booking foundation tables and API exposure.
+2. Stabilize deterministic e2e critical journeys with dedicated fixtures.
+3. Keep monitoring and observability activation running in production.
+4. Keep handover/docs aligned with wave progress.
+
+### Wave 1 - Foundations and discovery parity
+
+1. Enforce taxonomy governance and moderation model.
+2. Enforce tier limits/entitlements and discovery influence rules.
+3. Align search, filter, rank, cards, trust signals, and favorites/rebooking behavior.
 
 ## Next
 
-1. Payments maturity
-- Implement Stripe-based capture/refund flow.
-- Add webhook handling and idempotency controls.
+### Wave 2 - Onboarding and booking lifecycle parity
 
-2. Observability operations
-- Activate Sentry and PostHog in production environment variables.
-- Create and validate dashboards, alerts, and ownership routines.
+1. Finalize dual onboarding gates (public listing vs first booking acceptance).
+2. Finalize booking state machine, request booking, slot hold, and recurring scheduling rules.
+3. Finalize timezone-safe booking views and timeline/event integrity.
 
-3. Integration operations
-- Execute Make + HubSpot scenarios based on documented contracts.
-- Add monitoring and retries for automation failures.
+### Wave 3 - Payments, billing, payouts, revenue engine
+
+1. Replace legacy payment placeholders with Stripe-backed lifecycle.
+2. Implement payout eligibility, weekly payout scheduling, and reconciliation.
+3. Implement professional subscription billing with grace/block logic.
+4. Implement internal ledger and audit-grade financial projections.
 
 ## Later
 
-1. Calendar integration
-- Google Calendar OAuth, busy slot sync, booking event write-back.
+### Wave 4 - Admin trust operations and notifications
 
-2. Marketplace trust expansion
-- Stronger professional verification and audit trail improvements.
-- Moderation workflow optimization with SLA dashboards.
+1. Structured case queue for disputes/refunds/payout failures/moderation.
+2. Audit logs for sensitive admin actions.
+3. Notification dispatcher + in-app inbox + reminder reliability.
+4. Review moderation and trust-flag governance.
 
-3. Advanced growth loops
-- Rebooking, lifecycle campaigns, segmented retention automations.
+### Wave 5 - Session provider and compliance freeze
 
-## Future stack additions (approved)
+1. Final provider lock with provider-agnostic session abstraction.
+2. Sensitive-category disclaimer versioning and booking acceptance snapshots.
+3. External validations closure (Stripe corridor, legal, tax/accounting).
 
-| Component | Why | Status |
+## Open validations (must close before architecture freeze)
+
+1. Stripe UK platform to Brazil payout corridor confirmation.
+2. Final session provider lock decision.
+3. Legal wording freeze for sensitive-category scope and disclaimers.
+4. Tax/accounting operational model confirmation.
+
+## Approved future stack additions
+
+| Component | Purpose | Status |
 | --- | --- | --- |
-| Stripe full integration | Production-safe payments and refunds | Approved / planned |
-| Sentry | Production error visibility and alerting | Approved / in progress |
-| PostHog | Funnel and behavior analytics | Approved / in progress |
-| Checkly | External uptime and endpoint monitoring | Approved / in progress |
-| Make + HubSpot | Ops and growth automation | Approved / planned rollout |
+| Stripe full integration | Marketplace charging, refunds, payouts, billing | Planned |
+| Admin case queue | Operational exception handling | Planned |
+| Notification dispatcher and inbox hardening | Reliable operational communication | In progress |
+| Session provider abstraction | Video/session execution flexibility | Planned |
 
 ## Under evaluation
 
-1. Cloudflare WAF/performance layer rollout details.
-2. Messaging channels beyond email (for reminders and support).
-
-## Dependencies
-
-1. External credentials and workspace setup for SaaS tools.
-2. Stable production domain transition (`muuday-app.vercel.app` to `muuday.com`).
-3. Migration discipline to keep DB model and app logic aligned.
+1. Final video provider path for v1 launch.
+2. Deeper tax automation beyond MVP light model.
+3. Advanced trust automation beyond manual + rule-based controls.

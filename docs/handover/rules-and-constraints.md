@@ -4,34 +4,36 @@ Last updated: 2026-03-29
 
 ## Non-flexible constraints
 
-1. Repository is the source of truth. Never rely on chat memory.
-2. Booking invariants must remain server-side.
-3. UTC booking storage model must be preserved.
-4. App URL/domain behavior must use centralized config (`lib/config/app-url.ts`).
+1. `docs/spec/source-of-truth/part1..part5` is canonical baseline.
+2. Booking, payment, payout, and case states must remain separated.
+3. UTC canonical storage for booking/session timestamps must be preserved.
+4. Core business invariants must remain server-side.
 5. Migration order is authoritative for DB evolution.
-6. Do not run destructive git commands (`reset --hard`, forced rollback) without explicit user instruction.
-7. Do not parallel-edit same files with multiple agents at the same time.
+6. No destructive git operations without explicit user instruction.
+7. Do not parallel-edit the same files with multiple agents simultaneously.
 
 ## Architectural constraints
 
-1. Core product logic belongs in app/server/db, not external automation tools.
-2. External integrations (Make/HubSpot/etc.) are projections and orchestrators.
-3. Cron endpoints must stay protected by secret auth.
+1. Keep provider integrations as adapters, not business source-of-truth.
+2. Keep internal ledger logic independent from raw processor object state.
+3. Keep case and audit models first-class for operational safety.
+4. Keep session execution provider-agnostic until provider lock is finalized.
 
-## Integration constraints
+## Compliance constraints
 
-1. Keep secrets out of repository.
-2. Keep production env parity between Vercel and GitHub cron workflow.
-3. Validate domain/alias consistency after each deployment.
+1. Sensitive-category wording must not imply unsupported regulated authority.
+2. Disclaimer handling must be versioned and traceable at profile/checkout/booking level.
+3. Verification badges must map to explicit internal criteria.
 
-## Naming and consistency constraints
+## Documentation constraints
 
-1. Use explicit status markers in docs.
-2. Keep docs folder high-signal and domain-organized.
-3. Keep one canonical file per topic, avoid duplicate roadmaps/status files.
+1. Documentation updates are part of done.
+2. Do not delete source-of-truth files imported from the 5-part package.
+3. Keep one canonical file per topic and status explicit.
+4. Record blockers and open validations in docs, not only in chat.
 
 ## Flexible areas
 
-1. UX refinements inside existing journey goals.
-2. Internal refactors that preserve behavior and constraints.
-3. Additional integrations, if documented with status and rationale.
+1. UX and visual refinement without policy drift.
+2. Internal refactors preserving behavior and constraints.
+3. Tooling improvements aligned with cost-effective rollout.
