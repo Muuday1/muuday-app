@@ -6,7 +6,7 @@ Last updated: 2026-03-29
 
 - App deploy: `Done` (Vercel production active)
 - Core booking flow: `In progress` (production-grade base implemented, payments/calendar integrations still pending)
-- Ops monitoring baseline: `In progress` (GitHub cron workflow active, Checkly monitoring-as-code deployed and passing)
+- Ops monitoring baseline: `In progress` (GitHub cron workflow active, Checkly monitoring-as-code deployed/passing, controlled fail/recovery test executed)
 - Observability baseline: `In progress` (Sentry/PostHog instrumentation in code, production activation pending)
 - Growth integrations: `Planned` (Make + HubSpot blueprint and event contracts documented)
 
@@ -24,7 +24,7 @@ Last updated: 2026-03-29
 | Notifications/reminders | In progress | Internal `notifications` table and cron endpoints for reminders/timeouts are live. | Expand channels and delivery auditability. |
 | Admin operations | Done | Admin dashboard supports moderation and core operational actions. | Add deeper audit trails and role-boundary hardening. |
 | CI and quality gates | In progress | GitHub `ci.yml` runs typecheck/lint/build; Playwright critical booking e2e baseline added. | Wire e2e execution in controlled env and expand critical-path coverage. |
-| Observability | In progress | Runbooks in place; Checkly monitoring-as-code is deployed and cloud-tested (`6/6`); Sentry/PostHog now wired in app code. | Complete Checkly alert routing/ownership and validate Sentry/PostHog dashboards in production. |
+| Observability | In progress | Runbooks in place; Checkly monitoring-as-code is deployed and cloud-tested (`6/6`), with controlled fail/recovery sessions executed; Sentry/PostHog now wired in app code. | Confirm alert delivery, add secondary channel, and validate Sentry/PostHog dashboards in production. |
 | Sentry/PostHog | In progress | SDK wiring and key funnel events implemented. | Complete env rollout, alert ownership, and dashboard governance. |
 | Make/HubSpot | Planned | Event contracts and integration blueprint are documented. | Configure live scenarios and CRM properties in external tools. |
 
@@ -33,11 +33,11 @@ Last updated: 2026-03-29
 1. Keep `db/sql/schema/supabase-schema.sql` synced with ordered migrations (snapshot updated through migration `006`).
 2. Payment flow is not yet provider-backed (legacy capture placeholder still present).
 3. Calendar sync logic is not yet implemented despite schema groundwork.
-4. Checkly alert routing and dedicated booking fixture still pending for stronger operational signal quality.
+4. Checkly secondary channel/ownership policy and dedicated booking fixture still pending for stronger operational signal quality.
 
 ## Immediate next actions
 
-1. Finish Checkly setup in production and validate alert channels.
+1. Confirm Checkly alert delivery and add secondary alert channel.
 2. Activate Sentry/PostHog in production and validate event/error ingestion.
 3. Add Stripe integration plan and implementation milestones to execution board.
 

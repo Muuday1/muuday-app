@@ -10,7 +10,8 @@ External health monitoring for production endpoint availability, cron operations
 
 - `In progress`
 - Monitoring-as-code is implemented, deployed in Checkly, and validated in cloud run.
-- Remaining work is alert routing/governance hardening.
+- Email alert channel is now provisioned in code and linked to the monitoring group.
+- Remaining work is confirming alert receipt and escalation ownership policy.
 
 ## Implemented in repository
 
@@ -32,6 +33,9 @@ External health monitoring for production endpoint availability, cron operations
   - `checkly/tests/helpers/auth.js`
 - Local browser validation config:
   - `playwright.checkly.config.ts`
+- Alerting resources:
+  - `EmailAlertChannel` (`muuday-ops-email-alerts`)
+  - `AlertChannelSubscription` for check group (`muuday-prod-journeys-group`)
 
 ## Required Checkly account auth (for deploy/test against account)
 
@@ -71,8 +75,8 @@ No hard blocker at the moment.
 
 ## Next steps
 
-1. Configure alert channels (email/Slack) and set failure/recovery notifications.
-2. Trigger one controlled failure and confirm alert + recovery delivery.
+1. Confirm alert delivery in inbox for controlled fail/recovery sessions.
+2. Add Slack (or secondary) channel for redundancy.
 3. Add check ownership/escalation policy for operational response.
 
 ## Latest validation
@@ -80,6 +84,10 @@ No hard blocker at the moment.
 - Checkly project deployed successfully to account `igor@muuday.com`.
 - Checkly environment variables were configured (`BASE_URL`, `CRON_SECRET`, `CHECKLY_USER_EMAIL`, `CHECKLY_USER_PASSWORD`, `CHECKLY_BOOKING_PROFESSIONAL_ID`).
 - `checkly test` result: `6 passed, 6 total`.
+- Controlled failure test executed on ops checks:
+  - Session: `https://chkly.link/l/PsQns` (`2 failed`, expected, invalid `CRON_SECRET`)
+- Controlled recovery test executed on ops checks:
+  - Session: `https://chkly.link/l/YLBJF` (`2 passed`, expected, valid `CRON_SECRET`)
 
 ## Current fixture caveat
 

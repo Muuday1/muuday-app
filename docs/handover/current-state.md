@@ -42,7 +42,8 @@ Last updated: 2026-03-29
 - Internal notifications + cron generation exist.
 - External monitoring-as-code is implemented (`checkly/` + `checkly.config.js`) and validated in CI.
 - Checkly project is deployed with env vars configured and cloud checks passing (`6/6`).
-- Alert channel policy/escalation ownership still needs completion.
+- Email alert channel and group subscription are provisioned from code.
+- Final confirmation of alert receipt/escalation ownership still needs completion.
 3. Resend:
 - templates and helpers exist.
 - production lifecycle coverage and monitoring still incomplete.
@@ -101,3 +102,7 @@ No active code WIP at this moment after finishing observability/schema/booking-U
 - configured required Checkly environment variables in account
 - fixed browser checks to use absolute URLs from `BASE_URL`
 - executed `checkly test` in cloud runtime with result `6 passed, 6 total`
+9. `2026-03-29` - Checkly alerting smoke test
+- added `EmailAlertChannel` + `AlertChannelSubscription` in monitoring code
+- executed controlled failure test for ops checks (`2 failed`) and controlled recovery test (`2 passed`)
+- sessions recorded in Checkly for auditability

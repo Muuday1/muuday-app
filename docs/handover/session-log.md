@@ -57,3 +57,9 @@ Use this for meaningful checkpoints only.
 - Configured Checkly account environment variables for runtime checks.
 - Fixed cloud-runtime browser check issue by switching browser scripts to absolute URL navigation based on `BASE_URL`.
 - Executed `checkly test` successfully with cloud result `6 passed, 6 total`.
+
+### Entry 11
+- Pushed local commits to `origin/main` (branch was ahead by 3 commits).
+- Added Checkly alerting resources in code (`EmailAlertChannel` + group subscription).
+- Executed controlled ops failure session (`2 failed`, expected with invalid secret): `https://chkly.link/l/PsQns`.
+- Executed controlled ops recovery session (`2 passed`, expected with valid secret): `https://chkly.link/l/YLBJF`.

@@ -6,10 +6,11 @@ Execute in this order.
 
 ## Priority 1 - Monitoring activation (no product logic changes)
 
-1. Validate alert channels (email/Slack) with a controlled failure test.
-2. Define check ownership/escalation response policy.
-3. Create a dedicated bookable professional fixture and point `CHECKLY_BOOKING_PROFESSIONAL_ID` to it (to enforce full booking-screen assertions without fallback).
-4. Record completion in `current-state.md` and `session-log.md`.
+1. Confirm inbox delivery for controlled fail/recovery sessions already triggered in Checkly.
+2. Add secondary alert channel (Slack) and subscribe it to the monitoring group.
+3. Define check ownership/escalation response policy.
+4. Create a dedicated bookable professional fixture and point `CHECKLY_BOOKING_PROFESSIONAL_ID` to it (to enforce full booking-screen assertions without fallback).
+5. Record completion in `current-state.md` and `session-log.md`.
 
 Dependencies:
 - Checkly alert channels available.
