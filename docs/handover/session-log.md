@@ -73,3 +73,11 @@ Use this for meaningful checkpoints only.
 - Added explicit data governance policy with retention/deletion matrix by data type in `docs/engineering/data-governance-and-lifecycle.md`.
 - Strengthened continuity rules to require docs updates during each section/prompt and immediate indexing of newly created docs files.
 - Updated handover and human-action backlog to reflect that policy is documented and next step is lifecycle automation rollout.
+
+### Entry 15
+- Clarified consolidated docs to explicitly state video provider decision scope as LiveKit (preferred) vs Google Meet (fallback), instead of generic wording.
+- Aligned `tech-stack`, `open-validations`, and `human-actions/tool-options-and-stack-gaps` with canonical source-of-truth.
+
+### Entry 16
+- Added explicit "by when" deadlines per wave for human decisions in `docs/human-actions/decision-backlog.md`.
+- Linked handover execution queue to those wave-gated decision deadlines.

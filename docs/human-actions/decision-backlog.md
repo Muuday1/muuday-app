@@ -5,6 +5,19 @@ Last updated: 2026-03-29
 This list includes decisions and validations that should be owned by a human decision-maker.
 Ordered by execution impact.
 
+## Decision deadlines by wave (by when)
+
+| Decision | Owner | Must be decided by when | Why |
+| --- | --- | --- | --- |
+| Stripe corridor and legal entity confirmation | Founder/Ops/Finance/Legal | Before Wave 3 start gate | Blocks payment architecture freeze |
+| Tax/accounting operating model | Finance/Accounting | Before Wave 3 exit gate | Blocks ledger reconciliation and finance ops hardening |
+| Refund/dispute authority matrix | Operations lead | Before Wave 4 start gate | Needed for case queue and safe refund operations |
+| Monitoring and on-call ownership | Ops | Before end of Wave 2 | Needed before broader production exposure |
+| Final session provider decision (LiveKit vs Google Meet) | Product + Engineering | Before Wave 5 start gate | Blocks session provider freeze |
+| Legal/compliance text freeze | Legal/Compliance + Founder | Before Wave 5 exit gate | Blocks sensitive-category launch readiness |
+| Data retention/legal-hold final approval | Legal/Compliance + Ops | Before Wave 4 exit gate | Required before lifecycle automation rollout completion |
+| Domain cutover plan (`muuday-app.vercel.app` -> `muuday.com`) | Product + Ops | Before public launch checklist | Avoids go-live DNS and auth drift |
+
 ## P0 - Blocking architecture decisions
 
 1. Stripe corridor and legal entity confirmation

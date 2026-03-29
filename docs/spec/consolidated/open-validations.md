@@ -23,8 +23,8 @@ Blocking impact:
 ## 2) Video provider final lock
 
 Context:
-- Preferred direction: embedded provider model.
-- Fallback: link-based provider model.
+- Preferred direction: LiveKit embedded model.
+- Fallback: Google Meet link-based model.
 
 Validation questions:
 1. Does embedded provider complexity fit launch timeline and team capacity?

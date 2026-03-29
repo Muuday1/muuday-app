@@ -41,7 +41,7 @@ Status legend:
 
 | Item | Purpose | Status |
 | --- | --- | --- |
-| Final session provider lock | Embedded vs external-provider launch path | Under evaluation |
+| Final session provider lock | LiveKit (preferred embedded) vs Google Meet (fallback link-based) | Under evaluation |
 | Stripe corridor architecture details | UK platform to Brazil payout route confirmation | Under evaluation |
 | Deep tax automation | Post-MVP expansion | Under evaluation |
 

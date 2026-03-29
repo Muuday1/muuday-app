@@ -16,7 +16,7 @@ Status definitions:
 
 | Capability (Open) | Why it matters | Option 1 | Option 2 | Option 3 | Recommendation for Muuday now |
 | --- | --- | --- | --- | --- | --- |
-| Session provider runtime | Session reliability, no-show evidence, future in-call controls | Daily | Twilio Video | Agora | Keep provider-agnostic abstraction and run a short Daily vs Twilio comparison before lock. |
+| Session provider runtime | Session reliability, no-show evidence, future in-call controls | LiveKit (preferred target) | Google Meet (fallback) | Daily (alternative if needed) | Keep provider-agnostic abstraction and run LiveKit vs Google Meet validation from `docs/spec/consolidated/open-validations.md`. |
 | Case queue subsystem | Disputes, no-shows, trust ops, exception handling | In-app queue (Supabase + Next.js) | Linear (ops triage workflow) | Zendesk | Start with in-app queue as source of truth; mirror high-level ops tasks into Linear. |
 | Notification orchestration | Reliable reminders and event fan-out | Inngest | Trigger.dev | Upstash QStash | Use Inngest or Trigger.dev for durable event jobs; keep provider adapters for Resend/WhatsApp/SMS. |
 | Internal ledger implementation | Financial auditability and reconciliation | Postgres double-entry (custom) | Medici (Node ledger library) | TigerBeetle | MVP: Postgres double-entry in existing DB for lowest complexity and full control. |
