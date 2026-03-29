@@ -31,6 +31,8 @@ Last updated: 2026-03-29
 2. Do not delete source-of-truth files imported from the 5-part package.
 3. Keep one canonical file per topic and status explicit.
 4. Record blockers and open validations in docs, not only in chat.
+5. Update `docs/` continuously during each implementation section/prompt.
+6. Any new docs file must be linked from `docs/README.md` and represented in handover context mapping.
 
 ## Flexible areas
 

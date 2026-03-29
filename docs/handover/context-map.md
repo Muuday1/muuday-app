@@ -27,6 +27,7 @@ Last updated: 2026-03-29
 
 - `docs/engineering/`
   - setup, quality, deployment, runbooks
+  - includes data governance and lifecycle policy
 
 - `docs/integrations/`
   - provider-specific state and rollout notes

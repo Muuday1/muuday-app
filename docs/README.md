@@ -71,6 +71,7 @@ Important rule:
 - [Engineering: Database and Migrations](./engineering/database-and-migrations.md)
 - [Engineering: Testing and Quality](./engineering/testing-and-quality.md)
 - [Engineering: Deployment and Operations](./engineering/deployment-and-operations.md)
+- [Engineering: Data Governance and Lifecycle](./engineering/data-governance-and-lifecycle.md)
 - [Engineering Runbooks](./engineering/runbooks)
 
 - [Integration: Supabase](./integrations/supabase.md)
@@ -90,3 +91,4 @@ Important rule:
 4. Use one unified AI execution protocol in operational docs.
 5. Archive or remove stale planning and prompt artifacts.
 6. Keep docs aligned with active workstreams tracked in execution tools.
+7. Update `docs/` continuously during each section/prompt of work, including any new docs files created.

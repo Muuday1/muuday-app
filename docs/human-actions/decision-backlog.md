@@ -38,7 +38,8 @@ Ordered by execution impact.
 - Owner: ops.
 
 3. Data retention and privacy policy operationalization
-- Decide retention windows for session metadata, support cases, and audit logs.
+- Policy baseline already documented in `docs/engineering/data-governance-and-lifecycle.md`.
+- Approve final retention windows and legal-hold exceptions by jurisdiction.
 - Owner: legal/compliance + ops.
 
 4. Refund/dispute authority matrix

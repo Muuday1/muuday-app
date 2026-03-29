@@ -48,9 +48,9 @@ Status definitions:
 - Suggestion: define monthly caps and alert rules per provider.
 
 5. Data governance and lifecycle policy
-- Current state: not fully formalized in docs.
-- Risk: retention/privacy inconsistency.
-- Suggestion: create explicit retention + deletion policy by data type.
+- Current state: policy documented in `docs/engineering/data-governance-and-lifecycle.md`.
+- Remaining gap: implement automated cleanup/anonymization jobs and legal-hold controls.
+- Suggestion: execute rollout checklist from the policy doc in Wave 4 ops hardening.
 
 ## C) Minimal low-cost stack additions worth considering
 

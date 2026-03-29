@@ -49,3 +49,4 @@ Wave-driven delivery is now mandatory:
 2. Consolidated new master spec and execution plan with open-validation register.
 3. Updated roadmap, status, architecture, journeys, and handover docs to execution-wave model.
 4. Added `docs/human-actions/` with consolidation verification, human decision backlog, and concrete open-tool options.
+5. Added explicit retention/deletion policy by data type in `docs/engineering/data-governance-and-lifecycle.md`.

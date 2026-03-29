@@ -37,6 +37,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 1. 5-part source-of-truth package imported into `docs/spec/source-of-truth/`.
 2. Unified spec docs created (`master-spec`, `execution-plan`, `open-validations`, unified AI protocol).
 3. Existing docs and journey mapping updated to execution-wave model.
+4. Explicit data governance and lifecycle policy documented with retention/deletion matrix by data type.
 
 ## Immediate next actions
 

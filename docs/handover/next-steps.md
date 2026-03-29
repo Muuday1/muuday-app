@@ -66,3 +66,4 @@ Dependencies:
 1. Work through `docs/human-actions/decision-backlog.md` from P0 to P2.
 2. Decide open tools from `docs/human-actions/tool-options-and-stack-gaps.md`.
 3. Update blockers in `docs/project/project-status.md` whenever a human decision is closed.
+4. Approve final retention windows/legal-hold exceptions and then implement lifecycle cleanup jobs from `docs/engineering/data-governance-and-lifecycle.md`.

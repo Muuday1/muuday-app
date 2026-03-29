@@ -24,6 +24,8 @@ If implementation diverges, document explicit deltas.
 3. Implement with deterministic transitions and explicit permissions.
 4. Validate with relevant automated checks and targeted journey smoke tests.
 5. Update docs during work, not only at the end.
+6. At each section/prompt checkpoint, update affected docs immediately.
+7. If a new docs file is created, add it to `docs/README.md` and `docs/handover/context-map.md` in the same task.
 
 ## 4) Required docs updates during execution
 
@@ -33,6 +35,7 @@ Always update:
 2. `docs/handover/next-steps.md`
 3. `docs/handover/session-log.md`
 4. affected domain docs (journeys, architecture, integrations, project status)
+5. `docs/README.md` and context map when new docs artifacts are introduced
 
 ## 5) Consistency guardrails
 
