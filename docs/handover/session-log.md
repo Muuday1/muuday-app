@@ -63,3 +63,8 @@ Use this for meaningful checkpoints only.
 - Consolidated new journey coverage docs for payments/revenue, trust/compliance, and session execution.
 - Validated docs structure and local markdown links under `docs/` for consistency.
 - Follow-up: execute Wave 0 implementation tasks and keep `current-state`/`next-steps` updated after each shipped batch.
+
+### Entry 13
+- Completed consolidation verification pass and documented remaining doc gaps in `docs/human-actions/consolidation-verification.md`.
+- Added `docs/human-actions/decision-backlog.md` with explicit human-owned P0/P1/P2 decisions.
+- Added `docs/human-actions/tool-options-and-stack-gaps.md` with 3 concrete options per open capability and stack-gap recommendations.

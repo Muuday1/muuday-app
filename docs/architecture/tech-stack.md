@@ -51,3 +51,10 @@ Status legend:
 2. Keep cost-effective defaults until metrics justify complexity.
 3. Keep core invariants in Muuday domain layer, not external tooling.
 4. Keep documented status parity with `docs/spec/consolidated/master-spec.md`.
+
+## Human decision register
+
+For open tool selections and stack-gap evaluation, see:
+
+1. `docs/human-actions/tool-options-and-stack-gaps.md`
+2. `docs/human-actions/decision-backlog.md`

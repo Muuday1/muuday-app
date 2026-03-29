@@ -60,3 +60,9 @@ Dependencies:
 1. Do not freeze session provider until validation checklist in `docs/spec/consolidated/open-validations.md` is completed.
 2. Do not treat legal/tax wording as final before explicit review.
 3. Do not mark waves done without acceptance criteria in `docs/spec/consolidated/execution-plan.md`.
+
+## Human-owned decisions to resolve in parallel
+
+1. Work through `docs/human-actions/decision-backlog.md` from P0 to P2.
+2. Decide open tools from `docs/human-actions/tool-options-and-stack-gaps.md`.
+3. Update blockers in `docs/project/project-status.md` whenever a human decision is closed.

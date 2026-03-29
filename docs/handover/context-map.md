@@ -34,6 +34,9 @@ Last updated: 2026-03-29
 - `docs/handover/`
   - continuity system for any new engineer/agent
 
+- `docs/human-actions/`
+  - human-owned decisions, validations, and open tool selection backlog
+
 ## Where to find key topics
 
 1. Canonical decision baseline: `docs/spec/source-of-truth/`

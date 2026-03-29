@@ -52,6 +52,7 @@ Important rule:
 - [Project Status](./project/project-status.md)
 - [Roadmap](./project/roadmap.md)
 - [Execution Alignment (Linear)](./project/execution-alignment.md)
+- [Human Actions and Decisions](./human-actions/README.md)
 
 - [Architecture Overview](./architecture/overview.md)
 - [Tech Stack](./architecture/tech-stack.md)
