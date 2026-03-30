@@ -70,6 +70,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 28. Route-guard hardening for professional workspace paths (`/dashboard`, `/disponibilidade`, `/configuracoes-agendamento`, `/editar-perfil-profissional`, `/completar-perfil`, `/financeiro`).
 29. Added state-machine validation automation (`npm run test:state-machines`) covering direct booking and request-booking transition maps, terminal states, and required edges.
 30. Recurring lifecycle hardening in timeout cron: when a recurring parent expires in manual confirmation, child bookings and booking_sessions are cancelled in cascade to release schedule inventory faster.
+31. Public experience baseline delivered on role-split rules:
+- New landing page at `/` with public navigation baseline (Home, Buscar profissionais, Registrar como profissional, Sobre nos, Ajuda, Login).
+- New public pages: `/sobre`, `/ajuda`, `/registrar-profissional`.
+- Public header includes language and currency selectors persisted in cookies.
+- Public booking intent now routes to sign-up-first flow (`/cadastro?role=usuario&redirect=...`) from professional profile CTAs.
+- Logged-out search now accepts public currency preference (`moeda` query + cookie) and keeps selection across filter/sort/pagination forms.
 
 ## Immediate next actions
 
@@ -81,6 +87,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
 4. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
 5. Prepare Stripe corridor validation packet and run external confirmation process.
+6. Implement sign-up/login modal UX for unauthenticated booking intent (currently sign-up-first page flow is live; modal variant still pending from source-of-truth detail).
 
 ## Continuity rule
 

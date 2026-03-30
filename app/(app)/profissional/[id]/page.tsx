@@ -62,6 +62,10 @@ export default async function ProfissionalPage({
   const profile = professional.profiles as any
   const isOwnProfessional = user ? professional.user_id === user.id : false
   const isLoggedIn = !!user
+  const authIntentHref = (targetPath: string) =>
+    isLoggedIn
+      ? targetPath
+      : `/cadastro?role=usuario&redirect=${encodeURIComponent(targetPath)}`
   const requestBookingAvailable = ['professional', 'premium'].includes(
     String(professional.tier || 'basic'),
   )
@@ -273,7 +277,7 @@ export default async function ProfissionalPage({
             ) : (
               <div className="space-y-2">
                 <Link
-                  href={isLoggedIn ? `/agendar/${professional.id}` : `/login?redirect=/agendar/${professional.id}`}
+                  href={authIntentHref(`/agendar/${professional.id}`)}
                   className="block w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all text-sm text-center"
                 >
                   <span className="inline-flex items-center justify-center gap-2">
@@ -284,9 +288,7 @@ export default async function ProfissionalPage({
                 {requestBookingAvailable ? (
                   <Link
                     href={
-                      isLoggedIn
-                        ? `/solicitar/${professional.id}`
-                        : `/login?redirect=/solicitar/${professional.id}`
+                      authIntentHref(`/solicitar/${professional.id}`)
                     }
                     className="block w-full border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold py-3 rounded-xl transition-all text-sm text-center"
                   >

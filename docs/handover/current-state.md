@@ -71,6 +71,19 @@ Last updated: 2026-03-30 (session 25)
 41. Recurring timeout cascade added in `/api/cron/booking-timeouts`:
 - recurring parent cancellation now cascades to child bookings (`pending_confirmation`/`pending`)
 - linked `booking_sessions` entries are cancelled to release inventory
+42. Public landing and screen-inventory routes implemented:
+- `/` now renders public landing (no auth redirect)
+- `/sobre`, `/ajuda`, `/registrar-profissional` created as public pages
+- public top nav order aligned with source-of-truth baseline
+43. Public header now includes language/currency selectors (cookie-backed):
+- language cookie: `muuday_public_language`
+- currency cookie: `muuday_public_currency`
+44. Logged-out search now reads public currency from query/cookie:
+- supports `moeda` query param on `/buscar`
+- preserves selected currency through search/filter/sort/pagination forms
+45. Public booking intent now follows sign-up-first path from professional profile:
+- `/profissional/[id]` CTA routes unauthenticated users to `/cadastro?role=usuario&redirect=...`
+- cadastro now accepts `role` and sanitized `redirect` params
 
 ## Partially implemented (`In progress`)
 

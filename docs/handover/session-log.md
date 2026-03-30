@@ -218,3 +218,12 @@ Use this for meaningful checkpoints only.
   - child recurring bookings in pending confirmation path
   - booking_sessions rows for the same parent
 - Goal: release recurring inventory quickly when manual confirmation SLA expires.
+
+### Entry 32 (2026-03-30) — Public landing + role-split navigation baseline in app
+- Replaced root redirect page with full public landing at `/` (no forced redirect to login/search).
+- Added public top navigation baseline per source-of-truth: Home, Buscar profissionais, Registrar como profissional, Sobre nos, Ajuda, Login.
+- Added new public pages: `/sobre`, `/ajuda`, `/registrar-profissional`.
+- Added public language/currency controls in header with cookie persistence (`muuday_public_language`, `muuday_public_currency`).
+- Updated `/buscar` to support logged-out currency preference via `moeda` query/cookie and carry it through filter/sort/pagination.
+- Updated public professional booking CTAs to sign-up-first path (`/cadastro?role=usuario&redirect=...`).
+- Updated signup flow to accept role preselection and safe redirect handling after account creation.

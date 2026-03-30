@@ -15,6 +15,7 @@ Help users discover relevant professionals and complete booking safely with clea
 
 ## Entry points
 
+- `/` (public landing / home)
 - `/buscar`
 - `/profissional/[id]`
 - `/agendar/[id]`
@@ -41,6 +42,7 @@ Help users discover relevant professionals and complete booking safely with clea
 8. Specialty filter is enabled only after category selection.
 9. Country/location must appear by full name in filters and cards.
 10. Filter options must be derived from professionals currently available in platform data.
+11. Public booking intent must be signup-first with login as secondary action path.
 
 ## Current implementation status
 
@@ -54,6 +56,8 @@ Help users discover relevant professionals and complete booking safely with clea
 - Specialty select is now category-dependent.
 - Category/specialty/language/location options are data-driven from active professionals.
 - Country labels render by full name (no 2-letter code) in search cards.
+- Public landing and discovery navigation baseline is live (`/`, `/buscar`, `/sobre`, `/ajuda`, `/registrar-profissional`).
+- Public booking CTA now routes unauthenticated visitors to signup-first flow with redirect context.
 - Full recurring parity from source spec is not complete.
 
 ## Gaps
@@ -61,6 +65,7 @@ Help users discover relevant professionals and complete booking safely with clea
 1. Full ranking/boost governance parity with tiers.
 2. Transition tests still need parity hardening across direct + request-booking flows (transition guard already enforced in request-booking actions).
 3. Full recurring scheduling reservation/release parity.
+4. Source-of-truth asks for sign-up/login modal on unauthenticated booking intent; current implementation is signup-first page redirect (functional, but modal UX still pending).
 
 ## Next steps
 

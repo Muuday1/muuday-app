@@ -4,8 +4,14 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { cookies, headers } from 'next/headers'
 import { Search, Star, Clock, MapPin, SlidersHorizontal, Languages } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import {
+  normalizeCurrency,
+  PUBLIC_CURRENCY_COOKIE,
+  resolveDefaultCurrencyFromAcceptLanguage,
+} from '@/lib/public-preferences'
 import {
   AVAILABILITY_WINDOWS,
   SEARCH_CATEGORIES,
@@ -26,6 +32,7 @@ type BuscarSearchParams = {
   idioma?: string
   ordenar?: string
   pagina?: string
+  moeda?: string
 }
 
 type AvailabilityRow = {
@@ -130,6 +137,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  const cookieStore = cookies()
+  const acceptLanguage = headers().get('accept-language')
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
@@ -150,6 +159,13 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       .eq('id', user.id)
       .single()
     selectedCurrency = (userProfile?.currency || 'BRL').toUpperCase()
+  } else {
+    const queryCurrency = normalizeCurrency(searchParams.moeda)
+    const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
+    selectedCurrency =
+      queryCurrency ||
+      cookieCurrency ||
+      resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
   }
   const selectedCurrencyRate = CURRENCY_RATES[selectedCurrency] || 1
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
@@ -337,6 +353,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       idioma: selectedLanguage,
       ordenar: selectedSort,
       pagina: String(currentPage),
+      moeda: user ? '' : selectedCurrency,
       ...overrides,
     }
 
@@ -376,6 +393,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         <input type="hidden" name="idioma" value={selectedLanguage} />
         <input type="hidden" name="ordenar" value={selectedSort} />
         <input type="hidden" name="pagina" value="1" />
+        {!user && <input type="hidden" name="moeda" value={selectedCurrency} />}
 
         <div className="flex flex-col md:flex-row gap-3 md:items-center">
           <div className="relative flex-1">
@@ -405,6 +423,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         <input type="hidden" name="q" value={queryText} />
         <input type="hidden" name="ordenar" value={selectedSort} />
         <input type="hidden" name="pagina" value="1" />
+        {!user && <input type="hidden" name="moeda" value={selectedCurrency} />}
 
         <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800 mb-4">
           <SlidersHorizontal className="w-4 h-4 text-brand-500" />
@@ -563,6 +582,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
               <input type="hidden" name="localizacao" value={selectedLocation} />
               <input type="hidden" name="idioma" value={selectedLanguage} />
               <input type="hidden" name="pagina" value="1" />
+              {!user && <input type="hidden" name="moeda" value={selectedCurrency} />}
 
               <select
                 name="ordenar"
