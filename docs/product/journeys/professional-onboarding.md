@@ -29,10 +29,31 @@ Guide professionals from account creation to trusted go-live, then to first-book
 7. Payment/payout readiness gating before first booking acceptance.
 8. Light first go-live admin review.
 
+## Required field matrix (must be explicit in implementation)
+
+1. Required at account creation:
+- name, email, password/auth, country, timezone, primary language
+2. Required for valid profile draft:
+- display name, category/subcategory/specialty, headline, short bio
+3. Required for review submission:
+- profile photo, at least one service, service price/duration, availability baseline, plan selection
+4. Required for go-live:
+- approved review, go-live blockers resolved, sensitive-category requirements when applicable
+5. Required for first booking acceptance:
+- payout onboarding minimum complete and professional billing card on file
+6. Required for payout:
+- payout/KYC requirements complete
+
 ## Critical dual-gate rule
 
 1. Public listing eligibility is not equal to first-booking acceptance eligibility.
 2. Professional can be listed but blocked from first accepted booking until payout/payment requirements are complete.
+3. Professional primary navigation is:
+- Dashboard
+- Calendario
+- Financeiro
+- Configuracoes
+4. Professional should not see user discovery navigation as the primary logged-in workspace.
 
 ## Current implementation status
 

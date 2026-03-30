@@ -314,24 +314,13 @@ The backend should support:
 - Allow taxonomy evolution without breaking existing profiles.
 
 3.16 AI coder instructions — taxonomy
-For Codex
-- Build normalized models for category, subcategory, specialty, tag.
-- Enforce referential integrity between layers.
-- Create admin CRUD for category/subcategory/specialty.
-- Create moderation queues for specialty suggestions and questionable tags.
-
-For Claude
-- Use Claude to design taxonomy naming rules, review heuristics, moderation policy, and admin tooling flows.
-- Use Claude to help design sensible fallback behavior for deprecated specialties.
-
-For Cursor
-- Use Cursor for building search indexing logic, query mappings, and admin CRUD UI quickly.
-- Cursor is good for iterating structured forms and back-office workflows.
-
-For Antigravity
-- Use Antigravity for UI refinement of taxonomy-based onboarding and search navigation flows.
-- Particularly useful for generating clean hierarchy-focused UI patterns.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 4 — PROFESSIONAL PLANS / TIERS
 --------------------------------------------------------------------
@@ -571,22 +560,13 @@ The backend must support:
 - Build clear upgrade prompts, but avoid constant nagging.
 
 4.26 AI coder instructions — tiers
-For Codex
-- Build entitlements as config or policy layer, not scattered conditions.
-- Enforce limits at both validation layer and UX layer.
-- Create clean plan comparison data structure.
-
-For Claude
-- Use Claude to refine packaging language, value proposition by tier, and upgrade messaging.
-- Use Claude to propose migration rules if plan entitlements change later.
-
-For Cursor
-- Use Cursor to build plan comparison UI, entitlement gates, and tier-aware settings forms quickly.
-- Cursor can also help refactor repetitive tier checks into reusable helpers.
-
-For Antigravity
-- Use Antigravity to polish pricing page, onboarding upgrade moments, and subtle premium signaling in cards/profiles.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 5 — SEARCH, DISCOVERY, RANKING, FILTERS, AND EMPTY STATES
 --------------------------------------------------------------------
@@ -781,23 +761,13 @@ The system should support:
 - Avoid giant filter panels in the MVP.
 
 5.23 AI coder instructions — search
-For Codex
-- Implement search as hybrid structured search with weighted text matching.
-- Keep ranking weights configurable.
-- Build filters as structured query constraints.
-- Add analytics events around query, click, and booking funnel.
-
-For Claude
-- Use Claude to refine search logic heuristics, no-results messaging, and ranking philosophy explanations.
-- Use Claude to design “intent-to-taxonomy” mapping rules for messy user queries.
-
-For Cursor
-- Use Cursor to build search pages, filter UIs, autocomplete flows, and search result components quickly.
-- Cursor is particularly useful for refactoring search parameter handling and UI state.
-
-For Antigravity
-- Use Antigravity to improve search visual design, filter ergonomics, card scanability, and empty-state composition.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 6 — SEARCH CARDS, PROFILE CARDS, AND DISCOVERY UX
 --------------------------------------------------------------------
@@ -927,21 +897,13 @@ The backend and front-end should support:
 - Reserve deeper explanation for the profile page.
 
 6.18 AI coder instructions — cards/profiles
-For Codex
-- Build card DTOs that aggregate profile, price preview, rating summary, availability preview, and badge states cleanly.
-- Keep badge rendering driven by data, not scattered UI if/else blocks.
-
-For Claude
-- Use Claude to refine card hierarchy, copy clarity, and trust signal language.
-- Use Claude to propose the best information hierarchy for category-specific cards if needed later.
-
-For Cursor
-- Use Cursor to build and iterate card components, profile sections, and CTA layout quickly.
-- Cursor is especially good for reusable component extraction and UI state cleanup.
-
-For Antigravity
-- Use Antigravity for premium visual polish of cards, spacing, badge systems, and scanability.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 7 — TRUST SIGNALS, REVIEWS, BADGES, AND CREDIBILITY
 --------------------------------------------------------------------
@@ -1084,22 +1046,13 @@ The system should support:
 - Make sure review editing and response updating preserve audit trail.
 
 7.22 AI coder instructions — trust/reviews
-For Codex
-- Build review uniqueness constraints per client-professional pair.
-- Add review history/audit timestamps.
-- Support one professional response record with moderation status.
-- Build badge rendering and verification states cleanly.
-
-For Claude
-- Use Claude to draft moderation rules, review-abuse policies, and disclaimer language.
-- Use Claude to refine the tone of sensitive-category profile warnings.
-
-For Cursor
-- Use Cursor to build reviews UI, response UI, badge display, verification review tools, and reporting flows.
-
-For Antigravity
-- Use Antigravity to polish badge systems, trust signal placement, and review presentation so the result feels premium rather than cluttered.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 8 — FAVORITES, REBOOKING ENTRY POINTS, AND LIGHT RETENTION FEATURES
 --------------------------------------------------------------------
@@ -1150,20 +1103,13 @@ The system should support:
 - analytics around save/favorite and rebooking behavior
 
 8.8 AI coder instructions — favorites/rebooking
-For Codex
-- Build favorites as a simple relational object with timestamps.
-- Build rebooking using previous booking template data.
-- Do not duplicate mutable historical data incorrectly; snapshot what is needed.
-
-For Claude
-- Use Claude to refine rebooking UX copy and identify friction points in repeat purchase flows.
-
-For Cursor
-- Use Cursor to build saved-profiles lists, profile action states, and rebooking entry points efficiently.
-
-For Antigravity
-- Use Antigravity to polish the saved/favorites area and “book again” pattern so it feels effortless.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 9 — PROFESSIONAL GO-LIVE, PUBLISHING, AND FIRST REVIEW GATE (HIGH LEVEL)
 --------------------------------------------------------------------
@@ -1223,20 +1169,13 @@ Need support for:
 - resubmission states
 
 9.9 AI coder instructions — go-live
-For Codex
-- Build publishing and approval states explicitly.
-- Do not couple “saved profile” to “live profile.”
-- Keep moderation notes auditable.
-
-For Claude
-- Use Claude to define approval criteria and moderation playbooks.
-
-For Cursor
-- Use Cursor to build the review queue, moderation actions, and status-aware onboarding UI.
-
-For Antigravity
-- Use Antigravity to design a clear “pending review / needs edits / live” experience for professionals.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 10 — MINIMUM ANALYTICS SIGNALS RELEVANT TO THIS PART
 --------------------------------------------------------------------
@@ -1359,3 +1298,4 @@ These will appear in later parts so this part can remain focused and actionable.
 --------------------------------------------------------------------
 END OF PART 1
 --------------------------------------------------------------------
+

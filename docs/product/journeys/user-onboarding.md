@@ -28,10 +28,18 @@ Allow users to create account, complete profile basics, and reach trusted discov
 
 ## Key rules from canonical spec
 
-1. User timezone context is first-class for all booking times.
-2. Discovery must expose trust signals without requiring user to understand internal tier logic.
-3. User should see final payable total in checkout, not internal fee breakdown.
-4. For sensitive categories, user must see scope/disclaimer signals in profile and checkout.
+1. User and professional accounts are separate account types (no dual-role shared account for now).
+2. Public search is accessible without login, but booking actions from public flow must trigger sign-up/login modal.
+3. Logged-in user primary navigation is:
+- Buscar profissionais
+- Bookings
+- Favorites
+- Profile
+4. Settings/notifications/financial history are secondary or nested under Profile/Bookings.
+5. User timezone context is first-class for all booking times.
+6. Discovery must expose trust signals without requiring user to understand internal tier logic.
+7. User should see final payable total in checkout, not internal fee breakdown.
+8. For sensitive categories, user must see scope/disclaimer signals in profile and checkout.
 
 ## Edge cases
 

@@ -30,7 +30,10 @@ What this part covers
 10. Booking timeline, slot holding, checkout expiration recovery, and price lock rules
 11. Recurring booking mechanics at the scheduling layer
 12. Timezone, calendar, and date/time handling principles
-13. Technical requirements, implementation notes, and AI-coder instructions for this scope
+13. Technical requirements, implementation notes, and AI-agnostic build instructions for this scope
+14. Auth role split, route guards, and screen inventory by role
+15. Public/user/professional/admin navigation baseline
+16. Detailed professional onboarding stages and requirement matrix
 
 Questions mainly consolidated into this part
 This part primarily consolidates the decisions that originated from the question clusters on:
@@ -46,6 +49,114 @@ This part primarily consolidates the decisions that originated from the question
 - recurring slot handling
 - timezone and calendar handling
 - cancellation/rebooking interface behavior
+
+--------------------------------------------------------------------
+--------------------------------------------------------------------
+SECTION 0 - AUTH MODEL, ROLE SPLIT, ROUTE GUARDS, AND SCREEN INVENTORY
+--------------------------------------------------------------------
+
+0.1 Account type and role split (final rule)
+- User/customer and professional are separate account types.
+- A professional login cannot be used as a user account.
+- A user login cannot be used as a professional account.
+- Do not implement shared dual-role accounts for now.
+
+0.2 Route guard and permission rules
+- Public routes: home, search, public professional profiles, about, help, login, user sign-up, professional registration entry.
+- User routes: user workspace only.
+- Professional routes: professional workspace only.
+- Admin routes: admin workspace only.
+- Any attempt to access another role workspace must redirect to the correct login or unauthorized state.
+
+0.3 Logged-out navigation (public)
+Baseline top navigation order:
+- Home
+- Buscar profissionais
+- Registrar como profissional
+- Sobre nos
+- Ajuda
+- Login button/icon
+- Language switcher
+- Currency switcher
+
+Public behavior rules:
+- Buscar profissionais is publicly accessible without login.
+- Logged-out timezone defaults to device/computer timezone.
+- Logged-out currency defaults to location/computer context, with manual override available.
+- If a visitor tries to book from public search/profile flow, open sign-up/login modal.
+- In that modal:
+  - primary action: sign up / create user account
+  - secondary action: login
+
+0.4 Screen inventory by role
+
+Logged-out visitor screens:
+- Landing / Home
+- Buscar profissionais / Search results
+- Professional public profile
+- Sobre nos
+- Ajuda / FAQ / support landing
+- Login
+- User sign-up modal/page
+- Professional registration entry page
+
+Logged-in user/customer primary navigation:
+- click logo returns to landing page from any screen
+- Buscar profissionais
+- Bookings
+- Favorites
+- Profile (avatar/name entry)
+
+Logged-in user/customer secondary areas:
+- Messages/chat as secondary persistent entry (floating icon, shortcut, or contextual entry)
+- Notifications/inbox as icon/secondary area
+- Settings nested under Profile
+- Financial history nested under Profile or Booking detail context
+
+Logged-in professional primary navigation:
+- Dashboard
+- Calendario
+- Financeiro
+- Configuracoes
+
+Logged-in professional secondary/contextual areas:
+- messages/chat
+- request booking queue
+- reviews and performance
+- booking detail screens
+- payout onboarding alerts
+
+Admin primary navigation:
+- Dashboard
+- Operations
+- Professionals
+- Users
+- Finance
+- Catalog
+- Growth
+- Settings
+
+0.5 User-side IA rules (main areas)
+- Buscar profissionais: search input, suggestions, filters, sort, results, no-results guidance, profile access.
+- Bookings: upcoming/past/pending, detail, reschedule/cancel flows, timeline, session entry, review prompts.
+- Favorites: saved professionals and quick re-entry/rebooking.
+- Profile: account details, settings, language/timezone/preferences, payment methods, payments/refunds/receipts, notification settings, support, logout.
+
+0.6 Professional-side IA rules (main areas)
+- Dashboard must answer: what needs action now, upcoming sessions, pending confirmations, earnings summary, payout/billing/account health.
+- Calendario must operate as scheduling control center: confirmed, pending, blocked, recurring, external sync conflicts.
+- Financeiro must expose earnings, payouts, booking-level money history, adjustments/refunds, billing/plan status, exports.
+- Configuracoes must own business setup: profile, services, pricing, taxonomy, availability defaults, booking preferences, notifications, payout/billing setup, compliance tasks.
+
+0.7 Cross-role enforcement rule
+- Logged-in users can access user areas only.
+- Logged-in professionals can access professional areas only.
+- Public search remains viewable without login, but any booking action must trigger sign-up/login if unauthenticated.
+
+0.8 Navigation complexity control
+- Keep top-level nav minimal for each role.
+- Keep detail flows nested under parent areas.
+- Do not promote every operational screen to top-level navigation.
 
 --------------------------------------------------------------------
 SECTION 1 — PROFESSIONAL ONBOARDING STRATEGY
@@ -97,22 +208,13 @@ Implementation notes
 - Keep the first step low-friction.
 
 AI coder instructions
-Codex:
-- Build a multi-step onboarding flow with server-side persisted progress.
-- Validate required fields on submit.
-- Save timezone as an explicit field on the professional record.
-
-Claude:
-- Suggest copy that explains why timezone and country matter.
-- Keep the first step reassuring and low-friction.
-
-Cursor:
-- Generate clean form state management for a stepper flow.
-- Ensure partial progress can be resumed.
-
-Antigravity:
-- Focus on clean onboarding UX, progress tracking, and edge cases for incomplete accounts.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 1.3 Step 2 — Professional positioning within the taxonomy
 The professional must then position themselves inside the Muuday taxonomy.
 
@@ -146,19 +248,13 @@ Implementation notes
 - The UI must make clear the difference between specialty and tag.
 
 AI coder instructions
-Codex:
-- Build dependent selects: category -> subcategory -> specialty.
-- Store both raw IDs and denormalized display names for search indexing.
-
-Claude:
-- Produce explanatory helper text that clarifies category vs profession vs specialty.
-
-Cursor:
-- Build reusable controlled-select components with async-ready architecture.
-
-Antigravity:
-- Emphasize clarity and prevention of taxonomy misuse.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 1.4 Step 3 — Public profile minimum
 The professional must then create the visible public layer of the profile.
 
@@ -189,18 +285,13 @@ Implementation notes
 - The platform should say exactly what is missing.
 
 AI coder instructions
-Codex:
-- Implement profile completeness logic as deterministic rule checks, not vague heuristics.
-
-Claude:
-- Draft helpful empty-state guidance for missing photo, bio, and languages.
-
-Cursor:
-- Build a profile completeness component that can be reused in dashboard and onboarding.
-
-Antigravity:
-- Design the profile setup to push professionals toward focused positioning rather than generic statements.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 1.5 Step 4 — Service creation minimum
 The professional must create at least one bookable service draft.
 
@@ -235,19 +326,13 @@ Implementation notes
 - One-off, recurring, and monthly services should share a common base model but allow type-specific rules.
 
 AI coder instructions
-Codex:
-- Model services as first-class entities, not freeform text on a profile.
-- Include support for different booking behavior flags.
-
-Claude:
-- Draft service setup labels that make the difference between one-off, recurring, and monthly simple.
-
-Cursor:
-- Build modular service configuration forms that reveal only relevant options by service type.
-
-Antigravity:
-- Optimize for speed without sacrificing clarity around service type behavior.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 1.6 Step 5 — Availability and agenda setup
 The professional must configure enough availability for the marketplace to create real bookings.
 
@@ -356,6 +441,153 @@ Implementation notes
 - This is not meant to become a heavy manual bottleneck.
 
 --------------------------------------------------------------------
+1.10 PROFESSIONAL ONBOARDING JOURNEY - FULL DETAIL (EXECUTION-READY)
+Recommended stage order:
+1. Account creation
+2. Basic professional identity
+3. Public profile
+4. Service setup
+5. Availability / calendar
+6. Plan selection and billing setup
+7. Payout / payments onboarding
+8. Final review / submit for approval
+9. Go live
+
+1.11 Stage detail and required fields
+
+Stage 1 - Account creation
+Required now:
+- name
+- email
+- password or auth provider
+- country of residence
+- timezone
+- primary language
+Optional later:
+- phone
+- additional languages
+- profile image
+
+Stage 2 - Basic professional identity
+Required now:
+- public/professional display name
+- category
+- subcategory/profession
+- specialties
+- headline
+- base country
+- service jurisdiction / where they can legally operate or advise
+- sensitive-category disclaimer prompts where relevant
+
+Stage 3 - Public profile
+Required now:
+- profile photo
+- short bio
+- languages spoken
+- credibility/experience summary (minimum starter)
+Optional now / required later by category:
+- long bio
+- credential upload
+- trust badge evidence fields
+
+Stage 4 - Service setup
+Required before submission:
+- service name
+- service type (one-off / one-off+recurring / monthly subscription)
+- duration options
+- pricing
+- description
+- category/subcategory/specialty association
+- availability relation
+Optional by tier/category:
+- recurring enabled flag
+- monthly-plan settings
+- advanced tags
+- sensitive-category disclaimers
+
+Stage 5 - Availability / calendar
+Required before go-live:
+- working days/hours
+- timezone confirmation
+- minimum notice
+- maximum booking window (tier-based)
+- auto-accept or manual-accept choice
+- blocked times baseline
+Optional now:
+- external calendar sync completion
+- advanced recurring slot preferences
+
+Stage 6 - Plan selection / billing setup
+Rules:
+- 3 tiers: Basic / Professional / Premium
+- show plans early, default starts as Basic
+- final confirmation near go-live
+- 3 months free on sign-up
+- annual plan exists with 15% discount
+- during trial: upgrade allowed, downgrade only in next cycle
+Required before first booking acceptance:
+- card on file for future professional billing
+
+Stage 7 - Payout / payments onboarding
+Required before first booking acceptance:
+- Stripe connected onboarding started and minimum required payout fields complete
+Required before receiving payout:
+- payout setup and required KYC/identity status complete
+
+Stage 8 - Submit for review / approval
+System must show explicit checklist:
+- complete now
+- missing but optional
+- missing and blocking submission/go-live/first booking/payout
+First publication requires light admin review.
+
+Stage 9 - Go live
+- profile can be listed when go-live criteria pass
+- accepting first booking still depends on booking-eligibility criteria
+
+1.12 Onboarding questions and requirements matrix (authoritative)
+
+Field classification:
+- required_at_account_creation
+- required_for_valid_profile_draft
+- required_for_review_submission
+- required_for_go_live
+- required_for_first_booking_acceptance
+- required_for_payout
+
+Minimum matrix:
+- name: account_creation
+- email: account_creation
+- password/auth: account_creation
+- country_of_residence: account_creation
+- timezone: account_creation
+- primary_language: account_creation
+- display_name: valid_profile_draft
+- category/subcategory/specialty: valid_profile_draft + review_submission
+- headline + short_bio: valid_profile_draft + review_submission
+- profile_photo: review_submission + go_live
+- at_least_one_service: review_submission + go_live
+- service_price_and_duration: review_submission + go_live
+- availability_baseline: review_submission + go_live
+- acceptance_mode_choice: review_submission + go_live
+- professional_plan_selection: review_submission
+- billing_card_for_professional_plan: first_booking_acceptance
+- payout_connected_account_minimum: first_booking_acceptance
+- payout_kyc_complete: payout
+- sensitive_category_disclaimer_fields: review_submission + go_live (where applicable)
+- sensitive_category_credentials: go_live or first_booking_acceptance based on category risk policy
+
+1.13 Gating summary (explicit)
+- Minimum required to create account: Stage 1 required fields only.
+- Minimum required to submit for review: stages 2 to 6 baseline fields complete.
+- Minimum required to go live: approved submission + go-live blockers cleared.
+- Minimum required to accept first booking: payout/billing gating requirements complete.
+- Minimum required to receive payout: payout/KYC requirements complete.
+
+1.14 Implementation readiness notes for onboarding
+- Every onboarding field must have explicit state and gate mapping.
+- Every gate decision must be machine-checkable and audit-friendly.
+- Do not hide blockers; present them as clear checklist items.
 SECTION 2 — MINIMUM REQUIRED TO GO LIVE VS MINIMUM REQUIRED TO ACCEPT BOOKINGS
 --------------------------------------------------------------------
 
@@ -482,11 +714,11 @@ Technical requirements
 - Never derive booked price dynamically from current service price.
 
 AI coder instructions
-Codex:
-- Store a booking_price_snapshot object or equivalent normalized fields.
-
-Cursor:
-- Make sure profile/service update screens cannot retroactively mutate booked transactions.
+Unified instructions for any AI coding/design/system assistant
+- Keep domain models explicit, typed, and auditable.
+- Keep transitions deterministic and prevent illegal state changes.
+- Keep role-based UI/status mapping clear without leaking internal complexity.
+- Keep implementation modular and maintainable for lean operations.
 
 --------------------------------------------------------------------
 SECTION 4 — AVAILABILITY, AGENDA, CALENDAR, BOOKING WINDOW, AND TIMEZONE
@@ -557,19 +789,13 @@ Implementation notes
 - This rule should be applied consistently in profile previews, slot selection, review screen, reminders, booking details, admin views, and exports.
 
 AI coder instructions
-Codex:
-- Use timezone-aware datetime libraries and UTC persistence.
-- Never store booking slots as local naive strings only.
-
-Claude:
-- Draft clear timezone-related copy in booking review and email notifications.
-
-Cursor:
-- Create helper utilities for display conversion and timezone labels.
-
-Antigravity:
-- Focus on preventing timezone confusion in every critical step.
-
+Unified instructions for any AI coding/design/system assistant
+- Implement with modular domain boundaries and explicit interfaces.
+- Keep core rules deterministic, typed, and validated server-side.
+- Document state transitions, edge cases, and failure/recovery behavior.
+- Prioritize auditability, timeline traceability, and role-based permissions.
+- Keep generated solutions cost-effective, maintainable, and low-complexity.
+- Do not hardwire provider-specific assumptions into core domain logic.
 --------------------------------------------------------------------
 SECTION 5 — BOOKING JOURNEY: USER-SIDE FLOW
 --------------------------------------------------------------------
@@ -775,17 +1001,11 @@ Implementation notes
 - It needs proper objects and statuses.
 
 AI coder instructions
-Codex:
-- Model request booking separately from normal booking, but allow conversion into a normal booking upon payment.
-
-Cursor:
-- Build clear status messaging for open request, proposed slot, accepted proposal, expired proposal.
-
-Claude:
-- Write explanatory UI text that reduces confusion when the flow is not instant.
-
-Antigravity:
-- Make request booking feel premium and structured rather than like a hacked message exchange.
+Unified instructions for any AI coding/design/system assistant
+- Keep domain models explicit, typed, and auditable.
+- Keep transitions deterministic and prevent illegal state changes.
+- Keep role-based UI/status mapping clear without leaking internal complexity.
+- Keep implementation modular and maintainable for lean operations.
 
 --------------------------------------------------------------------
 SECTION 8 — SLOT HOLDING, CHECKOUT PENDING, CHECKOUT RECOVERY
@@ -882,18 +1102,11 @@ Implementation notes
 - State machine should be explicit, not implicit through ad hoc flags.
 
 AI coder instructions
-Codex:
-- Implement booking states as a finite-state system or at least a controlled transition table.
-- Prevent illegal state jumps.
-
-Cursor:
-- Create UI components that map internal states to simple human-readable labels.
-
-Claude:
-- Draft clear microcopy for each user-facing state.
-
-Antigravity:
-- Keep the state system rigorous behind the scenes while keeping the front-end emotionally simple.
+Unified instructions for any AI coding/design/system assistant
+- Keep domain models explicit, typed, and auditable.
+- Keep transitions deterministic and prevent illegal state changes.
+- Keep role-based UI/status mapping clear without leaking internal complexity.
+- Keep implementation modular and maintainable for lean operations.
 
 --------------------------------------------------------------------
 SECTION 10 — BOOKING DETAIL PAGE AND TIMELINE
@@ -1074,21 +1287,11 @@ Implementation notes
 - They must communicate, but should not be collapsed into one brittle object.
 
 AI coder instructions
-Codex:
-- Model recurring schedule templates separately from actual session bookings.
-- Support future-cycle slot reservation without automatically marking them as fully confirmed sessions.
-
-Cursor:
-- Build admin/user/professional views that clearly distinguish:
-  - current cycle confirmed sessions
-  - next cycle planned sessions
-  - released sessions
-
-Claude:
-- Draft clean explanatory copy for recurring schedule pages, pause requests, and slot release timing.
-
-Antigravity:
-- Ensure recurring feels dependable but not overengineered.
+Unified instructions for any AI coding/design/system assistant
+- Keep domain models explicit, typed, and auditable.
+- Keep transitions deterministic and prevent illegal state changes.
+- Keep role-based UI/status mapping clear without leaking internal complexity.
+- Keep implementation modular and maintainable for lean operations.
 
 --------------------------------------------------------------------
 SECTION 14 — SESSION EXECUTION RULES AT A HIGH LEVEL (WITHOUT FINAL VIDEO PROVIDER LOCK-IN)
@@ -1287,40 +1490,52 @@ This includes:
 For onboarding completeness, booking eligibility, and visibility states, deterministic rules are better than vague heuristics.
 
 --------------------------------------------------------------------
-SECTION 18 — AI CODER MASTER INSTRUCTIONS FOR THIS PART
+SECTION 18 - AI-AGNOSTIC BUILD INSTRUCTIONS FOR THIS PART
 --------------------------------------------------------------------
 
-18.1 Codex master instructions
-- Build the professional onboarding as a real multi-step stateful flow.
-- Model services as structured entities with service_type and service-specific config.
-- Build the booking engine around service-aware slot generation.
-- Implement slot holds, request booking proposals, and a controlled booking state machine.
-- Persist booking snapshots so future profile edits never mutate historical bookings.
-- Build recurring scheduling objects separately from bookings and separately from billing.
-- Use UTC as canonical datetime storage and convert only in the view layer.
-- Implement role-aware timeline rendering for user/professional/admin.
+18.1 Unified instructions for any AI coding/design/system assistant
+- Build onboarding as a real multi-step stateful flow with persisted progress.
+- Keep profile publication eligibility separate from first-booking eligibility.
+- Model services as structured entities with explicit service_type and settings.
+- Build service-aware availability and slot generation logic.
+- Use explicit, typed state transitions for booking and request-booking flows.
+- Use UTC canonical storage and convert at view boundaries only.
+- Keep role-aware timeline rendering for user/professional/admin.
+- Keep route guards explicit by account type (user, professional, admin, public).
 
-18.2 Claude master instructions
-- Write copy that reduces friction in onboarding without hiding rules.
-- Explain acceptance modes clearly to professionals.
-- Explain pending acceptance clearly to users.
-- Make recurring scheduling rules human-readable.
-- Make timezone warnings and confirmation language unambiguous.
-- Draft admin review messages that are firm but not hostile.
+18.2 Session abstraction directives
+- Build a provider-agnostic session abstraction first.
+- Do not hardwire LiveKit event names or Google Meet assumptions into core booking logic.
+- Implement booking/session boundary as clean interfaces.
+- If provider decision remains open, scaffold:
+  - SessionProvider interface
+  - LiveKitProvider implementation stub
+  - GoogleMeetProvider implementation stub
 
-18.3 Cursor master instructions
-- Prioritize component reuse for onboarding steps, booking detail, timeline, and request booking states.
-- Use strong type definitions for booking statuses, acceptance modes, service types, and recurring slot states.
-- Keep state transitions centralized.
-- Build a predictable slot-generation layer rather than scattering booking math across components.
+18.3 AI-assisted delivery checklist
+Use the AI assistant to support:
+- system design
+- state machine refinement
+- webhook modeling
+- edge-case mapping
+- sequence diagrams
+- session lifecycle diagrams
+- no-show evidence matrix
+- waiting-room logic
+- provider abstraction design
+- failure handling flows
+- provider adapter implementation
+- session UI states
+- event handling
+- booking/session timeline rendering
+- permission and error states
+- admin/support flow generation
+- alternative provider decision trees
 
-18.4 Antigravity master instructions
-- Keep the whole experience premium, calm, and structured.
-- Avoid UI clutter while preserving operational clarity.
-- Make pending/confirmed/recurrent states emotionally obvious.
-- Ensure the product feels controlled, not improvised.
-
---------------------------------------------------------------------
+18.4 Delivery quality requirements
+- prioritize auditability and traceability over UI complexity
+- keep implementation modular and maintainable
+- prefer cost-effective, low-complexity solutions suitable for lean teams
 SECTION 19 — WHAT IS DEFERRED TO LATER PARTS
 --------------------------------------------------------------------
 
@@ -1353,3 +1568,4 @@ These are not MVP instructions. They are later-phase ideas that should be recons
 - additional automation around suggested alternatives when slots are unavailable
 
 End of Part 2.
+

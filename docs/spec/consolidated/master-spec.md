@@ -26,50 +26,108 @@ This file consolidates the five source parts into one implementation-facing stru
 - Signup incentive: 3-month free period.
 - Annual option with discount exists.
 
-4. Booking lifecycle
+4. Auth and role model
+- User/customer and professional are separate account types.
+- Professional login cannot be used as user account.
+- User login cannot be used as professional account.
+- Dual-role shared account is out of scope for now.
+- Route guards are explicit by role (public, user, professional, admin).
+
+5. Screen architecture and navigation baseline
+- Logged-out nav baseline:
+  - Home
+  - Buscar profissionais
+  - Registrar como profissional
+  - Sobre nos
+  - Ajuda
+  - Login
+  - Language switcher
+  - Currency switcher
+- Public search/profile is available without login.
+- Booking action from public flow triggers sign-up/login modal (primary: sign up, secondary: login).
+- Logged-in user primary nav:
+  - Buscar profissionais
+  - Bookings
+  - Favorites
+  - Profile
+- Logged-in professional primary nav:
+  - Dashboard
+  - Calendario
+  - Financeiro
+  - Configuracoes
+- Admin primary nav:
+  - Dashboard
+  - Operations
+  - Professionals
+  - Users
+  - Finance
+  - Catalog
+  - Growth
+  - Settings
+
+6. Booking lifecycle
 - Booking flow is service-first then slot selection then review then payment.
 - Acceptance modes: auto-accept or manual-accept.
 - Manual acceptance has explicit deadline behavior.
 - Slot hold before payment is required.
 - Internal booking state machine is explicit; UI statuses are simplified.
 
-5. Availability and timezone
+7. Availability and timezone
 - UTC is canonical persistence format.
 - User/professional/admin views must be timezone-safe and explicit.
 - Minimum notice, booking window, and buffer rules are first-class constraints.
 
-6. Recurring behavior
+8. Recurring behavior
 - Recurring is supported with fixed default schedule templates.
 - Future-cycle slot reservation and release rules are explicit.
 - Pause/change windows are deadline-based.
 
-7. Payments and revenue
+9. Payments and revenue
 - Muuday charges the customer and pays professionals later.
 - Preferred Stripe model: Separate Charges and Transfers.
 - Payout eligibility is delayed after session completion and dispute window.
 - Weekly payout cadence and payout minimum threshold are defined.
 - Refunds return to original payment method in MVP.
 
-8. Professional billing
+10. Professional billing
 - Professional subscription billing exists after free period.
 - Billing failure has grace window and booking-block consequences.
 
-9. Trust, moderation, and admin operations
+11. Trust, moderation, and admin operations
 - First go-live requires light admin review.
 - Reviews are one-per-user-professional with edit/update model.
 - Professional response to review is controlled.
 - Structured case queue is required for disputes and exceptions.
 - Auditability is mandatory for sensitive admin actions.
 
-10. Notifications and inbox
+12. Notifications and inbox
 - Email + in-app notifications are MVP baseline.
 - In-app inbox is separate from chat.
 - Reminder cadence is defined and timezone-safe.
 
-11. Compliance and sensitive categories
+13. Compliance and sensitive categories
 - Sensitive categories require stricter wording and disclaimer controls.
 - Profile + checkout disclaimer layers are required.
 - Verification and claim governance must be category-aware.
+
+14. Professional onboarding and gating matrix
+- Stage model is explicit and execution-ready:
+  - account creation
+  - identity positioning
+  - profile
+  - services
+  - availability
+  - plan/billing setup
+  - payout onboarding
+  - submit for review
+  - go live
+- Field-level requirements are explicitly classified by gate:
+  - account creation
+  - valid profile draft
+  - review submission
+  - go live
+  - first booking acceptance
+  - payout eligibility
 
 ## Provisional decisions (intentionally open)
 

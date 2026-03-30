@@ -1091,7 +1091,7 @@ SECTION 20 — TOOLING PREFERENCES FOR IMPLEMENTATION
 Any tool suggested later should be:
 - cost-effective
 - low to moderate complexity
-- friendly to Claude / Codex / Cursor / Antigravity workflows
+- friendly to AI-assisted coding/design/system workflows
 - realistically operable by a lean founding team
 
 20.2 Recommended implementation posture
@@ -1105,48 +1105,31 @@ For admin and notifications, prefer:
 Avoid needing a heavy separate support platform for core product operations before the internal objects exist in your main system.
 
 ================================================================================
-SECTION 21 — INSTRUCTIONS FOR AI CODER
+SECTION 21 - AI-AGNOSTIC BUILD INSTRUCTIONS
 ================================================================================
 
-21.1 Shared instruction set for all AI coding tools
-When implementing this part, the AI coder must:
+21.1 Unified instruction set for any AI coding/design/system assistant
+When implementing this part, the AI assistant must:
 - preserve the distinction between user-facing simplicity and internal operational detail
-- model cases, reviews, notifications, flags, and timelines as first-class entities where appropriate
-- use explicit enums for statuses
+- model cases, reviews, notifications, inbox items, flags, and timelines as first-class entities
+- use explicit enums and typed state transitions for every operational status
 - use audit logging for all sensitive admin actions
 - keep role-based access extremely clear
 - implement event-driven triggers for notifications and timeline generation
 - avoid hiding core rules in UI-only logic
+- keep implementation modular and maintainable for a lean operating team
 
-21.2 Codex instructions
-Ask Codex to:
-- generate database schemas for case, review, notification, inbox, and audit log tables
-- define enums for case status, review status, notification types, and flags
-- generate service-layer functions for dispute opening, review creation/update, and notification dispatch
-- generate admin query endpoints with filters for cases and publication review
-- write tests for state transitions and permissions
+21.2 Mandatory outputs
+- schema definitions for case/review/notification/inbox/audit entities
+- service-layer flows for dispute handling, moderation, and notification dispatch
+- admin queue/query endpoints with strong filtering
+- permission and route-guard rules by role
+- tests for state transitions, permissions, and audit logs
 
-21.3 Claude instructions
-Ask Claude to:
-- reason about state machines and moderation logic
-- propose robust edge-case handling for disputes and reviews
-- refine policy copy and admin logic flows
-- review PRD consistency across booking, payments, and admin operations
-- identify ambiguity between user-visible and internal states
-
-21.4 Cursor instructions
-Ask Cursor to:
-- implement the UI flows for inbox, timelines, review response, admin case list, and moderation actions
-- help refactor duplicated notification logic into reusable hooks/services
-- improve type safety around enums and status mapping
-- speed up editing across multiple related files
-
-21.5 Antigravity instructions
-Ask Antigravity to:
-- help generate structured implementation plans
-- break operational flows into tasks and subtasks
-- analyze architecture and dependency risks
-- critique whether the admin/trust system is too heavy or too light for MVP
+21.3 Quality criteria
+- prioritize traceability and operational recoverability over UI novelty
+- keep cost-effective tooling choices and avoid early overengineering
+- make every major admin action reversible or explicitly auditable
 
 ================================================================================
 SECTION 22 — WHAT IS STILL DEFERRED AFTER THIS PART

@@ -37,6 +37,8 @@ Tasks:
 3. Finalize search ranking/filter behavior per spec.
 4. Align profile cards and trust signals with source-of-truth rules.
 5. Ensure reviews model constraints and response flow are enforced.
+6. Implement public/user/professional/admin route guards and navigation baselines.
+7. Ensure public search is accessible without login and booking intent triggers sign-up/login modal.
 
 Exit criteria:
 1. Taxonomy CRUD/governance path is operational.
@@ -56,11 +58,15 @@ Tasks:
 3. Implement request-booking lifecycle and proposal expiration handling.
 4. Finalize slot hold, expiration, and recovery rules.
 5. Enforce recurring scheduling rules with deadline-based operations.
+6. Implement full professional onboarding stages with explicit field gate matrix.
+7. Implement role-specific screen architecture (user/professional/admin) with nested secondary areas.
 
 Exit criteria:
 1. Full onboarding states are observable and auditable.
 2. Booking state machine transitions are explicit and tested.
 3. Request-booking and recurring scheduling rules pass integration tests.
+4. Onboarding gate matrix is enforced and traceable in backend checks.
+5. Role-based route guards and navigation rules are validated in e2e paths.
 
 ## Wave 3 - Payments, billing, payouts, and revenue engine
 

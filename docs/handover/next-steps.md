@@ -31,6 +31,8 @@ Dependencies:
 2. Finish request-booking lifecycle, proposal expiration, and conversion flow.
 3. Finalize booking state machine transition map and tests.
 4. Finalize recurring scheduling deadlines and reserved-slot release behavior.
+5. Enforce onboarding field-gate matrix end-to-end (account, review, go-live, first booking, payout).
+6. Validate role-specific navigation and route guards for public/user/professional/admin paths.
 
 Dependencies:
 - Wave 1 critical path complete.

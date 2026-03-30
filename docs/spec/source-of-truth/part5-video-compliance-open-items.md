@@ -370,42 +370,45 @@ Support a temporary no-video mode even if the product target is LiveKit. This gi
 Implementation note 4:
 Provider selection should not block delivery of search, booking, payments, payouts, notifications, reviews, and admin operations.
 
-2.14 AI CODER INSTRUCTIONS - VIDEO / SESSION EXECUTION
+2.14 AI-AGNOSTIC BUILD INSTRUCTIONS - VIDEO / SESSION EXECUTION
 
-FOR CODEX
+Use one unified instruction set for any AI coding/design/system assistant.
+
+Core implementation directives:
 - Build a provider-agnostic session abstraction first.
-- Do not hardwire LiveKit event names into core booking logic.
+- Do not hardwire LiveKit event names or Google Meet assumptions into core booking logic.
 - Implement the booking/session boundary as clean interfaces.
-- Prioritize state logging and auditability over fancy UI behavior.
-- If provider decision remains open, scaffold both:
-  - SessionProvider interface,
-  - LiveKitProvider implementation stub,
-  - GoogleMeetProvider implementation stub.
+- Prioritize state logging, traceability, timeline events, and auditability over fancy UI behavior.
+- If the final session provider decision remains open, scaffold:
+  - SessionProvider interface
+  - LiveKitProvider implementation stub
+  - GoogleMeetProvider implementation stub
 
-FOR CLAUDE
-- Use Claude for system design, state machine refinement, webhook modeling, edge-case mapping, and sequence diagrams.
-- Ask Claude to produce:
-  - session lifecycle diagrams,
-  - no-show evidence matrix,
-  - waiting-room logic,
-  - provider abstraction design,
-  - failure handling flows.
+Use the AI assistant for:
+- system design
+- state machine refinement
+- webhook modeling
+- edge-case mapping
+- sequence diagrams
+- session lifecycle diagrams
+- no-show evidence matrix
+- waiting-room logic
+- provider abstraction design
+- failure handling flows
+- provider adapter implementation
+- session UI states
+- event handling
+- component-level work
+- booking/session timeline rendering
+- permission and error states
+- UI flow variants for session join states
+- admin/support flow generation
+- alternative provider decision trees
 
-FOR CURSOR
-- Use Cursor for implementing the provider adapter, session UI states, event handling, and component-level work.
-- Good use cases:
-  - building booking detail session states,
-  - wiring provider join actions,
-  - implementing timeline event rendering,
-  - handling permission and error states.
-
-FOR ANTIGRAVITY
-- Use Antigravity if it is being used more as a product/design or parallel coding assistant for flow generation, UI ideas, or architecture prompting.
-- Best use here:
-  - UI flow variants for session join states,
-  - edge case maps,
-  - alternative provider decision trees,
-  - prompt-driven generation of support/admin flows.
+Quality and architecture rules:
+- Keep implementation modular so the platform can start with Google Meet if needed and later move to LiveKit without rewriting core booking or payments logic.
+- Favor cost-effective, low-complexity, maintainable solutions.
+- Prefer explicit interfaces, typed state transitions, event logs, and admin observability.
 
 2.15 COST-EFFECTIVE TOOLING PREFERENCE FOR THIS LAYER
 Because Muuday wants to stay cost-effective and avoid giant complexity, the recommendation is:
@@ -557,34 +560,31 @@ The platform should store evidence of which legal / disclaimer text was displaye
 Implementation note 4:
 Sensitive-category admin review should be lightweight in the MVP but real. This is not something to fake.
 
-3.13 AI CODER INSTRUCTIONS - COMPLIANCE / DISCLAIMER LAYER
+3.13 AI-AGNOSTIC BUILD INSTRUCTIONS - COMPLIANCE / DISCLAIMER LAYER
 
-FOR CODEX
-- Build disclaimer handling as structured data, not hardcoded strings scattered across UI.
-- Use a model like:
-  - category_risk_profile,
-  - disclaimer_template,
-  - disclaimer_version,
-  - booking_disclaimer_acceptance.
-- Ensure each booking stores the version of disclaimer shown at checkout.
+Use one unified instruction set for any AI coding/design/system assistant.
 
-FOR CLAUDE
-- Use Claude to draft category-specific disclaimer frameworks, admin review checklists, and risk wording variants.
-- Claude is especially useful for:
-  - turning product intent into policy language,
-  - defining prohibited claims,
-  - drafting structured onboarding review rules.
+Mandatory directives:
+- Build disclaimer handling as structured data, not hardcoded UI strings.
+- Model:
+  - category_risk_profile
+  - disclaimer_template
+  - disclaimer_version
+  - booking_disclaimer_acceptance
+- Ensure each booking stores disclaimer version and acceptance snapshot shown at checkout.
+- Keep profile, checkout, terms, and admin moderation language consistent.
 
-FOR CURSOR
-- Use Cursor to implement:
-  - disclaimer rendering components,
-  - category-aware checkout warnings,
-  - admin moderation UIs,
-  - credential upload and review interfaces.
+Use AI-assisted delivery for:
+- policy-language refinement and prohibited-claims mapping
+- state model and moderation workflow design
+- category-aware rendering logic and admin review tools
+- risk wording variants with legal review checkpoints
+- edge-case mapping for sensitive-category publication and booking acceptance
 
-FOR ANTIGRAVITY
-- Use Antigravity for category taxonomy wording experiments, disclaimer variants, and profile language ideation.
-- It can help compare user-friendly copy vs stricter regulatory copy.
+Quality rules:
+- Keep compliance behavior auditable and versioned.
+- Keep category controls configurable without code rewrites.
+- Keep implementation maintainable and cost-effective for MVP operations.
 
 =====================================================================
 SECTION 4 - FINAL EXTERNAL VALIDATIONS THAT STILL NEED TO HAPPEN BEFORE ARCHITECTURE FREEZE

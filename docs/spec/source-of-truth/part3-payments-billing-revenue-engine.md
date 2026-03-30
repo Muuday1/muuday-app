@@ -1512,210 +1512,68 @@ It should consider:
 
 
 ==================================================
-SECTION 21 — AI CODER INSTRUCTIONS
+SECTION 21 - AI-AGNOSTIC BUILD INSTRUCTIONS
 ==================================================
 
-These instructions are intentionally written per tool/persona so they can be pasted or adapted later.
+These instructions apply to any coding/design/system AI assistant.
 
---------------------------------------
-21.1 Instructions for Codex
---------------------------------------
+21.1 Core build goals
+- Keep checkout simple for users and keep internal financial state explicit.
+- Keep booking state, payment state, and payout state separate.
+- Make every money movement explainable through ledger-backed records.
+- Keep admin override and recovery flows first-class.
+- Prioritize auditability and replay-safe behavior over convenience shortcuts.
 
-Use this when asking Codex to implement Muuday’s payments/revenue layer.
+21.2 Mandatory implementation rules
+- Build internal financial ledger models; do not rely only on processor object state.
+- Implement idempotent webhook handlers and replay-safe money actions.
+- Snapshot fee/policy/service context at booking and payment time.
+- Keep recurring booking cycles separate from professional subscription billing.
+- Keep refund, dispute, payout, and adjustment flows explicitly traceable in timeline and admin views.
+- Do not expose direct refund controls to professionals in MVP.
 
-You are implementing the Muuday payments, billing, and payout system.
+21.3 Required service boundaries
+- charge_booking
+- handle_manual_accept_outcome
+- create_refund
+- calculate_payout_eligibility
+- run_payout_batch
+- apply_reversal_or_offset
+- bill_professional_subscription
+- handle_failed_professional_billing
+- resolve_dispute_financial_outcome
 
-Core business rules:
-- Muuday charges the customer.
-- Muuday later repays the professional.
-- Use Stripe as payment processor.
-- Preferred marketplace funds flow is Separate Charges and Transfers.
-- Professional payout becomes eligible 48 hours after a completed session unless blocked by a dispute.
-- Payout runs weekly with a minimum threshold of BRL 100 equivalent; if below threshold, rollover.
-- Customer sees only final total, not internal fee breakdown.
-- Customer fee logic is 8% plus processing cost, included in displayed final total.
-- Refunds go to original payment method.
-- Professional monthly subscription starts after a 3-month free period.
-- Professional subscription failure:
-  - 7-day grace period
-  - existing bookings continue
-  - new bookings blocked after grace
-  - unresolved failure pauses/inactivates profile
-- Both customer and professional can open dispute within 48h after the end of the session.
-- One-off, one-off-plus-recurring, and monthly subscription-style services are all supported.
-- Monthly customer plans are paid upfront by the user, but professional payout is still released weekly based on session completion and the 48h protection window.
-
-Implementation requirements:
-1. Build internal financial ledger models, do not rely only on Stripe object state.
-2. Separate booking state from payment state from payout state.
-3. Create idempotent webhook handlers for Stripe events.
-4. Create financial snapshot tables for booking-time policies and pricing context.
-5. Implement admin-safe refund and adjustment services with audit trail.
-6. Implement recurring cycle logic separately from professional subscription billing.
-7. Provide clean service interfaces for:
-   - charge booking
-   - accept/decline manual booking
-   - create refund
-   - calculate payout eligibility
-   - run payout batch
-   - apply reversal/offset
-   - bill professional subscription
-   - handle failed professional billing
-8. Build role-aware projections for:
-   - customer financial history
-   - professional earnings/payout history
-   - admin financial console
-9. Do not expose direct refund controls to professionals in MVP.
-10. Build every monetary action to be replay-safe and idempotent.
-
-Data model guidance:
-- Booking
-- BookingState
-- ChargeRecord
-- BookingFinancialRecord
-- SessionEarningRecord
-- TransferRecord
-- PayoutRecord
-- RefundRecord
-- ReversalRecord
-- ProfessionalPlanSubscription
-- ProfessionalDebtLedger
-- DisputeCase
-- PolicySnapshot
-- CurrencyQuote/ConversionSnapshot if used
-
-Output expectations:
-- schema proposal
+21.4 Required outputs from AI-assisted delivery
+- schema proposal and migrations
 - service layer design
 - webhook mapping
-- admin action design
-- API endpoints
-- job/cron queue design
-- test cases for failure/retry scenarios
+- admin action model
+- API/background job contracts
+- unit and integration tests for retry/failure/race conditions
+- role-aware financial projections (user/professional/admin)
 
---------------------------------------
-21.2 Instructions for Claude
---------------------------------------
+21.5 Edge-case focus checklist
+- refund before transfer
+- refund after partial payout
+- dispute before payout
+- manual-accept expiry with automatic refund
+- recurring renewal failure with reserved future slots
+- debt recovery from future payouts
+- professional subscription failure and booking restrictions
+- cross-currency payout threshold handling
 
-Use this when asking Claude to reason about architecture, edge cases, and implementation planning.
-
-Please design the Muuday payments and revenue engine using the following business rules:
-- Muuday is the customer-facing charging platform.
-- Professionals are paid later by Muuday.
-- Stripe is the primary processor.
-- Preferred Connect model: Separate Charges and Transfers.
-- Payout eligibility only after session completion + 48h dispute buffer.
-- Weekly payouts, minimum BRL 100 equivalent.
-- Customer sees only final localized total.
-- Internal fee model: 8% plus processing cost.
-- Refunds return to original method.
-- Professional plans have 3 free months then monthly or annual billing.
-- Monthly/recurring customer plans pay upfront but provider payout is still session-based and delayed.
-- Build explicit handling for manual-accept bookings, request booking, recurring renewal failure, no-show, and disputes.
-
-Tasks:
-1. Produce backend architecture recommendations.
-2. Identify all hidden edge cases and race conditions.
-3. Suggest database schema and state machine design.
-4. Propose webhook/event handling strategy.
-5. Propose admin tooling required for operations.
-6. Suggest how to keep finance, booking, and recurring cycles consistent.
-7. Suggest tests for:
-   - refund before transfer
-   - refund after partial payout
-   - dispute before payout
-   - manual-accept expiry with refund
-   - recurring renewal failure with reserved future slots
-   - professional debt recovery from future payouts
-   - professional subscription failure blocking new bookings
-8. Prioritize simplicity and cost-effectiveness over enterprise complexity, unless absolutely necessary.
-
---------------------------------------
-21.3 Instructions for Cursor
---------------------------------------
-
-Use this when you want Cursor to implement directly inside a codebase.
-
-Implement Muuday’s marketplace payments module with the following priorities:
-1. Correct money state
-2. Clear boundaries between booking state and money state
-3. Strong admin override ability
-4. Stripe webhook robustness
-5. Readable code and auditability
-
-Required modules:
-- stripe_webhooks
-- booking_charge_service
-- booking_refund_service
-- payout_eligibility_service
-- payout_batch_service
-- professional_subscription_service
-- recurring_cycle_billing_service
-- professional_debt_recovery_service
-- admin_finance_actions
-- financial_history_queries
-- dispute_financial_resolution_service
-
-Rules to implement:
-- Customer charged at booking
-- Manual-accept bookings refunded if not accepted within 48h
-- Payout eligibility 48h after session completion
-- Weekly payout with BRL 100 threshold
-- Refund to original method only
-- 7-day grace on professional plan billing failure
-- New bookings blocked after grace if unpaid
-- Session-based payout even when monthly customer cycle was collected upfront
-
-Deliver:
-- migrations
-- service layer
-- typed domain models
-- background jobs
-- API endpoints
-- admin endpoints
-- unit tests
-- integration tests
-- sample fixtures
-
---------------------------------------
-21.4 Instructions for Antigravity
---------------------------------------
-
-Use this when you want a product-aware build plan, not just raw code.
-
-Build Muuday’s payments and marketplace finance layer in a way that preserves product flexibility and operator control.
-
-Goals:
-- simple customer checkout
-- strong post-payment control for Muuday
-- delayed payout to professionals
-- robust recurring model
-- minimal financial surprises
-- strong admin recovery tools
-- low ongoing ops burden
-
-Non-goals:
-- fully autonomous financial automation with no admin review paths
-- wallet complexity in MVP
-- gift cards in MVP
-- deep tax automation in MVP
-- off-session surprise charging in MVP
-
-Design principles:
-- keep UI simple but internal state rich
-- preserve evidence for disputes
-- make all money flows explainable
-- prefer one good ledger over many ad hoc calculations
-- prefer cost-effective tools and hosted primitives where reasonable
-- avoid introducing unnecessary infrastructure complexity
-
+21.6 Delivery quality requirements
+- use typed domain models and explicit enums
+- keep policies centralized and configurable
+- keep operational complexity low and cost-effective
+- avoid overengineered enterprise infrastructure in MVP
 
 ==================================================
 SECTION 22 — TOOLING PREFERENCES (COST-EFFECTIVE + AI-CODER FRIENDLY)
 ==================================================
 
 The user explicitly requested that recommended tools should:
-- connect well with Claude / Codex / Cursor / Antigravity
+- support AI-assisted coding/design/system workflows
 - be cost-effective
 - avoid giant complexity
 

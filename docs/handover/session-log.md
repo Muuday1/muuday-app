@@ -87,6 +87,11 @@ Use this for meaningful checkpoints only.
 - Added wave-based stack adoption mapping in roadmap and human-actions tool matrix.
 - Added handover rule to review/update stack phase tracking at every Wave close.
 
+### Entry 18
+- Reworked source-of-truth spec files to remove tool-specific AI instruction splits and replace with unified AI-agnostic build instructions.
+- Added explicit role split, route guards, and screen inventory baseline for public/user/professional/admin.
+- Added detailed professional onboarding stages and gate matrix requirements for implementation readiness.
+
 ### Entry 18 (2026-03-29)
 - Applied all production schema migrations (001-006) to live Supabase (`jbbnbbrroifghrshplsq`).
 - Fixed `availability_exceptions` table schema mismatch (recreated with correct `date_local` column).

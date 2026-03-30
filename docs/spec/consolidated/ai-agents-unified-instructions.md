@@ -1,89 +1,99 @@
-# Muuday Unified AI Agent Execution Protocol
+# Muuday Unified AI-Agnostic Build Instructions
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
-This protocol replaces split vendor-specific instruction sets during implementation planning and delivery.
+This protocol replaces any tool-specific instruction split.  
+It is designed for any coding/design/system AI assistant.
 
 ## Mission
 
-Implement Muuday according to the 5-part source-of-truth specification with strict consistency across product, operations, and architecture.
+Implement Muuday according to `docs/spec/source-of-truth/part1..part5` with strict consistency across product rules, architecture, and operations.
 
 ## Global rules
 
-1. Treat `docs/spec/source-of-truth/part1..part5` as canonical baseline.
-2. Never drop a decision from the source files.
-3. If implementation deviates, document the delta explicitly with rationale.
-4. Keep behavior deterministic in core booking/payments/admin systems.
-5. Prioritize reliability, auditability, and operational clarity over premature complexity.
+1. Treat source-of-truth files as canonical.
+2. Never keep conflicting statements; update upstream rules when new decisions are made.
+3. Keep behavior deterministic in booking, payment, payout, case, review, and session lifecycles.
+4. Prioritize auditability, traceability, and operational clarity over UI novelty.
+5. Prefer cost-effective, low-complexity, maintainable solutions.
 
-## Required execution behavior
+## Required implementation posture
 
 1. Work domain-first, not file-first.
-2. For every task, define:
-- product rule being implemented
+2. For each change, define:
+- product rule implemented
+- state machine impact
+- permission/role impact
 - data model impact
-- state transition impact
-- role-specific UX impact
-- test impact
-- operations impact
+- timeline/audit impact
+- failure/recovery behavior
 3. Keep role boundaries explicit:
-- user
+- public visitor
+- user/customer
 - professional
 - admin
 - system automation
-4. Use explicit enums/state machines for:
-- booking states
-- payment states
-- payout states
-- case statuses
-- review statuses
 
-## Money and risk safety rules
+## Session and provider abstraction rules
 
-1. Separate booking lifecycle from finance lifecycle.
-2. Make all financial actions idempotent and replay-safe.
-3. Keep an internal ledger model as business source-of-truth.
-4. Never expose admin-only finance actions to professional/user roles.
-5. Snapshot policy and pricing context at booking/payment time.
+1. Build provider-agnostic session abstraction first.
+2. Do not hardwire LiveKit event names or Google Meet assumptions into core booking logic.
+3. Implement booking/session boundary as clean interfaces.
+4. If final provider remains open, scaffold:
+- `SessionProvider` interface
+- `LiveKitProvider` implementation stub
+- `GoogleMeetProvider` implementation stub
+5. Keep core booking/payments logic independent from provider adapters.
 
-## Booking and scheduling safety rules
+## What to use AI assistance for
 
-1. UTC is canonical persisted time.
-2. Always render with explicit timezone context by role.
-3. Enforce slot hold before checkout completion.
-4. Reject illegal state transitions.
-5. Keep recurring schedule logic separate from billing logic.
+Use the AI assistant to help with:
 
-## Trust and moderation safety rules
+1. system design
+2. state machine refinement
+3. webhook modeling
+4. edge-case mapping
+5. sequence diagrams
+6. session lifecycle diagrams
+7. no-show evidence matrix
+8. waiting-room logic
+9. provider abstraction design
+10. failure handling flows
+11. provider adapter implementation
+12. session UI states
+13. event handling
+14. component-level work
+15. booking/session timeline rendering
+16. permission and error states
+17. UI flow variants for session join states
+18. admin/support flow generation
+19. alternative provider decision trees
 
-1. First publication requires review.
-2. Sensitive category claims must be compliance-safe.
-3. Review model is one-per-user-professional relationship.
-4. Case queue is mandatory for disputes and operational exceptions.
-5. All sensitive admin actions require audit log events.
+## Safety and quality rules
 
-## Notification and analytics rules
+1. Use explicit typed states and transition guards.
+2. Keep state logs and timeline events first-class.
+3. Keep admin observability for every critical action.
+4. Make financial actions idempotent and replay-safe.
+5. Keep policy snapshots at booking/payment time.
 
-1. Notifications must be event-driven.
-2. In-app inbox is separate from chat.
-3. Event names and properties must be centralized and consistent.
-4. Track required MVP funnel, booking, revenue, and trust events.
+## Delivery standard per task
 
-## Delivery standard for each implementation task
-
-1. Update code.
+1. Update implementation.
 2. Update tests.
-3. Update docs in:
+3. Update docs:
 - project status
 - relevant journey docs
-- handover current-state and next-steps
-4. Document what remains provisional or blocked.
+- handover current-state/next-steps/session-log
+- spec docs when rules are changed
+4. Mark unresolved decisions as `decision pending / validate later`.
 
-## Definition of done for AI delivery
+## Definition of done
 
-A task is only done when:
-1. Product behavior matches source-of-truth rule.
-2. State transitions and permissions are safe.
-3. Tests cover critical outcomes and edge paths.
-4. Operational ownership is clear.
-5. Documentation reflects the new reality.
+A task is done only when:
+
+1. product behavior matches source-of-truth rules
+2. state transitions and permissions are safe
+3. test coverage includes critical and edge paths
+4. observability/auditability is clear
+5. docs reflect reality

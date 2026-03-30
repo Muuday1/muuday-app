@@ -5,6 +5,8 @@ Coverage baseline: Part 1..Part 5
 
 | Journey Domain | Source Part(s) | Build Wave | Current Status |
 | --- | --- | --- | --- |
+| Auth role split and route guards | Part 2 | Wave 1-2 | Planned |
+| Screen inventory by role (public/user/professional/admin) | Part 2, Part 4 | Wave 1-2 | Planned |
 | User onboarding | Part 2 | Wave 1-2 | Partial |
 | Professional onboarding and first go-live review | Part 1, Part 2, Part 4 | Wave 1-2 | Partial |
 | Search and discovery | Part 1 | Wave 1 | Partial |

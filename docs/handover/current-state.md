@@ -56,3 +56,4 @@ Wave-driven delivery is now mandatory:
 3. Updated roadmap, status, architecture, journeys, and handover docs to execution-wave model.
 4. Added `docs/human-actions/` with consolidation verification, human decision backlog, and concrete open-tool options.
 5. Added explicit retention/deletion policy by data type in `docs/engineering/data-governance-and-lifecycle.md`.
+6. Updated source-of-truth specs with AI-agnostic build instructions, role-split screen inventory, explicit route-guard rules, and detailed professional onboarding matrix.

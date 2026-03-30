@@ -38,6 +38,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. Unified spec docs created (`master-spec`, `execution-plan`, `open-validations`, unified AI protocol).
 3. Existing docs and journey mapping updated to execution-wave model.
 4. Explicit data governance and lifecycle policy documented with retention/deletion matrix by data type.
+5. Source-of-truth updated for AI-agnostic build instructions, role-based screen inventory, route guards, and professional onboarding gate matrix.
 5. Production schema parity achieved — all 6 migrations applied to live Supabase (2026-03-29).
 6. Sentry fully configured with DSN + withSentryConfig wrapper in next.config.js.
 7. Playwright e2e auto-loads .env.local — 2/3 critical booking tests pass deterministically.

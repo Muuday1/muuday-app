@@ -21,6 +21,22 @@ Give Muuday operators structured control over publication review, moderation, di
 4. Financial exception actions (refund, adjustment, payout holds).
 5. Notification/audit oversight and timeline integrity.
 
+## Admin navigation baseline
+
+Top-level admin destinations:
+
+1. Dashboard
+2. Operations
+3. Professionals
+4. Users
+5. Finance
+6. Catalog
+7. Growth
+8. Settings
+
+Design rule:
+- keep top-level nav focused and place detailed operational pages inside these domains.
+
 ## Required system characteristics
 
 1. Case entity with owner, priority, status, evidence, and linked entities.
