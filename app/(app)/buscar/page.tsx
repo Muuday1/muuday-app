@@ -53,6 +53,22 @@ function parsePage(value?: string) {
   return Math.floor(parsed)
 }
 
+const TIER_BOOST: Record<string, number> = { premium: 0.15, professional: 0.08, basic: 0 }
+
+function getRelevanceScore(pro: any): number {
+  const rating = Number(pro.rating || 0)
+  const reviews = Number(pro.total_reviews || 0)
+  const bookings = Number(pro.total_bookings || 0)
+  const tier = (pro.tier as string) || 'basic'
+  const tierBoost = TIER_BOOST[tier] || 0
+
+  // Weighted relevance: rating quality + volume signals + tier boost
+  const ratingScore = rating / 5 // 0-1
+  const volumeScore = Math.min(1, (reviews + bookings) / 50) // 0-1, caps at 50
+  const base = ratingScore * 0.5 + volumeScore * 0.35
+  return base + tierBoost
+}
+
 function getSortedProfessionals(list: any[], sort: string) {
   const cloned = [...list]
 
@@ -72,7 +88,8 @@ function getSortedProfessionals(list: any[], sort: string) {
     return cloned.sort((a, b) => Number(b.total_bookings || 0) - Number(a.total_bookings || 0))
   }
 
-  return cloned
+  // Default: relevance (quality + volume + tier boost)
+  return cloned.sort((a, b) => getRelevanceScore(b) - getRelevanceScore(a))
 }
 
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
@@ -547,6 +564,15 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           </span>
                         </div>
 
+                        {professional.tier && professional.tier !== 'basic' && (
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            professional.tier === 'premium'
+                              ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
+                          </span>
+                        )}
                         {(professional.languages || []).length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-3">
                             {(professional.languages || []).slice(0, 3).map((language: string) => (

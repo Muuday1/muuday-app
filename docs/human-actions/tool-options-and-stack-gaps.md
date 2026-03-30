@@ -1,6 +1,6 @@
 # Tool Options and Stack Gaps
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 Purpose:
 1. map open capabilities (currently generic in tech-stack docs) to concrete options,
@@ -22,7 +22,7 @@ Status definitions:
 | Internal ledger implementation | Financial auditability and reconciliation | Wave 3 | Postgres double-entry (custom) | Medici (Node ledger library) | TigerBeetle | MVP: Postgres double-entry in existing DB for lowest complexity and full control. |
 | Compliance disclaimer management | Versioned legal text, acceptance snapshots | Wave 5 | In-app versioned tables | Termly | iubenda | MVP: in-app versioned text and acceptance snapshots; legal tooling can come later. |
 | Tax automation path (phase 2+) | Cross-border tax handling at scale | Post-MVP | Stripe Tax | Quaderno | Avalara | Defer deep automation until corridor + legal model are locked; document triggers for adoption. |
-| Feature flags / controlled rollout | Safer incremental rollout by segment | Wave 1 | PostHog Feature Flags | GrowthBook | Unleash | Use PostHog flags first (already in stack) to avoid extra complexity. |
+| Feature flags / controlled rollout | Safer incremental rollout by segment | Wave 1 | PostHog Feature Flags | GrowthBook | Unleash | **Decision: PostHog flags (2026-03-30).** Already in stack. Will be wired up in Wave 2 for controlled rollouts. No new tool needed. |
 | Search scaling (future) | Better relevance and performance at scale | Post-MVP trigger-based | Postgres FTS + trigram | Typesense | Algolia | Keep Postgres-first until clear scale/relevance pressure appears. |
 
 ## B) What may be missing in tech stack (consider now)
@@ -31,6 +31,7 @@ Status definitions:
 - Current state: cron + app flows.
 - Risk: retries/idempotent async processes become fragmented.
 - Suggestion: choose one job orchestrator (Inngest or Trigger.dev).
+- **Decision needed before Wave 2 exit.** Recommendation: Inngest (better Next.js/Vercel integration, free tier, zero infra). Awaiting owner confirmation.
 
 2. Secrets governance for team scale
 - Current state: envs across local/Vercel/GitHub.

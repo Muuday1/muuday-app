@@ -11,18 +11,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const profile = user
+    ? (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
+    : null
 
   const isProfissional = profile?.role === 'profissional'
   const isAdmin = profile?.role === 'admin'
+  const isLoggedIn = !!user
 
   const navItems = [
     { href: '/buscar', icon: 'Search', label: 'Buscar' },
-    { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
-    { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
-    { href: '/perfil', icon: 'User', label: 'Perfil' },
+    { href: '/favoritos', icon: 'Heart', label: 'Favoritos', hide: !isLoggedIn },
+    { href: '/agenda', icon: 'Calendar', label: 'Agenda', hide: !isLoggedIn },
+    { href: '/perfil', icon: 'User', label: 'Perfil', hide: !isLoggedIn },
     { href: '/admin', icon: 'Shield', label: 'Admin', hide: !isAdmin },
   ].filter(item => !item.hide)
 
@@ -41,24 +42,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SidebarNav navItems={navItems} />
 
         <div className="p-4 border-t border-neutral-100">
-          <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm flex-shrink-0">
-              {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-neutral-900 truncate">{profile?.full_name}</p>
-              <p className="text-xs text-neutral-400 capitalize">{profile?.role}</p>
-            </div>
-          </div>
-          <form action="/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
+          {isLoggedIn ? (
+            <>
+              <div className="flex items-center gap-3 px-3 py-2 mb-1">
+                <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm flex-shrink-0">
+                  {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-neutral-900 truncate">{profile?.full_name}</p>
+                  <p className="text-xs text-neutral-400 capitalize">{profile?.role}</p>
+                </div>
+              </div>
+              <form action="/auth/signout" method="POST">
+                <button
+                  type="submit"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold transition-all"
             >
-              <LogOut className="w-4 h-4" />
-              Sair
-            </button>
-          </form>
+              Entrar
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -71,26 +83,37 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="font-display font-bold text-lg text-neutral-900 tracking-tight">muuday</span>
           </Link>
           <div className="flex items-center gap-3">
-            <form action="/auth/signout" method="POST">
-              <button
-                type="submit"
-                aria-label="Sair da conta"
-                className="h-8 px-2.5 rounded-full border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
+            {isLoggedIn ? (
+              <>
+                <form action="/auth/signout" method="POST">
+                  <button
+                    type="submit"
+                    aria-label="Sair da conta"
+                    className="h-8 px-2.5 rounded-full border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-xs font-medium">Sair</span>
+                  </button>
+                </form>
+                <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
+                  {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="h-8 px-3 rounded-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold transition-all flex items-center"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="text-xs font-medium">Sair</span>
-              </button>
-            </form>
-            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
-              {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
-            </div>
+                Entrar
+              </Link>
+            )}
           </div>
         </div>
 
         {children}
       </main>
 
-      <MobileNav navItems={navItems} isProfissional={isProfissional} />
+      {isLoggedIn && <MobileNav navItems={navItems} isProfissional={isProfissional} />}
     </div>
   )
 }

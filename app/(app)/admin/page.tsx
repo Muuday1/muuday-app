@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES } from '@/types'
+import Link from 'next/link'
 import {
   Shield,
   CheckCircle,
@@ -19,6 +20,7 @@ import {
   MessageSquare,
   Ban,
   RotateCcw,
+  FolderTree,
 } from 'lucide-react'
 
 type AdminProfessional = {
@@ -298,6 +300,12 @@ export default function AdminPage() {
             <h1 className="font-display font-bold text-2xl text-neutral-900">Painel Administrativo</h1>
             <p className="text-sm text-neutral-500">Gerencie profissionais, avaliações e agendamentos</p>
           </div>
+          <Link
+            href="/admin/taxonomia"
+            className="ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-neutral-200 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-all"
+          >
+            <FolderTree className="w-4 h-4" /> Taxonomia
+          </Link>
         </div>
       </div>
 

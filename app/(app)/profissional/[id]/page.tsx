@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Star, Clock, Globe, MapPin, Calendar, ArrowLeft, MessageCircle } from 'lucide-react'
-import { CATEGORIES } from '@/types'
+import { getSearchCategoryLabel, normalizeSearchCategorySlug, getSearchCategoryBySlug } from '@/lib/search-config'
 import { formatCurrency } from '@/lib/utils'
 import { FavoriteButton } from '@/components/FavoriteButton'
 
@@ -19,7 +19,6 @@ export default async function ProfissionalPage({
 }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   // Fetch professional with profile
   const { data: professional } = await supabase
@@ -28,7 +27,7 @@ export default async function ProfissionalPage({
     .eq('id', params.id)
     .single()
 
-  if (!professional || (professional.status !== 'approved' && professional.user_id !== user.id)) {
+  if (!professional || (professional.status !== 'approved' && professional.user_id !== user?.id)) {
     notFound()
   }
 
@@ -49,9 +48,11 @@ export default async function ProfissionalPage({
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const category = CATEGORIES.find(c => c.slug === professional.category)
+  const categorySlug = normalizeSearchCategorySlug(professional.category)
+  const category = getSearchCategoryBySlug(categorySlug)
   const profile = professional.profiles as any
-  const isOwnProfessional = professional.user_id === user.id
+  const isOwnProfessional = user ? professional.user_id === user.id : false
+  const isLoggedIn = !!user
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
@@ -92,6 +93,15 @@ export default async function ProfissionalPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {professional.tier && professional.tier !== 'basic' && (
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                      professional.tier === 'premium'
+                        ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200'
+                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}>
+                      {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
+                    </span>
+                  )}
                   <FavoriteButton professionalId={professional.id} />
                   <div className="flex items-center gap-1.5 bg-accent-50 px-3 py-1.5 rounded-full">
                     <Star className="w-4 h-4 text-accent-500 fill-accent-500" />
@@ -180,6 +190,12 @@ export default async function ProfissionalPage({
                     {review.comment && (
                       <p className="text-sm text-neutral-600 ml-9">{review.comment}</p>
                     )}
+                    {review.professional_response && (
+                      <div className="ml-9 mt-2 pl-3 border-l-2 border-brand-200">
+                        <p className="text-xs font-medium text-brand-700 mb-0.5">Resposta do profissional</p>
+                        <p className="text-sm text-neutral-600">{review.professional_response}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -212,7 +228,7 @@ export default async function ProfissionalPage({
               </div>
             ) : (
               <Link
-                href={`/agendar/${professional.id}`}
+                href={isLoggedIn ? `/agendar/${professional.id}` : `/login?redirect=/agendar/${professional.id}`}
                 className="block w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all text-sm text-center"
               >
                 <span className="inline-flex items-center justify-center gap-2">

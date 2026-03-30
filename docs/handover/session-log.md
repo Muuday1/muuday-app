@@ -98,3 +98,36 @@ Use this for meaningful checkpoints only.
 - Migrations applied: role escalation fix, RLS restrict, favorites RLS, schema alignment, production booking foundation (professional_settings, availability_rules, availability_exceptions, slot_locks, payments, booking_sessions, calendar_integrations + full RLS), booking operations and reminders (notifications table + partial refund support).
 - Wave 0 schema parity task: `Done`.
 - Follow-up: validate e2e fixtures against new schema, continue Wave 0 exit criteria.
+
+### Entry 19 (2026-03-30)
+- Upgraded to Supabase Pro (spend cap enabled, PITR available but disabled) and Vercel Pro.
+- Sentry env vars deployed to Vercel.
+- Confirmed Supabase billing: Pro with spend cap = no surprise charges; daily backups included; PITR ~$100/mth extra, not needed yet.
+- Created migration 007 (RLS cleanup: remove duplicate favorites policies and stale payments policy). Not yet applied.
+- Vercel MCP requires re-authentication (user action needed).
+- Follow-up: apply migration 007, configure Supabase custom SMTP with Resend (`noreply@muuday.com`), verify Vercel spending limits, verify Checkly checks.
+
+### Entry 20 (2026-03-30) — Wave 0 closed, Wave 1 started
+- **Wave 0 formally closed.** All exit criteria met.
+- Vercel MCP reconnected and verified (project READY, team confirmed).
+- Applied migration 008 (Wave 1 taxonomy + tiers schema): specialties table, professional_specialties junction, tier column on professionals, category_id FK, tag_suggestions table, RLS for all taxonomy tables.
+- Applied migration 009 (taxonomy seed): consolidated 8 categories to new slugs, seeded 23 subcategories and 59 specialties matching search-config, backfilled category_id on existing professionals.
+- Updated middleware for role-based route guards: public search (/buscar, /profissional), professional-only routes, admin-only routes, redirect param on login.
+- Created `lib/tier-config.ts` with tier entitlement limits (specialties, tags, services, booking window per tier).
+- Updated `types/index.ts` CATEGORIES to match new taxonomy slugs.
+- Updated `lib/search-config.ts` legacy slug mapping with English DB slugs.
+- Updated `lib/actions/professional.ts` to accept new + legacy category slugs.
+- Build passes clean (0 errors, 0 warnings).
+- Follow-up: admin taxonomy CRUD UI, search ranking refinement, review constraints, profile card trust signals.
+
+### Entry 21 (2026-03-30) — Wave 1 core delivery
+- Made search (`/buscar`) and professional profiles (`/profissional/[id]`) publicly accessible without login. Layout handles unauthenticated users with "Entrar" button.
+- Login page now supports `?redirect=` param for post-login navigation (booking intent → login → booking).
+- Created admin taxonomy CRUD page at `/admin/taxonomia`: tree view of categories → subcategories → specialties with inline edit, add, activate/deactivate. Tag suggestions moderation tab.
+- Added tier-aware relevance ranking to search: weighted score from rating (50%), volume signals (35%), tier boost (15% premium, 8% professional).
+- Added tier badges on search cards and professional profiles (Premium/Profissional visual indicators).
+- Applied migration 010: review uniqueness constraint (one review per user-professional pair), professional_response + professional_response_at columns, updated_at for edit lifecycle.
+- Professional profile page: shows professional response on reviews, uses new taxonomy category labels, tier badges.
+- Updated professional profile page to use search-config category labels instead of hardcoded CATEGORIES.
+- Build: 0 errors, 0 warnings.
+- Wave 1 exit criteria status: taxonomy CRUD ✅, tier limits config ✅, search ranking ✅, review constraints ✅, route guards ✅, public search ✅.

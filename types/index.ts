@@ -76,13 +76,14 @@ export type Category = {
   description: string
 }
 
+/** @deprecated Use SEARCH_CATEGORIES from lib/search-config.ts or fetch from DB categories table */
 export const CATEGORIES: Category[] = [
-  { id: '1', name: 'Psicologia', slug: 'psicologia', icon: '🧠', description: 'Terapia e saúde mental' },
-  { id: '2', name: 'Direito', slug: 'direito', icon: '⚖️', description: 'Consultoria jurídica' },
-  { id: '3', name: 'Contabilidade', slug: 'contabilidade', icon: '📊', description: 'Finanças e impostos' },
-  { id: '4', name: 'Nutrição', slug: 'nutricao', icon: '🥗', description: 'Saúde e alimentação' },
-  { id: '5', name: 'Fisioterapia', slug: 'fisioterapia', icon: '💪', description: 'Reabilitação física' },
-  { id: '6', name: 'Educação', slug: 'educacao', icon: '📚', description: 'Aulas e tutoria' },
-  { id: '7', name: 'Coaching', slug: 'coaching', icon: '🎯', description: 'Desenvolvimento pessoal' },
-  { id: '8', name: 'Medicina', slug: 'medicina', icon: '🏥', description: 'Consultas médicas' },
+  { id: '1', name: 'Saúde Mental e Bem-estar Emocional', slug: 'saude-mental-bem-estar', icon: '🧠', description: 'Psicologia, terapia e saúde emocional' },
+  { id: '2', name: 'Saúde, Corpo e Movimento', slug: 'saude-corpo-movimento', icon: '💪', description: 'Cuidado físico, nutricional e bem-estar geral' },
+  { id: '3', name: 'Educação e Desenvolvimento', slug: 'educacao-desenvolvimento', icon: '📚', description: 'Aulas, reforço, mentoria acadêmica' },
+  { id: '4', name: 'Contabilidade, Impostos e Finanças', slug: 'contabilidade-financas', icon: '📊', description: 'Planejamento financeiro e impostos' },
+  { id: '5', name: 'Direito e Suporte Jurídico', slug: 'direito-suporte-juridico', icon: '⚖️', description: 'Consultoria jurídica' },
+  { id: '6', name: 'Carreira, Negócios e Desenvolvimento Profissional', slug: 'carreira-negocios-desenvolvimento', icon: '🚀', description: 'Evolução de carreira e consultoria' },
+  { id: '7', name: 'Tradução e Suporte Documental', slug: 'traducao-suporte-documental', icon: '🌐', description: 'Tradução, revisão e documentação' },
+  { id: '8', name: 'Outro', slug: 'outro', icon: '🧩', description: 'Outros serviços especializados' },
 ]

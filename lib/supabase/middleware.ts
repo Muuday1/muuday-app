@@ -23,17 +23,59 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect app routes
-  const protectedPaths = ['/dashboard', '/buscar', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/admin', '/completar-perfil', '/profissional', '/agendar']
-  const isProtected = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
+  const pathname = request.nextUrl.pathname
+
+  // Public routes accessible without login (search/discovery)
+  const publicAppPaths = ['/buscar', '/profissional']
+  const isPublicApp = publicAppPaths.some(path => pathname.startsWith(path))
+
+  // Auth-required routes
+  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/agendar', '/editar-perfil-profissional', '/configuracoes-agendamento']
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
+
+  // Admin-only routes
+  const isAdminRoute = pathname.startsWith('/admin')
+
+  // Professional-only routes
+  const professionalPaths = ['/agenda', '/editar-perfil-profissional', '/configuracoes-agendamento']
+  const isProfessionalRoute = professionalPaths.some(path => pathname.startsWith(path))
+
   if (!user && isProtected) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(url)
+  }
+
+  if (!user && isAdminRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
+  // Role-based guards (admin and professional routes)
+  if (user && (isAdminRoute || isProfessionalRoute)) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (isAdminRoute && profile?.role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/buscar'
+      return NextResponse.redirect(url)
+    }
+
+    if (isProfessionalRoute && profile?.role !== 'profissional' && profile?.role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/buscar'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Redirect logged-in users away from auth pages
-  if (user && ['/login', '/cadastro'].includes(request.nextUrl.pathname)) {
+  if (user && ['/login', '/cadastro'].includes(pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/buscar'
     return NextResponse.redirect(url)

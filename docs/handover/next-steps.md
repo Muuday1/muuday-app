@@ -1,29 +1,41 @@
 ﻿# Next Steps
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 Execute in order. Build one batch at a time.
 
 ## Priority 0 - Foundation lock (must finish first)
 
-1. Validate and close production schema parity for booking foundation tables and APIs.
-2. Re-run critical e2e booking tests and require deterministic pass/fail behavior.
-3. Record parity status in:
+### Done
+1. ~~Validate and close production schema parity for booking foundation tables and APIs.~~ Done (migrations 001-006 applied).
+2. ~~Re-run critical e2e booking tests and require deterministic pass/fail behavior.~~ Done (2/3 pass deterministically).
+3. ~~Sentry DSN configured and env vars deployed to Vercel.~~ Done.
+4. ~~Upgraded to Supabase Pro (spend cap enabled) and Vercel Pro.~~ Done.
+
+### Remaining
+1. Apply migration 007 (RLS cleanup — remove duplicate favorites and stale payments policies). SQL ready in `db/sql/migrations/007-rls-cleanup.sql`.
+2. Configure Supabase custom SMTP with Resend for auth emails (`noreply@muuday.com`).
+3. Re-authenticate Vercel MCP in Claude Settings → MCP Servers.
+4. Verify Vercel spending limits via dashboard.
+5. Verify Checkly checks are active in production.
+6. Record final parity status in:
 - `docs/project/project-status.md`
 - `docs/handover/current-state.md`
 
 Dependencies:
-- DB migration and API exposure parity.
+- Migration 007: user runs SQL in Supabase SQL Editor.
+- SMTP: user configures in Supabase dashboard (Auth → SMTP Settings).
+- Vercel MCP: user re-authenticates in Claude Settings.
 
 ## Priority 1 - Wave 1 delivery batch
 
-1. Finalize taxonomy governance surfaces (category/subcategory/specialty/tag moderation).
-2. Finalize tier entitlement enforcement (limits and feature gating).
-3. Align search relevance/filter/card behavior with Part 1 rules.
-4. Validate review/trust/favorites behavior against Part 1 constraints.
-
-Dependencies:
-- Priority 0 completed.
+### Done
+1. ~~Finalize taxonomy governance surfaces (category/subcategory/specialty/tag moderation).~~ Done — admin CRUD at `/admin/taxonomia`.
+2. ~~Finalize tier entitlement enforcement (limits and feature gating).~~ Done — `lib/tier-config.ts`, tier column, badges.
+3. ~~Align search relevance/filter/card behavior with Part 1 rules.~~ Done — tier-weighted ranking, public search.
+4. ~~Validate review/trust/favorites behavior against Part 1 constraints.~~ Done — uniqueness, professional response, edit lifecycle.
+5. ~~Route guards for public/user/professional/admin paths.~~ Done — middleware updated.
+6. ~~Public search accessible without login, booking intent triggers login.~~ Done.
 
 ## Priority 2 - Wave 2 delivery batch
 

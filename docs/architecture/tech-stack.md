@@ -1,6 +1,6 @@
 ﻿# Tech Stack
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 Status legend:
 - `Done`
@@ -19,9 +19,9 @@ Wave legend:
 | --- | --- | --- | --- | --- |
 | Next.js 14 + React 18 | Web app runtime | Done | Pre-Wave | Major framework/LTS change or sustained perf bottlenecks |
 | Tailwind CSS | UI styling | Done | Pre-Wave | Design system complexity exceeds utility-first maintainability |
-| Supabase Auth + Postgres | Core auth/data | Done | Pre-Wave | Sustained DB scaling/security requirements beyond current plan |
+| Supabase Auth + Postgres | Core auth/data | Done (Pro plan) | Pre-Wave | Sustained DB scaling/security requirements beyond current plan |
 | Supabase RLS | Access control | Done | Pre-Wave | New role model or policy complexity requires refactor |
-| Vercel | Deploy/runtime | Done | Pre-Wave | Region/performance/compliance needs exceed current hosting setup |
+| Vercel | Deploy/runtime | Done (Pro plan) | Pre-Wave | Region/performance/compliance needs exceed current hosting setup |
 | GitHub Actions | CI and cron | Done/In progress | Pre-Wave / Wave 0 | Pipeline time/cost instability or release reliability issues |
 | Playwright | Critical e2e tests | In progress | Wave 0 | Flaky critical paths or expanded journey test coverage needs |
 | Zod | Input validation | In progress | Wave 0 | New API/server-action surfaces without schema parity |
@@ -49,6 +49,13 @@ Wave legend:
 | Final session provider lock | LiveKit (preferred embedded) vs Google Meet (fallback link-based) | Under evaluation | Before Wave 5 start gate | Launch timeline/capacity changes or reliability test outcomes |
 | Stripe corridor architecture details | UK platform to Brazil payout route confirmation | Under evaluation | Before Wave 3 start gate | Stripe/legal feedback affecting payout model |
 | Deep tax automation | Post-MVP expansion | Under evaluation | Post-MVP | New jurisdictions/regulatory complexity beyond light model |
+
+## Plan and billing status
+
+| Service | Plan | Spend cap | PITR | Notes |
+| --- | --- | --- | --- | --- |
+| Supabase | Pro | Enabled (no surprise charges) | Disabled (available ~$100/mth extra, not needed pre-launch) | Daily backups included with Pro |
+| Vercel | Pro | Default limits apply | N/A | Pending: confirm spending limits via dashboard |
 
 ## Stack guardrails
 

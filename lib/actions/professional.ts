@@ -6,6 +6,10 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { z } from 'zod'
 
 const VALID_CATEGORIES = [
+  'saude-mental-bem-estar', 'saude-corpo-movimento', 'educacao-desenvolvimento',
+  'contabilidade-financas', 'direito-suporte-juridico', 'carreira-negocios-desenvolvimento',
+  'traducao-suporte-documental', 'outro',
+  // Legacy slugs (backward compatibility)
   'psicologia', 'direito', 'contabilidade', 'nutricao',
   'fisioterapia', 'educacao', 'coaching', 'medicina',
 ] as const

@@ -1,6 +1,6 @@
 # Human Decision Backlog
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 This list includes decisions and validations that should be owned by a human decision-maker.
 Ordered by execution impact.
@@ -49,6 +49,7 @@ Ordered by execution impact.
 2. Monitoring and on-call ownership
 - Define alert recipients, escalation path, and incident SLA for Checkly/Sentry.
 - Owner: ops.
+- **Deadline: before Wave 2 exit.** Pending: who receives Sentry/Checkly alerts and at what SLA. Once decided, Claude can configure alert destinations.
 
 3. Data retention and privacy policy operationalization
 - Policy baseline already documented in `docs/engineering/data-governance-and-lifecycle.md`.

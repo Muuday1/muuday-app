@@ -157,6 +157,7 @@ export const SEARCH_CATEGORIES: SearchCategoryOption[] = [
 ]
 
 const legacyToSearchCategorySlug: Record<string, string> = {
+  // Portuguese legacy slugs (professionals.category text field)
   psicologia: 'saude-mental-bem-estar',
   nutricao: 'saude-corpo-movimento',
   fisioterapia: 'saude-corpo-movimento',
@@ -165,6 +166,14 @@ const legacyToSearchCategorySlug: Record<string, string> = {
   contabilidade: 'contabilidade-financas',
   direito: 'direito-suporte-juridico',
   coaching: 'carreira-negocios-desenvolvimento',
+  // English legacy slugs (old categories table)
+  psychology: 'saude-mental-bem-estar',
+  wellness: 'saude-corpo-movimento',
+  nutrition: 'saude-corpo-movimento',
+  education: 'educacao-desenvolvimento',
+  accounting: 'contabilidade-financas',
+  law: 'direito-suporte-juridico',
+  other: 'outro',
 }
 
 export const LANGUAGE_OPTIONS = [

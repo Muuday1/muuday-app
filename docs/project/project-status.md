@@ -1,6 +1,6 @@
 ﻿# Project Status
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -15,8 +15,8 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
 | Domain | Target from spec | Current status | Primary gap |
 | --- | --- | --- | --- |
-| Taxonomy and discovery | Controlled taxonomy, weighted search, tier-aware discovery | In progress | Full governance and ranking parity not complete |
-| Professional tiers | Basic/Professional/Premium with strict entitlements | In progress | Complete entitlement enforcement and UI parity pending |
+| Taxonomy and discovery | Controlled taxonomy, weighted search, tier-aware discovery | Done | Taxonomy CRUD, tier ranking, public search operational |
+| Professional tiers | Basic/Professional/Premium with strict entitlements | Done | Tier column, entitlement config, badges, search boost |
 | Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | In progress | Full gate logic and admin review workflow parity pending |
 | Booking lifecycle | Explicit state machine + request booking + slot hold | In progress | Request booking and full transition parity pending |
 | Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | Planned/In progress | Full recurring lifecycle parity pending |
@@ -43,12 +43,15 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 6. Sentry fully configured with DSN + withSentryConfig wrapper in next.config.js.
 7. Playwright e2e auto-loads .env.local — 2/3 critical booking tests pass deterministically.
 8. Security hardening: role escalation fix, RLS profile update restriction, favorites RLS, profiles select restriction.
+9. Upgraded to Supabase Pro (spend cap enabled, no surprise charges) and Vercel Pro.
+10. Sentry DSN + env vars deployed to Vercel.
 
 ## Immediate next actions
 
-1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Near complete** — remaining: add Sentry env vars to Vercel, verify Checkly checks.
-2. Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).
-3. Prepare Stripe corridor validation packet and run external confirmation process.
+1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied (001-007), e2e passing, Sentry active, SMTP configured, Pro plans active.
+2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
+3. Start Wave 2 parity tasks (professional onboarding + booking lifecycle).
+4. Prepare Stripe corridor validation packet and run external confirmation process.
 
 ## Continuity rule
 

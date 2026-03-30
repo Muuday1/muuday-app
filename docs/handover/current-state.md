@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-29 (session 18)
+Last updated: 2026-03-30 (session 19)
 
 ## Canonical baseline status
 
@@ -20,6 +20,16 @@ Last updated: 2026-03-29 (session 18)
 8. Sentry DSN configured and next.config.js wrapped with withSentryConfig.
 9. Playwright e2e tests load env vars from .env.local automatically — 2/3 pass deterministically.
 10. Security fixes applied: role escalation trigger, RLS update policy, favorites RLS, profiles select restriction.
+11. Upgraded to Supabase Pro (spend cap enabled, PITR available but disabled) and Vercel Pro.
+12. Sentry env vars added to Vercel deployment.
+13. Wave 1 taxonomy schema applied: specialties table, professional_specialties junction, tier column, category_id FK, tag_suggestions table (migrations 008-009).
+14. Taxonomy seed data: 8 categories, 23 subcategories, 59 specialties populated in production.
+15. Role-based route guards in middleware (public search, professional routes, admin routes).
+16. Tier entitlement config created (`lib/tier-config.ts`).
+17. Public search: `/buscar` and `/profissional/[id]` accessible without login, with login redirect on booking intent.
+18. Admin taxonomy CRUD at `/admin/taxonomia` with tree view, inline edit, tag moderation.
+19. Tier-aware search ranking (quality + volume + tier boost) and tier badges on cards/profiles.
+20. Review constraints: unique per user-professional, professional response field, edit lifecycle tracking (migration 010).
 
 ## Partially implemented (`In progress`)
 
@@ -42,8 +52,8 @@ Last updated: 2026-03-29 (session 18)
 
 Wave-driven delivery is now mandatory:
 
-1. Wave 0: schema parity + deterministic quality baseline. **Status: near complete — schema done, e2e passing, Sentry active. Remaining: verify Checkly checks, confirm Vercel env vars for Sentry DSN.**
-2. Wave 1: foundations/discovery/tier parity.
+1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-007), e2e passing (2/3), Sentry active, Vercel env vars set, Supabase SMTP configured (Resend), Vercel MCP connected, Pro plans active on both Supabase and Vercel.
+2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
 3. Wave 2: onboarding and booking lifecycle parity.
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
