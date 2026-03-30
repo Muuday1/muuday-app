@@ -98,6 +98,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - `/editar-perfil-profissional`
 - `lib/actions/professional.ts`
 40. Professional settings now expose operational readiness controls (C6/C7 placeholders) and gate visibility in workspace UX.
+41. Journey restoration hotfix after production regression report:
+- role-aware login/auth-page redirects restored (`profissional -> /dashboard`, user/admin -> `/buscar`)
+- admin can execute user journeys while keeping admin panel access
+- professional workspace routes now restricted to professional role only
+- discovery/profile pages now exclude non-professional role records from professional listing
+- `/agenda` now uses profile role for view-mode resolution (no role drift by orphan rows)
 
 ## Immediate next actions
 

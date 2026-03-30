@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-30 (session 26)
+Last updated: 2026-03-30 (session 27)
 
 ## Canonical baseline status
 
@@ -125,6 +125,14 @@ Last updated: 2026-03-30 (session 26)
 - `/editar-perfil-profissional`
 - `lib/actions/professional.ts`.
 56. Professional settings now include Wave 2 operational readiness controls (C6/C7 placeholders) and direct access to onboarding checklist.
+57. Role-routing hotfix delivered after production regression report:
+- login now redirects by role (professional -> `/dashboard`; others -> `/buscar`) when no explicit redirect is provided.
+- middleware now redirects authenticated `/login` and `/cadastro` by role and enforces professional routes for `profissional` only.
+- admin can use user flows (`/agendar`, `/solicitar`, `/favoritos`) while keeping `/admin` protected.
+58. Search and professional profile discovery now filter to true professional profiles only:
+- `/buscar` query uses inner profile join + `profiles.role = profissional`.
+- `/profissional/[id]` now requires linked `profiles.role = profissional`.
+59. Agenda role detection no longer infers professional mode from orphan/legacy rows in `professionals`; it now requires `profiles.role = profissional`.
 
 ## Partially implemented (`In progress`)
 

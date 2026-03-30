@@ -33,8 +33,9 @@ export default async function ProfissionalPage({
   // Fetch professional with profile
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*, profiles(*), first_booking_enabled')
+    .select('*, profiles!inner(*), first_booking_enabled')
     .eq('id', params.id)
+    .eq('profiles.role', 'profissional')
     .single()
 
   if (!professional || (professional.status !== 'approved' && professional.user_id !== user?.id)) {

@@ -56,6 +56,12 @@ Dependencies:
 - copy consistency (`Bookings` vs localized labels)
 - responsive spacing and CTA hierarchy for dashboard/agenda/configuracoes
 - finalize any remaining empty/error state polish for professional workspace
+13. Run production sanity pass after role-routing hotfix:
+- professional account login lands at `/dashboard`
+- admin account login lands at `/buscar` (with `/admin` still available)
+- `/buscar` list excludes non-professional profiles
+- `/agenda` shows user view for admin and professional view only for professional role
+14. Data hygiene cleanup: remove legacy `professionals` row tied to admin test account to avoid analytics/ops noise (optional but recommended).
 
 Dependencies:
 - Wave 1 critical path complete.

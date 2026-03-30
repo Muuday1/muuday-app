@@ -121,17 +121,20 @@ export default async function AgendaPage({
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const isProfessionalRole = profile?.role === 'profissional'
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select(
-      'id, status, tier, bio, category, session_price_brl, session_duration_minutes, first_booking_enabled, first_booking_gate_note',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = isProfessionalRole
+    ? await supabase
+        .from('professionals')
+        .select(
+          'id, status, tier, bio, category, session_price_brl, session_duration_minutes, first_booking_enabled, first_booking_gate_note',
+        )
+        .eq('user_id', user.id)
+        .maybeSingle()
+    : { data: null as any }
 
   const professionalId: string | null = professional?.id ?? null
-  const isProfessional = Boolean(professionalId)
+  const isProfessional = isProfessionalRole && Boolean(professionalId)
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
   const activeView = normalizeView(searchParams?.view, isProfessional)

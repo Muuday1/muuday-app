@@ -174,8 +174,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
   const { data: professionalsRaw } = await supabase
     .from('professionals')
-    .select('*, profiles(*)')
+    .select('*, profiles!inner(*)')
     .eq('status', 'approved')
+    .eq('profiles.role', 'profissional')
     .order('rating', { ascending: false })
     .limit(250)
 

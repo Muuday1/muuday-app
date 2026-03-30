@@ -272,3 +272,23 @@ Use this for meaningful checkpoints only.
   - `npm.cmd run typecheck` ✅
   - `npm.cmd run lint` ✅
   - `npm.cmd run test:state-machines` ✅
+
+### Entry 35 (2026-03-30) — Journey restoration hotfix (role routing and role scope)
+- Fixed login redirect logic to respect role-based default journeys:
+  - `profissional` -> `/dashboard`
+  - `usuario` and `admin` -> `/buscar`
+  - explicit safe `redirect` param still has priority.
+- Fixed middleware auth-page redirect (`/login`, `/cadastro`) to route by role instead of forcing `/buscar`.
+- Tightened route guard semantics:
+  - professional workspace routes now require `profissional` role only.
+  - user journeys (`/agendar`, `/solicitar`, `/favoritos`) now allow `usuario` and `admin`.
+- Updated app shell navigation for admin to support admin+user operation model:
+  - Buscar, Agenda, Favoritos, Perfil, Admin.
+- Restored admin user-settings journey by removing forced redirect from `/configuracoes` to `/admin`.
+- Prevented role-drift records from leaking into discovery journeys:
+  - `/buscar` now filters professionals by joined `profiles.role = profissional`.
+  - `/profissional/[id]` now requires linked `profiles.role = profissional`.
+- Corrected `/agenda` role inference to use `profiles.role` instead of the mere existence of a `professionals` row.
+- Validation run:
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run lint` ✅

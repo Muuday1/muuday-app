@@ -41,6 +41,21 @@ export async function updateSession(request: NextRequest) {
   const isProfessionalRoute = professionalPaths.some(path => pathname.startsWith(path))
   const userOnlyPaths = ['/agendar', '/solicitar', '/favoritos']
   const isUserOnlyRoute = userOnlyPaths.some(path => pathname.startsWith(path))
+  let cachedRole: string | null = null
+  let didLoadRole = false
+
+  async function getProfileRole() {
+    if (didLoadRole) return cachedRole
+    didLoadRole = true
+    if (!user) return null
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    cachedRole = profile?.role || null
+    return cachedRole
+  }
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
@@ -57,35 +72,32 @@ export async function updateSession(request: NextRequest) {
 
   // Role-based guards (admin and professional routes)
   if (user && (isAdminRoute || isProfessionalRoute || isUserOnlyRoute)) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const role = await getProfileRole()
 
-    if (isAdminRoute && profile?.role !== 'admin') {
+    if (isAdminRoute && role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
       return NextResponse.redirect(url)
     }
 
-    if (isProfessionalRoute && profile?.role !== 'profissional' && profile?.role !== 'admin') {
+    if (isProfessionalRoute && role !== 'profissional') {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
       return NextResponse.redirect(url)
     }
 
-    if (isUserOnlyRoute && profile?.role !== 'usuario') {
+    if (isUserOnlyRoute && role !== 'usuario' && role !== 'admin') {
       const url = request.nextUrl.clone()
-      url.pathname = profile?.role === 'admin' ? '/admin' : '/dashboard'
+      url.pathname = role === 'profissional' ? '/dashboard' : '/buscar'
       return NextResponse.redirect(url)
     }
   }
 
   // Redirect logged-in users away from auth pages
   if (user && ['/login', '/cadastro'].includes(pathname)) {
+    const role = await getProfileRole()
     const url = request.nextUrl.clone()
-    url.pathname = '/buscar'
+    url.pathname = role === 'profissional' ? '/dashboard' : '/buscar'
     return NextResponse.redirect(url)
   }
 

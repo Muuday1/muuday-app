@@ -165,11 +165,6 @@ export default function ConfiguracoesPage() {
         setNotifications({ ...DEFAULT_NOTIFICATIONS, ...profile.notification_preferences })
       }
 
-      if (profile.role === 'admin') {
-        window.location.href = '/admin'
-        return
-      }
-
       if (profile.role === 'profissional') {
         const { data: professional } = await supabase
           .from('professionals')

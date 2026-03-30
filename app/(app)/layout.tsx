@@ -23,9 +23,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (!isLoggedIn) return []
     if (isAdmin) {
       return [
-        { href: '/admin', icon: 'Shield', label: 'Admin' },
+        { href: '/buscar', icon: 'Search', label: 'Buscar' },
         { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
+        { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
         { href: '/perfil', icon: 'User', label: 'Perfil' },
+        { href: '/admin', icon: 'Shield', label: 'Admin' },
       ]
     }
     if (isProfissional) {

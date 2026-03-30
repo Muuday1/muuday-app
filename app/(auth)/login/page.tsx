@@ -8,10 +8,16 @@ import { Loader2 } from 'lucide-react'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 
+function sanitizeRedirectPath(value: string | null) {
+  if (!value) return ''
+  if (!value.startsWith('/') || value.startsWith('//')) return ''
+  return value
+}
+
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || '/buscar'
+  const redirectTo = sanitizeRedirectPath(searchParams.get('redirect'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -35,12 +41,22 @@ function LoginPageContent() {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+
+    let destination = redirectTo || '/buscar'
     if (user) {
       identifyEventUser(user.id, { email: user.email || email })
+      if (!redirectTo) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        destination = profile?.role === 'profissional' ? '/dashboard' : '/buscar'
+      }
     }
     captureEvent('auth_login_succeeded')
 
-    router.push(redirectTo)
+    router.push(destination)
     router.refresh()
   }
 
