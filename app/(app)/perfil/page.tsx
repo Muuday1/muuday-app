@@ -122,15 +122,23 @@ export default async function PerfilPage() {
         <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display font-bold text-lg text-neutral-900">Perfil Profissional</h3>
-            {professional.bio && (
+            <div className="flex items-center gap-2">
               <Link
-                href="/editar-perfil-profissional"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-all"
+                href="/onboarding-profissional"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded-full transition-all"
               >
-                <Pencil className="w-3 h-3" />
-                Editar perfil profissional
+                Checklist C1-C10
               </Link>
-            )}
+              {professional.bio && (
+                <Link
+                  href="/editar-perfil-profissional"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-all"
+                >
+                  <Pencil className="w-3 h-3" />
+                  Editar perfil profissional
+                </Link>
+              )}
+            </div>
           </div>
 
           {professional.bio ? (

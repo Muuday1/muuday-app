@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-30 (session 25)
+Last updated: 2026-03-30 (session 26)
 
 ## Canonical baseline status
 
@@ -84,6 +84,47 @@ Last updated: 2026-03-30 (session 25)
 45. Public booking intent now follows sign-up-first path from professional profile:
 - `/profissional/[id]` CTA routes unauthenticated users to `/cadastro?role=usuario&redirect=...`
 - cadastro now accepts `role` and sanitized `redirect` params
+46. Professional dashboard (`/dashboard`) now delivers action-first workspace blocks:
+- urgent + pending actions
+- upcoming sessions
+- quick actions
+- account health + finance snapshots (Wave 2 scope)
+47. Professional agenda (`/agenda`) now supports control-center views:
+- `overview`, `pending`, `requests`, `settings`
+- context-aware rendering for pending confirmations and request queue
+- booking rules and calendar-health visibility in settings view
+48. Configuracoes split by role:
+- user accounts keep preference settings flow
+- professional accounts now get business-oriented setup hub (profile/services, calendar, booking rules, finance)
+49. Public booking intent on professional profile now uses modal flow:
+- signup is primary
+- login is secondary
+- redirect target is preserved for both actions
+50. Added e2e coverage for professional workspace guard/navigation/surfaces:
+- `tests/e2e/professional-workspace.spec.ts`
+- `.env.local.example` now includes `E2E_PROFESSIONAL_EMAIL` and `E2E_PROFESSIONAL_PASSWORD`
+- latest run: `1 passed, 3 skipped` (skips due missing professional creds)
+51. Added machine-checkable onboarding gate engine:
+- `lib/professional/onboarding-gates.ts` defines C1-C10 stage checks and gate outcomes.
+- `lib/professional/onboarding-state.ts` centralizes snapshot load + evaluation.
+52. First-booking eligibility now uses onboarding gate engine (not only `first_booking_enabled`) in:
+- `lib/actions/booking.ts`
+- `lib/actions/request-booking.ts`
+- `/agendar/[id]` and `/solicitar/[id]` route guards.
+53. Added new professional route `/onboarding-profissional`:
+- stage list
+- gate list
+- C10 requirements matrix
+- submit-for-review action.
+54. Added migration `015-wave2-onboarding-gate-matrix-foundation.sql`:
+- creates `professional_services`
+- adds readiness flags in `professional_settings`
+- backfills baseline service + readiness compatibility.
+55. Profile setup flows now upsert a primary service baseline (C4 structure) on save:
+- `/completar-perfil`
+- `/editar-perfil-profissional`
+- `lib/actions/professional.ts`.
+56. Professional settings now include Wave 2 operational readiness controls (C6/C7 placeholders) and direct access to onboarding checklist.
 
 ## Partially implemented (`In progress`)
 
@@ -110,7 +151,7 @@ Wave-driven delivery is now mandatory:
 
 1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-012), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel, auth smoke flow validated.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
-3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress.** Dual-gate + request-booking foundation delivered; next items are booking transition/test parity, recurring release rules, and onboarding gate completion.
+3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress.** Dual-gate + request-booking foundation + B3 workspace + C10 gate engine delivered; next items are recurring release rules and production activation of migration 015.
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
 6. Wave 5: session provider + compliance freeze.

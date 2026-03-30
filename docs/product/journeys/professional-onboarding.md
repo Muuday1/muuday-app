@@ -1,6 +1,6 @@
 ﻿# User Journey: Professional Onboarding
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Goal
 
@@ -60,19 +60,24 @@ Guide professionals from account creation to trusted go-live, then to first-book
 `In progress`
 
 - Core profile and availability management exists.
-- Full dual-gate operational parity and sensitive-category compliance path is incomplete.
+- Machine-checkable onboarding gate engine exists (`lib/professional/onboarding-gates.ts`).
+- Onboarding checklist route exists (`/onboarding-profissional`) with C1-C10 stage and C10 matrix visibility.
+- First-booking eligibility is enforced via onboarding gate checks in booking/request flows.
+- Full dual-gate operational parity still depends on migration 015 being applied in production.
 
 ## Gaps
 
 1. Full publication-vs-booking eligibility state model parity.
 2. Full structured credential/disclaimer governance for sensitive categories.
 3. Full SLA-backed admin review workflow and case linking.
+4. Stripe-real C6/C7 states (billing/payout/KYC) remain Wave 3 scope.
 
 ## Next steps
 
-1. Implement explicit onboarding progress and gate-state model.
+1. Apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production and validate readiness flags.
 2. Link onboarding checks to admin case/review queue.
 3. Enforce category-aware compliance checks before go-live/first booking where required.
+4. Add onboarding-specific e2e acceptance for checklist + submit-review gate path.
 
 ## Related docs
 

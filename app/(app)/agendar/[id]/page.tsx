@@ -5,6 +5,7 @@ import { redirect, notFound } from 'next/navigation'
 import { CATEGORIES } from '@/types'
 import BookingForm from '@/components/booking/BookingForm'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 
 export default async function AgendarPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -27,23 +28,8 @@ export default async function AgendarPage({ params }: { params: { id: string } }
     redirect(`/profissional/${params.id}?erro=auto-agendamento`)
   }
 
-  const firstBookingRelevantStatuses = [
-    'pending',
-    'pending_confirmation',
-    'confirmed',
-    'completed',
-    'no_show',
-    'rescheduled',
-  ]
-
-  const { count: existingAcceptedBookingsCount } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professional.id)
-    .in('status', firstBookingRelevantStatuses)
-
-  const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
-  if (!hasAcceptedBookings && !professional.first_booking_enabled) {
+  const firstBookingEligibility = await evaluateFirstBookingEligibility(supabase, professional.id)
+  if (!firstBookingEligibility.ok) {
     redirect(`/profissional/${params.id}?erro=primeiro-agendamento-bloqueado`)
   }
 

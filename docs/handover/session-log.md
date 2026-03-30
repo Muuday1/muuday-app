@@ -227,3 +227,48 @@ Use this for meaningful checkpoints only.
 - Updated `/buscar` to support logged-out currency preference via `moeda` query/cookie and carry it through filter/sort/pagination.
 - Updated public professional booking CTAs to sign-up-first path (`/cadastro?role=usuario&redirect=...`).
 - Updated signup flow to accept role preselection and safe redirect handling after account creation.
+
+### Entry 33 (2026-03-30) — Wave 2 B3 professional workspace execution batch
+- Restored and upgraded `/agenda` into professional control-center structure with view modes:
+  - `overview`, `pending`, `requests`, `settings`
+  - context-aware pending/request sections and booking-rule visibility
+  - role-specific alerts integrated in agenda surface
+- Expanded `/dashboard` action-first behavior remains active and connected to workspace-health alerting.
+- Reworked `/configuracoes` into role-aware surface:
+  - users keep preferences flow
+  - professionals get business-oriented setup hub (profile/services, calendar, booking rules, finance) with account health context
+- Implemented source-of-truth unauthenticated booking modal behavior on `/profissional/[id]`:
+  - signup primary
+  - login secondary
+  - redirect preserved for booking intent
+- Added professional workspace e2e suite:
+  - `tests/e2e/professional-workspace.spec.ts`
+  - added env template keys `E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`
+  - run result: 1 passed, 3 skipped (professional creds not configured in local env)
+
+### Entry 34 (2026-03-30) — Wave 2 C onboarding gate-matrix implementation batch
+- Added migration `015-wave2-onboarding-gate-matrix-foundation.sql`:
+  - `professional_services` table (C4 service structure baseline)
+  - `professional_settings` readiness flags for C6/C7 (`billing_card_on_file`, `payout_onboarding_started`, `payout_kyc_completed`)
+  - compatibility backfill for existing professionals.
+- Added centralized onboarding evaluation engine:
+  - `lib/professional/onboarding-gates.ts`
+  - `lib/professional/onboarding-state.ts`
+- Wired first-booking eligibility to onboarding gate checks in:
+  - `lib/actions/booking.ts`
+  - `lib/actions/request-booking.ts`
+  - `/agendar/[id]`
+  - `/solicitar/[id]`
+- Added `/onboarding-profissional` route with:
+  - C1-C10 stage status
+  - gate status cards
+  - C10 matrix rendering
+  - submit-for-review action integration (`lib/actions/professional-onboarding.ts`).
+- Updated professional UX surfaces:
+  - `/configuracoes` now shows onboarding gate visibility + readiness controls
+  - `/perfil` now links directly to onboarding checklist
+  - `/completar-perfil`, `/editar-perfil-profissional`, and `lib/actions/professional.ts` now sync primary service baseline into `professional_services`.
+- Validation run:
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run test:state-machines` ✅

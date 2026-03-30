@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/nextjs'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import {
   isSlotWithinWorkingHours,
   mapLegacyAvailabilityToRules,
@@ -23,15 +24,6 @@ type SessionSlot = {
 }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
-const FIRST_BOOKING_RELEVANT_STATUSES = [
-  'pending',
-  'pending_confirmation',
-  'confirmed',
-  'completed',
-  'no_show',
-  'rescheduled',
-]
-
 function reportBookingError(
   error: unknown,
   context: Record<string, unknown>,
@@ -227,17 +219,11 @@ export async function createBooking(data: {
     return { success: false, error: 'Nao e permitido agendar sessao com seu proprio perfil.' }
   }
 
-  const { count: existingAcceptedBookingsCount } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', bookingInput.professionalId)
-    .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
-
-  const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
-  if (!hasAcceptedBookings && !professional.first_booking_enabled) {
+  const eligibility = await evaluateFirstBookingEligibility(supabase, bookingInput.professionalId)
+  if (!eligibility.ok) {
     return {
       success: false,
-      error: 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.',
+      error: eligibility.message,
     }
   }
 

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import {
   REQUEST_BOOKING_STATUSES,
@@ -23,14 +24,6 @@ type RequestBookingActionResult = { success: true } | { success: false; error: s
 
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 const OFFER_EXPIRATION_HOURS = 24
-const FIRST_BOOKING_RELEVANT_STATUSES = [
-  'pending',
-  'pending_confirmation',
-  'confirmed',
-  'completed',
-  'no_show',
-  'rescheduled',
-]
 const REQUEST_BOOKING_STATUS_SET = new Set<string>(REQUEST_BOOKING_STATUSES)
 
 const createRequestSchema = z.object({
@@ -273,19 +266,8 @@ async function professionalCanReceiveRequestBooking(
     }
   }
 
-  const { count: existingAcceptedBookingsCount } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professional.id)
-    .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
-
-  const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
-  if (!hasAcceptedBookings && !professional.first_booking_enabled) {
-    return {
-      ok: false,
-      error: 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.',
-    }
-  }
+  const eligibility = await evaluateFirstBookingEligibility(supabase, String(professional.id))
+  if (!eligibility.ok) return { ok: false, error: eligibility.message }
 
   return { ok: true }
 }

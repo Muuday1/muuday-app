@@ -9,6 +9,48 @@ import { Loader2, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 const LANGUAGE_OPTIONS = ['Português', 'English', 'Español', 'Français', 'Deutsch', 'Italiano']
 const DURATION_OPTIONS = [30, 45, 50, 60, 90]
 
+async function upsertPrimaryService(
+  professionalId: string,
+  bio: string,
+  category: string,
+  duration: number,
+  priceBrl: number,
+) {
+  const supabase = createClient()
+
+  const { data: existingService, error: findServiceError } = await supabase
+    .from('professional_services')
+    .select('id')
+    .eq('professional_id', professionalId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (findServiceError) return
+
+  const categoryLabel = CATEGORIES.find(c => c.slug === category)?.name || 'servico profissional'
+  const payload = {
+    professional_id: professionalId,
+    name: `Sessao principal (${categoryLabel})`,
+    service_type: 'one_off',
+    description: bio?.trim() || 'Sessao profissional na Muuday',
+    duration_minutes: duration,
+    price_brl: priceBrl,
+    enable_recurring: false,
+    enable_monthly: false,
+    is_active: true,
+    is_draft: false,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (existingService?.id) {
+    await supabase.from('professional_services').update(payload).eq('id', existingService.id)
+    return
+  }
+
+  await supabase.from('professional_services').insert(payload)
+}
+
 export default function CompletarPerfilPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -60,6 +102,7 @@ export default function CompletarPerfilPage() {
     }
 
     let err
+    let professionalId = existing?.id || ''
     if (existing) {
       const { error } = await supabase
         .from('professionals')
@@ -67,9 +110,12 @@ export default function CompletarPerfilPage() {
         .eq('id', existing.id)
       err = error
     } else {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('professionals')
         .insert({ user_id: user.id, ...profileData })
+        .select('id')
+        .single()
+      professionalId = inserted?.id || ''
       err = error
     }
 
@@ -77,6 +123,16 @@ export default function CompletarPerfilPage() {
       setError(err.message)
       setLoading(false)
       return
+    }
+
+    if (professionalId) {
+      await upsertPrimaryService(
+        professionalId,
+        bio,
+        category,
+        duration,
+        parseFloat(priceBrl) || 0,
+      )
     }
 
     router.push('/perfil')

@@ -28,6 +28,46 @@ const professionalSchema = z.object({
   session_duration_minutes: z.coerce.number().int().min(15).max(480),
 })
 
+async function upsertPrimaryService(args: {
+  professionalId: string
+  category: string
+  bio: string
+  durationMinutes: number
+  priceBrl: number
+}) {
+  const supabase = createClient()
+  const { data: existingService, error: serviceError } = await supabase
+    .from('professional_services')
+    .select('id')
+    .eq('professional_id', args.professionalId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (serviceError) return
+
+  const payload = {
+    professional_id: args.professionalId,
+    name: `Sessao principal (${args.category})`,
+    service_type: 'one_off',
+    description: args.bio || 'Sessao profissional na Muuday',
+    duration_minutes: args.durationMinutes,
+    price_brl: args.priceBrl,
+    enable_recurring: false,
+    enable_monthly: false,
+    is_active: true,
+    is_draft: false,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (existingService?.id) {
+    await supabase.from('professional_services').update(payload).eq('id', existingService.id)
+    return
+  }
+
+  await supabase.from('professional_services').insert(payload)
+}
+
 export async function createProfessionalProfile(formData: FormData) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -61,6 +101,8 @@ export async function createProfessionalProfile(formData: FormData) {
     .eq('user_id', user.id)
     .single()
 
+  let professionalId = existing?.id || ''
+
   if (existing) {
     // Update existing
     const { error } = await supabase
@@ -81,7 +123,7 @@ export async function createProfessionalProfile(formData: FormData) {
     if (error) return { error: error.message }
   } else {
     // Create new
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('professionals')
       .insert({
         user_id: user.id,
@@ -94,8 +136,22 @@ export async function createProfessionalProfile(formData: FormData) {
         session_duration_minutes: sessionDurationMinutes,
         status: 'pending_review',
       })
+      .select('id')
+      .single()
+
+    professionalId = inserted?.id || ''
 
     if (error) return { error: error.message }
+  }
+
+  if (professionalId) {
+    await upsertPrimaryService({
+      professionalId,
+      category,
+      bio,
+      durationMinutes: sessionDurationMinutes,
+      priceBrl: sessionPriceBrl,
+    })
   }
 
   redirect('/perfil')

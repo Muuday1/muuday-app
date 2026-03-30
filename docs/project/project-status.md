@@ -76,6 +76,28 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Public header includes language and currency selectors persisted in cookies.
 - Public booking intent now routes to sign-up-first flow (`/cadastro?role=usuario&redirect=...`) from professional profile CTAs.
 - Logged-out search now accepts public currency preference (`moeda` query + cookie) and keeps selection across filter/sort/pagination forms.
+32. B3 Wave 2 professional workspace surfaces expanded:
+- `/dashboard` now renders action-first professional workspace cards, account health alerts, and quick actions.
+- `/agenda` now supports professional control-center views (`overview`, `pending`, `requests`, `settings`) with context-aware sections and booking rule visibility.
+- `/configuracoes` now renders business-oriented professional setup surface (profile/services, calendar, booking rules, finance links) while preserving user preferences for user accounts.
+33. Public booking auth flow now follows source-of-truth modal behavior:
+- unauthenticated profile CTAs open modal
+- primary action is account creation
+- secondary action is login
+- both preserve redirect intent
+34. Added professional workspace e2e suite (`tests/e2e/professional-workspace.spec.ts`) and env template keys for professional credentials.
+35. Added Wave 2 onboarding gate-matrix engine (`lib/professional/onboarding-gates.ts`) with deterministic C1-C10 stage evaluation and explicit gate outputs (review/go-live/first-booking/payout).
+36. Added centralized onboarding state loader (`lib/professional/onboarding-state.ts`) and wired first-booking eligibility checks into booking/request flows (server actions + `/agendar` + `/solicitar`).
+37. Added new professional onboarding checklist route (`/onboarding-profissional`) with stage status, gate status, C10 matrix rendering, and submit-for-review action.
+38. Added migration `015-wave2-onboarding-gate-matrix-foundation.sql`:
+- `professional_services` table (C4 service structure baseline)
+- C6/C7 readiness flags in `professional_settings` (`billing_card_on_file`, `payout_onboarding_started`, `payout_kyc_completed`)
+- legacy-safe backfill for existing professionals.
+39. Professional setup surfaces now sync legacy profile pricing into service structure baseline:
+- `/completar-perfil`
+- `/editar-perfil-profissional`
+- `lib/actions/professional.ts`
+40. Professional settings now expose operational readiness controls (C6/C7 placeholders) and gate visibility in workspace UX.
 
 ## Immediate next actions
 
@@ -83,11 +105,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
 3. Continue Wave 2 parity tasks:
 - recurring deadline + slot-release behavior
-- onboarding gate matrix enforcement end-to-end
+- apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production
+- finalize onboarding gate matrix enforcement end-to-end with migration 015 live
 4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
-4. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
-5. Prepare Stripe corridor validation packet and run external confirmation process.
-6. Implement sign-up/login modal UX for unauthenticated booking intent (currently sign-up-first page flow is live; modal variant still pending from source-of-truth detail).
+5. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
+6. Prepare Stripe corridor validation packet and run external confirmation process.
+7. Run full professional workspace acceptance suite with dedicated professional credentials (`E2E_PROFESSIONAL_EMAIL` / `E2E_PROFESSIONAL_PASSWORD`) to unskip professional e2e checks.
 
 ## Continuity rule
 

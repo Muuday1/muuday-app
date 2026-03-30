@@ -1,13 +1,25 @@
 export const metadata = { title: 'Agenda | Muuday' }
 
 import Link from 'next/link'
-import { Calendar, Clock, Video, ChevronRight, Star, AlertTriangle, MessageCircle } from 'lucide-react'
+import {
+  AlertTriangle,
+  Calendar,
+  CalendarDays,
+  ChevronRight,
+  Clock,
+  Layers,
+  MessageCircle,
+  Settings,
+  Star,
+  Video,
+} from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
+import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
 
 type RequestBookingStatus =
   | 'open'
@@ -17,6 +29,22 @@ type RequestBookingStatus =
   | 'expired'
   | 'cancelled'
   | 'converted'
+
+type AgendaView = 'overview' | 'pending' | 'requests' | 'settings'
+
+function normalizeView(rawView: string | undefined, isProfessional: boolean): AgendaView {
+  if (!isProfessional) return 'overview'
+  const allowed: AgendaView[] = ['overview', 'pending', 'requests', 'settings']
+  return allowed.includes((rawView || '') as AgendaView)
+    ? (rawView as AgendaView)
+    : 'overview'
+}
+
+function viewLinkClass(activeView: AgendaView, currentView: AgendaView) {
+  return activeView === currentView
+    ? 'bg-brand-500 text-white border-brand-500'
+    : 'bg-white text-neutral-600 border-neutral-200 hover:border-brand-300 hover:text-brand-700'
+}
 
 function getConfirmationDeadline(booking: Record<string, any>): Date | null {
   const deadlineRaw = booking?.metadata?.confirmation_deadline_utc
@@ -59,7 +87,33 @@ function getDurationMinutes(startValue: string | null, endValue: string | null) 
   return Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000))
 }
 
-export default async function AgendaPage() {
+function alertClasses(level: 'info' | 'warning' | 'critical') {
+  if (level === 'critical') {
+    return {
+      wrapper: 'border-red-200 bg-red-50',
+      title: 'text-red-800',
+      description: 'text-red-700',
+    }
+  }
+  if (level === 'warning') {
+    return {
+      wrapper: 'border-amber-200 bg-amber-50',
+      title: 'text-amber-800',
+      description: 'text-amber-700',
+    }
+  }
+  return {
+    wrapper: 'border-blue-200 bg-blue-50',
+    title: 'text-blue-800',
+    description: 'text-blue-700',
+  }
+}
+
+export default async function AgendaPage({
+  searchParams,
+}: {
+  searchParams?: { view?: string; booking?: string }
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -70,7 +124,9 @@ export default async function AgendaPage() {
 
   const { data: professional } = await supabase
     .from('professionals')
-    .select('id')
+    .select(
+      'id, status, tier, bio, category, session_price_brl, session_duration_minutes, first_booking_enabled, first_booking_gate_note',
+    )
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -78,6 +134,7 @@ export default async function AgendaPage() {
   const isProfessional = Boolean(professionalId)
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
+  const activeView = normalizeView(searchParams?.view, isProfessional)
 
   if (isProfessional && professionalId) {
     await supabase
@@ -153,6 +210,44 @@ export default async function AgendaPage() {
     ? await requestBookingsQuery.order('created_at', { ascending: false }).limit(30)
     : { data: [] as any[] }
 
+  let professionalSettings: Record<string, any> | null = null
+  let activeAvailabilityCount = 0
+  let calendarIntegrationConnected = false
+  let acceptedBookingsCount = 0
+
+  if (professionalId) {
+    const { data: settings } = await supabase
+      .from('professional_settings')
+      .select(
+        'timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring, buffer_minutes, session_duration_minutes',
+      )
+      .eq('professional_id', professionalId)
+      .maybeSingle()
+
+    const { count: availabilityCount } = await supabase
+      .from('availability')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('is_active', true)
+
+    const { data: calendarIntegration } = await supabase
+      .from('calendar_integrations')
+      .select('id, sync_enabled')
+      .eq('professional_id', professionalId)
+      .maybeSingle()
+
+    const { count: acceptedCount } = await supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .in('status', ['pending', 'pending_confirmation', 'confirmed', 'completed', 'no_show', 'rescheduled'])
+
+    professionalSettings = settings as Record<string, any> | null
+    activeAvailabilityCount = availabilityCount || 0
+    calendarIntegrationConnected = Boolean(calendarIntegration?.sync_enabled)
+    acceptedBookingsCount = acceptedCount || 0
+  }
+
   const upcoming = upcomingBookings || []
   const past = pastBookings || []
   const requestList = (requestBookings || []) as Array<Record<string, any>>
@@ -182,16 +277,166 @@ export default async function AgendaPage() {
     ;(existingReviews || []).forEach((review: any) => reviewedBookingIds.add(review.booking_id))
   }
 
+  const professionalAlerts =
+    isProfessional && professional
+      ? buildProfessionalWorkspaceAlerts({
+          professional,
+          settings: professionalSettings,
+          pendingConfirmations: pendingConfirmations.length,
+          openRequests: activeRequests.length,
+          hasCalendarIntegration: calendarIntegrationConnected,
+          hasActiveAvailability: activeAvailabilityCount > 0,
+          hasAcceptedBookings: acceptedBookingsCount > 0,
+        })
+      : []
+
+  const shouldShowRequests = !isProfessional || ['overview', 'requests'].includes(activeView)
+  const shouldShowUpcoming = !isProfessional || ['overview', 'pending'].includes(activeView)
+  const shouldShowHistory = !isProfessional || ['overview', 'pending', 'requests'].includes(activeView)
+
+  const upcomingVisible =
+    isProfessional && activeView === 'pending' ? pendingConfirmations : upcoming
+
   return (
     <div className="mx-auto max-w-5xl p-6 md:p-8">
       <div className="mb-8">
         <h1 className="mb-1 text-3xl font-bold text-neutral-900 font-display">Agenda</h1>
         <p className="text-neutral-500">
-          {isProfessional ? 'Gerencie suas sessoes com clientes' : 'Suas sessoes agendadas'}
+          {isProfessional ? 'Control center das suas sessoes e solicitacoes.' : 'Suas sessoes agendadas'}
         </p>
       </div>
 
-      <div className="mb-8">
+      {isProfessional && (
+        <section className="mb-6">
+          <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="professional-agenda-view-switcher">
+            <Link href="/agenda?view=overview" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'overview')}`}>
+              Visao geral
+            </Link>
+            <Link href="/agenda?view=pending" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'pending')}`}>
+              Pendencias
+            </Link>
+            <Link href="/agenda?view=requests" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'requests')}`}>
+              Requests
+            </Link>
+            <Link href="/agenda?view=settings" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'settings')}`}>
+              Regras e calendario
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-neutral-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Aguardando confirmacao</p>
+              <p className="mt-1 text-2xl font-bold text-neutral-900">{pendingConfirmations.length}</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Solicitacoes abertas</p>
+              <p className="mt-1 text-2xl font-bold text-neutral-900">{activeRequests.length}</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Disponibilidade ativa</p>
+              <p className="mt-1 text-2xl font-bold text-neutral-900">{activeAvailabilityCount}</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {professionalAlerts.length > 0 && (
+        <section className="mb-6 space-y-3" data-testid="professional-agenda-alerts">
+          {professionalAlerts.map(alert => {
+            const styles = alertClasses(alert.level)
+            return (
+              <div key={alert.id} className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}>
+                <p className={`text-sm font-semibold ${styles.title}`}>{alert.title}</p>
+                <p className={`mt-1 text-xs ${styles.description}`}>{alert.description}</p>
+                {alert.actionHref && alert.actionLabel && (
+                  <Link
+                    href={alert.actionHref}
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+                  >
+                    {alert.actionLabel}
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+              </div>
+            )
+          })}
+        </section>
+      )}
+
+      {isProfessional && activeView === 'settings' && (
+        <section className="mb-8 rounded-2xl border border-neutral-100 bg-white p-6" data-testid="professional-calendar-control-center">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-neutral-900">
+            <Settings className="h-5 w-5 text-brand-500" />
+            Calendario e regras de booking
+          </h2>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl bg-neutral-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Modo de confirmacao</p>
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                {professionalSettings?.confirmation_mode === 'manual' ? 'Manual (SLA 24h)' : 'Auto-accept'}
+              </p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Antecedencia minima</p>
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                {Number(professionalSettings?.minimum_notice_hours || 24)}h
+              </p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Janela maxima</p>
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                {Number(professionalSettings?.max_booking_window_days || 30)} dias
+              </p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Fuso profissional</p>
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                {String(professionalSettings?.timezone || userTimezone).replaceAll('_', ' ')}
+              </p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Calendario externo</p>
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                {calendarIntegrationConnected ? 'Conectado' : 'Nao conectado'}
+              </p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recorrencia</p>
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                {professionalSettings?.enable_recurring ? 'Ativa' : 'Desativada'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/disponibilidade"
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+            >
+              <CalendarDays className="h-4 w-4" />
+              Ajustar disponibilidade
+            </Link>
+            <Link
+              href="/configuracoes-agendamento"
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+            >
+              <Layers className="h-4 w-4" />
+              Regras avancadas
+            </Link>
+            <Link
+              href="/configuracoes"
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+            >
+              <Settings className="h-4 w-4" />
+              Business setup
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {shouldShowRequests && (
+        <div className="mb-8" data-testid="agenda-requests-section">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
           <MessageCircle className="h-5 w-5 text-brand-500" />
           Solicitacoes de horario
@@ -316,12 +561,14 @@ export default async function AgendaPage() {
             )}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="mb-8">
+      {shouldShowUpcoming && (
+        <div className="mb-8" data-testid="agenda-upcoming-section">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
           <Calendar className="h-5 w-5 text-brand-500" />
-          Proximas sessoes
+          {isProfessional && activeView === 'pending' ? 'Pendencias de confirmacao' : 'Proximas sessoes'}
         </h2>
 
         {isProfessional && pendingConfirmations.length > 0 && (
@@ -340,7 +587,7 @@ export default async function AgendaPage() {
           </div>
         )}
 
-        {upcoming.length === 0 ? (
+        {upcomingVisible.length === 0 ? (
           <div className="rounded-2xl border border-neutral-100 bg-white p-8 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-50">
               <Calendar className="h-7 w-7 text-neutral-300" />
@@ -348,7 +595,7 @@ export default async function AgendaPage() {
             <p className="mb-1 font-semibold text-neutral-900">Nenhuma sessao agendada</p>
             <p className="mb-4 text-sm text-neutral-500">
               {isProfessional
-                ? 'Quando clientes agendarem sessoes, elas aparecerao aqui.'
+                ? 'Nao ha sessoes no contexto selecionado.'
                 : 'Encontre um profissional e agende sua primeira sessao.'}
             </p>
             {!isProfessional && (
@@ -363,7 +610,7 @@ export default async function AgendaPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {upcoming.map((booking: any) => {
+            {upcomingVisible.map((booking: any) => {
               const otherPerson = isProfessional
                 ? booking.profiles?.full_name
                 : booking.professionals?.profiles?.full_name
@@ -453,9 +700,10 @@ export default async function AgendaPage() {
             })}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      {past.length > 0 && (
+      {shouldShowHistory && past.length > 0 && (
         <div>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
             <Clock className="h-5 w-5 text-neutral-400" />

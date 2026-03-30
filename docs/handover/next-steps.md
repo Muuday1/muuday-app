@@ -41,10 +41,21 @@ Dependencies:
 - In progress: timeout cascade for recurring parent -> child/session cancellation is implemented.
 - Remaining: cycle-level reserved-slot release deadlines and pause/change deadline enforcement.
 5. Enforce onboarding field-gate matrix end-to-end (account, review, go-live, first booking, payout).
+- In progress: gate engine + checklist route + first-booking enforcement already delivered in app code.
+- Remaining: apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production and validate real flags.
 6. ~~Validate and tighten role-specific navigation + route guards for public/user/professional/admin paths.~~ Done (role-based nav in app layout + professional route hardening incl. `/financeiro`).
 7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ In progress — first workflow shipped and endpoint healthy; cloud sync attachment confirmation still pending.
 8. Confirm Inngest cloud app has attached sync to latest endpoint path (`/api/inngest`) and clear stale unattached sync history.
-9. Implement source-of-truth unauthenticated booking modal behavior (signup primary + login secondary) on public search/profile booking intent; current implementation is signup-first redirect page.
+9. ~~Implement source-of-truth unauthenticated booking modal behavior (signup primary + login secondary) on public search/profile booking intent.~~ Done on `/profissional/[id]` via `PublicBookingAuthModal`.
+10. Run professional workspace acceptance e2e with dedicated professional credentials to unskip all B3 checks (`E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`).
+11. Add/validate onboarding acceptance tests for `/onboarding-profissional`:
+- stage/gate visibility
+- blocked vs unblocked submit-for-review behavior
+- first-booking gate message alignment with checklist.
+12. Complete Wave 2 B3 UX polish pass (desktop + mobile):
+- copy consistency (`Bookings` vs localized labels)
+- responsive spacing and CTA hierarchy for dashboard/agenda/configuracoes
+- finalize any remaining empty/error state polish for professional workspace
 
 Dependencies:
 - Wave 1 critical path complete.

@@ -30,14 +30,14 @@ export async function updateSession(request: NextRequest) {
   const isPublicApp = publicAppPaths.some(path => pathname.startsWith(path))
 
   // Auth-required routes
-  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/agendar', '/solicitar', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/financeiro']
+  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/onboarding-profissional', '/agendar', '/solicitar', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/financeiro']
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 
   // Admin-only routes
   const isAdminRoute = pathname.startsWith('/admin')
 
   // Professional-only routes
-  const professionalPaths = ['/dashboard', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/completar-perfil', '/financeiro']
+  const professionalPaths = ['/dashboard', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/completar-perfil', '/onboarding-profissional', '/financeiro']
   const isProfessionalRoute = professionalPaths.some(path => pathname.startsWith(path))
   const userOnlyPaths = ['/agendar', '/solicitar', '/favoritos']
   const isUserOnlyRoute = userOnlyPaths.some(path => pathname.startsWith(path))

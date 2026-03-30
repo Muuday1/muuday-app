@@ -8,6 +8,11 @@ Use this as the live checklist of actions that require human access to provider 
 
 1. In Inngest Cloud, confirm the app sync is attached to the current endpoint `https://muuday-app.vercel.app/api/inngest` and clear stale unattached sync records.
 2. Run one manual cloud invocation of `sync-booking-reminders` and confirm success.
+3. Apply migration `db/sql/migrations/015-wave2-onboarding-gate-matrix-foundation.sql` in production Supabase.
+4. Validate professional onboarding checklist route `/onboarding-profissional` with a professional account after migration 015:
+- gate cards render
+- C10 matrix renders
+- C6/C7 readiness toggles save correctly in `professional_settings`.
 
 ## Completed in this cycle
 
@@ -23,7 +28,10 @@ Use this as the live checklist of actions that require human access to provider 
 ## Do before Wave 2 close
 
 1. Confirm final Checkly operational checks are green after latest deploy.
-2. Record completion updates in:
+2. Confirm first-booking gate behavior with a professional that has:
+- gate blocked state (at least one blocker)
+- gate open state (all blockers resolved).
+3. Record completion updates in:
 - `docs/project/project-status.md`
 - `docs/handover/current-state.md`
 - `docs/handover/session-log.md`

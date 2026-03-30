@@ -4,17 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import RequestBookingForm from '@/components/booking/RequestBookingForm'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
-const FIRST_BOOKING_RELEVANT_STATUSES = [
-  'pending',
-  'pending_confirmation',
-  'confirmed',
-  'completed',
-  'no_show',
-  'rescheduled',
-]
-
 export default async function SolicitarHorarioPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
   const {
@@ -42,14 +34,8 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
     redirect(`/profissional/${params.id}?erro=request-booking-indisponivel`)
   }
 
-  const { count: existingAcceptedBookingsCount } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professional.id)
-    .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
-
-  const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
-  if (!hasAcceptedBookings && !professional.first_booking_enabled) {
+  const firstBookingEligibility = await evaluateFirstBookingEligibility(supabase, professional.id)
+  if (!firstBookingEligibility.ok) {
     redirect(`/profissional/${params.id}?erro=primeiro-agendamento-bloqueado`)
   }
 

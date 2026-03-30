@@ -26,6 +26,8 @@ Required env vars for `test:e2e`:
 - `E2E_BASE_URL` (recommended for prod/staging runs)
 - `E2E_USER_EMAIL`
 - `E2E_USER_PASSWORD`
+- `E2E_PROFESSIONAL_EMAIL` (for professional workspace e2e)
+- `E2E_PROFESSIONAL_PASSWORD` (for professional workspace e2e)
 - `E2E_PROFESSIONAL_ID`
 - `E2E_MANUAL_PROFESSIONAL_ID` (optional, only for manual-confirmation smoke test)
 
@@ -51,6 +53,11 @@ Required env vars for `test:e2e`:
 1. Booking safety policy and timezone controls visibility.
 2. Checkout remains blocked until cancellation + timezone confirmations are accepted.
 3. Manual confirmation submit CTA copy (`Pagar ... solicitar`) when professional requires approval.
+4. Professional workspace role split and guard checks:
+- professional-only primary nav visibility
+- agenda control-center views
+- business-oriented settings hub
+- user-role redirect away from professional dashboard
 
 Latest production execution snapshot:
 
