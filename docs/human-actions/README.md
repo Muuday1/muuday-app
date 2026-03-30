@@ -1,6 +1,6 @@
 # Human Actions and Decisions
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 This folder tracks decisions and validations that require human ownership.
 
@@ -18,3 +18,6 @@ Use it to avoid decision gaps between architecture planning and implementation.
 - Open capabilities where only functional intent exists.
 - For each capability: 3 concrete tool options and recommendation notes.
 - Additional tech-stack gaps to consider before launch and scale.
+
+4. `current-operator-checklist.md`
+- Live checklist of provider-dashboard actions requiring human execution.

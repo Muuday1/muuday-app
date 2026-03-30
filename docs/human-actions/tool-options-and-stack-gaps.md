@@ -18,20 +18,20 @@ Status definitions:
 | --- | --- | --- | --- | --- | --- | --- |
 | Session provider runtime | Session reliability, no-show evidence, future in-call controls | Wave 5 | LiveKit (preferred target) | Google Meet (fallback) | Daily (alternative if needed) | Keep provider-agnostic abstraction and run LiveKit vs Google Meet validation from `docs/spec/consolidated/open-validations.md`. |
 | Case queue subsystem | Disputes, no-shows, trust ops, exception handling | Wave 4 | In-app queue (Supabase + Next.js) | Linear (ops triage workflow) | Zendesk | Start with in-app queue as source of truth; mirror high-level ops tasks into Linear. |
-| Notification orchestration | Reliable reminders and event fan-out | Wave 4 | Inngest | Trigger.dev | Upstash QStash | Use Inngest or Trigger.dev for durable event jobs; keep provider adapters for Resend/WhatsApp/SMS. |
+| Notification orchestration | Reliable reminders and event fan-out | Wave 4 | Inngest | Trigger.dev | Upstash QStash | **Decision: Inngest selected (2026-03-30).** Keep provider adapters for Resend/WhatsApp/SMS. |
 | Internal ledger implementation | Financial auditability and reconciliation | Wave 3 | Postgres double-entry (custom) | Medici (Node ledger library) | TigerBeetle | MVP: Postgres double-entry in existing DB for lowest complexity and full control. |
 | Compliance disclaimer management | Versioned legal text, acceptance snapshots | Wave 5 | In-app versioned tables | Termly | iubenda | MVP: in-app versioned text and acceptance snapshots; legal tooling can come later. |
 | Tax automation path (phase 2+) | Cross-border tax handling at scale | Post-MVP | Stripe Tax | Quaderno | Avalara | Defer deep automation until corridor + legal model are locked; document triggers for adoption. |
 | Feature flags / controlled rollout | Safer incremental rollout by segment | Wave 1 | PostHog Feature Flags | GrowthBook | Unleash | **Decision: PostHog flags (2026-03-30).** Already in stack. Will be wired up in Wave 2 for controlled rollouts. No new tool needed. |
-| Search scaling (future) | Better relevance and performance at scale | Post-MVP trigger-based | Postgres FTS + trigram | Typesense | Algolia | Keep Postgres-first until clear scale/relevance pressure appears. |
+| Search scaling (future) | Better relevance and performance at scale | Post-MVP trigger-based | Postgres FTS + trigram | Typesense | Algolia | **Decision: Postgres-first until scale pressure.** |
 
 ## B) What may be missing in tech stack (consider now)
 
 1. Dedicated background job orchestration standard
-- Current state: cron + app flows.
-- Risk: retries/idempotent async processes become fragmented.
-- Suggestion: choose one job orchestrator (Inngest or Trigger.dev).
-- **Decision needed before Wave 2 exit.** Recommendation: Inngest (better Next.js/Vercel integration, free tier, zero infra). Awaiting owner confirmation.
+- Current state: cron + app flows + Inngest account selected.
+- Risk: retries/idempotent async processes become fragmented until first migration path is implemented.
+- Decision: Inngest selected as default orchestrator.
+- Next step: implement first non-critical workflow and keep cron as safety baseline.
 
 2. Secrets governance for team scale
 - Current state: envs across local/Vercel/GitHub.
@@ -55,8 +55,8 @@ Status definitions:
 
 ## C) Minimal low-cost stack additions worth considering
 
-1. Inngest (or Trigger.dev) for durable background workflows.
-2. PostHog feature flags for controlled release.
+1. Inngest for durable background workflows.
+2. PostHog feature flags for controlled release (initial checkout flag wiring implemented).
 3. Lightweight secret governance (1Password Teams or equivalent) before adding more collaborators.
 
 ## D) Decision trigger rules (when to upgrade)

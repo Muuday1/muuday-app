@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES } from '@/types'
 import Link from 'next/link'
@@ -90,7 +90,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // Check admin access
   useEffect(() => {
@@ -107,14 +107,9 @@ export default function AdminPage() {
       setIsAdmin(profile?.role === 'admin')
     }
     checkAdmin()
-  }, [])
+  }, [supabase])
 
-  // Load data when admin confirmed
-  useEffect(() => {
-    if (isAdmin) loadData()
-  }, [isAdmin, activeTab, statusFilter])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true)
 
     // Always load stats
@@ -185,7 +180,12 @@ export default function AdminPage() {
     }
 
     setLoading(false)
-  }
+  }, [activeTab, statusFilter, supabase])
+
+  // Load data when admin confirmed
+  useEffect(() => {
+    if (isAdmin) loadData()
+  }, [isAdmin, loadData])
 
   async function updateProfessionalStatus(id: string, newStatus: string) {
     setActionLoading(id)

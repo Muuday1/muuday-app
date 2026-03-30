@@ -31,6 +31,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 1. ~~Production schema parity for booking foundation tables.~~ **Resolved 2026-03-29**: migrations 001-006 applied.
 2. Stripe corridor validation for UK-platform to Brazil payout path.
 3. Final legal/compliance wording freeze for sensitive categories.
+4. Supabase signup currently failing with `unexpected_failure` until migration `012-auth-signup-trigger-hardening.sql` is applied in production.
 
 ## Recently completed
 
@@ -39,19 +40,27 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 3. Existing docs and journey mapping updated to execution-wave model.
 4. Explicit data governance and lifecycle policy documented with retention/deletion matrix by data type.
 5. Source-of-truth updated for AI-agnostic build instructions, role-based screen inventory, route guards, and professional onboarding gate matrix.
-5. Production schema parity achieved — all 6 migrations applied to live Supabase (2026-03-29).
-6. Sentry fully configured with DSN + withSentryConfig wrapper in next.config.js.
-7. Playwright e2e auto-loads .env.local — 2/3 critical booking tests pass deterministically.
-8. Security hardening: role escalation fix, RLS profile update restriction, favorites RLS, profiles select restriction.
-9. Upgraded to Supabase Pro (spend cap enabled, no surprise charges) and Vercel Pro.
-10. Sentry DSN + env vars deployed to Vercel.
+6. Production schema parity achieved — migrations 001-010 applied to live Supabase.
+7. Sentry SDK baseline hardened: router transition hook + current treeshake config.
+8. Playwright e2e auto-loads .env.local — 2/3 critical booking tests pass deterministically.
+9. Security hardening: role escalation fix, RLS profile update restriction, favorites RLS, profiles select restriction.
+10. Upgraded to Supabase Pro (spend cap enabled, no surprise charges) and Vercel Pro.
+11. Sentry DSN + env vars deployed to Vercel.
+12. Monitoring ownership and incident SLA baseline formalized (Checkly + Sentry email to founder operator).
+13. Added favorites RLS safety-net migration (`011`) to protect against policy drift.
+14. PostHog feature-flag baseline in booking UI implemented (`booking_recurring_enabled`).
+15. Added Supabase Auth smoke validation command (`npm run auth:validate-smoke`) for signup/reset flow checks.
+16. Added migration `012-auth-signup-trigger-hardening.sql` to stabilize auth trigger and canonical role mapping.
 
 ## Immediate next actions
 
-1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied (001-007), e2e passing, Sentry active, SMTP configured, Pro plans active.
+1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
 2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
-3. Start Wave 2 parity tasks (professional onboarding + booking lifecycle).
-4. Prepare Stripe corridor validation packet and run external confirmation process.
+3. Run migration `011-favorites-rls-safety-net.sql` in production and confirm policies.
+4. Run migration `012-auth-signup-trigger-hardening.sql` in production.
+5. Run `npm run auth:validate-smoke -- --email=<operator-email>` and confirm signup/reset emails are delivered.
+6. Start Wave 2 parity tasks (professional onboarding + booking lifecycle).
+7. Prepare Stripe corridor validation packet and run external confirmation process.
 
 ## Continuity rule
 

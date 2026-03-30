@@ -1,16 +1,17 @@
 # PostHog Integration
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Status
 
-- `In progress`: client provider and funnel events implemented.
-- `Pending`: dashboard creation, retention cohorts, and ownership/alerts.
+- `In progress`: client provider, funnel events, and first feature-flag usage implemented.
+- `Pending`: dashboard creation, retention cohorts, and product analytics review cadence.
 
 ## Files
 
 - `components/analytics/PostHogProvider.tsx`
 - `lib/analytics/posthog-client.ts`
+- `lib/analytics/feature-flags.ts`
 - `app/layout.tsx`
 - `app/(auth)/login/page.tsx`
 - `app/(auth)/cadastro/page.tsx`
@@ -40,6 +41,9 @@ Booking funnel:
 Navigation:
 - `$pageview` captured on route changes.
 
+Feature flags:
+- `booking_recurring_enabled` (used in checkout to control recurring package option rollout)
+
 ## Validation checklist
 
 1. Set PostHog env vars in Vercel production.
@@ -55,3 +59,4 @@ Navigation:
 
 - If PostHog env vars are absent, capture helpers are no-op.
 - Keep event names stable to avoid dashboard fragmentation.
+- Feature-flag behavior is fail-open for existing checkout UX (`undefined` flag state keeps current behavior).

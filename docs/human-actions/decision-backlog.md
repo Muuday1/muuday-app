@@ -5,6 +5,16 @@ Last updated: 2026-03-30
 This list includes decisions and validations that should be owned by a human decision-maker.
 Ordered by execution impact.
 
+## Recently resolved
+
+1. Monitoring and on-call ownership
+- Resolved: 2026-03-30
+- Owner: founder operator (`igorpinto.lds@gmail.com`)
+- SLA adopted:
+- Sev 1 ack <= 15m, mitigate <= 2h
+- Sev 2 ack <= 4h, mitigate <= 24h
+- Sev 3 ack next business block, mitigate <= 3 business days
+
 ## Decision deadlines by wave (by when)
 
 | Decision | Owner | Must be decided by when | Why |
@@ -12,7 +22,7 @@ Ordered by execution impact.
 | Stripe corridor and legal entity confirmation | Founder/Ops/Finance/Legal | Before Wave 3 start gate | Blocks payment architecture freeze |
 | Tax/accounting operating model | Finance/Accounting | Before Wave 3 exit gate | Blocks ledger reconciliation and finance ops hardening |
 | Refund/dispute authority matrix | Operations lead | Before Wave 4 start gate | Needed for case queue and safe refund operations |
-| Monitoring and on-call ownership | Ops | Before end of Wave 2 | Needed before broader production exposure |
+| Monitoring and on-call ownership | Ops | Resolved (2026-03-30) | Baseline operational response policy active |
 | Final session provider decision (LiveKit vs Google Meet) | Product + Engineering | Before Wave 5 start gate | Blocks session provider freeze |
 | Legal/compliance text freeze | Legal/Compliance + Founder | Before Wave 5 exit gate | Blocks sensitive-category launch readiness |
 | Data retention/legal-hold final approval | Legal/Compliance + Ops | Before Wave 4 exit gate | Required before lifecycle automation rollout completion |
@@ -49,7 +59,12 @@ Ordered by execution impact.
 2. Monitoring and on-call ownership
 - Define alert recipients, escalation path, and incident SLA for Checkly/Sentry.
 - Owner: ops.
-- **Deadline: before Wave 2 exit.** Pending: who receives Sentry/Checkly alerts and at what SLA. Once decided, Claude can configure alert destinations.
+- Status: **Done (2026-03-30)**. Keep policy updated if ownership changes.
+
+5. Background job orchestrator lock
+- Decision: Inngest account created and selected as preferred orchestrator baseline.
+- Owner: ops/engineering.
+- Next action: wire first non-critical workflow and validate retries/idempotency before broader adoption.
 
 3. Data retention and privacy policy operationalization
 - Policy baseline already documented in `docs/engineering/data-governance-and-lifecycle.md`.

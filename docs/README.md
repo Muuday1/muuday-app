@@ -1,6 +1,6 @@
 ﻿# Muuday Documentation
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 This folder is the source of truth for product context, technical architecture, execution status, operational readiness, and handover continuity.
 
@@ -79,6 +79,7 @@ Important rule:
 - [Integration: Resend](./integrations/resend.md)
 - [Integration: Sentry](./integrations/sentry.md)
 - [Integration: PostHog](./integrations/posthog.md)
+- [Integration: Inngest](./integrations/inngest.md)
 - [Integration: Upstash Rate Limiting](./integrations/upstash-rate-limit.md)
 - [Integration: Checkly Monitoring](./integrations/checkly.md)
 - [Integration: Make and HubSpot](./integrations/make-hubspot.md)

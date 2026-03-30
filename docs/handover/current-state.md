@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-30 (session 19)
+Last updated: 2026-03-30 (session 22)
 
 ## Canonical baseline status
 
@@ -16,7 +16,7 @@ Last updated: 2026-03-30 (session 19)
 4. CI baseline and cron baseline exist.
 5. Monitoring and analytics instrumentation baseline exists (activation parity still pending).
 6. Documentation governance and handover system are active.
-7. Production schema parity for booking foundation (migrations 001-006 applied).
+7. Production schema parity for booking foundation (migrations 001-010 applied).
 8. Sentry DSN configured and next.config.js wrapped with withSentryConfig.
 9. Playwright e2e tests load env vars from .env.local automatically — 2/3 pass deterministically.
 10. Security fixes applied: role escalation trigger, RLS update policy, favorites RLS, profiles select restriction.
@@ -30,6 +30,13 @@ Last updated: 2026-03-30 (session 19)
 18. Admin taxonomy CRUD at `/admin/taxonomia` with tree view, inline edit, tag moderation.
 19. Tier-aware search ranking (quality + volume + tier boost) and tier badges on cards/profiles.
 20. Review constraints: unique per user-professional, professional response field, edit lifecycle tracking (migration 010).
+21. Sentry hardening updates: router transition hook + new `webpack.treeshake.removeDebugLogging` config.
+22. Feature-flag baseline implemented in booking UI using PostHog (`booking_recurring_enabled`).
+23. Added migration 011 (`favorites` RLS safety net) to prevent policy drift after cleanup scripts.
+24. Inngest selected for background-job orchestration; env slots added.
+25. Monitoring ownership and incident SLA baseline formalized in runbook.
+26. Added Supabase Auth smoke validation command (`npm run auth:validate-smoke`) with dry-run and cleanup modes.
+27. Added migration 012 (`auth-signup-trigger-hardening`) to fix signup failure from DB trigger/role drift.
 
 ## Partially implemented (`In progress`)
 
@@ -44,15 +51,18 @@ Last updated: 2026-03-30 (session 19)
 1. Stripe corridor validation for UK platform to Brazil-heavy professional payouts.
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
+4. Supabase Auth email flow end-to-end validation (signup + reset).
+5. Supabase signup currently failing with `unexpected_failure` until migration `012-auth-signup-trigger-hardening.sql` is applied.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
+- ~~Monitoring and on-call ownership undefined.~~ Resolved: baseline owner and SLA defined 2026-03-30.
 
 ## Active execution mode
 
 Wave-driven delivery is now mandatory:
 
-1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-007), e2e passing (2/3), Sentry active, Vercel env vars set, Supabase SMTP configured (Resend), Vercel MCP connected, Pro plans active on both Supabase and Vercel.
+1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-010), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel. SMTP flow validation is still pending.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
 3. Wave 2: onboarding and booking lifecycle parity.
 4. Wave 3: payments/revenue parity.

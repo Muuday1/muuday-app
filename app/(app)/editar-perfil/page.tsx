@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { COUNTRIES } from '@/lib/utils'
 import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function EditarPerfilPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ export default function EditarPerfilPage() {
     }
 
     loadProfile()
-  }, [])
+  }, [router, supabase])
 
   function handleCountryChange(code: string) {
     setCountry(code)

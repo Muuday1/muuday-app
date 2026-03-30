@@ -1,6 +1,6 @@
 # Integration: Checkly Monitoring
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Purpose
 
@@ -11,7 +11,7 @@ External health monitoring for production endpoint availability, cron operations
 - `In progress`
 - Monitoring-as-code is implemented, deployed in Checkly, and validated in cloud run.
 - Email alert channel is now provisioned in code and linked to the monitoring group.
-- Remaining work is confirming alert receipt and escalation ownership policy.
+- Alert receipt and solo on-call ownership policy are now defined.
 
 ## Implemented in repository
 
@@ -69,15 +69,10 @@ $env:CHECKLY_BOOKING_PROFESSIONAL_ID='...'
 npm.cmd run test:checkly-local
 ```
 
-## Current blocker
-
-No hard blocker at the moment.
-
 ## Next steps
 
-1. Confirm alert delivery in inbox for controlled fail/recovery sessions.
-2. Add Slack (or secondary) channel for redundancy.
-3. Add check ownership/escalation policy for operational response.
+1. Keep `BASE_URL` aligned when domain changes from `muuday-app.vercel.app` to `muuday.com`.
+2. Add optional secondary channel (Slack/WhatsApp) only after team expansion.
 
 ## Latest validation
 

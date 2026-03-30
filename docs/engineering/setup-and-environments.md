@@ -1,6 +1,6 @@
 ﻿# Setup and Environments
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Local setup
 
@@ -32,12 +32,25 @@ Optional but recommended:
 - `RESEND_API_KEY`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
+- `INNGEST_EVENT_KEY`
+- `INNGEST_SIGNING_KEY`
+- `SUPABASE_AUTH_TEST_EMAIL` (for auth smoke validation)
 
 4. Run app
 
 ```bash
 npm run dev
 ```
+
+5. Optional: run Supabase Auth smoke validation (signup + reset trigger)
+
+```bash
+npm run auth:validate-smoke -- --email=your-email@example.com
+```
+
+Notes:
+- Add `--dry-run` to validate config without calling Supabase.
+- Add `--cleanup` to auto-delete the created smoke user (requires service role key).
 
 ## Environment model
 

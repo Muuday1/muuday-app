@@ -1,6 +1,6 @@
 ﻿# Roadmap
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 Source baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -69,6 +69,7 @@ Source baseline: `docs/spec/source-of-truth/part1..part5`
 
 1. Wave 0:
 - stabilize observability/testing baseline (Checkly, Sentry, Playwright, PostHog, Zod hardening)
+ - on-call ownership and SLA baseline active (solo model)
 
 2. Wave 1:
 - feature flag rollout baseline (PostHog Feature Flags recommended)
@@ -77,7 +78,7 @@ Source baseline: `docs/spec/source-of-truth/part1..part5`
 - Stripe full lifecycle and internal ledger
 
 4. Wave 4:
-- case queue and event/job orchestration for notification reliability
+- case queue and Inngest-backed event/job orchestration for notification reliability
 
 5. Wave 5:
 - session provider lock (LiveKit vs Google Meet) and compliance versioning hardening

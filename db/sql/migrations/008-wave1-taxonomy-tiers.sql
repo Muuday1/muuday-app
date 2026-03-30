@@ -2,6 +2,35 @@
 -- Wave 1: Taxonomy governance + professional tiers
 -- ============================================
 
+-- 0) Ensure base taxonomy tables exist for clean environments
+CREATE TABLE IF NOT EXISTS categories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  name_pt text NOT NULL,
+  name_en text NOT NULL,
+  icon text,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS subcategories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  category_id uuid NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  slug text NOT NULL,
+  name_pt text NOT NULL,
+  name_en text NOT NULL,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(category_id, slug)
+);
+
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subcategories ENABLE ROW LEVEL SECURITY;
+
 -- 1) Add specialties table
 CREATE TABLE IF NOT EXISTS specialties (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -17,10 +46,12 @@ CREATE TABLE IF NOT EXISTS specialties (
 
 ALTER TABLE specialties ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Specialties are publicly readable" ON specialties;
 CREATE POLICY "Specialties are publicly readable"
   ON specialties FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Only admins can manage specialties" ON specialties;
 CREATE POLICY "Only admins can manage specialties"
   ON specialties FOR ALL
   USING (
@@ -38,10 +69,12 @@ CREATE TABLE IF NOT EXISTS professional_specialties (
 
 ALTER TABLE professional_specialties ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Professional specialties are publicly readable" ON professional_specialties;
 CREATE POLICY "Professional specialties are publicly readable"
   ON professional_specialties FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Professionals can manage own specialties" ON professional_specialties;
 CREATE POLICY "Professionals can manage own specialties"
   ON professional_specialties FOR ALL
   USING (
@@ -110,6 +143,7 @@ CREATE TABLE IF NOT EXISTS tag_suggestions (
 
 ALTER TABLE tag_suggestions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Professionals can view own tag suggestions" ON tag_suggestions;
 CREATE POLICY "Professionals can view own tag suggestions"
   ON tag_suggestions FOR SELECT
   USING (
@@ -117,12 +151,14 @@ CREATE POLICY "Professionals can view own tag suggestions"
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
+DROP POLICY IF EXISTS "Professionals can create tag suggestions" ON tag_suggestions;
 CREATE POLICY "Professionals can create tag suggestions"
   ON tag_suggestions FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM professionals WHERE id = professional_id AND user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Only admins can update tag suggestions" ON tag_suggestions;
 CREATE POLICY "Only admins can update tag suggestions"
   ON tag_suggestions FOR UPDATE
   USING (

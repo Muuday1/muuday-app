@@ -13,19 +13,19 @@ Execute in order. Build one batch at a time.
 4. ~~Upgraded to Supabase Pro (spend cap enabled) and Vercel Pro.~~ Done.
 
 ### Remaining
-1. Apply migration 007 (RLS cleanup — remove duplicate favorites and stale payments policies). SQL ready in `db/sql/migrations/007-rls-cleanup.sql`.
-2. Configure Supabase custom SMTP with Resend for auth emails (`noreply@muuday.com`).
-3. Re-authenticate Vercel MCP in Claude Settings → MCP Servers.
+1. Apply migration 011 (favorites RLS safety net) in production.
+2. Apply migration 012 (auth signup trigger hardening) in production.
+3. Validate Supabase Auth email flow end-to-end:
+- run `npm run auth:validate-smoke -- --email=<operator-email>`
+- confirm signup/reset emails arrive in inbox
 4. Verify Vercel spending limits via dashboard.
-5. Verify Checkly checks are active in production.
-6. Record final parity status in:
+5. Record final parity status in:
 - `docs/project/project-status.md`
 - `docs/handover/current-state.md`
 
 Dependencies:
-- Migration 007: user runs SQL in Supabase SQL Editor.
-- SMTP: user configures in Supabase dashboard (Auth → SMTP Settings).
-- Vercel MCP: user re-authenticates in Claude Settings.
+- Migration 011: user runs SQL in Supabase SQL Editor.
+- SMTP validation: user validates from production auth flow.
 
 ## Priority 1 - Wave 1 delivery batch
 
@@ -45,6 +45,7 @@ Dependencies:
 4. Finalize recurring scheduling deadlines and reserved-slot release behavior.
 5. Enforce onboarding field-gate matrix end-to-end (account, review, go-live, first booking, payout).
 6. Validate role-specific navigation and route guards for public/user/professional/admin paths.
+7. Wire first Inngest non-critical workflow while keeping cron as fallback.
 
 Dependencies:
 - Wave 1 critical path complete.

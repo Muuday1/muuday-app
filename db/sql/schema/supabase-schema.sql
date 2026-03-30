@@ -2,7 +2,7 @@
 -- MUUDAY CANONICAL SCHEMA SNAPSHOT
 -- ============================================
 -- Snapshot aligned with migrations through:
--- - 006-booking-operations-and-reminders.sql
+-- - 012-auth-signup-trigger-hardening.sql
 --
 -- Notes:
 -- 1) Ordered migrations in db/sql/migrations remain the source of truth for evolution.
@@ -54,9 +54,80 @@ CREATE TABLE IF NOT EXISTS professionals (
   rating DECIMAL(3,2) DEFAULT 0,
   total_reviews INTEGER DEFAULT 0,
   total_bookings INTEGER DEFAULT 0,
+  tier TEXT NOT NULL DEFAULT 'basic' CHECK (tier IN ('basic', 'professional', 'premium')),
+  category_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL UNIQUE,
+  name_pt TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  icon TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subcategories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  slug TEXT NOT NULL,
+  name_pt TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(category_id, slug)
+);
+
+CREATE TABLE IF NOT EXISTS specialties (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subcategory_id UUID NOT NULL REFERENCES subcategories(id) ON DELETE CASCADE,
+  slug TEXT NOT NULL,
+  name_pt TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(subcategory_id, slug)
+);
+
+CREATE TABLE IF NOT EXISTS professional_specialties (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  specialty_id UUID NOT NULL REFERENCES specialties(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(professional_id, specialty_id)
+);
+
+CREATE TABLE IF NOT EXISTS tag_suggestions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_by UUID REFERENCES profiles(id),
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.table_constraints
+    WHERE constraint_name = 'professionals_category_id_fkey'
+      AND table_name = 'professionals'
+  ) THEN
+    ALTER TABLE professionals
+      ADD CONSTRAINT professionals_category_id_fkey
+      FOREIGN KEY (category_id) REFERENCES categories(id);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS availability (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -129,8 +200,11 @@ CREATE TABLE IF NOT EXISTS reviews (
   professional_id UUID NOT NULL REFERENCES professionals(id),
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
   comment TEXT,
+  professional_response TEXT,
+  professional_response_at TIMESTAMPTZ,
   is_visible BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ
 );
 
 -- ============================================
@@ -285,6 +359,16 @@ CREATE TABLE IF NOT EXISTS waitlist (
 
 CREATE INDEX IF NOT EXISTS favorites_user_id_idx ON favorites(user_id);
 CREATE INDEX IF NOT EXISTS favorites_professional_id_idx ON favorites(professional_id);
+CREATE UNIQUE INDEX IF NOT EXISTS reviews_user_professional_unique
+  ON reviews(user_id, professional_id);
+CREATE INDEX IF NOT EXISTS professionals_tier_idx ON professionals(tier);
+CREATE INDEX IF NOT EXISTS professionals_category_id_idx ON professionals(category_id);
+CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories(sort_order);
+CREATE INDEX IF NOT EXISTS subcategories_category_id_sort_idx ON subcategories(category_id, sort_order);
+CREATE INDEX IF NOT EXISTS specialties_subcategory_id_sort_idx ON specialties(subcategory_id, sort_order);
+CREATE INDEX IF NOT EXISTS professional_specialties_professional_idx ON professional_specialties(professional_id);
+CREATE INDEX IF NOT EXISTS professional_specialties_specialty_idx ON professional_specialties(specialty_id);
+CREATE INDEX IF NOT EXISTS tag_suggestions_professional_idx ON tag_suggestions(professional_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS bookings_start_time_utc_idx ON bookings(start_time_utc);
 CREATE INDEX IF NOT EXISTS bookings_end_time_utc_idx ON bookings(end_time_utc);
 CREATE INDEX IF NOT EXISTS bookings_parent_booking_id_idx ON bookings(parent_booking_id);
@@ -314,6 +398,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS notifications_unique_booking_type_user_idx
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE professionals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subcategories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE specialties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE professional_specialties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tag_suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
@@ -365,6 +454,72 @@ CREATE POLICY "Professionals can update own profile" ON professionals
 DROP POLICY IF EXISTS "Professionals can insert own profile" ON professionals;
 CREATE POLICY "Professionals can insert own profile" ON professionals
   FOR INSERT WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Categories are publicly readable" ON categories;
+CREATE POLICY "Categories are publicly readable" ON categories
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Only admins can manage categories" ON categories;
+CREATE POLICY "Only admins can manage categories" ON categories
+  FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Subcategories are publicly readable" ON subcategories;
+CREATE POLICY "Subcategories are publicly readable" ON subcategories
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Only admins can manage subcategories" ON subcategories;
+CREATE POLICY "Only admins can manage subcategories" ON subcategories
+  FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Specialties are publicly readable" ON specialties;
+CREATE POLICY "Specialties are publicly readable" ON specialties
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Only admins can manage specialties" ON specialties;
+CREATE POLICY "Only admins can manage specialties" ON specialties
+  FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Professional specialties are publicly readable" ON professional_specialties;
+CREATE POLICY "Professional specialties are publicly readable" ON professional_specialties
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Professionals can manage own specialties" ON professional_specialties;
+CREATE POLICY "Professionals can manage own specialties" ON professional_specialties
+  FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM professionals WHERE id = professional_id AND user_id = auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Professionals can view own tag suggestions" ON tag_suggestions;
+CREATE POLICY "Professionals can view own tag suggestions" ON tag_suggestions
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM professionals WHERE id = professional_id AND user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Professionals can create tag suggestions" ON tag_suggestions;
+CREATE POLICY "Professionals can create tag suggestions" ON tag_suggestions
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM professionals WHERE id = professional_id AND user_id = auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Only admins can update tag suggestions" ON tag_suggestions;
+CREATE POLICY "Only admins can update tag suggestions" ON tag_suggestions
+  FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
 
 DROP POLICY IF EXISTS "Availability is viewable" ON availability;
 CREATE POLICY "Availability is viewable" ON availability
@@ -678,28 +833,60 @@ GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER)
 -- ============================================
 
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
+  _raw_role TEXT;
   _role TEXT;
 BEGIN
-  _role := COALESCE(NEW.raw_user_meta_data->>'role', 'usuario');
-  IF _role NOT IN ('usuario', 'profissional') THEN
-    _role := 'usuario';
-  END IF;
+  _raw_role := lower(COALESCE(NEW.raw_user_meta_data->>'role', 'usuario'));
+  _role := CASE
+    WHEN _raw_role IN ('profissional', 'professional', 'provider') THEN 'profissional'
+    WHEN _raw_role IN ('usuario', 'user', 'cliente', 'client', 'customer') THEN 'usuario'
+    ELSE 'usuario'
+  END;
 
-  INSERT INTO profiles (id, email, full_name, role, country, timezone, currency)
+  INSERT INTO profiles (
+    id,
+    email,
+    full_name,
+    role,
+    country,
+    timezone,
+    currency,
+    created_at,
+    updated_at
+  )
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'full_name', ''), split_part(NEW.email, '@', 1)),
     _role,
-    NEW.raw_user_meta_data->>'country',
-    COALESCE(NEW.raw_user_meta_data->>'timezone', 'America/Sao_Paulo'),
-    COALESCE(NEW.raw_user_meta_data->>'currency', 'BRL')
-  );
+    NULLIF(NEW.raw_user_meta_data->>'country', ''),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'timezone', ''), 'America/Sao_Paulo'),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'currency', ''), 'BRL'),
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), profiles.full_name),
+    role = CASE
+      WHEN profiles.role = 'admin' THEN 'admin'
+      ELSE EXCLUDED.role
+    END,
+    country = COALESCE(EXCLUDED.country, profiles.country),
+    timezone = COALESCE(EXCLUDED.timezone, profiles.timezone),
+    currency = COALESCE(EXCLUDED.currency, profiles.currency),
+    updated_at = NOW();
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created

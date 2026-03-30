@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   ChevronDown,
@@ -21,7 +21,7 @@ type Specialty = { id: string; subcategory_id: string; slug: string; name_pt: st
 type TagSuggestion = { id: string; professional_id: string; tag: string; status: string; created_at: string }
 
 export default function TaxonomiaPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [categories, setCategories] = useState<Category[]>([])
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [specialties, setSpecialties] = useState<Specialty[]>([])
@@ -34,9 +34,7 @@ export default function TaxonomiaPage() {
   const [addItem, setAddItem] = useState<{ type: string; parentId: string; name_pt: string; name_en: string; slug: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'tree' | 'tags'>('tree')
 
-  useEffect(() => { loadAll() }, [])
-
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     setLoading(true)
     const [cRes, scRes, spRes, tsRes] = await Promise.all([
       supabase.from('categories').select('*').order('sort_order'),
@@ -49,7 +47,9 @@ export default function TaxonomiaPage() {
     setSpecialties(spRes.data || [])
     setTagSuggestions(tsRes.data || [])
     setLoading(false)
-  }
+  }, [supabase])
+
+  useEffect(() => { loadAll() }, [loadAll])
 
   function slugify(text: string) {
     return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')

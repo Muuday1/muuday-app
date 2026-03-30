@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test:e2e": "playwright test",
+    "auth:validate-smoke": "node scripts/ops/validate-supabase-auth-flow.cjs",
     "test:checkly-local": "playwright test --config playwright.checkly.config.ts",
     "checkly:validate": "checkly debug parse-project --config checkly.config.js",
     "checkly:test": "checkly test",

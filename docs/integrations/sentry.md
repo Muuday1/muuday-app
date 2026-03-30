@@ -1,19 +1,20 @@
 # Sentry Integration
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Status
 
 - `In progress`: SDK wired in app (client/server/edge) with env-guarded activation.
-- `Pending`: dashboard alerts, issue ownership, and release health workflow in Sentry UI.
+- `Done`: Next.js Sentry wrapper uses current treeshake config and router transition hook instrumentation.
+- `Pending`: release health workflow and production issue ownership hygiene in Sentry UI.
 
 ## Files
 
-- `sentry.client.config.ts`
 - `sentry.server.config.ts`
 - `sentry.edge.config.ts`
 - `instrumentation.ts`
 - `instrumentation-client.ts`
+- `next.config.js`
 - `app/global-error.tsx`
 - `lib/actions/booking.ts` (critical booking error capture)
 
@@ -30,7 +31,8 @@ Last updated: 2026-03-29
 2. Deploy.
 3. Trigger a controlled frontend error and confirm event appears in Sentry.
 4. Trigger a controlled server-side booking error and confirm event appears with `area=booking_create`.
-5. Configure alert rules (email/Slack) for `error` severity.
+5. Configure alert rules (email) for `error` severity to `igorpinto.lds@gmail.com`.
+6. Validate one failure + one recovery alert cycle.
 
 ## Notes
 

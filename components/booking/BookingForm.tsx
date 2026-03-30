@@ -13,10 +13,12 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { useFeatureFlagEnabled } from 'posthog-js/react'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createBooking } from '@/lib/actions/booking'
 import { cn, formatCurrency } from '@/lib/utils'
 import { captureEvent } from '@/lib/analytics/posthog-client'
+import { FEATURE_FLAGS } from '@/lib/analytics/feature-flags'
 
 interface AvailabilitySlot {
   id: string
@@ -142,6 +144,7 @@ export default function BookingForm({
 }: BookingFormProps) {
   const bookingViewTracked = useRef(false)
   const slotSelectionTracked = useRef(false)
+  const recurringFlagEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.bookingRecurringEnabled)
 
   const today = useMemo(() => {
     const date = new Date()
@@ -315,6 +318,8 @@ export default function BookingForm({
     acceptTimezone &&
     (!requireSessionPurpose || sessionPurpose.trim().length > 0)
 
+  const canUseRecurring = enableRecurring && recurringFlagEnabled !== false
+
   const submitLabel =
     confirmationMode === 'manual'
       ? bookingType === 'recurring'
@@ -332,6 +337,7 @@ export default function BookingForm({
       professional_id: professional.id,
       confirmation_mode: confirmationMode,
       recurring_enabled: enableRecurring,
+      recurring_flag_enabled: recurringFlagEnabled,
       min_notice_hours: minimumNoticeHours,
       max_window_days: maxBookingWindowDays,
     })
@@ -341,7 +347,14 @@ export default function BookingForm({
     maxBookingWindowDays,
     minimumNoticeHours,
     professional.id,
+    recurringFlagEnabled,
   ])
+
+  useEffect(() => {
+    if (!canUseRecurring && bookingType === 'recurring') {
+      setBookingType('one_off')
+    }
+  }, [bookingType, canUseRecurring])
 
   function prevMonth() {
     if (!canGoPrev) return
@@ -506,19 +519,23 @@ export default function BookingForm({
               </button>
               <button
                 type="button"
-                onClick={() => enableRecurring && setBookingType('recurring')}
-                disabled={!enableRecurring}
+                onClick={() => canUseRecurring && setBookingType('recurring')}
+                disabled={!canUseRecurring}
                 className={cn(
                   'rounded-xl border px-4 py-3 text-left text-sm transition-all',
                   bookingType === 'recurring'
                     ? 'border-brand-400 bg-brand-50 text-brand-700'
                     : 'border-neutral-200 text-neutral-700 hover:border-brand-300',
-                  !enableRecurring && 'cursor-not-allowed opacity-50',
+                  !canUseRecurring && 'cursor-not-allowed opacity-50',
                 )}
               >
                 <p className="font-semibold">Pacote semanal</p>
                 <p className="mt-0.5 text-xs text-neutral-500">
-                  Mesmo dia e horario toda semana, pago antecipado.
+                  {!enableRecurring
+                    ? 'Este profissional nao oferece pacote recorrente.'
+                    : recurringFlagEnabled === false
+                      ? 'Pacote recorrente indisponivel temporariamente.'
+                      : 'Mesmo dia e horario toda semana, pago antecipado.'}
                 </p>
               </button>
             </div>

@@ -27,9 +27,10 @@ Wave legend:
 | Zod | Input validation | In progress | Wave 0 | New API/server-action surfaces without schema parity |
 | Checkly | External monitoring | In progress | Wave 0 | SLA incidents require broader check set/escalation |
 | Sentry | Error observability | In progress | Wave 0 | Error-volume spikes or poor triage signal quality |
-| PostHog | Product analytics | In progress | Wave 0 | Funnel blind spots or feature-release experiment needs |
+| PostHog | Product analytics + feature flags | In progress | Wave 0 / Wave 1 | Funnel blind spots or feature-release experiment needs |
 | Resend | Transactional email | In progress | Wave 0 | Notification volume/templates exceed basic lifecycle setup |
 | Upstash | Rate limiting | In progress | Wave 0 | Abuse patterns or higher API throughput require tighter controls |
+| Inngest | Background job orchestration | In progress | Wave 2 prep / Wave 4 scale | Fragmented retries and async workflow reliability pressure |
 
 ## Approved build targets from canonical spec
 
@@ -56,6 +57,11 @@ Wave legend:
 | --- | --- | --- | --- | --- |
 | Supabase | Pro | Enabled (no surprise charges) | Disabled (available ~$100/mth extra, not needed pre-launch) | Daily backups included with Pro |
 | Vercel | Pro | Default limits apply | N/A | Pending: confirm spending limits via dashboard |
+
+## Operational ownership baseline
+
+1. Checkly and Sentry alerts are routed to founder operator email.
+2. Incident SLA is defined in `docs/engineering/runbooks/incident-runbook.md`.
 
 ## Stack guardrails
 

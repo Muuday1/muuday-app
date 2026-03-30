@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/buscar'
@@ -110,5 +110,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="h-96" />}>
+      <LoginPageContent />
+    </Suspense>
   )
 }

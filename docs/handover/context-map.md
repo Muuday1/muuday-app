@@ -1,6 +1,6 @@
 ﻿# Context Map
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Repository map
 
@@ -37,6 +37,7 @@ Last updated: 2026-03-29
 
 - `docs/human-actions/`
   - human-owned decisions, validations, and open tool selection backlog
+  - live operator checklist for provider dashboard actions
 
 ## Where to find key topics
 

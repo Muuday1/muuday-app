@@ -1,6 +1,6 @@
 ﻿# Deployment and Operations
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Deployment platform
 
@@ -31,6 +31,18 @@ Required config:
 
 1. Internal: GitHub Action logs for cron runs.
 2. External: Checkly API checks for cron endpoints and login availability.
+3. Error telemetry: Sentry (client, server, edge).
+
+## On-call and escalation (current scale)
+
+1. Primary on-call owner: founder operator (`igorpinto.lds@gmail.com`).
+2. Alert channels:
+- Checkly email alerts (failure + recovery)
+- Sentry email alerts (error and issue spikes)
+3. SLA:
+- Sev 1: ack <= 15 minutes, mitigate <= 2 hours
+- Sev 2: ack <= 4 hours, mitigate <= 24 hours
+- Sev 3: ack next business block, mitigate <= 3 business days
 
 ## Incident handling
 

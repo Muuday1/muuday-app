@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Globe, Bell, Lock, ChevronRight, Check } from 'lucide-react'
 import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
@@ -47,7 +47,7 @@ export default function ConfiguracoesPage() {
   const [savedField, setSavedField] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function loadProfile() {
@@ -71,7 +71,7 @@ export default function ConfiguracoesPage() {
       setLoading(false)
     }
     loadProfile()
-  }, [])
+  }, [supabase])
 
   async function saveField(field: string, value: unknown) {
     if (!userId) return

@@ -131,3 +131,30 @@ Use this for meaningful checkpoints only.
 - Updated professional profile page to use search-config category labels instead of hardcoded CATEGORIES.
 - Build: 0 errors, 0 warnings.
 - Wave 1 exit criteria status: taxonomy CRUD ✅, tier limits config ✅, search ranking ✅, review constraints ✅, route guards ✅, public search ✅.
+
+### Entry 22 (2026-03-30) — Reliability and operations hardening
+- Added Sentry hardening updates:
+  - `instrumentation-client.ts` now exports `onRouterTransitionStart`.
+  - `next.config.js` moved from deprecated `disableLogger` to `webpack.treeshake.removeDebugLogging`.
+  - client init moved to `instrumentation-client.ts` (removed `sentry.client.config.ts` to avoid Turbopack deprecation path).
+- Added PostHog feature-flag baseline in booking checkout:
+  - `lib/analytics/feature-flags.ts`
+  - `booking_recurring_enabled` controls recurring package visibility without breaking default behavior.
+- Added migration `011-favorites-rls-safety-net.sql` to ensure canonical favorites RLS policies are always present.
+- Fixed `/login` static prerender blocker by wrapping `useSearchParams` usage in `Suspense`.
+- Cleaned legacy React hook dependency warnings in admin/settings/profile pages (`next lint` now clean).
+- Updated migration `008-wave1-taxonomy-tiers.sql` to bootstrap base taxonomy tables (`categories`, `subcategories`) for clean environments.
+- Updated schema snapshot `db/sql/schema/supabase-schema.sql` to include Wave 1 and review-constraint entities through migration 011.
+- Added Inngest integration doc + env slots (`INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`) in `.env.local` and `.env.local.example`.
+- Formalized monitoring ownership and incident SLA in operational docs and handover files.
+
+### Entry 23 (2026-03-30) — Auth validation path without Inngest dependency
+- Added operational smoke script `scripts/ops/validate-supabase-auth-flow.cjs` to validate Supabase signup + reset-password flows.
+- Added `npm run auth:validate-smoke` script in `package.json`.
+- Updated environment template with `SUPABASE_AUTH_TEST_EMAIL`.
+- Updated setup/integration/handover/human-actions docs to make auth email validation execution-ready.
+
+### Entry 24 (2026-03-30) — Signup failure diagnosis and safety migration
+- Executed real auth smoke test; signup failed with Supabase `unexpected_failure` (`Database error saving new user`).
+- Added migration `012-auth-signup-trigger-hardening.sql` with canonical role normalization and resilient profile upsert trigger behavior.
+- Updated status/handover/human-actions docs to treat migration 012 as immediate production action before re-running auth smoke checks.
