@@ -8,6 +8,8 @@ type BookingRow = {
   created_at: string
   metadata: Record<string, unknown> | null
   status?: string | null
+  booking_type?: string | null
+  parent_booking_id?: string | null
 }
 
 function parseAuthToken(request: NextRequest) {
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest) {
 
   let bookingsResponse = (await admin
     .from('bookings')
-    .select('id, created_at, metadata, status')
+    .select('id, created_at, metadata, status, booking_type, parent_booking_id')
     .limit(500)) as { data: BookingRow[] | null; error: { message?: string } | null }
 
   if (bookingsResponse.error && bookingsResponse.error.message?.includes('metadata')) {
@@ -155,6 +157,32 @@ export async function GET(request: NextRequest) {
       continue
     }
     cancelled += 1
+
+    if (booking.booking_type === 'recurring_parent') {
+      const cascadeReason = 'Cancelado devido expiracao de confirmacao do pacote recorrente.'
+      const { error: childCancelError } = await admin
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          cancellation_reason: cascadeReason,
+        })
+        .eq('parent_booking_id', booking.id)
+        .in('status', ['pending_confirmation', 'pending'])
+
+      if (childCancelError) {
+        console.error('[cron/booking-timeouts] recurring child cancel error:', booking.id, childCancelError.message)
+      }
+
+      const { error: sessionCancelError } = await admin
+        .from('booking_sessions')
+        .update({ status: 'cancelled' })
+        .eq('parent_booking_id', booking.id)
+        .in('status', ['pending_confirmation', 'pending_payment'])
+
+      if (sessionCancelError) {
+        console.error('[cron/booking-timeouts] recurring session cancel error:', booking.id, sessionCancelError.message)
+      }
+    }
 
     const refundResponse = await admin
       .from('payments')

@@ -68,6 +68,9 @@ Last updated: 2026-03-30 (session 25)
 40. State machine validation script added:
 - `npm run test:state-machines`
 - validates direct booking and request-booking transition maps/terminal states/critical edges.
+41. Recurring timeout cascade added in `/api/cron/booking-timeouts`:
+- recurring parent cancellation now cascades to child bookings (`pending_confirmation`/`pending`)
+- linked `booking_sessions` entries are cancelled to release inventory
 
 ## Partially implemented (`In progress`)
 

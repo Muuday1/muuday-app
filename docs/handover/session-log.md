@@ -212,3 +212,9 @@ Use this for meaningful checkpoints only.
   - booking transition map structure and required edges
   - request-booking transition map structure and required edges
   - terminal-state immutability checks
+
+### Entry 31 (2026-03-30) — Recurring timeout cascade hardening
+- Updated `api/cron/booking-timeouts` to cascade recurring parent timeout cancellation into:
+  - child recurring bookings in pending confirmation path
+  - booking_sessions rows for the same parent
+- Goal: release recurring inventory quickly when manual confirmation SLA expires.

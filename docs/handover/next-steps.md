@@ -38,6 +38,8 @@ Dependencies:
 2. ~~Finish request-booking lifecycle, proposal expiration, and conversion flow (foundation).~~ Done (migration 014 + `/solicitar` + `/agenda` queue/actions + conversion).
 3. ~~Finalize booking state machine tests (direct + request-booking transitions).~~ Done (`npm run test:state-machines` validates transition maps and terminal states).
 4. Finalize recurring scheduling deadlines and reserved-slot release behavior.
+- In progress: timeout cascade for recurring parent -> child/session cancellation is implemented.
+- Remaining: cycle-level reserved-slot release deadlines and pause/change deadline enforcement.
 5. Enforce onboarding field-gate matrix end-to-end (account, review, go-live, first booking, payout).
 6. ~~Validate and tighten role-specific navigation + route guards for public/user/professional/admin paths.~~ Done (role-based nav in app layout + professional route hardening incl. `/financeiro`).
 7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ In progress — first workflow shipped and endpoint healthy; cloud sync attachment confirmation still pending.

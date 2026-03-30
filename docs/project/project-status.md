@@ -69,6 +69,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - logo routes to landing (`/`) from app shell
 28. Route-guard hardening for professional workspace paths (`/dashboard`, `/disponibilidade`, `/configuracoes-agendamento`, `/editar-perfil-profissional`, `/completar-perfil`, `/financeiro`).
 29. Added state-machine validation automation (`npm run test:state-machines`) covering direct booking and request-booking transition maps, terminal states, and required edges.
+30. Recurring lifecycle hardening in timeout cron: when a recurring parent expires in manual confirmation, child bookings and booking_sessions are cancelled in cascade to release schedule inventory faster.
 
 ## Immediate next actions
 
