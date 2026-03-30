@@ -25,7 +25,7 @@ Use `docs/spec/consolidated/master-spec.md` for unified reading and `execution-p
 ## Current priorities
 
 1. Wave 2 parity for onboarding and booking lifecycle correctness.
-2. Close production verification hygiene (migrations 011 + 012 + auth email flow test).
+2. Verify Vercel budget alerts and keep on-call/monitoring hygiene active.
 3. Wave 3 payments-revenue implementation (Stripe + ledger + payout lifecycle).
 4. Wave 4 admin case operations and trust/notification system completion.
 5. Wave 5 session-provider and compliance freeze.
@@ -35,7 +35,6 @@ Use `docs/spec/consolidated/master-spec.md` for unified reading and `execution-p
 1. Open Stripe corridor validation for UK platform to Brazil payout structure.
 2. Open final session-provider lock (kept intentionally provisional).
 3. Open legal/tax wording freeze for sensitive categories and final compliance language.
-4. Current signup in production returns `unexpected_failure` until migration 012 is applied.
 
 ## Where to start (new contributor)
 

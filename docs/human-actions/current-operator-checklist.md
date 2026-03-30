@@ -6,22 +6,22 @@ Use this as the live checklist of actions that require human access to provider 
 
 ## Do now
 
-1. Run SQL migration `011-favorites-rls-safety-net.sql` in Supabase SQL Editor.
-2. Run SQL migration `012-auth-signup-trigger-hardening.sql` in Supabase SQL Editor.
-3. Validate Supabase Auth emails in production:
-- run `npm run auth:validate-smoke -- --email=igorpinto.lds@gmail.com`
-- signup confirmation email
-- reset password email
-4. Add Inngest keys in Vercel production env:
+1. Verify Vercel spending limits/budget alerts in dashboard.
+2. Confirm Sentry alert rule is sending emails to `igorpinto.lds@gmail.com`.
+3. Add Inngest keys in Vercel production env (can be deferred while cron fallback stays active):
 - `INNGEST_EVENT_KEY`
 - `INNGEST_SIGNING_KEY`
-5. Confirm Sentry alert rule is sending emails to `igorpinto.lds@gmail.com`.
+
+## Completed in this cycle
+
+1. Migration `011-favorites-rls-safety-net.sql` applied in production.
+2. Migration `012-auth-signup-trigger-hardening.sql` applied in production.
+3. Auth smoke validation completed successfully (`auth:validate-smoke` + inbox check).
 
 ## Do before Wave 2 close
 
-1. Confirm Vercel spending limits/budget alerts in dashboard.
-2. Confirm final Checkly operational checks are green after latest deploy.
-3. Record completion updates in:
+1. Confirm final Checkly operational checks are green after latest deploy.
+2. Record completion updates in:
 - `docs/project/project-status.md`
 - `docs/handover/current-state.md`
 - `docs/handover/session-log.md`

@@ -11,21 +11,16 @@ Execute in order. Build one batch at a time.
 2. ~~Re-run critical e2e booking tests and require deterministic pass/fail behavior.~~ Done (2/3 pass deterministically).
 3. ~~Sentry DSN configured and env vars deployed to Vercel.~~ Done.
 4. ~~Upgraded to Supabase Pro (spend cap enabled) and Vercel Pro.~~ Done.
+5. ~~Apply migration 011 (favorites RLS safety net) in production.~~ Done.
+6. ~~Apply migration 012 (auth signup trigger hardening) in production.~~ Done.
+7. ~~Validate Supabase Auth email flow end-to-end (signup + reset).~~ Done via `auth:validate-smoke` + inbox confirmation.
+8. ~~Record final parity status in docs.~~ Done.
 
 ### Remaining
-1. Apply migration 011 (favorites RLS safety net) in production.
-2. Apply migration 012 (auth signup trigger hardening) in production.
-3. Validate Supabase Auth email flow end-to-end:
-- run `npm run auth:validate-smoke -- --email=<operator-email>`
-- confirm signup/reset emails arrive in inbox
-4. Verify Vercel spending limits via dashboard.
-5. Record final parity status in:
-- `docs/project/project-status.md`
-- `docs/handover/current-state.md`
+1. Verify Vercel spending limits via dashboard.
 
 Dependencies:
-- Migration 011: user runs SQL in Supabase SQL Editor.
-- SMTP validation: user validates from production auth flow.
+- Vercel billing dashboard access.
 
 ## Priority 1 - Wave 1 delivery batch
 

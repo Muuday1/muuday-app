@@ -158,3 +158,8 @@ Use this for meaningful checkpoints only.
 - Executed real auth smoke test; signup failed with Supabase `unexpected_failure` (`Database error saving new user`).
 - Added migration `012-auth-signup-trigger-hardening.sql` with canonical role normalization and resilient profile upsert trigger behavior.
 - Updated status/handover/human-actions docs to treat migration 012 as immediate production action before re-running auth smoke checks.
+
+### Entry 25 (2026-03-30) — Wave 0 verification closure
+- Confirmed operator applied migrations `011` and `012` in production.
+- Confirmed auth smoke validation succeeded (signup + reset flow).
+- Updated next-steps/project-status/current-state/human-actions to remove resolved blocker and keep only remaining pre-Wave-2 human checks.

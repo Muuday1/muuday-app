@@ -31,7 +31,6 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 1. ~~Production schema parity for booking foundation tables.~~ **Resolved 2026-03-29**: migrations 001-006 applied.
 2. Stripe corridor validation for UK-platform to Brazil payout path.
 3. Final legal/compliance wording freeze for sensitive categories.
-4. Supabase signup currently failing with `unexpected_failure` until migration `012-auth-signup-trigger-hardening.sql` is applied in production.
 
 ## Recently completed
 
@@ -51,16 +50,15 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 14. PostHog feature-flag baseline in booking UI implemented (`booking_recurring_enabled`).
 15. Added Supabase Auth smoke validation command (`npm run auth:validate-smoke`) for signup/reset flow checks.
 16. Added migration `012-auth-signup-trigger-hardening.sql` to stabilize auth trigger and canonical role mapping.
+17. Applied migrations `011` and `012` in production and validated auth signup/reset flow successfully.
 
 ## Immediate next actions
 
 1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
 2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
-3. Run migration `011-favorites-rls-safety-net.sql` in production and confirm policies.
-4. Run migration `012-auth-signup-trigger-hardening.sql` in production.
-5. Run `npm run auth:validate-smoke -- --email=<operator-email>` and confirm signup/reset emails are delivered.
-6. Start Wave 2 parity tasks (professional onboarding + booking lifecycle).
-7. Prepare Stripe corridor validation packet and run external confirmation process.
+3. Verify Vercel spending limits/budget alerts in dashboard.
+4. Start Wave 2 parity tasks (professional onboarding + booking lifecycle).
+5. Prepare Stripe corridor validation packet and run external confirmation process.
 
 ## Continuity rule
 
