@@ -17,6 +17,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
   'pending',
@@ -70,13 +71,11 @@ export default async function DashboardPage() {
   if (profile.role === 'usuario') redirect('/buscar')
   if (profile.role === 'admin') redirect('/admin')
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select(
-      'id, status, tier, bio, category, session_price_brl, session_duration_minutes, rating, total_reviews, total_bookings, first_booking_enabled, first_booking_gate_note',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = await getPrimaryProfessionalForUser(
+    supabase,
+    user.id,
+    'id, status, tier, bio, category, session_price_brl, session_duration_minutes, rating, total_reviews, total_bookings, first_booking_enabled, first_booking_gate_note',
+  )
 
   if (!professional) redirect('/completar-perfil')
 

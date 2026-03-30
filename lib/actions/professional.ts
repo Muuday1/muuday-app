@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { z } from 'zod'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const VALID_CATEGORIES = [
   'saude-mental-bem-estar', 'saude-corpo-movimento', 'educacao-desenvolvimento',
@@ -95,11 +96,7 @@ export async function createProfessionalProfile(formData: FormData) {
   const { bio, category, tags, languages, years_experience: yearsExperience, session_price_brl: sessionPriceBrl, session_duration_minutes: sessionDurationMinutes } = parsed.data
 
   // Check if professional profile already exists
-  const { data: existing } = await supabase
-    .from('professionals')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
+  const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
   let professionalId = existing?.id || ''
 
@@ -180,11 +177,7 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
     return { error: firstError }
   }
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
   if (!professional) return { error: 'Perfil profissional não encontrado' }
 

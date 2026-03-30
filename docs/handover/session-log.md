@@ -313,3 +313,14 @@ Use this for meaningful checkpoints only.
 - Validation run:
   - `npm.cmd run typecheck` ✅
   - `npm.cmd run lint` ✅
+
+### Entry 37 (2026-03-30) — Duplicate professional row resilience patch
+- Added `lib/professional/current-professional.ts` as canonical resolver for professional row selection by `user_id` (single-row deterministic fallback).
+- Replaced fragile `.single()`/`.maybeSingle()` lookups by `user_id` in core professional flows:
+  - `/dashboard`, `/agenda`, `/perfil`, `/financeiro`, `/configuracoes`, `/configuracoes-agendamento`, `/disponibilidade`, `/editar-perfil-profissional`, `/completar-perfil`, `/onboarding-profissional`
+  - `lib/actions/professional.ts`, `lib/actions/professional-onboarding.ts`, `lib/actions/manage-booking.ts`, `lib/actions/request-booking.ts`
+- Goal: avoid professional journey regression when seed/legacy data has multiple rows in `professionals` for one account.
+- Validation run:
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run build` ✅

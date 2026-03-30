@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES } from '@/types'
 import { Loader2, ArrowLeft, Check, Save } from 'lucide-react'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const LANGUAGE_OPTIONS = ['Português', 'English', 'Español', 'Français', 'Deutsch', 'Italiano']
 const DURATION_OPTIONS = [30, 45, 50, 60, 90]
@@ -73,11 +74,7 @@ export default function EditarPerfilProfissionalPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: professional } = await supabase
-        .from('professionals')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id)
 
       if (!professional) {
         router.push('/completar-perfil')
@@ -128,7 +125,7 @@ export default function EditarPerfilProfissionalPage() {
         status: 'pending_review' as const,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id)
+      .eq('id', professionalId)
 
     if (updateError) {
       setError(updateError.message)
@@ -151,7 +148,12 @@ export default function EditarPerfilProfissionalPage() {
     setTimeout(() => router.push('/perfil'), 1500)
   }
 
-  const canSave = category && bio.length >= 20 && languages.length > 0 && parseFloat(priceBrl) > 0
+  const canSave =
+    Boolean(professionalId) &&
+    category &&
+    bio.length >= 20 &&
+    languages.length > 0 &&
+    parseFloat(priceBrl) > 0
 
   if (loading) {
     return (

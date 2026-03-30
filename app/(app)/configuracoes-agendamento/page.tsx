@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ALL_TIMEZONES } from '@/lib/constants'
 import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS, normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { AlertCircle, CalendarClock, Check, ChevronLeft, Loader2 } from 'lucide-react'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 type BookingSettingsForm = {
   timezone: string
@@ -66,11 +67,11 @@ export default function ConfiguracoesAgendamentoPage() {
         return
       }
 
-      const { data: professional } = await supabase
-        .from('professionals')
-        .select('id, session_duration_minutes')
-        .eq('user_id', user.id)
-        .single()
+      const { data: professional } = await getPrimaryProfessionalForUser(
+        supabase,
+        user.id,
+        'id, session_duration_minutes',
+      )
 
       if (!professional) {
         setAccessDenied(true)

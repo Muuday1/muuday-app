@@ -35,6 +35,7 @@ Dependencies:
 ## Priority 2 - Wave 2 delivery batch
 
 0. Stabilization gate before continuing Wave 2:
+- deploy latest professional-profile resolver patch before validation runs (duplicate `professionals` rows handling).
 - verify email/password login for known accounts (admin, professional, user) after auth patch
 - verify Google login callback completes and lands on expected destination
 - verify signup UX changes (icons, full countries, confirm password, expanded professional fields) in desktop/mobile

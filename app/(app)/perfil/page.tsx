@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, Bell, SlidersHorizontal } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 export default async function PerfilPage() {
   const supabase = createClient()
@@ -23,11 +24,7 @@ export default async function PerfilPage() {
   // If professional, fetch professional profile
   let professional = null
   if (isProfissional) {
-    const { data } = await supabase
-      .from('professionals')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    const { data } = await getPrimaryProfessionalForUser(supabase, user.id)
     professional = data
   }
 

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { submitProfessionalForReviewAction } from '@/lib/actions/professional-onboarding'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 function statusClasses(passed: boolean) {
   return passed
@@ -43,11 +44,7 @@ export default async function OnboardingProfissionalPage({
     redirect('/buscar')
   }
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
   if (!professional?.id) {
     redirect('/completar-perfil')

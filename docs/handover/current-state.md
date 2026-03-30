@@ -145,6 +145,10 @@ Last updated: 2026-03-30 (session 27)
 62. Test-data boost executed in production-like environment:
 - inserted 8 approved fantasy professional records across all search categories (tag marker: `seed_fantasy_wave2_20260330`) plus availability blocks.
 - inserted using authenticated professional context to accelerate search/funnel QA without new credential sharing.
+63. Professional workspace resilience patch for duplicate-profile data:
+- added canonical resolver `lib/professional/current-professional.ts` to deterministically pick one professional row by `user_id`.
+- replaced fragile `.single()`/`.maybeSingle()` lookups in core professional pages/actions (dashboard/agenda/perfil/configuracoes/disponibilidade/financeiro/onboarding + booking/request actions).
+- objective: prevent role-professional journeys from collapsing when legacy/seed data contains multiple `professionals` rows for the same user.
 
 ## Partially implemented (`In progress`)
 
@@ -160,6 +164,7 @@ Last updated: 2026-03-30 (session 27)
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
 4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
+5. E2E professional workspace failures observed when running against remote `E2E_BASE_URL` can reflect outdated deployed code; local code quality gates are currently green (`typecheck`, `lint`, `build`).
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.

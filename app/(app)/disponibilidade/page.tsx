@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Check, Clock, AlertCircle, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 // day_of_week: 0=Sunday, 1=Monday, ..., 6=Saturday
 // We display Mon-Sun (1-6, 0) but store as 0-6
@@ -85,11 +86,7 @@ export default function DisponibilidadePage() {
     }
 
     // Get professional profile
-    const { data: professional } = await supabase
-      .from('professionals')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
     if (!professional) {
       setAccessDenied(true)

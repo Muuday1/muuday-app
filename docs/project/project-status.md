@@ -111,6 +111,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - signup UI restored role icons, password confirmation, full country list, and expanded professional onboarding fields
 43. Search test-data coverage expanded:
 - inserted 8 approved fantasy professionals across categories with availability slots for QA (`seed_fantasy_wave2_20260330`)
+44. Professional journey resilience hardened for duplicate profile rows:
+- added canonical professional resolver (`lib/professional/current-professional.ts`) and replaced `user_id`-based `.single()`/`.maybeSingle()` usage in critical professional routes/actions.
+- prevents professional workspace fallback to user flow when multiple `professionals` records exist for one account.
 
 ## Immediate next actions
 

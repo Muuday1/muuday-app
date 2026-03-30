@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { Wallet, Calendar, Receipt, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 export default async function FinanceiroPage() {
   const supabase = createClient()
@@ -24,11 +25,11 @@ export default async function FinanceiroPage() {
     redirect('/buscar')
   }
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id, status')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = await getPrimaryProfessionalForUser(
+    supabase,
+    user.id,
+    'id, status',
+  )
 
   const professionalId = professional?.id || null
 

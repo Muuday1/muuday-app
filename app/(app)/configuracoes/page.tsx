@@ -20,6 +20,7 @@ import {
   evaluateProfessionalOnboarding,
   type ProfessionalOnboardingEvaluation,
 } from '@/lib/professional/onboarding-gates'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 type NotificationPreferences = {
   booking_emails: boolean
@@ -166,13 +167,11 @@ export default function ConfiguracoesPage() {
       }
 
       if (profile.role === 'profissional') {
-        const { data: professional } = await supabase
-          .from('professionals')
-          .select(
-            'id, status, tier, first_booking_enabled, first_booking_gate_note, bio, category, subcategories, languages, years_experience, session_price_brl, session_duration_minutes',
-          )
-          .eq('user_id', user.id)
-          .maybeSingle()
+        const { data: professional } = await getPrimaryProfessionalForUser(
+          supabase,
+          user.id,
+          'id, status, tier, first_booking_enabled, first_booking_gate_note, bio, category, subcategories, languages, years_experience, session_price_brl, session_duration_minutes',
+        )
 
         if (professional?.id) {
           const { count: pendingConfirmationsCount } = await supabase

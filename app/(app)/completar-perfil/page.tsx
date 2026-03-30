@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES } from '@/types'
 import { Loader2, ArrowRight, ArrowLeft, Check } from 'lucide-react'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const LANGUAGE_OPTIONS = ['Português', 'English', 'Español', 'Français', 'Deutsch', 'Italiano']
 const DURATION_OPTIONS = [30, 45, 50, 60, 90]
@@ -83,11 +84,7 @@ export default function CompletarPerfilPage() {
     const tagList = tags.split(',').map(t => t.trim()).filter(Boolean)
 
     // Check if professional profile already exists
-    const { data: existing } = await supabase
-      .from('professionals')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
     const profileData = {
       bio,

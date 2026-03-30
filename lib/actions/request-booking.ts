@@ -10,6 +10,7 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import {
   REQUEST_BOOKING_STATUSES,
   assertRequestBookingTransition,
@@ -81,11 +82,7 @@ async function getAuthenticatedContext() {
     .eq('id', user.id)
     .single()
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
   return {
     supabase,

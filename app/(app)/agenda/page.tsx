@@ -20,6 +20,7 @@ import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
 import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 type RequestBookingStatus =
   | 'open'
@@ -124,13 +125,11 @@ export default async function AgendaPage({
   const isProfessionalRole = profile?.role === 'profissional'
 
   const { data: professional } = isProfessionalRole
-    ? await supabase
-        .from('professionals')
-        .select(
-          'id, status, tier, bio, category, session_price_brl, session_duration_minutes, first_booking_enabled, first_booking_gate_note',
-        )
-        .eq('user_id', user.id)
-        .maybeSingle()
+    ? await getPrimaryProfessionalForUser(
+        supabase,
+        user.id,
+        'id, status, tier, bio, category, session_price_brl, session_duration_minutes, first_booking_enabled, first_booking_gate_note',
+      )
     : { data: null as any }
 
   const professionalId: string | null = professional?.id ?? null

@@ -10,6 +10,7 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { assertBookingTransition } from '@/lib/booking/state-machine'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import {
   getHoursUntilSession,
   getProfessionalCancellationRefundDecision,
@@ -63,11 +64,7 @@ async function getAuthenticatedContext() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
   return { supabase, adminSupabase, user, professionalId: professional?.id ?? null }
 }

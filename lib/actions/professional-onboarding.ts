@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 export async function submitProfessionalForReviewAction() {
   const supabase = createClient()
@@ -21,11 +22,7 @@ export async function submitProfessionalForReviewAction() {
     redirect('/buscar')
   }
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
   if (!professional?.id) {
     redirect('/completar-perfil?result=missing-profile')
