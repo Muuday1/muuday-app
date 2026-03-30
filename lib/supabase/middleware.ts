@@ -30,15 +30,17 @@ export async function updateSession(request: NextRequest) {
   const isPublicApp = publicAppPaths.some(path => pathname.startsWith(path))
 
   // Auth-required routes
-  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/agendar', '/editar-perfil-profissional', '/configuracoes-agendamento']
+  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/agendar', '/solicitar', '/editar-perfil-profissional', '/configuracoes-agendamento']
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 
   // Admin-only routes
   const isAdminRoute = pathname.startsWith('/admin')
 
   // Professional-only routes
-  const professionalPaths = ['/agenda', '/editar-perfil-profissional', '/configuracoes-agendamento']
+  const professionalPaths = ['/editar-perfil-profissional', '/configuracoes-agendamento']
   const isProfessionalRoute = professionalPaths.some(path => pathname.startsWith(path))
+  const userOnlyPaths = ['/agendar', '/solicitar', '/favoritos']
+  const isUserOnlyRoute = userOnlyPaths.some(path => pathname.startsWith(path))
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
@@ -54,7 +56,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Role-based guards (admin and professional routes)
-  if (user && (isAdminRoute || isProfessionalRoute)) {
+  if (user && (isAdminRoute || isProfessionalRoute || isUserOnlyRoute)) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -70,6 +72,12 @@ export async function updateSession(request: NextRequest) {
     if (isProfessionalRoute && profile?.role !== 'profissional' && profile?.role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
+      return NextResponse.redirect(url)
+    }
+
+    if (isUserOnlyRoute && profile?.role !== 'usuario') {
+      const url = request.nextUrl.clone()
+      url.pathname = profile?.role === 'admin' ? '/admin' : '/agenda'
       return NextResponse.redirect(url)
     }
   }

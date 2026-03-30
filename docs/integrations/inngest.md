@@ -10,7 +10,8 @@ Durable background-job orchestration for retries, idempotent async workflows, an
 
 - `In progress`: provider selected and first non-critical workflow wired.
 - `Done`: Inngest endpoint at `/api/inngest` with function `sync-booking-reminders` (cron trigger + event trigger).
-- `Pending`: production keys and cloud sync validation.
+- `Done`: production endpoint health check (`https://muuday-app.vercel.app/api/inngest`) returns cloud mode + key detection.
+- `Pending`: clear/confirm stale "unattached syncs" in Inngest dashboard by forcing new sync from current endpoint.
 
 ## Environment variables
 
@@ -39,7 +40,6 @@ Durable background-job orchestration for retries, idempotent async workflows, an
 
 ## Next steps
 
-1. Set `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` in Vercel production.
-2. Sync app in Inngest cloud to `https://muuday-app.vercel.app/api/inngest`.
-3. Validate scheduled executions in cloud and compare parity with cron.
-4. Keep clear idempotency keys and retry-safe handlers as more workflows migrate.
+1. Confirm app sync attachment in Inngest cloud for `https://muuday-app.vercel.app/api/inngest` (ignore/remove stale unattached sync records).
+2. Validate scheduled executions in cloud and compare parity with cron.
+3. Keep clear idempotency keys and retry-safe handlers as more workflows migrate.

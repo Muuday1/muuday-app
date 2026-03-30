@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-30 (session 24)
+Last updated: 2026-03-30 (session 25)
 
 ## Canonical baseline status
 
@@ -40,11 +40,31 @@ Last updated: 2026-03-30 (session 24)
 28. Applied migrations 011 + 012 in production and validated `auth:validate-smoke` successfully.
 29. Added first Inngest workflow (`sync-booking-reminders`) sharing logic with cron fallback.
 30. Started Wave 2 dual-gate implementation (`013-wave2-dual-gate-first-booking`) with booking guard + admin release toggle.
+31. Migration `014-wave2-request-bookings-foundation.sql` applied in production (operator-confirmed).
+32. Request-booking app flow delivered:
+- New user route: `/solicitar/[id]`
+- New server actions in `lib/actions/request-booking.ts`
+- Agenda queue/actions for request booking in `/agenda`
+- Profile CTA for request booking where tier allows
+33. Role split hardened in middleware for user-only routes (`/agendar`, `/solicitar`, `/favoritos`).
+34. Inngest endpoint health verified in production (`/api/inngest` returns cloud mode + keys + function).
+35. Search UX/currency patch reinforced:
+- removed top category chips from `/buscar`
+- filter labels now follow selected currency symbol (not fixed BRL)
+- cards use selected user currency consistently on search/favorites/profile
+36. Search filter UX parity update applied:
+- horizontal filter bar below search input (desktop)
+- specialty filter disabled until category is selected
+- location/country rendered by full country name
+- category/specialty/language/location filter options derived from currently available professionals
+37. Request-booking state transition guard wired into server actions:
+- explicit allowed transitions via `lib/booking/request-booking-state-machine.ts`
+- optimistic update guards now include `.eq('status', currentStatus)` to reduce race-condition overwrites
 
 ## Partially implemented (`In progress`)
 
 1. Full taxonomy governance and entitlement parity with Part 1.
-2. Full onboarding and request-booking parity with Part 2.
+2. Full onboarding and request-booking parity with Part 2 (foundation delivered, full parity still pending).
 3. Stripe-backed payment and payout lifecycle parity with Part 3.
 4. Structured case queue and full trust operations parity with Part 4.
 5. Session provider abstraction and compliance freeze parity with Part 5.
@@ -54,8 +74,7 @@ Last updated: 2026-03-30 (session 24)
 1. Stripe corridor validation for UK platform to Brazil-heavy professional payouts.
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
-4. Pending production apply of migration 013 for dual-gate fields.
-5. Pending Inngest cloud key/sync activation in production.
+4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
@@ -67,7 +86,7 @@ Wave-driven delivery is now mandatory:
 
 1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-012), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel, auth smoke flow validated.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
-3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress.** Dual-gate foundation implemented in code; next items are request-booking flow and booking transition/test parity.
+3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress.** Dual-gate + request-booking foundation delivered; next items are booking transition/test parity, recurring release rules, and onboarding gate completion.
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
 6. Wave 5: session provider + compliance freeze.

@@ -1,12 +1,22 @@
 export const metadata = { title: 'Agenda | Muuday' }
 
 import Link from 'next/link'
-import { Calendar, Clock, Video, ChevronRight, Star, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, Video, ChevronRight, Star, AlertTriangle, MessageCircle } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
+import RequestBookingActions from '@/components/booking/RequestBookingActions'
+
+type RequestBookingStatus =
+  | 'open'
+  | 'offered'
+  | 'accepted'
+  | 'declined'
+  | 'expired'
+  | 'cancelled'
+  | 'converted'
 
 function getConfirmationDeadline(booking: Record<string, any>): Date | null {
   const deadlineRaw = booking?.metadata?.confirmation_deadline_utc
@@ -28,6 +38,27 @@ function getSlaLabel(deadline: Date): string {
   return `Expira em ${diffDays} dia${diffDays === 1 ? '' : 's'}`
 }
 
+function getRequestStatusUi(status: string) {
+  const map: Record<string, { label: string; className: string }> = {
+    open: { label: 'Aberta', className: 'bg-neutral-100 text-neutral-700' },
+    offered: { label: 'Proposta enviada', className: 'bg-amber-50 text-amber-700' },
+    accepted: { label: 'Aceita', className: 'bg-green-50 text-green-700' },
+    converted: { label: 'Convertida', className: 'bg-green-50 text-green-700' },
+    declined: { label: 'Recusada', className: 'bg-red-50 text-red-700' },
+    expired: { label: 'Expirada', className: 'bg-neutral-100 text-neutral-500' },
+    cancelled: { label: 'Cancelada', className: 'bg-neutral-100 text-neutral-500' },
+  }
+  return map[status] || map.open
+}
+
+function getDurationMinutes(startValue: string | null, endValue: string | null) {
+  if (!startValue || !endValue) return 60
+  const start = new Date(startValue)
+  const end = new Date(endValue)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) return 60
+  return Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000))
+}
+
 export default async function AgendaPage() {
   const supabase = createClient()
   const {
@@ -47,6 +78,22 @@ export default async function AgendaPage() {
   const isProfessional = Boolean(professionalId)
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
+
+  if (isProfessional && professionalId) {
+    await supabase
+      .from('request_bookings')
+      .update({ status: 'expired', expired_at: nowIso })
+      .eq('professional_id', professionalId)
+      .eq('status', 'offered')
+      .lt('proposal_expires_at', nowIso)
+  } else {
+    await supabase
+      .from('request_bookings')
+      .update({ status: 'expired', expired_at: nowIso })
+      .eq('user_id', user.id)
+      .eq('status', 'offered')
+      .lt('proposal_expires_at', nowIso)
+  }
 
   const upcomingQuery =
     isProfessional && professionalId
@@ -74,6 +121,19 @@ export default async function AgendaPage() {
             .select('*, professionals(*, profiles(*))')
             .eq('user_id', user.id)
 
+  const requestBookingsQuery =
+    isProfessional && professionalId
+      ? supabase
+          .from('request_bookings')
+          .select('*, profiles!request_bookings_user_id_fkey(*), professionals(*, profiles(*))')
+          .eq('professional_id', professionalId)
+      : isProfessional
+        ? null
+        : supabase
+            .from('request_bookings')
+            .select('*, professionals(*, profiles(*))')
+            .eq('user_id', user.id)
+
   const { data: upcomingBookings } = upcomingQuery
     ? await upcomingQuery
         .in('status', ['pending', 'pending_confirmation', 'confirmed'])
@@ -89,8 +149,20 @@ export default async function AgendaPage() {
         .limit(20)
     : { data: [] as any[] }
 
+  const { data: requestBookings } = requestBookingsQuery
+    ? await requestBookingsQuery.order('created_at', { ascending: false }).limit(30)
+    : { data: [] as any[] }
+
   const upcoming = upcomingBookings || []
   const past = pastBookings || []
+  const requestList = (requestBookings || []) as Array<Record<string, any>>
+  const openRequestStatuses: RequestBookingStatus[] = ['open', 'offered']
+  const activeRequests = requestList.filter(request =>
+    openRequestStatuses.includes((request.status || 'open') as RequestBookingStatus),
+  )
+  const closedRequests = requestList.filter(
+    request => !openRequestStatuses.includes((request.status || 'open') as RequestBookingStatus),
+  )
 
   const pendingConfirmations = isProfessional
     ? upcoming.filter((booking: any) => booking.status === 'pending_confirmation')
@@ -117,6 +189,133 @@ export default async function AgendaPage() {
         <p className="text-neutral-500">
           {isProfessional ? 'Gerencie suas sessoes com clientes' : 'Suas sessoes agendadas'}
         </p>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
+          <MessageCircle className="h-5 w-5 text-brand-500" />
+          Solicitacoes de horario
+        </h2>
+
+        {activeRequests.length === 0 && closedRequests.length === 0 ? (
+          <div className="rounded-2xl border border-neutral-100 bg-white p-6 text-center">
+            <p className="text-sm font-medium text-neutral-700">Nenhuma solicitacao de horario no momento.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeRequests.map((request: any) => {
+              const otherPerson = isProfessional
+                ? request.profiles?.full_name
+                : request.professionals?.profiles?.full_name
+              const statusUi = getRequestStatusUi(request.status)
+              const preferredWindowLabel = `${formatInTimeZone(
+                new Date(request.preferred_start_utc),
+                userTimezone,
+                'EEE, d MMM HH:mm',
+                { locale: ptBR },
+              )} - ${formatInTimeZone(new Date(request.preferred_end_utc), userTimezone, 'HH:mm')}`
+              const proposalWindowLabel =
+                request.proposal_start_utc && request.proposal_end_utc
+                  ? `${formatInTimeZone(
+                      new Date(request.proposal_start_utc),
+                      userTimezone,
+                      'EEE, d MMM HH:mm',
+                      { locale: ptBR },
+                    )} - ${formatInTimeZone(new Date(request.proposal_end_utc), userTimezone, 'HH:mm')}`
+                  : null
+
+              return (
+                <div key={request.id} className="rounded-2xl border border-neutral-100 bg-white p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-neutral-900">{otherPerson || 'Profissional'}</p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Preferencia enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso nao definido'}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusUi.className}`}>
+                      {statusUi.label}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 space-y-1 text-sm text-neutral-600">
+                    <p>
+                      <span className="font-medium text-neutral-700">Janela preferida:</span>{' '}
+                      {preferredWindowLabel} ({userTimezone.replaceAll('_', ' ')})
+                    </p>
+                    {proposalWindowLabel && (
+                      <p>
+                        <span className="font-medium text-neutral-700">Proposta:</span> {proposalWindowLabel}
+                        {request.proposal_timezone
+                          ? ` (${String(request.proposal_timezone).replaceAll('_', ' ')})`
+                          : ''}
+                      </p>
+                    )}
+                    {request.proposal_expires_at && request.status === 'offered' && (
+                      <p className="text-xs text-amber-700">
+                        Expira em{' '}
+                        {new Date(request.proposal_expires_at).toLocaleString('pt-BR', {
+                          hour12: false,
+                        })}
+                      </p>
+                    )}
+                    {request.user_message && (
+                      <p className="text-xs text-neutral-500">Mensagem: {request.user_message}</p>
+                    )}
+                  </div>
+
+                  <RequestBookingActions
+                    requestId={request.id}
+                    status={request.status}
+                    isProfessional={isProfessional}
+                    proposalTimezone={request.proposal_timezone}
+                    defaultProposalStartLocal={request.proposal_start_utc || request.preferred_start_utc}
+                    defaultDurationMinutes={getDurationMinutes(
+                      request.preferred_start_utc,
+                      request.preferred_end_utc,
+                    )}
+                  />
+                </div>
+              )
+            })}
+
+            {closedRequests.length > 0 && (
+              <div className="rounded-2xl border border-neutral-100 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                  Historico de solicitacoes
+                </p>
+                <div className="space-y-2">
+                  {closedRequests.slice(0, 8).map((request: any) => {
+                    const otherPerson = isProfessional
+                      ? request.profiles?.full_name
+                      : request.professionals?.profiles?.full_name
+                    const statusUi = getRequestStatusUi(request.status)
+                    return (
+                      <div key={request.id} className="flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-neutral-700">
+                            {otherPerson || 'Profissional'}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {formatInTimeZone(
+                              new Date(request.preferred_start_utc),
+                              userTimezone,
+                              'd MMM yyyy HH:mm',
+                              { locale: ptBR },
+                            )}
+                          </p>
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusUi.className}`}>
+                          {statusUi.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-8">
@@ -337,3 +536,4 @@ export default async function AgendaPage() {
     </div>
   )
 }
+

@@ -19,6 +19,7 @@ type Professional = {
 
 export default function FavoritosPage() {
   const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [userCurrency, setUserCurrency] = useState('BRL')
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
 
@@ -30,6 +31,13 @@ export default function FavoritosPage() {
         setLoading(false)
         return
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('currency')
+        .eq('id', user.id)
+        .single()
+      setUserCurrency(profile?.currency || 'BRL')
 
       const { data: favs } = await supabase
         .from('favorites')
@@ -175,7 +183,7 @@ export default function FavoritosPage() {
 
                       <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between">
                         <span className="font-semibold text-neutral-900">
-                          {formatCurrency(pro.session_price_brl)}
+                          {formatCurrency(pro.session_price_brl, userCurrency)}
                         </span>
                         <span className="text-xs text-brand-600 font-medium bg-brand-50 px-2.5 py-1 rounded-full">
                           Agendar

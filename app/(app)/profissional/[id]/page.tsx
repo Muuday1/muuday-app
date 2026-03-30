@@ -19,6 +19,15 @@ export default async function ProfissionalPage({
 }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  let viewerCurrency = 'BRL'
+  if (user) {
+    const { data: viewerProfile } = await supabase
+      .from('profiles')
+      .select('currency')
+      .eq('id', user.id)
+      .single()
+    viewerCurrency = viewerProfile?.currency || 'BRL'
+  }
 
   // Fetch professional with profile
   const { data: professional } = await supabase
@@ -53,6 +62,9 @@ export default async function ProfissionalPage({
   const profile = professional.profiles as any
   const isOwnProfessional = user ? professional.user_id === user.id : false
   const isLoggedIn = !!user
+  const requestBookingAvailable = ['professional', 'premium'].includes(
+    String(professional.tier || 'basic'),
+  )
 
   const firstBookingRelevantStatuses = [
     'pending',
@@ -224,7 +236,9 @@ export default async function ProfissionalPage({
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl border border-neutral-100 p-6 sticky top-6">
             <div className="text-center mb-4">
-              <div className="text-3xl font-bold text-neutral-900">{formatCurrency(professional.session_price_brl)}</div>
+              <div className="text-3xl font-bold text-neutral-900">
+                {formatCurrency(professional.session_price_brl, viewerCurrency)}
+              </div>
               <p className="text-sm text-neutral-500 flex items-center justify-center gap-1 mt-1">
                 <Clock className="w-3.5 h-3.5" /> {professional.session_duration_minutes} minutos
               </p>
@@ -257,14 +271,39 @@ export default async function ProfissionalPage({
                 </p>
               </div>
             ) : (
-              <Link
-                href={isLoggedIn ? `/agendar/${professional.id}` : `/login?redirect=/agendar/${professional.id}`}
-                className="block w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all text-sm text-center"
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <Calendar className="w-4 h-4" /> Agendar sessao
-                </span>
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  href={isLoggedIn ? `/agendar/${professional.id}` : `/login?redirect=/agendar/${professional.id}`}
+                  className="block w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-all text-sm text-center"
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Calendar className="w-4 h-4" /> Agendar sessao
+                  </span>
+                </Link>
+
+                {requestBookingAvailable ? (
+                  <Link
+                    href={
+                      isLoggedIn
+                        ? `/solicitar/${professional.id}`
+                        : `/login?redirect=/solicitar/${professional.id}`
+                    }
+                    className="block w-full border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold py-3 rounded-xl transition-all text-sm text-center"
+                  >
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <MessageCircle className="w-4 h-4" /> Solicitar horario
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full border border-neutral-200 bg-neutral-50 text-neutral-400 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Solicitar horario indisponivel no plano atual
+                  </button>
+                )}
+              </div>
             )}
 
             {searchParams?.erro === 'auto-agendamento' && (
@@ -276,6 +315,12 @@ export default async function ProfissionalPage({
             {searchParams?.erro === 'primeiro-agendamento-bloqueado' && (
               <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
                 Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.
+              </div>
+            )}
+
+            {searchParams?.erro === 'request-booking-indisponivel' && (
+              <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
+                Solicitacao de horario disponivel apenas para profissionais nos planos Professional ou Premium.
               </div>
             )}
 

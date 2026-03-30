@@ -169,3 +169,30 @@ Use this for meaningful checkpoints only.
 - Extracted reminder sync logic to `lib/ops/booking-reminders.ts` and reused it from both cron endpoint and Inngest function.
 - Added migration `013-wave2-dual-gate-first-booking.sql` and implemented dual-gate booking enforcement in app/admin flows.
 - Updated docs/handover/human-actions with production actions: apply migration 013 and complete Inngest cloud key/sync setup.
+
+### Entry 27 (2026-03-30) — Wave 2 request-booking foundation delivery
+- Added migration `014-wave2-request-bookings-foundation.sql` and synced canonical schema snapshot.
+- Implemented request-booking server actions in `lib/actions/request-booking.ts`:
+  - create request
+  - professional offer proposal
+  - professional decline
+  - user accept proposal (conversion to booking + payment record)
+  - user decline/cancel
+  - proposal expiration handling
+- Added new user route `/solicitar/[id]` and UI form component `components/booking/RequestBookingForm.tsx`.
+- Extended `/agenda` with request-booking queue and role-specific actions via `components/booking/RequestBookingActions.tsx`.
+- Updated professional profile CTA to expose "Solicitar horario" when tier allows.
+- Search UX adjustment: removed top category chip strip from `/buscar` and made price display/filters currency-aware from user profile preference (`/buscar`, `/favoritos`, `/profissional/[id]`).
+- Tightened middleware role split for user-only routes (`/agendar`, `/solicitar`, `/favoritos`).
+- Validated code with `lint`, `typecheck`, `build`, and `test:e2e` (2 passed, 1 skipped).
+- Verified Inngest endpoint health in production (`https://muuday-app.vercel.app/api/inngest` returned cloud mode with key detection and 1 function).
+
+### Entry 28 (2026-03-30) — Search currency patch + request transition hardening
+- Repaired `/buscar` filter labels so min/max price reflects selected currency symbol instead of fixed BRL text.
+- Enforced dynamic render on `/buscar` to reduce stale profile-currency reads.
+- Removed the top category-chip strip from search results area (category now lives in the horizontal filter bar).
+- Moved search filters to a horizontal bar under the main search input.
+- Enforced specialty dependency on category selection.
+- Switched location/country UX to full country names and data-driven options from current professionals.
+- Wired request-booking server actions to explicit transition guard (`assertRequestBookingTransition`) and status-matching updates (`.eq('status', currentStatus)`) for safer concurrent updates.
+- Validation: `npm run lint`, `npm run typecheck`, `npm run build` all passed locally.

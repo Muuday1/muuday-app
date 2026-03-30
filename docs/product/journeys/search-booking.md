@@ -1,6 +1,6 @@
 ﻿# User Journey: Search and Booking
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Goal
 
@@ -18,6 +18,7 @@ Help users discover relevant professionals and complete booking safely with clea
 - `/buscar`
 - `/profissional/[id]`
 - `/agendar/[id]`
+- `/solicitar/[id]`
 
 ## Canonical flow
 
@@ -36,25 +37,36 @@ Help users discover relevant professionals and complete booking safely with clea
 4. Slot hold is required before payment completion.
 5. Booking state machine is explicit; UI state is simplified.
 6. Recurring booking/scheduling rules follow deadline and reservation constraints.
+7. Filter bar lives below the search input in a horizontal layout on desktop.
+8. Specialty filter is enabled only after category selection.
+9. Country/location must appear by full name in filters and cards.
+10. Filter options must be derived from professionals currently available in platform data.
 
 ## Current implementation status
 
 `In progress`
 
-- Core search and booking works.
-- Full request-booking and full recurring parity from source spec is not complete.
+- Core search and direct booking works.
+- Request-booking foundation is live (request, proposal, accept/decline/cancel, proposal expiration handling).
+- Search cards and price filter labels now follow selected user currency (with symbol), not fixed BRL labels.
+- Top category-chip strip removed from results area to keep IA cleaner (category now lives in the horizontal filter bar).
+- Filter bar moved to horizontal layout below search bar.
+- Specialty select is now category-dependent.
+- Category/specialty/language/location options are data-driven from active professionals.
+- Country labels render by full name (no 2-letter code) in search cards.
+- Full recurring parity from source spec is not complete.
 
 ## Gaps
 
 1. Full ranking/boost governance parity with tiers.
-2. Full request-booking proposal lifecycle parity.
+2. Transition tests still need parity hardening across direct + request-booking flows (transition guard already enforced in request-booking actions).
 3. Full recurring scheduling reservation/release parity.
 
 ## Next steps
 
 1. Finalize tier-aware ranking and governance controls.
-2. Implement request-booking lifecycle end-to-end.
-3. Expand recurring scheduling and reschedule policy parity.
+2. Expand recurring scheduling and reschedule policy parity.
+3. Add transition-level tests and edge-case coverage for request-booking conversion conflicts.
 
 ## Related docs
 

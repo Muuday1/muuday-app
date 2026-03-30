@@ -9,7 +9,7 @@ Ordered SQL migrations under `db/sql/migrations` are the authoritative DB evolut
 ## Important note
 
 Ordered migrations remain canonical runtime truth.
-`db/sql/schema/supabase-schema.sql` was updated to reflect migrations through `013`, and should stay synchronized whenever a migration is added.
+`db/sql/schema/supabase-schema.sql` was updated to reflect migrations through `014`, and should stay synchronized whenever a migration is added.
 
 ## Key migration milestones
 
@@ -48,6 +48,11 @@ Ordered migrations remain canonical runtime truth.
 - Preserves approved legacy professionals with bootstrap enablement
 - Enables Wave 2 split between go-live visibility and first-booking acceptance
 
+8. `014-wave2-request-bookings-foundation.sql`
+- Adds `request_bookings` with explicit request/proposal lifecycle statuses
+- Adds request-booking indexes for professional/user queue and offer expiration
+- Adds RLS policies for user/professional/admin visibility and updates
+
 ## Migration safety rules
 
 1. Prefer additive and reversible migration steps.
@@ -62,6 +67,7 @@ Ordered migrations remain canonical runtime truth.
 - `categories`, `subcategories`, `specialties`, `professional_specialties`, `tag_suggestions`
 - `availability`, `availability_rules`, `availability_exceptions`
 - `bookings`, `booking_sessions`, `slot_locks`
+- `request_bookings`
 - `payments`
 - `notifications`
 - `professional_settings`

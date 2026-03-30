@@ -1,15 +1,15 @@
 ﻿export const metadata = { title: 'Buscar Profissionais | Muuday' }
 
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Search, Star, Clock, MapPin, SlidersHorizontal, Languages } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   AVAILABILITY_WINDOWS,
-  LANGUAGE_OPTIONS,
   SEARCH_CATEGORIES,
   getSearchCategoryLabel,
-  getSpecialtyOptions,
   matchesAvailabilityWindow,
   matchesSelectedCategory,
   normalizeSearchCategorySlug,
@@ -36,6 +36,23 @@ type AvailabilityRow = {
 }
 
 const PAGE_SIZE = 10
+const CURRENCY_RATES: Record<string, number> = {
+  BRL: 1,
+  USD: 0.19,
+  EUR: 0.17,
+  GBP: 0.15,
+  CAD: 0.26,
+  AUD: 0.29,
+}
+
+const CURRENCY_LABELS: Record<string, string> = {
+  BRL: 'R$',
+  USD: 'US$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'CA$',
+  AUD: 'A$',
+}
 
 function normalizeText(value?: string | null) {
   return (value || '').toLowerCase().trim()
@@ -51,6 +68,22 @@ function parsePage(value?: string) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 1) return 1
   return Math.floor(parsed)
+}
+
+function getCountryDisplayName(countryCodeOrName?: string | null) {
+  if (!countryCodeOrName) return 'Online'
+  const normalized = countryCodeOrName.trim()
+  if (!normalized) return 'Online'
+
+  if (/^[A-Za-z]{2}$/.test(normalized)) {
+    try {
+      const displayNames = new Intl.DisplayNames(['pt-BR', 'en'], { type: 'region' })
+      const resolved = displayNames.of(normalized.toUpperCase())
+      if (resolved) return resolved
+    } catch {}
+  }
+
+  return normalized
 }
 
 const TIER_BOOST: Record<string, number> = { premium: 0.15, professional: 0.08, basic: 0 }
@@ -94,16 +127,34 @@ function getSortedProfessionals(list: any[], sort: string) {
 
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
   const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
-  const selectedSpecialty = searchParams.especialidade || ''
+  const selectedSpecialty = selectedCategory ? (searchParams.especialidade || '') : ''
   const selectedAvailability = searchParams.horario || 'qualquer'
-  const selectedLocation = (searchParams.localizacao || '').trim()
+  const rawSelectedLocation = (searchParams.localizacao || '').trim()
+  const selectedLocation = rawSelectedLocation ? getCountryDisplayName(rawSelectedLocation) : ''
   const selectedLanguage = searchParams.idioma || 'qualquer'
   const selectedSort = searchParams.ordenar || 'relevancia'
   const minPrice = parseOptionalNumber(searchParams.precoMin)
   const maxPrice = parseOptionalNumber(searchParams.precoMax)
+
+  let selectedCurrency = 'BRL'
+  if (user) {
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('currency')
+      .eq('id', user.id)
+      .single()
+    selectedCurrency = (userProfile?.currency || 'BRL').toUpperCase()
+  }
+  const selectedCurrencyRate = CURRENCY_RATES[selectedCurrency] || 1
+  const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
+  const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
+  const maxPriceBrl = maxPrice === null ? null : maxPrice / selectedCurrencyRate
 
   const { data: professionalsRaw } = await supabase
     .from('professionals')
@@ -114,11 +165,64 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
   const professionals = professionalsRaw || []
 
+  const categorySlugsWithProfessionals = new Set(
+    professionals
+      .map((professional: any) => normalizeSearchCategorySlug(professional.category))
+      .filter(Boolean),
+  )
+
+  const categoryOptionsFromData = SEARCH_CATEGORIES.filter(category =>
+    categorySlugsWithProfessionals.has(category.slug),
+  )
+  const categoryOptions = categoryOptionsFromData.length > 0 ? categoryOptionsFromData : SEARCH_CATEGORIES
+
+  const optionBaseProfessionals = selectedCategory
+    ? professionals.filter((professional: any) => matchesSelectedCategory(professional.category, selectedCategory))
+    : professionals
+
+  const specialtySet = new Map<string, string>()
+  optionBaseProfessionals.forEach((professional: any) => {
+    ;[...(professional.subcategories || []), ...(professional.tags || [])].forEach((specialty: string) => {
+      const trimmed = String(specialty || '').trim()
+      if (!trimmed) return
+      const key = normalizeText(trimmed)
+      if (!specialtySet.has(key)) specialtySet.set(key, trimmed)
+    })
+  })
+  const specialtyOptions = Array.from(specialtySet.values()).sort((a, b) =>
+    a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+  )
+
+  const languageSet = new Map<string, string>()
+  optionBaseProfessionals.forEach((professional: any) => {
+    ;(professional.languages || []).forEach((language: string) => {
+      const trimmed = String(language || '').trim()
+      if (!trimmed) return
+      const key = normalizeText(trimmed)
+      if (!languageSet.has(key)) languageSet.set(key, trimmed)
+    })
+  })
+  const languageOptions = Array.from(languageSet.values()).sort((a, b) =>
+    a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+  )
+
+  const locationSet = new Map<string, string>()
+  optionBaseProfessionals.forEach((professional: any) => {
+    const countryRaw = professional.profiles?.country
+    if (!countryRaw) return
+    const countryName = getCountryDisplayName(countryRaw)
+    const key = normalizeText(countryName)
+    if (!locationSet.has(key)) locationSet.set(key, countryName)
+  })
+  const locationOptions = Array.from(locationSet.values()).sort((a, b) =>
+    a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+  )
+
   let filteredProfessionals = professionals.filter((pro: any) => {
     if (selectedCategory && !matchesSelectedCategory(pro.category, selectedCategory)) return false
 
-    if (minPrice !== null && Number(pro.session_price_brl) < minPrice) return false
-    if (maxPrice !== null && Number(pro.session_price_brl) > maxPrice) return false
+    if (minPriceBrl !== null && Number(pro.session_price_brl) < minPriceBrl) return false
+    if (maxPriceBrl !== null && Number(pro.session_price_brl) > maxPriceBrl) return false
 
     if (selectedLanguage !== 'qualquer') {
       const languages = (pro.languages || []).map((language: string) => normalizeText(language))
@@ -126,7 +230,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     }
 
     if (selectedLocation) {
-      const locationHaystack = `${pro.profiles?.country || ''} ${pro.bio || ''}`
+      const countryName = getCountryDisplayName(pro.profiles?.country)
+      const locationHaystack = `${countryName} ${pro.bio || ''}`
       if (!normalizeText(locationHaystack).includes(normalizeText(selectedLocation))) return false
     }
 
@@ -200,7 +305,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         })
 
         const varied: any[] = []
-        SEARCH_CATEGORIES.forEach(category => {
+        categoryOptions.forEach(category => {
           const picks = (grouped.get(category.slug) || []).slice(0, 3)
           varied.push(...picks)
         })
@@ -219,16 +324,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const startIndex = (currentPage - 1) * PAGE_SIZE
   const endIndex = startIndex + PAGE_SIZE
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
-
-  const specialtyOptions = getSpecialtyOptions(selectedCategory)
-
-  const locationOptions = Array.from(
-    new Set(
-      professionals
-        .map((pro: any) => pro.profiles?.country)
-        .filter(Boolean)
-    )
-  ) as string[]
 
   const buildHref = (overrides: Partial<Record<keyof BuscarSearchParams, string>>) => {
     const merged: Partial<Record<keyof BuscarSearchParams, string>> = {
@@ -302,170 +397,152 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         </div>
       </form>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-6 items-start">
-        <aside className="lg:sticky lg:top-24">
-          <form action="/buscar" method="get" className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 space-y-4 shadow-sm">
-            <input type="hidden" name="q" value={queryText} />
-            <input type="hidden" name="ordenar" value={selectedSort} />
-            <input type="hidden" name="pagina" value="1" />
+      <form
+        action="/buscar"
+        method="get"
+        className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6 lg:sticky lg:top-24 z-20"
+      >
+        <input type="hidden" name="q" value={queryText} />
+        <input type="hidden" name="ordenar" value={selectedSort} />
+        <input type="hidden" name="pagina" value="1" />
 
-            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
-              <SlidersHorizontal className="w-4 h-4 text-brand-500" />
-              Filtros
-            </div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800 mb-4">
+          <SlidersHorizontal className="w-4 h-4 text-brand-500" />
+          Filtros
+        </div>
 
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
-              <select
-                name="categoria"
-                defaultValue={selectedCategory}
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-              >
-                <option value="">Todas as categorias</option>
-                {SEARCH_CATEGORIES.map(category => (
-                  <option key={category.slug} value={category.slug}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
-              <select
-                name="especialidade"
-                defaultValue={selectedSpecialty}
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-              >
-                <option value="">Todas as especialidades</option>
-                {specialtyOptions.map(specialty => (
-                  <option key={specialty} value={specialty}>
-                    {specialty}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preco min (R$)</label>
-                <input
-                  type="number"
-                  name="precoMin"
-                  min={0}
-                  step="10"
-                  defaultValue={searchParams.precoMin || ''}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preco max (R$)</label>
-                <input
-                  type="number"
-                  name="precoMax"
-                  min={0}
-                  step="10"
-                  defaultValue={searchParams.precoMax || ''}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horario disponivel</label>
-              <select
-                name="horario"
-                defaultValue={selectedAvailability}
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-              >
-                {AVAILABILITY_WINDOWS.map(window => (
-                  <option key={window.value} value={window.value}>
-                    {window.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localizacao</label>
-              <input
-                type="text"
-                name="localizacao"
-                list="locations"
-                defaultValue={selectedLocation}
-                placeholder="Pais, cidade ou regiao"
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
-              />
-              <datalist id="locations">
-                {locationOptions.map(location => (
-                  <option key={location} value={location} />
-                ))}
-              </datalist>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
-                <Languages className="w-3.5 h-3.5" />
-                Idiomas falados
-              </label>
-              <select
-                name="idioma"
-                defaultValue={selectedLanguage}
-                className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-              >
-                <option value="qualquer">Qualquer idioma</option>
-                {LANGUAGE_OPTIONS.map(language => (
-                  <option key={language} value={language}>
-                    {language}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="submit"
-                className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
-              >
-                Aplicar
-              </button>
-              <Link
-                href="/buscar"
-                className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 rounded-xl text-sm text-center transition-all"
-              >
-                Limpar
-              </Link>
-            </div>
-          </form>
-        </aside>
-
-        <section>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Link
-              href={buildHref({ categoria: '', especialidade: '', pagina: '1' })}
-              className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
-                !selectedCategory
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-300'
-              }`}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3 items-end">
+          <div className="xl:col-span-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
+            <select
+              name="categoria"
+              defaultValue={selectedCategory}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
             >
-              Todas
-            </Link>
-            {SEARCH_CATEGORIES.map(category => (
-              <Link
-                key={category.slug}
-                href={buildHref({ categoria: category.slug, especialidade: '', pagina: '1' })}
-                className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
-                  selectedCategory === category.slug
-                    ? 'bg-brand-500 text-white'
-                    : 'bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                }`}
-              >
-                {category.icon} {category.name}
-              </Link>
-            ))}
+              <option value="">Todas as categorias</option>
+              {categoryOptions.map(category => (
+                <option key={category.slug} value={category.slug}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
+          <div className="xl:col-span-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
+            <select
+              name="especialidade"
+              defaultValue={selectedSpecialty}
+              disabled={!selectedCategory}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {selectedCategory ? 'Todas as especialidades' : 'Selecione uma categoria primeiro'}
+              </option>
+              {specialtyOptions.map(specialty => (
+                <option key={specialty} value={specialty}>
+                  {specialty}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="xl:col-span-1">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5">
+              Preco min ({selectedCurrencyLabel})
+            </label>
+            <input
+              type="number"
+              name="precoMin"
+              min={0}
+              step="10"
+              defaultValue={searchParams.precoMin || ''}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
+            />
+          </div>
+
+          <div className="xl:col-span-1">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5">
+              Preco max ({selectedCurrencyLabel})
+            </label>
+            <input
+              type="number"
+              name="precoMax"
+              min={0}
+              step="10"
+              defaultValue={searchParams.precoMax || ''}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
+            />
+          </div>
+
+          <div className="xl:col-span-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horario disponivel</label>
+            <select
+              name="horario"
+              defaultValue={selectedAvailability}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+            >
+              {AVAILABILITY_WINDOWS.map(window => (
+                <option key={window.value} value={window.value}>
+                  {window.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="xl:col-span-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localizacao</label>
+            <select
+              name="localizacao"
+              defaultValue={selectedLocation}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+            >
+              <option value="">Todos os paises</option>
+              {locationOptions.map(location => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="xl:col-span-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
+              <Languages className="w-3.5 h-3.5" />
+              Idiomas falados
+            </label>
+            <select
+              name="idioma"
+              defaultValue={selectedLanguage}
+              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+            >
+              <option value="qualquer">Qualquer idioma</option>
+              {languageOptions.map(language => (
+                <option key={language} value={language}>
+                  {language}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="xl:col-span-12 flex items-center justify-end gap-2 pt-1">
+            <button
+              type="submit"
+              className="bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all"
+            >
+              Aplicar
+            </button>
+            <Link
+              href="/buscar"
+              className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all"
+            >
+              Limpar
+            </Link>
+          </div>
+        </div>
+      </form>
+
+      <section>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div>
               <p className="text-sm font-semibold text-neutral-900">{totalResults} profissionais</p>
@@ -539,7 +616,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-neutral-900">
-                              {formatCurrency(professional.session_price_brl)}
+                              {formatCurrency(professional.session_price_brl, selectedCurrency)}
                             </p>
                             <p className="text-[11px] text-neutral-400">por sessao</p>
                           </div>
@@ -560,7 +637,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           </span>
                           <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
                             <MapPin className="w-3 h-3" />
-                            {professional.profiles?.country || 'Online'}
+                            {getCountryDisplayName(professional.profiles?.country)}
                           </span>
                         </div>
 
@@ -630,7 +707,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             </>
           )}
         </section>
-      </div>
     </div>
   )
 }
