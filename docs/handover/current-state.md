@@ -60,6 +60,11 @@ Last updated: 2026-03-30 (session 25)
 37. Request-booking state transition guard wired into server actions:
 - explicit allowed transitions via `lib/booking/request-booking-state-machine.ts`
 - optimistic update guards now include `.eq('status', currentStatus)` to reduce race-condition overwrites
+38. Role-based navigation shell updated:
+- user nav: Buscar, Bookings, Favoritos, Perfil
+- professional nav: Dashboard, Calendario, Financeiro, Configuracoes
+- app logo now routes to landing page (`/`)
+39. Professional workspace guard tightened and `/financeiro` page added as Wave 2 finance surface stub.
 
 ## Partially implemented (`In progress`)
 

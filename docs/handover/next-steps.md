@@ -40,7 +40,7 @@ Dependencies:
 - Transition guard is already wired in request-booking actions; remaining step is test coverage for allowed/blocked paths.
 4. Finalize recurring scheduling deadlines and reserved-slot release behavior.
 5. Enforce onboarding field-gate matrix end-to-end (account, review, go-live, first booking, payout).
-6. Validate and tighten role-specific navigation + route guards for public/user/professional/admin paths.
+6. ~~Validate and tighten role-specific navigation + route guards for public/user/professional/admin paths.~~ Done (role-based nav in app layout + professional route hardening incl. `/financeiro`).
 7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ In progress — first workflow shipped and endpoint healthy; cloud sync attachment confirmation still pending.
 8. Confirm Inngest cloud app has attached sync to latest endpoint path (`/api/inngest`) and clear stale unattached sync history.
 

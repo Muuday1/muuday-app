@@ -196,3 +196,11 @@ Use this for meaningful checkpoints only.
 - Switched location/country UX to full country names and data-driven options from current professionals.
 - Wired request-booking server actions to explicit transition guard (`assertRequestBookingTransition`) and status-matching updates (`.eq('status', currentStatus)`) for safer concurrent updates.
 - Validation: `npm run lint`, `npm run typecheck`, `npm run build` all passed locally.
+
+### Entry 29 (2026-03-30) — Wave 2 role-based navigation and route hardening
+- Updated app shell navigation by role:
+  - user: Buscar, Bookings, Favoritos, Perfil
+  - professional: Dashboard, Calendario, Financeiro, Configuracoes
+- Updated app logo destination to landing page (`/`) for desktop and mobile headers.
+- Added `/financeiro` route (professional/admin) as Wave 2 financial surface stub, preserving Stripe-heavy implementation for Wave 3.
+- Tightened middleware guards for professional-only workspace routes and user-only route redirect behavior.

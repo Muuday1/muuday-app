@@ -19,19 +19,36 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = profile?.role === 'admin'
   const isLoggedIn = !!user
 
-  const navItems = [
-    { href: '/buscar', icon: 'Search', label: 'Buscar' },
-    { href: '/favoritos', icon: 'Heart', label: 'Favoritos', hide: !isLoggedIn },
-    { href: '/agenda', icon: 'Calendar', label: 'Agenda', hide: !isLoggedIn },
-    { href: '/perfil', icon: 'User', label: 'Perfil', hide: !isLoggedIn },
-    { href: '/admin', icon: 'Shield', label: 'Admin', hide: !isAdmin },
-  ].filter(item => !item.hide)
+  const navItems = (() => {
+    if (!isLoggedIn) return []
+    if (isAdmin) {
+      return [
+        { href: '/admin', icon: 'Shield', label: 'Admin' },
+        { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
+        { href: '/perfil', icon: 'User', label: 'Perfil' },
+      ]
+    }
+    if (isProfissional) {
+      return [
+        { href: '/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
+        { href: '/agenda', icon: 'Calendar', label: 'Calendario' },
+        { href: '/financeiro', icon: 'Wallet', label: 'Financeiro' },
+        { href: '/configuracoes', icon: 'Settings', label: 'Configuracoes' },
+      ]
+    }
+    return [
+      { href: '/buscar', icon: 'Search', label: 'Buscar' },
+      { href: '/agenda', icon: 'Calendar', label: 'Bookings' },
+      { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
+      { href: '/perfil', icon: 'User', label: 'Perfil' },
+    ]
+  })()
 
   return (
     <div className="min-h-screen bg-[#f6f4ef] flex">
       <aside className="hidden md:flex w-64 bg-white border-r border-neutral-100 flex-col fixed h-full z-10">
         <div className="p-6 border-b border-neutral-100">
-          <Link href="/buscar" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-brand-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-display font-bold text-sm">M</span>
             </div>
@@ -76,7 +93,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <main className="flex-1 md:ml-64 min-h-screen pb-20 md:pb-0">
         <div className="md:hidden sticky top-0 z-20 bg-white/80 backdrop-blur-lg border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
-          <Link href="/buscar" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 bg-brand-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-display font-bold text-xs">M</span>
             </div>
@@ -113,7 +130,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </main>
 
-      {isLoggedIn && <MobileNav navItems={navItems} isProfissional={isProfissional} />}
+      {isLoggedIn && <MobileNav navItems={navItems} />}
     </div>
   )
 }

@@ -30,14 +30,14 @@ export async function updateSession(request: NextRequest) {
   const isPublicApp = publicAppPaths.some(path => pathname.startsWith(path))
 
   // Auth-required routes
-  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/agendar', '/solicitar', '/editar-perfil-profissional', '/configuracoes-agendamento']
+  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/agendar', '/solicitar', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/financeiro']
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 
   // Admin-only routes
   const isAdminRoute = pathname.startsWith('/admin')
 
   // Professional-only routes
-  const professionalPaths = ['/editar-perfil-profissional', '/configuracoes-agendamento']
+  const professionalPaths = ['/dashboard', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/completar-perfil', '/financeiro']
   const isProfessionalRoute = professionalPaths.some(path => pathname.startsWith(path))
   const userOnlyPaths = ['/agendar', '/solicitar', '/favoritos']
   const isUserOnlyRoute = userOnlyPaths.some(path => pathname.startsWith(path))
@@ -77,7 +77,7 @@ export async function updateSession(request: NextRequest) {
 
     if (isUserOnlyRoute && profile?.role !== 'usuario') {
       const url = request.nextUrl.clone()
-      url.pathname = profile?.role === 'admin' ? '/admin' : '/agenda'
+      url.pathname = profile?.role === 'admin' ? '/admin' : '/dashboard'
       return NextResponse.redirect(url)
     }
   }

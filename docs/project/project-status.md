@@ -63,6 +63,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 24. Search filter UX patched to remove top category-chip strip and keep price labels/cards aligned with selected currency symbol.
 25. Request-booking flow hardened with explicit request-state transition guards in server actions (`assertRequestBookingTransition`) plus optimistic status checks on updates.
 26. Search filters now follow source-of-truth UX detail: horizontal filter bar, specialty gated by category, full country names, and filter options derived from existing professionals.
+27. Role-based navigation updated in app shell:
+- user primary nav: Buscar, Bookings, Favoritos, Perfil
+- professional primary nav: Dashboard, Calendario, Financeiro, Configuracoes
+- logo routes to landing (`/`) from app shell
+28. Route-guard hardening for professional workspace paths (`/dashboard`, `/disponibilidade`, `/configuracoes-agendamento`, `/editar-perfil-profissional`, `/completar-perfil`, `/financeiro`).
 
 ## Immediate next actions
 
@@ -72,6 +77,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - finalize transition tests (transition map guard now enforced in request-booking actions)
 - recurring deadline + slot-release behavior
 - onboarding gate matrix enforcement end-to-end
+4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
 4. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
 5. Prepare Stripe corridor validation packet and run external confirmation process.
 
