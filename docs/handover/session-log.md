@@ -204,3 +204,11 @@ Use this for meaningful checkpoints only.
 - Updated app logo destination to landing page (`/`) for desktop and mobile headers.
 - Added `/financeiro` route (professional/admin) as Wave 2 financial surface stub, preserving Stripe-heavy implementation for Wave 3.
 - Tightened middleware guards for professional-only workspace routes and user-only route redirect behavior.
+
+### Entry 30 (2026-03-30) — Wave 2 transition-test automation
+- Added `scripts/ops/test-state-machines.cjs`.
+- Added npm command `npm run test:state-machines`.
+- Validation covers:
+  - booking transition map structure and required edges
+  - request-booking transition map structure and required edges
+  - terminal-state immutability checks

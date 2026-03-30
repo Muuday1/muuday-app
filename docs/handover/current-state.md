@@ -65,6 +65,9 @@ Last updated: 2026-03-30 (session 25)
 - professional nav: Dashboard, Calendario, Financeiro, Configuracoes
 - app logo now routes to landing page (`/`)
 39. Professional workspace guard tightened and `/financeiro` page added as Wave 2 finance surface stub.
+40. State machine validation script added:
+- `npm run test:state-machines`
+- validates direct booking and request-booking transition maps/terminal states/critical edges.
 
 ## Partially implemented (`In progress`)
 

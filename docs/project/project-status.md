@@ -68,13 +68,13 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - professional primary nav: Dashboard, Calendario, Financeiro, Configuracoes
 - logo routes to landing (`/`) from app shell
 28. Route-guard hardening for professional workspace paths (`/dashboard`, `/disponibilidade`, `/configuracoes-agendamento`, `/editar-perfil-profissional`, `/completar-perfil`, `/financeiro`).
+29. Added state-machine validation automation (`npm run test:state-machines`) covering direct booking and request-booking transition maps, terminal states, and required edges.
 
 ## Immediate next actions
 
 1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
 2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
 3. Continue Wave 2 parity tasks:
-- finalize transition tests (transition map guard now enforced in request-booking actions)
 - recurring deadline + slot-release behavior
 - onboarding gate matrix enforcement end-to-end
 4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
