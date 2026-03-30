@@ -28,7 +28,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Critical blockers
 
-1. Production schema parity for booking foundation tables.
+1. ~~Production schema parity for booking foundation tables.~~ **Resolved 2026-03-29**: migrations 001-006 applied.
 2. Stripe corridor validation for UK-platform to Brazil payout path.
 3. Final legal/compliance wording freeze for sensitive categories.
 
@@ -38,10 +38,14 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. Unified spec docs created (`master-spec`, `execution-plan`, `open-validations`, unified AI protocol).
 3. Existing docs and journey mapping updated to execution-wave model.
 4. Explicit data governance and lifecycle policy documented with retention/deletion matrix by data type.
+5. Production schema parity achieved — all 6 migrations applied to live Supabase (2026-03-29).
+6. Sentry fully configured with DSN + withSentryConfig wrapper in next.config.js.
+7. Playwright e2e auto-loads .env.local — 2/3 critical booking tests pass deterministically.
+8. Security hardening: role escalation fix, RLS profile update restriction, favorites RLS, profiles select restriction.
 
 ## Immediate next actions
 
-1. Close Wave 0 schema parity and e2e fixture stability.
+1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Near complete** — remaining: add Sentry env vars to Vercel, verify Checkly checks.
 2. Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).
 3. Prepare Stripe corridor validation packet and run external confirmation process.
 

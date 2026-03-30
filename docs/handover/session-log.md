@@ -86,3 +86,10 @@ Use this for meaningful checkpoints only.
 - Updated tech-stack governance to require phase entry and growth trigger metadata for all active/proposed components.
 - Added wave-based stack adoption mapping in roadmap and human-actions tool matrix.
 - Added handover rule to review/update stack phase tracking at every Wave close.
+
+### Entry 18 (2026-03-29)
+- Applied all production schema migrations (001-006) to live Supabase (`jbbnbbrroifghrshplsq`).
+- Fixed `availability_exceptions` table schema mismatch (recreated with correct `date_local` column).
+- Migrations applied: role escalation fix, RLS restrict, favorites RLS, schema alignment, production booking foundation (professional_settings, availability_rules, availability_exceptions, slot_locks, payments, booking_sessions, calendar_integrations + full RLS), booking operations and reminders (notifications table + partial refund support).
+- Wave 0 schema parity task: `Done`.
+- Follow-up: validate e2e fixtures against new schema, continue Wave 0 exit criteria.

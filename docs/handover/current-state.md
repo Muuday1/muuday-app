@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-29
+Last updated: 2026-03-29 (session 18)
 
 ## Canonical baseline status
 
@@ -16,6 +16,10 @@ Last updated: 2026-03-29
 4. CI baseline and cron baseline exist.
 5. Monitoring and analytics instrumentation baseline exists (activation parity still pending).
 6. Documentation governance and handover system are active.
+7. Production schema parity for booking foundation (migrations 001-006 applied).
+8. Sentry DSN configured and next.config.js wrapped with withSentryConfig.
+9. Playwright e2e tests load env vars from .env.local automatically — 2/3 pass deterministically.
+10. Security fixes applied: role escalation trigger, RLS update policy, favorites RLS, profiles select restriction.
 
 ## Partially implemented (`In progress`)
 
@@ -30,13 +34,15 @@ Last updated: 2026-03-29
 1. Stripe corridor validation for UK platform to Brazil-heavy professional payouts.
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
-4. Production schema parity gaps affecting some booking foundations in production API.
+
+### Resolved blockers
+- ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
 
 ## Active execution mode
 
 Wave-driven delivery is now mandatory:
 
-1. Wave 0: schema parity + deterministic quality baseline.
+1. Wave 0: schema parity + deterministic quality baseline. **Status: near complete — schema done, e2e passing, Sentry active. Remaining: verify Checkly checks, confirm Vercel env vars for Sentry DSN.**
 2. Wave 1: foundations/discovery/tier parity.
 3. Wave 2: onboarding and booking lifecycle parity.
 4. Wave 3: payments/revenue parity.
