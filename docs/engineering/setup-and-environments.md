@@ -52,6 +52,12 @@ Notes:
 - Add `--dry-run` to validate config without calling Supabase.
 - Add `--cleanup` to auto-delete the created smoke user (requires service role key).
 
+6. Optional: run Inngest locally (non-critical workflows)
+
+```bash
+npm run inngest:dev
+```
+
 ## Environment model
 
 1. Local development

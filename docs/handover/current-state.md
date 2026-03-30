@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-30 (session 23)
+Last updated: 2026-03-30 (session 24)
 
 ## Canonical baseline status
 
@@ -38,6 +38,8 @@ Last updated: 2026-03-30 (session 23)
 26. Added Supabase Auth smoke validation command (`npm run auth:validate-smoke`) with dry-run and cleanup modes.
 27. Added migration 012 (`auth-signup-trigger-hardening`) to fix signup failure from DB trigger/role drift.
 28. Applied migrations 011 + 012 in production and validated `auth:validate-smoke` successfully.
+29. Added first Inngest workflow (`sync-booking-reminders`) sharing logic with cron fallback.
+30. Started Wave 2 dual-gate implementation (`013-wave2-dual-gate-first-booking`) with booking guard + admin release toggle.
 
 ## Partially implemented (`In progress`)
 
@@ -52,6 +54,8 @@ Last updated: 2026-03-30 (session 23)
 1. Stripe corridor validation for UK platform to Brazil-heavy professional payouts.
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
+4. Pending production apply of migration 013 for dual-gate fields.
+5. Pending Inngest cloud key/sync activation in production.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
@@ -63,7 +67,7 @@ Wave-driven delivery is now mandatory:
 
 1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-012), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel, auth smoke flow validated.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
-3. Wave 2: onboarding and booking lifecycle parity.
+3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress.** Dual-gate foundation implemented in code; next items are request-booking flow and booking transition/test parity.
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
 6. Wave 5: session provider + compliance freeze.

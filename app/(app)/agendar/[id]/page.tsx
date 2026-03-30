@@ -14,7 +14,7 @@ export default async function AgendarPage({ params }: { params: { id: string } }
   // Fetch professional with profile
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*, profiles(*)')
+    .select('*, profiles(*), first_booking_enabled')
     .eq('id', params.id)
     .single()
 
@@ -25,6 +25,26 @@ export default async function AgendarPage({ params }: { params: { id: string } }
   // Prevent professionals from booking themselves
   if (professional.user_id === user.id) {
     redirect(`/profissional/${params.id}?erro=auto-agendamento`)
+  }
+
+  const firstBookingRelevantStatuses = [
+    'pending',
+    'pending_confirmation',
+    'confirmed',
+    'completed',
+    'no_show',
+    'rescheduled',
+  ]
+
+  const { count: existingAcceptedBookingsCount } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('professional_id', professional.id)
+    .in('status', firstBookingRelevantStatuses)
+
+  const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
+  if (!hasAcceptedBookings && !professional.first_booking_enabled) {
+    redirect(`/profissional/${params.id}?erro=primeiro-agendamento-bloqueado`)
   }
 
   // Fetch user profile for timezone and currency

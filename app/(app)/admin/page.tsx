@@ -27,6 +27,9 @@ type AdminProfessional = {
   id: string
   user_id: string
   status: string
+  first_booking_enabled: boolean
+  first_booking_gate_note?: string | null
+  first_booking_gate_updated_at?: string | null
   bio: string
   category: string
   tags: string[]
@@ -198,6 +201,38 @@ export default function AdminPage() {
       setProfessionals(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p))
       showSuccess(`Profissional ${newStatus === 'approved' ? 'aprovado' : newStatus === 'rejected' ? 'rejeitado' : newStatus === 'suspended' ? 'suspenso' : 'atualizado'}!`)
     }
+    setActionLoading(null)
+  }
+
+  async function updateFirstBookingGate(id: string, enabled: boolean) {
+    const actionKey = `${id}:first-booking-gate`
+    setActionLoading(actionKey)
+    const { error } = await supabase
+      .from('professionals')
+      .update({
+        first_booking_enabled: enabled,
+        first_booking_gate_note: enabled ? 'admin_enabled' : 'admin_blocked',
+        first_booking_gate_updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+
+    if (!error) {
+      setProfessionals(prev =>
+        prev.map(p =>
+          p.id === id
+            ? {
+                ...p,
+                first_booking_enabled: enabled,
+                first_booking_gate_note: enabled ? 'admin_enabled' : 'admin_blocked',
+                first_booking_gate_updated_at: new Date().toISOString(),
+              }
+            : p,
+        ),
+      )
+      showSuccess(enabled ? 'Primeiro agendamento liberado.' : 'Primeiro agendamento bloqueado.')
+    }
+
     setActionLoading(null)
   }
 
@@ -540,6 +575,15 @@ export default function AdminPage() {
                               </div>
                             </div>
                             <div>
+                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Gate do 1o agendamento</p>
+                              <p className={`text-sm font-medium ${pro.first_booking_enabled ? 'text-green-700' : 'text-amber-700'}`}>
+                                {pro.first_booking_enabled ? 'Liberado' : 'Bloqueado'}
+                              </p>
+                              {pro.first_booking_gate_note && (
+                                <p className="text-xs text-neutral-500 mt-0.5">Motivo: {pro.first_booking_gate_note}</p>
+                              )}
+                            </div>
+                            <div>
                               <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Registrado em</p>
                               <p className="text-sm text-neutral-700">
                                 {new Date(pro.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -584,6 +628,27 @@ export default function AdminPage() {
                               </button>
                             )}
 
+                            {pro.status === 'approved' && !pro.first_booking_enabled && (
+                              <button
+                                onClick={() => updateFirstBookingGate(pro.id, true)}
+                                disabled={actionLoading === `${pro.id}:first-booking-gate`}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                {actionLoading === `${pro.id}:first-booking-gate` ? 'Processando...' : 'Liberar 1o agendamento'}
+                              </button>
+                            )}
+
+                            {pro.status === 'approved' && pro.first_booking_enabled && (
+                              <button
+                                onClick={() => updateFirstBookingGate(pro.id, false)}
+                                disabled={actionLoading === `${pro.id}:first-booking-gate`}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                              >
+                                <Ban className="w-4 h-4" />
+                                {actionLoading === `${pro.id}:first-booking-gate` ? 'Processando...' : 'Bloquear 1o agendamento'}
+                              </button>
+                            )}
                             {(pro.status === 'suspended' || pro.status === 'rejected') && (
                               <button
                                 onClick={() => updateProfessionalStatus(pro.id, 'pending_review')}

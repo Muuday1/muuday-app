@@ -23,7 +23,7 @@ export default async function ProfissionalPage({
   // Fetch professional with profile
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*, profiles(*)')
+    .select('*, profiles(*), first_booking_enabled')
     .eq('id', params.id)
     .single()
 
@@ -53,6 +53,23 @@ export default async function ProfissionalPage({
   const profile = professional.profiles as any
   const isOwnProfessional = user ? professional.user_id === user.id : false
   const isLoggedIn = !!user
+
+  const firstBookingRelevantStatuses = [
+    'pending',
+    'pending_confirmation',
+    'confirmed',
+    'completed',
+    'no_show',
+    'rescheduled',
+  ]
+  const { count: existingAcceptedBookingsCount } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('professional_id', professional.id)
+    .in('status', firstBookingRelevantStatuses)
+
+  const firstBookingBlocked =
+    !professional.first_booking_enabled && (existingAcceptedBookingsCount || 0) === 0
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
@@ -226,6 +243,19 @@ export default async function ProfissionalPage({
                   Nao e possivel agendar sessao com voce mesmo.
                 </p>
               </div>
+            ) : firstBookingBlocked ? (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  disabled
+                  className="w-full bg-neutral-100 text-neutral-400 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed"
+                >
+                  <Calendar className="w-4 h-4" /> Agendamento indisponivel
+                </button>
+                <p className="text-xs text-neutral-500 text-center">
+                  Este profissional ainda nao foi liberado para aceitar o primeiro agendamento.
+                </p>
+              </div>
             ) : (
               <Link
                 href={isLoggedIn ? `/agendar/${professional.id}` : `/login?redirect=/agendar/${professional.id}`}
@@ -240,6 +270,12 @@ export default async function ProfissionalPage({
             {searchParams?.erro === 'auto-agendamento' && (
               <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
                 Nao e permitido agendar sessao com o proprio perfil profissional.
+              </div>
+            )}
+
+            {searchParams?.erro === 'primeiro-agendamento-bloqueado' && (
+              <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
+                Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.
               </div>
             )}
 
@@ -265,4 +301,3 @@ export default async function ProfissionalPage({
     </div>
   )
 }
-

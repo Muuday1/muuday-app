@@ -25,10 +25,10 @@ Use `docs/spec/consolidated/master-spec.md` for unified reading and `execution-p
 ## Current priorities
 
 1. Wave 2 parity for onboarding and booking lifecycle correctness.
-2. Verify Vercel budget alerts and keep on-call/monitoring hygiene active.
-3. Wave 3 payments-revenue implementation (Stripe + ledger + payout lifecycle).
-4. Wave 4 admin case operations and trust/notification system completion.
-5. Wave 5 session-provider and compliance freeze.
+2. Apply migration 013 in production and keep dual-gate policy consistent.
+3. Activate Inngest in production (keys + cloud sync) while keeping cron fallback.
+4. Wave 3 payments-revenue implementation (Stripe + ledger + payout lifecycle).
+5. Wave 4 admin case operations and trust/notification system completion.
 
 ## Biggest risks / unknowns
 

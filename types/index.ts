@@ -18,6 +18,9 @@ export type Professional = {
   id: string
   user_id: string
   status: ProfessionalStatus
+  first_booking_enabled?: boolean
+  first_booking_gate_note?: string
+  first_booking_gate_updated_at?: string
   bio: string
   category: string
   subcategories: string[]

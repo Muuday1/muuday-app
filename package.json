@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "inngest:dev": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
     "test:e2e": "playwright test",
     "auth:validate-smoke": "node scripts/ops/validate-supabase-auth-flow.cjs",
     "test:checkly-local": "playwright test --config playwright.checkly.config.ts",

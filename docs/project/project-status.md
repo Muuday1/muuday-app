@@ -51,14 +51,17 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 15. Added Supabase Auth smoke validation command (`npm run auth:validate-smoke`) for signup/reset flow checks.
 16. Added migration `012-auth-signup-trigger-hardening.sql` to stabilize auth trigger and canonical role mapping.
 17. Applied migrations `011` and `012` in production and validated auth signup/reset flow successfully.
+18. Added first Inngest workflow (`sync-booking-reminders`) with cron fallback preserved.
+19. Started Wave 2 dual-gate foundation with migration `013-wave2-dual-gate-first-booking.sql` and booking/admin guard logic.
 
 ## Immediate next actions
 
 1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
 2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
-3. Verify Vercel spending limits/budget alerts in dashboard.
-4. Start Wave 2 parity tasks (professional onboarding + booking lifecycle).
-5. Prepare Stripe corridor validation packet and run external confirmation process.
+3. Apply migration `013-wave2-dual-gate-first-booking.sql` in production.
+4. Set Inngest production keys and sync app endpoint.
+5. Continue Wave 2 parity tasks (request-booking lifecycle and booking transition map/tests).
+6. Prepare Stripe corridor validation packet and run external confirmation process.
 
 ## Continuity rule
 

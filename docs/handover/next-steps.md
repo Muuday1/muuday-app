@@ -17,10 +17,10 @@ Execute in order. Build one batch at a time.
 8. ~~Record final parity status in docs.~~ Done.
 
 ### Remaining
-1. Verify Vercel spending limits via dashboard.
+1. None.
 
 Dependencies:
-- Vercel billing dashboard access.
+- None.
 
 ## Priority 1 - Wave 1 delivery batch
 
@@ -34,13 +34,15 @@ Dependencies:
 
 ## Priority 2 - Wave 2 delivery batch
 
-1. Enforce dual gate model for professionals (go-live vs first-booking eligibility).
+1. ~~Enforce dual gate model for professionals (go-live vs first-booking eligibility).~~ In progress — foundation delivered (migration + admin toggle + booking guard); production apply pending.
 2. Finish request-booking lifecycle, proposal expiration, and conversion flow.
 3. Finalize booking state machine transition map and tests.
 4. Finalize recurring scheduling deadlines and reserved-slot release behavior.
 5. Enforce onboarding field-gate matrix end-to-end (account, review, go-live, first booking, payout).
 6. Validate role-specific navigation and route guards for public/user/professional/admin paths.
-7. Wire first Inngest non-critical workflow while keeping cron as fallback.
+7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ In progress — first workflow shipped in code, production key/sync pending.
+8. Apply migration 013 in production.
+9. Set Inngest production keys and sync endpoint in cloud.
 
 Dependencies:
 - Wave 1 critical path complete.

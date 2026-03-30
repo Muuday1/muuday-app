@@ -2,7 +2,7 @@
 -- MUUDAY CANONICAL SCHEMA SNAPSHOT
 -- ============================================
 -- Snapshot aligned with migrations through:
--- - 012-auth-signup-trigger-hardening.sql
+-- - 013-wave2-dual-gate-first-booking.sql
 --
 -- Notes:
 -- 1) Ordered migrations in db/sql/migrations remain the source of truth for evolution.
@@ -56,6 +56,9 @@ CREATE TABLE IF NOT EXISTS professionals (
   total_bookings INTEGER DEFAULT 0,
   tier TEXT NOT NULL DEFAULT 'basic' CHECK (tier IN ('basic', 'professional', 'premium')),
   category_id UUID,
+  first_booking_enabled BOOLEAN NOT NULL DEFAULT false,
+  first_booking_gate_note TEXT,
+  first_booking_gate_updated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

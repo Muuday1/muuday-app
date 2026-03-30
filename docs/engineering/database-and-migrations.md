@@ -9,7 +9,7 @@ Ordered SQL migrations under `db/sql/migrations` are the authoritative DB evolut
 ## Important note
 
 Ordered migrations remain canonical runtime truth.
-`db/sql/schema/supabase-schema.sql` was updated to reflect migrations through `012`, and should stay synchronized whenever a migration is added.
+`db/sql/schema/supabase-schema.sql` was updated to reflect migrations through `013`, and should stay synchronized whenever a migration is added.
 
 ## Key migration milestones
 
@@ -42,6 +42,11 @@ Ordered migrations remain canonical runtime truth.
 - Hardens `handle_new_user` trigger with canonical role normalization
 - Adds idempotent profile upsert behavior at auth signup boundary
 - Reapplies canonical `profiles.role` check constraint
+
+7. `013-wave2-dual-gate-first-booking.sql`
+- Adds explicit first-booking gate fields on professionals
+- Preserves approved legacy professionals with bootstrap enablement
+- Enables Wave 2 split between go-live visibility and first-booking acceptance
 
 ## Migration safety rules
 

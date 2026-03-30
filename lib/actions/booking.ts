@@ -23,6 +23,14 @@ type SessionSlot = {
 }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
+const FIRST_BOOKING_RELEVANT_STATUSES = [
+  'pending',
+  'pending_confirmation',
+  'confirmed',
+  'completed',
+  'no_show',
+  'rescheduled',
+]
 
 function reportBookingError(
   error: unknown,
@@ -206,7 +214,7 @@ export async function createBooking(data: {
   const { data: professional } = await supabase
     .from('professionals')
     .select(
-      'id, user_id, session_price_brl, session_duration_minutes, status, profiles!professionals_user_id_fkey(timezone)'
+      'id, user_id, session_price_brl, session_duration_minutes, status, first_booking_enabled, profiles!professionals_user_id_fkey(timezone)'
     )
     .eq('id', bookingInput.professionalId)
     .single()
@@ -217,6 +225,20 @@ export async function createBooking(data: {
 
   if (professional.user_id === user.id) {
     return { success: false, error: 'Nao e permitido agendar sessao com seu proprio perfil.' }
+  }
+
+  const { count: existingAcceptedBookingsCount } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('professional_id', bookingInput.professionalId)
+    .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
+
+  const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
+  if (!hasAcceptedBookings && !professional.first_booking_enabled) {
+    return {
+      success: false,
+      error: 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.',
+    }
   }
 
   const professionalProfile = Array.isArray(professional.profiles)

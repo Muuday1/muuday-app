@@ -163,3 +163,9 @@ Use this for meaningful checkpoints only.
 - Confirmed operator applied migrations `011` and `012` in production.
 - Confirmed auth smoke validation succeeded (signup + reset flow).
 - Updated next-steps/project-status/current-state/human-actions to remove resolved blocker and keep only remaining pre-Wave-2 human checks.
+
+### Entry 26 (2026-03-30) — Inngest activation path + Wave 2 kickoff
+- Replaced Inngest placeholder with first non-critical workflow: `sync-booking-reminders` (cron + event trigger).
+- Extracted reminder sync logic to `lib/ops/booking-reminders.ts` and reused it from both cron endpoint and Inngest function.
+- Added migration `013-wave2-dual-gate-first-booking.sql` and implemented dual-gate booking enforcement in app/admin flows.
+- Updated docs/handover/human-actions with production actions: apply migration 013 and complete Inngest cloud key/sync setup.

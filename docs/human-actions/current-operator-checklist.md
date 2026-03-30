@@ -6,17 +6,19 @@ Use this as the live checklist of actions that require human access to provider 
 
 ## Do now
 
-1. Verify Vercel spending limits/budget alerts in dashboard.
-2. Confirm Sentry alert rule is sending emails to `igorpinto.lds@gmail.com`.
-3. Add Inngest keys in Vercel production env (can be deferred while cron fallback stays active):
+1. Run SQL migration `013-wave2-dual-gate-first-booking.sql` in Supabase SQL Editor.
+2. Add Inngest keys in Vercel production env:
 - `INNGEST_EVENT_KEY`
 - `INNGEST_SIGNING_KEY`
+3. In Inngest Cloud, sync app endpoint to `https://muuday-app.vercel.app/api/inngest`.
 
 ## Completed in this cycle
 
 1. Migration `011-favorites-rls-safety-net.sql` applied in production.
 2. Migration `012-auth-signup-trigger-hardening.sql` applied in production.
 3. Auth smoke validation completed successfully (`auth:validate-smoke` + inbox check).
+4. Vercel budget baseline configured (operator target £/$5 pre-launch guard).
+5. Sentry on-call alert destination confirmed.
 
 ## Do before Wave 2 close
 
