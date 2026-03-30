@@ -13,6 +13,9 @@ Use this as the live checklist of actions that require human access to provider 
 - gate cards render
 - C10 matrix renders
 - C6/C7 readiness toggles save correctly in `professional_settings`.
+5. Fix local admin-key slot for ops scripts:
+- set `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` to the real service-role key (current value is publishable key).
+- this is required for deterministic admin scripts (seed users, forced email-confirm test accounts, auth admin checks).
 
 ## Completed in this cycle
 

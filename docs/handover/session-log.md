@@ -292,3 +292,24 @@ Use this for meaningful checkpoints only.
 - Validation run:
   - `npm.cmd run typecheck` ✅
   - `npm.cmd run lint` ✅
+
+### Entry 36 (2026-03-30) — Auth/cadastro stabilization + fantasy professionals
+- Logout flow adjusted to return to landing (`/`) instead of `/login`.
+- Login error handling improved:
+  - explicit message for unconfirmed email
+  - explicit message for oauth callback failure.
+- OAuth callback hardened:
+  - handles exchange errors with deterministic redirect
+  - bootstraps missing profile row for social auth fallback
+  - redirects by role after successful session exchange.
+- Signup (`/cadastro`) upgraded:
+  - role icons restored
+  - password confirmation field added
+  - full country list enabled
+  - professional flow now collects expanded onboarding fields (headline/category/specialties/languages/jurisdiction/experience/price/duration) in metadata.
+- Added canonical country source module `lib/countries.ts` (backed by `countries-list`) and wired `COUNTRIES` export through `lib/utils/index.ts`.
+- Reduced social auth surface in UI to Google provider for stability in current environment.
+- Seeded 8 fantasy approved professionals across all target categories (marker tag `seed_fantasy_wave2_20260330`) including availability rows for filter/testing coverage.
+- Validation run:
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run lint` ✅

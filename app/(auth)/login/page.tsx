@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -14,14 +14,32 @@ function sanitizeRedirectPath(value: string | null) {
   return value
 }
 
+function mapLoginErrorMessage(rawMessage: string) {
+  const normalized = rawMessage.toLowerCase()
+  if (normalized.includes('email not confirmed')) {
+    return 'Confirme seu email antes de entrar. Verifique sua caixa de entrada.'
+  }
+  if (normalized.includes('invalid login credentials')) {
+    return 'Email ou senha incorretos.'
+  }
+  return 'Nao foi possivel entrar agora. Tente novamente em instantes.'
+}
+
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = sanitizeRedirectPath(searchParams.get('redirect'))
+  const oauthError = searchParams.get('erro')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (oauthError === 'oauth') {
+      setError('Nao foi possivel concluir o login com Google. Tente novamente.')
+    }
+  }, [oauthError])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -33,7 +51,7 @@ function LoginPageContent() {
 
     if (error) {
       captureEvent('auth_login_failed', { reason: 'invalid_credentials' })
-      setError('Email ou senha incorretos.')
+      setError(mapLoginErrorMessage(error.message || ''))
       setLoading(false)
       return
     }

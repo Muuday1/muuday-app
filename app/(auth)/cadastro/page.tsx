@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Briefcase, Loader2, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { sendWelcomeEmailAction } from '@/lib/actions/email'
@@ -27,13 +27,25 @@ export default function CadastroPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [country, setCountry] = useState('')
-  const [timezone, setTimezone] = useState('America/Sao_Paulo')
-  const [currency, setCurrency] = useState('BRL')
+  const [timezone, setTimezone] = useState('Europe/London')
+  const [currency, setCurrency] = useState('GBP')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [requestedRole, setRequestedRole] = useState('')
   const [redirectPath, setRedirectPath] = useState('')
+
+  // Professional extended fields (Wave 2 onboarding detail baseline)
+  const [professionalDisplayName, setProfessionalDisplayName] = useState('')
+  const [professionalHeadline, setProfessionalHeadline] = useState('')
+  const [professionalCategory, setProfessionalCategory] = useState('')
+  const [professionalSpecialties, setProfessionalSpecialties] = useState('')
+  const [professionalLanguages, setProfessionalLanguages] = useState('')
+  const [professionalJurisdiction, setProfessionalJurisdiction] = useState('')
+  const [professionalYearsExperience, setProfessionalYearsExperience] = useState('')
+  const [professionalSessionPrice, setProfessionalSessionPrice] = useState('')
+  const [professionalSessionDuration, setProfessionalSessionDuration] = useState('60')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -45,10 +57,9 @@ export default function CadastroPage() {
     if (!country) return
     const selectedCountry = COUNTRIES.find(item => item.code === country)
     if (!selectedCountry) return
-
-    setTimezone(selectedCountry.timezone)
+    if (!timezone || timezone === 'UTC') setTimezone(selectedCountry.timezone)
     setCurrency(selectedCountry.currency)
-  }, [country])
+  }, [country, timezone])
 
   useEffect(() => {
     if (requestedRole === 'profissional') setRole('profissional')
@@ -60,19 +71,39 @@ export default function CadastroPage() {
     setLoading(true)
     setError('')
 
+    if (password !== confirmPassword) {
+      setError('As senhas nao coincidem.')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
+
+    const signupMetadata: Record<string, unknown> = {
+      full_name: fullName,
+      role,
+      country,
+      timezone,
+      currency,
+    }
+
+    if (role === 'profissional') {
+      signupMetadata.professional_display_name = professionalDisplayName
+      signupMetadata.professional_headline = professionalHeadline
+      signupMetadata.professional_category = professionalCategory
+      signupMetadata.professional_specialties = professionalSpecialties
+      signupMetadata.professional_languages = professionalLanguages
+      signupMetadata.professional_jurisdiction = professionalJurisdiction
+      signupMetadata.professional_years_experience = Number(professionalYearsExperience || 0)
+      signupMetadata.professional_session_price = Number(professionalSessionPrice || 0)
+      signupMetadata.professional_session_duration_minutes = Number(professionalSessionDuration || 60)
+    }
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-          role,
-          country,
-          timezone,
-          currency,
-        },
+        data: signupMetadata,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
@@ -119,7 +150,9 @@ export default function CadastroPage() {
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
               }`}
             >
-              <div className="mb-2 text-2xl">U</div>
+              <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm">
+                <User className="h-5 w-5 text-brand-600" />
+              </div>
               <div className="text-sm font-semibold text-neutral-900">Sou usuario</div>
               <div className="mt-0.5 text-xs text-neutral-500">Busco profissionais brasileiros</div>
             </button>
@@ -132,7 +165,9 @@ export default function CadastroPage() {
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
               }`}
             >
-              <div className="mb-2 text-2xl">P</div>
+              <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm">
+                <Briefcase className="h-5 w-5 text-brand-600" />
+              </div>
               <div className="text-sm font-semibold text-neutral-900">Sou profissional</div>
               <div className="mt-0.5 text-xs text-neutral-500">Atendo clientes no exterior</div>
             </button>
@@ -190,26 +225,21 @@ export default function CadastroPage() {
             </select>
           </div>
 
-          {role === 'usuario' && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Fuso horario
-                <span className="ml-1 text-xs font-normal text-neutral-400">(preenchido automaticamente)</span>
-              </label>
-              <select
-                value={timezone}
-                onChange={event => setTimezone(event.target.value)}
-                required
-                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                {ALL_TIMEZONES.map(item => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-neutral-700">Fuso horario</label>
+            <select
+              value={timezone}
+              onChange={event => setTimezone(event.target.value)}
+              required
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            >
+              {ALL_TIMEZONES.map(item => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {role === 'usuario' && (
             <div>
@@ -229,6 +259,132 @@ export default function CadastroPage() {
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {role === 'profissional' && (
+            <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+              <h3 className="text-sm font-semibold text-neutral-900">Dados profissionais iniciais</h3>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                  Nome publico profissional
+                </label>
+                <input
+                  type="text"
+                  value={professionalDisplayName}
+                  onChange={event => setProfessionalDisplayName(event.target.value)}
+                  required
+                  placeholder="Ex.: Dra. Ana Silva"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">Headline profissional</label>
+                <input
+                  type="text"
+                  value={professionalHeadline}
+                  onChange={event => setProfessionalHeadline(event.target.value)}
+                  required
+                  placeholder="Ex.: Psicologa clinica para brasileiros no exterior"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">Categoria principal</label>
+                <input
+                  type="text"
+                  value={professionalCategory}
+                  onChange={event => setProfessionalCategory(event.target.value)}
+                  required
+                  placeholder="Ex.: saude-mental-bem-estar-emocional"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                  Especialidades (separadas por virgula)
+                </label>
+                <input
+                  type="text"
+                  value={professionalSpecialties}
+                  onChange={event => setProfessionalSpecialties(event.target.value)}
+                  required
+                  placeholder="Ex.: ansiedade, depressao, terapia online"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                  Idiomas de atendimento (separados por virgula)
+                </label>
+                <input
+                  type="text"
+                  value={professionalLanguages}
+                  onChange={event => setProfessionalLanguages(event.target.value)}
+                  required
+                  placeholder="Ex.: Portugues, Ingles"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                  Jurisdicao / paises onde pode atuar
+                </label>
+                <input
+                  type="text"
+                  value={professionalJurisdiction}
+                  onChange={event => setProfessionalJurisdiction(event.target.value)}
+                  required
+                  placeholder="Ex.: Brasil, Portugal"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">Anos de experiencia</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={60}
+                    value={professionalYearsExperience}
+                    onChange={event => setProfessionalYearsExperience(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">Preco por sessao (BRL)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={professionalSessionPrice}
+                    onChange={event => setProfessionalSessionPrice(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-700">Duracao da sessao</label>
+                  <select
+                    value={professionalSessionDuration}
+                    onChange={event => setProfessionalSessionDuration(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  >
+                    <option value="30">30 min</option>
+                    <option value="45">45 min</option>
+                    <option value="60">60 min</option>
+                    <option value="90">90 min</option>
+                  </select>
+                </div>
+              </div>
             </div>
           )}
 
@@ -253,6 +409,19 @@ export default function CadastroPage() {
               required
               minLength={8}
               placeholder="Minimo 8 caracteres"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-neutral-700">Confirmar senha</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={event => setConfirmPassword(event.target.value)}
+              required
+              minLength={8}
+              placeholder="Repita sua senha"
               className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           </div>

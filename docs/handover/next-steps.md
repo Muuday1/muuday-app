@@ -34,6 +34,13 @@ Dependencies:
 
 ## Priority 2 - Wave 2 delivery batch
 
+0. Stabilization gate before continuing Wave 2:
+- verify email/password login for known accounts (admin, professional, user) after auth patch
+- verify Google login callback completes and lands on expected destination
+- verify signup UX changes (icons, full countries, confirm password, expanded professional fields) in desktop/mobile
+- verify logout now returns to landing page
+- verify seeded fantasy professionals are visible in `/buscar` and filters
+
 1. ~~Enforce dual gate model for professionals (go-live vs first-booking eligibility).~~ Done (migration 013 + admin toggle + booking guard).
 2. ~~Finish request-booking lifecycle, proposal expiration, and conversion flow (foundation).~~ Done (migration 014 + `/solicitar` + `/agenda` queue/actions + conversion).
 3. ~~Finalize booking state machine tests (direct + request-booking transitions).~~ Done (`npm run test:state-machines` validates transition maps and terminal states).

@@ -104,6 +104,13 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - professional workspace routes now restricted to professional role only
 - discovery/profile pages now exclude non-professional role records from professional listing
 - `/agenda` now uses profile role for view-mode resolution (no role drift by orphan rows)
+42. Auth/cadastro stabilization batch delivered:
+- logout now returns to landing page
+- login now differentiates unconfirmed-email and oauth callback errors
+- oauth callback now handles exchange failures + missing profile fallback + role-aware redirect
+- signup UI restored role icons, password confirmation, full country list, and expanded professional onboarding fields
+43. Search test-data coverage expanded:
+- inserted 8 approved fantasy professionals across categories with availability slots for QA (`seed_fantasy_wave2_20260330`)
 
 ## Immediate next actions
 

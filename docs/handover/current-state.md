@@ -133,6 +133,18 @@ Last updated: 2026-03-30 (session 27)
 - `/buscar` query uses inner profile join + `profiles.role = profissional`.
 - `/profissional/[id]` now requires linked `profiles.role = profissional`.
 59. Agenda role detection no longer infers professional mode from orphan/legacy rows in `professionals`; it now requires `profiles.role = profissional`.
+60. Auth and signup stabilization patch delivered:
+- signout now returns to landing page (`/`), not login page.
+- login now surfaces explicit `email not confirmed` and oauth failure messages instead of generic invalid-credentials only.
+- oauth callback now has guarded exchange flow, profile bootstrap fallback, and role-aware redirect.
+61. Signup UX parity patch delivered:
+- role cards restored with icons for `usuario` and `profissional`.
+- password confirmation field added with client validation.
+- country selection now uses full ISO country list.
+- professional signup step now captures expanded onboarding fields (headline, category, specialties, languages, jurisdiction, experience, price, duration) into signup metadata.
+62. Test-data boost executed in production-like environment:
+- inserted 8 approved fantasy professional records across all search categories (tag marker: `seed_fantasy_wave2_20260330`) plus availability blocks.
+- inserted using authenticated professional context to accelerate search/funnel QA without new credential sharing.
 
 ## Partially implemented (`In progress`)
 
