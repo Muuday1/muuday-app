@@ -406,3 +406,26 @@ Use this for meaningful checkpoints only.
   - `npm run lint` ✅
   - `npm run typecheck` ✅
   - `npm run build` ✅
+
+### Entry 40 (2026-03-31) — Search compact auto-apply UX implementation
+- Implemented compact filter UX in `/buscar` focused on tablet/iPad density:
+  - reduced filter bar visual height and control spacing.
+  - removed desktop `Aplicar` button and moved to automatic query updates.
+- Implemented canonical auto-apply behavior:
+  - text query applies on blur.
+  - category/specialty/availability/language/sort and price range apply immediately.
+  - every filter mutation forces `pagina=1`.
+- Updated mobile drawer behavior:
+  - filters apply in real time without closing the drawer.
+  - explicit `Limpar filtros` shortcut kept as reset action.
+- Price improvements:
+  - slider step set to `1`.
+  - min/max interaction stabilized with invariant `min <= max`.
+  - search card prices now render rounded up with no decimals.
+- Availability feedback:
+  - total available professionals now shown between filter block and card list with active filter context.
+- Validation:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅

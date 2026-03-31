@@ -65,6 +65,11 @@ Dependencies:
 - copy consistency (`Bookings` vs localized labels)
 - responsive spacing and CTA hierarchy for dashboard/agenda/configuracoes
 - finalize any remaining empty/error state polish for professional workspace
+12.1 Validate search compact UX in real devices:
+- iPad portrait/landscape spacing for `/buscar` compact filter bar.
+- slider min/max interaction quality with step 1 on touch.
+- confirm auto-apply behavior: text on blur, selects/range immediate.
+- confirm count banner appears below filters and above cards for filtered/unfiltered states.
 13. Run production sanity pass after role-routing hotfix:
 - professional account login lands at `/dashboard`
 - admin account login lands at `/buscar` (with `/admin` still available)

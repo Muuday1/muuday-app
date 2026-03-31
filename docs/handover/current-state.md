@@ -234,3 +234,11 @@ Wave-driven delivery is now mandatory:
 - `app/(app)/buscar/page.tsx`: auth/profile/professional fetch path now guarded with fallback rendering to prevent route-level crash.
 - `app/layout.tsx`: headers/cookies country detection now wrapped with default fallback (`BR`) to avoid hard request-context failures.
 - validation: `lint`, `typecheck`, `build` all green on `codex/hotfix-public-500`.
+76. Search compact UX update implemented (`/buscar`):
+- filter area reduced for iPad/desktop and converted to auto-apply (no apply button).
+- mobile filter drawer now auto-applies in real time while remaining open.
+- search text applies on blur; select/range controls apply instantly.
+- price slider now uses step 1 with stable min/max movement and invariant enforcement.
+- displayed search prices now round up and show no decimal places.
+- total available professionals now renders below filters and above cards with active filter context.
+- technical gate pass: `lint`, `typecheck`, `build`, `test:state-machines`.

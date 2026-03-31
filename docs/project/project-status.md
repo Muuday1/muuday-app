@@ -128,6 +128,14 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - added safe country fallback in `app/layout.tsx` to avoid hard failure when request headers/cookies are unavailable.
 - fixed runtime crash in public layout path by marking `components/public/PublicFooter.tsx` as client component (it uses `window`/click handler).
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build` all green.
+48. Search UX compact + auto-apply pass delivered on `/buscar`:
+- desktop filter bar compacted for tablet/iPad footprint, removed explicit `Aplicar` button, and switched to auto-apply through canonical query state.
+- mobile drawer now applies filters in real time without closing, keeping `Limpar filtros` as explicit reset shortcut.
+- search text now applies on `blur`; selects and price apply immediately; all filter changes reset `pagina=1`.
+- price range slider updated to step `1`, supports moving min up/down, and keeps `min <= max`.
+- search card price rendering now uses rounded-up integer display (no decimals) without changing checkout/payment formatting logic.
+- availability count now appears below filter bar and above cards, including contextual category/specialty summary when selected.
+- validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
 
 ## Immediate next actions
 
