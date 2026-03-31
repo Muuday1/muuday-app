@@ -155,6 +155,12 @@ function getPrimarySpecialty(professional: any) {
   return getSearchCategoryLabel(professional.category)
 }
 
+function getNameInitial(name?: string | null, fallback = 'P') {
+  const normalized = String(name || '').trim()
+  if (!normalized) return fallback
+  return normalized.charAt(0).toUpperCase()
+}
+
 const TIER_BOOST: Record<string, number> = { premium: 0.15, professional: 0.08, basic: 0 }
 
 function getRelevanceScore(pro: any): number {
@@ -549,7 +555,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                         />
                       ) : (
                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
-                          {professional.profiles?.full_name?.charAt(0) || 'P'}
+                          {getNameInitial(professional.profiles?.full_name)}
                         </div>
                       )}
 

@@ -166,6 +166,7 @@ export default function FavoritosPage() {
               const category = CATEGORIES.find(c => c.slug === pro.category)
               const profile = Array.isArray(pro.profiles) ? pro.profiles[0] : pro.profiles
               const name = ((profile as Record<string, unknown>)?.full_name as string) || 'Profissional'
+              const initial = (name || '').trim().charAt(0).toUpperCase() || 'P'
               const isRemoving = removingId === pro.id
 
               return (
@@ -188,7 +189,7 @@ export default function FavoritosPage() {
                   <Link href={`/profissional/${pro.id}`} className="block focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                     <div className="bg-gradient-to-br from-brand-50 to-brand-100 h-24 flex items-center justify-center">
                       <div className="w-16 h-16 rounded-2xl bg-brand-500 flex items-center justify-center text-white font-display font-bold text-2xl">
-                        {name.charAt(0)}
+                        {initial}
                       </div>
                     </div>
 
