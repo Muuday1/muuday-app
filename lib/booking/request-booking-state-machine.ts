@@ -35,7 +35,7 @@ export function assertRequestBookingTransition(
   if (canTransitionRequestBookingStatus(from, to)) return { ok: true }
   return {
     ok: false,
-    reason: `Transicao de solicitacao invalida: ${from} -> ${to}.`,
+    reason: `Transi??o de solicita??o invalida: ${from} -> ${to}.`,
   }
 }
 

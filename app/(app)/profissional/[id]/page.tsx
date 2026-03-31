@@ -13,6 +13,7 @@ import { MobileBookingStickyCta } from '@/components/booking/MobileBookingSticky
 import {
   parseProfessionalProfileParam,
 } from '@/lib/professional/public-profile-url'
+import { getPublicVisibilityByProfessionalId } from '@/lib/professional/public-visibility'
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -58,6 +59,15 @@ export default async function ProfissionalPage({
 
   if (!professional || (professional.status !== 'approved' && professional.user_id !== user?.id)) {
     notFound()
+  }
+
+  const isOwnProfessional = user ? professional.user_id === user.id : false
+  if (!isOwnProfessional) {
+    const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(supabase as any, [professional])
+    const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
+    if (!canGoLive) {
+      notFound()
+    }
   }
 
   // Fetch availability
@@ -111,7 +121,6 @@ export default async function ProfissionalPage({
   const category = getSearchCategoryBySlug(categorySlug)
   const primarySpecialty = professionalSpecialties[0] || getSearchCategoryLabel(professional.category)
   const profile = professional.profiles as any
-  const isOwnProfessional = user ? professional.user_id === user.id : false
   const isLoggedIn = !!user
   const requestBookingAvailable = ['professional', 'premium'].includes(
     String(professional.tier || 'basic'),
@@ -217,7 +226,7 @@ export default async function ProfissionalPage({
               )}
               {professional.tags?.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-[11px] text-neutral-400 mb-1">Foco de atuacao</p>
+                  <p className="text-[11px] text-neutral-400 mb-1">Foco de atuação</p>
                   <div className="flex flex-wrap gap-2">
                     {professional.tags.map((tag: string) => (
                       <span key={tag} className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">

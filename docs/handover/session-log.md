@@ -2,6 +2,28 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-03-31
+
+### Entry 48
+- Enforced public professional visibility by full onboarding readiness (`canGoLive`) instead of `status=approved` only.
+- `/buscar` now filters professionals through canonical onboarding gate evaluation before rendering cards.
+- `/profissional/[id]` now applies the same go-live visibility rule for public viewers while preserving own-profile access.
+- Added ops script `npm run fixtures:ensure-public-ready` to normalize test professionals across profile/settings/services/availability and keep them visible/openable for QA.
+- Validation completed: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines`.
+
+### Entry 49
+- Fixed Google OAuth callback session persistence in `app/auth/callback/route.ts`.
+- callback now propagates auth cookies from `exchangeCodeForSession` to redirect response, eliminating post-OAuth return-to-login loops.
+- callback now enforces admin destination to `/buscar` even if profile completion fields are not fully set.
+- preserved enforced role destinations after OAuth: `profissional -> /dashboard`; `usuario/admin -> /buscar`.
+- Validation completed: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines`.
+
+### Entry 47
+- Executed PT-BR copy normalization across core app surfaces (auth, busca, agenda, configurações, booking and request-booking UIs).
+- Fixed malformed encoding artifacts and restored truncated identifiers introduced during intermediate cleanup.
+- Revalidated technical gate after corrections: `lint`, `typecheck`, `build`, and `test:state-machines` all passing.
+- Follow-up: run visual QA in preview/production to confirm no remaining mojibake on user-visible screens.
+
 ## 2026-03-29
 
 ### Entry 1

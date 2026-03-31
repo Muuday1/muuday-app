@@ -28,24 +28,24 @@ const OFFER_EXPIRATION_HOURS = 24
 const REQUEST_BOOKING_STATUS_SET = new Set<string>(REQUEST_BOOKING_STATUSES)
 
 const createRequestSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invalido.'),
+  professionalId: z.string().uuid('Identificador de profissional inv?lido.'),
   preferredStartLocal: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Horario preferencial invalido.'),
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Hor?rio preferencial inv?lido.'),
   durationMinutes: z.number().int().min(15).max(240).optional(),
   userMessage: z.string().trim().max(1200, 'Mensagem muito longa.').optional(),
 })
 
 const offerRequestSchema = z.object({
-  requestId: z.string().uuid('Solicitacao invalida.'),
+  requestId: z.string().uuid('Solicita??o invalida.'),
   proposalStartLocal: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Horario proposto invalido.'),
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Hor?rio proposto inv?lido.'),
   proposalDurationMinutes: z.number().int().min(15).max(240).optional(),
   proposalMessage: z.string().trim().max(1200, 'Mensagem da proposta muito longa.').optional(),
 })
 
-const requestIdSchema = z.string().uuid('Solicitacao invalida.')
+const requestIdSchema = z.string().uuid('Solicita??o invalida.')
 
 function hhmmToMinutes(value: string) {
   const [hours, minutes] = value.slice(0, 5).split(':').map(Number)
@@ -253,13 +253,13 @@ async function professionalCanReceiveRequestBooking(
   professional: Record<string, any>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (professional.status !== 'approved') {
-    return { ok: false, error: 'Profissional nao disponivel.' }
+    return { ok: false, error: 'Profissional n?o dispon?vel.' }
   }
 
   if (!REQUEST_BOOKING_ALLOWED_TIERS.includes(String(professional.tier))) {
     return {
       ok: false,
-      error: 'Solicitacoes de horario estao disponiveis apenas para planos Professional/Premium.',
+      error: 'Solicitacoes de hor?rio estao dispon?veis apenas para planos Professional/Premium.',
     }
   }
 
@@ -279,7 +279,7 @@ export async function createRequestBooking(input: {
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message || 'Dados invalidos para solicitacao.',
+      error: parsed.error.issues[0]?.message || 'Dados inv?lidos para solicita??o.',
     }
   }
 
@@ -295,9 +295,9 @@ export async function createRequestBooking(input: {
     .eq('id', parsed.data.professionalId)
     .single()
 
-  if (!professional) return { success: false, error: 'Profissional nao encontrado.' }
+  if (!professional) return { success: false, error: 'Profissional n?o encontrado.' }
   if (professional.user_id === user.id) {
-    return { success: false, error: 'Nao e permitido solicitar horario para seu proprio perfil.' }
+    return { success: false, error: 'N?o e permitido solicitar hor?rio para seu pr?prio perfil.' }
   }
 
   const requestBookingEligibility = await professionalCanReceiveRequestBooking(supabase, professional)
@@ -330,11 +330,11 @@ export async function createRequestBooking(input: {
   try {
     preferredStartUtc = fromZonedTime(parsed.data.preferredStartLocal, userTimezone)
   } catch {
-    return { success: false, error: 'Horario preferencial invalido.' }
+    return { success: false, error: 'Hor?rio preferencial inv?lido.' }
   }
 
   if (Number.isNaN(preferredStartUtc.getTime())) {
-    return { success: false, error: 'Horario preferencial invalido.' }
+    return { success: false, error: 'Hor?rio preferencial inv?lido.' }
   }
 
   const preferredEndUtc = new Date(preferredStartUtc.getTime() + durationMinutes * 60 * 1000)
@@ -342,7 +342,7 @@ export async function createRequestBooking(input: {
   if (preferredStartUtc.getTime() < minimumStartTime) {
     return {
       success: false,
-      error: `Selecione um horario com pelo menos ${settings.minimumNoticeHours} horas de antecedencia.`,
+      error: `Selecione um hor?rio com pelo menos ${settings.minimumNoticeHours} horas de anteced?ncia.`,
     }
   }
 
@@ -370,7 +370,7 @@ export async function createRequestBooking(input: {
     .single()
 
   if (!request) {
-    return { success: false, error: 'Nao foi possivel criar a solicitacao. Tente novamente.' }
+    return { success: false, error: 'N?o foi poss?vel criar a solicita??o. Tente novamente.' }
   }
 
   revalidatePath('/agenda')
@@ -388,7 +388,7 @@ export async function offerRequestBooking(input: {
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message || 'Dados invalidos para proposta.',
+      error: parsed.error.issues[0]?.message || 'Dados inv?lidos para proposta.',
     }
   }
 
@@ -404,21 +404,21 @@ export async function offerRequestBooking(input: {
     .eq('professional_id', professionalId)
     .single()
 
-  if (!request) return { success: false, error: 'Solicitacao nao encontrada.' }
+  if (!request) return { success: false, error: 'Solicita??o n?o encontrada.' }
 
   const freshRequest = await expireRequestIfNeeded(
     supabase,
     request as unknown as Record<string, unknown>,
   )
   if (freshRequest.status === 'expired') {
-    return { success: false, error: 'Esta solicitacao expirou e precisa ser recriada pelo usuario.' }
+    return { success: false, error: 'Esta solicita??o expirou e precisa ser recriada pelo usuario.' }
   }
   if (!['open', 'offered'].includes(String(freshRequest.status))) {
-    return { success: false, error: 'Esta solicitacao nao pode receber nova proposta.' }
+    return { success: false, error: 'Esta solicita??o n?o pode receber nova proposta.' }
   }
   const currentStatus = toRequestBookingStatus(freshRequest.status)
   if (!currentStatus) {
-    return { success: false, error: 'Estado atual da solicitacao invalido.' }
+    return { success: false, error: 'Estado atual da solicita??o inv?lido.' }
   }
   const transitionToOffered = assertRequestBookingTransition(currentStatus, 'offered')
   if (!transitionToOffered.ok) {
@@ -433,7 +433,7 @@ export async function offerRequestBooking(input: {
     .eq('id', professionalId)
     .single()
 
-  if (!professional) return { success: false, error: 'Profissional nao encontrado.' }
+  if (!professional) return { success: false, error: 'Profissional n?o encontrado.' }
   const requestBookingEligibility = await professionalCanReceiveRequestBooking(supabase, professional)
   if (!requestBookingEligibility.ok) return { success: false, error: requestBookingEligibility.error }
 
@@ -463,10 +463,10 @@ export async function offerRequestBooking(input: {
   try {
     proposalStartUtc = fromZonedTime(parsed.data.proposalStartLocal, settings.timezone)
   } catch {
-    return { success: false, error: 'Horario proposto invalido.' }
+    return { success: false, error: 'Hor?rio proposto inv?lido.' }
   }
   if (Number.isNaN(proposalStartUtc.getTime())) {
-    return { success: false, error: 'Horario proposto invalido.' }
+    return { success: false, error: 'Hor?rio proposto inv?lido.' }
   }
   const proposalEndUtc = new Date(proposalStartUtc.getTime() + durationMinutes * 60 * 1000)
 
@@ -474,7 +474,7 @@ export async function offerRequestBooking(input: {
   if (proposalStartUtc.getTime() < minimumStartTime) {
     return {
       success: false,
-      error: `Proposta deve respeitar minimo de ${settings.minimumNoticeHours}h de antecedencia.`,
+      error: `Proposta deve respeitar m?nimo de ${settings.minimumNoticeHours}h de anteced?ncia.`,
     }
   }
   const maximumDate = new Date()
@@ -494,7 +494,7 @@ export async function offerRequestBooking(input: {
     rules,
   )
   if (!fitsAvailability) {
-    return { success: false, error: 'Horario fora da disponibilidade configurada.' }
+    return { success: false, error: 'Hor?rio fora da disponibilidade configurada.' }
   }
 
   const allowedByException = await isSlotAllowedByExceptions(
@@ -505,7 +505,7 @@ export async function offerRequestBooking(input: {
     proposalEndUtc,
   )
   if (!allowedByException) {
-    return { success: false, error: 'Horario bloqueado por indisponibilidade excepcional.' }
+    return { success: false, error: 'Hor?rio bloqueado por indisponibilidade excepcional.' }
   }
 
   const conflict = await hasInternalConflict(
@@ -515,7 +515,7 @@ export async function offerRequestBooking(input: {
     proposalEndUtc,
   )
   if (conflict) {
-    return { success: false, error: 'Horario indisponivel por conflito com outro agendamento.' }
+    return { success: false, error: 'Hor?rio indispon?vel por conflito com outro agendamento.' }
   }
 
   const proposalExpiresAt = new Date(
@@ -540,7 +540,7 @@ export async function offerRequestBooking(input: {
     .eq('status', currentStatus)
 
   if (updateError) {
-    return { success: false, error: 'Nao foi possivel enviar a proposta. Tente novamente.' }
+    return { success: false, error: 'N?o foi poss?vel enviar a proposta. Tente novamente.' }
   }
 
   revalidatePath('/agenda')
@@ -551,7 +551,7 @@ export async function declineRequestBookingByProfessional(
   requestId: string,
 ): Promise<RequestBookingActionResult> {
   const parsed = requestIdSchema.safeParse(requestId)
-  if (!parsed.success) return { success: false, error: 'Solicitacao invalida.' }
+  if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
   const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
@@ -565,12 +565,12 @@ export async function declineRequestBookingByProfessional(
     .eq('professional_id', professionalId)
     .single()
 
-  if (!request) return { success: false, error: 'Solicitacao nao encontrada.' }
+  if (!request) return { success: false, error: 'Solicita??o n?o encontrada.' }
   if (!['open', 'offered'].includes(String(request.status))) {
-    return { success: false, error: 'Esta solicitacao nao pode ser recusada no estado atual.' }
+    return { success: false, error: 'Esta solicita??o n?o pode ser recusada no estado atual.' }
   }
   const currentStatus = toRequestBookingStatus(request.status)
-  if (!currentStatus) return { success: false, error: 'Estado atual da solicitacao invalido.' }
+  if (!currentStatus) return { success: false, error: 'Estado atual da solicita??o inv?lido.' }
   const transitionToDeclined = assertRequestBookingTransition(currentStatus, 'declined')
   if (!transitionToDeclined.ok) return { success: false, error: transitionToDeclined.reason }
 
@@ -585,7 +585,7 @@ export async function declineRequestBookingByProfessional(
     .eq('professional_id', professionalId)
     .eq('status', currentStatus)
 
-  if (error) return { success: false, error: 'Nao foi possivel recusar a solicitacao.' }
+  if (error) return { success: false, error: 'N?o foi poss?vel recusar a solicita??o.' }
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -594,7 +594,7 @@ export async function cancelRequestBookingByUser(
   requestId: string,
 ): Promise<RequestBookingActionResult> {
   const parsed = requestIdSchema.safeParse(requestId)
-  if (!parsed.success) return { success: false, error: 'Solicitacao invalida.' }
+  if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
   const { supabase, user } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
@@ -607,12 +607,12 @@ export async function cancelRequestBookingByUser(
     .eq('user_id', user.id)
     .single()
 
-  if (!request) return { success: false, error: 'Solicitacao nao encontrada.' }
+  if (!request) return { success: false, error: 'Solicita??o n?o encontrada.' }
   if (!['open', 'offered'].includes(String(request.status))) {
-    return { success: false, error: 'Esta solicitacao nao pode ser cancelada no estado atual.' }
+    return { success: false, error: 'Esta solicita??o n?o pode ser cancelada no estado atual.' }
   }
   const currentStatus = toRequestBookingStatus(request.status)
-  if (!currentStatus) return { success: false, error: 'Estado atual da solicitacao invalido.' }
+  if (!currentStatus) return { success: false, error: 'Estado atual da solicita??o inv?lido.' }
   const transitionToCancelled = assertRequestBookingTransition(currentStatus, 'cancelled')
   if (!transitionToCancelled.ok) return { success: false, error: transitionToCancelled.reason }
 
@@ -627,7 +627,7 @@ export async function cancelRequestBookingByUser(
     .eq('user_id', user.id)
     .eq('status', currentStatus)
 
-  if (error) return { success: false, error: 'Nao foi possivel cancelar a solicitacao.' }
+  if (error) return { success: false, error: 'N?o foi poss?vel cancelar a solicita??o.' }
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -636,7 +636,7 @@ export async function declineRequestBookingByUser(
   requestId: string,
 ): Promise<RequestBookingActionResult> {
   const parsed = requestIdSchema.safeParse(requestId)
-  if (!parsed.success) return { success: false, error: 'Solicitacao invalida.' }
+  if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
   const { supabase, user } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
@@ -649,12 +649,12 @@ export async function declineRequestBookingByUser(
     .eq('user_id', user.id)
     .single()
 
-  if (!request) return { success: false, error: 'Solicitacao nao encontrada.' }
+  if (!request) return { success: false, error: 'Solicita??o n?o encontrada.' }
   if (request.status !== 'offered') {
     return { success: false, error: 'Apenas propostas recebidas podem ser recusadas.' }
   }
   const currentStatus = toRequestBookingStatus(request.status)
-  if (!currentStatus) return { success: false, error: 'Estado atual da solicitacao invalido.' }
+  if (!currentStatus) return { success: false, error: 'Estado atual da solicita??o inv?lido.' }
   const transitionToDeclined = assertRequestBookingTransition(currentStatus, 'declined')
   if (!transitionToDeclined.ok) return { success: false, error: transitionToDeclined.reason }
 
@@ -669,7 +669,7 @@ export async function declineRequestBookingByUser(
     .eq('user_id', user.id)
     .eq('status', currentStatus)
 
-  if (error) return { success: false, error: 'Nao foi possivel recusar a proposta.' }
+  if (error) return { success: false, error: 'N?o foi poss?vel recusar a proposta.' }
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -678,7 +678,7 @@ export async function acceptRequestBooking(
   requestId: string,
 ): Promise<{ success: true; bookingId: string } | { success: false; error: string }> {
   const parsed = requestIdSchema.safeParse(requestId)
-  if (!parsed.success) return { success: false, error: 'Solicitacao invalida.' }
+  if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
   const { supabase, adminSupabase, user, profile } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
@@ -691,20 +691,20 @@ export async function acceptRequestBooking(
     .eq('user_id', user.id)
     .single()
 
-  if (!request) return { success: false, error: 'Solicitacao nao encontrada.' }
+  if (!request) return { success: false, error: 'Solicita??o n?o encontrada.' }
 
   const freshRequest = await expireRequestIfNeeded(
     supabase,
     request as unknown as Record<string, unknown>,
   )
   if (freshRequest.status === 'expired') {
-    return { success: false, error: 'A proposta expirou. Solicite um novo horario.' }
+    return { success: false, error: 'A proposta expirou. Solicite um novo hor?rio.' }
   }
   if (freshRequest.status !== 'offered') {
-    return { success: false, error: 'Esta solicitacao nao possui proposta ativa para aceitar.' }
+    return { success: false, error: 'Esta solicita??o n?o possui proposta ativa para aceitar.' }
   }
   const currentStatus = toRequestBookingStatus(freshRequest.status)
-  if (!currentStatus) return { success: false, error: 'Estado atual da solicitacao invalido.' }
+  if (!currentStatus) return { success: false, error: 'Estado atual da solicita??o inv?lido.' }
   const transitionToConverted = assertRequestBookingTransition(currentStatus, 'converted')
   if (!transitionToConverted.ok) return { success: false, error: transitionToConverted.reason }
 
@@ -724,7 +724,7 @@ export async function acceptRequestBooking(
     .eq('id', String(freshRequest.professional_id))
     .single()
 
-  if (!professional) return { success: false, error: 'Profissional nao encontrado.' }
+  if (!professional) return { success: false, error: 'Profissional n?o encontrado.' }
   const requestBookingEligibility = await professionalCanReceiveRequestBooking(supabase, professional)
   if (!requestBookingEligibility.ok) return { success: false, error: requestBookingEligibility.error }
 
@@ -750,12 +750,12 @@ export async function acceptRequestBooking(
   const startUtc = new Date(String(freshRequest.proposal_start_utc))
   const endUtc = new Date(String(freshRequest.proposal_end_utc))
   if (Number.isNaN(startUtc.getTime()) || Number.isNaN(endUtc.getTime()) || startUtc >= endUtc) {
-    return { success: false, error: 'Horario proposto invalido.' }
+    return { success: false, error: 'Hor?rio proposto inv?lido.' }
   }
 
   const minimumStartTime = Date.now() + settings.minimumNoticeHours * 60 * 60 * 1000
   if (startUtc.getTime() < minimumStartTime) {
-    return { success: false, error: 'A proposta venceu a janela minima de antecedencia.' }
+    return { success: false, error: 'A proposta venceu a janela minima de anteced?ncia.' }
   }
   const maximumDate = new Date()
   maximumDate.setDate(maximumDate.getDate() + settings.maxBookingWindowDays)
@@ -766,7 +766,7 @@ export async function acceptRequestBooking(
   const rules = await loadAvailabilityRules(supabase, professional.id, settings.timezone)
   const fitsAvailability = isSlotWithinRules(startUtc, endUtc, settings.timezone, rules)
   if (!fitsAvailability) {
-    return { success: false, error: 'O horario proposto nao esta mais disponivel.' }
+    return { success: false, error: 'O hor?rio proposto n?o est? mais dispon?vel.' }
   }
 
   const allowedByException = await isSlotAllowedByExceptions(
@@ -777,12 +777,12 @@ export async function acceptRequestBooking(
     endUtc,
   )
   if (!allowedByException) {
-    return { success: false, error: 'Horario bloqueado por indisponibilidade excepcional.' }
+    return { success: false, error: 'Hor?rio bloqueado por indisponibilidade excepcional.' }
   }
 
   const conflict = await hasInternalConflict(supabase, professional.id, startUtc, endUtc)
   if (conflict) {
-    return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
+    return { success: false, error: 'Outro agendamento ocupou este hor?rio. Solicite nova proposta.' }
   }
 
   const userCurrency = profile?.currency || 'BRL'
@@ -830,7 +830,7 @@ export async function acceptRequestBooking(
     .single()
 
   if (bookingInsertError || !booking) {
-    return { success: false, error: 'Nao foi possivel converter a proposta em agendamento.' }
+    return { success: false, error: 'N?o foi poss?vel converter a proposta em agendamento.' }
   }
 
   const { error: paymentError } = await supabase.from('payments').insert({
@@ -863,7 +863,7 @@ export async function acceptRequestBooking(
 
     return {
       success: false,
-      error: 'Falha ao processar pagamento da proposta. A proposta continua disponivel.',
+      error: 'Falha ao processar pagamento da proposta. A proposta continua dispon?vel.',
     }
   }
 

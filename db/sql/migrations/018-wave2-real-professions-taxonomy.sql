@@ -26,6 +26,11 @@ AS $$
   );
 $$;
 
+-- Backward-compatibility: some environments have legacy `subcategories`
+-- created before `updated_at` existed.
+ALTER TABLE public.subcategories
+ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
 WITH subcategories_seed(category_slug, subcategory_slug, name_pt, name_en, sort_order) AS (
   VALUES
     ('saude-mental-bem-estar', 'psicologia-clinica', 'Psicologia Clínica', 'Clinical Psychology', 1),

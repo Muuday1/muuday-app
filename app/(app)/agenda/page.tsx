@@ -1,4 +1,4 @@
-export const metadata = { title: 'Agenda | Muuday' }
+﻿export const metadata = { title: 'Agenda | Muuday' }
 
 import Link from 'next/link'
 import {
@@ -570,7 +570,7 @@ export default async function AgendaPage({
         <div className="mb-8" data-testid="agenda-upcoming-section">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
           <Calendar className="h-5 w-5 text-brand-500" />
-          {isProfessional && activeView === 'pending' ? 'Pendencias de confirmacao' : 'Proximas sessoes'}
+            {isProfessional && activeView === 'pending' ? 'Pendências de confirmação' : 'Próximas sessões'}
         </h2>
 
         {isProfessional && pendingConfirmations.length > 0 && (
@@ -579,7 +579,7 @@ export default async function AgendaPage({
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700" />
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-amber-800">
-                  {pendingConfirmations.length} solicitacao{pendingConfirmations.length === 1 ? '' : 'oes'} aguardando confirmacao
+                  {pendingConfirmations.length} solicitação{pendingConfirmations.length === 1 ? '' : 'ões'} aguardando confirmação
                 </p>
                 <p className="mt-0.5 text-xs text-amber-700">
                   Confirme ou recuse dentro do SLA para evitar cancelamento automatico com reembolso.
@@ -624,7 +624,7 @@ export default async function AgendaPage({
                 booking.status === 'confirmed'
                   ? 'Confirmado'
                   : booking.status === 'pending_confirmation'
-                    ? 'Aguardando confirmacao'
+                    ? 'Aguardando confirma??o'
                     : 'Pendente'
 
               return (
@@ -687,7 +687,7 @@ export default async function AgendaPage({
                   </div>
                   {slaLabel && (
                     <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                      Prazo de confirmacao: {confirmationDeadline?.toLocaleString('pt-BR', { hour12: false })}
+                      Prazo de confirmação: {confirmationDeadline?.toLocaleString('pt-BR', { hour12: false })}
                     </div>
                   )}
                   <BookingActions
@@ -723,7 +723,7 @@ export default async function AgendaPage({
                 no_show: { label: 'Não compareceu', className: 'bg-neutral-100 text-neutral-500' },
                 confirmed: { label: 'Confirmado (passado)', className: 'bg-amber-50 text-amber-700' },
                 pending_confirmation: {
-                  label: 'Aguardando confirmacao',
+                  label: 'Aguardando confirma??o',
                   className: 'bg-amber-50 text-amber-700',
                 },
                 pending: { label: 'Pendente (passado)', className: 'bg-amber-50 text-amber-700' },
@@ -786,4 +786,6 @@ export default async function AgendaPage({
     </div>
   )
 }
+
+
 

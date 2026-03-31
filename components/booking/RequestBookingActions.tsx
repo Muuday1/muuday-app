@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useTransition } from 'react'
 import { Check, Loader2, X, CalendarClock, RotateCcw } from 'lucide-react'
@@ -91,7 +91,7 @@ export default function RequestBookingActions({
         {showOfferForm && (
           <div className="space-y-2 rounded-xl border border-brand-100 bg-brand-50 p-3">
             <p className="text-xs font-semibold text-brand-700">
-              Propor horario {proposalTimezone ? `(${proposalTimezone.replaceAll('_', ' ')})` : ''}
+              Propor horário {proposalTimezone ? `(${proposalTimezone.replaceAll('_', ' ')})` : ''}
             </p>
             <input
               type="datetime-local"
@@ -158,14 +158,14 @@ export default function RequestBookingActions({
               className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <CalendarClock className="h-3.5 w-3.5" />
-              {status === 'offered' ? 'Atualizar proposta' : 'Propor horario'}
+              {status === 'offered' ? 'Atualizar proposta' : 'Propor horário'}
             </button>
           )}
           <button
             onClick={() =>
               runAction(
                 async () => declineRequestBookingByProfessional(requestId),
-                'Solicitacao recusada.',
+                'Solicitação recusada.',
               )
             }
             disabled={isPending}
@@ -229,17 +229,19 @@ export default function RequestBookingActions({
           onClick={() =>
             runAction(
               async () => cancelRequestBookingByUser(requestId),
-              'Solicitacao cancelada.',
+              'Solicitação cancelada.',
             )
           }
           disabled={isPending}
           className="inline-flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-          Cancelar solicitacao
+          Cancelar solicitação
         </button>
       )}
     </div>
   )
 }
+
+
 

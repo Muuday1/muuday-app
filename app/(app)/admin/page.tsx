@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -223,8 +223,8 @@ export default function AdminPage() {
           status: b.status as string,
           price_brl: b.price_brl as number,
           duration_minutes: b.duration_minutes as number,
-          user_profile: (b.profiles as { full_name: string; email: string }) || { full_name: '—', email: '' },
-          professional_profile: (pro?.profiles as { full_name: string }) || { full_name: '—' },
+        user_profile: (b.profiles as { full_name: string; email: string }) || { full_name: '-', email: '' },
+        professional_profile: (pro?.profiles as { full_name: string }) || { full_name: '-' },
         }
       }) as AdminBooking[]
 
@@ -300,7 +300,7 @@ export default function AdminPage() {
   }
 
   async function deleteReview(id: string) {
-    if (!confirm('Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.')) return
+      if (!confirm('Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.')) return
     setActionLoading(id)
     const { error } = await supabase
       .from('reviews')
@@ -459,7 +459,7 @@ export default function AdminPage() {
                     <span className="text-sm text-neutral-700">
                       <strong>{stats.pendingProfessionals}</strong> profissional(is) aguardando aprovação
                     </span>
-                    <span className="text-xs text-brand-600 font-medium">Revisar →</span>
+                  <span className="text-xs text-brand-600 font-medium">Revisar →</span>
                   </button>
                 )}
                 {stats.pendingReviews > 0 && (
@@ -470,7 +470,7 @@ export default function AdminPage() {
                     <span className="text-sm text-neutral-700">
                       <strong>{stats.pendingReviews}</strong> avaliação(ões) aguardando moderação
                     </span>
-                    <span className="text-xs text-brand-600 font-medium">Moderar →</span>
+                  <span className="text-xs text-brand-600 font-medium">Moderar →</span>
                   </button>
                 )}
               </div>
@@ -562,7 +562,7 @@ export default function AdminPage() {
                         <div>
                           <p className="font-medium text-neutral-900">{pro.profiles?.full_name}</p>
                           <p className="text-sm text-neutral-500">
-                            {getPrimarySpecialty(pro)} · {pro.profiles?.email}
+                            {getPrimarySpecialty(pro)} • {pro.profiles?.email}
                           </p>
                         </div>
                       </div>
@@ -599,7 +599,7 @@ export default function AdminPage() {
                               </div>
                               <div>
                                 <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Rating</p>
-                                <p className="text-sm text-neutral-700">⭐ {pro.rating} ({pro.total_reviews})</p>
+                      <p className="text-sm text-neutral-700">★ {pro.rating} ({pro.total_reviews})</p>
                               </div>
                             </div>
                             <div>
@@ -619,12 +619,12 @@ export default function AdminPage() {
                                   </span>
                                 ))}
                                 {(professionalSpecialties[pro.id] || []).length === 0 && (
-                                  <span className="text-xs text-neutral-500">Nao informado</span>
+                                  <span className="text-xs text-neutral-500">Não informado</span>
                                 )}
                               </div>
                             </div>
                             <div>
-                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Foco de atuacao</p>
+                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Foco de atuação</p>
                               <div className="flex flex-wrap gap-1">
                                 {pro.tags?.map(tag => (
                                   <span key={tag} className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-xs">{tag}</span>
@@ -634,11 +634,11 @@ export default function AdminPage() {
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <p className="text-xs font-medium text-neutral-400 uppercase mb-1">País</p>
-                                <p className="text-sm text-neutral-700">{pro.profiles?.country || '—'}</p>
+                        <p className="text-sm text-neutral-700">{pro.profiles?.country || '-'}</p>
                               </div>
                               <div>
                                 <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Fuso horário</p>
-                                <p className="text-sm text-neutral-700">{pro.profiles?.timezone || '—'}</p>
+                        <p className="text-sm text-neutral-700">{pro.profiles?.timezone || '-'}</p>
                               </div>
                             </div>
                             <div>
@@ -777,7 +777,7 @@ export default function AdminPage() {
                       <p className="text-sm font-medium text-neutral-900">
                         {review.profiles?.full_name || 'Utilizador'}
                       </p>
-                      <span className="text-neutral-300">→</span>
+                    <span className="text-neutral-300">→</span>
                       <p className="text-sm text-neutral-600">
                         {(review.professionals as unknown as { profiles: { full_name: string } })?.profiles?.full_name || 'Profissional'}
                       </p>
@@ -892,11 +892,11 @@ export default function AdminPage() {
                       return (
                         <tr key={booking.id} className="hover:bg-neutral-50/50 transition-colors">
                           <td className="px-5 py-4">
-                            <p className="font-medium text-neutral-900">{booking.user_profile?.full_name || '—'}</p>
+                      <p className="font-medium text-neutral-900">{booking.user_profile?.full_name || '-'}</p>
                             <p className="text-xs text-neutral-400">{booking.user_profile?.email || ''}</p>
                           </td>
                           <td className="px-5 py-4 text-neutral-700">
-                            {booking.professional_profile?.full_name || '—'}
+                        {booking.professional_profile?.full_name || '-'}
                           </td>
                           <td className="px-5 py-4 text-neutral-700 whitespace-nowrap">
                             {new Date(booking.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -944,3 +944,4 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
     </div>
   )
 }
+

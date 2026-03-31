@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -336,7 +336,7 @@ export default function DisponibilidadePage() {
                       </select>
                     </div>
 
-                    <span className="text-neutral-300 text-sm">—</span>
+                    <span className="text-neutral-300 text-sm">-</span>
 
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-neutral-400 whitespace-nowrap hidden sm:block">Até</label>
@@ -466,4 +466,5 @@ export default function DisponibilidadePage() {
     </div>
   )
 }
+
 

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
@@ -64,10 +64,10 @@ export default function RequestBookingForm({
         <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
           <CheckCircle2 className="h-8 w-8 text-green-500" />
         </div>
-        <h2 className="mb-2 text-2xl font-bold text-neutral-900 font-display">Solicitacao enviada</h2>
+        <h2 className="mb-2 text-2xl font-bold text-neutral-900 font-display">Solicitação enviada</h2>
         <p className="mb-6 text-sm text-neutral-600">
           O profissional <span className="font-semibold">{professionalName}</span> recebeu sua
-          solicitacao. Quando houver proposta, voce verá na sua agenda.
+          solicitação. Quando houver proposta, você verá na sua agenda.
         </p>
         <div className="flex w-full flex-col gap-3 sm:flex-row">
           <Link
@@ -98,15 +98,15 @@ export default function RequestBookingForm({
       </Link>
 
       <div className="rounded-2xl border border-neutral-100 bg-white p-6 md:p-7">
-        <h1 className="mb-1 text-2xl font-bold text-neutral-900 font-display">Solicitar horario</h1>
+        <h1 className="mb-1 text-2xl font-bold text-neutral-900 font-display">Solicitar horário</h1>
         <p className="mb-6 text-sm text-neutral-500">
-          Envie um horario preferencial para <span className="font-medium">{professionalName}</span>.
+          Envie um horário preferencial para <span className="font-medium">{professionalName}</span>.
           O profissional pode aprovar, recusar ou propor alternativa.
         </p>
 
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <label className="space-y-1.5 text-sm">
-            <span className="font-medium text-neutral-700">Horario preferencial</span>
+            <span className="font-medium text-neutral-700">Horário preferencial</span>
             <input
               type="datetime-local"
               value={preferredStartLocal}
@@ -116,7 +116,7 @@ export default function RequestBookingForm({
           </label>
 
           <label className="space-y-1.5 text-sm">
-            <span className="font-medium text-neutral-700">Duracao</span>
+            <span className="font-medium text-neutral-700">Duração</span>
             <select
               value={durationMinutes}
               onChange={e => setDurationMinutes(Number(e.target.value))}
@@ -138,7 +138,7 @@ export default function RequestBookingForm({
             onChange={e => setMessage(e.target.value)}
             rows={4}
             maxLength={1200}
-            placeholder="Explique rapidamente o contexto e seus horarios de preferencia."
+            placeholder="Explique rapidamente o contexto e seus horários de preferência."
             className="w-full resize-none rounded-xl border border-neutral-200 px-3 py-2.5 text-sm text-neutral-700 placeholder-neutral-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
           />
           <span className="block text-right text-xs text-neutral-400">{message.length}/1200</span>
@@ -168,10 +168,12 @@ export default function RequestBookingForm({
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
           >
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
-            Enviar solicitacao
+            Enviar solicitação
           </button>
         </div>
       </div>
     </div>
   )
 }
+
+

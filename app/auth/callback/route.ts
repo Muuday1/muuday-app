@@ -1,4 +1,4 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
@@ -19,7 +19,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
 
-  const supabase = createClient()
+  let callbackResponse = NextResponse.next({ request })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          callbackResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            callbackResponse.cookies.set(name, value, options),
+          )
+        },
+      },
+    },
+  )
+
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
   if (exchangeError) {
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
@@ -31,6 +49,14 @@ export async function GET(request: NextRequest) {
 
   if (!user) {
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
+  }
+
+  function redirectWithSession(pathname: string) {
+    const redirectResponse = NextResponse.redirect(`${baseUrl}${pathname}`)
+    callbackResponse.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie)
+    })
+    return redirectResponse
   }
 
   const { data: profile } = await supabase
@@ -59,18 +85,24 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    if (!profileAfterUpsert?.country) {
-      return NextResponse.redirect(`${baseUrl}/completar-conta`)
+    if (profileAfterUpsert?.role === 'admin') {
+      return redirectWithSession('/buscar')
     }
 
-    return NextResponse.redirect(
-      `${baseUrl}${resolvePostLoginDestination(profileAfterUpsert.role)}`,
-    )
+    if (!profileAfterUpsert?.country) {
+      return redirectWithSession('/completar-conta')
+    }
+
+    return redirectWithSession(resolvePostLoginDestination(profileAfterUpsert.role))
+  }
+
+  if (profile.role === 'admin') {
+    return redirectWithSession('/buscar')
   }
 
   if (!profile.country) {
-    return NextResponse.redirect(`${baseUrl}/completar-conta`)
+    return redirectWithSession('/completar-conta')
   }
 
-  return NextResponse.redirect(`${baseUrl}${resolvePostLoginDestination(profile.role)}`)
+  return redirectWithSession(resolvePostLoginDestination(profile.role))
 }

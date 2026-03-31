@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
@@ -441,35 +441,35 @@ export default function BookingForm({
           <CheckCircle2 className="h-10 w-10 text-green-500" />
         </div>
         <h2 className="mb-2 text-2xl font-bold text-neutral-900 font-display">
-          {confirmationMode === 'manual' ? 'Solicitacao enviada' : 'Sessao confirmada'}
+          {confirmationMode === 'manual' ? 'Solicitação enviada' : 'Sessão confirmada'}
         </h2>
         <p className="mb-1 text-neutral-500">
-          {bookingType === 'recurring' ? 'Seu pacote de sessoes' : 'Sua sessao'} com{' '}
+          {bookingType === 'recurring' ? 'Seu pacote de sessões' : 'Sua sessão'} com{' '}
           <span className="font-semibold text-neutral-700">{profileName}</span> foi criado.
         </p>
         <p className="mb-1 text-sm text-neutral-500">
-          {dateLabel} as {selectedTime} ({timezoneLabel(userTimezone)})
+          {dateLabel} às {selectedTime} ({timezoneLabel(userTimezone)})
         </p>
         {selectedTimeInProfessionalTimezone && (
           <p className="mb-6 text-xs text-neutral-500">
-            Horario no fuso do profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
+            Horário no fuso do profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
           </p>
         )}
         {bookingType === 'recurring' && (
           <p className="mb-6 text-xs text-neutral-500">
-            Pacote semanal com {recurringSessionsCount} sessoes (mesmo dia e horario).
+            Pacote semanal com {recurringSessionsCount} sessões (mesmo dia e horário).
           </p>
         )}
 
         {confirmationMode === 'manual' ? (
           <div className="mb-8 w-full rounded-xl border border-amber-100 bg-amber-50 p-4 text-left text-sm text-amber-700">
-            <p className="mb-1 font-semibold">Aguardando confirmacao do profissional</p>
-            <p>Se nao houver resposta dentro do prazo, o sistema cancela e reembolsa automaticamente.</p>
+            <p className="mb-1 font-semibold">Aguardando confirmação do profissional</p>
+            <p>Se não houver resposta dentro do prazo, o sistema cancela e reembolsa automaticamente.</p>
           </div>
         ) : (
           <div className="mb-8 w-full rounded-xl border border-green-100 bg-green-50 p-4 text-left text-sm text-green-700">
-            <p className="mb-1 font-semibold">Sessao confirmada</p>
-            <p>Voce recebera notificacoes e lembretes por email e no app.</p>
+            <p className="mb-1 font-semibold">Sessão confirmada</p>
+            <p>Você receberá notificações e lembretes por email e no app.</p>
           </div>
         )}
 
@@ -516,8 +516,8 @@ export default function BookingForm({
                     : 'border-neutral-200 text-neutral-700 hover:border-brand-300',
                 )}
               >
-                <p className="font-semibold">Sessao unica</p>
-                <p className="mt-0.5 text-xs text-neutral-500">1 sessao com pagamento unico.</p>
+                <p className="font-semibold">Sessão única</p>
+                <p className="mt-0.5 text-xs text-neutral-500">1 sessão com pagamento único.</p>
               </button>
               <button
                 type="button"
@@ -534,24 +534,24 @@ export default function BookingForm({
                 <p className="font-semibold">Pacote semanal</p>
                 <p className="mt-0.5 text-xs text-neutral-500">
                   {!enableRecurring
-                    ? 'Este profissional nao oferece pacote recorrente.'
+                    ? 'Este profissional não oferece pacote recorrente.'
                     : recurringFlagEnabled === false
-                      ? 'Pacote recorrente indisponivel temporariamente.'
-                      : 'Mesmo dia e horario toda semana, pago antecipado.'}
+                      ? 'Pacote recorrente indisponível temporariamente.'
+                      : 'Mesmo dia e horário toda semana, pago antecipado.'}
                 </p>
               </button>
             </div>
 
             {bookingType === 'recurring' && (
               <div className="mt-4 flex items-center gap-3">
-                <label className="text-sm font-medium text-neutral-700">Quantidade de sessoes:</label>
+                <label className="text-sm font-medium text-neutral-700">Quantidade de sessões:</label>
                 <select
                   value={recurringSessionsCount}
                   onChange={e => setRecurringSessionsCount(Number(e.target.value))}
                   className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
                 >
-                  <option value={4}>4 sessoes</option>
-                  <option value={8}>8 sessoes</option>
+                  <option value={4}>4 sessões</option>
+                  <option value={8}>8 sessões</option>
                 </select>
               </div>
             )}
@@ -591,7 +591,7 @@ export default function BookingForm({
               </div>
             </div>
             <p className="mb-5 text-xs text-neutral-500">
-              Fuso atual de visualizacao:{' '}
+              Fuso atual de visualização:{' '}
               <span className="font-medium text-neutral-700">
                 {timezoneMode === 'user'
                   ? timezoneLabel(userTimezone)
@@ -604,7 +604,7 @@ export default function BookingForm({
                 onClick={prevMonth}
                 disabled={!canGoPrev}
                 className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="Mes anterior"
+                aria-label="Mês anterior"
               >
                 <ChevronLeft className="h-4 w-4 text-neutral-600" />
               </button>
@@ -615,7 +615,7 @@ export default function BookingForm({
                 onClick={nextMonth}
                 disabled={!canGoNext}
                 className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="Proximo mes"
+                aria-label="Próximo mês"
               >
                 <ChevronRight className="h-4 w-4 text-neutral-600" />
               </button>
@@ -665,7 +665,7 @@ export default function BookingForm({
 
             {availability.length === 0 && (
               <p className="mt-4 py-2 text-center text-sm text-neutral-400">
-                Este profissional ainda nao configurou disponibilidade.
+                Este profissional ainda não configurou disponibilidade.
               </p>
             )}
           </div>
@@ -674,7 +674,7 @@ export default function BookingForm({
             <div className="rounded-2xl border border-neutral-100 bg-white p-6">
               <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-neutral-900 font-display">
                 <Clock className="h-5 w-5 text-brand-500" />
-                Horarios disponiveis
+                Horários disponíveis
               </h2>
               <p className="mb-5 text-sm text-neutral-400">
                 {DAY_NAMES_PT_FULL[selectedDate.getDay()]},{' '}
@@ -686,9 +686,9 @@ export default function BookingForm({
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-50">
                     <Clock className="h-6 w-6 text-neutral-300" />
                   </div>
-                  <p className="text-sm font-medium text-neutral-600">Nenhum horario disponivel</p>
+                  <p className="text-sm font-medium text-neutral-600">Nenhum horário disponível</p>
                   <p className="mt-1 text-xs text-neutral-400">
-                    Todos os horarios desta data ja foram reservados.
+                    Todos os horários dest? data já foram reservados.
                   </p>
                 </div>
               ) : (
@@ -725,15 +725,15 @@ export default function BookingForm({
           {selectedDate && selectedTime && (
             <div className="rounded-2xl border border-neutral-100 bg-white p-6">
               <label className="mb-3 block text-sm font-semibold text-neutral-900 font-display">
-                Objetivo da sessao{' '}
+                Objetivo da sessão{' '}
                 <span className="font-normal text-neutral-400">
-                  {requireSessionPurpose ? '(obrigatorio)' : '(opcional)'}
+                  {requireSessionPurpose ? '(obrigatório)' : '(opcional)'}
                 </span>
               </label>
               <textarea
                 value={sessionPurpose}
                 onChange={e => setSessionPurpose(e.target.value)}
-                placeholder="Descreva brevemente o que voce quer trabalhar nesta sessao."
+                placeholder="Descreva brevemente o que você quer trabalhar nesta sessão."
                 rows={3}
                 maxLength={500}
                 className="w-full resize-none rounded-xl border border-neutral-200 p-3 text-sm text-neutral-700 placeholder-neutral-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -752,7 +752,7 @@ export default function BookingForm({
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-neutral-900">{profileName}</p>
                 <p className="mt-0.5 text-xs text-neutral-400">
-                  {professional.session_duration_minutes} min · {priceFormatted}
+                  {professional.session_duration_minutes} min • {priceFormatted}
                 </p>
               </div>
             </div>
@@ -771,7 +771,7 @@ export default function BookingForm({
                       })}
                     </p>
                   ) : (
-                    <p className="italic text-neutral-400">Nao selecionada</p>
+                    <p className="italic text-neutral-400">Não selecionada</p>
                   )}
                 </div>
               </div>
@@ -779,13 +779,13 @@ export default function BookingForm({
               <div className="flex items-start gap-2.5 text-sm">
                 <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-400" />
                 <div>
-                  <p className="mb-0.5 text-xs text-neutral-400">Horario</p>
+                  <p className="mb-0.5 text-xs text-neutral-400">Horário</p>
                   {selectedTime ? (
                     <p className="font-medium text-neutral-800">
                       {selectedTime} ({timezoneLabel(userTimezone)})
                     </p>
                   ) : (
-                    <p className="italic text-neutral-400">Nao selecionado</p>
+                    <p className="italic text-neutral-400">Não selecionado</p>
                   )}
                   {selectedTimeInProfessionalTimezone && (
                     <p className="mt-0.5 text-xs text-neutral-500">
@@ -798,7 +798,7 @@ export default function BookingForm({
               <div className="flex items-start gap-2.5 text-sm">
                 <Globe className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-400" />
                 <div>
-                  <p className="mb-0.5 text-xs text-neutral-400">Fuso padrao do checkout</p>
+                  <p className="mb-0.5 text-xs text-neutral-400">Fuso padrão do checkout</p>
                   <p className="text-xs font-medium leading-snug text-neutral-800">
                     {timezoneLabel(userTimezone)}
                   </p>
@@ -809,13 +809,13 @@ export default function BookingForm({
             <div className="mb-5 rounded-xl bg-neutral-50 p-4">
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="text-neutral-500">
-                  Sessao ({professional.session_duration_minutes} min) x {totalSessions}
+                  Sessão ({professional.session_duration_minutes} min) x {totalSessions}
                 </span>
                 <span className="font-semibold text-neutral-800">{priceFormatted}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-500">Taxa de servico</span>
-                <span className="font-medium text-green-600">Gratis</span>
+                <span className="text-neutral-500">Taxa de serviço</span>
+                <span className="font-medium text-green-600">Grátis</span>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3">
                 <span className="font-semibold text-neutral-900">Total</span>
@@ -825,7 +825,7 @@ export default function BookingForm({
 
             <div className="mb-4 rounded-xl border border-neutral-200 p-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">
-                Politica de cancelamento
+                Política de cancelamento
               </p>
               <div className="space-y-1.5">
                 {PLATFORM_CANCELLATION_POLICY.map(item => (
@@ -851,7 +851,7 @@ export default function BookingForm({
                   onChange={e => setAcceptPolicy(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
                 />
-                <span>Li e concordo com a politica de cancelamento e reembolso.</span>
+                <span>Li e concordo com a política de cancelamento e reembolso.</span>
               </label>
               <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-600">
                 <input
@@ -860,7 +860,7 @@ export default function BookingForm({
                   onChange={e => setAcceptTimezone(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
                 />
-                <span>Confirmo que revisei data e horario nos fusos corretos.</span>
+                <span>Confirmo que revisei data e horário nos fusos corretos.</span>
               </label>
             </div>
 
@@ -890,15 +890,15 @@ export default function BookingForm({
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center gap-2 text-xs text-neutral-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Sessao por video (Google Meet)
+                Sessão por vídeo (Google Meet)
               </div>
               <div className="flex items-center gap-2 text-xs text-neutral-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Lembretes por email e notificacoes no app
+                Lembretes por email e notificações no app
               </div>
               <div className="flex items-center gap-2 text-xs text-neutral-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Protecao contra conflito de agenda
+                Proteção contra conflito de agenda
               </div>
             </div>
           </div>
@@ -907,3 +907,4 @@ export default function BookingForm({
     </div>
   )
 }
+

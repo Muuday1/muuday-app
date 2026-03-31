@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -29,12 +29,12 @@ async function upsertPrimaryService(
 
   if (findServiceError) return
 
-  const categoryLabel = CATEGORIES.find(c => c.slug === category)?.name || 'servico profissional'
+  const categoryLabel = CATEGORIES.find(c => c.slug === category)?.name || 'serviço profissional'
   const payload = {
     professional_id: professionalId,
-    name: `Sessao principal (${categoryLabel})`,
+    name: `Sessão principal (${categoryLabel})`,
     service_type: 'one_off',
-    description: bio?.trim() || 'Sessao profissional na Muuday',
+    description: bio?.trim() || 'Sessão profissional na Muuday',
     duration_minutes: duration,
     price_brl: priceBrl,
     enable_recurring: false,
@@ -352,3 +352,4 @@ export default function CompletarPerfilPage() {
     </div>
   )
 }
+

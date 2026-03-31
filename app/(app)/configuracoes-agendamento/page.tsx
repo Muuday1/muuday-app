@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -206,7 +206,7 @@ export default function ConfiguracoesAgendamentoPage() {
           </div>
           <h2 className="font-display font-bold text-xl text-neutral-900 mb-2">Acesso restrito</h2>
           <p className="text-neutral-500 text-sm mb-6">
-            Esta pagina e exclusiva para profissionais.
+            Esta página é exclusiva para profissionais.
           </p>
           <Link
             href="/perfil"
@@ -243,12 +243,12 @@ export default function ConfiguracoesAgendamentoPage() {
 
       <div className="space-y-6">
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Fuso e duracao</h2>
+          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Fuso e duração</h2>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                Fuso horario profissional
+                Fuso horário profissional
               </label>
               <select
                 value={form.timezone}
@@ -265,7 +265,7 @@ export default function ConfiguracoesAgendamentoPage() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                Duracao padrao da sessao
+                Duração padrão da sessão
               </label>
               <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                 {DURATION_OPTIONS.map(minutes => (
@@ -293,7 +293,7 @@ export default function ConfiguracoesAgendamentoPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                Buffer entre sessoes
+                Buffer entre sessões
               </label>
               <select
                 value={form.bufferMinutes}
@@ -310,7 +310,7 @@ export default function ConfiguracoesAgendamentoPage() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                Antecedencia minima
+                Antecedência mínima
               </label>
               <select
                 value={form.minimumNoticeHours}
@@ -331,7 +331,7 @@ export default function ConfiguracoesAgendamentoPage() {
 
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                Janela maxima de agendamento
+                Janela máxima de agendamento
               </label>
               <select
                 value={form.maxBookingWindowDays}
@@ -351,7 +351,7 @@ export default function ConfiguracoesAgendamentoPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Fluxo de confirmacao</h2>
+          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Fluxo de confirmação</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
@@ -365,7 +365,7 @@ export default function ConfiguracoesAgendamentoPage() {
             >
               <p className="text-sm font-semibold text-neutral-900">Aceitar automaticamente</p>
               <p className="text-xs text-neutral-500 mt-1">
-                A sessao fica confirmada apos pagamento.
+                A sessão fica confirmada após pagamento.
               </p>
             </button>
 
@@ -378,16 +378,16 @@ export default function ConfiguracoesAgendamentoPage() {
                   : 'border-neutral-200 hover:border-neutral-300'
               }`}
             >
-              <p className="text-sm font-semibold text-neutral-900">Confirmacao manual</p>
+              <p className="text-sm font-semibold text-neutral-900">Confirmação manual</p>
               <p className="text-xs text-neutral-500 mt-1">
-                O pedido fica pendente ate sua aprovacao (SLA de 24h).
+                O pedido fica pendente até sua aprovação (SLA de 24h).
               </p>
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Recorrencia e briefing</h2>
+          <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Recorrência e briefing</h2>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
@@ -403,7 +403,7 @@ export default function ConfiguracoesAgendamentoPage() {
                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                   form.enableRecurring ? 'bg-brand-500' : 'bg-neutral-200'
                 }`}
-                aria-label="Alternar recorrencia"
+                aria-label="Alternar recorrência"
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -415,7 +415,7 @@ export default function ConfiguracoesAgendamentoPage() {
 
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-neutral-800">Objetivo da sessao obrigatorio</p>
+                <p className="text-sm font-medium text-neutral-800">Objetivo da sessão obrigatório</p>
                 <p className="text-xs text-neutral-500 mt-0.5">
                   Exige texto do cliente no checkout antes do pagamento.
                 </p>
@@ -428,7 +428,7 @@ export default function ConfiguracoesAgendamentoPage() {
                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                   form.requireSessionPurpose ? 'bg-brand-500' : 'bg-neutral-200'
                 }`}
-                aria-label="Alternar obrigatoriedade do objetivo da sessao"
+                aria-label="Alternar obrigatoriedade do objetivo da sessão"
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -441,9 +441,9 @@ export default function ConfiguracoesAgendamentoPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-          <h2 className="font-display font-bold text-lg text-neutral-900 mb-2">Politica de cancelamento</h2>
+          <h2 className="font-display font-bold text-lg text-neutral-900 mb-2">Política de cancelamento</h2>
           <p className="text-sm text-neutral-500 mb-4">
-            Atualmente usamos a politica padrao da plataforma.
+            Atualmente usamos a política padrão da plataforma.
           </p>
           <div className="rounded-xl bg-neutral-50 border border-neutral-100 p-4 text-sm text-neutral-600">
             <div>- 48h ou mais: reembolso de 100%</div>
@@ -486,10 +486,12 @@ export default function ConfiguracoesAgendamentoPage() {
           )}
         </button>
         <p className="text-xs text-neutral-500">
-          Antecedencia atual: <strong>{minNoticeLabel}</strong> · Janela atual:{' '}
+          Antecedência atual: <strong>{minNoticeLabel}</strong> • Janela atual:{' '}
           <strong>{form.maxBookingWindowDays} dias</strong>
         </p>
       </div>
     </div>
   )
 }
+
+

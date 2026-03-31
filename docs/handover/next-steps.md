@@ -135,12 +135,26 @@ Dependencies:
 24. Validate filter-to-card linkage in `/buscar` after availability-client fix:
 - apply `Categoria`, `Especialidade`, `Idioma`, `Horário` one by one and confirm cards no longer disappear unexpectedly.
 - confirm only genuinely empty filters return zero results.
-25. Apply migration `018-wave2-real-professions-taxonomy.sql` in production.
+24.1 Run a focused PT-BR QA pass in preview/production:
+- validate accented labels and feedback messages in `/login`, `/cadastro`, `/buscar`, `/agenda`, `/configuracoes`, `/configuracoes-agendamento`, `/agendar/[id]`, `/solicitar/[id]`.
+- validate no mojibake (`Ã`, `â`, `?` in words) remains in visible UI.
+25. ~~Apply migration `018-wave2-real-professions-taxonomy.sql` in production.~~ Done (operator-confirmed on 2026-03-31).
 26. Run post-migration sanity checks for canonical specialties:
 - sample legacy professionals migrated into `professional_specialties`.
 - `/cadastro` professional category -> specialty options populated from taxonomy.
 - `/buscar` category/specialty filtering and card subtitle use canonical specialties.
 - `/admin` and `/perfil` show canonical specialties plus separate `Foco de atuação`.
+27. Run fixture-public-visibility hardening after every test-account creation/reset:
+- command: `npm run fixtures:ensure-public-ready`
+- prerequisite: valid `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY` (service role).
+- expected result: all fixture professionals used in QA/E2E remain `canGoLive=true`, appear in `/buscar`, and open `/profissional/[id]` without 404.
+28. Sanity check public visibility gate enforcement:
+- create one incomplete professional (missing onboarding requirements) and confirm it does **not** appear on `/buscar`.
+- complete onboarding + approve and confirm listing appears automatically.
+29. After deploying OAuth callback patch, run auth smoke manually with Google:
+- admin account (`igorpinto.lds@gmail.com`) must complete OAuth and land in `/buscar` with no loop to `/login`.
+- professional OAuth must land in `/dashboard`.
+- repeat from both `/login` and public header login popup.
 
 Dependencies:
 - Wave 1 critical path complete.

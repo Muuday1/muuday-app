@@ -27,6 +27,7 @@ import {
   normalizeSearchCategorySlug,
 } from '@/lib/search-config'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
+import { filterPubliclyVisibleProfessionals } from '@/lib/professional/public-visibility'
 
 type BuscarSearchParams = {
   q?: string
@@ -302,6 +303,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         .order('rating', { ascending: false })
         .limit(250)
       professionals = professionalsRaw || []
+      if (professionals.length > 0) {
+        professionals = await filterPubliclyVisibleProfessionals(readClient as any, professionals)
+      }
     } catch {
       professionals = []
     }
@@ -545,18 +549,18 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         <div className="mb-4">
           <p className="text-sm font-semibold text-neutral-900">
             {hasActiveFilters
-              ? `${totalResults} profissionais disponÃ­veis para os filtros selecionados`
-              : `${totalResults} profissionais disponÃ­veis`}
+              ? `${totalResults} profissionais disponíveis para os filtros selecionados`
+              : `${totalResults} profissionais disponíveis`}
           </p>
           {selectedCategoryLabel || selectedSpecialty ? (
             <p className="text-xs text-neutral-500 mt-0.5">
               {selectedCategoryLabel ? `Categoria: ${selectedCategoryLabel}` : null}
-              {selectedCategoryLabel && selectedSpecialty ? ' â€¢ ' : null}
+              {selectedCategoryLabel && selectedSpecialty ? ' • ' : null}
               {selectedSpecialty ? `Especialidade: ${selectedSpecialty}` : null}
             </p>
           ) : (
             <p className="text-xs text-neutral-500 mt-0.5">
-                SugestÃµes iniciais variadas para te ajudar a comeÃ§ar.
+                Sugestões iniciais variadas para te ajudar a começar.
             </p>
           )}
         </div>
@@ -628,7 +632,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                               {formatSearchPrice(professional.session_price_brl, selectedCurrency)}
                             </p>
                             <p className="text-[11px] text-neutral-400">
-                              por sessÃ£o de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
+                              por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
                             </p>
                           </div>
                         </div>

@@ -13,6 +13,7 @@
     "test:state-machines": "node scripts/ops/test-state-machines.cjs",
     "auth:validate-smoke": "node scripts/ops/validate-supabase-auth-flow.cjs",
     "test:checkly-local": "playwright test --config playwright.checkly.config.ts",
+    "fixtures:ensure-public-ready": "node scripts/ops/ensure-test-professionals-public-ready.cjs",
     "checkly:validate": "checkly debug parse-project --config checkly.config.js",
     "checkly:test": "checkly test",
     "checkly:deploy": "checkly deploy",

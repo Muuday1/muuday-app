@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -402,11 +402,11 @@ export default function ConfiguracoesPage() {
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-3 text-sm text-neutral-700 sm:grid-cols-2">
-                <p>Pendencias de confirmacao: {professionalSummary.pendingConfirmations}</p>
+                  <p>Pendências de confirmação: {professionalSummary.pendingConfirmations}</p>
                 <p>Requests abertos: {professionalSummary.openRequests}</p>
                 <p>Disponibilidade ativa: {professionalSummary.availabilityCount}</p>
-                <p>Confirmacao: {professionalSummary.confirmationMode}</p>
-                <p>Antecedencia minima: {professionalSummary.minNoticeHours}h</p>
+                <p>Confirma??o: {professionalSummary.confirmationMode}</p>
+                  <p>Antecedência mínima: {professionalSummary.minNoticeHours}h</p>
                 <p>Janela maxima: {professionalSummary.maxWindowDays} dias</p>
               </div>
             </div>
@@ -556,7 +556,7 @@ export default function ConfiguracoesPage() {
                 <Briefcase className="h-4 w-4 text-brand-500" />
                 <p className="text-sm font-semibold">Perfil e servicos</p>
               </div>
-              <p className="text-xs text-neutral-500">Categoria, bio, idiomas, preco e duracao.</p>
+              <p className="text-xs text-neutral-500">Categoria, bio, idiomas, preço e duração.</p>
             </Link>
 
             <Link
@@ -578,7 +578,7 @@ export default function ConfiguracoesPage() {
                 <Settings className="h-4 w-4 text-brand-500" />
                 <p className="text-sm font-semibold">Regras de booking</p>
               </div>
-              <p className="text-xs text-neutral-500">Notice, janela, recorrencia e modo de confirmacao.</p>
+                    <p className="text-xs text-neutral-500">Notice, janela, recorrência e modo de confirmação.</p>
             </Link>
 
             <Link
@@ -757,9 +757,11 @@ export default function ConfiguracoesPage() {
       {showProfessionalWorkspace && professionalSummary?.pendingConfirmations ? (
         <p className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-amber-700">
           <AlertTriangle className="h-3.5 w-3.5" />
-          Voce possui pendencias de confirmacao ativas na agenda.
+          Você possui pendências de confirmação ativas na agenda.
         </p>
       ) : null}
     </div>
   )
 }
+
+

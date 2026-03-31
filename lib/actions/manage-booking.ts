@@ -24,12 +24,12 @@ import {
 
 type ActionResult = { success: true } | { success: false; error: string }
 
-const bookingIdSchema = z.string().uuid('Identificador de agendamento invalido.')
+const bookingIdSchema = z.string().uuid('Identificador de agendamento inv?lido.')
 const cancelReasonSchema = z.string().trim().max(300, 'Motivo de cancelamento muito longo.')
-const sessionLinkSchema = z.string().trim().url('Link da sessao invalido.').max(500, 'Link da sessao muito longo.')
+const sessionLinkSchema = z.string().trim().url('Link da sess?o inv?lido.').max(500, 'Link da sess?o muito longo.')
 const scheduledAtSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horario invalido.')
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Hor?rio inv?lido.')
 
 const RATE_LIMIT_ERROR: ActionResult = {
   success: false,
@@ -41,7 +41,7 @@ function validateBookingId(bookingId: string): { ok: true; id: string } | { ok: 
   if (!parsed.success) {
     return {
       ok: false,
-      result: { success: false, error: parsed.error.issues[0]?.message || 'Identificador invalido.' },
+      result: { success: false, error: parsed.error.issues[0]?.message || 'Identificador inv?lido.' },
     }
   }
   return { ok: true, id: parsed.data }
@@ -247,14 +247,14 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
   if (booking.professional_id !== professionalId) {
     return { success: false, error: 'Apenas o profissional pode confirmar este agendamento.' }
   }
 
   const transition = assertBookingTransition(booking.status, 'confirmed')
   if (!transition.ok) {
-    return { success: false, error: 'Este agendamento nao pode ser confirmado no estado atual.' }
+    return { success: false, error: 'Este agendamento n?o pode ser confirmado no estado atual.' }
   }
 
   let { data: updatedBooking, error } = await supabase
@@ -296,7 +296,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     if (!parsedReason.success) {
       return {
         success: false,
-        error: parsedReason.error.issues[0]?.message || 'Motivo de cancelamento invalido.',
+        error: parsedReason.error.issues[0]?.message || 'Motivo de cancelamento inv?lido.',
       }
     }
     normalizedReason = parsedReason.data
@@ -312,16 +312,16 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
 
   const isBookingUser = booking.user_id === user.id
   const isBookingProfessional = professionalId ? booking.professional_id === professionalId : false
   if (!isBookingUser && !isBookingProfessional) {
-    return { success: false, error: 'Voce nao tem permissao para cancelar este agendamento.' }
+    return { success: false, error: 'Voc? n?o tem permiss?o para cancelar este agendamento.' }
   }
 
   const transition = assertBookingTransition(booking.status, 'cancelled')
-  if (!transition.ok) return { success: false, error: 'Este agendamento nao pode ser cancelado.' }
+  if (!transition.ok) return { success: false, error: 'Este agendamento n?o pode ser cancelado.' }
 
   const hoursUntilSession = getHoursUntilSession(booking.scheduled_at)
   const refundDecision = isBookingUser
@@ -387,7 +387,7 @@ export async function rescheduleBooking(
 
   const parsedScheduledAt = scheduledAtSchema.safeParse(newScheduledAt)
   if (!parsedScheduledAt.success) {
-    return { success: false, error: parsedScheduledAt.error.issues[0]?.message || 'Horario invalido.' }
+    return { success: false, error: parsedScheduledAt.error.issues[0]?.message || 'Hor?rio inv?lido.' }
   }
 
   const { supabase, user } = await getAuthenticatedContext()
@@ -400,24 +400,24 @@ export async function rescheduleBooking(
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
   if (booking.user_id !== user.id) {
     return { success: false, error: 'Apenas o cliente pode remarcar este agendamento.' }
   }
 
   if (booking.booking_type === 'recurring_parent') {
-    return { success: false, error: 'Remarcacao de pacote recorrente ainda nao esta disponivel.' }
+    return { success: false, error: 'Remarca??o de pacote recorrente ainda n?o est? dispon?vel.' }
   }
 
   if (!['pending', 'pending_confirmation', 'confirmed'].includes(booking.status)) {
-    return { success: false, error: 'Este agendamento nao pode ser remarcado.' }
+    return { success: false, error: 'Este agendamento n?o pode ser remarcado.' }
   }
 
   const hoursUntilCurrentSession = getHoursUntilSession(booking.scheduled_at)
   if (hoursUntilCurrentSession < 24) {
     return {
       success: false,
-      error: 'Remarcacoes so sao permitidas com no minimo 24 horas de antecedencia.',
+      error: 'Remarcacoes s? sao permitidas com no m?nimo 24 horas de anteced?ncia.',
     }
   }
 
@@ -434,7 +434,7 @@ export async function rescheduleBooking(
     .eq('id', booking.professional_id)
     .single()
 
-  if (!professional) return { success: false, error: 'Profissional nao encontrado.' }
+  if (!professional) return { success: false, error: 'Profissional n?o encontrado.' }
 
   const professionalProfile = Array.isArray(professional.profiles)
     ? professional.profiles[0]
@@ -460,15 +460,15 @@ export async function rescheduleBooking(
   try {
     scheduledDate = fromZonedTime(parsedScheduledAt.data, userTimezone)
   } catch {
-    return { success: false, error: 'Horario invalido.' }
+    return { success: false, error: 'Hor?rio inv?lido.' }
   }
-  if (Number.isNaN(scheduledDate.getTime())) return { success: false, error: 'Horario invalido.' }
+  if (Number.isNaN(scheduledDate.getTime())) return { success: false, error: 'Hor?rio inv?lido.' }
 
   const minimumStartTime = Date.now() + settings.minimumNoticeHours * 60 * 60 * 1000
   if (scheduledDate.getTime() < minimumStartTime) {
     return {
       success: false,
-      error: `Selecione um horario com pelo menos ${settings.minimumNoticeHours} horas de antecedencia.`,
+      error: `Selecione um hor?rio com pelo menos ${settings.minimumNoticeHours} horas de anteced?ncia.`,
     }
   }
 
@@ -485,7 +485,7 @@ export async function rescheduleBooking(
   const rules = await loadAvailabilityRules(supabase, professional.id, settings.timezone)
   const fitsAvailability = isSlotWithinWorkingHours(scheduledDate, endDate, settings, rules)
   if (!fitsAvailability) {
-    return { success: false, error: 'Este horario nao esta disponivel para este profissional.' }
+    return { success: false, error: 'Este hor?rio n?o est? dispon?vel para este profissional.' }
   }
 
   const allowedByException = await isSlotAllowedByExceptions(
@@ -495,7 +495,7 @@ export async function rescheduleBooking(
     scheduledDate,
     endDate,
   )
-  if (!allowedByException) return { success: false, error: 'Este horario nao esta disponivel.' }
+  if (!allowedByException) return { success: false, error: 'Este hor?rio n?o est? dispon?vel.' }
 
   const hasConflict = await hasInternalBookingConflict(
     supabase,
@@ -505,7 +505,7 @@ export async function rescheduleBooking(
     settings.bufferMinutes,
     booking.id,
   )
-  if (hasConflict) return { success: false, error: 'Este horario ja esta reservado. Escolha outro.' }
+  if (hasConflict) return { success: false, error: 'Este hor?rio ja est? reservado. Escolha outro.' }
 
   const slotLock = await acquireSlotLock(supabase, {
     professionalId: professional.id,
@@ -520,8 +520,8 @@ export async function rescheduleBooking(
       success: false,
       error:
         slotLock.reason === 'locked'
-          ? 'Outro cliente acabou de selecionar este horario. Escolha outro.'
-          : 'Nao foi possivel bloquear o horario para remarcacao.',
+          ? 'Outro cliente acabou de selecionar este hor?rio. Escolha outro.'
+          : 'N?o foi poss?vel bloquear o hor?rio para remarca??o.',
     }
   }
 
@@ -563,7 +563,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
 
   const parsedLink = sessionLinkSchema.safeParse(link)
   if (!parsedLink.success) {
-    return { success: false, error: parsedLink.error.issues[0]?.message || 'Link da sessao invalido.' }
+    return { success: false, error: parsedLink.error.issues[0]?.message || 'Link da sess?o inv?lido.' }
   }
 
   const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
@@ -571,7 +571,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
   if (!professionalId) {
-    return { success: false, error: 'Apenas o profissional pode adicionar o link da sessao.' }
+    return { success: false, error: 'Apenas o profissional pode adicionar o link da sess?o.' }
   }
 
   const { data: booking } = await supabase
@@ -580,12 +580,12 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
   if (booking.professional_id !== professionalId) {
-    return { success: false, error: 'Apenas o profissional pode adicionar o link da sessao.' }
+    return { success: false, error: 'Apenas o profissional pode adicionar o link da sess?o.' }
   }
   if (!['confirmed', 'pending', 'pending_confirmation'].includes(booking.status)) {
-    return { success: false, error: 'Nao e possivel adicionar link a este agendamento.' }
+    return { success: false, error: 'N?o e poss?vel adicionar link a este agendamento.' }
   }
 
   let { data: updatedBooking, error } = await supabase
@@ -633,7 +633,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
   if (booking.professional_id !== professionalId) {
     return { success: false, error: 'Apenas o profissional pode concluir este agendamento.' }
   }
@@ -645,7 +645,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
 
   const sessionEnd = new Date(booking.scheduled_at).getTime() + (booking.duration_minutes || 0) * 60 * 1000
   if (Date.now() < sessionEnd) {
-    return { success: false, error: 'A sessao so pode ser concluida apos o horario previsto de termino.' }
+    return { success: false, error: 'A sess?o s? pode ser concluida apos o hor?rio previsto de termino.' }
   }
 
   let { data: completedBooking, error } = await supabase
@@ -691,7 +691,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
   if (booking.user_id !== user.id) {
     return { success: false, error: 'Apenas o cliente pode reportar no-show do profissional.' }
   }
@@ -699,7 +699,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     return { success: false, error: 'Somente sessoes confirmadas podem ser marcadas como no-show.' }
   }
   if (Date.now() < new Date(booking.scheduled_at).getTime()) {
-    return { success: false, error: 'A sessao ainda nao iniciou.' }
+    return { success: false, error: 'A sess?o ainda n?o iniciou.' }
   }
 
   const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
@@ -734,7 +734,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
   }
 
   if (error || !updated) {
-    return { success: false, error: 'Nao foi possivel registrar no-show. Tente novamente.' }
+    return { success: false, error: 'N?o foi poss?vel registrar no-show. Tente novamente.' }
   }
 
   await applyPaymentRefund(supabase, adminSupabase, safeBookingId, 100)
@@ -776,7 +776,7 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     .eq('id', safeBookingId)
     .single()
 
-  if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+  if (!booking) return { success: false, error: 'Agendamento n?o encontrado.' }
   if (booking.professional_id !== professionalId) {
     return { success: false, error: 'Apenas o profissional pode marcar no-show do cliente.' }
   }
@@ -784,7 +784,7 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Somente sessoes confirmadas podem ser marcadas como no-show.' }
   }
   if (Date.now() < new Date(booking.scheduled_at).getTime()) {
-    return { success: false, error: 'A sessao ainda nao iniciou.' }
+    return { success: false, error: 'A sess?o ainda n?o iniciou.' }
   }
 
   const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
@@ -818,7 +818,7 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
   }
 
   if (error || !updated) {
-    return { success: false, error: 'Nao foi possivel registrar no-show. Tente novamente.' }
+    return { success: false, error: 'N?o foi poss?vel registrar no-show. Tente novamente.' }
   }
 
   revalidatePath('/agenda')

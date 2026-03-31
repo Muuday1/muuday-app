@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 46)
+Last updated: 2026-03-31 (session 49)
 
 ## Canonical baseline status
 
@@ -138,6 +138,14 @@ Last updated: 2026-03-31 (session 46)
 - login now surfaces explicit `email not confirmed` and oauth failure messages instead of generic invalid-credentials only.
 - oauth callback now has guarded exchange flow, profile bootstrap fallback, and role-aware redirect.
 61. Signup UX parity patch delivered:
+62. PT-BR text cleanup delivered in core journeys:
+- fixed accent/encoding issues in auth, search, agenda, professional settings, and booking/request flows.
+- corrected UI status labels previously leaking malformed strings (`Pend?ncias`, `confirma??o`, etc.).
+63. Technical integrity preserved after copy cleanup:
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run build` ✅
+- `npm run test:state-machines` ✅
 - role cards restored with icons for `usuario` and `profissional`.
 - password confirmation field added with client validation.
 - country selection now uses full ISO country list.
@@ -173,6 +181,18 @@ Last updated: 2026-03-31 (session 46)
 - `/cadastro` professional flow now loads approved specialties by selected category from canonical taxonomy.
 - `/profissional/[id]`, `/perfil`, and `/admin` now surface canonical specialties while keeping `Foco de atuação` separate.
 - technical validation completed: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines`.
+68. Public visibility gate now enforces full onboarding readiness:
+- `/buscar` now filters professionals by onboarding `canGoLive` evaluation (not only `status=approved`), aligning public listing with C1-C10 gate model.
+- `/profissional/[id]` now blocks public view for incomplete professionals unless the viewer is the professional owner.
+- added `lib/professional/public-visibility.ts` as shared gate-evaluation helper for public listing/detail surfaces.
+69. Test-fixture operational hardening added:
+- new script `scripts/ops/ensure-test-professionals-public-ready.cjs` (`npm run fixtures:ensure-public-ready`) updates configured fixture professionals to a deterministic go-live-ready state (profile, settings, services, availability, and first-booking gate).
+- intended use: keep QA/E2E professionals consistently visible in `/buscar` and openable via profile cards.
+70. OAuth callback session-persistence fix applied:
+- `app/auth/callback/route.ts` now uses `createServerClient` with explicit cookie propagation to redirect response.
+- resolves Google login loop where auth completed but middleware saw anonymous request and returned user to `/login`.
+- admin callback destination is now hard-pinned to `/buscar`.
+- destination contract remains role-based after OAuth (`profissional -> /dashboard`, `usuario/admin -> /buscar`).
 
 ## Partially implemented (`In progress`)
 
@@ -189,7 +209,7 @@ Last updated: 2026-03-31 (session 46)
 3. Final legal/tax wording freeze for sensitive categories.
 4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
 5. E2E fixture stability must be preserved (IDs and professional settings) to keep zero-skip behavior in CI/local runs.
-6. Migration `018-wave2-real-professions-taxonomy.sql` still needs production execution and post-deploy data sanity checks.
+6. Run fixture hardening script with a valid Supabase service-role key to guarantee all test professionals stay public-ready after new signups/resets.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.

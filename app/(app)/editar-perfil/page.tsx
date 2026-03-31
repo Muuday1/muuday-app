@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -63,7 +63,7 @@ export default function EditarPerfilPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setFeedback({ type: 'error', message: 'Sessao expirada. Faca login novamente.' })
+      setFeedback({ type: 'error', message: 'Sessão expirada. Faça login novamente.' })
       setSaving(false)
       return
     }
@@ -79,7 +79,7 @@ export default function EditarPerfilPage() {
       .eq('id', user.id)
 
     if (error) {
-      setFeedback({ type: 'error', message: 'Erro ao salvar alteracoes. Tente novamente.' })
+      setFeedback({ type: 'error', message: 'Erro ao salvar alterações. Tente novamente.' })
     } else {
       setFeedback({ type: 'success', message: 'Perfil atualizado com sucesso!' })
     }
@@ -148,7 +148,7 @@ export default function EditarPerfilPage() {
           {/* Country */}
           <div>
             <label htmlFor="country" className="block text-sm font-medium text-neutral-700 mb-1.5">
-              Pais
+              País
             </label>
             <select
               id="country"
@@ -156,7 +156,7 @@ export default function EditarPerfilPage() {
               onChange={e => handleCountryChange(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-neutral-900 bg-white"
             >
-              <option value="">Selecione um pais</option>
+              <option value="">Selecione um país</option>
               {COUNTRIES.map(c => (
                 <option key={c.code} value={c.code}>
                   {c.name}
@@ -183,7 +183,7 @@ export default function EditarPerfilPage() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-neutral-400 mt-1">Voce pode ajustar manualmente mesmo apos escolher o pais.</p>
+            <p className="text-xs text-neutral-400 mt-1">Você pode ajustar manualmente mesmo após escolher o país.</p>
           </div>
 
           {/* Currency */}
@@ -226,10 +226,11 @@ export default function EditarPerfilPage() {
             ) : (
               <Save className="w-4 h-4" />
             )}
-            {saving ? 'Salvando...' : 'Salvar alteracoes'}
+            {saving ? 'Salvando...' : 'Salvar alterações'}
           </button>
         </div>
       </form>
     </div>
   )
 }
+

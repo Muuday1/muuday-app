@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -29,12 +29,12 @@ async function upsertPrimaryService(
 
   if (findServiceError) return
 
-  const categoryLabel = CATEGORIES.find(c => c.slug === category)?.name || 'servico profissional'
+  const categoryLabel = CATEGORIES.find(c => c.slug === category)?.name || 'serviço profissional'
   const payload = {
     professional_id: professionalId,
-    name: `Sessao principal (${categoryLabel})`,
+    name: `Sessão principal (${categoryLabel})`,
     service_type: 'one_off',
-    description: bio?.trim() || 'Sessao profissional na Muuday',
+    description: bio?.trim() || 'Sessão profissional na Muuday',
     duration_minutes: duration,
     price_brl: priceBrl,
     enable_recurring: false,
@@ -86,7 +86,7 @@ export default function EditarPerfilProfissionalPage() {
       setBio(professional.bio || '')
       setTags(professional.tags?.join(', ') || '')
       setLanguages(professional.languages || ['Português'])
-      setYearsExperience(professional.years_experience?.toString() || '')
+      setYearsExperience(professional.years_experienc?.toString() || '')
       setPriceBrl(professional.session_price_brl?.toString() || '')
       setDuration(professional.session_duration_minutes || 60)
       setLoading(false)
@@ -339,3 +339,4 @@ export default function EditarPerfilProfissionalPage() {
     </div>
   )
 }
+

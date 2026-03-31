@@ -12,17 +12,17 @@ function resolveReminderType(minutesUntil: number): ReminderType | null {
 function buildReminderCopy(reminderType: ReminderType) {
   const title =
     reminderType === 'booking.reminder.24h'
-      ? 'Sua sessao e amanha'
+      ? 'Sua sess?o e amanha'
       : reminderType === 'booking.reminder.1h'
-        ? 'Sua sessao comeca em 1 hora'
-        : 'Sua sessao comeca em 10 minutos'
+        ? 'Sua sess?o comeca em 1 hora'
+        : 'Sua sess?o comeca em 10 minutos'
 
   const body =
     reminderType === 'booking.reminder.24h'
-      ? 'Revise horario e preparacao para a sessao.'
+      ? 'Revise hor?rio e preparacao para a sess?o.'
       : reminderType === 'booking.reminder.1h'
-        ? 'Prepare-se para entrar na sessao no horario.'
-        : 'A sessao esta prestes a comecar.'
+        ? 'Prepare-se para entrar na sess?o no hor?rio.'
+        : 'A sess?o est? prestes a comecar.'
 
   return { title, body }
 }

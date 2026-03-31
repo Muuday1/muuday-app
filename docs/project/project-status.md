@@ -118,6 +118,8 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - fixed E2E selector drift in professional workspace tests.
 - hardened booking E2E helper to treat `primeiro-agendamento-bloqueado` redirect as environment skip.
 - green checks: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` (4 passed, 3 skipped).
+46. PT-BR copy normalization pass applied across core UI surfaces (`/buscar`, `/agenda`, `/configuracoes`, `/configuracoes-agendamento`, auth forms, booking/request forms) with encoding-fix cleanup.
+47. Validation gate re-run after copy pass: `lint`, `typecheck`, `build`, `test:state-machines` all green.
 46. Recovery gate closed with deterministic E2E fixtures:
 - configured dedicated auto/manual professional fixtures for booking critical tests.
 - local `.env.local` updated with `E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`.
@@ -206,6 +208,19 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - `/cadastro` professional flow now loads approved specialties by selected category from canonical taxonomy (with fallback map).
 - `/profissional/[id]`, `/perfil`, and `/admin` now render canonical specialties and keep `Foco de atuação` as a separate field.
 - validation run green: `lint`, `typecheck`, `build`, `test:state-machines`.
+63. Public search visibility now enforces full go-live gate:
+- `/buscar` no longer lists professionals only by `status=approved`; it now also requires onboarding gate `canGoLive=true` (C2-C6 complete + admin approval).
+- `/profissional/[id]` now blocks public access for incomplete professionals even if they are `approved`, while preserving own-profile access for the professional owner.
+- added operational script `npm run fixtures:ensure-public-ready` (`scripts/ops/ensure-test-professionals-public-ready.cjs`) to normalize test fixtures across profile/settings/services/availability and keep them visible for QA.
+- validation run green: `lint`, `typecheck`, `build`, `test:state-machines`.
+64. Google OAuth callback loop hardening (admin/user/professional):
+- replaced callback handler session exchange with cookie-safe server client flow in `app/auth/callback/route.ts`.
+- callback now persists auth cookies on redirect response, preventing OAuth success -> `/login` loop caused by dropped session cookies.
+- admin redirect policy reinforced at callback level: admin always resolves to `/buscar` after OAuth (even when profile completion fields are pending).
+- role-based destination policy remains enforced after OAuth:
+  - profissional -> `/dashboard`
+  - usuario/admin -> `/buscar`
+- validation run green: `lint`, `typecheck`, `build`, `test:state-machines`.
 
 ## Immediate next actions
 
@@ -216,6 +231,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production
 - finalize onboarding gate matrix enforcement end-to-end with migration 015 live
 4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
+5. Run `npm run fixtures:ensure-public-ready` with valid Supabase service-role key in local/ops environment to keep all E2E professional fixtures go-live eligible and visible in `/buscar`.
 5. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
 6. Prepare Stripe corridor validation packet and run external confirmation process.
 7. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.

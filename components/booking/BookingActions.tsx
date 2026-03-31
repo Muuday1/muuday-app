@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useTransition } from 'react'
 import {
@@ -56,7 +56,7 @@ export default function BookingActions({
   const [cancelReason, setCancelReason] = useState('')
   const [showReschedule, setShowReschedule] = useState(false)
   const [rescheduleAt, setRescheduleAt] = useState(toDatetimeLocalValue(scheduledAt))
-  const fallbackErrorMessage = 'Nao foi possivel concluir a acao. Tente novamente.'
+  const fallbackErrorMessage = 'Não foi possível concluir a ação. Tente novamente.'
 
   const isPastSession = useMemo(() => {
     if (!scheduledAt) return false
@@ -74,7 +74,7 @@ export default function BookingActions({
       try {
         const result = await action()
         if (result?.success) {
-          setFeedback({ type: 'success', message: 'Acao concluida com sucesso.' })
+          setFeedback({ type: 'success', message: 'Ação concluída com sucesso.' })
         } else {
           setFeedback({ type: 'error', message: result?.error || fallbackErrorMessage })
         }
@@ -120,7 +120,7 @@ export default function BookingActions({
   function handleComplete() {
     runAction(async () => {
       const result = await completeBooking(bookingId)
-      if (result.success) setFeedback({ type: 'success', message: 'Sessao concluida.' })
+      if (result.success) setFeedback({ type: 'success', message: 'Sessão concluída.' })
       return result
     })
   }
@@ -222,7 +222,7 @@ export default function BookingActions({
                 ) : (
                   <CheckCircle2 className="h-3.5 w-3.5" />
                 )}
-                Concluir sessao
+                Concluir sessão
               </button>
               <button
                 onClick={handleUserNoShow}
@@ -313,7 +313,7 @@ export default function BookingActions({
 
       {showReschedule && (
         <div className="space-y-2 rounded-xl border border-brand-100 bg-brand-50 p-3">
-          <p className="text-xs font-semibold text-brand-700">Nova data e horario</p>
+          <p className="text-xs font-semibold text-brand-700">Nova data e horário</p>
           <input
             type="datetime-local"
             value={rescheduleAt}
@@ -378,3 +378,4 @@ export default function BookingActions({
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-export const metadata = { title: 'Solicitar Horario | Muuday' }
+export const metadata = { title: 'Solicitar Horário | Muuday' }
 
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
