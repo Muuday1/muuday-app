@@ -43,7 +43,7 @@ export default function RecuperarSenhaPage() {
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-brand-600 hover:text-brand-700 font-medium"
+          className="inline-flex items-center gap-2 rounded-md text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar para login
@@ -56,7 +56,7 @@ export default function RecuperarSenhaPage() {
     <div>
       <Link
         href="/login"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 mb-6 transition-colors"
+        className="mb-6 inline-flex items-center gap-1.5 rounded-md text-sm text-neutral-500 transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
         Voltar
@@ -76,7 +76,7 @@ export default function RecuperarSenhaPage() {
             onChange={e => setEmail(e.target.value)}
             required
             placeholder="seu@email.com"
-            className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
           />
         </div>
 
@@ -89,7 +89,7 @@ export default function RecuperarSenhaPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+          className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
         >
           {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</> : 'Enviar link de recuperação'}
         </button>
@@ -97,7 +97,7 @@ export default function RecuperarSenhaPage() {
 
       <p className="text-center text-sm text-neutral-500 mt-6">
         Lembrou a senha?{' '}
-        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-medium">
+        <Link href="/login" className="rounded-md text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
           Entrar
         </Link>
       </p>

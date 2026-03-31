@@ -88,11 +88,11 @@ export default async function ProfissionalPage({
     !professional.first_booking_enabled && (existingAcceptedBookingsCount || 0) === 0
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto pb-24 lg:pb-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8 pb-24 lg:pb-8">
       {/* Back button */}
       <Link
         href="/buscar"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 mb-6 transition-colors"
+        className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-neutral-500 transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
       >
         <ArrowLeft className="w-4 h-4" /> Voltar à busca
       </Link>
@@ -101,7 +101,7 @@ export default async function ProfissionalPage({
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Profile header */}
-          <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="h-28 bg-gradient-to-br from-brand-400 to-brand-600 relative">
               <div className="absolute -bottom-10 left-6">
                 {profile?.avatar_url ? (
@@ -172,14 +172,14 @@ export default async function ProfissionalPage({
           </div>
 
           {/* Bio */}
-          <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h2 className="font-display font-semibold text-lg text-neutral-900 mb-3">Sobre</h2>
             <p className="text-neutral-600 leading-relaxed whitespace-pre-line">{professional.bio || 'Sem descrição.'}</p>
           </div>
 
           {/* Languages */}
           {professional.languages?.length > 0 && (
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <h2 className="font-display font-semibold text-lg text-neutral-900 mb-3 flex items-center gap-2">
                 <Globe className="w-4 h-4 text-neutral-400" /> Idiomas
               </h2>
@@ -195,10 +195,13 @@ export default async function ProfissionalPage({
 
           {/* Availability */}
           {availability && availability.length > 0 && (
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <h2 className="font-display font-semibold text-lg text-neutral-900 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-neutral-400" /> Disponibilidade
               </h2>
+              <p className="mb-3 text-xs text-neutral-500">
+                Horários exibidos como janelas de atendimento. Ao agendar, você confirma data e fuso horário no checkout.
+              </p>
               <div className="space-y-2">
                 {availability.map((slot: any) => (
                   <div key={slot.id} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
@@ -212,7 +215,7 @@ export default async function ProfissionalPage({
 
           {/* Reviews */}
           {reviews && reviews.length > 0 && (
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <h2 className="font-display font-semibold text-lg text-neutral-900 mb-4 flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-neutral-400" /> Avaliações
               </h2>
@@ -248,7 +251,7 @@ export default async function ProfissionalPage({
 
         {/* Sidebar - Booking card */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-neutral-100 p-6 sticky top-6">
+          <div className="sticky top-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <div className="text-center mb-4">
               <div className="text-3xl font-bold text-neutral-900">
                 {formatCurrency(professional.session_price_brl, viewerCurrency)}
@@ -256,6 +259,12 @@ export default async function ProfissionalPage({
               <p className="text-sm text-neutral-500 flex items-center justify-center gap-1 mt-1">
                 <Clock className="w-3.5 h-3.5" /> {professional.session_duration_minutes} minutos
               </p>
+              {profile?.country && (
+                <p className="mt-1 inline-flex items-center justify-center gap-1 text-xs text-neutral-500">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {profile.country}
+                </p>
+              )}
             </div>
 
             {isOwnProfessional ? (
@@ -294,32 +303,32 @@ export default async function ProfissionalPage({
             )}
 
             {searchParams?.erro === 'auto-agendamento' && (
-              <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
+              <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700" role="alert">
                 Não é permitido agendar sessão com o próprio perfil profissional.
               </div>
             )}
 
             {searchParams?.erro === 'primeiro-agendamento-bloqueado' && (
-              <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
+              <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700" role="alert">
                 Este profissional ainda não está habilitado para aceitar o primeiro agendamento.
               </div>
             )}
 
             {searchParams?.erro === 'request-booking-indisponivel' && (
-              <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
+              <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700" role="alert">
                 Solicitação de horário disponível apenas para profissionais nos planos Professional ou Premium.
               </div>
             )}
 
             <div className="mt-4 pt-4 border-t border-neutral-100">
-              <div className="space-y-2 text-xs text-neutral-500">
+              <div className="space-y-2 text-xs text-neutral-600">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
                   Cancelamento gratuito até 24h antes
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                  Sessão por vídeo (Google Meet)
+                  Sessão por vídeo (link enviado após confirmação)
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400" />

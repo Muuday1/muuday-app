@@ -1,8 +1,8 @@
-﻿'use client'
+'use client'
 
 import { Languages, SlidersHorizontal, X } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AVAILABILITY_WINDOWS } from '@/lib/search-config'
 
 type HiddenInputs = Record<string, string>
@@ -44,25 +44,41 @@ export function MobileFiltersDrawer({
 }: MobileFiltersDrawerProps) {
   const [open, setOpen] = useState(false)
 
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [open])
+
   return (
     <div className="md:hidden">
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-800"
+        className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
         aria-label="Abrir filtros"
+        aria-expanded={open}
+        aria-controls="mobile-filters-drawer"
       >
         <SlidersHorizontal className="w-4 h-4 text-brand-500" />
         Filtros
         {hasActiveFilters && (
-          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">
-            !
+          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" aria-hidden="true">
           </span>
         )}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Filtros de busca">
+        <div
+          id="mobile-filters-drawer"
+          className="fixed inset-0 z-40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filtros de busca"
+        >
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -79,7 +95,7 @@ export function MobileFiltersDrawer({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-500"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
@@ -96,7 +112,7 @@ export function MobileFiltersDrawer({
                 <select
                   name="categoria"
                   defaultValue={selectedCategory}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="">Todas as categorias</option>
                   {categoryOptions.map(category => (
@@ -111,7 +127,7 @@ export function MobileFiltersDrawer({
                   name="especialidade"
                   defaultValue={selectedSpecialty}
                   disabled={!selectedCategory}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="">{selectedCategory ? 'Todas as especialidades' : 'Selecione uma categoria primeiro'}</option>
                   {specialtyOptions.map(specialty => (
@@ -129,7 +145,7 @@ export function MobileFiltersDrawer({
                     min={0}
                     step="10"
                     defaultValue={minPrice}
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                   />
                 </div>
                 <div>
@@ -140,7 +156,7 @@ export function MobileFiltersDrawer({
                     min={0}
                     step="10"
                     defaultValue={maxPrice}
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                   />
                 </div>
               </div>
@@ -150,7 +166,7 @@ export function MobileFiltersDrawer({
                 <select
                   name="horario"
                   defaultValue={selectedAvailability}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   {AVAILABILITY_WINDOWS.map(window => (
                     <option key={window.value} value={window.value}>{window.label}</option>
@@ -163,7 +179,7 @@ export function MobileFiltersDrawer({
                 <select
                   name="localizacao"
                   defaultValue={selectedLocation}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="">Todos os países</option>
                   {locationOptions.map(location => (
@@ -180,7 +196,7 @@ export function MobileFiltersDrawer({
                 <select
                   name="idioma"
                   defaultValue={selectedLanguage}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="qualquer">Qualquer idioma</option>
                   {languageOptions.map(language => (
@@ -193,13 +209,13 @@ export function MobileFiltersDrawer({
                 <button
                   type="submit"
                   onClick={() => setOpen(false)}
-                  className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all"
+                  className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
                   Aplicar filtros
                 </button>
                 <Link
                   href="/buscar"
-                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all"
+                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
                 >
                   Limpar
                 </Link>

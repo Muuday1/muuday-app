@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Buscar Profissionais | Muuday' }
+export const metadata = { title: 'Buscar Profissionais | Muuday' }
 
 export const dynamic = 'force-dynamic'
 
@@ -418,15 +418,15 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const pageNumbers = Array.from({ length: pageRangeEnd - pageRangeStart + 1 }, (_, i) => pageRangeStart + i)
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Buscar profissionais</h1>
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
+      <div className="mb-7">
+        <h1 className="font-display text-3xl font-bold text-neutral-900 md:text-4xl">Buscar profissionais</h1>
         <p className="text-neutral-500">
           Encontre o profissional ideal para você.
         </p>
       </div>
 
-      <form action="/buscar" method="get" className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+      <form action="/buscar" method="get" className="mb-6 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
         {Object.entries(
           toHiddenInputs(
             { ...queryState, pagina: '1' },
@@ -436,7 +436,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
           <input key={key} type="hidden" name={key} value={value} />
         ))}
 
-        <div className="flex flex-col md:flex-row gap-3 md:items-center">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
@@ -444,19 +444,19 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
               name="q"
               defaultValue={queryState.q}
               placeholder="Busque por profissional, categoria ou especialidade..."
-              className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3.5 pl-11 pr-4 text-neutral-900 placeholder-neutral-400 transition focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
             />
           </div>
           <button
             type="submit"
-            className="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3.5 rounded-xl transition-all"
+            className="rounded-xl bg-brand-500 px-6 py-3.5 font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
             Buscar
           </button>
         </div>
       </form>
 
-      <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm mb-6 lg:sticky lg:top-24 z-20">
+      <div className="z-20 mb-6 rounded-2xl border border-neutral-200 bg-white shadow-sm lg:sticky lg:top-24">
 
         <div className="px-4 py-3 md:hidden">
           <MobileFiltersDrawer
@@ -493,7 +493,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
           <div className="grid grid-cols-2 xl:grid-cols-12 gap-3 items-end">
             <div className="xl:col-span-2">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
-              <select name="categoria" defaultValue={selectedCategory} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+              <select name="categoria" defaultValue={selectedCategory} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 <option value="">Todas as categorias</option>
                 {categoryOptions.map(category => (
                   <option key={category.slug} value={category.slug}>{category.name}</option>
@@ -503,7 +503,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
             <div className="xl:col-span-2">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
-              <select name="especialidade" defaultValue={selectedSpecialty} disabled={!selectedCategory} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed">
+              <select name="especialidade" defaultValue={selectedSpecialty} disabled={!selectedCategory} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 <option value="">{selectedCategory ? 'Todas as especialidades' : 'Selecione uma categoria primeiro'}</option>
                 {specialtyOptions.map(specialty => (
                   <option key={specialty} value={specialty}>{specialty}</option>
@@ -513,17 +513,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
             <div className="xl:col-span-1">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço mín ({selectedCurrencyLabel})</label>
-              <input type="number" name="precoMin" min={0} step="10" defaultValue={searchParams.precoMin || ''} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm" />
+              <input type="number" name="precoMin" min={0} step="10" defaultValue={searchParams.precoMin || ''} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20" />
             </div>
 
             <div className="xl:col-span-1">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço máx ({selectedCurrencyLabel})</label>
-              <input type="number" name="precoMax" min={0} step="10" defaultValue={searchParams.precoMax || ''} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm" />
+              <input type="number" name="precoMax" min={0} step="10" defaultValue={searchParams.precoMax || ''} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20" />
             </div>
 
             <div className="xl:col-span-2">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horário disponível</label>
-              <select name="horario" defaultValue={selectedAvailability} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+              <select name="horario" defaultValue={selectedAvailability} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 {AVAILABILITY_WINDOWS.map(window => (
                   <option key={window.value} value={window.value}>{window.label}</option>
                 ))}
@@ -532,7 +532,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
             <div className="xl:col-span-2">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localização</label>
-              <select name="localizacao" defaultValue={selectedLocation} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+              <select name="localizacao" defaultValue={selectedLocation} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 <option value="">Todos os países</option>
                 {locationOptions.map(location => (
                   <option key={location} value={location}>{location}</option>
@@ -545,7 +545,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                 <Languages className="w-3.5 h-3.5" />
                 Idiomas falados
               </label>
-              <select name="idioma" defaultValue={selectedLanguage} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+              <select name="idioma" defaultValue={selectedLanguage} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 <option value="qualquer">Qualquer idioma</option>
                 {languageOptions.map(language => (
                   <option key={language} value={language}>{language}</option>
@@ -554,10 +554,10 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             </div>
 
             <div className="xl:col-span-12 flex items-center justify-end gap-2 pt-1">
-              <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all">
+              <button type="submit" className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30">
                 Aplicar
               </button>
-              <Link href="/buscar" className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all">
+              <Link href="/buscar" className="rounded-xl bg-neutral-100 px-5 py-2.5 text-center text-sm font-semibold text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 Limpar
               </Link>
             </div>
@@ -566,7 +566,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       </div>
 
       <section>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold text-neutral-900">{totalResults} profissionais</p>
               <p className="text-xs text-neutral-500">
@@ -591,7 +591,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                     selectedSort === sortOption.value
                       ? 'bg-neutral-900 border-neutral-900 text-white'
                       : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                  }`}
+                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
                 >
                   {sortOption.label}
                 </Link>
@@ -600,10 +600,24 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
           </div>
 
           {pagedProfessionals.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-neutral-100">
-              <div className="text-5xl mb-4">🔎</div>
-              <p className="font-semibold text-neutral-900 mb-2">Nenhum profissional encontrado</p>
-              <p className="text-neutral-500 text-sm">Ajuste os filtros para ampliar os resultados.</p>
+            <div className="rounded-2xl border border-neutral-200 bg-white px-6 py-12 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-700">
+                <Search className="h-5 w-5" />
+              </div>
+              <p className="mb-1 text-base font-semibold text-neutral-900">Nenhum profissional encontrado</p>
+              <p className="mx-auto max-w-md text-sm text-neutral-500">
+                Ajuste os filtros ou tente uma busca mais ampla para ver mais resultados.
+              </p>
+              {hasActiveFilters && (
+                <div className="mt-5 flex items-center justify-center gap-2">
+                  <Link
+                    href="/buscar"
+                    className="rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  >
+                    Limpar filtros
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -612,7 +626,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                   <Link
                     key={professional.id}
                     href={`/profissional/${professional.id}`}
-                    className="bg-white rounded-2xl border border-neutral-100 hover:shadow-md transition-all p-4 md:p-5"
+                    className="rounded-2xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 md:p-5"
                   >
                     <div className="flex items-start gap-4">
                       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
@@ -628,6 +642,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                             <p className="text-xs text-neutral-500 mt-1">
                               {getSearchCategoryLabel(professional.category)}
                             </p>
+                            {professional.tier && professional.tier !== 'basic' && (
+                              <span
+                                className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                  professional.tier === 'premium'
+                                    ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700'
+                                    : 'border-blue-200 bg-blue-50 text-blue-700'
+                                }`}
+                              >
+                                {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
+                              </span>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-neutral-900">
@@ -656,15 +681,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           </span>
                         </div>
 
-                        {professional.tier && professional.tier !== 'basic' && (
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                            professional.tier === 'premium'
-                              ? 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}>
-                            {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
-                          </span>
-                        )}
                         {(professional.languages || []).length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-3">
                             {(professional.languages || []).slice(0, 3).map((language: string) => (
@@ -688,7 +704,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                       currentPage === 1
                         ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
                         : 'border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                    }`}
+                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
                   >
                     Anterior
                   </Link>
@@ -701,7 +717,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                         pageNumber === currentPage
                           ? 'bg-brand-500 border-brand-500 text-white'
                           : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50'
-                      }`}
+                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
                     >
                       {pageNumber}
                     </Link>
@@ -713,7 +729,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                       currentPage === totalPages
                         ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
                         : 'border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                    }`}
+                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
                   >
                     Proxima
                   </Link>

@@ -1,5 +1,5 @@
 MUUDAY CONSOLIDATED PRODUCT SPECIFICATION
-PART 1 OF 5 â€” FOUNDATIONS, TAXONOMY, PROFESSIONAL TIERS, SEARCH/DISCOVERY, PROFILE \& TRUST LAYER
+PART 1 OF 5 — FOUNDATIONS, TAXONOMY, PROFESSIONAL TIERS, SEARCH/DISCOVERY, PROFILE \& TRUST LAYER
 
 Status of this document
 
@@ -14,9 +14,9 @@ How to use this document
 
 * Read this document as the source of truth for the product areas it covers.
 * Treat this document as a build specification for product, design, and engineering.
-* Where a point is marked as â€œfuture considerationâ€ or â€œlater phase,â€ it should NOT be implemented now.
-* Where a point is marked â€œMVP,â€ assume it is in scope unless explicitly deferred.
-* Where a point is marked â€œpremium laterâ€ or similar, it is a roadmap note rather than an MVP instruction.
+* Where a point is marked as “future consideration” or “later phase,” it should NOT be implemented now.
+* Where a point is marked “MVP,” assume it is in scope unless explicitly deferred.
+* Where a point is marked “premium later” or similar, it is a roadmap note rather than an MVP instruction.
 
 What this part covers
 
@@ -43,7 +43,7 @@ This part consolidates the decisions originating mainly from the following quest
 
 \---
 
-## SECTION 1 â€” PRODUCT FOUNDATIONS
+## SECTION 1 — PRODUCT FOUNDATIONS
 
 1.1 Product concept
 Muuday is a marketplace connecting users, especially Brazilians living abroad, with professionals who can provide services remotely. The platform supports professionals primarily based in Brazil, but not exclusively. The product is designed to support one-off consultations, recurring services, and monthly subscription-style professional services.
@@ -76,22 +76,22 @@ The product should avoid two opposite mistakes:
 1.3 Marketplace operating principles
 The key operating principles that affect everything in this part are:
 
-Principle A â€” Structure over chaos
+Principle A — Structure over chaos
 The marketplace should be structured around a controlled taxonomy and controlled professional setup.
 
-Principle B â€” Flexible but not messy
+Principle B — Flexible but not messy
 Professionals can configure important commercial choices, but inside platform-defined boundaries.
 
-Principle C â€” Search should be useful, not noisy
+Principle C — Search should be useful, not noisy
 Users should be able to discover the right professional without a giant mess of filters, labels, or spam.
 
-Principle D â€” Paid tiers should matter, but not break trust
+Principle D — Paid tiers should matter, but not break trust
 Professional plans can influence visibility and tooling, but should not make search feel fake or fully pay-to-win.
 
-Principle E â€” Tags enrich search but should not pollute the filter UI
+Principle E — Tags enrich search but should not pollute the filter UI
 The structured taxonomy should drive navigation and filtering. Tags should improve recall and dynamic search matching.
 
-Principle F â€” Trust should be embedded in discovery
+Principle F — Trust should be embedded in discovery
 Reviews, verifications, profile quality, and clarity of offer must be visible enough to support conversion.
 
 Search filter UX baseline (execution detail, Wave 2)
@@ -130,12 +130,12 @@ Those are intentionally left to later parts.
 
 \---
 
-## SECTION 2 â€” MARKETPLACE SERVICE MODEL OVERVIEW
+## SECTION 2 — MARKETPLACE SERVICE MODEL OVERVIEW
 
 2.1 Service models supported by Muuday
 Muuday supports three service models.
 
-Model 1 â€” One-off session
+Model 1 — One-off session
 Examples:
 
 * a doctor-like consultative session
@@ -143,13 +143,13 @@ Examples:
 * one career consultation
 * one language tutoring session
 
-Model 2 â€” One-off plus recurring
+Model 2 — One-off plus recurring
 Examples:
 
 * psychologist first consultation followed by weekly sessions
 * specialist intake followed by ongoing sessions
 
-Model 3 â€” Monthly subscription-style service
+Model 3 — Monthly subscription-style service
 Examples:
 
 * accountant monthly support
@@ -170,23 +170,23 @@ Professional, Premium, and future higher-value commercial tiers should support m
 
 \---
 
-## SECTION 3 â€” TAXONOMY MODEL
+## SECTION 3 — TAXONOMY MODEL
 
 3.1 Final taxonomy structure
 The Muuday marketplace taxonomy must follow this hierarchy:
 
 1. Category
 The large marketplace category shown on the landing page.
-Example: SaÃºde, Corpo e Movimento.
+Example: Saúde, Corpo e Movimento.
 2. Subcategory
 The profession or role.
-Example: Consultor mÃ©dico.
+Example: Consultor médico.
 3. Specialty
 The specific area of expertise.
 Example: Ginecologia.
 4. Tags
 Flexible descriptive terms.
-Example: amamentaÃ§Ã£o, parto, menopausa, fertilidade.
+Example: amamentação, parto, menopausa, fertilidade.
 
 3.2 Why this structure exists
 This hierarchy is important because it separates:
@@ -231,10 +231,10 @@ Tags
 3.4 Example taxonomy expression
 Example path:
 
-* Category: SaÃºde, Corpo e Movimento
-* Subcategory: Consultor mÃ©dico
+* Category: Saúde, Corpo e Movimento
+* Subcategory: Consultor médico
 * Specialty: Ginecologia
-* Tags: amamentaÃ§Ã£o, parto, saÃºde hormonal, menopausa
+* Tags: amamentação, parto, saúde hormonal, menopausa
 
 3.5 Governance rules
 Categories, subcategories, and specialties are controlled by Muuday.
@@ -308,7 +308,7 @@ The user must be able to:
 * browse top-level categories
 * filter by category, profession, specialty
 * search using free text that matches structured taxonomy and tags
-* understand the professionalâ€™s positioning without reading a huge biography
+* understand the professional’s positioning without reading a huge biography
 
 3.12 Professional-side requirements for taxonomy
 The professional must be able to:
@@ -350,7 +350,7 @@ The backend should support:
 * Keep translation/localization support in mind even if not fully implemented yet.
 * Allow taxonomy evolution without breaking existing profiles.
 
-3.16 AI coder instructions â€” taxonomy
+3.16 AI coder instructions — taxonomy
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -362,7 +362,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 4 â€” PROFESSIONAL PLANS / TIERS
+## SECTION 4 — PROFESSIONAL PLANS / TIERS
 
 4.1 Final tier structure
 Muuday will have 3 professional plans:
@@ -457,7 +457,7 @@ This avoids confusion at the first step while still selling upgrade value.
 * During trial, upgrade should be allowed; downgrade should be more constrained.
 * Detailed subscription handling is covered later, but UI/UX must anticipate it.
 
-4.10 Tier benefits â€” final high-level model
+4.10 Tier benefits — final high-level model
 Tiers differ across three dimensions:
 
 A. Operational capacity
@@ -576,7 +576,7 @@ Premium
 * stronger discovery advantages
 
 4.19 Featured placement and transparency rule
-Normal tier-based boosting does not require a special â€œsponsoredâ€ label.
+Normal tier-based boosting does not require a special “sponsored” label.
 But truly editorial/featured/campaign placements should be visibly signaled.
 This preserves trust.
 
@@ -590,7 +590,7 @@ Users should:
 * sense that some professionals are more established or premium
 * not feel manipulated by overt paid spam
 * see subtle trust/quality/plan signals
-* never need to understand the platformâ€™s plan system to book successfully
+* never need to understand the platform’s plan system to book successfully
 
 4.22 Professional-side requirements for tiers
 Professionals should:
@@ -629,7 +629,7 @@ The backend must support:
 * Keep search boost logic adjustable without rewriting core search.
 * Build clear upgrade prompts, but avoid constant nagging.
 
-4.26 AI coder instructions â€” tiers
+4.26 AI coder instructions — tiers
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -641,7 +641,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 5 â€” SEARCH, DISCOVERY, RANKING, FILTERS, AND EMPTY STATES
+## SECTION 5 — SEARCH, DISCOVERY, RANKING, FILTERS, AND EMPTY STATES
 
 5.1 Search philosophy
 Search is one of the most important parts of Muuday.
@@ -787,7 +787,7 @@ This reduces bounce and helps the marketplace retain intent even when supply is 
 Muuday should support editorial discovery areas such as:
 
 * most popular among Brazilians abroad
-* womenâ€™s health
+* women’s health
 * taxes for expatriates
 * psychologists in Portuguese
 * featured professionals
@@ -799,7 +799,7 @@ In addition to profession-based navigation, the landing/discovery experience can
 
 * I need help with taxes abroad
 * I need therapy in Portuguese
-* I need womenâ€™s health guidance
+* I need women’s health guidance
 
 These should route into taxonomy/search rather than replace taxonomy.
 
@@ -851,7 +851,7 @@ The system should support:
 * Keep ranking weights configurable.
 * Avoid giant filter panels in the MVP.
 
-5.23 AI coder instructions â€” search
+5.23 AI coder instructions — search
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -863,7 +863,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 6 â€” SEARCH CARDS, PROFILE CARDS, AND DISCOVERY UX
+## SECTION 6 — SEARCH CARDS, PROFILE CARDS, AND DISCOVERY UX
 
 6.1 Card richness rule
 Search cards should be richer than minimal cards, but still clean.
@@ -902,13 +902,13 @@ Do not overexpose:
 
 6.5 Price presentation on card
 Price should be shown on the search card.
-It should be shown in the userâ€™s chosen currency.
+It should be shown in the user’s chosen currency.
 This is very important.
 
 Examples:
 
-* From Â¥8,500
-* From Â£40
+* From ¥8,500
+* From £40
 * A partir de R$200
 
 6.6 Tier/card visual differentiation
@@ -932,7 +932,7 @@ Premium
 This gives professionals real value without making the results page feel like ads.
 
 6.8 Featured placement signaling rule
-Normal tier influence does not require explicit â€œfeaturedâ€ labeling.
+Normal tier influence does not require explicit “featured” labeling.
 But truly featured/campaign placements should be signaled visually.
 
 6.9 Profile CTAs
@@ -1004,7 +1004,7 @@ The backend and front-end should support:
 * Do not expose every possible service nuance on the card.
 * Reserve deeper explanation for the profile page.
 
-6.18 AI coder instructions â€” cards/profiles
+6.18 AI coder instructions — cards/profiles
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -1016,7 +1016,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 7 â€” TRUST SIGNALS, REVIEWS, BADGES, AND CREDIBILITY
+## SECTION 7 — TRUST SIGNALS, REVIEWS, BADGES, AND CREDIBILITY
 
 7.1 Badge strategy
 Muuday should have a moderate badge system.
@@ -1124,7 +1124,7 @@ Disclaimers should appear:
 
 This is not only a legal idea; it is also a product clarity requirement.
 
-7.16 â€œVerifiedâ€ filter rule
+7.16 “Verified” filter rule
 Verified status should appear as badge/signal.
 It should not become a dedicated search filter in the MVP.
 
@@ -1170,7 +1170,7 @@ The system should support:
 * Treat sensitive category wording as a governance problem, not just a copy problem.
 * Make sure review editing and response updating preserve audit trail.
 
-7.22 AI coder instructions â€” trust/reviews
+7.22 AI coder instructions — trust/reviews
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -1182,7 +1182,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 8 â€” FAVORITES, REBOOKING ENTRY POINTS, AND LIGHT RETENTION FEATURES
+## SECTION 8 — FAVORITES, REBOOKING ENTRY POINTS, AND LIGHT RETENTION FEATURES
 
 8.1 Favorites
 Users can favorite/save professionals in the MVP.
@@ -1195,7 +1195,7 @@ This supports:
 
 8.2 Rebooking
 Muuday should support rebooking.
-At minimum, the user should be able to click something like â€œbook againâ€ from a prior booking and have the flow prefilled with:
+At minimum, the user should be able to click something like “book again” from a prior booking and have the flow prefilled with:
 
 * same professional
 * same service
@@ -1235,7 +1235,7 @@ The system should support:
 * booking prefill helpers
 * analytics around save/favorite and rebooking behavior
 
-8.8 AI coder instructions â€” favorites/rebooking
+8.8 AI coder instructions — favorites/rebooking
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -1247,7 +1247,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 9 â€” PROFESSIONAL GO-LIVE, PUBLISHING, AND FIRST REVIEW GATE (HIGH LEVEL)
+## SECTION 9 — PROFESSIONAL GO-LIVE, PUBLISHING, AND FIRST REVIEW GATE (HIGH LEVEL)
 
 9.1 First go-live rule
 A professional does not go live automatically the first time.
@@ -1309,7 +1309,7 @@ Need support for:
 * admin notes
 * resubmission states
 
-9.9 AI coder instructions â€” go-live
+9.9 AI coder instructions — go-live
 Unified instructions for any AI coding/design/system assistant
 
 * Implement with modular domain boundaries and explicit interfaces.
@@ -1321,7 +1321,7 @@ Unified instructions for any AI coding/design/system assistant
 
 \---
 
-## SECTION 10 â€” MINIMUM ANALYTICS SIGNALS RELEVANT TO THIS PART
+## SECTION 10 — MINIMUM ANALYTICS SIGNALS RELEVANT TO THIS PART
 
 10.1 Why analytics matters here
 Search, profile quality, and monetization cannot be improved later if discovery and trust interactions are not tracked now.
@@ -1371,7 +1371,7 @@ These events help answer:
 
 \---
 
-## SECTION 11 â€” SUMMARY OF FINAL DECISIONS COVERED IN THIS PART
+## SECTION 11 — SUMMARY OF FINAL DECISIONS COVERED IN THIS PART
 
 11.1 Taxonomy summary
 
@@ -1436,7 +1436,7 @@ These events help answer:
 
 \---
 
-## SECTION 12 â€” WHAT THIS PART DOES NOT YET FULLY SPECIFY
+## SECTION 12 — WHAT THIS PART DOES NOT YET FULLY SPECIFY
 
 The following areas are intentionally left to later parts:
 

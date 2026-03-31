@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -20,6 +20,15 @@ function sanitizeRedirectPath(value: string | null) {
   if (!value) return ''
   if (!value.startsWith('/') || value.startsWith('//')) return ''
   return value
+}
+
+function getRedirectHint(path: string) {
+  if (!path) return ''
+  if (path.startsWith('/agendar/')) return 'Após criar sua conta, você volta para concluir o agendamento.'
+  if (path.startsWith('/solicitar/')) return 'Após criar sua conta, você volta para concluir a solicitação de horário.'
+  if (path.startsWith('/profissional/')) return 'Após criar sua conta, você volta para o perfil do profissional.'
+  if (path.startsWith('/buscar')) return 'Após criar sua conta, você volta para a busca.'
+  return 'Após criar sua conta, você volta para a página anterior.'
 }
 
 export default function CadastroPage() {
@@ -232,15 +241,21 @@ export default function CadastroPage() {
 
   function inputClass(hasError: boolean) {
     if (hasError) {
-      return 'w-full rounded-xl border border-red-300 bg-red-50/40 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200'
+      return 'w-full rounded-xl border border-red-300 bg-red-50/40 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200'
     }
-    return 'w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20'
+    return 'w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
   }
 
   return (
     <div>
       <h1 className="mb-2 font-display text-3xl font-bold text-neutral-900">Criar conta</h1>
       <p className="mb-6 text-neutral-500">Junte-se à Muuday — é grátis</p>
+
+      {redirectPath && role === 'usuario' && (
+        <div className="mb-5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700" role="status">
+          {getRedirectHint(redirectPath)}
+        </div>
+      )}
 
       {step >= 1 && (
         <div className="mb-6">
@@ -270,7 +285,7 @@ export default function CadastroPage() {
             <button
               type="button"
               onClick={() => setRole('usuario')}
-              className={`rounded-xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
+              className={`rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${
                 role === 'usuario'
                   ? 'border-brand-500 bg-brand-50'
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
@@ -286,7 +301,7 @@ export default function CadastroPage() {
             <button
               type="button"
               onClick={() => setRole('profissional')}
-              className={`rounded-xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
+              className={`rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${
                 role === 'profissional'
                   ? 'border-brand-500 bg-brand-50'
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
@@ -302,7 +317,7 @@ export default function CadastroPage() {
           </div>
           <button
             onClick={goToStep2}
-            className="w-full rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            className="w-full rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
             Continuar com e-mail
           </button>
@@ -492,14 +507,14 @@ export default function CadastroPage() {
                 setError('')
                 setFieldErrors({})
               }}
-              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl border border-neutral-200 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl border border-neutral-200 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
             >
               <ArrowLeft className="h-4 w-4" /> Voltar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
             >
               {role === 'profissional' ? (
                 'Continuar'
@@ -717,14 +732,14 @@ export default function CadastroPage() {
                 setError('')
                 setFieldErrors({})
               }}
-              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl border border-neutral-200 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl border border-neutral-200 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
             >
               <ArrowLeft className="h-4 w-4" /> Voltar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
             >
               {loading ? (
                 <>

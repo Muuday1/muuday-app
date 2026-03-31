@@ -1,6 +1,6 @@
-﻿'use client'
+'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Calendar, MessageCircle, X } from 'lucide-react'
 
@@ -13,8 +13,14 @@ type PublicBookingAuthModalProps = {
 
 type PendingAction = 'book' | 'request'
 
+function sanitizeRedirectPath(value: string) {
+  if (!value.startsWith('/') || value.startsWith('//')) return ''
+  return value
+}
+
 function buildAuthLink(path: string, mode: 'signup' | 'login') {
-  const redirectParam = encodeURIComponent(path)
+  const safePath = sanitizeRedirectPath(path)
+  const redirectParam = encodeURIComponent(safePath || '/buscar')
   if (mode === 'signup') return `/cadastro?role=usuario&redirect=${redirectParam}`
   return `/login?redirect=${redirectParam}`
 }
@@ -27,6 +33,24 @@ export function PublicBookingAuthModal({
 }: PublicBookingAuthModalProps) {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
 
+  useEffect(() => {
+    if (!pendingAction) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [pendingAction])
+
+  useEffect(() => {
+    if (!pendingAction) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setPendingAction(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [pendingAction])
+
   const nextTarget = useMemo(() => {
     if (pendingAction === 'request') return requestHref
     return bookHref
@@ -37,7 +61,7 @@ export function PublicBookingAuthModal({
       <div className="space-y-2">
         <Link
           href={bookHref}
-          className="block w-full rounded-xl bg-brand-500 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-brand-600"
+          className="block w-full rounded-xl bg-brand-500 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
         >
           <span className="inline-flex items-center justify-center gap-2">
             <Calendar className="h-4 w-4" /> Agendar sessão
@@ -47,7 +71,7 @@ export function PublicBookingAuthModal({
         {requestEnabled ? (
           <Link
             href={requestHref}
-            className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-center text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100"
+            className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-center text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
           >
             <span className="inline-flex items-center justify-center gap-2">
               <MessageCircle className="h-4 w-4" /> Solicitar horário
@@ -72,7 +96,7 @@ export function PublicBookingAuthModal({
         <button
           type="button"
           onClick={() => setPendingAction('book')}
-          className="block w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600"
+          className="block w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           aria-label="Entrar para agendar sessão"
         >
           <span className="inline-flex items-center justify-center gap-2">
@@ -84,7 +108,7 @@ export function PublicBookingAuthModal({
           <button
             type="button"
             onClick={() => setPendingAction('request')}
-            className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100"
+            className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
             aria-label="Entrar para solicitar horário"
           >
             <span className="inline-flex items-center justify-center gap-2">
@@ -115,7 +139,7 @@ export function PublicBookingAuthModal({
               <button
                 type="button"
                 onClick={() => setPendingAction(null)}
-                className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
+                className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
                 aria-label="Fechar modal"
               >
                 <X className="h-4 w-4" />
@@ -125,13 +149,13 @@ export function PublicBookingAuthModal({
             <div className="space-y-2">
               <Link
                 href={buildAuthLink(nextTarget, 'signup')}
-                className="block w-full rounded-xl bg-brand-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-600"
+                className="block w-full rounded-xl bg-brand-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Criar conta (recomendado)
               </Link>
               <Link
                 href={buildAuthLink(nextTarget, 'login')}
-                className="block w-full rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                className="block w-full rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
               >
                 Já tenho conta - entrar
               </Link>

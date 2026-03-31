@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amountBRL: number, currency = 'BRL'): string {
+export function formatCurrency(amountBRL: number, currency = 'BRL', locale = 'pt-BR'): string {
   const rates: Record<string, number> = {
     BRL: 1,
     USD: 0.19,
@@ -18,19 +18,18 @@ export function formatCurrency(amountBRL: number, currency = 'BRL'): string {
     AUD: 0.29,
   }
 
-  const symbols: Record<string, string> = {
-    BRL: 'R$',
-    USD: 'US$',
-    EUR: 'EUR',
-    GBP: 'GBP',
-    CAD: 'CA$',
-    AUD: 'A$',
-  }
-
   const rate = rates[currency] || 1
   const converted = amountBRL * rate
-  const symbol = symbols[currency] || currency
-  return `${symbol} ${converted.toFixed(2)}`
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(converted)
+  } catch {
+    return `${currency} ${converted.toFixed(2)}`
+  }
 }
 
 export function formatDateTime(date: string, timezone: string): string {

@@ -7,6 +7,13 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        md: '2rem',
+      },
+    },
     extend: {
       colors: {
         brand: {
@@ -30,6 +37,9 @@ const config: Config = {
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
         display: ['Bricolage Grotesque', 'sans-serif'],
+      },
+      boxShadow: {
+        soft: '0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08)',
       },
     },
   },

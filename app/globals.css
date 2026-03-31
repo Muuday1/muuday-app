@@ -14,6 +14,18 @@
 
   body {
     font-family: var(--font-jakarta);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: rgba(26, 138, 80, 0.18);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(26, 138, 80, 0.45);
+    outline-offset: 2px;
   }
 }
 
@@ -50,6 +62,16 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    main {
+      animation: none;
     }
   }
 }

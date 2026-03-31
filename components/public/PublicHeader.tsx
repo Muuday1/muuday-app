@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -68,14 +68,17 @@ export function PublicHeader({
       isActive
         ? 'border-brand-500 bg-brand-500 text-white'
         : 'border-neutral-300 bg-white text-neutral-700 hover:border-brand-300 hover:text-brand-700'
-    }`
+    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30`
   }
 
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-[#f6f4ef]/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 md:px-8">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          >
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
               <span className="font-display text-sm font-bold text-white">M</span>
             </div>
@@ -86,7 +89,7 @@ export function PublicHeader({
             <select
               defaultValue={initialLanguage}
               onChange={event => handleLanguageChange(event.target.value)}
-              className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar idioma"
             >
               {PUBLIC_LANGUAGE_OPTIONS.map(option => (
@@ -99,7 +102,7 @@ export function PublicHeader({
             <select
               defaultValue={initialCurrency}
               onChange={event => handleCurrencyChange(event.target.value)}
-              className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar moeda"
             >
               {PUBLIC_CURRENCY_OPTIONS.map(option => (
@@ -112,14 +115,14 @@ export function PublicHeader({
             {isLoggedIn ? (
               <Link
                 href={loggedInHref}
-                className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
+                className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Minha área
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800"
+                className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Login
               </Link>
@@ -130,7 +133,7 @@ export function PublicHeader({
             <select
               defaultValue={initialLanguage}
               onChange={event => handleLanguageChange(event.target.value)}
-              className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar idioma"
             >
               {PUBLIC_LANGUAGE_OPTIONS.map(option => (
@@ -142,7 +145,7 @@ export function PublicHeader({
             <select
               defaultValue={initialCurrency}
               onChange={event => handleCurrencyChange(event.target.value)}
-              className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar moeda"
             >
               {PUBLIC_CURRENCY_OPTIONS.map(option => (
@@ -154,9 +157,10 @@ export function PublicHeader({
             <button
               type="button"
               onClick={() => setMenuOpen(value => !value)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
               aria-expanded={menuOpen}
+              aria-controls="public-nav-panel"
             >
               {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
@@ -173,7 +177,7 @@ export function PublicHeader({
       </div>
 
       {menuOpen && (
-        <div className="border-t border-neutral-200 bg-white md:hidden">
+        <div id="public-nav-panel" className="border-t border-neutral-200 bg-white md:hidden">
           <nav className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-3">
             {NAV_ITEMS.map(item => (
               <Link
@@ -184,7 +188,7 @@ export function PublicHeader({
                   pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
                     ? 'border-brand-500 bg-brand-50 text-brand-700'
                     : 'border-neutral-200 bg-white text-neutral-700 hover:border-brand-300 hover:text-brand-700'
-                }`}
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30`}
               >
                 {item.label}
               </Link>
@@ -194,7 +198,7 @@ export function PublicHeader({
               <Link
                 href={loggedInHref}
                 onClick={() => setMenuOpen(false)}
-                className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800"
+                className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Minha área
               </Link>
@@ -202,7 +206,7 @@ export function PublicHeader({
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800"
+                className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Login
               </Link>

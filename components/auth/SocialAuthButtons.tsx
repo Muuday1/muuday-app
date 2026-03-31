@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -66,7 +66,7 @@ export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }
           type="button"
           onClick={() => handleSocialLogin(provider.id)}
           disabled={loadingProvider !== null}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           aria-label={provider.label}
         >
           {loadingProvider === provider.id ? (

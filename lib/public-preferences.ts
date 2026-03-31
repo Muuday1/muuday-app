@@ -8,12 +8,12 @@ export const PUBLIC_LANGUAGE_OPTIONS = [
 ]
 
 export const PUBLIC_CURRENCY_OPTIONS = [
-  { value: 'BRL', label: 'BRL' },
-  { value: 'USD', label: 'USD' },
-  { value: 'EUR', label: 'EUR' },
-  { value: 'GBP', label: 'GBP' },
-  { value: 'CAD', label: 'CAD' },
-  { value: 'AUD', label: 'AUD' },
+  { value: 'BRL', label: 'R$ BRL' },
+  { value: 'USD', label: 'US$ USD' },
+  { value: 'EUR', label: '€ EUR' },
+  { value: 'GBP', label: '£ GBP' },
+  { value: 'CAD', label: 'CA$ CAD' },
+  { value: 'AUD', label: 'A$ AUD' },
 ]
 
 const REGION_TO_CURRENCY: Record<string, string> = {
