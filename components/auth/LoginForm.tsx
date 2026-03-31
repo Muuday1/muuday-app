@@ -160,12 +160,12 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
 
       {!compact && (
         <p className="text-center text-sm text-neutral-500 mt-6">
-          Não tem uma conta?{' '}
+          Ainda nao eh membro?{' '}
           <Link
             href="/cadastro"
             className="rounded-md text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
           >
-            Cadastre-se
+            Criar conta
           </Link>
         </p>
       )}

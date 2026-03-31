@@ -260,3 +260,7 @@ Wave-driven delivery is now mandatory:
 - user and admin accounts are always routed to `/buscar` after login.
 - this rule applies to password login and OAuth callback.
 - login modal/page text adjusted to avoid promising return to action-specific routes.
+80. Public header login overlay upgraded:
+- public `Login` button now opens a larger popup with complete login form (email/password + social auth).
+- helper text with direct signup link shown in popup: `Ainda nao eh membro? Criar conta`.
+- mobile version renders as centered modal popup (not bottom sheet / side panel).

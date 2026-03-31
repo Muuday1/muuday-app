@@ -85,6 +85,10 @@ Dependencies:
 - usuario -> always `/buscar`.
 - admin -> always `/buscar`.
 - verify both password login and Google OAuth callback.
+12.5 Validate header login popup UX parity:
+- desktop header login opens larger popup with full form (email/senha + social).
+- helper text/link `Ainda nao eh membro? Criar conta` is visible and clickable.
+- mobile header login opens centered popup with same auth options.
 13. Run production sanity pass after role-routing hotfix:
 - professional account login lands at `/dashboard`
 - admin account login lands at `/buscar` (with `/admin` still available)

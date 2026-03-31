@@ -155,6 +155,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - callback and login forms no longer honor arbitrary `redirect` targets for post-login destination.
 - modal login copy updated to reflect role-based destination behavior.
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
+52. Header login popup upgraded to full auth form:
+- login popup now renders full `LoginForm` (email, password, social login icons) directly in the overlay.
+- popup size increased for better usability (`AuthOverlay`: larger desktop popover and larger centered mobile modal).
+- bottom helper text now follows requested copy: `Ainda nao eh membro? Criar conta` with clickable link.
+- mobile behavior remains centered popup modal.
 
 ## Immediate next actions
 

@@ -105,7 +105,7 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
         <div
           ref={surfaceRef}
           id={overlayId}
-          className="w-full max-w-md rounded-2xl border border-white/40 bg-white/70 p-6 shadow-xl backdrop-blur"
+          className="w-full max-w-lg rounded-2xl border border-white/40 bg-white/80 p-6 shadow-xl backdrop-blur"
         >
           {children}
         </div>
@@ -113,9 +113,10 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
     )
   }
 
+  const panelWidth = 440
   const fallbackLeft = 16
   const fallbackTop = 64
-  const left = Math.max(12, (anchorRect?.left ?? fallbackLeft) + (anchorRect?.width ?? 0) - 360)
+  const left = Math.max(12, (anchorRect?.left ?? fallbackLeft) + (anchorRect?.width ?? 0) - panelWidth)
   const top = (anchorRect?.top ?? fallbackTop) + (anchorRect?.height ?? 0) + 10
 
   return (
@@ -123,7 +124,7 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
       <div
         ref={surfaceRef}
         id={overlayId}
-        className="pointer-events-auto w-[360px] max-w-[calc(100vw-24px)] rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl"
+        className="pointer-events-auto w-[440px] max-w-[calc(100vw-24px)] rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl"
         style={{ left, top, position: 'fixed' }}
         role="dialog"
         aria-modal="false"

@@ -476,3 +476,16 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
+
+### Entry 41 (2026-03-31) — Header login popup converted to full auth form
+- Replaced lightweight header auth menu with full `LoginForm` inside `AuthOverlay`.
+- Increased overlay footprint:
+  - modal max width from `max-w-md` to `max-w-lg`
+  - popover width from `360px` to `440px`
+- Updated login helper copy to requested text: `Ainda nao eh membro? Criar conta`.
+- Confirmed mobile behavior remains centered modal popup due `popover -> modal` fallback in `AuthOverlay`.
+- Validation run:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅

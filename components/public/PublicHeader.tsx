@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { AuthOverlay } from '@/components/auth/AuthOverlay'
+import { LoginForm } from '@/components/auth/LoginForm'
 import {
   PUBLIC_CURRENCY_COOKIE,
   PUBLIC_CURRENCY_OPTIONS,
@@ -256,29 +257,15 @@ export function PublicHeader({
         onClose={() => setAuthMenuOpen(false)}
         variant="popover"
         anchorEl={desktopLoginButtonRef.current || mobileLoginButtonRef.current}
-        ariaLabel="Ações de autenticação"
+        ariaLabel="Login"
       >
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-sm font-semibold text-neutral-900">Acessar Muuday</h2>
-            <p className="mt-0.5 text-xs text-neutral-500">Escolha como deseja continuar.</p>
-          </div>
-          <div className="space-y-2">
-            <Link
-              href="/login"
-              onClick={() => setAuthMenuOpen(false)}
-              className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2 text-center text-sm font-semibold text-neutral-800 transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-            >
-              Entrar
-            </Link>
-            <Link
-              href="/cadastro"
-              onClick={() => setAuthMenuOpen(false)}
-              className="block w-full rounded-xl bg-neutral-900 px-3.5 py-2 text-center text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-            >
-              Criar conta
-            </Link>
-          </div>
+        <div className="max-h-[78vh] overflow-y-auto pr-1">
+          <LoginForm
+            title="Entrar"
+            subtitle="Acesse sua conta Muuday."
+            idPrefix="header-login"
+            onSuccess={() => setAuthMenuOpen(false)}
+          />
         </div>
       </AuthOverlay>
     </header>
