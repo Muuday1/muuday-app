@@ -126,6 +126,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - wrapped server-side Supabase reads in `app/(app)/layout.tsx` and made `components/public/PublicPageLayout.tsx` auth-agnostic on SSR (public pages no longer depend on auth/profile read to render).
 - added resilient fallback path in `/buscar` for auth/profile/professional data fetch failures (renders without crashing).
 - added safe country fallback in `app/layout.tsx` to avoid hard failure when request headers/cookies are unavailable.
+- fixed runtime crash in public layout path by marking `components/public/PublicFooter.tsx` as client component (it uses `window`/click handler).
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build` all green.
 
 ## Immediate next actions

@@ -394,4 +394,15 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
 - Next follow-up:
-  - redeploy branch and confirm `/` + `/buscar` + `/login` load without global error.
+- redeploy branch and confirm `/` + `/buscar` + `/login` load without global error.
+
+### Entry 39 (2026-03-31) — Public route runtime crash root cause fix
+- Root cause confirmed for persistent production 500 on `/` and `/buscar`:
+  - `components/public/PublicFooter.tsx` used `onClick` + `window` but was compiled as a server component (missing `'use client'`).
+  - This affected pages rendered through `PublicPageLayout` while `/login` remained healthy (different layout path).
+- Fix applied:
+  - marked `PublicFooter` as client component with `'use client'`.
+- Validation:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
