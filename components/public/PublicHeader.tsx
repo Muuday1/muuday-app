@@ -28,7 +28,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/buscar', label: 'Buscar profissionais' },
   { href: '/registrar-profissional', label: 'Registrar como profissional' },
   { href: '/sobre', label: 'Sobre nós' },
-  { href: '/ajuda', label: 'Ajuda' },
 ]
 
 function setCookie(name: string, value: string) {
@@ -47,6 +46,7 @@ export function PublicHeader({
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const isLandingPage = pathname === '/'
+  const showCurrencySelector = !isLoggedIn && pathname.startsWith('/buscar')
 
   function handleLanguageChange(language: string) {
     setCookie(PUBLIC_LANGUAGE_COOKIE, language)
@@ -108,7 +108,7 @@ export function PublicHeader({
               ))}
             </select>
 
-            {!isLandingPage && (
+            {showCurrencySelector && (
               <select
                 defaultValue={initialCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
@@ -153,18 +153,20 @@ export function PublicHeader({
                 </option>
               ))}
             </select>
-            <select
-              defaultValue={initialCurrency}
-              onChange={event => handleCurrencyChange(event.target.value)}
-              className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-              aria-label="Selecionar moeda"
-            >
-              {PUBLIC_CURRENCY_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {showCurrencySelector && (
+              <select
+                defaultValue={initialCurrency}
+                onChange={event => handleCurrencyChange(event.target.value)}
+                className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                aria-label="Selecionar moeda"
+              >
+                {PUBLIC_CURRENCY_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               onClick={() => setMenuOpen(value => !value)}

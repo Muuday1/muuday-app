@@ -1,44 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-
-type AuthOverlayProps = {
-  open: boolean
-  onClose: () => void
-  ariaLabel: string
-  variant?: 'modal' | 'drawer'
-  children: React.ReactNode
-}
-
-export function AuthOverlay({ open, onClose, ariaLabel, children }: AuthOverlayProps) {
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [open, onClose])
-
-  if (!open) return null
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={ariaLabel}>
-      <button type="button" className="absolute inset-0 bg-neutral-900/45" onClick={onClose} aria-label="Fechar" />
-      <div className="relative w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-'use client'
-
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 type AnchorRect = { left: number; top: number; width: number; height: number }

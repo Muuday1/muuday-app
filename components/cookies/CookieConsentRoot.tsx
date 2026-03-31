@@ -101,7 +101,7 @@ export function CookieConsentRoot({ country }: Props) {
             <button
               type="button"
               className="rounded-lg px-2 py-1 text-sm text-neutral-500 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-              onClick={() => setOpen(false)}
+              onClick={() => setIsOpen(false)}
             >
               Fechar
             </button>

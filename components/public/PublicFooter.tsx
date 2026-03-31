@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-neutral-200 bg-white/80">
+    <footer className="mt-auto border-t border-neutral-200 bg-white/80">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-neutral-500 md:flex-row md:items-center md:justify-between md:px-8">
         <p>Muuday © {new Date().getFullYear()} - brasileiros conectando brasileiros no mundo.</p>
         <div className="flex items-center gap-4">

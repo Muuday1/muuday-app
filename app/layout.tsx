@@ -39,7 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="pt-BR">
-      <body className={`${jakarta.variable} ${bricolage.variable} font-sans antialiased bg-[#f6f4ef]`}>
+      <body
+        className={`${jakarta.variable} ${bricolage.variable} min-h-screen font-sans antialiased bg-[#f6f4ef] flex flex-col`}
+      >
         <CookieConsentRoot country={country} />
         <PostHogProvider>{children}</PostHogProvider>
       </body>
