@@ -1,9 +1,9 @@
-﻿import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { LogOut } from 'lucide-react'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { SidebarNav } from '@/components/layout/SidebarNav'
+import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -19,8 +19,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = profile?.role === 'admin'
   const isLoggedIn = !!user
 
+  if (!isLoggedIn) {
+    return <PublicPageLayout>{children}</PublicPageLayout>
+  }
+
   const navItems = (() => {
-    if (!isLoggedIn) return []
     if (isAdmin) {
       return [
         { href: '/buscar', icon: 'Search', label: 'Buscar' },
@@ -132,7 +135,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </main>
 
-      {isLoggedIn && <MobileNav navItems={navItems} />}
+      <MobileNav navItems={navItems} />
     </div>
   )
 }
