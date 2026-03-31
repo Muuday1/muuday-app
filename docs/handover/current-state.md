@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 34)
+Last updated: 2026-03-31 (session 46)
 
 ## Canonical baseline status
 
@@ -165,6 +165,14 @@ Last updated: 2026-03-31 (session 34)
 - language capture split into primary language + optional secondary languages.
 - qualification/certificate attachment picker and note field added to professional signup flow.
 - professional signup now ends at `/cadastro/profissional-em-analise` (await approval email) instead of direct dashboard access.
+67. Canonical specialty taxonomy expansion implemented end-to-end:
+- migration `018-wave2-real-professions-taxonomy.sql` created with broad list of verifiable professions organized by category and subcategory.
+- backfill logic added for existing professionals (`professional_specialties` + legacy compatibility sync to `professionals.subcategories`).
+- canonical taxonomy helper added in `lib/taxonomy/professional-specialties.ts`.
+- `/buscar` now uses canonical specialty context for filtering, search matching, and primary specialty display on cards.
+- `/cadastro` professional flow now loads approved specialties by selected category from canonical taxonomy.
+- `/profissional/[id]`, `/perfil`, and `/admin` now surface canonical specialties while keeping `Foco de atuação` separate.
+- technical validation completed: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines`.
 
 ## Partially implemented (`In progress`)
 
@@ -181,6 +189,7 @@ Last updated: 2026-03-31 (session 34)
 3. Final legal/tax wording freeze for sensitive categories.
 4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
 5. E2E fixture stability must be preserved (IDs and professional settings) to keep zero-skip behavior in CI/local runs.
+6. Migration `018-wave2-real-professions-taxonomy.sql` still needs production execution and post-deploy data sanity checks.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.

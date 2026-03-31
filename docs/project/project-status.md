@@ -199,6 +199,13 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - `/buscar` now applies the availability filter using `readClient` (same data source used for cards) instead of always using `supabase` session client.
 - added safe fallback: when availability query fails, results are not force-cleared.
 - prevents false zero-results states after selecting filters (especially `Horário`) due to RLS/client mismatch.
+62. Real-profession taxonomy expansion integrated across core surfaces:
+- added migration `018-wave2-real-professions-taxonomy.sql` with extensive verifiable professions grouped by category/subcategory.
+- added canonical taxonomy helper `lib/taxonomy/professional-specialties.ts` to load active catalog and professional specialty context.
+- `/buscar` now prioritizes canonical specialties for filtering, query matching, and primary specialty display.
+- `/cadastro` professional flow now loads approved specialties by selected category from canonical taxonomy (with fallback map).
+- `/profissional/[id]`, `/perfil`, and `/admin` now render canonical specialties and keep `Foco de atuação` as a separate field.
+- validation run green: `lint`, `typecheck`, `build`, `test:state-machines`.
 
 ## Immediate next actions
 
@@ -215,6 +222,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 8. Apply migration `016-professional-public-profile-code.sql` in production before expecting `nome-1234` URLs for all profiles.
 9. Apply migration `017-wave2-professional-signup-review-pipeline.sql` in production to activate professional application review persistence.
 10. Validate `/buscar` price slider on iPad and mobile touch devices after deployment (minimum and maximum drag both directions).
+11. Apply migration `018-wave2-real-professions-taxonomy.sql` in production and verify canonical specialty backfill:
+- existing professionals receive mapped specialties in `professional_specialties`.
+- signup/category-specialty options reflect canonical taxonomy in `/cadastro`.
+- search/admin/profile surfaces show canonical specialties consistently after deploy.
 
 ## Continuity rule
 

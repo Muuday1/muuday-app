@@ -127,7 +127,7 @@ export default function TaxonomiaPage() {
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
       <h1 className="font-display font-bold text-2xl text-neutral-900 mb-2">Taxonomia</h1>
-      <p className="text-sm text-neutral-500 mb-6">Gerencie categorias, subcategorias, especialidades e tags.</p>
+      <p className="text-sm text-neutral-500 mb-6">Gerencie categorias, subcategorias e profissões/especialidades validadas.</p>
 
       <div className="flex gap-2 mb-6">
         <button
@@ -140,7 +140,7 @@ export default function TaxonomiaPage() {
           onClick={() => setActiveTab('tags')}
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'tags' ? 'bg-brand-500 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
         >
-          <Tag className="w-4 h-4" /> Tags pendentes
+          <Tag className="w-4 h-4" /> Sugestões pendentes
           {tagSuggestions.length > 0 && (
             <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{tagSuggestions.length}</span>
           )}
@@ -276,7 +276,7 @@ export default function TaxonomiaPage() {
 
       {activeTab === 'tags' && (
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-          <h2 className="font-semibold text-neutral-900 mb-4">Tags pendentes de revisão</h2>
+          <h2 className="font-semibold text-neutral-900 mb-4">Sugestões pendentes de revisão</h2>
           {tagSuggestions.length === 0 ? (
             <p className="text-sm text-neutral-500">Nenhuma tag pendente.</p>
           ) : (

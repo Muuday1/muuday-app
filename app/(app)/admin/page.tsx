@@ -87,6 +87,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [stats, setStats] = useState<Stats | null>(null)
   const [professionals, setProfessionals] = useState<AdminProfessional[]>([])
+  const [professionalSpecialties, setProfessionalSpecialties] = useState<Record<string, string[]>>({})
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -149,7 +150,53 @@ export default function AdminPage() {
       }
 
       const { data } = await query
-      setProfessionals((data as unknown as AdminProfessional[]) || [])
+      const resolvedProfessionals = (data as unknown as AdminProfessional[]) || []
+      setProfessionals(resolvedProfessionals)
+
+      const professionalIds = resolvedProfessionals.map(professional => professional.id).filter(Boolean)
+      if (professionalIds.length === 0) {
+        setProfessionalSpecialties({})
+      } else {
+        const { data: linkRows } = await supabase
+          .from('professional_specialties')
+          .select('professional_id,specialty_id')
+          .in('professional_id', professionalIds)
+
+        const specialtyIds = Array.from(
+          new Set((linkRows || []).map((row: any) => String(row.specialty_id || '').trim()).filter(Boolean)),
+        )
+
+        if (specialtyIds.length === 0) {
+          setProfessionalSpecialties({})
+        } else {
+          const { data: specialtyRows } = await supabase
+            .from('specialties')
+            .select('id,name_pt')
+            .in('id', specialtyIds)
+            .eq('is_active', true)
+
+          const specialtyById = new Map(
+            (specialtyRows || []).map((row: any) => [String(row.id), String(row.name_pt || '').trim()]),
+          )
+
+          const mapped = (linkRows || []).reduce((acc, row: any) => {
+            const professionalId = String(row.professional_id || '').trim()
+            const specialtyName = specialtyById.get(String(row.specialty_id || '').trim()) || ''
+            if (!professionalId || !specialtyName) return acc
+            if (!acc[professionalId]) acc[professionalId] = []
+            if (!acc[professionalId].includes(specialtyName)) {
+              acc[professionalId].push(specialtyName)
+            }
+            return acc
+          }, {} as Record<string, string[]>)
+
+          Object.keys(mapped).forEach(professionalId => {
+            mapped[professionalId].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+          })
+
+          setProfessionalSpecialties(mapped)
+        }
+      }
     }
 
     if (activeTab === 'reviews') {
@@ -318,6 +365,12 @@ export default function AdminPage() {
     suspended: 'Suspenso',
   }
 
+  const getPrimarySpecialty = (professional: AdminProfessional) => {
+    const specialty = professionalSpecialties[professional.id]?.[0]
+    if (specialty) return specialty
+    return CATEGORIES.find(category => category.slug === professional.category)?.name || professional.category
+  }
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'overview', label: 'Visão geral', icon: <TrendingUp className="w-4 h-4" /> },
     { id: 'professionals', label: 'Profissionais', icon: <Users className="w-4 h-4" />, badge: stats?.pendingProfessionals },
@@ -435,7 +488,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-neutral-900">{pro.profiles?.full_name}</p>
-                    <p className="text-xs text-neutral-400">{CATEGORIES.find(c => c.slug === pro.category)?.name}</p>
+                    <p className="text-xs text-neutral-400">{getPrimarySpecialty(pro)}</p>
                   </div>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[pro.status]}`}>
@@ -493,7 +546,6 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-3">
               {professionals.map(pro => {
-                const category = CATEGORIES.find(c => c.slug === pro.category)
                 const isExpanded = expandedId === pro.id
 
                 return (
@@ -510,7 +562,7 @@ export default function AdminPage() {
                         <div>
                           <p className="font-medium text-neutral-900">{pro.profiles?.full_name}</p>
                           <p className="text-sm text-neutral-500">
-                            {category?.icon} {category?.name} · {pro.profiles?.email}
+                            {getPrimarySpecialty(pro)} · {pro.profiles?.email}
                           </p>
                         </div>
                       </div>
@@ -559,7 +611,20 @@ export default function AdminPage() {
                               </div>
                             </div>
                             <div>
-                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Tags</p>
+                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Especialidades</p>
+                              <div className="flex flex-wrap gap-1">
+                                {(professionalSpecialties[pro.id] || []).map(specialty => (
+                                  <span key={specialty} className="px-2 py-0.5 bg-neutral-100 rounded-full text-xs text-neutral-700">
+                                    {specialty}
+                                  </span>
+                                ))}
+                                {(professionalSpecialties[pro.id] || []).length === 0 && (
+                                  <span className="text-xs text-neutral-500">Nao informado</span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Foco de atuacao</p>
                               <div className="flex flex-wrap gap-1">
                                 {pro.tags?.map(tag => (
                                   <span key={tag} className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-xs">{tag}</span>

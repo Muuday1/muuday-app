@@ -135,6 +135,12 @@ Dependencies:
 24. Validate filter-to-card linkage in `/buscar` after availability-client fix:
 - apply `Categoria`, `Especialidade`, `Idioma`, `Horário` one by one and confirm cards no longer disappear unexpectedly.
 - confirm only genuinely empty filters return zero results.
+25. Apply migration `018-wave2-real-professions-taxonomy.sql` in production.
+26. Run post-migration sanity checks for canonical specialties:
+- sample legacy professionals migrated into `professional_specialties`.
+- `/cadastro` professional category -> specialty options populated from taxonomy.
+- `/buscar` category/specialty filtering and card subtitle use canonical specialties.
+- `/admin` and `/perfil` show canonical specialties plus separate `Foco de atuação`.
 
 Dependencies:
 - Wave 1 critical path complete.

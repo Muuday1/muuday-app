@@ -77,8 +77,39 @@ export default async function ProfissionalPage({
     .order('created_at', { ascending: false })
     .limit(10)
 
+  const { data: professionalSpecialtyLinks } = await supabase
+    .from('professional_specialties')
+    .select('specialty_id')
+    .eq('professional_id', professional.id)
+
+  const specialtyIds = Array.from(
+    new Set(
+      (professionalSpecialtyLinks || [])
+        .map((entry: any) => String(entry.specialty_id || '').trim())
+        .filter(Boolean),
+    ),
+  )
+
+  let professionalSpecialties: string[] = []
+  if (specialtyIds.length > 0) {
+    const { data: specialtyRows } = await supabase
+      .from('specialties')
+      .select('id,name_pt')
+      .in('id', specialtyIds)
+      .eq('is_active', true)
+
+    professionalSpecialties = Array.from(
+      new Set(
+        (specialtyRows || [])
+          .map((row: any) => String(row.name_pt || '').trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+  }
+
   const categorySlug = normalizeSearchCategorySlug(professional.category)
   const category = getSearchCategoryBySlug(categorySlug)
+  const primarySpecialty = professionalSpecialties[0] || getSearchCategoryLabel(professional.category)
   const profile = professional.profiles as any
   const isOwnProfessional = user ? professional.user_id === user.id : false
   const isLoggedIn = !!user
@@ -141,9 +172,10 @@ export default async function ProfissionalPage({
                 <div>
                   <h1 className="font-display font-bold text-2xl text-neutral-900">{profile?.full_name}</h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-neutral-500 flex items-center gap-1">
-                      {category?.icon} {category?.name}
-                    </span>
+                    <span className="text-sm text-neutral-500 flex items-center gap-1">{primarySpecialty}</span>
+                    {category?.name ? (
+                      <span className="text-xs text-neutral-400">· {category.icon} {category.name}</span>
+                    ) : null}
                     {professional.years_experience > 0 && (
                       <span className="text-xs text-neutral-400">
                         · {professional.years_experience} anos de exp.
@@ -174,14 +206,25 @@ export default async function ProfissionalPage({
                 </div>
               </div>
 
-              {/* Tags */}
-              {professional.tags?.length > 0 && (
+              {professionalSpecialties.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
-                  {professional.tags.map((tag: string) => (
-                    <span key={tag} className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
-                      {tag}
+                  {professionalSpecialties.map((specialty: string) => (
+                    <span key={specialty} className="text-xs bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full font-medium">
+                      {specialty}
                     </span>
                   ))}
+                </div>
+              )}
+              {professional.tags?.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[11px] text-neutral-400 mb-1">Foco de atuacao</p>
+                  <div className="flex flex-wrap gap-2">
+                    {professional.tags.map((tag: string) => (
+                      <span key={tag} className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

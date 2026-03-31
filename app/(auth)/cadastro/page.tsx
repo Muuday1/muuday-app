@@ -11,6 +11,10 @@ import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 import { COUNTRIES } from '@/lib/utils'
 import { ALL_TIMEZONES, STRIPE_CURRENCIES } from '@/lib/constants'
 import { LANGUAGE_OPTIONS, SEARCH_CATEGORIES } from '@/lib/search-config'
+import {
+  buildSpecialtyOptionsByCategorySlug,
+  loadActiveTaxonomyCatalog,
+} from '@/lib/taxonomy/professional-specialties'
 
 type Role = 'usuario' | 'profissional'
 
@@ -81,7 +85,18 @@ export default function CadastroPage() {
   const [professionalFocusAreas, setProfessionalFocusAreas] = useState('')
   const [professionalPrimaryLanguage, setProfessionalPrimaryLanguage] = useState(LANGUAGE_OPTIONS[0] || 'Portugues')
   const [professionalSecondaryLanguages, setProfessionalSecondaryLanguages] = useState<string[]>([])
-  const [approvedSpecialties, setApprovedSpecialties] = useState<string[]>([])
+  const [approvedSpecialtiesByCategory, setApprovedSpecialtiesByCategory] = useState<
+    Record<string, string[]>
+  >({})
+  const [professionalCategoryOptions, setProfessionalCategoryOptions] = useState<
+    Array<{ slug: string; name: string; icon: string }>
+  >(
+    SEARCH_CATEGORIES.map(category => ({
+      slug: category.slug,
+      name: category.name,
+      icon: category.icon,
+    })),
+  )
   const [professionalQualificationFiles, setProfessionalQualificationFiles] = useState<File[]>([])
   const [professionalQualificationNote, setProfessionalQualificationNote] = useState('')
   const [professionalJurisdiction, setProfessionalJurisdiction] = useState('')
@@ -89,15 +104,39 @@ export default function CadastroPage() {
   const [professionalSessionPrice, setProfessionalSessionPrice] = useState('')
   const [professionalSessionDuration, setProfessionalSessionDuration] = useState('60')
 
-  const fallbackSpecialties = useMemo(() => {
-    const options = SEARCH_CATEGORIES.flatMap(category => category.specialties)
-    return Array.from(new Set(options)).sort((a, b) => a.localeCompare(b))
+  const fallbackSpecialtiesByCategory = useMemo(() => {
+    const map = new Map<string, string[]>()
+    SEARCH_CATEGORIES.forEach(category => {
+      map.set(
+        category.slug,
+        Array.from(new Set(category.specialties)).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+        ),
+      )
+    })
+    return map
   }, [])
 
-  const approvedSpecialtyOptions = useMemo(
-    () => (approvedSpecialties.length > 0 ? approvedSpecialties : fallbackSpecialties),
-    [approvedSpecialties, fallbackSpecialties],
-  )
+  const approvedSpecialtyOptions = useMemo(() => {
+    const categoryKey = professionalCategory || ''
+    if (categoryKey) {
+      const dbOptions = approvedSpecialtiesByCategory[categoryKey] || []
+      if (dbOptions.length > 0) return dbOptions
+      return fallbackSpecialtiesByCategory.get(categoryKey) || []
+    }
+
+    const allDbOptions = Array.from(
+      new Set(Object.values(approvedSpecialtiesByCategory).flatMap(options => options)),
+    )
+    if (allDbOptions.length > 0) {
+      return allDbOptions.sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+    }
+
+    const fallbackAll = SEARCH_CATEGORIES.flatMap(category => category.specialties)
+    return Array.from(new Set(fallbackAll)).sort((a, b) =>
+      a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+    )
+  }, [approvedSpecialtiesByCategory, fallbackSpecialtiesByCategory, professionalCategory])
 
   const isSpecialtyApproved = useMemo(
     () => includesNormalizedOption(approvedSpecialtyOptions, professionalSpecialtyName),
@@ -132,22 +171,40 @@ export default function CadastroPage() {
 
     async function loadApprovedSpecialties() {
       const supabase = createClient()
-      const { data, error } = await supabase
-        .from('specialties')
-        .select('name_pt, is_active')
-        .eq('is_active', true)
-        .order('name_pt', { ascending: true })
+      const catalog = await loadActiveTaxonomyCatalog(supabase as any)
 
-      if (cancelled || error || !data || data.length === 0) {
-        setApprovedSpecialties(fallbackSpecialties)
+      if (cancelled || !catalog) {
+        setApprovedSpecialtiesByCategory({})
+        setProfessionalCategoryOptions(
+          SEARCH_CATEGORIES.map(category => ({
+            slug: category.slug,
+            name: category.name,
+            icon: category.icon,
+          })),
+        )
         return
       }
 
-      const options = data
-        .map(item => (typeof item.name_pt === 'string' ? item.name_pt.trim() : ''))
-        .filter(Boolean)
+      const specialtyMap = buildSpecialtyOptionsByCategorySlug(catalog)
+      const mappedCategories = catalog.categories.map(category => {
+        const fallbackCategory = SEARCH_CATEGORIES.find(item => item.slug === category.slug)
+        return {
+          slug: category.slug,
+          name: category.name_pt || fallbackCategory?.name || category.slug,
+          icon: fallbackCategory?.icon || '🧩',
+        }
+      })
 
-      setApprovedSpecialties(Array.from(new Set(options)).sort((a, b) => a.localeCompare(b)))
+      setApprovedSpecialtiesByCategory(Object.fromEntries(specialtyMap.entries()))
+      setProfessionalCategoryOptions(
+        mappedCategories.length > 0
+          ? mappedCategories
+          : SEARCH_CATEGORIES.map(category => ({
+              slug: category.slug,
+              name: category.name,
+              icon: category.icon,
+            })),
+      )
     }
 
     loadApprovedSpecialties()
@@ -155,7 +212,16 @@ export default function CadastroPage() {
     return () => {
       cancelled = true
     }
-  }, [fallbackSpecialties, role])
+  }, [role])
+
+  useEffect(() => {
+    if (!professionalSpecialtyName.trim()) return
+    if (professionalSpecialtyIsCustom) return
+    if (approvedSpecialtyOptions.length === 0) return
+    if (includesNormalizedOption(approvedSpecialtyOptions, professionalSpecialtyName)) return
+
+    setProfessionalSpecialtyName('')
+  }, [approvedSpecialtyOptions, professionalCategory, professionalSpecialtyIsCustom, professionalSpecialtyName])
 
   useEffect(() => {
     if (!professionalPrimaryLanguage) return
@@ -740,7 +806,7 @@ export default function CadastroPage() {
               aria-invalid={Boolean(fieldErrors.professionalCategory)}
             >
               <option value="">Selecione uma categoria</option>
-              {SEARCH_CATEGORIES.map(cat => (
+              {professionalCategoryOptions.map(cat => (
                 <option key={cat.slug} value={cat.slug}>
                   {cat.icon} {cat.name}
                 </option>

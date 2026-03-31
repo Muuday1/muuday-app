@@ -13,6 +13,7 @@ import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
 import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoApply'
 import { SearchQueryBar } from '@/components/search/SearchQueryBar'
 import { ExpandableTags } from '@/components/search/ExpandableTags'
+import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-specialties'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -144,7 +145,11 @@ function formatSearchPrice(amountBRL: number, currency = 'BRL', locale = 'pt-BR'
   }
 }
 
-function getPrimarySpecialty(professional: any) {
+function getPrimarySpecialty(professional: any, primarySpecialty?: string | null) {
+  if (primarySpecialty && String(primarySpecialty).trim()) {
+    return String(primarySpecialty)
+  }
+
   const subcategory = (professional.subcategories || []).find((entry: string) =>
     String(entry || '').trim(),
   )
@@ -302,23 +307,57 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     }
   }
 
+  const specialtyContext =
+    readClient && professionals.length > 0
+      ? await loadProfessionalSpecialtyContext(
+          readClient as any,
+          professionals.map((professional: any) => String(professional.id)),
+        )
+      : {
+          byProfessionalId: new Map<string, string[]>(),
+          primaryByProfessionalId: new Map<string, string>(),
+          categorySlugsByProfessionalId: new Map<string, string[]>(),
+        }
+
+  const specialtiesByProfessionalId = specialtyContext.byProfessionalId
+  const primarySpecialtyByProfessionalId = specialtyContext.primaryByProfessionalId
+  const categorySlugsByProfessionalId = specialtyContext.categorySlugsByProfessionalId
+
   const categorySlugsWithProfessionals = new Set(
     professionals
       .map((professional: any) => normalizeSearchCategorySlug(professional.category))
       .filter(Boolean),
   )
+  professionals.forEach((professional: any) => {
+    ;(categorySlugsByProfessionalId.get(String(professional.id)) || []).forEach(slug =>
+      categorySlugsWithProfessionals.add(slug),
+    )
+  })
   const categoryOptionsFromData = SEARCH_CATEGORIES.filter(category =>
     categorySlugsWithProfessionals.has(category.slug),
   )
   const categoryOptions = categoryOptionsFromData.length > 0 ? categoryOptionsFromData : SEARCH_CATEGORIES
 
+  const professionalMatchesSelectedCategory = (professional: any) => {
+    if (!selectedCategory) return true
+    if (matchesSelectedCategory(professional.category, selectedCategory)) return true
+
+    const categorySlugs = categorySlugsByProfessionalId.get(String(professional.id)) || []
+    return categorySlugs.includes(selectedCategory)
+  }
+
   const optionBaseProfessionals = selectedCategory
-    ? professionals.filter((professional: any) => matchesSelectedCategory(professional.category, selectedCategory))
+    ? professionals.filter((professional: any) => professionalMatchesSelectedCategory(professional))
     : professionals
 
   const specialtySet = new Map<string, string>()
   optionBaseProfessionals.forEach((professional: any) => {
-    ;[...(professional.subcategories || []), ...(professional.tags || [])].forEach((specialty: string) => {
+    const canonicalSpecialties = specialtiesByProfessionalId.get(String(professional.id)) || []
+    ;[
+      ...canonicalSpecialties,
+      ...(professional.subcategories || []),
+      ...(professional.tags || []),
+    ].forEach((specialty: string) => {
       const trimmed = String(specialty || '').trim()
       if (!trimmed) return
       const key = normalizeText(trimmed)
@@ -343,7 +382,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   )
 
   let filteredProfessionals = professionals.filter((pro: any) => {
-    if (selectedCategory && !matchesSelectedCategory(pro.category, selectedCategory)) return false
+    if (selectedCategory && !professionalMatchesSelectedCategory(pro)) return false
     if (minPriceBrl !== null && Number(pro.session_price_brl) < minPriceBrl) return false
     if (maxPriceBrl !== null && Number(pro.session_price_brl) > maxPriceBrl) return false
 
@@ -359,7 +398,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     }
 
     if (selectedSpecialty) {
+      const canonicalSpecialties = specialtiesByProfessionalId.get(String(pro.id)) || []
       const specialtyHaystack = [
+        ...canonicalSpecialties,
         ...(pro.tags || []),
         ...(pro.subcategories || []),
         pro.bio || '',
@@ -370,10 +411,12 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     }
 
     if (queryText) {
+      const canonicalSpecialties = specialtiesByProfessionalId.get(String(pro.id)) || []
       const queryHaystack = [
         pro.profiles?.full_name || '',
         pro.bio || '',
         pro.category || '',
+        ...canonicalSpecialties,
         ...(pro.tags || []),
         ...(pro.subcategories || []),
       ]
@@ -573,7 +616,10 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                               {professional.profiles?.full_name || 'Profissional'}
                             </h3>
                             <p className="text-xs text-neutral-500 mt-1">
-                              {getPrimarySpecialty(professional)}
+                              {getPrimarySpecialty(
+                                professional,
+                                primarySpecialtyByProfessionalId.get(String(professional.id)),
+                              )}
                             </p>
                             <ExpandableTags tags={professional.tags || []} />
                           </div>

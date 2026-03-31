@@ -561,3 +561,24 @@ Use this for meaningful checkpoints only.
 - Adicionado fallback para não limpar resultados quando a consulta de disponibilidade falhar por contexto/RLS.
 - Objetivo: evitar zero resultados falso ao aplicar filtros (principalmente `Horário`).
 - Validação executada: `lint` e `typecheck` verdes.
+
+### Entry 46 (2026-03-31) — Taxonomia de profissões reais expandida e integrada
+- Criada migration `018-wave2-real-professions-taxonomy.sql` com expansão ampla de profissões reais verificáveis, organizadas por categoria/subcategoria.
+- Incluída lógica de backfill para profissionais existentes:
+  - mapeamento por `professional_applications.specialty_name`
+  - mapeamento por arrays legados (`professionals.subcategories`/`tags`)
+  - fallback por categoria quando não houver mapeamento direto
+  - sincronização de compatibilidade para `professionals.subcategories`.
+- Adicionado helper canônico `lib/taxonomy/professional-specialties.ts` para:
+  - carregar catálogo ativo de taxonomia
+  - montar opções de especialidade por categoria
+  - carregar contexto de especialidades por profissional.
+- Integrações de UI entregues:
+  - `/buscar`: filtros e matching passam a considerar especialidades canônicas.
+  - `/cadastro`: especialidades aprovadas por categoria vindas da taxonomia canônica.
+  - `/profissional/[id]`, `/perfil`, `/admin`: exibição de especialidades canônicas com `Foco de atuação` separado.
+- Validação concluída com sucesso:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run test:state-machines`

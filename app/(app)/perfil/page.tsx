@@ -23,9 +23,36 @@ export default async function PerfilPage() {
 
   // If professional, fetch professional profile
   let professional = null
+  let professionalSpecialties: string[] = []
   if (isProfissional) {
     const { data } = await getPrimaryProfessionalForUser(supabase, user.id)
     professional = data
+    if (professional?.id) {
+      const { data: linkRows } = await supabase
+        .from('professional_specialties')
+        .select('specialty_id')
+        .eq('professional_id', professional.id)
+
+      const specialtyIds = Array.from(
+        new Set((linkRows || []).map((row: any) => String(row.specialty_id || '').trim()).filter(Boolean)),
+      )
+
+      if (specialtyIds.length > 0) {
+        const { data: specialtyRows } = await supabase
+          .from('specialties')
+          .select('id,name_pt')
+          .in('id', specialtyIds)
+          .eq('is_active', true)
+
+        professionalSpecialties = Array.from(
+          new Set(
+            (specialtyRows || [])
+              .map((row: any) => String(row.name_pt || '').trim())
+              .filter(Boolean),
+          ),
+        ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+      }
+    }
   }
 
   return (
@@ -146,8 +173,10 @@ export default async function PerfilPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-neutral-400 mb-1">Categoria</p>
-                  <p className="text-sm font-medium text-neutral-700 capitalize">{professional.category}</p>
+                  <p className="text-xs text-neutral-400 mb-1">Especialidade principal</p>
+                  <p className="text-sm font-medium text-neutral-700">
+                    {professionalSpecialties[0] || professional.category}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-neutral-400 mb-1">Preço por sessão</p>
@@ -162,9 +191,21 @@ export default async function PerfilPage() {
                   <p className="text-sm font-medium text-neutral-700">{professional.years_experience} anos</p>
                 </div>
               </div>
+              {professionalSpecialties.length > 0 && (
+                <div>
+                  <p className="text-xs text-neutral-400 mb-2">Especialidades profissionais</p>
+                  <div className="flex flex-wrap gap-2">
+                    {professionalSpecialties.map((specialty: string) => (
+                      <span key={specialty} className="text-xs bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full font-medium">
+                        {specialty}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               {professional.tags?.length > 0 && (
                 <div>
-                  <p className="text-xs text-neutral-400 mb-2">Tags</p>
+                  <p className="text-xs text-neutral-400 mb-2">Foco de atuação</p>
                   <div className="flex flex-wrap gap-2">
                     {professional.tags.map((tag: string) => (
                       <span key={tag} className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
