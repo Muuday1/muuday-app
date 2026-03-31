@@ -46,6 +46,7 @@ export function PublicHeader({
   const searchParams = useSearchParams()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const isLandingPage = pathname === '/'
 
   function handleLanguageChange(language: string) {
     setCookie(PUBLIC_LANGUAGE_COOKIE, language)
@@ -74,7 +75,7 @@ export function PublicHeader({
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-[#f6f4ef]/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 md:px-8">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 md:gap-6">
           <Link
             href="/"
             className="flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
@@ -84,6 +85,14 @@ export function PublicHeader({
             </div>
             <span className="font-display text-xl font-bold tracking-tight text-neutral-900">muuday</span>
           </Link>
+
+          <nav className="hidden flex-1 items-center gap-2 overflow-x-auto md:flex">
+            {NAV_ITEMS.map(item => (
+              <Link key={item.href} href={item.href} className={navItemClass(item.href)}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
           <div className="hidden items-center gap-2 md:flex">
             <select
@@ -99,18 +108,20 @@ export function PublicHeader({
               ))}
             </select>
 
-            <select
-              defaultValue={initialCurrency}
-              onChange={event => handleCurrencyChange(event.target.value)}
-              className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-              aria-label="Selecionar moeda"
-            >
-              {PUBLIC_CURRENCY_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {!isLandingPage && (
+              <select
+                defaultValue={initialCurrency}
+                onChange={event => handleCurrencyChange(event.target.value)}
+                className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                aria-label="Selecionar moeda"
+              >
+                {PUBLIC_CURRENCY_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {isLoggedIn ? (
               <Link
@@ -124,7 +135,7 @@ export function PublicHeader({
                 href="/login"
                 className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
-                Login
+                Entrar
               </Link>
             )}
           </div>
@@ -166,14 +177,6 @@ export function PublicHeader({
             </button>
           </div>
         </div>
-
-        <nav className="hidden items-center gap-2 overflow-x-auto pb-1 md:flex">
-          {NAV_ITEMS.map(item => (
-            <Link key={item.href} href={item.href} className={navItemClass(item.href)}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </div>
 
       {menuOpen && (
@@ -208,7 +211,7 @@ export function PublicHeader({
                 onClick={() => setMenuOpen(false)}
                 className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
-                Login
+                Entrar
               </Link>
             )}
           </nav>
