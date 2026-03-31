@@ -70,7 +70,11 @@ Dependencies:
 - admin account login lands at `/buscar` (with `/admin` still available)
 - `/buscar` list excludes non-professional profiles
 - `/agenda` shows user view for admin and professional view only for professional role
-14. Data hygiene cleanup: remove legacy `professionals` row tied to admin test account to avoid analytics/ops noise (optional but recommended).
+14. Run production sanity pass after stability hardening patch:
+- confirm `/`, `/buscar`, and `/login` no longer show global error page (`Ocorreu um erro inesperado`)
+- confirm logged-out public pages render even if Supabase request has transient failure
+- monitor Sentry for residual runtime exceptions in `app/(app)/layout` and `PublicPageLayout`.
+15. Data hygiene cleanup: remove legacy `professionals` row tied to admin test account to avoid analytics/ops noise (optional but recommended).
 
 Dependencies:
 - Wave 1 critical path complete.

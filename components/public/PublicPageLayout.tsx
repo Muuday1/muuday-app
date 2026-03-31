@@ -15,13 +15,22 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  const supabase = supabaseUrl && supabaseAnonKey ? createClient() : null
-  const user = supabase ? (await supabase.auth.getUser()).data.user : null
+  let user: any = null
+  let profile: { role?: string } | null = null
 
-  const profile =
-    user && supabase
-      ? (await supabase.from('profiles').select('role').eq('id', user.id).single()).data
-      : null
+  if (supabaseUrl && supabaseAnonKey) {
+    try {
+      const supabase = createClient()
+      user = (await supabase.auth.getUser()).data.user
+
+      if (user) {
+        profile = (await supabase.from('profiles').select('role').eq('id', user.id).single()).data
+      }
+    } catch {
+      user = null
+      profile = null
+    }
+  }
 
   const acceptLanguage = headers().get('accept-language')
   const cookieStore = cookies()

@@ -9,13 +9,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  const supabase = supabaseUrl && supabaseAnonKey ? createClient() : null
-  const user = supabase ? (await supabase.auth.getUser()).data.user : null
+  let user: any = null
+  let profile: any = null
 
-  const profile =
-    user && supabase
-      ? (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
-      : null
+  if (supabaseUrl && supabaseAnonKey) {
+    try {
+      const supabase = createClient()
+      user = (await supabase.auth.getUser()).data.user
+
+      if (user) {
+        profile = (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
+      }
+    } catch {
+      user = null
+      profile = null
+    }
+  }
 
   const isProfissional = profile?.role === 'profissional'
   const isAdmin = profile?.role === 'admin'

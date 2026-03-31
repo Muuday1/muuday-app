@@ -29,13 +29,18 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = cookies()
-  const countryFromCookie = cookieStore.get('muuday_country')?.value
-  const countryFromHeader =
-    headers().get('x-vercel-ip-country') ||
-    headers().get('cf-ipcountry') ||
-    headers().get('x-country-code')
-  const country = (countryFromCookie || countryFromHeader || 'BR').toUpperCase()
+  let country = 'BR'
+  try {
+    const cookieStore = cookies()
+    const countryFromCookie = cookieStore.get('muuday_country')?.value
+    const countryFromHeader =
+      headers().get('x-vercel-ip-country') ||
+      headers().get('cf-ipcountry') ||
+      headers().get('x-country-code')
+    country = (countryFromCookie || countryFromHeader || 'BR').toUpperCase()
+  } catch {
+    country = 'BR'
+  }
 
   return (
     <html lang="pt-BR">

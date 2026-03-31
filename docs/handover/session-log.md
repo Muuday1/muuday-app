@@ -379,3 +379,18 @@ Use this for meaningful checkpoints only.
   - `npm run test:state-machines` ✅
   - `npm run test:e2e` ✅ (`7 passed`, `0 skipped`, `0 failed`)
 - Follow-up: proceed with remaining Wave 2 backlog (recurring deadlines/slot release, migration 015 production validation, onboarding C1-C10 acceptance).
+
+### Entry 38 (2026-03-31) — Production unexpected-error stability patch
+- Goal: stop live pages from collapsing into global error screen (`Ocorreu um erro inesperado`) under transient server-side runtime failures.
+- Applied guarded server-side fallbacks:
+  - `app/(app)/layout.tsx`: Supabase user/profile reads wrapped in `try/catch`; fallback to non-auth state.
+  - `components/public/PublicPageLayout.tsx`: Supabase user/profile reads wrapped in `try/catch`; fallback to logged-out public navigation.
+  - `app/layout.tsx`: headers/cookies country detection wrapped in safe fallback (`BR`).
+- Repository hygiene:
+  - `.cursor/` added to `.gitignore` to avoid accidental commit noise from Cursor workspace artifacts.
+- Validation run:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+- Next follow-up:
+  - redeploy branch and confirm `/` + `/buscar` + `/login` load without global error.
