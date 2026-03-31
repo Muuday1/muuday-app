@@ -1,5 +1,4 @@
 import { cookies, headers } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
 import {
   normalizeCurrency,
   normalizeLanguage,
@@ -12,25 +11,9 @@ import { PublicFooter } from '@/components/public/PublicFooter'
 import { PublicHeader } from '@/components/public/PublicHeader'
 
 export async function PublicPageLayout({ children }: { children: React.ReactNode }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  let user: any = null
-  let profile: { role?: string } | null = null
-
-  if (supabaseUrl && supabaseAnonKey) {
-    try {
-      const supabase = createClient()
-      user = (await supabase.auth.getUser()).data.user
-
-      if (user) {
-        profile = (await supabase.from('profiles').select('role').eq('id', user.id).single()).data
-      }
-    } catch {
-      user = null
-      profile = null
-    }
-  }
+  // Public layout intentionally does not perform auth/profile fetches during SSR.
+  // This keeps public pages resilient when auth infra is transiently unavailable.
+  const user = null
 
   const acceptLanguage = headers().get('accept-language')
   const cookieStore = cookies()
@@ -43,8 +26,7 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
   const initialCurrency =
     cookieCurrency || resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
 
-  const loggedInHref =
-    profile?.role === 'admin' ? '/admin' : profile?.role === 'profissional' ? '/dashboard' : '/buscar'
+  const loggedInHref = '/buscar'
 
   return (
     <div className="min-h-screen bg-[#f6f4ef] text-neutral-900 flex flex-col">

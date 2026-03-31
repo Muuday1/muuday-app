@@ -230,6 +230,7 @@ Wave-driven delivery is now mandatory:
 - `npm run test:e2e` ✅ (`7 passed`, `0 skipped`, `0 failed`).
 75. Production stability hardening added to avoid global error page for transient runtime failures:
 - `app/(app)/layout.tsx`: Supabase `getUser`/profile lookup now guarded with fallback to non-auth shell state.
-- `components/public/PublicPageLayout.tsx`: Supabase auth/profile reads now guarded with fallback to logged-out public header state.
+- `components/public/PublicPageLayout.tsx`: public layout is now auth-agnostic on SSR (does not block render on auth/profile reads).
+- `app/(app)/buscar/page.tsx`: auth/profile/professional fetch path now guarded with fallback rendering to prevent route-level crash.
 - `app/layout.tsx`: headers/cookies country detection now wrapped with default fallback (`BR`) to avoid hard request-context failures.
 - validation: `lint`, `typecheck`, `build` all green on `codex/hotfix-public-500`.

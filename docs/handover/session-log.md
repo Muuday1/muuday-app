@@ -384,7 +384,8 @@ Use this for meaningful checkpoints only.
 - Goal: stop live pages from collapsing into global error screen (`Ocorreu um erro inesperado`) under transient server-side runtime failures.
 - Applied guarded server-side fallbacks:
   - `app/(app)/layout.tsx`: Supabase user/profile reads wrapped in `try/catch`; fallback to non-auth state.
-  - `components/public/PublicPageLayout.tsx`: Supabase user/profile reads wrapped in `try/catch`; fallback to logged-out public navigation.
+  - `components/public/PublicPageLayout.tsx`: public layout changed to auth-agnostic SSR mode (no blocking auth/profile reads in public render path).
+  - `app/(app)/buscar/page.tsx`: resilient guards around auth/profile/professional reads to avoid crashing route on transient Supabase failures.
   - `app/layout.tsx`: headers/cookies country detection wrapped in safe fallback (`BR`).
 - Repository hygiene:
   - `.cursor/` added to `.gitignore` to avoid accidental commit noise from Cursor workspace artifacts.

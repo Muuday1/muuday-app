@@ -123,7 +123,8 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - local `.env.local` updated with `E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`.
 - full technical gate now green without skips: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` (`7 passed`).
 47. Production stability hardening applied for unexpected global error screens:
-- wrapped server-side Supabase reads in `app/(app)/layout.tsx` and `components/public/PublicPageLayout.tsx` with safe fallback (no crash on transient auth/profile fetch failures).
+- wrapped server-side Supabase reads in `app/(app)/layout.tsx` and made `components/public/PublicPageLayout.tsx` auth-agnostic on SSR (public pages no longer depend on auth/profile read to render).
+- added resilient fallback path in `/buscar` for auth/profile/professional data fetch failures (renders without crashing).
 - added safe country fallback in `app/layout.tsx` to avoid hard failure when request headers/cookies are unavailable.
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build` all green.
 

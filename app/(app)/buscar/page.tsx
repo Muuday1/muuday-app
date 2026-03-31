@@ -175,11 +175,20 @@ function getSortedProfessionals(list: any[], sort: string) {
 }
 
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const isLoggedIn = Boolean(user)
+  let supabase: any = null
+  let user: any = null
+  let isLoggedIn = false
+  try {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      supabase = createClient()
+      user = (await supabase.auth.getUser()).data.user
+      isLoggedIn = Boolean(user)
+    }
+  } catch {
+    supabase = null
+    user = null
+    isLoggedIn = false
+  }
   const adminSupabase = !user ? createAdminClient() : null
   const readClient = adminSupabase || supabase
   const cookieStore = cookies()
@@ -199,13 +208,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const maxPrice = parseOptionalNumber(searchParams.precoMax)
 
   let selectedCurrency = 'BRL'
-  if (user) {
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('currency')
-      .eq('id', user.id)
-      .single()
-    selectedCurrency = (userProfile?.currency || 'BRL').toUpperCase()
+  if (user && supabase) {
+    try {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('currency')
+        .eq('id', user.id)
+        .single()
+      selectedCurrency = (userProfile?.currency || 'BRL').toUpperCase()
+    } catch {
+      selectedCurrency = 'BRL'
+    }
   } else {
     const queryCurrency = normalizeCurrency(requestedCurrency)
     const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
@@ -233,21 +246,28 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     moeda: user ? '' : selectedCurrency,
   })
 
-  const { data: professionalsRaw } = await readClient
-    .from('professionals')
-    .select(
-      [
-        '*',
-        // Limit profile fields to public-safe data (avoid emails).
-        'profiles!inner(full_name, country, avatar_url, role)',
-      ].join(', '),
-    )
-    .eq('status', 'approved')
-    .eq('profiles.role', 'profissional')
-    .order('rating', { ascending: false })
-    .limit(250)
+  let professionals: any[] = []
+  if (readClient) {
+    try {
+      const { data: professionalsRaw } = await readClient
+        .from('professionals')
+        .select(
+          [
+            '*',
+            // Limit profile fields to public-safe data (avoid emails).
+            'profiles!inner(full_name, country, avatar_url, role)',
+          ].join(', '),
+        )
+        .eq('status', 'approved')
+        .eq('profiles.role', 'profissional')
+        .order('rating', { ascending: false })
+        .limit(250)
 
-  const professionals = professionalsRaw || []
+      professionals = professionalsRaw || []
+    } catch {
+      professionals = []
+    }
+  }
 
   const categorySlugsWithProfessionals = new Set(
     professionals
@@ -346,7 +366,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     return true
   })
 
-  if (selectedAvailability !== 'qualquer' && filteredProfessionals.length > 0) {
+  if (supabase && selectedAvailability !== 'qualquer' && filteredProfessionals.length > 0) {
     const ids = filteredProfessionals.map((pro: any) => pro.id)
     const { data: availabilityRows } = await supabase
       .from('availability')
