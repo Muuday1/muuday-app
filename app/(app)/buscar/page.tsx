@@ -3,6 +3,7 @@ export const metadata = { title: 'Buscar Profissionais | Muuday' }
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { cookies, headers } from 'next/headers'
 import { Search, Star, Clock, MapPin, SlidersHorizontal, Languages } from 'lucide-react'
@@ -176,6 +177,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  const adminSupabase = !user ? createAdminClient() : null
+  const readClient = adminSupabase || supabase
   const cookieStore = cookies()
   const acceptLanguage = headers().get('accept-language')
 
@@ -227,9 +230,15 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     moeda: user ? '' : selectedCurrency,
   })
 
-  const { data: professionalsRaw } = await supabase
+  const { data: professionalsRaw } = await readClient
     .from('professionals')
-    .select('*, profiles!inner(*)')
+    .select(
+      [
+        '*',
+        // Limit profile fields to public-safe data (avoid emails).
+        'profiles!inner(full_name, country, avatar_url, role)',
+      ].join(', '),
+    )
     .eq('status', 'approved')
     .eq('profiles.role', 'profissional')
     .order('rating', { ascending: false })
