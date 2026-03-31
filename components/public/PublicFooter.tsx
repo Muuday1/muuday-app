@@ -15,6 +15,16 @@ export function PublicFooter() {
           <Link href="/buscar" className="rounded-md hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30">
             Buscar profissionais
           </Link>
+          <Link href="/politica-de-cookies" className="rounded-md hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30">
+            Política de cookies
+          </Link>
+          <button
+            type="button"
+            className="rounded-md hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+            onClick={() => window?.MuudayCookieConsent?.open?.()}
+          >
+            Gerenciar cookies
+          </button>
         </div>
       </div>
     </footer>
