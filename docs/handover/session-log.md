@@ -489,3 +489,7 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
+
+### Entry 42 (2026-03-31) — Search card subtitle with dynamic session duration
+- Updated `/buscar` card subtitle from `por sessão` to `por sessão de X min`.
+- Duration now reads from `session_duration_minutes` with fallback `60`.

@@ -160,6 +160,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - popup size increased for better usability (`AuthOverlay`: larger desktop popover and larger centered mobile modal).
 - bottom helper text now follows requested copy: `Ainda nao eh membro? Criar conta` with clickable link.
 - mobile behavior remains centered popup modal.
+53. Search card pricing subtitle improved:
+- card subtitle now renders dynamic session duration in PT-BR: `por sessão de X min`.
+- duration is sourced from `session_duration_minutes` with safe fallback to `60`.
 
 ## Immediate next actions
 

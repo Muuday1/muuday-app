@@ -568,7 +568,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                             <p className="font-semibold text-neutral-900">
                               {formatSearchPrice(professional.session_price_brl, selectedCurrency)}
                             </p>
-                            <p className="text-[11px] text-neutral-400">por sessão</p>
+                            <p className="text-[11px] text-neutral-400">
+                              por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
+                            </p>
                           </div>
                         </div>
 

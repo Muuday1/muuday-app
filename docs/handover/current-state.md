@@ -264,3 +264,6 @@ Wave-driven delivery is now mandatory:
 - public `Login` button now opens a larger popup with complete login form (email/password + social auth).
 - helper text with direct signup link shown in popup: `Ainda nao eh membro? Criar conta`.
 - mobile version renders as centered modal popup (not bottom sheet / side panel).
+81. Search card subtitle now includes dynamic session duration:
+- `por sessão` was replaced by `por sessão de X min` in `/buscar` cards.
+- value uses `session_duration_minutes` from professional record (fallback `60`).
