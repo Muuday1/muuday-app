@@ -242,3 +242,8 @@ Wave-driven delivery is now mandatory:
 - displayed search prices now round up and show no decimal places.
 - total available professionals now renders below filters and above cards with active filter context.
 - technical gate pass: `lint`, `typecheck`, `build`, `test:state-machines`.
+77. Search/auth header stability patch implemented:
+- `PriceRangeSlider` thumb interaction corrected so the min thumb is no longer trapped at zero.
+- login/oauth redirect sanitization now ignores root redirect (`/`) to avoid post-login bounce to home.
+- public header now exposes both `Login` and `Criar conta`, with login opening a compact auth popup (Entrar/Criar conta).
+- technical gate pass: `lint`, `typecheck`, `build`, `test:state-machines`.

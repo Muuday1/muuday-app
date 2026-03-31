@@ -70,6 +70,10 @@ Dependencies:
 - slider min/max interaction quality with step 1 on touch.
 - confirm auto-apply behavior: text on blur, selects/range immediate.
 - confirm count banner appears below filters and above cards for filtered/unfiltered states.
+12.2 Validate auth/header behavior in preview/production:
+- login from public header opens compact popup with `Entrar` + `Criar conta`.
+- `Criar conta` button is visible next to `Login` in desktop public header.
+- successful email/password and Google login must never redirect to `/` (home); expected default remains role-based (`/dashboard` or `/buscar`).
 13. Run production sanity pass after role-routing hotfix:
 - professional account login lands at `/dashboard`
 - admin account login lands at `/buscar` (with `/admin` still available)

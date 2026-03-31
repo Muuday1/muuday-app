@@ -429,3 +429,15 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
+
+### Entry 38 (2026-03-31) — Search slider + auth redirect + public header auth actions
+- Fixed `/buscar` price range slider interaction so the minimum thumb can move up/down from zero consistently.
+- Hardened auth redirect sanitization across password + OAuth flows to prevent redirecting to `/` after successful login.
+- Updated `PublicHeader`:
+  - added explicit desktop `Criar conta` button next to `Login`.
+  - login now opens compact auth popup with `Entrar` and `Criar conta` options.
+- Validation run:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅

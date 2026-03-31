@@ -10,6 +10,7 @@ import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 
 function sanitizeRedirectPath(value: string | null) {
   if (!value) return ''
+  if (value === '/') return ''
   if (!value.startsWith('/') || value.startsWith('//')) return ''
   return value
 }

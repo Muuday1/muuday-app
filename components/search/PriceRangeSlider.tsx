@@ -54,8 +54,6 @@ export function PriceRangeSlider({
     const raw = initialMax ?? safeMaxLimit
     return clamp(roundToStep(raw, step), safeMinLimit, safeMaxLimit)
   })
-  const [activeThumb, setActiveThumb] = useState<'min' | 'max'>('max')
-
   const minValue = isControlled
     ? clamp(roundToStep(valueMin as number, step), safeMinLimit, safeMaxLimit)
     : internalMin
@@ -132,15 +130,14 @@ export function PriceRangeSlider({
             const nextMin = clamp(Math.min(next, maxValue), safeMinLimit, safeMaxLimit)
             setValues(nextMin, maxValue)
           }}
-          onPointerDown={() => setActiveThumb('min')}
-          onFocus={() => setActiveThumb('min')}
           aria-label="Preco minimo"
           className={cn(
-            'absolute inset-0 w-full cursor-pointer bg-transparent',
+            'absolute inset-0 w-full cursor-pointer bg-transparent pointer-events-none',
             compact ? 'h-8' : 'h-10',
-            activeThumb === 'min' ? 'z-30' : 'z-20',
+            'z-30',
             '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300 [&::-webkit-slider-thumb]:shadow',
             '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-neutral-300',
+            '[&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
           )}
         />
@@ -157,15 +154,14 @@ export function PriceRangeSlider({
             const nextMax = clamp(Math.max(next, minValue), safeMinLimit, safeMaxLimit)
             setValues(minValue, nextMax)
           }}
-          onPointerDown={() => setActiveThumb('max')}
-          onFocus={() => setActiveThumb('max')}
           aria-label="Preco maximo"
           className={cn(
-            'absolute inset-0 w-full cursor-pointer bg-transparent',
+            'absolute inset-0 w-full cursor-pointer bg-transparent pointer-events-none',
             compact ? 'h-8' : 'h-10',
-            activeThumb === 'max' ? 'z-30' : 'z-20',
+            'z-20',
             '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300 [&::-webkit-slider-thumb]:shadow',
             '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-neutral-300',
+            '[&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
           )}
         />

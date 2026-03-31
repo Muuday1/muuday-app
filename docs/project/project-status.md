@@ -136,6 +136,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - search card price rendering now uses rounded-up integer display (no decimals) without changing checkout/payment formatting logic.
 - availability count now appears below filter bar and above cards, including contextual category/specialty summary when selected.
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
+49. Auth/header/search stability patch delivered:
+- fixed search price slider thumb interaction so minimum value can move up/down from zero reliably.
+- hardened auth redirect sanitization (`/` is no longer accepted as post-login target), preventing unwanted return to home after login.
+- public header now includes explicit `Criar conta` button and a compact login popup (Entrar/Criar conta options) on login click.
+- validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
 
 ## Immediate next actions
 

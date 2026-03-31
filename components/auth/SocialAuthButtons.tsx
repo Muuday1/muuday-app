@@ -27,6 +27,7 @@ const PROVIDERS = [
 
 function sanitizeRedirectPath(value?: string) {
   if (!value) return ''
+  if (value === '/') return ''
   if (!value.startsWith('/') || value.startsWith('//')) return ''
   return value
 }
