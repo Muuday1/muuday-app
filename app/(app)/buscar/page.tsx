@@ -1,4 +1,4 @@
-export const metadata = { title: 'Buscar Profissionais | Muuday' }
+﻿export const metadata = { title: 'Buscar Profissionais | Muuday' }
 
 export const dynamic = 'force-dynamic'
 
@@ -385,24 +385,26 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     return true
   })
 
-  if (supabase && selectedAvailability !== 'qualquer' && filteredProfessionals.length > 0) {
+  if (readClient && selectedAvailability !== 'qualquer' && filteredProfessionals.length > 0) {
     const ids = filteredProfessionals.map((pro: any) => pro.id)
-    const { data: availabilityRows } = await supabase
+    const { data: availabilityRows, error: availabilityError } = await readClient
       .from('availability')
       .select('professional_id,day_of_week,start_time,end_time')
       .in('professional_id', ids)
       .eq('is_active', true)
 
-    const availabilityMap = new Map<string, AvailabilityRow[]>()
-    ;(availabilityRows || []).forEach((row: AvailabilityRow) => {
-      const rows = availabilityMap.get(row.professional_id) || []
-      rows.push(row)
-      availabilityMap.set(row.professional_id, rows)
-    })
+    if (!availabilityError) {
+      const availabilityMap = new Map<string, AvailabilityRow[]>()
+      ;(availabilityRows || []).forEach((row: AvailabilityRow) => {
+        const rows = availabilityMap.get(row.professional_id) || []
+        rows.push(row)
+        availabilityMap.set(row.professional_id, rows)
+      })
 
-    filteredProfessionals = filteredProfessionals.filter((pro: any) =>
-      matchesAvailabilityWindow(availabilityMap.get(pro.id) || [], selectedAvailability),
-    )
+      filteredProfessionals = filteredProfessionals.filter((pro: any) =>
+        matchesAvailabilityWindow(availabilityMap.get(pro.id) || [], selectedAvailability),
+      )
+    }
   }
 
   const hasActiveFilters = Boolean(
@@ -500,18 +502,18 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         <div className="mb-4">
           <p className="text-sm font-semibold text-neutral-900">
             {hasActiveFilters
-              ? `${totalResults} profissionais disponíveis para os filtros selecionados`
-              : `${totalResults} profissionais disponíveis`}
+              ? `${totalResults} profissionais disponÃ­veis para os filtros selecionados`
+              : `${totalResults} profissionais disponÃ­veis`}
           </p>
           {selectedCategoryLabel || selectedSpecialty ? (
             <p className="text-xs text-neutral-500 mt-0.5">
               {selectedCategoryLabel ? `Categoria: ${selectedCategoryLabel}` : null}
-              {selectedCategoryLabel && selectedSpecialty ? ' • ' : null}
+              {selectedCategoryLabel && selectedSpecialty ? ' â€¢ ' : null}
               {selectedSpecialty ? `Especialidade: ${selectedSpecialty}` : null}
             </p>
           ) : (
             <p className="text-xs text-neutral-500 mt-0.5">
-                Sugestões iniciais variadas para te ajudar a começar.
+                SugestÃµes iniciais variadas para te ajudar a comeÃ§ar.
             </p>
           )}
         </div>
@@ -580,7 +582,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                               {formatSearchPrice(professional.session_price_brl, selectedCurrency)}
                             </p>
                             <p className="text-[11px] text-neutral-400">
-                              por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
+                              por sessÃ£o de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
                             </p>
                           </div>
                         </div>

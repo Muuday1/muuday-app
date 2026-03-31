@@ -522,3 +522,42 @@ Use this for meaningful checkpoints only.
   - `profissional` -> `/dashboard`
   - `usuario/admin` -> `/buscar`
 - Validation passed: `lint`, `typecheck`, `build`, `test:state-machines`.
+
+### Entry 41 (2026-03-31) — Auth pages logo navigation to home
+- Updated `app/(auth)/layout.tsx` so Muuday logo is clickable and routes to `/`.
+- Applied to both desktop and mobile auth headers.
+- Affects login/signup/auth flow pages using auth layout.
+- Validation passed: `lint`, `typecheck`, `build`, `test:state-machines`.
+
+### Entry 42 (2026-03-31) — Signup country defaults for timezone and currency
+- Updated `app/(auth)/cadastro/page.tsx` country-change behavior for user signup.
+- Selecting a country now auto-applies timezone and preferred currency defaults consistently.
+- Timezone and currency remain manually editable after auto-fill (no forced lock).
+
+### Entry 43 (2026-03-31) — Professional signup review-first expansion
+- Expanded professional signup flow in `app/(auth)/cadastro/page.tsx`:
+  - required title dropdown above full name.
+  - country now auto-applies timezone and currency defaults for professional accounts (editable afterwards).
+  - specialty now uses approved autocomplete with custom suggestion + validation-message path.
+  - renamed tags wording to `Foco de atuação`.
+  - added primary + secondary language capture.
+  - added qualification/certificate attachment picker and optional note.
+- Professional signup destination changed to `/cadastro/profissional-em-analise` (approval-email waiting state) instead of direct dashboard redirect.
+- Added new page `app/(auth)/cadastro/profissional-em-analise/page.tsx`.
+- Added migration `017-wave2-professional-signup-review-pipeline.sql` + schema snapshot updates to persist and moderate professional applications.
+
+### Entry 44 (2026-03-31) — Hotfix do slider de preço em `/buscar`
+- Corrigido bug crítico no filtro de preço onde mínimo e máximo ficavam travados em `0` (especialmente iPad/Safari).
+- `components/search/PriceRangeSlider.tsx` foi reimplementado com dual-thumb custom (pointer events + teclado) para evitar conflito de `input[type=range]` sobreposto.
+- Mantidos:
+  - passo de `1 em 1`
+  - regra `mínimo <= máximo`
+  - atualização automática dos filtros
+  - campos hidden compatíveis para formulário.
+- Validação executada: `lint`, `typecheck`, `build`, `test:state-machines` (todos verdes).
+
+### Entry 45 (2026-03-31) — Hotfix de vínculo filtros x cards em `/buscar`
+- Corrigido filtro de disponibilidade para usar `readClient` (mesmo client dos cards) em vez de `supabase` fixo.
+- Adicionado fallback para não limpar resultados quando a consulta de disponibilidade falhar por contexto/RLS.
+- Objetivo: evitar zero resultados falso ao aplicar filtros (principalmente `Horário`).
+- Validação executada: `lint` e `typecheck` verdes.

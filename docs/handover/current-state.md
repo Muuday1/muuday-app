@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 32)
+Last updated: 2026-03-31 (session 34)
 
 ## Canonical baseline status
 
@@ -154,6 +154,17 @@ Last updated: 2026-03-31 (session 32)
 - `/profissional/[id]` now resolves both legacy UUID and slug+code URL params.
 - key links in `/buscar`, `/favoritos`, `/dashboard`, `/admin`, and `/mensagens` now use canonical profile URL builder.
 - migration `016-professional-public-profile-code.sql` added for backfill + unique 4-digit `public_code` assignment.
+65. User signup country-default behavior adjusted:
+- selecting country in `/cadastro` now auto-sets both timezone and preferred currency every time.
+- timezone/currency remain editable so the user can manually adjust after the automatic default.
+66. Professional signup flow expanded for review-first onboarding:
+- professional country selection now auto-sets timezone and currency defaults (still editable).
+- required title dropdown added before full name in professional signup.
+- professional data step now supports approved-specialty autocomplete with custom suggestion + validation message.
+- `Foco de atuação` terminology is now used in signup metadata instead of generic tags wording.
+- language capture split into primary language + optional secondary languages.
+- qualification/certificate attachment picker and note field added to professional signup flow.
+- professional signup now ends at `/cadastro/profissional-em-analise` (await approval email) instead of direct dashboard access.
 
 ## Partially implemented (`In progress`)
 
@@ -255,6 +266,16 @@ Wave-driven delivery is now mandatory:
 78. Search card and query-bar unification implemented:
 - `/buscar` now renders a dedicated top search bar (`SearchQueryBar`) separated from filters for all users.
 - desktop and mobile filter components keep auto-apply, but no longer duplicate search input.
+79. Professional review pipeline persistence added:
+- migration `017-wave2-professional-signup-review-pipeline.sql` created with `professional_applications` table + RLS.
+- auth signup trigger now upserts professional application payload and sends custom specialty suggestions into admin moderation queue.
+80. Search price slider stability fix delivered:
+- `components/search/PriceRangeSlider.tsx` migrated to custom dual-thumb pointer slider (no overlapping native range inputs).
+- touch drag now works for both `preço mínimo` and `preço máximo`, including moving away from and back to `0`.
+- keeps step `1`, constraint `mínimo <= máximo`, keyboard controls, and auto-apply integration.
+81. Search filters/cards consistency fix delivered:
+- availability filtering in `/buscar` now queries with `readClient` (aligned with professional-card source) instead of requiring session-only client access.
+- added fallback to avoid wiping card list when availability query errors.
 - cards unified across logged and logged-out views with same structure and content: avatar, name, specialty, tags (expandable), rounded price, short bio, badges, country, and spoken languages.
 - session duration removed from search cards as per UX direction.
 - card secondary action changed to `Mandar mensagem`; destination routed to protected `/mensagens`.
@@ -288,3 +309,6 @@ Wave-driven delivery is now mandatory:
 - professional login -> `/dashboard`
 - user/admin login -> `/buscar`
 - applies to password and Google OAuth callback.
+86. Auth-layout logo behavior fixed:
+- logo now links to `/` in auth screens on desktop and mobile.
+- applies to login/signup flows using `app/(auth)/layout.tsx`.

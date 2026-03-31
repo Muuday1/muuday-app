@@ -177,6 +177,28 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - role-based destination remains enforced for all login methods:
   - profissional -> `/dashboard`
   - usuario/admin -> `/buscar`
+57. Auth pages logo navigation fix delivered:
+- logo in auth layout (`/login`, `/cadastro`, and related auth pages) is now clickable and redirects to home (`/`) on desktop and mobile.
+58. Signup user locale auto-fill refinement delivered:
+- in `/cadastro`, selecting country now always auto-updates timezone and preferred currency defaults.
+- timezone and currency fields remain manually editable after auto-fill (user override preserved by UI behavior).
+59. Professional signup review pipeline delivered:
+- country selection now auto-updates timezone and preferred currency for professional signups (manual override preserved).
+- added required title dropdown above full name for professional account creation.
+- professional step now uses admin-qualified specialty autocomplete with custom-specialty suggestion flow.
+- renamed tags input to `Foco de atuação` and expanded language capture to primary + secondary languages.
+- added qualification/certificate attachment field and note capture in signup metadata.
+- professional signup now redirects to `/cadastro/profissional-em-analise` instead of dashboard until admin approval.
+- migration `017-wave2-professional-signup-review-pipeline.sql` added with `professional_applications` table and trigger updates for admin validation queue.
+60. Search price-filter stability hotfix:
+- replaced dual-overlapped native range inputs with custom dual-thumb slider in `PriceRangeSlider`.
+- fixed iPad/Safari drag behavior where `preço mínimo` and `preço máximo` were stuck at `0`.
+- preserved step `1`, invariant `mínimo <= máximo`, live auto-apply, and keyboard accessibility.
+- corrected visible Portuguese accents in the slider label (`Preço`) and kept currency symbols consistent in search.
+61. Search filter-to-cards linkage hotfix:
+- `/buscar` now applies the availability filter using `readClient` (same data source used for cards) instead of always using `supabase` session client.
+- added safe fallback: when availability query fails, results are not force-cleared.
+- prevents false zero-results states after selecting filters (especially `Horário`) due to RLS/client mismatch.
 
 ## Immediate next actions
 
@@ -191,6 +213,8 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 6. Prepare Stripe corridor validation packet and run external confirmation process.
 7. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.
 8. Apply migration `016-professional-public-profile-code.sql` in production before expecting `nome-1234` URLs for all profiles.
+9. Apply migration `017-wave2-professional-signup-review-pipeline.sql` in production to activate professional application review persistence.
+10. Validate `/buscar` price slider on iPad and mobile touch devices after deployment (minimum and maximum drag both directions).
 
 ## Continuity rule
 

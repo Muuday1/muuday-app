@@ -114,6 +114,27 @@ Dependencies:
 - start from public header login popup and from `/login`.
 - complete Google auth and confirm no loop back to login.
 - confirm post-login destination by role (`profissional -> /dashboard`, `usuario/admin -> /buscar`).
+19. Validate auth-page branding navigation:
+- on `/login` and `/cadastro`, clicking the Muuday logo must always redirect to home (`/`).
+20. Validate signup locale defaults in preview/production:
+- in `/cadastro` (role `usuario`), selecting country must auto-update timezone + preferred currency.
+- after auto-fill, user must still be able to manually change timezone and currency before submit.
+21. Apply and validate migration `017-wave2-professional-signup-review-pipeline.sql` in production:
+- confirm `professional_applications` table and RLS policies exist.
+- confirm signup trigger writes one pending application for each new professional.
+- confirm custom specialty suggestions create moderation entries for admin review.
+22. Validate new professional signup review UX:
+- title dropdown required above full name.
+- approved-specialty autocomplete works and custom-specialty flow requires validation message.
+- `Foco de atuação`, idiomas (principal/secundários), anos de experiência, certificados field set all persist into signup metadata.
+- successful professional signup lands on `/cadastro/profissional-em-analise` and no longer enters dashboard directly.
+23. Validate `/buscar` preço em touch devices after hotfix:
+- drag `preço mínimo` and `preço máximo` in both directions (including from `0` to >`0` and back).
+- confirm query auto-apply still updates URL/results with step `1`.
+- confirm keyboard interaction (arrow/page/home/end) still updates values for accessibility baseline.
+24. Validate filter-to-card linkage in `/buscar` after availability-client fix:
+- apply `Categoria`, `Especialidade`, `Idioma`, `Horário` one by one and confirm cards no longer disappear unexpectedly.
+- confirm only genuinely empty filters return zero results.
 
 Dependencies:
 - Wave 1 critical path complete.

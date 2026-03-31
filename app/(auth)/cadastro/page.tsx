@@ -10,11 +10,33 @@ import { sendWelcomeEmailAction } from '@/lib/actions/email'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 import { COUNTRIES } from '@/lib/utils'
 import { ALL_TIMEZONES, STRIPE_CURRENCIES } from '@/lib/constants'
-import { SEARCH_CATEGORIES } from '@/lib/search-config'
+import { LANGUAGE_OPTIONS, SEARCH_CATEGORIES } from '@/lib/search-config'
 
 type Role = 'usuario' | 'profissional'
 
 type FieldErrors = Record<string, string>
+
+const PROFESSIONAL_TITLES = ['Dr.', 'Dra.', 'Prof.', 'Profa.', 'Sr.', 'Sra.', 'Psicólogo(a)', 'Terapeuta', 'Consultor(a)', 'Outro']
+
+function normalizeOption(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function parseCommaValues(value: string) {
+  return value
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+function includesNormalizedOption(options: string[], value: string) {
+  const normalizedValue = normalizeOption(value)
+  return options.some(option => normalizeOption(option) === normalizedValue)
+}
 
 function sanitizeRedirectPath(value: string | null) {
   if (!value) return ''
@@ -36,6 +58,7 @@ export default function CadastroPage() {
 
   const [step, setStep] = useState(1)
   const [role, setRole] = useState<Role>('usuario')
+  const [professionalTitle, setProfessionalTitle] = useState('')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,12 +75,37 @@ export default function CadastroPage() {
   const [professionalDisplayName, setProfessionalDisplayName] = useState('')
   const [professionalHeadline, setProfessionalHeadline] = useState('')
   const [professionalCategory, setProfessionalCategory] = useState('')
-  const [professionalSpecialties, setProfessionalSpecialties] = useState('')
-  const [professionalLanguages, setProfessionalLanguages] = useState('')
+  const [professionalSpecialtyName, setProfessionalSpecialtyName] = useState('')
+  const [professionalSpecialtyIsCustom, setProfessionalSpecialtyIsCustom] = useState(false)
+  const [professionalSpecialtyValidationMessage, setProfessionalSpecialtyValidationMessage] = useState('')
+  const [professionalFocusAreas, setProfessionalFocusAreas] = useState('')
+  const [professionalPrimaryLanguage, setProfessionalPrimaryLanguage] = useState(LANGUAGE_OPTIONS[0] || 'Portugues')
+  const [professionalSecondaryLanguages, setProfessionalSecondaryLanguages] = useState<string[]>([])
+  const [approvedSpecialties, setApprovedSpecialties] = useState<string[]>([])
+  const [professionalQualificationFiles, setProfessionalQualificationFiles] = useState<File[]>([])
+  const [professionalQualificationNote, setProfessionalQualificationNote] = useState('')
   const [professionalJurisdiction, setProfessionalJurisdiction] = useState('')
   const [professionalYearsExperience, setProfessionalYearsExperience] = useState('')
   const [professionalSessionPrice, setProfessionalSessionPrice] = useState('')
   const [professionalSessionDuration, setProfessionalSessionDuration] = useState('60')
+
+  const fallbackSpecialties = useMemo(() => {
+    const options = SEARCH_CATEGORIES.flatMap(category => category.specialties)
+    return Array.from(new Set(options)).sort((a, b) => a.localeCompare(b))
+  }, [])
+
+  const approvedSpecialtyOptions = useMemo(
+    () => (approvedSpecialties.length > 0 ? approvedSpecialties : fallbackSpecialties),
+    [approvedSpecialties, fallbackSpecialties],
+  )
+
+  const isSpecialtyApproved = useMemo(
+    () => includesNormalizedOption(approvedSpecialtyOptions, professionalSpecialtyName),
+    [approvedSpecialtyOptions, professionalSpecialtyName],
+  )
+
+  const shouldShowCustomSpecialtyPrompt =
+    professionalSpecialtyName.trim().length > 1 && !isSpecialtyApproved && !professionalSpecialtyIsCustom
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -69,14 +117,57 @@ export default function CadastroPage() {
     if (!country) return
     const selectedCountry = COUNTRIES.find(item => item.code === country)
     if (!selectedCountry) return
-    if (!timezone || timezone === 'UTC') setTimezone(selectedCountry.timezone)
+    setTimezone(selectedCountry.timezone)
     setCurrency(selectedCountry.currency)
-  }, [country, timezone])
+  }, [country])
 
   useEffect(() => {
     if (requestedRole === 'profissional') setRole('profissional')
     if (requestedRole === 'usuario') setRole('usuario')
   }, [requestedRole])
+
+  useEffect(() => {
+    if (role !== 'profissional') return
+    let cancelled = false
+
+    async function loadApprovedSpecialties() {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('specialties')
+        .select('name_pt, is_active')
+        .eq('is_active', true)
+        .order('name_pt', { ascending: true })
+
+      if (cancelled || error || !data || data.length === 0) {
+        setApprovedSpecialties(fallbackSpecialties)
+        return
+      }
+
+      const options = data
+        .map(item => (typeof item.name_pt === 'string' ? item.name_pt.trim() : ''))
+        .filter(Boolean)
+
+      setApprovedSpecialties(Array.from(new Set(options)).sort((a, b) => a.localeCompare(b)))
+    }
+
+    loadApprovedSpecialties()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fallbackSpecialties, role])
+
+  useEffect(() => {
+    if (!professionalPrimaryLanguage) return
+    setProfessionalSecondaryLanguages(prev => prev.filter(language => language !== professionalPrimaryLanguage))
+  }, [professionalPrimaryLanguage])
+
+  useEffect(() => {
+    if (isSpecialtyApproved && professionalSpecialtyIsCustom) {
+      setProfessionalSpecialtyIsCustom(false)
+      setProfessionalSpecialtyValidationMessage('')
+    }
+  }, [isSpecialtyApproved, professionalSpecialtyIsCustom])
 
   function clearFieldError(name: string) {
     setFieldErrors(prev => {
@@ -87,13 +178,22 @@ export default function CadastroPage() {
     })
   }
 
+  function toggleSecondaryLanguage(language: string) {
+    setProfessionalSecondaryLanguages(prev => {
+      if (prev.includes(language)) return prev.filter(item => item !== language)
+      return [...prev, language]
+    })
+    clearFieldError('professionalSecondaryLanguages')
+  }
+
   function validateStep2(): FieldErrors {
     const nextErrors: FieldErrors = {}
 
+    if (role === 'profissional' && !professionalTitle) nextErrors.professionalTitle = 'Selecione seu título.'
     if (!fullName.trim()) nextErrors.fullName = 'Informe seu nome completo.'
     if (!country) nextErrors.country = 'Selecione o país.'
     if (!timezone) nextErrors.timezone = 'Selecione o fuso horário.'
-    if (role === 'usuario' && !currency) nextErrors.currency = 'Selecione a moeda preferida.'
+    if (!currency) nextErrors.currency = 'Selecione a moeda preferida.'
     if (!email.trim()) nextErrors.email = 'Informe seu e-mail.'
     if (!password) nextErrors.password = 'Informe uma senha.'
     if (password.length > 0 && password.length < 8) {
@@ -113,8 +213,26 @@ export default function CadastroPage() {
     if (!professionalDisplayName.trim()) nextErrors.professionalDisplayName = 'Informe o nome público.'
     if (!professionalHeadline.trim()) nextErrors.professionalHeadline = 'Informe o título profissional.'
     if (!professionalCategory) nextErrors.professionalCategory = 'Selecione uma categoria.'
-    if (!professionalSpecialties.trim()) nextErrors.professionalSpecialties = 'Informe ao menos uma especialidade.'
-    if (!professionalLanguages.trim()) nextErrors.professionalLanguages = 'Informe os idiomas de atendimento.'
+
+    if (!professionalSpecialtyName.trim()) {
+      nextErrors.professionalSpecialtyName = 'Selecione uma especialidade da lista ou sugira uma nova.'
+    } else if (!isSpecialtyApproved && !professionalSpecialtyIsCustom) {
+      nextErrors.professionalSpecialtyName = 'Especialidade não encontrada. Clique em “Sugerir nova especialidade”.'
+    }
+
+    if (professionalSpecialtyIsCustom && !professionalSpecialtyValidationMessage.trim()) {
+      nextErrors.professionalSpecialtyValidationMessage = 'Explique por que essa especialidade precisa ser validada.'
+    }
+
+    const focusAreas = parseCommaValues(professionalFocusAreas)
+    if (focusAreas.length === 0) {
+      nextErrors.professionalFocusAreas = 'Informe ao menos um foco de atuação.'
+    }
+
+    if (!professionalPrimaryLanguage) {
+      nextErrors.professionalPrimaryLanguage = 'Selecione o idioma principal de atendimento.'
+    }
+
     if (!professionalJurisdiction.trim()) nextErrors.professionalJurisdiction = 'Informe a jurisdição de atuação.'
 
     const years = Number(professionalYearsExperience)
@@ -158,6 +276,10 @@ export default function CadastroPage() {
       return
     }
 
+    const focusAreas = parseCommaValues(professionalFocusAreas)
+    const qualificationFileNames = professionalQualificationFiles.map(file => file.name)
+    const allLanguages = [professionalPrimaryLanguage, ...professionalSecondaryLanguages].filter(Boolean)
+
     const supabase = createClient()
 
     const signupMetadata: Record<string, unknown> = {
@@ -169,15 +291,24 @@ export default function CadastroPage() {
     }
 
     if (role === 'profissional') {
+      signupMetadata.professional_title = professionalTitle
       signupMetadata.professional_display_name = professionalDisplayName
       signupMetadata.professional_headline = professionalHeadline
       signupMetadata.professional_category = professionalCategory
-      signupMetadata.professional_specialties = professionalSpecialties
-      signupMetadata.professional_languages = professionalLanguages
+      signupMetadata.professional_specialty_name = professionalSpecialtyName.trim()
+      signupMetadata.professional_specialty_is_custom = professionalSpecialtyIsCustom
+      signupMetadata.professional_specialty_validation_message = professionalSpecialtyValidationMessage.trim()
+      signupMetadata.professional_focus_areas = focusAreas
+      signupMetadata.professional_primary_language = professionalPrimaryLanguage
+      signupMetadata.professional_secondary_languages = professionalSecondaryLanguages
+      signupMetadata.professional_languages = allLanguages
       signupMetadata.professional_jurisdiction = professionalJurisdiction
       signupMetadata.professional_years_experience = Number(professionalYearsExperience || 0)
       signupMetadata.professional_session_price = Number(professionalSessionPrice || 0)
       signupMetadata.professional_session_duration_minutes = Number(professionalSessionDuration || 60)
+      signupMetadata.professional_qualification_files = qualificationFileNames
+      signupMetadata.professional_qualification_note = professionalQualificationNote.trim()
+      signupMetadata.professional_specialties = professionalSpecialtyName.trim()
     }
 
     const { error: signUpError } = await supabase.auth.signUp({
@@ -208,7 +339,7 @@ export default function CadastroPage() {
 
     captureEvent('auth_signup_succeeded', { role, country, timezone, currency })
 
-    const destination = role === 'profissional' ? '/dashboard' : redirectPath || '/buscar'
+    const destination = role === 'profissional' ? '/cadastro/profissional-em-analise' : redirectPath || '/buscar'
     router.push(destination)
     router.refresh()
   }
@@ -337,6 +468,33 @@ export default function CadastroPage() {
 
       {step === 2 && (
         <form onSubmit={role === 'profissional' ? handleContinueProfessionalStep : handleSignUp} className="space-y-4" noValidate>
+          {role === 'profissional' && (
+            <div>
+              <label htmlFor="signup-title" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Título
+              </label>
+              <select
+                id="signup-title"
+                value={professionalTitle}
+                onChange={event => {
+                  setProfessionalTitle(event.target.value)
+                  clearFieldError('professionalTitle')
+                }}
+                required
+                className={inputClass(Boolean(fieldErrors.professionalTitle))}
+                aria-invalid={Boolean(fieldErrors.professionalTitle)}
+              >
+                <option value="">Selecione o título</option>
+                {PROFESSIONAL_TITLES.map(item => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.professionalTitle && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalTitle}</p>}
+            </div>
+          )}
+
           <div>
             <label htmlFor="signup-fullname" className="mb-1.5 block text-sm font-medium text-neutral-700">Nome completo</label>
             <input
@@ -402,32 +560,30 @@ export default function CadastroPage() {
             {fieldErrors.timezone && <p className="mt-1 text-xs text-red-600">{fieldErrors.timezone}</p>}
           </div>
 
-          {role === 'usuario' && (
-            <div>
-              <label htmlFor="signup-currency" className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Moeda preferida
-                <span className="ml-1 text-xs font-normal text-neutral-400">(para exibir preços)</span>
-              </label>
-              <select
-                id="signup-currency"
-                value={currency}
-                onChange={event => {
-                  setCurrency(event.target.value)
-                  clearFieldError('currency')
-                }}
-                required
-                className={inputClass(Boolean(fieldErrors.currency))}
-                aria-invalid={Boolean(fieldErrors.currency)}
-              >
-                {STRIPE_CURRENCIES.map(item => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.currency && <p className="mt-1 text-xs text-red-600">{fieldErrors.currency}</p>}
-            </div>
-          )}
+          <div>
+            <label htmlFor="signup-currency" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Moeda preferida
+              <span className="ml-1 text-xs font-normal text-neutral-400">(você pode alterar depois)</span>
+            </label>
+            <select
+              id="signup-currency"
+              value={currency}
+              onChange={event => {
+                setCurrency(event.target.value)
+                clearFieldError('currency')
+              }}
+              required
+              className={inputClass(Boolean(fieldErrors.currency))}
+              aria-invalid={Boolean(fieldErrors.currency)}
+            >
+              {STRIPE_CURRENCIES.map(item => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.currency && <p className="mt-1 text-xs text-red-600">{fieldErrors.currency}</p>}
+          </div>
 
           <div>
             <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-neutral-700">E-mail</label>
@@ -594,43 +750,140 @@ export default function CadastroPage() {
           </div>
 
           <div>
-            <label htmlFor="professional-specialties" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Especialidades (separadas por vírgula)
+            <label htmlFor="professional-specialty-name" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Especialidade
             </label>
             <input
-              id="professional-specialties"
+              id="professional-specialty-name"
+              list="professional-specialties-list"
               type="text"
-              value={professionalSpecialties}
+              value={professionalSpecialtyName}
               onChange={event => {
-                setProfessionalSpecialties(event.target.value)
-                clearFieldError('professionalSpecialties')
+                setProfessionalSpecialtyName(event.target.value)
+                clearFieldError('professionalSpecialtyName')
               }}
               required
-              placeholder="Ex.: ansiedade, depressão, terapia online"
-              className={inputClass(Boolean(fieldErrors.professionalSpecialties))}
-              aria-invalid={Boolean(fieldErrors.professionalSpecialties)}
+              placeholder="Digite para buscar especialidade"
+              className={inputClass(Boolean(fieldErrors.professionalSpecialtyName))}
+              aria-invalid={Boolean(fieldErrors.professionalSpecialtyName)}
             />
-            {fieldErrors.professionalSpecialties && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSpecialties}</p>}
+            <datalist id="professional-specialties-list">
+              {approvedSpecialtyOptions.map(option => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+            {fieldErrors.professionalSpecialtyName && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSpecialtyName}</p>
+            )}
+            {shouldShowCustomSpecialtyPrompt && (
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Não encontrou na lista aprovada?
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfessionalSpecialtyIsCustom(true)
+                    clearFieldError('professionalSpecialtyValidationMessage')
+                  }}
+                  className="ml-1 font-semibold underline"
+                >
+                  Sugerir nova especialidade
+                </button>
+              </div>
+            )}
           </div>
 
+          {professionalSpecialtyIsCustom && (
+            <div>
+              <label
+                htmlFor="professional-specialty-validation-message"
+                className="mb-1.5 block text-sm font-medium text-neutral-700"
+              >
+                Mensagem para validação da especialidade
+              </label>
+              <textarea
+                id="professional-specialty-validation-message"
+                value={professionalSpecialtyValidationMessage}
+                onChange={event => {
+                  setProfessionalSpecialtyValidationMessage(event.target.value)
+                  clearFieldError('professionalSpecialtyValidationMessage')
+                }}
+                rows={3}
+                placeholder="Explique por que esta especialidade precisa ser validada pelo admin."
+                className={inputClass(Boolean(fieldErrors.professionalSpecialtyValidationMessage))}
+                aria-invalid={Boolean(fieldErrors.professionalSpecialtyValidationMessage)}
+              />
+              {fieldErrors.professionalSpecialtyValidationMessage && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSpecialtyValidationMessage}</p>
+              )}
+            </div>
+          )}
+
           <div>
-            <label htmlFor="professional-languages" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Idiomas de atendimento (separados por vírgula)
+            <label htmlFor="professional-focus-areas" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Foco de atuação
             </label>
             <input
-              id="professional-languages"
+              id="professional-focus-areas"
               type="text"
-              value={professionalLanguages}
+              value={professionalFocusAreas}
               onChange={event => {
-                setProfessionalLanguages(event.target.value)
-                clearFieldError('professionalLanguages')
+                setProfessionalFocusAreas(event.target.value)
+                clearFieldError('professionalFocusAreas')
               }}
               required
-              placeholder="Ex.: Português, Inglês"
-              className={inputClass(Boolean(fieldErrors.professionalLanguages))}
-              aria-invalid={Boolean(fieldErrors.professionalLanguages)}
+              placeholder="Ex.: ansiedade, expatriados, terapia online"
+              className={inputClass(Boolean(fieldErrors.professionalFocusAreas))}
+              aria-invalid={Boolean(fieldErrors.professionalFocusAreas)}
             />
-            {fieldErrors.professionalLanguages && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalLanguages}</p>}
+            <p className="mt-1 text-xs text-neutral-500">Separe os focos por vírgula.</p>
+            {fieldErrors.professionalFocusAreas && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalFocusAreas}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="professional-primary-language" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Idioma principal de atendimento
+              </label>
+              <select
+                id="professional-primary-language"
+                value={professionalPrimaryLanguage}
+                onChange={event => {
+                  setProfessionalPrimaryLanguage(event.target.value)
+                  clearFieldError('professionalPrimaryLanguage')
+                }}
+                required
+                className={inputClass(Boolean(fieldErrors.professionalPrimaryLanguage))}
+                aria-invalid={Boolean(fieldErrors.professionalPrimaryLanguage)}
+              >
+                {LANGUAGE_OPTIONS.map(option => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.professionalPrimaryLanguage && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalPrimaryLanguage}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Idiomas secundários</label>
+              <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                <div className="grid grid-cols-2 gap-2 text-sm text-neutral-700">
+                  {LANGUAGE_OPTIONS.filter(option => option !== professionalPrimaryLanguage).map(option => (
+                    <label key={option} className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={professionalSecondaryLanguages.includes(option)}
+                        onChange={() => toggleSecondaryLanguage(option)}
+                        className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -711,6 +964,42 @@ export default function CadastroPage() {
             </div>
           </div>
 
+          <div>
+            <label htmlFor="professional-qualification-files" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Qualificações e certificados
+            </label>
+            <input
+              id="professional-qualification-files"
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              onChange={event => {
+                setProfessionalQualificationFiles(Array.from(event.target.files || []))
+              }}
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm text-neutral-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-brand-700"
+            />
+            {professionalQualificationFiles.length > 0 && (
+              <p className="mt-1 text-xs text-neutral-500">
+                {professionalQualificationFiles.length} arquivo(s):{' '}
+                {professionalQualificationFiles.map(file => file.name).join(', ')}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="professional-qualification-note" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Observações sobre qualificações (opcional)
+            </label>
+            <textarea
+              id="professional-qualification-note"
+              value={professionalQualificationNote}
+              onChange={event => setProfessionalQualificationNote(event.target.value)}
+              rows={3}
+              placeholder="Ex.: CRP, certificações internacionais, formação complementar."
+              className={inputClass(false)}
+            />
+          </div>
+
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
               <p className="font-semibold">{error}</p>
@@ -746,7 +1035,7 @@ export default function CadastroPage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Criando...
                 </>
               ) : (
-                'Criar conta'
+                'Enviar para análise'
               )}
             </button>
           </div>
