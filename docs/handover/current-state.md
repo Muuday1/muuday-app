@@ -103,7 +103,7 @@ Last updated: 2026-03-31 (session 29)
 50. Added e2e coverage for professional workspace guard/navigation/surfaces:
 - `tests/e2e/professional-workspace.spec.ts`
 - `.env.local.example` now includes `E2E_PROFESSIONAL_EMAIL` and `E2E_PROFESSIONAL_PASSWORD`
-- latest run: `1 passed, 3 skipped` (skips due missing professional creds)
+- latest run: `7 passed, 0 skipped` (fixtures configured locally)
 51. Added machine-checkable onboarding gate engine:
 - `lib/professional/onboarding-gates.ts` defines C1-C10 stage checks and gate outcomes.
 - `lib/professional/onboarding-state.ts` centralizes snapshot load + evaluation.
@@ -164,7 +164,7 @@ Last updated: 2026-03-31 (session 29)
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
 4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
-5. Booking E2E coverage still has environment-dependent skips when the configured professional is blocked by first-booking gate or when `E2E_MANUAL_PROFESSIONAL_ID` is not configured.
+5. E2E fixture stability must be preserved (IDs and professional settings) to keep zero-skip behavior in CI/local runs.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
@@ -219,3 +219,12 @@ Wave-driven delivery is now mandatory:
 - `npm run build` ✅
 - `npm run test:state-machines` ✅
 - `npm run test:e2e` ✅ (`4 passed`, `3 skipped`, `0 failed`).
+73. Recovery fixture hardening completed:
+- provisioned dedicated `auto_accept` and `manual` professionals with onboarding/booking minimums to exercise booking forms.
+- updated local E2E env fixture values (`E2E_PROFESSIONAL_*` + `E2E_MANUAL_PROFESSIONAL_ID`).
+74. Full quality gate now passes with full E2E coverage:
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run build` ✅
+- `npm run test:state-machines` ✅
+- `npm run test:e2e` ✅ (`7 passed`, `0 skipped`, `0 failed`).

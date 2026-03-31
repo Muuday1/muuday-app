@@ -41,7 +41,7 @@ Dependencies:
 - verify signup UX changes (icons, full countries, confirm password, expanded professional fields) in desktop/mobile
 - verify logout now returns to landing page
 - verify seeded fantasy professionals are visible in `/buscar` and filters
-- automated gate status: `lint/typecheck/build/test:state-machines/test:e2e` green on branch `codex/recovery-sprint-ux-stability` (booking tests still skip when env IDs are not fully provisioned).
+- automated gate status: `lint/typecheck/build/test:state-machines/test:e2e` fully green on branch `codex/recovery-sprint-ux-stability` (`7 passed`, `0 skipped`).
 
 1. ~~Enforce dual gate model for professionals (go-live vs first-booking eligibility).~~ Done (migration 013 + admin toggle + booking guard).
 2. ~~Finish request-booking lifecycle, proposal expiration, and conversion flow (foundation).~~ Done (migration 014 + `/solicitar` + `/agenda` queue/actions + conversion).
@@ -56,7 +56,7 @@ Dependencies:
 7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ In progress — first workflow shipped and endpoint healthy; cloud sync attachment confirmation still pending.
 8. Confirm Inngest cloud app has attached sync to latest endpoint path (`/api/inngest`) and clear stale unattached sync history.
 9. ~~Implement source-of-truth unauthenticated booking modal behavior (signup primary + login secondary) on public search/profile booking intent.~~ Done on `/profissional/[id]` via `PublicBookingAuthModal`.
-10. Run professional workspace acceptance e2e with dedicated professional credentials to unskip all B3 checks (`E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`).
+10. ~~Run professional workspace acceptance e2e with dedicated professional credentials to unskip all B3 checks (`E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`).~~ Done (`7/7` e2e green with manual+auto booking coverage).
 11. Add/validate onboarding acceptance tests for `/onboarding-profissional`:
 - stage/gate visibility
 - blocked vs unblocked submit-for-review behavior
@@ -112,6 +112,8 @@ Dependencies:
 
 ## Recovery Sprint checklist (before continuing Wave 2)
 
+Status: `Done` for automated gate + fixture setup. Keep this list as regression checklist for future patches.
+
 1. Validate public header mobile drawer behavior on real devices (open/close, language/currency persistence, login CTA).
 2. Run manual auth journeys:
 - login with valid user/professional credentials
@@ -129,6 +131,6 @@ Dependencies:
 5. Validate professional profile mobile sticky CTA for logged-out and logged-in states.
 6. Validate favorites removal feedback and keyboard/focus accessibility in critical screens.
 7. After checklist is green, resume Wave 2 backlog items (recurring deadlines/slot release + onboarding C1-C10 e2e parity).
-8. Configure deterministic booking E2E fixtures in `.env.local`:
-- `E2E_PROFESSIONAL_ID` pointing to an approved professional with first-booking gate open.
-- `E2E_MANUAL_PROFESSIONAL_ID` pointing to an approved professional in `manual_confirmation` mode.
+8. ~~Configure deterministic booking E2E fixtures in `.env.local`:~~ Done.
+- `E2E_PROFESSIONAL_ID` points to an approved professional with first-booking gate open.
+- `E2E_MANUAL_PROFESSIONAL_ID` points to an approved professional in `manual` confirmation mode.

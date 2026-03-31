@@ -118,6 +118,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - fixed E2E selector drift in professional workspace tests.
 - hardened booking E2E helper to treat `primeiro-agendamento-bloqueado` redirect as environment skip.
 - green checks: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` (4 passed, 3 skipped).
+46. Recovery gate closed with deterministic E2E fixtures:
+- configured dedicated auto/manual professional fixtures for booking critical tests.
+- local `.env.local` updated with `E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`.
+- full technical gate now green without skips: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` (`7 passed`).
 
 ## Immediate next actions
 
@@ -130,10 +134,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
 5. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
 6. Prepare Stripe corridor validation packet and run external confirmation process.
-7. Set `.env.local` for full booking E2E coverage:
-- keep `E2E_PROFESSIONAL_EMAIL` / `E2E_PROFESSIONAL_PASSWORD`
-- add a professional ID with first-booking gate open for booking form assertions
-- add `E2E_MANUAL_PROFESSIONAL_ID` for manual-confirmation assertions.
+7. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.
 
 ## Continuity rule
 
