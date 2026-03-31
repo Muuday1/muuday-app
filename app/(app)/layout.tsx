@@ -6,14 +6,16 @@ import { SidebarNav } from '@/components/layout/SidebarNav'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  const profile = user
-    ? (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
-    : null
+  const supabase = supabaseUrl && supabaseAnonKey ? createClient() : null
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null
+
+  const profile =
+    user && supabase
+      ? (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
+      : null
 
   const isProfissional = profile?.role === 'profissional'
   const isAdmin = profile?.role === 'admin'
