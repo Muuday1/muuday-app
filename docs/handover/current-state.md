@@ -247,3 +247,11 @@ Wave-driven delivery is now mandatory:
 - login/oauth redirect sanitization now ignores root redirect (`/`) to avoid post-login bounce to home.
 - public header now exposes both `Login` and `Criar conta`, with login opening a compact auth popup (Entrar/Criar conta).
 - technical gate pass: `lint`, `typecheck`, `build`, `test:state-machines`.
+78. Search card and query-bar unification implemented:
+- `/buscar` now renders a dedicated top search bar (`SearchQueryBar`) separated from filters for all users.
+- desktop and mobile filter components keep auto-apply, but no longer duplicate search input.
+- cards unified across logged and logged-out views with same structure and content: avatar, name, specialty, tags (expandable), rounded price, short bio, badges, country, and spoken languages.
+- session duration removed from search cards as per UX direction.
+- card secondary action changed to `Mandar mensagem`; destination routed to protected `/mensagens`.
+- middleware updated to protect `/mensagens` so unauthenticated users are asked to login only when taking protected action.
+- technical gate pass: `lint`, `typecheck`, `build`, `test:state-machines`.

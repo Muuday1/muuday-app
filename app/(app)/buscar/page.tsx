@@ -5,11 +5,14 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import Image from 'next/image'
 import { cookies, headers } from 'next/headers'
-import { Star, Clock, MapPin } from 'lucide-react'
+import { Star, MapPin } from 'lucide-react'
 import { MobileFiltersDrawer } from '@/components/search/MobileFiltersDrawer'
 import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
 import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoApply'
+import { SearchQueryBar } from '@/components/search/SearchQueryBar'
+import { ExpandableTags } from '@/components/search/ExpandableTags'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -138,6 +141,18 @@ function formatSearchPrice(amountBRL: number, currency = 'BRL', locale = 'pt-BR'
   } catch {
     return `${currency} ${converted}`
   }
+}
+
+function getPrimarySpecialty(professional: any) {
+  const subcategory = (professional.subcategories || []).find((entry: string) =>
+    String(entry || '').trim(),
+  )
+  if (subcategory) return String(subcategory)
+
+  const tag = (professional.tags || []).find((entry: string) => String(entry || '').trim())
+  if (tag) return String(tag)
+
+  return getSearchCategoryLabel(professional.category)
 }
 
 const TIER_BOOST: Record<string, number> = { premium: 0.15, professional: 0.08, basic: 0 }
@@ -448,6 +463,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         </h1>
       </div>
 
+      <SearchQueryBar key={`query-${queryState.q}`} initialState={queryState} />
+
       <div className="z-20 mb-4 rounded-2xl border border-neutral-200 bg-white shadow-sm lg:sticky lg:top-24">
         <div className="px-3 py-2.5 md:hidden">
           <MobileFiltersDrawer
@@ -522,9 +539,19 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                     className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 rounded-2xl"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
-                        {professional.profiles?.full_name?.charAt(0) || 'P'}
-                      </div>
+                      {professional.profiles?.avatar_url ? (
+                        <Image
+                          src={professional.profiles.avatar_url}
+                          alt={`Foto de ${professional.profiles?.full_name || 'Profissional'}`}
+                          width={56}
+                          height={56}
+                          className="h-14 w-14 rounded-2xl border border-neutral-200 object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
+                          {professional.profiles?.full_name?.charAt(0) || 'P'}
+                        </div>
+                      )}
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
@@ -533,8 +560,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                               {professional.profiles?.full_name || 'Profissional'}
                             </h3>
                             <p className="text-xs text-neutral-500 mt-1">
-                              {getSearchCategoryLabel(professional.category)}
+                              {getPrimarySpecialty(professional)}
                             </p>
+                            <ExpandableTags tags={professional.tags || []} />
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-neutral-900">
@@ -549,13 +577,20 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                         </p>
 
                         <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
+                          {professional.tier && professional.tier !== 'basic' ? (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium ${
+                                professional.tier === 'premium'
+                                  ? 'bg-amber-50 text-amber-700'
+                                  : 'bg-blue-50 text-blue-700'
+                              }`}
+                            >
+                              {professional.tier === 'premium' ? 'Premium' : 'Profissional'}
+                            </span>
+                          ) : null}
                           <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">
                             <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                             {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
-                            <Clock className="w-3 h-3" />
-                            {professional.session_duration_minutes || 60} min
                           </span>
                           <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
                             <MapPin className="w-3 h-3" />
@@ -565,7 +600,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
                         {(professional.languages || []).length > 0 ? (
                           <div className="flex flex-wrap gap-1.5 mt-3">
-                            {(professional.languages || []).slice(0, 3).map((language: string) => (
+                            {(professional.languages || []).map((language: string) => (
                               <span
                                 key={language}
                                 className="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-full"
@@ -582,8 +617,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                   <SearchBookingCtas
                     isLoggedIn={isLoggedIn}
                     bookHref={`/agendar/${professional.id}`}
-                    requestHref={`/solicitar/${professional.id}`}
-                    requestEnabled={['professional', 'premium'].includes(String(professional.tier || 'basic'))}
+                    messageHref={`/mensagens?profissional=${professional.id}`}
                   />
                 </div>
               ))}

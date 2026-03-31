@@ -441,3 +441,25 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
+
+### Entry 39 (2026-03-31) — Search bar separation + unified cards + message CTA
+- Added separated search query bar on `/buscar` (`components/search/SearchQueryBar.tsx`) for both logged and logged-out views.
+- Removed duplicate embedded query inputs from desktop/mobile filter blocks to keep query UX canonical.
+- Updated `/buscar` card layout to a single unified format across auth states:
+  - avatar photo fallback,
+  - name,
+  - specialty (in place of category),
+  - expandable tags,
+  - rounded integer price,
+  - short bio,
+  - badges,
+  - country,
+  - spoken languages,
+  - no session-duration badge.
+- Replaced `Solicitar horário` action in search cards with `Mandar mensagem`.
+- Added protected `/mensagens` route as current message intent destination and protected it in middleware.
+- Validation run:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅

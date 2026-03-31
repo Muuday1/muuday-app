@@ -1,6 +1,6 @@
 'use client'
 
-import { Languages, Search, SlidersHorizontal, X } from 'lucide-react'
+import { Languages, SlidersHorizontal, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useTransition } from 'react'
@@ -171,21 +171,6 @@ export function MobileFiltersDrawer({
             </div>
 
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Buscar</label>
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                  <input
-                    type="text"
-                    value={state.q}
-                    placeholder="Nome, especialidade, categoria..."
-                    onChange={event => setState(prev => ({ ...prev, q: event.target.value }))}
-                    onBlur={event => applyState({ ...state, q: event.target.value })}
-                    className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm text-neutral-900 placeholder-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
-                  />
-                </div>
-              </div>
-
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
                 <select

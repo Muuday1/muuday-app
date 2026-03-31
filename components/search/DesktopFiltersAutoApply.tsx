@@ -1,6 +1,6 @@
 'use client'
 
-import { Languages, Search } from 'lucide-react'
+import { Languages } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 import { AVAILABILITY_WINDOWS } from '@/lib/search-config'
@@ -109,22 +109,7 @@ export function DesktopFiltersAutoApply({
 
   return (
     <div className="hidden md:block p-3 md:p-4">
-      <div className="grid grid-cols-2 lg:grid-cols-6 xl:grid-cols-12 gap-2.5 items-end">
-        <div className="lg:col-span-3 xl:col-span-3">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Buscar</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              value={state.q}
-              placeholder="Nome ou palavra-chave"
-              onChange={event => setState(prev => ({ ...prev, q: event.target.value }))}
-              onBlur={event => applyState({ ...state, q: event.target.value })}
-              className="w-full rounded-lg border border-neutral-200 bg-white py-2 pl-8 pr-2.5 text-xs text-neutral-900 placeholder-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
-            />
-          </div>
-        </div>
-
+      <div className="grid grid-cols-2 lg:grid-cols-5 xl:grid-cols-10 gap-2.5 items-end">
         <div className="lg:col-span-2 xl:col-span-2">
           <label className="block text-[11px] font-medium text-neutral-500 mb-1">Categoria</label>
           <select
@@ -166,7 +151,7 @@ export function DesktopFiltersAutoApply({
           </select>
         </div>
 
-        <div className="lg:col-span-3 xl:col-span-3 rounded-xl border border-neutral-200 bg-white px-2.5 py-1.5">
+        <div className="lg:col-span-2 xl:col-span-2 rounded-xl border border-neutral-200 bg-white px-2.5 py-1.5">
           <PriceRangeSlider
             minLimit={0}
             maxLimit={priceMax}

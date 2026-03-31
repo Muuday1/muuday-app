@@ -74,6 +74,12 @@ Dependencies:
 - login from public header opens compact popup with `Entrar` + `Criar conta`.
 - `Criar conta` button is visible next to `Login` in desktop public header.
 - successful email/password and Google login must never redirect to `/` (home); expected default remains role-based (`/dashboard` or `/buscar`).
+12.3 Validate unified search card behavior across auth states:
+- logged and logged-out `/buscar` must show exactly the same card structure/content.
+- specialty is shown in subtitle (not category).
+- tags expand/collapse interaction works on desktop (hover title + expand button) and mobile (tap button).
+- session-duration badge remains removed.
+- secondary card action is `Mandar mensagem` and redirects to login when visitor is not authenticated.
 13. Run production sanity pass after role-routing hotfix:
 - professional account login lands at `/dashboard`
 - admin account login lands at `/buscar` (with `/admin` still available)

@@ -20,6 +20,7 @@ export async function updateSession(request: NextRequest) {
       '/onboarding-profissional',
       '/agendar',
       '/solicitar',
+      '/mensagens',
       '/editar-perfil-profissional',
       '/configuracoes-agendamento',
       '/disponibilidade',
@@ -66,7 +67,7 @@ export async function updateSession(request: NextRequest) {
   const isPublicApp = publicAppPaths.some(path => pathname.startsWith(path))
 
   // Auth-required routes
-  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/onboarding-profissional', '/agendar', '/solicitar', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/financeiro']
+  const protectedPaths = ['/dashboard', '/agenda', '/perfil', '/configuracoes', '/favoritos', '/completar-perfil', '/onboarding-profissional', '/agendar', '/solicitar', '/mensagens', '/editar-perfil-profissional', '/configuracoes-agendamento', '/disponibilidade', '/financeiro']
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 
   // Admin-only routes

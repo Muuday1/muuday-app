@@ -141,6 +141,14 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - hardened auth redirect sanitization (`/` is no longer accepted as post-login target), preventing unwanted return to home after login.
 - public header now includes explicit `Criar conta` button and a compact login popup (Entrar/Criar conta options) on login click.
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
+50. Search card unification + message CTA baseline delivered:
+- `/buscar` now uses separate search bar component (`SearchQueryBar`) above filters for both logged and logged-out users.
+- desktop/mobile filters keep auto-apply behavior and no longer embed duplicate search input fields.
+- professional cards are now unified (same layout logged vs logged-out): avatar photo, name, specialty, expandable tags, rounded integer price, short bio, badges, country, spoken languages, and `Agendar` shortcut.
+- removed session-duration badge from search cards.
+- replaced secondary search-card CTA from `Solicitar horário` to `Mandar mensagem`.
+- added protected route `/mensagens` as a functional destination for message intent and preserved login-gate behavior for unauthenticated users.
+- validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
 
 ## Immediate next actions
 
