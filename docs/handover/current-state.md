@@ -228,3 +228,7 @@ Wave-driven delivery is now mandatory:
 - `npm run build` ✅
 - `npm run test:state-machines` ✅
 - `npm run test:e2e` ✅ (`7 passed`, `0 skipped`, `0 failed`).
+75. Production incident fix applied for public SSR:
+- root cause: leftover debug fetch in `PublicPageLayout` targeting `http://127.0.0.1:7729/...` during server render.
+- symptom: `500` on `/` and `/buscar` with Next.js unexpected error screen.
+- fix: removed debug block and rebuilt (`lint`, `typecheck`, `build` green).

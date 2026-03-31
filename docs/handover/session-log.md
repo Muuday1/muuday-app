@@ -379,3 +379,12 @@ Use this for meaningful checkpoints only.
   - `npm run test:state-machines` ✅
   - `npm run test:e2e` ✅ (`7 passed`, `0 skipped`, `0 failed`)
 - Follow-up: proceed with remaining Wave 2 backlog (recurring deadlines/slot release, migration 015 production validation, onboarding C1-C10 acceptance).
+
+### Entry 35 (2026-03-31) — Public SSR 500 hotfix
+- Incident observed in production: `/` and `/buscar` returning Next.js unexpected error (`500`).
+- Root cause found in `components/public/PublicPageLayout.tsx`: residual debug `fetch` to localhost (`127.0.0.1`) executing in SSR path.
+- Removed debug block and validated patch with:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+- Follow-up: monitor Vercel route status (`/`, `/buscar`) after deployment and confirm recovery.

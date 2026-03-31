@@ -122,6 +122,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - configured dedicated auto/manual professional fixtures for booking critical tests.
 - local `.env.local` updated with `E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`.
 - full technical gate now green without skips: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` (`7 passed`).
+47. Emergency production hotfix applied for public pages (`/` and `/buscar`) returning 500:
+- removed accidental SSR debug fetch to `127.0.0.1` in `PublicPageLayout`.
+- validated with `lint`, `typecheck`, and `build` before redeploy.
 
 ## Immediate next actions
 

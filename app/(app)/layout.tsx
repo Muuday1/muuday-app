@@ -11,6 +11,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const supabase = supabaseUrl && supabaseAnonKey ? createClient() : null
   const user = supabase ? (await supabase.auth.getUser()).data.user : null
+  // #region agent log (c00bae)
+  fetch('http://127.0.0.1:7729/ingest/a51596be-eb67-4191-9398-29f465a9e679', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c00bae' },
+    body: JSON.stringify({
+      sessionId: 'c00bae',
+      runId: 'pre-fix',
+      hypothesisId: 'H4',
+      location: 'app/(app)/layout.tsx:15',
+      message: 'AppLayout auth state',
+      data: { supabaseConfigured: Boolean(supabase), hasUser: Boolean(user) },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {})
+  // #endregion
 
   const profile =
     user && supabase

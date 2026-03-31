@@ -2,6 +2,22 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // #region agent log (c00bae)
+  fetch('http://127.0.0.1:7729/ingest/a51596be-eb67-4191-9398-29f465a9e679', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c00bae' },
+    body: JSON.stringify({
+      sessionId: 'c00bae',
+      runId: 'pre-fix',
+      hypothesisId: 'H1',
+      location: 'lib/supabase/middleware.ts:5',
+      message: 'middleware entry',
+      data: { pathname: request.nextUrl.pathname, hasUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL), hasAnon: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {})
+  // #endregion
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -9,6 +25,21 @@ export async function updateSession(request: NextRequest) {
   // Keep public routes working and enforce basic route protection without auth.
   if (!supabaseUrl || !supabaseAnonKey) {
     const pathname = request.nextUrl.pathname
+    // #region agent log (c00bae)
+    fetch('http://127.0.0.1:7729/ingest/a51596be-eb67-4191-9398-29f465a9e679', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c00bae' },
+      body: JSON.stringify({
+        sessionId: 'c00bae',
+        runId: 'pre-fix',
+        hypothesisId: 'H1',
+        location: 'lib/supabase/middleware.ts:22',
+        message: 'middleware env missing branch',
+        data: { pathname },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
 
     const protectedPaths = [
       '/dashboard',
@@ -29,6 +60,22 @@ export async function updateSession(request: NextRequest) {
     const isAdminRoute = pathname.startsWith('/admin')
 
     if (isProtected || isAdminRoute) {
+      // #region agent log (c00bae)
+      fetch('http://127.0.0.1:7729/ingest/a51596be-eb67-4191-9398-29f465a9e679', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c00bae' },
+        body: JSON.stringify({
+          sessionId: 'c00bae',
+          runId: 'pre-fix',
+          hypothesisId: 'H1',
+          location: 'lib/supabase/middleware.ts:53',
+          message: 'redirecting to /login due to env missing',
+          data: { pathname, isProtected, isAdminRoute },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
+
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       if (!isAdminRoute) url.searchParams.set('redirect', pathname)
@@ -58,6 +105,21 @@ export async function updateSession(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  // #region agent log (c00bae)
+  fetch('http://127.0.0.1:7729/ingest/a51596be-eb67-4191-9398-29f465a9e679', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c00bae' },
+    body: JSON.stringify({
+      sessionId: 'c00bae',
+      runId: 'pre-fix',
+      hypothesisId: 'H2',
+      location: 'lib/supabase/middleware.ts:92',
+      message: 'supabase getUser result',
+      data: { pathname: request.nextUrl.pathname, hasUser: Boolean(user) },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {})
+  // #endregion
 
   const pathname = request.nextUrl.pathname
 
