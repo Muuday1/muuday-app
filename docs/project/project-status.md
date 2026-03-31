@@ -221,24 +221,33 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
   - profissional -> `/dashboard`
   - usuario/admin -> `/buscar`
 - validation run green: `lint`, `typecheck`, `build`, `test:state-machines`.
+65. Login-route smoke validation + mobile login-overlay foundation fix:
+- smoke-tested password login routing in production for all target roles:
+  - admin -> `/buscar`
+  - usuario -> `/buscar`
+  - profissional -> `/dashboard`
+- implemented structural fix for mobile header login popup centering in `components/auth/AuthOverlay.tsx`:
+  - overlay now renders through `createPortal(..., document.body)` to avoid `position: fixed` being constrained by header `backdrop-blur`.
+  - keeps desktop popover behavior and mobile modal fallback logic intact.
 
 ## Immediate next actions
 
-1. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
-2. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
-3. Continue Wave 2 parity tasks:
+1. Deploy latest `AuthOverlay` portal fix and validate mobile header login modal centering in preview/production.
+2. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
+3. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
+4. Continue Wave 2 parity tasks:
 - recurring deadline + slot-release behavior
 - apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production
 - finalize onboarding gate matrix enforcement end-to-end with migration 015 live
-4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
-5. Run `npm run fixtures:ensure-public-ready` with valid Supabase service-role key in local/ops environment to keep all E2E professional fixtures go-live eligible and visible in `/buscar`.
-5. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
-6. Prepare Stripe corridor validation packet and run external confirmation process.
-7. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.
-8. Apply migration `016-professional-public-profile-code.sql` in production before expecting `nome-1234` URLs for all profiles.
-9. Apply migration `017-wave2-professional-signup-review-pipeline.sql` in production to activate professional application review persistence.
-10. Validate `/buscar` price slider on iPad and mobile touch devices after deployment (minimum and maximum drag both directions).
-11. Apply migration `018-wave2-real-professions-taxonomy.sql` in production and verify canonical specialty backfill:
+5. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
+6. Run `npm run fixtures:ensure-public-ready` with valid Supabase service-role key in local/ops environment to keep all E2E professional fixtures go-live eligible and visible in `/buscar`.
+7. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
+8. Prepare Stripe corridor validation packet and run external confirmation process.
+9. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.
+10. Apply migration `016-professional-public-profile-code.sql` in production before expecting `nome-1234` URLs for all profiles.
+11. Apply migration `017-wave2-professional-signup-review-pipeline.sql` in production to activate professional application review persistence.
+12. Validate `/buscar` price slider on iPad and mobile touch devices after deployment (minimum and maximum drag both directions).
+13. Apply migration `018-wave2-real-professions-taxonomy.sql` in production and verify canonical specialty backfill:
 - existing professionals receive mapped specialties in `professional_specialties`.
 - signup/category-specialty options reflect canonical taxonomy in `/cadastro`.
 - search/admin/profile surfaces show canonical specialties consistently after deploy.

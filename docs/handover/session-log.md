@@ -18,6 +18,16 @@ Use this for meaningful checkpoints only.
 - preserved enforced role destinations after OAuth: `profissional -> /dashboard`; `usuario/admin -> /buscar`.
 - Validation completed: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines`.
 
+### Entry 50
+- Validated production password-login routing for all three target roles:
+  - admin -> `/buscar`
+  - usuário -> `/buscar`
+  - profissional -> `/dashboard`
+- Implemented mobile login-popup centering structural fix in `components/auth/AuthOverlay.tsx`:
+  - overlay now renders in `document.body` via portal.
+  - prevents `position: fixed` popup from being constrained by the sticky public header (`backdrop-blur` context).
+- Validation completed: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines`.
+
 ### Entry 47
 - Executed PT-BR copy normalization across core app surfaces (auth, busca, agenda, configurações, booking and request-booking UIs).
 - Fixed malformed encoding artifacts and restored truncated identifiers introduced during intermediate cleanup.

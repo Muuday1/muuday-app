@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 49)
+Last updated: 2026-03-31 (session 50)
 
 ## Canonical baseline status
 
@@ -341,3 +341,10 @@ Wave-driven delivery is now mandatory:
 86. Auth-layout logo behavior fixed:
 - logo now links to `/` in auth screens on desktop and mobile.
 - applies to login/signup flows using `app/(auth)/layout.tsx`.
+87. Login routing smoke validation completed in production:
+- admin password login -> `/buscar`
+- usuário password login -> `/buscar`
+- profissional password login -> `/dashboard`
+88. Mobile header login popup centering root-cause fixed in code:
+- `AuthOverlay` now renders via portal (`document.body`) to prevent `fixed` overlay from being constrained by header `backdrop-blur`.
+- desktop popover + mobile modal behavior preserved.

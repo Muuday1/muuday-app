@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type AnchorRect = { left: number; top: number; width: number; height: number }
 
@@ -15,11 +16,6 @@ export type AuthOverlayProps = {
   children: React.ReactNode
 }
 
-function isMobileViewport() {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia('(max-width: 767px)').matches
-}
-
 function getAnchorRect(el: HTMLElement | null | undefined): AnchorRect | null {
   if (!el) return null
   const rect = el.getBoundingClientRect()
@@ -30,11 +26,30 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
   const overlayId = useId()
   const surfaceRef = useRef<HTMLDivElement | null>(null)
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null)
+  const [isMobileLikeViewport, setIsMobileLikeViewport] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
-  const resolvedVariant = useMemo<AuthOverlayVariant>(() => {
-    if (variant === 'popover' && isMobileViewport()) return 'modal'
-    return variant
-  }, [variant])
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mediaQuery = window.matchMedia('(max-width: 1023px), (pointer: coarse)')
+    const syncMatch = () => setIsMobileLikeViewport(mediaQuery.matches)
+    syncMatch()
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncMatch)
+      return () => mediaQuery.removeEventListener('change', syncMatch)
+    }
+
+    mediaQuery.addListener(syncMatch)
+    return () => mediaQuery.removeListener(syncMatch)
+  }, [])
+
+  const resolvedVariant: AuthOverlayVariant =
+    variant === 'popover' && isMobileLikeViewport ? 'modal' : variant
 
   useLayoutEffect(() => {
     if (!open) return
@@ -89,12 +104,12 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
     return () => window.removeEventListener('pointerdown', handlePointerDown)
   }, [open, resolvedVariant, onClose, anchorEl])
 
-  if (!open) return null
+  if (!open || !isMounted) return null
 
-  if (resolvedVariant === 'modal') {
-    return (
+  const content =
+    resolvedVariant === 'modal' ? (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4"
+        className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-neutral-900/50 px-4 py-6"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel || 'Login'}
@@ -105,34 +120,37 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
         <div
           ref={surfaceRef}
           id={overlayId}
-          className="w-full max-w-lg rounded-2xl border border-white/40 bg-white/80 p-6 shadow-xl backdrop-blur"
+          className="my-auto w-full max-w-lg max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-2xl border border-white/40 bg-white/80 p-6 shadow-xl backdrop-blur"
         >
           {children}
         </div>
       </div>
+    ) : (
+      (() => {
+        const panelWidth = 440
+        const fallbackLeft = 16
+        const fallbackTop = 64
+        const left = Math.max(12, (anchorRect?.left ?? fallbackLeft) + (anchorRect?.width ?? 0) - panelWidth)
+        const top = (anchorRect?.top ?? fallbackTop) + (anchorRect?.height ?? 0) + 10
+
+        return (
+          <div className="fixed inset-0 z-50 pointer-events-none" aria-hidden="false">
+            <div
+              ref={surfaceRef}
+              id={overlayId}
+              className="pointer-events-auto w-[440px] max-w-[calc(100vw-24px)] rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl"
+              style={{ left, top, position: 'fixed' }}
+              role="dialog"
+              aria-modal="false"
+              aria-label={ariaLabel || 'Login'}
+            >
+              {children}
+            </div>
+          </div>
+        )
+      })()
     )
-  }
 
-  const panelWidth = 440
-  const fallbackLeft = 16
-  const fallbackTop = 64
-  const left = Math.max(12, (anchorRect?.left ?? fallbackLeft) + (anchorRect?.width ?? 0) - panelWidth)
-  const top = (anchorRect?.top ?? fallbackTop) + (anchorRect?.height ?? 0) + 10
-
-  return (
-    <div className="fixed inset-0 z-50 pointer-events-none" aria-hidden="false">
-      <div
-        ref={surfaceRef}
-        id={overlayId}
-        className="pointer-events-auto w-[440px] max-w-[calc(100vw-24px)] rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl"
-        style={{ left, top, position: 'fixed' }}
-        role="dialog"
-        aria-modal="false"
-        aria-label={ariaLabel || 'Login'}
-      >
-        {children}
-      </div>
-    </div>
-  )
+  return createPortal(content, document.body)
 }
 

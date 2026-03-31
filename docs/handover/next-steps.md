@@ -34,6 +34,13 @@ Dependencies:
 
 ## Priority 2 - Wave 2 delivery batch
 
+0. Deploy latest `AuthOverlay` portal fix and run focused post-deploy smoke:
+- mobile `/buscar` -> header `Login` popup must open centered on viewport (not anchored to top/header).
+- password login routing must remain stable:
+  - admin -> `/buscar`
+  - usuário -> `/buscar`
+  - profissional -> `/dashboard`.
+
 0. Stabilization gate before continuing Wave 2:
 - deploy latest professional-profile resolver patch before validation runs (duplicate `professionals` rows handling).
 - verify email/password login for known accounts (admin, professional, user) after auth patch
