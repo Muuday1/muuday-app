@@ -2,24 +2,28 @@
 
 import { Languages, Search, SlidersHorizontal, X } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { AVAILABILITY_WINDOWS } from '@/lib/search-config'
 import { PriceRangeSlider } from '@/components/search/PriceRangeSlider'
 
-type HiddenInputs = Record<string, string>
+type SearchQueryState = {
+  q: string
+  categoria: string
+  especialidade: string
+  precoMin: string
+  precoMax: string
+  horario: string
+  localizacao: string
+  idioma: string
+  ordenar: string
+  pagina: string
+  moeda: string
+}
 
 type MobileFiltersDrawerProps = {
-  action: string
-  hiddenInputs: HiddenInputs
+  initialState: SearchQueryState
   hasActiveFilters: boolean
-  queryText: string
-  selectedCategory: string
-  selectedSpecialty: string
-  selectedAvailability: string
-  selectedLanguage: string
-  selectedSort: string
-  minPrice: string
-  maxPrice: string
   selectedCurrencyLabel: string
   priceMax: number
   categoryOptions: Array<{ slug: string; name: string }>
@@ -27,25 +31,73 @@ type MobileFiltersDrawerProps = {
   languageOptions: string[]
 }
 
+function parseToInt(value: string, fallback: number) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.round(parsed)
+}
+
+function normalizeForApply(state: SearchQueryState, priceMax: number): SearchQueryState {
+  const normalizedMin = Math.max(0, parseToInt(state.precoMin, 0))
+  const normalizedMax = Math.max(normalizedMin, parseToInt(state.precoMax, priceMax))
+  const cleanMax = Math.max(0, Math.round(priceMax))
+
+  return {
+    ...state,
+    q: state.q.trim(),
+    categoria: state.categoria || '',
+    especialidade: state.categoria ? state.especialidade || '' : '',
+    precoMin: normalizedMin <= 0 ? '' : String(normalizedMin),
+    precoMax: normalizedMax >= cleanMax ? '' : String(normalizedMax),
+    horario: state.horario || 'qualquer',
+    idioma: state.idioma || 'qualquer',
+    ordenar: state.ordenar || 'relevancia',
+    pagina: '1',
+  }
+}
+
+function buildBuscarHref(pathname: string, state: SearchQueryState) {
+  const params = new URLSearchParams()
+  const orderedEntries: Array<[keyof SearchQueryState, string]> = [
+    ['q', state.q],
+    ['categoria', state.categoria],
+    ['especialidade', state.especialidade],
+    ['precoMin', state.precoMin],
+    ['precoMax', state.precoMax],
+    ['horario', state.horario],
+    ['localizacao', state.localizacao],
+    ['idioma', state.idioma],
+    ['ordenar', state.ordenar],
+    ['pagina', state.pagina],
+    ['moeda', state.moeda],
+  ]
+
+  orderedEntries.forEach(([key, value]) => {
+    if (!value) return
+    if ((key === 'horario' || key === 'idioma') && value === 'qualquer') return
+    if (key === 'ordenar' && value === 'relevancia') return
+    if (key === 'pagina' && value === '1') return
+    params.set(key, value)
+  })
+
+  const query = params.toString()
+  return query ? `${pathname}?${query}` : pathname
+}
+
 export function MobileFiltersDrawer({
-  action,
-  hiddenInputs,
+  initialState,
   hasActiveFilters,
-  queryText,
-  selectedCategory,
-  selectedSpecialty,
-  selectedAvailability,
-  selectedLanguage,
-  selectedSort,
-  minPrice,
-  maxPrice,
   selectedCurrencyLabel,
   priceMax,
   categoryOptions,
   specialtyOptions,
   languageOptions,
 }: MobileFiltersDrawerProps) {
+  const router = useRouter()
+  const pathname = usePathname() || '/buscar'
+  const [isPending, startTransition] = useTransition()
   const [open, setOpen] = useState(false)
+  const [state, setState] = useState<SearchQueryState>(initialState)
 
   useEffect(() => {
     if (!open) return
@@ -55,6 +107,20 @@ export function MobileFiltersDrawer({
       document.body.style.overflow = previousOverflow
     }
   }, [open])
+
+  const sliderMin = useMemo(() => parseToInt(state.precoMin, 0), [state.precoMin])
+  const sliderMax = useMemo(() => parseToInt(state.precoMax, priceMax), [state.precoMax, priceMax])
+
+  const applyState = (nextState: SearchQueryState) => {
+    const normalized = normalizeForApply(nextState, priceMax)
+    setState(normalized)
+    const href = buildBuscarHref(pathname, normalized)
+    startTransition(() => {
+      router.replace(href, { scroll: false })
+    })
+  }
+
+  const clearHref = `${pathname}${state.moeda ? `?moeda=${encodeURIComponent(state.moeda)}` : ''}`
 
   return (
     <div className="md:hidden">
@@ -68,13 +134,12 @@ export function MobileFiltersDrawer({
       >
         <SlidersHorizontal className="w-4 h-4 text-brand-500" />
         Refinar
-        {hasActiveFilters && (
-          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" aria-hidden="true">
-          </span>
-        )}
+        {hasActiveFilters ? (
+          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" aria-hidden="true" />
+        ) : null}
       </button>
 
-      {open && (
+      {open ? (
         <div
           id="mobile-filters-drawer"
           className="fixed inset-0 z-40"
@@ -89,7 +154,7 @@ export function MobileFiltersDrawer({
             aria-label="Fechar filtros"
           />
 
-          <div className="absolute right-0 top-0 h-full w-[90%] max-w-sm overflow-y-auto bg-white p-4 shadow-xl">
+          <div className="absolute right-0 top-0 h-full w-[88%] max-w-sm overflow-y-auto bg-white p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
                 <SlidersHorizontal className="w-4 h-4 text-brand-500" />
@@ -105,20 +170,17 @@ export function MobileFiltersDrawer({
               </button>
             </div>
 
-            <form action={action} method="get" className="space-y-3">
-              {Object.entries(hiddenInputs).map(([key, value]) => (
-                <input key={key} type="hidden" name={key} value={value} />
-              ))}
-
+            <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Buscar</label>
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="text"
-                    name="q"
-                    defaultValue={queryText}
-                    placeholder="Nome, especialidade, categoria…"
+                    value={state.q}
+                    placeholder="Nome, especialidade, categoria..."
+                    onChange={event => setState(prev => ({ ...prev, q: event.target.value }))}
+                    onBlur={event => applyState({ ...state, q: event.target.value })}
                     className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm text-neutral-900 placeholder-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                   />
                 </div>
@@ -127,13 +189,21 @@ export function MobileFiltersDrawer({
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
                 <select
-                  name="categoria"
-                  defaultValue={selectedCategory}
+                  value={state.categoria}
+                  onChange={event =>
+                    applyState({
+                      ...state,
+                      categoria: event.target.value,
+                      especialidade: '',
+                    })
+                  }
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="">Todas as categorias</option>
                   {categoryOptions.map(category => (
-                    <option key={category.slug} value={category.slug}>{category.name}</option>
+                    <option key={category.slug} value={category.slug}>
+                      {category.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -141,14 +211,18 @@ export function MobileFiltersDrawer({
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
                 <select
-                  name="especialidade"
-                  defaultValue={selectedSpecialty}
-                  disabled={!selectedCategory}
+                  value={state.especialidade}
+                  disabled={!state.categoria}
+                  onChange={event => applyState({ ...state, especialidade: event.target.value })}
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
-                  <option value="">{selectedCategory ? 'Todas as especialidades' : 'Selecione uma categoria primeiro'}</option>
+                  <option value="">
+                    {state.categoria ? 'Todas as especialidades' : 'Selecione uma categoria'}
+                  </option>
                   {specialtyOptions.map(specialty => (
-                    <option key={specialty} value={specialty}>{specialty}</option>
+                    <option key={specialty} value={specialty}>
+                      {specialty}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -157,24 +231,32 @@ export function MobileFiltersDrawer({
                 <PriceRangeSlider
                   minLimit={0}
                   maxLimit={priceMax}
-                  step={10}
-                  initialMin={Number(minPrice || 0)}
-                  initialMax={Number(maxPrice || priceMax)}
+                  step={1}
+                  valueMin={sliderMin}
+                  valueMax={sliderMax}
                   currencyLabel={selectedCurrencyLabel}
-                  nameMin="precoMin"
-                  nameMax="precoMax"
+                  onChange={(nextMin, nextMax) =>
+                    applyState({
+                      ...state,
+                      precoMin: String(nextMin),
+                      precoMax: String(nextMax),
+                    })
+                  }
+                  compact
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horário disponível</label>
                 <select
-                  name="horario"
-                  defaultValue={selectedAvailability}
+                  value={state.horario}
+                  onChange={event => applyState({ ...state, horario: event.target.value })}
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   {AVAILABILITY_WINDOWS.map(window => (
-                    <option key={window.value} value={window.value}>{window.label}</option>
+                    <option key={window.value} value={window.value}>
+                      {window.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -185,13 +267,15 @@ export function MobileFiltersDrawer({
                   Idioma secundário
                 </label>
                 <select
-                  name="idioma"
-                  defaultValue={selectedLanguage}
+                  value={state.idioma}
+                  onChange={event => applyState({ ...state, idioma: event.target.value })}
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="qualquer">Qualquer idioma</option>
                   {languageOptions.map(language => (
-                    <option key={language} value={language}>{language}</option>
+                    <option key={language} value={language}>
+                      {language}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -199,8 +283,8 @@ export function MobileFiltersDrawer({
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Ordenar</label>
                 <select
-                  name="ordenar"
-                  defaultValue={selectedSort}
+                  value={state.ordenar}
+                  onChange={event => applyState({ ...state, ordenar: event.target.value })}
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="relevancia">Relevância</option>
@@ -211,25 +295,21 @@ export function MobileFiltersDrawer({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="submit"
-                  onClick={() => setOpen(false)}
-                  className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-                >
-                  Ver resultados
-                </button>
+              <div className="flex items-center justify-between gap-2 pt-1">
                 <Link
-                  href="/buscar"
-                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                  href={clearHref}
+                  className="inline-flex items-center rounded-xl bg-neutral-100 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
                 >
-                  Limpar
+                  Limpar filtros
                 </Link>
+                <span className="text-xs text-neutral-400" aria-live="polite">
+                  {isPending ? 'Atualizando...' : 'Atualização automática'}
+                </span>
               </div>
-            </form>
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
