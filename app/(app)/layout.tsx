@@ -33,14 +33,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (isProfissional) {
       return [
         { href: '/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
-        { href: '/agenda', icon: 'Calendar', label: 'Calendario' },
+        { href: '/agenda', icon: 'Calendar', label: 'Calendário' },
         { href: '/financeiro', icon: 'Wallet', label: 'Financeiro' },
-        { href: '/configuracoes', icon: 'Settings', label: 'Configuracoes' },
+        { href: '/configuracoes', icon: 'Settings', label: 'Configurações' },
       ]
     }
     return [
       { href: '/buscar', icon: 'Search', label: 'Buscar' },
-      { href: '/agenda', icon: 'Calendar', label: 'Bookings' },
+      { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
       { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
       { href: '/perfil', icon: 'User', label: 'Perfil' },
     ]

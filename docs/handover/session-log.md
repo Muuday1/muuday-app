@@ -324,3 +324,31 @@ Use this for meaningful checkpoints only.
   - `npm.cmd run typecheck` ✅
   - `npm.cmd run lint` ✅
   - `npm.cmd run build` ✅
+
+### Entry 32 (2026-03-31) — Recovery Sprint UX/estabilidade (fase 1)
+- Created branch `codex/recovery-sprint-ux-stability` and locked recovery scope to UX/stability only.
+- Reworked public header for mobile hamburger navigation with visible language/currency controls and login/minha área access.
+- Rewrote public-facing copy on `/`, `/sobre`, `/ajuda`, `/registrar-profissional` to remove internal product jargon.
+- Hardened auth/OAuth flow:
+  - `SocialAuthButtons` now forwards safe redirect intent to callback.
+  - `/auth/callback` now handles `next` redirect safely, profile bootstrap fallback, and role-aware routing.
+  - login messages and labels normalized in PT-BR.
+- Improved signup journey quality:
+  - kept professional 3-step model.
+  - added inline field validation and error summary handling.
+  - preserved role icons, country list, confirm password, category select, and expanded professional fields.
+- Implemented search recovery foundation:
+  - canonical query-state contract consolidated in `/buscar`.
+  - added `components/search/MobileFiltersDrawer.tsx` and replaced long mobile collapsible filters with drawer behavior.
+- Professional/profile UX recovery:
+  - dashboard rewritten with explicit UI status mapping to avoid raw internal state leakage.
+  - profile page uses avatar image when available with fallback to initial.
+  - mobile sticky booking CTA now supports signup-first flow for visitors via modal.
+- Favorites UX recovery:
+  - explicit success/error feedback on remove.
+  - loading/disabled hardening + aria-live status feedback.
+- Validation status:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` pending final rerun after docs updates.

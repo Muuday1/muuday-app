@@ -256,7 +256,7 @@ export default function DisponibilidadePage() {
       <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
         <Clock className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-brand-700">
-          Os horarios sao exibidos para clientes no fuso horario local deles. Configure os dias que voce esta disponivel para sessoes.
+          Os horários são exibidos para clientes no fuso horário local deles. Configure os dias em que você está disponível para sessões.
         </p>
       </div>
 

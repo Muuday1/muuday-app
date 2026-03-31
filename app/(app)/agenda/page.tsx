@@ -321,17 +321,17 @@ export default async function AgendaPage({
               Requests
             </Link>
             <Link href="/agenda?view=settings" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'settings')}`}>
-              Regras e calendario
+              Regras e calendário
             </Link>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-neutral-100 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Aguardando confirmacao</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Aguardando confirmação</p>
               <p className="mt-1 text-2xl font-bold text-neutral-900">{pendingConfirmations.length}</p>
             </div>
             <div className="rounded-2xl border border-neutral-100 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Solicitacoes abertas</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Solicitações abertas</p>
               <p className="mt-1 text-2xl font-bold text-neutral-900">{activeRequests.length}</p>
             </div>
             <div className="rounded-2xl border border-neutral-100 bg-white p-4">
@@ -369,24 +369,24 @@ export default async function AgendaPage({
         <section className="mb-8 rounded-2xl border border-neutral-100 bg-white p-6" data-testid="professional-calendar-control-center">
           <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-neutral-900">
             <Settings className="h-5 w-5 text-brand-500" />
-            Calendario e regras de booking
+            Calendário e regras de agendamento
           </h2>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Modo de confirmacao</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Modo de confirmação</p>
               <p className="mt-1 text-sm font-medium text-neutral-800">
-                {professionalSettings?.confirmation_mode === 'manual' ? 'Manual (SLA 24h)' : 'Auto-accept'}
+                {professionalSettings?.confirmation_mode === 'manual' ? 'Manual (SLA 24h)' : 'Aceite automática'}
               </p>
             </div>
             <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Antecedencia minima</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Antecedência mínima</p>
               <p className="mt-1 text-sm font-medium text-neutral-800">
                 {Number(professionalSettings?.minimum_notice_hours || 24)}h
               </p>
             </div>
             <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Janela maxima</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Janela máxima</p>
               <p className="mt-1 text-sm font-medium text-neutral-800">
                 {Number(professionalSettings?.max_booking_window_days || 30)} dias
               </p>
@@ -398,13 +398,13 @@ export default async function AgendaPage({
               </p>
             </div>
             <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Calendario externo</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Calendário externo</p>
               <p className="mt-1 text-sm font-medium text-neutral-800">
-                {calendarIntegrationConnected ? 'Conectado' : 'Nao conectado'}
+                {calendarIntegrationConnected ? 'Conectado' : 'Não conectado'}
               </p>
             </div>
             <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recorrencia</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recorrência</p>
               <p className="mt-1 text-sm font-medium text-neutral-800">
                 {professionalSettings?.enable_recurring ? 'Ativa' : 'Desativada'}
               </p>
@@ -441,12 +441,12 @@ export default async function AgendaPage({
         <div className="mb-8" data-testid="agenda-requests-section">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
           <MessageCircle className="h-5 w-5 text-brand-500" />
-          Solicitacoes de horario
+          Solicitações de horário
         </h2>
 
         {activeRequests.length === 0 && closedRequests.length === 0 ? (
           <div className="rounded-2xl border border-neutral-100 bg-white p-6 text-center">
-            <p className="text-sm font-medium text-neutral-700">Nenhuma solicitacao de horario no momento.</p>
+            <p className="text-sm font-medium text-neutral-700">Nenhuma solicitação de horário no momento.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -477,7 +477,7 @@ export default async function AgendaPage({
                     <div>
                       <p className="font-semibold text-neutral-900">{otherPerson || 'Profissional'}</p>
                       <p className="mt-1 text-xs text-neutral-500">
-                        Preferencia enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso nao definido'}
+                        Preferência enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso não definido'}
                       </p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusUi.className}`}>
@@ -594,11 +594,11 @@ export default async function AgendaPage({
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-50">
               <Calendar className="h-7 w-7 text-neutral-300" />
             </div>
-            <p className="mb-1 font-semibold text-neutral-900">Nenhuma sessao agendada</p>
+            <p className="mb-1 font-semibold text-neutral-900">Nenhuma sessão agendada</p>
             <p className="mb-4 text-sm text-neutral-500">
               {isProfessional
-                ? 'Nao ha sessoes no contexto selecionado.'
-                : 'Encontre um profissional e agende sua primeira sessao.'}
+                ? 'Não há sessões no contexto selecionado.'
+                : 'Encontre um profissional e agende sua primeira sessão.'}
             </p>
             {!isProfessional && (
               <a
@@ -720,7 +720,7 @@ export default async function AgendaPage({
               const statusConfig: Record<string, { label: string; className: string }> = {
                 completed: { label: 'Concluido', className: 'bg-green-50 text-green-700' },
                 cancelled: { label: 'Cancelado', className: 'bg-red-50 text-red-600' },
-                no_show: { label: 'Nao compareceu', className: 'bg-neutral-100 text-neutral-500' },
+                no_show: { label: 'Não compareceu', className: 'bg-neutral-100 text-neutral-500' },
                 confirmed: { label: 'Confirmado (passado)', className: 'bg-amber-50 text-amber-700' },
                 pending_confirmation: {
                   label: 'Aguardando confirmacao',

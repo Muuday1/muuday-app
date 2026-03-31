@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { CheckCircle2, Globe2, ShieldCheck, Sparkles, UsersRound } from 'lucide-react'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { SEARCH_CATEGORIES } from '@/lib/search-config'
@@ -15,11 +15,11 @@ export default async function RootPage() {
             </span>
 
             <h1 className="mt-5 font-display text-4xl font-bold leading-tight text-neutral-900 md:text-5xl">
-              Sua rede de profissionais confiaveis para viver melhor fora do Brasil.
+              Profissionais brasileiros de confiança, onde você estiver no mundo.
             </h1>
             <p className="mt-4 max-w-xl text-base text-neutral-600 md:text-lg">
-              Encontre especialistas em saude, educacao, carreira, financeiro e suporte documental.
-              Compare perfis, veja disponibilidade e agende com seguranca.
+              Psicólogos, nutricionistas, advogados, contadores e muito mais em português,
+              no seu fuso horário, com agendamento simples e seguro.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -27,40 +27,40 @@ export default async function RootPage() {
                 href="/buscar"
                 className="rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-600"
               >
-                Buscar profissionais
+                Encontrar profissional
               </Link>
               <Link
                 href="/registrar-profissional"
                 className="rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-brand-300 hover:text-brand-700"
               >
-                Registrar como profissional
+                Sou profissional
               </Link>
             </div>
           </div>
 
           <div className="grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-neutral-900">Descoberta aberta</p>
+              <p className="text-sm font-semibold text-neutral-900">Atendimento em português</p>
               <p className="mt-1 text-sm text-neutral-600">
-                A busca de profissionais e publica. Login so e exigido ao iniciar um agendamento.
+                Fale com profissionais que entendem seu idioma e contexto.
               </p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-neutral-900">Fuso horario seguro</p>
+              <p className="text-sm font-semibold text-neutral-900">Horários no seu fuso</p>
               <p className="mt-1 text-sm text-neutral-600">
-                Horarios exibidos no fuso do usuario com transparencia do fuso do profissional.
+                Veja disponibilidade convertida automaticamente para o horário local.
               </p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-neutral-900">Controle de qualidade</p>
+              <p className="text-sm font-semibold text-neutral-900">Profissionais verificados</p>
               <p className="mt-1 text-sm text-neutral-600">
-                Perfis profissionais seguem trilha de onboarding, governanca e revisao.
+                Cada perfil passa por revisão antes de aparecer na plataforma.
               </p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-neutral-900">Marketplace escalavel</p>
+              <p className="text-sm font-semibold text-neutral-900">Busca aberta</p>
               <p className="mt-1 text-sm text-neutral-600">
-                Base pronta para request booking, recorrencia, pagamentos e operacao admin.
+                Você pode explorar profissionais sem criar conta. Só precisa entrar para agendar.
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export default async function RootPage() {
               Categorias em destaque
             </h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Navegue pelas principais frentes de busca da Muuday.
+              Encontre o especialista certo para o que você precisa.
             </p>
           </div>
           <Link href="/buscar" className="text-sm font-semibold text-brand-700 hover:text-brand-800">
@@ -93,7 +93,7 @@ export default async function RootPage() {
                 {category.icon} {category.name}
               </p>
               <p className="mt-1 text-sm text-neutral-500">
-                Explore especialistas desta categoria com filtros por disponibilidade, localizacao e idioma.
+                Veja profissionais disponíveis, compare perfis e agende.
               </p>
             </Link>
           ))}
@@ -104,30 +104,30 @@ export default async function RootPage() {
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-10 md:grid-cols-2 md:px-8 lg:grid-cols-4">
           <div className="rounded-2xl border border-neutral-200 bg-white p-4">
             <UsersRound className="h-5 w-5 text-brand-600" />
-            <p className="mt-2 text-sm font-semibold text-neutral-900">Conta de usuario separada</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900">Perfis completos</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Perfis de usuario nao acessam area profissional e vice-versa.
+              Veja experiência, avaliações e especialidades antes de agendar.
             </p>
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4">
             <ShieldCheck className="h-5 w-5 text-brand-600" />
-            <p className="mt-2 text-sm font-semibold text-neutral-900">Guardas de rota explicitas</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900">Dados protegidos</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Rotas publicas, de usuario, profissional e admin com permissao definida.
+              Seus dados pessoais ficam seguros e acessíveis apenas para você.
             </p>
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4">
             <Globe2 className="h-5 w-5 text-brand-600" />
-            <p className="mt-2 text-sm font-semibold text-neutral-900">Idioma e moeda no topo</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900">Preços na sua moeda</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Visitantes podem ajustar idioma e moeda antes mesmo de criar conta.
+              Veja valores em real, dólar, euro ou libra — você escolhe.
             </p>
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4">
             <CheckCircle2 className="h-5 w-5 text-brand-600" />
-            <p className="mt-2 text-sm font-semibold text-neutral-900">Fluxo orientado a booking</p>
+            <p className="mt-2 text-sm font-semibold text-neutral-900">Agenda sem confusão</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Busca publica, perfil publico e onboarding guiado para converter em agendamento.
+              Horários claros para você e para o profissional.
             </p>
           </div>
         </div>

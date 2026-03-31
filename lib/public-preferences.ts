@@ -2,9 +2,9 @@ export const PUBLIC_LANGUAGE_COOKIE = 'muuday_public_language'
 export const PUBLIC_CURRENCY_COOKIE = 'muuday_public_currency'
 
 export const PUBLIC_LANGUAGE_OPTIONS = [
-  { value: 'pt-BR', label: 'Portugues (BR)' },
+  { value: 'pt-BR', label: 'Português (BR)' },
   { value: 'en-US', label: 'English (US)' },
-  { value: 'es-ES', label: 'Espanol (ES)' },
+  { value: 'es-ES', label: 'Español (ES)' },
 ]
 
 export const PUBLIC_CURRENCY_OPTIONS = [

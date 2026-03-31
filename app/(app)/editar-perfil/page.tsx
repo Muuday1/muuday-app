@@ -107,7 +107,7 @@ export default function EditarPerfilPage() {
           Voltar ao perfil
         </Link>
         <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">Editar Perfil</h1>
-        <p className="text-neutral-500">Atualize suas informacoes pessoais</p>
+        <p className="text-neutral-500">Atualize suas informações pessoais</p>
       </div>
 
       {/* Feedback */}
@@ -168,7 +168,7 @@ export default function EditarPerfilPage() {
           {/* Timezone */}
           <div>
             <label htmlFor="timezone" className="block text-sm font-medium text-neutral-700 mb-1.5">
-              Fuso horario
+              Fuso horário
             </label>
             <select
               id="timezone"
@@ -176,7 +176,7 @@ export default function EditarPerfilPage() {
               onChange={e => setTimezone(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-neutral-900 bg-white"
             >
-              <option value="">Selecione um fuso horario</option>
+              <option value="">Selecione o fuso horário</option>
               {ALL_TIMEZONES.map(tz => (
                 <option key={tz.value} value={tz.value}>
                   {tz.label}

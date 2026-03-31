@@ -151,7 +151,7 @@ export default function ConfiguracoesAgendamentoPage() {
     )
 
     if (settingsError) {
-      setErrorMessage('Nao foi possivel salvar as configuracoes. Tente novamente.')
+      setErrorMessage('Não foi possível salvar as configurações. Tente novamente.')
       setSaving(false)
       return
     }
@@ -165,7 +165,7 @@ export default function ConfiguracoesAgendamentoPage() {
       .eq('id', professionalId)
 
     if (professionalError) {
-      setErrorMessage('Configuracoes salvas, mas houve falha ao sincronizar a duracao no perfil.')
+      setErrorMessage('Configurações salvas, mas houve falha ao sincronizar a duração no perfil.')
       setSaving(false)
       return
     }
@@ -179,7 +179,7 @@ export default function ConfiguracoesAgendamentoPage() {
       .eq('id', userId)
 
     if (profileError) {
-      setErrorMessage('Configuracoes salvas, mas houve falha ao sincronizar o fuso no perfil.')
+      setErrorMessage('Configurações salvas, mas houve falha ao sincronizar o fuso no perfil.')
       setSaving(false)
       return
     }
@@ -230,15 +230,15 @@ export default function ConfiguracoesAgendamentoPage() {
           Voltar ao perfil
         </Link>
         <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">
-          Configuracoes de agendamento
+          Configurações de agendamento
         </h1>
         <p className="text-neutral-500">
-          Defina as regras usadas no checkout: fuso, janela de agenda, confirmacao e recorrencia.
+          Defina as regras usadas no checkout: fuso, janela de agenda, confirmação e recorrência.
         </p>
       </div>
 
       <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6 text-sm text-brand-700">
-        Todas as datas sao armazenadas em UTC no sistema. O cliente ve os horarios no fuso dele.
+        Todas as datas são armazenadas em UTC no sistema. O cliente vê os horários no fuso dele.
       </div>
 
       <div className="space-y-6">
@@ -462,7 +462,7 @@ export default function ConfiguracoesAgendamentoPage() {
       {saved && (
         <div className="mt-6 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 flex items-center gap-2">
           <Check className="w-4 h-4" />
-          Configuracoes de agendamento salvas com sucesso.
+          Configurações de agendamento salvas com sucesso.
         </div>
       )}
 
@@ -481,7 +481,7 @@ export default function ConfiguracoesAgendamentoPage() {
           ) : (
             <>
               <CalendarClock className="w-4 h-4" />
-              Salvar configuracoes
+              Salvar configurações
             </>
           )}
         </button>

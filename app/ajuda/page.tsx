@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 
 export const metadata = { title: 'Ajuda | Muuday' }
@@ -7,22 +7,22 @@ const FAQ_ITEMS = [
   {
     question: 'Posso buscar profissionais sem criar conta?',
     answer:
-      'Sim. A descoberta e publica. Voce so precisa criar conta para iniciar um agendamento ou enviar solicitacao de horario.',
+      'Sim. A busca é pública. Você só precisa criar conta para iniciar um agendamento ou enviar solicitação de horário.',
   },
   {
-    question: 'Conta de usuario e conta profissional sao a mesma coisa?',
+    question: 'Conta de usuário e conta profissional são a mesma coisa?',
     answer:
-      'Nao. Sao tipos de conta separados, com navegacao e permissoes diferentes para cada workspace.',
+      'Não. São tipos de conta separados, com navegação e permissões diferentes para cada um.',
   },
   {
-    question: 'Como funciona o fuso horario?',
+    question: 'Como funciona o fuso horário?',
     answer:
-      'Horarios sao exibidos no fuso do usuario por padrao e o fuso do profissional e sempre identificado no fluxo de booking.',
+      'Os horários são exibidos no fuso do usuário por padrão. O fuso do profissional aparece durante o agendamento.',
   },
   {
     question: 'Onde vejo pagamentos, reembolsos e recibos?',
     answer:
-      'Na area de Perfil/Bookings do usuario e na area Financeiro para profissionais, conforme o tipo de conta.',
+      'Na área de Perfil/Agenda do usuário e na área Financeiro para profissionais, conforme o tipo de conta.',
   },
 ]
 
@@ -32,8 +32,7 @@ export default async function AjudaPage() {
       <section className="mx-auto w-full max-w-4xl px-4 py-12 md:px-8">
         <h1 className="font-display text-4xl font-bold text-neutral-900">Ajuda</h1>
         <p className="mt-4 text-neutral-600">
-          FAQ inicial para apoiar usuarios e profissionais enquanto a central completa de suporte
-          evolui nas proximas waves.
+          Perguntas frequentes para usuários e profissionais.
         </p>
 
         <div className="mt-8 space-y-3">

@@ -1,6 +1,6 @@
 ﻿# Project Status
 
-Last updated: 2026-03-30
+Last updated: 2026-03-31
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 

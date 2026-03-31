@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { cookies, headers } from 'next/headers'
 import { Search, Star, Clock, MapPin, SlidersHorizontal, Languages } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { MobileFiltersDrawer } from '@/components/search/MobileFiltersDrawer'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -42,6 +43,20 @@ type AvailabilityRow = {
   end_time: string
 }
 
+type SearchQueryState = {
+  q: string
+  categoria: string
+  especialidade: string
+  precoMin: string
+  precoMax: string
+  horario: string
+  localizacao: string
+  idioma: string
+  ordenar: string
+  pagina: string
+  moeda: string
+}
+
 const PAGE_SIZE = 10
 const CURRENCY_RATES: Record<string, number> = {
   BRL: 1,
@@ -75,6 +90,30 @@ function parsePage(value?: string) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 1) return 1
   return Math.floor(parsed)
+}
+
+function buildSearchQueryState(input: SearchQueryState): SearchQueryState {
+  return {
+    ...input,
+    q: input.q || '',
+    categoria: input.categoria || '',
+    especialidade: input.especialidade || '',
+    precoMin: input.precoMin || '',
+    precoMax: input.precoMax || '',
+    horario: input.horario || 'qualquer',
+    localizacao: input.localizacao || '',
+    idioma: input.idioma || 'qualquer',
+    ordenar: input.ordenar || 'relevancia',
+    pagina: input.pagina || '1',
+    moeda: input.moeda || '',
+  }
+}
+
+function toHiddenInputs(state: SearchQueryState, keys: Array<keyof SearchQueryState>) {
+  return keys.reduce<Record<string, string>>((acc, key) => {
+    acc[key] = state[key] || ''
+    return acc
+  }, {})
 }
 
 function getCountryDisplayName(countryCodeOrName?: string | null) {
@@ -148,6 +187,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const selectedLocation = rawSelectedLocation ? getCountryDisplayName(rawSelectedLocation) : ''
   const selectedLanguage = searchParams.idioma || 'qualquer'
   const selectedSort = searchParams.ordenar || 'relevancia'
+  const selectedPage = String(parsePage(searchParams.pagina))
+  const requestedCurrency = searchParams.moeda || ''
   const minPrice = parseOptionalNumber(searchParams.precoMin)
   const maxPrice = parseOptionalNumber(searchParams.precoMax)
 
@@ -160,7 +201,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       .single()
     selectedCurrency = (userProfile?.currency || 'BRL').toUpperCase()
   } else {
-    const queryCurrency = normalizeCurrency(searchParams.moeda)
+    const queryCurrency = normalizeCurrency(requestedCurrency)
     const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
     selectedCurrency =
       queryCurrency ||
@@ -171,6 +212,20 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
   const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
   const maxPriceBrl = maxPrice === null ? null : maxPrice / selectedCurrencyRate
+
+  const queryState = buildSearchQueryState({
+    q: queryText,
+    categoria: selectedCategory,
+    especialidade: selectedSpecialty,
+    precoMin: searchParams.precoMin || '',
+    precoMax: searchParams.precoMax || '',
+    horario: selectedAvailability,
+    localizacao: selectedLocation,
+    idioma: selectedLanguage,
+    ordenar: selectedSort,
+    pagina: selectedPage,
+    moeda: user ? '' : selectedCurrency,
+  })
 
   const { data: professionalsRaw } = await supabase
     .from('professionals')
@@ -343,20 +398,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
 
   const buildHref = (overrides: Partial<Record<keyof BuscarSearchParams, string>>) => {
-    const merged: Partial<Record<keyof BuscarSearchParams, string>> = {
-      q: queryText,
-      categoria: selectedCategory,
-      especialidade: selectedSpecialty,
-      precoMin: searchParams.precoMin,
-      precoMax: searchParams.precoMax,
-      horario: selectedAvailability,
-      localizacao: selectedLocation,
-      idioma: selectedLanguage,
-      ordenar: selectedSort,
-      pagina: String(currentPage),
-      moeda: user ? '' : selectedCurrency,
-      ...overrides,
-    }
+    const merged: Partial<Record<keyof BuscarSearchParams, string>> = { ...queryState, ...overrides }
 
     const params = new URLSearchParams()
     Object.entries(merged).forEach(([key, value]) => {
@@ -380,21 +422,19 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       <div className="mb-8">
         <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Buscar profissionais</h1>
         <p className="text-neutral-500">
-          Estilo marketplace: busca rapida, filtros fixos e comparacao clara de perfis.
+          Encontre o profissional ideal para você.
         </p>
       </div>
 
       <form action="/buscar" method="get" className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
-        <input type="hidden" name="categoria" value={selectedCategory} />
-        <input type="hidden" name="especialidade" value={selectedSpecialty} />
-        <input type="hidden" name="precoMin" value={searchParams.precoMin || ''} />
-        <input type="hidden" name="precoMax" value={searchParams.precoMax || ''} />
-        <input type="hidden" name="horario" value={selectedAvailability} />
-        <input type="hidden" name="localizacao" value={selectedLocation} />
-        <input type="hidden" name="idioma" value={selectedLanguage} />
-        <input type="hidden" name="ordenar" value={selectedSort} />
-        <input type="hidden" name="pagina" value="1" />
-        {!user && <input type="hidden" name="moeda" value={selectedCurrency} />}
+        {Object.entries(
+          toHiddenInputs(
+            { ...queryState, pagina: '1' },
+            ['categoria', 'especialidade', 'precoMin', 'precoMax', 'horario', 'localizacao', 'idioma', 'ordenar', 'pagina', 'moeda'],
+          ),
+        ).map(([key, value]) => (
+          <input key={key} type="hidden" name={key} value={value} />
+        ))}
 
         <div className="flex flex-col md:flex-row gap-3 md:items-center">
           <div className="relative flex-1">
@@ -402,7 +442,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             <input
               type="text"
               name="q"
-              defaultValue={queryText}
+              defaultValue={queryState.q}
               placeholder="Busque por profissional, categoria ou especialidade..."
               className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             />
@@ -416,151 +456,114 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         </div>
       </form>
 
-      <form
-        action="/buscar"
-        method="get"
-        className="bg-white border border-neutral-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6 lg:sticky lg:top-24 z-20"
-      >
-        <input type="hidden" name="q" value={queryText} />
-        <input type="hidden" name="ordenar" value={selectedSort} />
-        <input type="hidden" name="pagina" value="1" />
-        {!user && <input type="hidden" name="moeda" value={selectedCurrency} />}
+      <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm mb-6 lg:sticky lg:top-24 z-20">
 
-        <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800 mb-4">
-          <SlidersHorizontal className="w-4 h-4 text-brand-500" />
-          Filtros
+        <div className="px-4 py-3 md:hidden">
+          <MobileFiltersDrawer
+            action="/buscar"
+            hiddenInputs={toHiddenInputs({ ...queryState, pagina: '1' }, ['q', 'ordenar', 'pagina', 'moeda'])}
+            hasActiveFilters={hasActiveFilters}
+            selectedCategory={selectedCategory}
+            selectedSpecialty={selectedSpecialty}
+            selectedAvailability={selectedAvailability}
+            selectedLocation={selectedLocation}
+            selectedLanguage={selectedLanguage}
+            minPrice={searchParams.precoMin || ''}
+            maxPrice={searchParams.precoMax || ''}
+            selectedCurrencyLabel={selectedCurrencyLabel}
+            categoryOptions={categoryOptions.map(category => ({ slug: category.slug, name: category.name }))}
+            specialtyOptions={specialtyOptions}
+            locationOptions={locationOptions}
+            languageOptions={languageOptions}
+          />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3 items-end">
-          <div className="xl:col-span-2">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
-            <select
-              name="categoria"
-              defaultValue={selectedCategory}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-            >
-              <option value="">Todas as categorias</option>
-              {categoryOptions.map(category => (
-                <option key={category.slug} value={category.slug}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+        {/* Desktop: always visible filters */}
+        <form action="/buscar" method="get" className="hidden md:block p-4 md:p-5">
+          {Object.entries(
+            toHiddenInputs({ ...queryState, pagina: '1' }, ['q', 'ordenar', 'pagina', 'moeda']),
+          ).map(([key, value]) => (
+            <input key={key} type="hidden" name={key} value={value} />
+          ))}
+          <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800 mb-4">
+            <SlidersHorizontal className="w-4 h-4 text-brand-500" />
+            Filtros
           </div>
 
-          <div className="xl:col-span-2">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
-            <select
-              name="especialidade"
-              defaultValue={selectedSpecialty}
-              disabled={!selectedCategory}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed"
-            >
-              <option value="">
-                {selectedCategory ? 'Todas as especialidades' : 'Selecione uma categoria primeiro'}
-              </option>
-              {specialtyOptions.map(specialty => (
-                <option key={specialty} value={specialty}>
-                  {specialty}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="grid grid-cols-2 xl:grid-cols-12 gap-3 items-end">
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
+              <select name="categoria" defaultValue={selectedCategory} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+                <option value="">Todas as categorias</option>
+                {categoryOptions.map(category => (
+                  <option key={category.slug} value={category.slug}>{category.name}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="xl:col-span-1">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5">
-              Preco min ({selectedCurrencyLabel})
-            </label>
-            <input
-              type="number"
-              name="precoMin"
-              min={0}
-              step="10"
-              defaultValue={searchParams.precoMin || ''}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
-            />
-          </div>
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
+              <select name="especialidade" defaultValue={selectedSpecialty} disabled={!selectedCategory} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed">
+                <option value="">{selectedCategory ? 'Todas as especialidades' : 'Selecione uma categoria primeiro'}</option>
+                {specialtyOptions.map(specialty => (
+                  <option key={specialty} value={specialty}>{specialty}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="xl:col-span-1">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5">
-              Preco max ({selectedCurrencyLabel})
-            </label>
-            <input
-              type="number"
-              name="precoMax"
-              min={0}
-              step="10"
-              defaultValue={searchParams.precoMax || ''}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm"
-            />
-          </div>
+            <div className="xl:col-span-1">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço mín ({selectedCurrencyLabel})</label>
+              <input type="number" name="precoMin" min={0} step="10" defaultValue={searchParams.precoMin || ''} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm" />
+            </div>
 
-          <div className="xl:col-span-2">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horario disponivel</label>
-            <select
-              name="horario"
-              defaultValue={selectedAvailability}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-            >
-              {AVAILABILITY_WINDOWS.map(window => (
-                <option key={window.value} value={window.value}>
-                  {window.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="xl:col-span-1">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço máx ({selectedCurrencyLabel})</label>
+              <input type="number" name="precoMax" min={0} step="10" defaultValue={searchParams.precoMax || ''} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm" />
+            </div>
 
-          <div className="xl:col-span-2">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localizacao</label>
-            <select
-              name="localizacao"
-              defaultValue={selectedLocation}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-            >
-              <option value="">Todos os paises</option>
-              {locationOptions.map(location => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horário disponível</label>
+              <select name="horario" defaultValue={selectedAvailability} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+                {AVAILABILITY_WINDOWS.map(window => (
+                  <option key={window.value} value={window.value}>{window.label}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="xl:col-span-2">
-            <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
-              <Languages className="w-3.5 h-3.5" />
-              Idiomas falados
-            </label>
-            <select
-              name="idioma"
-              defaultValue={selectedLanguage}
-              className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-            >
-              <option value="qualquer">Qualquer idioma</option>
-              {languageOptions.map(language => (
-                <option key={language} value={language}>
-                  {language}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localização</label>
+              <select name="localizacao" defaultValue={selectedLocation} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+                <option value="">Todos os países</option>
+                {locationOptions.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="xl:col-span-12 flex items-center justify-end gap-2 pt-1">
-            <button
-              type="submit"
-              className="bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all"
-            >
-              Aplicar
-            </button>
-            <Link
-              href="/buscar"
-              className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all"
-            >
-              Limpar
-            </Link>
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
+                <Languages className="w-3.5 h-3.5" />
+                Idiomas falados
+              </label>
+              <select name="idioma" defaultValue={selectedLanguage} className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800">
+                <option value="qualquer">Qualquer idioma</option>
+                {languageOptions.map(language => (
+                  <option key={language} value={language}>{language}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="xl:col-span-12 flex items-center justify-end gap-2 pt-1">
+              <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all">
+                Aplicar
+              </button>
+              <Link href="/buscar" className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold py-2.5 px-5 rounded-xl text-sm text-center transition-all">
+                Limpar
+              </Link>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
 
       <section>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -569,40 +572,31 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
               <p className="text-xs text-neutral-500">
                 {hasActiveFilters
                   ? 'Resultados filtrados com base na sua busca.'
-                  : 'Sugestoes iniciais variadas para te ajudar a comecar.'}
+                  : 'Sugestões iniciais variadas para te ajudar a começar.'}
               </p>
             </div>
 
-            <form action="/buscar" method="get" className="flex items-center gap-2">
-              <input type="hidden" name="q" value={queryText} />
-              <input type="hidden" name="categoria" value={selectedCategory} />
-              <input type="hidden" name="especialidade" value={selectedSpecialty} />
-              <input type="hidden" name="precoMin" value={searchParams.precoMin || ''} />
-              <input type="hidden" name="precoMax" value={searchParams.precoMax || ''} />
-              <input type="hidden" name="horario" value={selectedAvailability} />
-              <input type="hidden" name="localizacao" value={selectedLocation} />
-              <input type="hidden" name="idioma" value={selectedLanguage} />
-              <input type="hidden" name="pagina" value="1" />
-              {!user && <input type="hidden" name="moeda" value={selectedCurrency} />}
-
-              <select
-                name="ordenar"
-                defaultValue={selectedSort}
-                className="px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800"
-              >
-                <option value="relevancia">Ordenar: Relevancia</option>
-                <option value="melhor-avaliacao">Ordenar: Melhor avaliacao</option>
-                <option value="mais-agendados">Ordenar: Mais agendados</option>
-                <option value="preco-menor">Ordenar: Menor preco</option>
-                <option value="preco-maior">Ordenar: Maior preco</option>
-              </select>
-              <button
-                type="submit"
-                className="bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
-              >
-                Aplicar
-              </button>
-            </form>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { value: 'relevancia', label: 'Relevância' },
+                { value: 'melhor-avaliacao', label: 'Melhor avaliação' },
+                { value: 'mais-agendados', label: 'Mais agendados' },
+                { value: 'preco-menor', label: 'Menor preço' },
+                { value: 'preco-maior', label: 'Maior preço' },
+              ].map(sortOption => (
+                <Link
+                  key={sortOption.value}
+                  href={buildHref({ ordenar: sortOption.value, pagina: '1' })}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    selectedSort === sortOption.value
+                      ? 'bg-neutral-900 border-neutral-900 text-white'
+                      : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                  }`}
+                >
+                  {sortOption.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           {pagedProfessionals.length === 0 ? (
@@ -639,7 +633,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                             <p className="font-semibold text-neutral-900">
                               {formatCurrency(professional.session_price_brl, selectedCurrency)}
                             </p>
-                            <p className="text-[11px] text-neutral-400">por sessao</p>
+                            <p className="text-[11px] text-neutral-400">por sessão</p>
                           </div>
                         </div>
 

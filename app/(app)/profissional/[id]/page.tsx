@@ -3,11 +3,13 @@ export const metadata = { title: 'Profissional | Muuday' }
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Star, Clock, Globe, MapPin, Calendar, ArrowLeft, MessageCircle } from 'lucide-react'
 import { getSearchCategoryLabel, normalizeSearchCategorySlug, getSearchCategoryBySlug } from '@/lib/search-config'
 import { formatCurrency } from '@/lib/utils'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { PublicBookingAuthModal } from '@/components/auth/PublicBookingAuthModal'
+import { MobileBookingStickyCta } from '@/components/booking/MobileBookingStickyCta'
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -86,7 +88,7 @@ export default async function ProfissionalPage({
     !professional.first_booking_enabled && (existingAcceptedBookingsCount || 0) === 0
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto">
+    <div className="p-6 md:p-8 max-w-4xl mx-auto pb-24 lg:pb-8">
       {/* Back button */}
       <Link
         href="/buscar"
@@ -102,9 +104,19 @@ export default async function ProfissionalPage({
           <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
             <div className="h-28 bg-gradient-to-br from-brand-400 to-brand-600 relative">
               <div className="absolute -bottom-10 left-6">
-                <div className="w-24 h-24 rounded-2xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-brand-600 font-display font-bold text-3xl">
-                  {profile?.full_name?.charAt(0) || 'P'}
-                </div>
+                {profile?.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt={`Foto de ${profile?.full_name || 'Profissional'}`}
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-sm"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-brand-600 font-display font-bold text-3xl">
+                    {profile?.full_name?.charAt(0) || 'P'}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -253,10 +265,10 @@ export default async function ProfissionalPage({
                   disabled
                   className="w-full bg-neutral-100 text-neutral-400 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed"
                 >
-                  <Calendar className="w-4 h-4" /> Este e seu perfil
+                  <Calendar className="w-4 h-4" /> Este é seu perfil
                 </button>
                 <p className="text-xs text-neutral-500 text-center">
-                  Nao e possivel agendar sessao com voce mesmo.
+                  Não é possível agendar sessão com você mesmo.
                 </p>
               </div>
             ) : firstBookingBlocked ? (
@@ -266,10 +278,10 @@ export default async function ProfissionalPage({
                   disabled
                   className="w-full bg-neutral-100 text-neutral-400 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm cursor-not-allowed"
                 >
-                  <Calendar className="w-4 h-4" /> Agendamento indisponivel
+                  <Calendar className="w-4 h-4" /> Agendamento indisponível
                 </button>
                 <p className="text-xs text-neutral-500 text-center">
-                  Este profissional ainda nao foi liberado para aceitar o primeiro agendamento.
+                  Este profissional ainda não foi liberado para aceitar o primeiro agendamento.
                 </p>
               </div>
             ) : (
@@ -283,19 +295,19 @@ export default async function ProfissionalPage({
 
             {searchParams?.erro === 'auto-agendamento' && (
               <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
-                Nao e permitido agendar sessao com o proprio perfil profissional.
+                Não é permitido agendar sessão com o próprio perfil profissional.
               </div>
             )}
 
             {searchParams?.erro === 'primeiro-agendamento-bloqueado' && (
               <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
-                Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.
+                Este profissional ainda não está habilitado para aceitar o primeiro agendamento.
               </div>
             )}
 
             {searchParams?.erro === 'request-booking-indisponivel' && (
               <div className="mt-3 text-xs bg-amber-50 border border-amber-100 text-amber-700 rounded-xl px-3 py-2">
-                Solicitacao de horario disponivel apenas para profissionais nos planos Professional ou Premium.
+                Solicitação de horário disponível apenas para profissionais nos planos Professional ou Premium.
               </div>
             )}
 
@@ -318,6 +330,16 @@ export default async function ProfissionalPage({
           </div>
         </div>
       </div>
+
+      {/* Mobile sticky CTA */}
+      {!isOwnProfessional && !firstBookingBlocked && (
+        <MobileBookingStickyCta
+          isLoggedIn={isLoggedIn}
+          bookHref={`/agendar/${professional.id}`}
+          priceText={formatCurrency(professional.session_price_brl, viewerCurrency)}
+          durationText={`${professional.session_duration_minutes} min`}
+        />
+      )}
     </div>
   )
 }

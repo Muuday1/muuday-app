@@ -15,11 +15,11 @@ function statusClasses(passed: boolean) {
 
 function searchResultLabel(result: string | undefined) {
   if (!result) return null
-  if (result === 'submitted') return 'Perfil enviado para revisao com sucesso.'
-  if (result === 'blocked') return 'Ainda existem pendencias obrigatorias para envio.'
-  if (result === 'error') return 'Nao foi possivel enviar para revisao. Tente novamente.'
-  if (result === 'missing-profile') return 'Perfil profissional nao encontrado.'
-  if (result === 'missing-state') return 'Nao foi possivel calcular estado de onboarding.'
+  if (result === 'submitted') return 'Perfil enviado para revisão com sucesso.'
+  if (result === 'blocked') return 'Ainda existem pendências obrigatórias para envio.'
+  if (result === 'error') return 'Não foi possível enviar para revisão. Tente novamente.'
+  if (result === 'missing-profile') return 'Perfil profissional não encontrado.'
+  if (result === 'missing-state') return 'Não foi possível calcular estado de onboarding.'
   return null
 }
 

@@ -1,10 +1,14 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
 type Provider = 'google'
+type SocialAuthButtonsProps = {
+  redirectPath?: string
+  roleHint?: 'usuario' | 'profissional'
+}
 
 const PROVIDERS = [
   {
@@ -21,7 +25,13 @@ const PROVIDERS = [
   },
 ]
 
-export default function SocialAuthButtons() {
+function sanitizeRedirectPath(value?: string) {
+  if (!value) return ''
+  if (!value.startsWith('/') || value.startsWith('//')) return ''
+  return value
+}
+
+export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null)
   const [error, setError] = useState('')
 
@@ -29,23 +39,23 @@ export default function SocialAuthButtons() {
     setLoadingProvider(provider)
     setError('')
 
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    const safeRedirect = sanitizeRedirectPath(redirectPath)
+    if (safeRedirect) callbackUrl.searchParams.set('next', safeRedirect)
+    if (roleHint) callbackUrl.searchParams.set('role', roleHint)
+
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error: authError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          // Pass role hint so callback knows this is a usuario
-          access_type: 'offline',
-        },
+        redirectTo: callbackUrl.toString(),
       },
     })
 
-    if (error) {
-      setError('Erro ao conectar. Tente novamente.')
+    if (authError) {
+      setError('Erro ao conectar com Google. Tente novamente.')
       setLoadingProvider(null)
     }
-    // On success, browser redirects automatically
   }
 
   return (
@@ -56,7 +66,8 @@ export default function SocialAuthButtons() {
           type="button"
           onClick={() => handleSocialLogin(provider.id)}
           disabled={loadingProvider !== null}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium text-neutral-700"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium text-neutral-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          aria-label={provider.label}
         >
           {loadingProvider === provider.id ? (
             <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
@@ -68,7 +79,7 @@ export default function SocialAuthButtons() {
       ))}
 
       {error && (
-        <p className="text-sm text-red-600 text-center">{error}</p>
+        <p className="text-sm text-red-600 text-center" role="alert">{error}</p>
       )}
     </div>
   )

@@ -1,6 +1,6 @@
 ﻿# Next Steps
 
-Last updated: 2026-03-30
+Last updated: 2026-03-31
 
 Execute in order. Build one batch at a time.
 
@@ -108,3 +108,23 @@ Dependencies:
 4. Update blockers in `docs/project/project-status.md` whenever a human decision is closed.
 5. Approve final retention windows/legal-hold exceptions and then implement lifecycle cleanup jobs from `docs/engineering/data-governance-and-lifecycle.md`.
 6. At each Wave close, run tech-stack phase review and update `docs/architecture/tech-stack.md` + `docs/project/roadmap.md`.
+
+## Recovery Sprint checklist (before continuing Wave 2)
+
+1. Validate public header mobile drawer behavior on real devices (open/close, language/currency persistence, login CTA).
+2. Run manual auth journeys:
+- login with valid user/professional credentials
+- invalid credentials error message
+- logout redirect to landing
+- OAuth callback success/failure path
+3. Validate signup UX end-to-end:
+- user flow (country + confirm password)
+- professional 3-step flow and inline validation errors
+4. Validate search parity:
+- desktop sticky horizontal filters
+- mobile drawer filters
+- currency consistency in cards and inputs
+- specialty enabled only after category selection
+5. Validate professional profile mobile sticky CTA for logged-out and logged-in states.
+6. Validate favorites removal feedback and keyboard/focus accessibility in critical screens.
+7. After checklist is green, resume Wave 2 backlog items (recurring deadlines/slot release + onboarding C1-C10 e2e parity).

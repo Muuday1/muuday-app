@@ -63,17 +63,17 @@ const NOTIFICATION_ITEMS: {
   {
     key: 'booking_emails',
     label: 'Emails de agendamento',
-    desc: 'Confirmacoes, cancelamentos, pagamentos e avaliacoes',
+    desc: 'Confirmações, cancelamentos, pagamentos e avaliações',
   },
   {
     key: 'session_reminders',
-    label: 'Lembretes de sessao',
-    desc: 'Lembrete 24h e 1h antes da sessao',
+    label: 'Lembretes de sessão',
+    desc: 'Lembrete 24h e 1h antes da sessão',
   },
   {
     key: 'news_promotions',
-    label: 'Novidades e promocoes',
-    desc: 'Atualizacoes da plataforma, dicas e ofertas',
+    label: 'Novidades e promoções',
+    desc: 'Atualizações da plataforma, dicas e ofertas',
   },
 ]
 
@@ -91,11 +91,11 @@ function professionalAlerts(summary: ProfessionalWorkspaceSummary | null) {
     alerts.push({
       id: 'status-not-approved',
       level: summary.status === 'rejected' || summary.status === 'suspended' ? 'critical' : 'warning',
-      title: 'Conta profissional com restricao operacional',
+      title: 'Conta profissional com restrição operacional',
       description:
         summary.status === 'pending_review'
-          ? 'Seu perfil ainda esta em revisao. Algumas acoes ficam bloqueadas ate aprovacao.'
-          : 'Seu perfil nao esta aprovado. Revise dados de perfil e status de compliance.',
+          ? 'Seu perfil ainda está em revisão. Algumas ações ficam bloqueadas até aprovação.'
+          : 'Seu perfil não está aprovado. Revise dados de perfil e status de compliance.',
     })
   }
 
@@ -106,7 +106,7 @@ function professionalAlerts(summary: ProfessionalWorkspaceSummary | null) {
       title: 'Primeiro agendamento bloqueado',
       description:
         summary.gateNote ||
-        'Finalize os requisitos de go-live para liberar o primeiro booking.',
+        'Finalize os requisitos de go-live para liberar o primeiro agendamento.',
     })
   }
 
@@ -115,7 +115,7 @@ function professionalAlerts(summary: ProfessionalWorkspaceSummary | null) {
       id: 'availability-empty',
       level: 'critical',
       title: 'Sem disponibilidade ativa',
-      description: 'Adicione horarios de atendimento para receber novos agendamentos.',
+      description: 'Adicione horários de atendimento para receber novos agendamentos.',
     })
   }
 
@@ -380,12 +380,12 @@ export default function ConfiguracoesPage() {
     <div className="mx-auto max-w-3xl p-6 md:p-8">
       <div className="mb-8">
         <h1 className="mb-1 font-display text-3xl font-bold text-neutral-900">
-          {showProfessionalWorkspace ? 'Configuracoes do negocio' : 'Configuracoes'}
+          {showProfessionalWorkspace ? 'Configurações do negócio' : 'Configurações'}
         </h1>
         <p className="text-neutral-500">
           {showProfessionalWorkspace
-            ? 'Controle de perfil, servicos, regras de booking e status operacional.'
-            : 'Personalize sua experiencia na Muuday'}
+            ? 'Controle de perfil, serviços, regras de agendamento e status operacional.'
+            : 'Personalize sua experiência na Muuday'}
         </p>
       </div>
 
@@ -469,7 +469,7 @@ export default function ConfiguracoesPage() {
 
               {!onboardingFlagsAvailable && (
                 <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Colunas de readiness nao encontradas. Rode a migracao 015 para ativar estes controles.
+                  Colunas de readiness não encontradas. Rode a migração 015 para ativar estes controles.
                 </div>
               )}
 
@@ -565,9 +565,9 @@ export default function ConfiguracoesPage() {
             >
               <div className="mb-2 flex items-center gap-2 text-neutral-800">
                 <CalendarClock className="h-4 w-4 text-brand-500" />
-                <p className="text-sm font-semibold">Calendario</p>
+                <p className="text-sm font-semibold">Calendário</p>
               </div>
-              <p className="text-xs text-neutral-500">Agenda semanal, bloqueios e horarios ativos.</p>
+              <p className="text-xs text-neutral-500">Agenda semanal, bloqueios e horários ativos.</p>
             </Link>
 
             <Link
@@ -614,7 +614,7 @@ export default function ConfiguracoesPage() {
 
             <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
               <div className="mr-4 flex-1">
-                <p className="text-sm font-medium text-neutral-700">Fuso horario</p>
+                <p className="text-sm font-medium text-neutral-700">Fuso horário</p>
               </div>
               <div className="flex items-center gap-2">
                 {savedField === 'timezone' && (

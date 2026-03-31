@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 
 export function PublicFooter() {
   return (
@@ -7,7 +7,7 @@ export function PublicFooter() {
         <p>Muuday © {new Date().getFullYear()} - brasileiros conectando brasileiros no mundo.</p>
         <div className="flex items-center gap-4">
           <Link href="/sobre" className="hover:text-neutral-700">
-            Sobre nos
+            Sobre nós
           </Link>
           <Link href="/ajuda" className="hover:text-neutral-700">
             Ajuda

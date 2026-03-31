@@ -206,7 +206,7 @@ export default async function PerfilPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-brand-900">Configurar disponibilidade</p>
-                  <p className="text-xs text-brand-600">Defina os dias e horarios de atendimento</p>
+                  <p className="text-xs text-brand-600">Defina os dias e horários de atendimento</p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-brand-500 group-hover:translate-x-0.5 transition-transform" />
@@ -222,7 +222,7 @@ export default async function PerfilPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-neutral-900">Regras de agendamento</p>
-                  <p className="text-xs text-neutral-600">Buffer, confirmacao, recorrencia e antecedencia</p>
+                  <p className="text-xs text-neutral-600">Buffer, confirmação, recorrência e antecedência</p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:translate-x-0.5 transition-transform" />
@@ -239,7 +239,7 @@ export default async function PerfilPage() {
             href="/configuracoes"
             className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
           >
-            Notificacoes e preferencias
+            Notificações e preferências
           </Link>
         </div>
         <div className="space-y-3">
@@ -269,7 +269,7 @@ export default async function PerfilPage() {
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-brand-500" />
               <div>
-                <p className="text-sm font-medium text-neutral-700">Notificacoes</p>
+                <p className="text-sm font-medium text-neutral-700">Notificações</p>
                 <p className="text-xs text-neutral-400">Ative e ajuste lembretes, emails e novidades</p>
               </div>
             </div>

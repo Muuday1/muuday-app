@@ -1,14 +1,14 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { CheckCircle2 } from 'lucide-react'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 
 export const metadata = { title: 'Registrar como profissional | Muuday' }
 
 const BENEFITS = [
-  'Onboarding guiado por etapas com checklist claro',
-  'Controle de disponibilidade, agenda e regras de booking',
-  'Espaco de financeiro para acompanhar ganhos e repasses',
-  'Governanca de perfil para melhorar confianca e conversao',
+  'Cadastro em etapas com checklist claro',
+  'Controle de disponibilidade e agenda',
+  'Painel para acompanhar seus atendimentos e ganhos',
+  'Perfil profissional com foco em confiança e conversão',
 ]
 
 export default async function RegistrarProfissionalPage() {
@@ -21,8 +21,8 @@ export default async function RegistrarProfissionalPage() {
               Registrar como profissional
             </h1>
             <p className="mt-4 text-neutral-600">
-              Crie sua conta profissional para configurar perfil publico, servicos, disponibilidade,
-              plano e regras de agendamento.
+              Crie sua conta profissional para montar seu perfil público, configurar serviços,
+              horários de atendimento e regras de agendamento.
             </p>
 
             <div className="mt-6 space-y-3">
@@ -36,9 +36,9 @@ export default async function RegistrarProfissionalPage() {
           </div>
 
           <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-            <h2 className="font-display text-xl font-semibold text-neutral-900">Proxima etapa</h2>
+            <h2 className="font-display text-xl font-semibold text-neutral-900">Próxima etapa</h2>
             <p className="mt-2 text-sm text-neutral-600">
-              Siga para criacao da conta e selecione o tipo de conta profissional.
+              Siga para a criação de conta e escolha o tipo de conta profissional.
             </p>
 
             <div className="mt-5 space-y-3">
@@ -52,7 +52,7 @@ export default async function RegistrarProfissionalPage() {
                 href="/login"
                 className="block rounded-xl border border-neutral-300 bg-white px-5 py-3 text-center text-sm font-semibold text-neutral-800 transition hover:border-brand-300 hover:text-brand-700"
               >
-                Ja tenho conta, fazer login
+                Já tenho conta, fazer login
               </Link>
             </div>
           </div>

@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-30 (session 27)
+Last updated: 2026-03-31 (session 28)
 
 ## Canonical baseline status
 
@@ -189,3 +189,24 @@ Wave-driven delivery is now mandatory:
 4. Added `docs/human-actions/` with consolidation verification, human decision backlog, and concrete open-tool options.
 5. Added explicit retention/deletion policy by data type in `docs/engineering/data-governance-and-lifecycle.md`.
 6. Updated source-of-truth specs with AI-agnostic build instructions, role-split screen inventory, explicit route-guard rules, and detailed professional onboarding matrix.
+64. Recovery Sprint started on branch `codex/recovery-sprint-ux-stability` with strict scope lock (no Stripe/integration expansion).
+65. Public navigation and copy recovery:
+- mobile hamburger menu in public header with language/currency and login/minha área shortcuts.
+- public pages `/`, `/sobre`, `/ajuda`, `/registrar-profissional` rewritten for user-facing language (no internal jargon).
+66. Auth recovery:
+- `SocialAuthButtons` now forwards redirect intent to callback.
+- `/auth/callback` now sanitizes and applies `next` redirects, handles missing profile bootstrap, and preserves role-aware routing.
+- login page copy/labels standardized to PT-BR and error handling clarified.
+67. Signup recovery:
+- professional 3-step flow maintained.
+- inline field-level validation and error summary added.
+- category remains select and expanded professional fields remain enforced.
+68. Search recovery:
+- canonical query-state contract consolidated in `/buscar`.
+- mobile filters moved to drawer component (`components/search/MobileFiltersDrawer.tsx`).
+69. Professional workspace/profile recovery:
+- dashboard rewritten with translated UI status mapping.
+- profile avatar now uses uploaded image when available.
+- mobile booking CTA now preserves auth flow for logged-out visitors.
+70. Favorites recovery:
+- remove action now returns explicit success/error feedback + aria-live status.

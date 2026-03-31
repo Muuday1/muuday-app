@@ -1,4 +1,4 @@
-export const metadata = { title: 'Dashboard | Muuday' }
+﻿export const metadata = { title: 'Dashboard | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -10,8 +10,8 @@ import {
   CalendarClock,
   Clock,
   Layers,
-  LineChart,
   ShieldAlert,
+  Star,
   Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -27,6 +27,29 @@ const FIRST_BOOKING_RELEVANT_STATUSES = [
   'no_show',
   'rescheduled',
 ]
+
+const BOOKING_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente de pagamento',
+  pending_confirmation: 'Aguardando confirmação',
+  confirmed: 'Confirmada',
+  cancelled: 'Cancelada',
+  completed: 'Concluída',
+  no_show: 'Não compareceu',
+  rescheduled: 'Reagendada',
+}
+
+const PROFESSIONAL_STATUS_LABELS: Record<string, string> = {
+  approved: 'Aprovado',
+  pending_review: 'Em revisão',
+  draft: 'Rascunho',
+  rejected: 'Rejeitado',
+  suspended: 'Suspenso',
+}
+
+const CONFIRMATION_MODE_LABELS: Record<string, string> = {
+  auto_accept: 'Aceite automático',
+  manual: 'Confirmação manual',
+}
 
 function alertStyles(level: 'info' | 'warning' | 'critical') {
   if (level === 'critical') {
@@ -51,6 +74,12 @@ function alertStyles(level: 'info' | 'warning' | 'critical') {
     description: 'text-blue-700',
     button: 'bg-blue-600 hover:bg-blue-700 text-white',
   }
+}
+
+function toUiLabel(value?: string | null, dictionary: Record<string, string> = {}) {
+  if (!value) return 'Não definido'
+  if (dictionary[value]) return dictionary[value]
+  return value.replaceAll('_', ' ')
 }
 
 export default async function DashboardPage() {
@@ -88,9 +117,7 @@ export default async function DashboardPage() {
 
   const { data: professionalSettings } = await supabase
     .from('professional_settings')
-    .select(
-      'timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring',
-    )
+    .select('timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring')
     .eq('professional_id', professionalId)
     .maybeSingle()
 
@@ -205,7 +232,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-neutral-900">Dashboard</h1>
           <p className="text-sm text-neutral-500">
-            Painel operacional para decidir rapido o que fazer agora.
+            Veja o que precisa de ação agora e acompanhe agenda, ganhos e saúde da conta.
           </p>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
@@ -218,18 +245,11 @@ export default async function DashboardPage() {
           {alerts.map(alert => {
             const styles = alertStyles(alert.level)
             return (
-              <div
-                key={alert.id}
-                className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}
-              >
+              <div key={alert.id} className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${styles.title}`}>
-                      {alert.title}
-                    </p>
-                    <p className={`mt-1 text-xs ${styles.description}`}>
-                      {alert.description}
-                    </p>
+                    <p className={`text-sm font-semibold ${styles.title}`}>{alert.title}</p>
+                    <p className={`mt-1 text-xs ${styles.description}`}>{alert.description}</p>
                   </div>
                   {alert.actionHref && alert.actionLabel && (
                     <Link
@@ -247,38 +267,43 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <section
-        className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
-        data-testid="professional-dashboard-cards"
-      >
+      <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="professional-dashboard-cards">
+        <div className={`rounded-2xl border p-5 ${pendingConfirmationCount > 0 || openRequestCount > 0 ? 'border-amber-200 bg-amber-50/30' : 'border-neutral-100 bg-white'}`}>
+          <div className="mb-2 flex items-center gap-2 text-neutral-500">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <span className="text-xs font-semibold uppercase tracking-wide">Urgente</span>
+          </div>
+          <p className="text-sm text-neutral-700">{pendingConfirmationCount} pendência(s) de confirmação manual</p>
+          <p className="mt-1 text-sm text-neutral-700">{openRequestCount} solicitação(ões) de horário em aberto</p>
+          <Link href="/agenda?view=pending" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800">
+            Resolver agora
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
         <div className="rounded-2xl border border-neutral-100 bg-white p-5">
           <div className="mb-2 flex items-center gap-2 text-neutral-500">
             <CalendarClock className="h-4 w-4 text-brand-500" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Hoje / urgente</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">Próxima sessão</span>
           </div>
           {nextBooking ? (
             <>
               <p className="text-sm font-semibold text-neutral-900">
-                Proxima: {(nextBooking as Record<string, any>)?.profiles?.full_name || 'Cliente'}
+                {(nextBooking as Record<string, any>)?.profiles?.full_name || 'Cliente'}
               </p>
               <p className="mt-1 text-xs text-neutral-500">
                 {formatInTimeZone(
                   new Date(String((nextBooking as Record<string, any>).scheduled_at)),
                   userTimezone,
-                  "EEE, d MMM 'as' HH:mm",
+                  "EEE, d MMM 'às' HH:mm",
                   { locale: ptBR },
                 )}
               </p>
             </>
           ) : (
-            <p className="text-sm text-neutral-500">Sem sessoes confirmadas no momento.</p>
+            <p className="text-sm text-neutral-500">Sem sessões confirmadas no momento.</p>
           )}
-          <p className="mt-3 text-xs text-amber-700">
-            {pendingConfirmationCount} pendencia(s) de confirmacao manual
-          </p>
-          <p className="mt-1 text-xs text-blue-700">
-            {openRequestCount} solicitacao(oes) de horario em aberto
-          </p>
+          <p className="mt-2 text-xs text-neutral-500">Total futuro: {upcomingBookings?.length || 0} sessão(ões)</p>
         </div>
 
         <div className="rounded-2xl border border-neutral-100 bg-white p-5">
@@ -287,74 +312,46 @@ export default async function DashboardPage() {
             <span className="text-xs font-semibold uppercase tracking-wide">Ganhos</span>
           </div>
           <p className="text-sm text-neutral-500">Semana</p>
-          <p className="text-xl font-semibold text-neutral-900">
-            {formatCurrency(earningsWeek, currency)}
-          </p>
-          <p className="mt-2 text-sm text-neutral-500">Mes</p>
-          <p className="text-lg font-semibold text-neutral-900">
-            {formatCurrency(earningsMonth, currency)}
-          </p>
-          <Link
-            href="/financeiro"
-            className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
-          >
-            Abrir financeiro
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <div className="mb-2 flex items-center gap-2 text-neutral-500">
-            <LineChart className="h-4 w-4 text-brand-500" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Performance</span>
-          </div>
-          <p className="text-sm text-neutral-600">Nota: {Number(professional.rating || 0).toFixed(1)}</p>
-          <p className="text-sm text-neutral-600">Reviews: {professional.total_reviews || 0}</p>
-          <p className="text-sm text-neutral-600">Bookings: {professional.total_bookings || 0}</p>
-          <p className="text-sm text-neutral-600">Favoritos: {favoritesCount || 0}</p>
+          <p className="text-xl font-semibold text-neutral-900">{formatCurrency(earningsWeek, currency)}</p>
+          <p className="mt-2 text-sm text-neutral-500">Mês</p>
+          <p className="text-lg font-semibold text-neutral-900">{formatCurrency(earningsMonth, currency)}</p>
         </div>
 
         <div className="rounded-2xl border border-neutral-100 bg-white p-5">
           <div className="mb-2 flex items-center gap-2 text-neutral-500">
             <ShieldAlert className="h-4 w-4 text-brand-500" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Saude da conta</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">Saúde da conta</span>
           </div>
-          <p className="text-sm text-neutral-600">Status: {String(professional.status || 'draft')}</p>
-          <p className="text-sm text-neutral-600">
-            Confirmacao: {String(professionalSettings?.confirmation_mode || 'auto_accept')}
-          </p>
-          <p className="text-sm text-neutral-600">
-            Janela agenda: {Number(professionalSettings?.max_booking_window_days || 30)} dias
-          </p>
-          <p className="text-sm text-neutral-600">
-            Excecoes futuras: {availabilityExceptionsCount || 0}
-          </p>
+          <p className="text-sm text-neutral-600">Status: {toUiLabel(professional.status, PROFESSIONAL_STATUS_LABELS)}</p>
+          <p className="text-sm text-neutral-600">Confirmação: {toUiLabel(professionalSettings?.confirmation_mode, CONFIRMATION_MODE_LABELS)}</p>
+          <p className="text-sm text-neutral-600">Janela de agenda: {Number(professionalSettings?.max_booking_window_days || 30)} dias</p>
+          <p className="text-sm text-neutral-600">Exceções futuras: {availabilityExceptionsCount || 0}</p>
         </div>
       </section>
 
       <section className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5" data-testid="professional-quick-actions">
         <div className="mb-4 flex items-center gap-2">
           <Layers className="h-4 w-4 text-brand-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Acoes rapidas</h2>
+          <h2 className="font-display text-lg font-bold text-neutral-900">Ações rápidas</h2>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Link href="/agenda?view=pending" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-            Confirmar pendencias
+          <Link href="/agenda?view=pending" className={`rounded-xl border p-3 text-sm font-medium transition ${pendingConfirmationCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-neutral-200 text-neutral-700 hover:border-brand-300 hover:text-brand-700'}`}>
+            Confirmar pendências {pendingConfirmationCount > 0 && `(${pendingConfirmationCount})`}
           </Link>
-          <Link href="/agenda?view=requests" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-            Responder solicitacoes
+          <Link href="/agenda?view=requests" className={`rounded-xl border p-3 text-sm font-medium transition ${openRequestCount > 0 ? 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100' : 'border-neutral-200 text-neutral-700 hover:border-brand-300 hover:text-brand-700'}`}>
+            Responder solicitações {openRequestCount > 0 && `(${openRequestCount})`}
           </Link>
           <Link href="/disponibilidade" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
             Atualizar disponibilidade
           </Link>
           <Link href="/configuracoes-agendamento" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-            Ajustar regras de booking
+            Ajustar regras de agendamento
           </Link>
           <Link href="/editar-perfil-profissional" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-            Editar servico e perfil
+            Editar serviço e perfil
           </Link>
           <Link href={`/profissional/${professionalId}`} className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-            Preview do perfil publico
+            Visualizar perfil público
           </Link>
           <Link href="/financeiro" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
             Revisar financeiro
@@ -368,20 +365,18 @@ export default async function DashboardPage() {
       <section className="rounded-2xl border border-neutral-100 bg-white p-5" data-testid="professional-upcoming-list">
         <div className="mb-4 flex items-center gap-2">
           <Clock className="h-4 w-4 text-brand-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Proximas sessoes</h2>
+          <h2 className="font-display text-lg font-bold text-neutral-900">Próximas sessões</h2>
         </div>
         {!upcomingBookings || upcomingBookings.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nenhuma sessao agendada para os proximos dias.</p>
+          <p className="text-sm text-neutral-500">Nenhuma sessão agendada para os próximos dias.</p>
         ) : (
           <div className="space-y-2">
             {upcomingBookings.map((booking: Record<string, any>) => (
               <div key={booking.id} className="flex flex-col gap-2 rounded-xl border border-neutral-100 p-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {booking.profiles?.full_name || 'Cliente'}
-                  </p>
+                  <p className="text-sm font-semibold text-neutral-900">{booking.profiles?.full_name || 'Cliente'}</p>
                   <p className="text-xs text-neutral-500">
-                    {formatInTimeZone(new Date(String(booking.scheduled_at)), userTimezone, "EEE, d MMM 'as' HH:mm", {
+                    {formatInTimeZone(new Date(String(booking.scheduled_at)), userTimezone, "EEE, d MMM 'às' HH:mm", {
                       locale: ptBR,
                     })}{' '}
                     · {booking.duration_minutes || 60} min
@@ -389,7 +384,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
-                    {booking.status}
+                    {toUiLabel(booking.status, BOOKING_STATUS_LABELS)}
                   </span>
                   <Link
                     href={`/agenda?booking=${booking.id}`}
@@ -405,7 +400,7 @@ export default async function DashboardPage() {
         )}
         <div className="mt-4 text-right">
           <Link href="/agenda" className="text-xs font-semibold text-brand-700 hover:text-brand-800">
-            Ver calendario completo
+            Ver calendário completo
           </Link>
         </div>
       </section>
@@ -413,29 +408,26 @@ export default async function DashboardPage() {
       <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-neutral-100 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Resumo de trabalho (30 dias)</p>
-          <p className="mt-2 text-sm text-neutral-700">Sessoes concluidas: {completedLast30Count || 0}</p>
+          <p className="mt-2 text-sm text-neutral-700">Sessões concluídas: {completedLast30Count || 0}</p>
           <p className="text-sm text-neutral-700">Cancelamentos: {cancelledLast30Count || 0}</p>
+          <p className="text-sm text-neutral-700">Favoritos: {favoritesCount || 0}</p>
         </div>
         <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Integracao de calendario</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Integração de calendário</p>
           <p className="mt-2 text-sm text-neutral-700">
-            {calendarIntegration?.sync_enabled
-              ? `Conectado (${calendarIntegration.provider || 'google'})`
-              : 'Nao conectado'}
+            {calendarIntegration?.sync_enabled ? `Conectado (${calendarIntegration.provider || 'google'})` : 'Não conectado'}
           </p>
           <p className="text-sm text-neutral-700">
-            Ultimo sync:{' '}
+            Último sync:{' '}
             {calendarIntegration?.last_sync_at
-              ? formatInTimeZone(
-                  new Date(String(calendarIntegration.last_sync_at)),
-                  userTimezone,
-                  "d MMM HH:mm",
-                  { locale: ptBR },
-                )
+              ? formatInTimeZone(new Date(String(calendarIntegration.last_sync_at)), userTimezone, 'd MMM HH:mm', {
+                  locale: ptBR,
+                })
               : 'nunca'}
           </p>
+          <p className="mt-1 text-sm text-neutral-700">Slots ativos: {activeAvailabilityCount || 0}</p>
           <Link href="/agenda?view=settings" className="mt-2 inline-flex text-xs font-semibold text-brand-700 hover:text-brand-800">
-            Abrir configuracoes de calendario
+            Abrir configurações de calendário
           </Link>
         </div>
       </section>
