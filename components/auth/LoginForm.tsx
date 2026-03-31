@@ -1,19 +1,13 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
-
-function sanitizeRedirectPath(value: string | null) {
-  if (!value) return ''
-  if (value === '/') return ''
-  if (!value.startsWith('/') || value.startsWith('//')) return ''
-  return value
-}
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 function mapLoginErrorMessage(rawMessage: string) {
   const normalized = rawMessage.toLowerCase()
@@ -26,15 +20,6 @@ function mapLoginErrorMessage(rawMessage: string) {
   return 'Não foi possível entrar agora. Tente novamente em instantes.'
 }
 
-function getRedirectHint(path: string) {
-  if (!path) return ''
-  if (path.startsWith('/agendar/')) return 'Você vai voltar para concluir o agendamento.'
-  if (path.startsWith('/solicitar/')) return 'Você vai voltar para concluir a solicitação de horário.'
-  if (path.startsWith('/profissional/')) return 'Você vai voltar para o perfil do profissional.'
-  if (path.startsWith('/buscar')) return 'Você vai voltar para a busca.'
-  return 'Você vai voltar para a página anterior.'
-}
-
 type LoginFormProps = {
   redirectTo?: string
   compact?: boolean
@@ -44,17 +29,12 @@ type LoginFormProps = {
   idPrefix?: string
 }
 
-export function LoginForm({ redirectTo, compact, title, subtitle, onSuccess, idPrefix }: LoginFormProps) {
+export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const resolvedIdPrefix = idPrefix || 'login'
   const emailId = `${resolvedIdPrefix}-email`
   const passwordId = `${resolvedIdPrefix}-password`
-
-  const computedRedirectTo = useMemo(() => {
-    if (typeof redirectTo === 'string') return sanitizeRedirectPath(redirectTo) || ''
-    return sanitizeRedirectPath(searchParams.get('redirect'))
-  }, [redirectTo, searchParams])
 
   const oauthError = searchParams.get('erro')
   const [email, setEmail] = useState('')
@@ -87,13 +67,11 @@ export function LoginForm({ redirectTo, compact, title, subtitle, onSuccess, idP
       data: { user },
     } = await supabase.auth.getUser()
 
-    let destination = computedRedirectTo || '/buscar'
+    let destination = '/buscar'
     if (user) {
       identifyEventUser(user.id, { email: user.email || email })
-      if (!computedRedirectTo) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        destination = profile?.role === 'profissional' ? '/dashboard' : '/buscar'
-      }
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      destination = resolvePostLoginDestination(profile?.role)
     }
 
     captureEvent('auth_login_succeeded')
@@ -106,12 +84,6 @@ export function LoginForm({ redirectTo, compact, title, subtitle, onSuccess, idP
     <div>
       {title && <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">{title}</h1>}
       {subtitle && <p className="text-neutral-500 mb-8">{subtitle}</p>}
-
-      {!compact && computedRedirectTo && (
-        <div className="mb-5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700" role="status">
-          {getRedirectHint(computedRedirectTo)}
-        </div>
-      )}
 
       <form onSubmit={handleLogin} className="space-y-4" noValidate>
         <div>
@@ -183,19 +155,20 @@ export function LoginForm({ redirectTo, compact, title, subtitle, onSuccess, idP
           <span className="text-xs text-neutral-400 font-medium">ou entre com</span>
           <div className="flex-1 h-px bg-neutral-200" />
         </div>
-        <SocialAuthButtons redirectPath={computedRedirectTo} roleHint="usuario" />
+        <SocialAuthButtons roleHint="usuario" />
       </div>
 
-      <p className="text-center text-sm text-neutral-500 mt-6">
-        Não tem uma conta?{' '}
-        <Link
-          href="/cadastro"
-          className="rounded-md text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
-        >
-          Cadastre-se
-        </Link>
-      </p>
+      {!compact && (
+        <p className="text-center text-sm text-neutral-500 mt-6">
+          Não tem uma conta?{' '}
+          <Link
+            href="/cadastro"
+            className="rounded-md text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+          >
+            Cadastre-se
+          </Link>
+        </p>
+      )}
     </div>
   )
 }
-

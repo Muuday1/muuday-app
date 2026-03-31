@@ -80,6 +80,11 @@ Dependencies:
 - tags expand/collapse interaction works on desktop (hover title + expand button) and mobile (tap button).
 - session-duration badge remains removed.
 - secondary card action is `Mandar mensagem` and redirects to login when visitor is not authenticated.
+12.4 Validate login destination policy by role in production:
+- profissional -> always `/dashboard`.
+- usuario -> always `/buscar`.
+- admin -> always `/buscar`.
+- verify both password login and Google OAuth callback.
 13. Run production sanity pass after role-routing hotfix:
 - professional account login lands at `/dashboard`
 - admin account login lands at `/buscar` (with `/admin` still available)

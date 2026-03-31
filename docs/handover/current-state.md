@@ -255,3 +255,8 @@ Wave-driven delivery is now mandatory:
 - card secondary action changed to `Mandar mensagem`; destination routed to protected `/mensagens`.
 - middleware updated to protect `/mensagens` so unauthenticated users are asked to login only when taking protected action.
 - technical gate pass: `lint`, `typecheck`, `build`, `test:state-machines`.
+79. Post-login destination behavior is now fixed by role:
+- professional accounts are always routed to `/dashboard` after login.
+- user and admin accounts are always routed to `/buscar` after login.
+- this rule applies to password login and OAuth callback.
+- login modal/page text adjusted to avoid promising return to action-specific routes.

@@ -149,6 +149,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - replaced secondary search-card CTA from `Solicitar horário` to `Mandar mensagem`.
 - added protected route `/mensagens` as a functional destination for message intent and preserved login-gate behavior for unauthenticated users.
 - validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
+51. Login routing policy hardened across password and OAuth:
+- professional login always redirects to `/dashboard`.
+- user and admin login always redirect to `/buscar` (member shell).
+- callback and login forms no longer honor arbitrary `redirect` targets for post-login destination.
+- modal login copy updated to reflect role-based destination behavior.
+- validation run: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:state-machines` all green.
 
 ## Immediate next actions
 

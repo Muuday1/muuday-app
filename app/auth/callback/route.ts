@@ -1,23 +1,16 @@
 ﻿import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAppBaseUrl } from '@/lib/config/app-url'
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 function getBaseUrl() {
   return getAppBaseUrl()
-}
-
-function sanitizeRedirectPath(value: string | null) {
-  if (!value) return ''
-  if (value === '/') return ''
-  if (!value.startsWith('/') || value.startsWith('//')) return ''
-  return value
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error')
-  const nextPath = sanitizeRedirectPath(searchParams.get('next'))
   const roleHint = searchParams.get('role') === 'profissional' ? 'profissional' : 'usuario'
   const baseUrl = getBaseUrl()
 
@@ -70,17 +63,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/completar-conta`)
   }
 
-  if (nextPath && profile.role !== 'profissional') {
-    return NextResponse.redirect(`${baseUrl}${nextPath}`)
-  }
-
-  if (profile.role === 'profissional') {
-    return NextResponse.redirect(`${baseUrl}/dashboard`)
-  }
-
-  if (profile.role === 'admin') {
-    return NextResponse.redirect(`${baseUrl}/buscar`)
-  }
-
-  return NextResponse.redirect(`${baseUrl}/buscar`)
+  return NextResponse.redirect(`${baseUrl}${resolvePostLoginDestination(profile.role)}`)
 }

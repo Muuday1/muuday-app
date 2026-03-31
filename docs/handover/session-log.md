@@ -463,3 +463,16 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
+
+### Entry 40 (2026-03-31) — Fixed post-login routing by role
+- Added `lib/auth/post-login-destination.ts` and centralized post-login routing policy.
+- Enforced fixed destinations for all login paths:
+  - `profissional` -> `/dashboard`
+  - `usuario` and `admin` -> `/buscar`
+- Applied policy to password login surfaces (`/login` page and shared `LoginForm`) and OAuth callback (`/auth/callback`).
+- Removed action-return messaging in search modal login to match new routing policy.
+- Validation run:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅

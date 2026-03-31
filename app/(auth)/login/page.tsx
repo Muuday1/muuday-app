@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -7,13 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
-
-function sanitizeRedirectPath(value: string | null) {
-  if (!value) return ''
-  if (value === '/') return ''
-  if (!value.startsWith('/') || value.startsWith('//')) return ''
-  return value
-}
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 function mapLoginErrorMessage(rawMessage: string) {
   const normalized = rawMessage.toLowerCase()
@@ -26,19 +20,9 @@ function mapLoginErrorMessage(rawMessage: string) {
   return 'Não foi possível entrar agora. Tente novamente em instantes.'
 }
 
-function getRedirectHint(path: string) {
-  if (!path) return ''
-  if (path.startsWith('/agendar/')) return 'Você vai voltar para concluir o agendamento.'
-  if (path.startsWith('/solicitar/')) return 'Você vai voltar para concluir a solicitação de horário.'
-  if (path.startsWith('/profissional/')) return 'Você vai voltar para o perfil do profissional.'
-  if (path.startsWith('/buscar')) return 'Você vai voltar para a busca.'
-  return 'Você vai voltar para a página anterior.'
-}
-
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = sanitizeRedirectPath(searchParams.get('redirect'))
   const oauthError = searchParams.get('erro')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -70,17 +54,11 @@ function LoginPageContent() {
       data: { user },
     } = await supabase.auth.getUser()
 
-    let destination = redirectTo || '/buscar'
+    let destination = '/buscar'
     if (user) {
       identifyEventUser(user.id, { email: user.email || email })
-      if (!redirectTo) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-        destination = profile?.role === 'profissional' ? '/dashboard' : '/buscar'
-      }
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      destination = resolvePostLoginDestination(profile?.role)
     }
 
     captureEvent('auth_login_succeeded')
@@ -92,12 +70,6 @@ function LoginPageContent() {
     <div>
       <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Bem-vindo de volta</h1>
       <p className="text-neutral-500 mb-8">Entre na sua conta Muuday</p>
-
-      {redirectTo && (
-        <div className="mb-5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700" role="status">
-          {getRedirectHint(redirectTo)}
-        </div>
-      )}
 
       <form onSubmit={handleLogin} className="space-y-4" noValidate>
         <div>
@@ -154,7 +126,7 @@ function LoginPageContent() {
           <span className="text-xs text-neutral-400 font-medium">ou entre com</span>
           <div className="flex-1 h-px bg-neutral-200" />
         </div>
-        <SocialAuthButtons redirectPath={redirectTo} roleHint="usuario" />
+        <SocialAuthButtons roleHint="usuario" />
       </div>
 
       <p className="text-center text-sm text-neutral-500 mt-6">

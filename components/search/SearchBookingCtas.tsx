@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { AuthOverlay } from '@/components/auth/AuthOverlay'
 import { LoginForm } from '@/components/auth/LoginForm'
 
@@ -20,10 +20,6 @@ export function SearchBookingCtas({
 }: SearchBookingCtasProps) {
   const [open, setOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction>('book')
-
-  const redirectTo = useMemo(() => {
-    return pendingAction === 'message' ? messageHref : bookHref
-  }, [pendingAction, messageHref, bookHref])
 
   if (isLoggedIn) {
     return (
@@ -73,12 +69,11 @@ export function SearchBookingCtas({
         <LoginForm
           title="Entre para continuar"
           subtitle="Faça login para concluir esta ação."
-          redirectTo={redirectTo}
           idPrefix={`search-modal-${pendingAction}`}
           onSuccess={() => setOpen(false)}
         />
         <p className="mt-4 text-center text-xs text-neutral-500">
-          Você vai voltar para {pendingAction === 'message' ? 'mandar mensagem' : 'agendar'} depois do login.
+          Após o login, você será direcionado para sua área.
         </p>
       </AuthOverlay>
     </>
