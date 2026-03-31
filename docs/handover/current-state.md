@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 28)
+Last updated: 2026-03-31 (session 29)
 
 ## Canonical baseline status
 
@@ -164,7 +164,7 @@ Last updated: 2026-03-31 (session 28)
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
 4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
-5. E2E professional workspace failures observed when running against remote `E2E_BASE_URL` can reflect outdated deployed code; local code quality gates are currently green (`typecheck`, `lint`, `build`).
+5. Booking E2E coverage still has environment-dependent skips when the configured professional is blocked by first-booking gate or when `E2E_MANUAL_PROFESSIONAL_ID` is not configured.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
@@ -210,3 +210,12 @@ Wave-driven delivery is now mandatory:
 - mobile booking CTA now preserves auth flow for logged-out visitors.
 70. Favorites recovery:
 - remove action now returns explicit success/error feedback + aria-live status.
+71. Recovery E2E stability patch applied:
+- booking helper now treats `/profissional/:id?erro=primeiro-agendamento-bloqueado` as environment skip (no false failure).
+- professional settings workspace test now uses unambiguous `Calendario` selector.
+72. Recovery technical gate re-run completed successfully:
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run build` ✅
+- `npm run test:state-machines` ✅
+- `npm run test:e2e` ✅ (`4 passed`, `3 skipped`, `0 failed`).

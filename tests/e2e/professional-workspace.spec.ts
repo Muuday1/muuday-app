@@ -49,7 +49,7 @@ test.describe('Professional workspace role split', () => {
 
     await expect(page.getByRole('heading', { name: 'Configuracoes do negocio' })).toBeVisible()
     await expect(page.getByRole('link', { name: /Perfil e servicos/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: /Calendario/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Calendario', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: /Regras de booking/i })).toBeVisible()
   })
 })

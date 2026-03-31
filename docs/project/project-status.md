@@ -114,6 +114,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 44. Professional journey resilience hardened for duplicate profile rows:
 - added canonical professional resolver (`lib/professional/current-professional.ts`) and replaced `user_id`-based `.single()`/`.maybeSingle()` usage in critical professional routes/actions.
 - prevents professional workspace fallback to user flow when multiple `professionals` records exist for one account.
+45. Recovery technical gate revalidated on `codex/recovery-sprint-ux-stability`:
+- fixed E2E selector drift in professional workspace tests.
+- hardened booking E2E helper to treat `primeiro-agendamento-bloqueado` redirect as environment skip.
+- green checks: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` (4 passed, 3 skipped).
 
 ## Immediate next actions
 
@@ -126,7 +130,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 4. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
 5. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
 6. Prepare Stripe corridor validation packet and run external confirmation process.
-7. Run full professional workspace acceptance suite with dedicated professional credentials (`E2E_PROFESSIONAL_EMAIL` / `E2E_PROFESSIONAL_PASSWORD`) to unskip professional e2e checks.
+7. Set `.env.local` for full booking E2E coverage:
+- keep `E2E_PROFESSIONAL_EMAIL` / `E2E_PROFESSIONAL_PASSWORD`
+- add a professional ID with first-booking gate open for booking form assertions
+- add `E2E_MANUAL_PROFESSIONAL_ID` for manual-confirmation assertions.
 
 ## Continuity rule
 

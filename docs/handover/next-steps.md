@@ -41,6 +41,7 @@ Dependencies:
 - verify signup UX changes (icons, full countries, confirm password, expanded professional fields) in desktop/mobile
 - verify logout now returns to landing page
 - verify seeded fantasy professionals are visible in `/buscar` and filters
+- automated gate status: `lint/typecheck/build/test:state-machines/test:e2e` green on branch `codex/recovery-sprint-ux-stability` (booking tests still skip when env IDs are not fully provisioned).
 
 1. ~~Enforce dual gate model for professionals (go-live vs first-booking eligibility).~~ Done (migration 013 + admin toggle + booking guard).
 2. ~~Finish request-booking lifecycle, proposal expiration, and conversion flow (foundation).~~ Done (migration 014 + `/solicitar` + `/agenda` queue/actions + conversion).
@@ -128,3 +129,6 @@ Dependencies:
 5. Validate professional profile mobile sticky CTA for logged-out and logged-in states.
 6. Validate favorites removal feedback and keyboard/focus accessibility in critical screens.
 7. After checklist is green, resume Wave 2 backlog items (recurring deadlines/slot release + onboarding C1-C10 e2e parity).
+8. Configure deterministic booking E2E fixtures in `.env.local`:
+- `E2E_PROFESSIONAL_ID` pointing to an approved professional with first-booking gate open.
+- `E2E_MANUAL_PROFESSIONAL_ID` pointing to an approved professional in `manual_confirmation` mode.

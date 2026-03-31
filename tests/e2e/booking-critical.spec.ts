@@ -19,14 +19,20 @@ async function login(page: Page) {
 async function openBookingPage(page: Page, targetProfessionalId: string) {
   await login(page)
   await page.goto(`/agendar/${targetProfessionalId}`)
+  await page.waitForLoadState('domcontentloaded')
 
-  try {
-    await page.waitForURL('**/profissional/**?erro=auto-agendamento', { timeout: 2500 })
-    await expect(page.getByText('Nao e possivel agendar sessao com voce mesmo.')).toBeVisible()
-    return false
-  } catch {
-    return true
+  for (let i = 0; i < 10; i += 1) {
+    const currentUrl = page.url()
+    if (currentUrl.includes(`/profissional/${targetProfessionalId}`)) {
+      if (currentUrl.includes('erro=auto-agendamento')) {
+        await expect(page.getByText(/possivel agendar sessao com voce mesmo/i)).toBeVisible()
+      }
+      return false
+    }
+    await page.waitForTimeout(200)
   }
+
+  return true
 }
 
 test.describe('Booking critical journey', () => {

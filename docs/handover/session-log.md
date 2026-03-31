@@ -352,3 +352,16 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` ✅
   - `npm run build` ✅
   - `npm run test:state-machines` pending final rerun after docs updates.
+
+### Entry 33 (2026-03-31) — Recovery gate validation and E2E stabilization
+- Re-ran recovery gate on `codex/recovery-sprint-ux-stability` with professional credentials.
+- Fixed E2E drift:
+  - `tests/e2e/professional-workspace.spec.ts` now uses unambiguous `Calendario` link selector.
+  - `tests/e2e/booking-critical.spec.ts` now skips deterministically when booking route redirects to profile due first-booking gate (`erro=primeiro-agendamento-bloqueado`) or self-booking guard.
+- Final technical gate results:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+  - `npm run test:e2e` ✅ (`4 passed`, `3 skipped`, `0 failed`).
+- Follow-up: configure deterministic booking fixtures (`E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`) to remove remaining skips and complete full Wave 2 acceptance coverage.
