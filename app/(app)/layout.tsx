@@ -90,7 +90,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               href="/login"
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold transition-all"
             >
-              Entrar
+              Login
             </Link>
           )}
         </div>
@@ -126,7 +126,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 href="/login"
                 className="h-8 px-3 rounded-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold transition-all flex items-center"
               >
-                Entrar
+                Login
               </Link>
             )}
           </div>

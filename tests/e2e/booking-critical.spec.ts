@@ -12,7 +12,7 @@ async function login(page: Page) {
   await page.goto('/login')
   await page.locator('input[type="email"]').first().fill(email || '')
   await page.locator('input[type="password"]').first().fill(password || '')
-  await page.getByRole('button', { name: 'Entrar' }).click()
+  await page.getByRole('button', { name: 'Login' }).click()
   await page.waitForURL('**/buscar')
 }
 

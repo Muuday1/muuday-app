@@ -135,7 +135,7 @@ export function PublicHeader({
                 href="/login"
                 className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
-                Entrar
+                Login
               </Link>
             )}
           </div>
@@ -211,7 +211,7 @@ export function PublicHeader({
                 onClick={() => setMenuOpen(false)}
                 className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
-                Entrar
+                Login
               </Link>
             )}
           </nav>
