@@ -36,14 +36,14 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
     profile?.role === 'admin' ? '/admin' : profile?.role === 'profissional' ? '/dashboard' : '/buscar'
 
   return (
-    <div className="min-h-screen bg-[#f6f4ef] text-neutral-900">
+    <div className="min-h-screen bg-[#f6f4ef] text-neutral-900 flex flex-col">
       <PublicHeader
         isLoggedIn={Boolean(user)}
         loggedInHref={loggedInHref}
         initialLanguage={initialLanguage}
         initialCurrency={initialCurrency}
       />
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
       <PublicFooter />
     </div>
   )

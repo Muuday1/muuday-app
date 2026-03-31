@@ -9,6 +9,8 @@ import { cookies, headers } from 'next/headers'
 import { Search, Star, Clock, MapPin, SlidersHorizontal, Languages } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { MobileFiltersDrawer } from '@/components/search/MobileFiltersDrawer'
+import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
+import { PriceRangeSlider } from '@/components/search/PriceRangeSlider'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -177,6 +179,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  const isLoggedIn = Boolean(user)
   const adminSupabase = !user ? createAdminClient() : null
   const readClient = adminSupabase || supabase
   const cookieStore = cookies()
@@ -406,6 +409,12 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const endIndex = startIndex + PAGE_SIZE
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
 
+  const maxPriceCurrency = Math.max(
+    0,
+    ...professionals.map((pro: any) => Number(pro.session_price_brl || 0) * selectedCurrencyRate),
+  )
+  const priceSliderMax = Math.max(50, Math.ceil(maxPriceCurrency / 10) * 10)
+
   const buildHref = (overrides: Partial<Record<keyof BuscarSearchParams, string>>) => {
     const merged: Partial<Record<keyof BuscarSearchParams, string>> = { ...queryState, ...overrides }
 
@@ -470,19 +479,20 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         <div className="px-4 py-3 md:hidden">
           <MobileFiltersDrawer
             action="/buscar"
-            hiddenInputs={toHiddenInputs({ ...queryState, pagina: '1' }, ['q', 'ordenar', 'pagina', 'moeda'])}
+            hiddenInputs={toHiddenInputs({ ...queryState, pagina: '1' }, ['pagina', 'moeda', 'localizacao'])}
             hasActiveFilters={hasActiveFilters}
+            queryText={queryText}
             selectedCategory={selectedCategory}
             selectedSpecialty={selectedSpecialty}
             selectedAvailability={selectedAvailability}
-            selectedLocation={selectedLocation}
             selectedLanguage={selectedLanguage}
+            selectedSort={selectedSort}
             minPrice={searchParams.precoMin || ''}
             maxPrice={searchParams.precoMax || ''}
             selectedCurrencyLabel={selectedCurrencyLabel}
+            priceMax={priceSliderMax}
             categoryOptions={categoryOptions.map(category => ({ slug: category.slug, name: category.name }))}
             specialtyOptions={specialtyOptions}
-            locationOptions={locationOptions}
             languageOptions={languageOptions}
           />
         </div>
@@ -494,11 +504,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
           ).map(([key, value]) => (
             <input key={key} type="hidden" name={key} value={value} />
           ))}
-          <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800 mb-4">
-            <SlidersHorizontal className="w-4 h-4 text-brand-500" />
-            Filtros
-          </div>
-
           <div className="grid grid-cols-2 xl:grid-cols-12 gap-3 items-end">
             <div className="xl:col-span-2">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
@@ -520,14 +525,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
               </select>
             </div>
 
-            <div className="xl:col-span-1">
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço mín ({selectedCurrencyLabel})</label>
-              <input type="number" name="precoMin" min={0} step="10" defaultValue={searchParams.precoMin || ''} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20" />
-            </div>
-
-            <div className="xl:col-span-1">
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço máx ({selectedCurrencyLabel})</label>
-              <input type="number" name="precoMax" min={0} step="10" defaultValue={searchParams.precoMax || ''} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20" />
+            <div className="xl:col-span-4">
+              <PriceRangeSlider
+                minLimit={0}
+                maxLimit={priceSliderMax}
+                step={10}
+                initialMin={parseOptionalNumber(searchParams.precoMin) ?? 0}
+                initialMax={parseOptionalNumber(searchParams.precoMax) ?? priceSliderMax}
+                currencyLabel={selectedCurrencyLabel}
+                nameMin="precoMin"
+                nameMax="precoMax"
+              />
             </div>
 
             <div className="xl:col-span-2">
@@ -540,25 +548,30 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             </div>
 
             <div className="xl:col-span-2">
-              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localização</label>
-              <select name="localizacao" defaultValue={selectedLocation} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
-                <option value="">Todos os países</option>
-                {locationOptions.map(location => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="xl:col-span-2">
               <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
                 <Languages className="w-3.5 h-3.5" />
-                Idiomas falados
+                Idioma secundário
               </label>
               <select name="idioma" defaultValue={selectedLanguage} className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20">
                 <option value="qualquer">Qualquer idioma</option>
                 {languageOptions.map(language => (
                   <option key={language} value={language}>{language}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="xl:col-span-2">
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">Ordenar</label>
+              <select
+                name="ordenar"
+                defaultValue={selectedSort}
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+              >
+                <option value="relevancia">Relevância</option>
+                <option value="melhor-avaliacao">Melhor avaliação</option>
+                <option value="mais-agendados">Mais agendados</option>
+                <option value="preco-menor">Menor preço</option>
+                <option value="preco-maior">Maior preço</option>
               </select>
             </div>
 
@@ -585,27 +598,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
-              {[
-                { value: 'relevancia', label: 'Relevância' },
-                { value: 'melhor-avaliacao', label: 'Melhor avaliação' },
-                { value: 'mais-agendados', label: 'Mais agendados' },
-                { value: 'preco-menor', label: 'Menor preço' },
-                { value: 'preco-maior', label: 'Maior preço' },
-              ].map(sortOption => (
-                <Link
-                  key={sortOption.value}
-                  href={buildHref({ ordenar: sortOption.value, pagina: '1' })}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    selectedSort === sortOption.value
-                      ? 'bg-neutral-900 border-neutral-900 text-white'
-                      : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
-                >
-                  {sortOption.label}
-                </Link>
-              ))}
-            </div>
           </div>
 
           {pagedProfessionals.length === 0 ? (
@@ -632,76 +624,87 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {pagedProfessionals.map((professional: any) => (
-                  <Link
+                  <div
                     key={professional.id}
-                    href={`/profissional/${professional.id}`}
                     className="rounded-2xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 md:p-5"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
-                        {professional.profiles?.full_name?.charAt(0) || 'P'}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="font-semibold text-neutral-900 leading-tight">
-                              {professional.profiles?.full_name || 'Profissional'}
-                            </h3>
-                            <p className="text-xs text-neutral-500 mt-1">
-                              {getSearchCategoryLabel(professional.category)}
-                            </p>
-                            {professional.tier && professional.tier !== 'basic' && (
-                              <span
-                                className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                                  professional.tier === 'premium'
-                                    ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700'
-                                    : 'border-blue-200 bg-blue-50 text-blue-700'
-                                }`}
-                              >
-                                {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-neutral-900">
-                              {formatCurrency(professional.session_price_brl, selectedCurrency)}
-                            </p>
-                            <p className="text-[11px] text-neutral-400">por sessão</p>
-                          </div>
+                    <Link
+                      href={`/profissional/${professional.id}`}
+                      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 rounded-2xl"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
+                          {professional.profiles?.full_name?.charAt(0) || 'P'}
                         </div>
 
-                        <p className="text-sm text-neutral-600 mt-3 line-clamp-2">
-                          {professional.bio || 'Profissional verificado pronto para te atender.'}
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
-                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">
-                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                            {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
-                            <Clock className="w-3 h-3" />
-                            {professional.session_duration_minutes || 60} min
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
-                            <MapPin className="w-3 h-3" />
-                            {getCountryDisplayName(professional.profiles?.country)}
-                          </span>
-                        </div>
-
-                        {(professional.languages || []).length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
-                            {(professional.languages || []).slice(0, 3).map((language: string) => (
-                              <span key={language} className="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-full">
-                                {language}
-                              </span>
-                            ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="font-semibold text-neutral-900 leading-tight">
+                                {professional.profiles?.full_name || 'Profissional'}
+                              </h3>
+                              <p className="text-xs text-neutral-500 mt-1">
+                                {getSearchCategoryLabel(professional.category)}
+                              </p>
+                              {professional.tier && professional.tier !== 'basic' && (
+                                <span
+                                  className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                    professional.tier === 'premium'
+                                      ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700'
+                                      : 'border-blue-200 bg-blue-50 text-blue-700'
+                                  }`}
+                                >
+                                  {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-neutral-900">
+                                {formatCurrency(professional.session_price_brl, selectedCurrency)}
+                              </p>
+                              <p className="text-[11px] text-neutral-400">por sessão</p>
+                            </div>
                           </div>
-                        )}
+
+                          <p className="text-sm text-neutral-600 mt-3 line-clamp-2">
+                            {professional.bio || 'Profissional verificado pronto para te atender.'}
+                          </p>
+
+                          <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
+                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              {professional.rating > 0 ? professional.rating.toFixed(1) : 'Novo'}
+                            </span>
+                            <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
+                              <Clock className="w-3 h-3" />
+                              {professional.session_duration_minutes || 60} min
+                            </span>
+                            <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
+                              <MapPin className="w-3 h-3" />
+                              {getCountryDisplayName(professional.profiles?.country)}
+                            </span>
+                          </div>
+
+                          {(professional.languages || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {(professional.languages || []).slice(0, 3).map((language: string) => (
+                                <span key={language} className="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-full">
+                                  {language}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+
+                    <SearchBookingCtas
+                      isLoggedIn={isLoggedIn}
+                      bookHref={`/agendar/${professional.id}`}
+                      requestHref={`/solicitar/${professional.id}`}
+                      requestEnabled={['professional', 'premium'].includes(String(professional.tier || 'basic'))}
+                    />
+                  </div>
                 ))}
               </div>
 

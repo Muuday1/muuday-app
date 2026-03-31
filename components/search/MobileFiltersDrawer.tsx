@@ -1,9 +1,10 @@
 'use client'
 
-import { Languages, SlidersHorizontal, X } from 'lucide-react'
+import { Languages, Search, SlidersHorizontal, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { AVAILABILITY_WINDOWS } from '@/lib/search-config'
+import { PriceRangeSlider } from '@/components/search/PriceRangeSlider'
 
 type HiddenInputs = Record<string, string>
 
@@ -11,17 +12,18 @@ type MobileFiltersDrawerProps = {
   action: string
   hiddenInputs: HiddenInputs
   hasActiveFilters: boolean
+  queryText: string
   selectedCategory: string
   selectedSpecialty: string
   selectedAvailability: string
-  selectedLocation: string
   selectedLanguage: string
+  selectedSort: string
   minPrice: string
   maxPrice: string
   selectedCurrencyLabel: string
+  priceMax: number
   categoryOptions: Array<{ slug: string; name: string }>
   specialtyOptions: string[]
-  locationOptions: string[]
   languageOptions: string[]
 }
 
@@ -29,17 +31,18 @@ export function MobileFiltersDrawer({
   action,
   hiddenInputs,
   hasActiveFilters,
+  queryText,
   selectedCategory,
   selectedSpecialty,
   selectedAvailability,
-  selectedLocation,
   selectedLanguage,
+  selectedSort,
   minPrice,
   maxPrice,
   selectedCurrencyLabel,
+  priceMax,
   categoryOptions,
   specialtyOptions,
-  locationOptions,
   languageOptions,
 }: MobileFiltersDrawerProps) {
   const [open, setOpen] = useState(false)
@@ -59,12 +62,12 @@ export function MobileFiltersDrawer({
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-        aria-label="Abrir filtros"
+        aria-label="Refinar busca"
         aria-expanded={open}
         aria-controls="mobile-filters-drawer"
       >
         <SlidersHorizontal className="w-4 h-4 text-brand-500" />
-        Filtros
+        Refinar
         {hasActiveFilters && (
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" aria-hidden="true">
           </span>
@@ -77,7 +80,7 @@ export function MobileFiltersDrawer({
           className="fixed inset-0 z-40"
           role="dialog"
           aria-modal="true"
-          aria-label="Filtros de busca"
+          aria-label="Refinar busca"
         >
           <button
             type="button"
@@ -90,7 +93,7 @@ export function MobileFiltersDrawer({
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
                 <SlidersHorizontal className="w-4 h-4 text-brand-500" />
-                Filtros
+                Refinar
               </div>
               <button
                 type="button"
@@ -106,6 +109,20 @@ export function MobileFiltersDrawer({
               {Object.entries(hiddenInputs).map(([key, value]) => (
                 <input key={key} type="hidden" name={key} value={value} />
               ))}
+
+              <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Buscar</label>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    name="q"
+                    defaultValue={queryText}
+                    placeholder="Nome, especialidade, categoria…"
+                    className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm text-neutral-900 placeholder-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  />
+                </div>
+              </div>
 
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
@@ -136,29 +153,17 @@ export function MobileFiltersDrawer({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço mín ({selectedCurrencyLabel})</label>
-                  <input
-                    type="number"
-                    name="precoMin"
-                    min={0}
-                    step="10"
-                    defaultValue={minPrice}
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-neutral-500 mb-1.5">Preço máx ({selectedCurrencyLabel})</label>
-                  <input
-                    type="number"
-                    name="precoMax"
-                    min={0}
-                    step="10"
-                    defaultValue={maxPrice}
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
-                  />
-                </div>
+              <div className="rounded-2xl border border-neutral-200 bg-white px-3 py-2.5">
+                <PriceRangeSlider
+                  minLimit={0}
+                  maxLimit={priceMax}
+                  step={10}
+                  initialMin={Number(minPrice || 0)}
+                  initialMax={Number(maxPrice || priceMax)}
+                  currencyLabel={selectedCurrencyLabel}
+                  nameMin="precoMin"
+                  nameMax="precoMax"
+                />
               </div>
 
               <div>
@@ -175,23 +180,9 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Localização</label>
-                <select
-                  name="localizacao"
-                  defaultValue={selectedLocation}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
-                >
-                  <option value="">Todos os países</option>
-                  {locationOptions.map(location => (
-                    <option key={location} value={location}>{location}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
                   <Languages className="w-3.5 h-3.5" />
-                  Idiomas falados
+                  Idioma secundário
                 </label>
                 <select
                   name="idioma"
@@ -205,13 +196,28 @@ export function MobileFiltersDrawer({
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Ordenar</label>
+                <select
+                  name="ordenar"
+                  defaultValue={selectedSort}
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                >
+                  <option value="relevancia">Relevância</option>
+                  <option value="melhor-avaliacao">Melhor avaliação</option>
+                  <option value="mais-agendados">Mais agendados</option>
+                  <option value="preco-menor">Menor preço</option>
+                  <option value="preco-maior">Maior preço</option>
+                </select>
+              </div>
+
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="submit"
                   onClick={() => setOpen(false)}
                   className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
-                  Aplicar filtros
+                  Ver resultados
                 </button>
                 <Link
                   href="/buscar"
