@@ -10,6 +10,7 @@ out/
 tsconfig.tsbuildinfo
 tsconfig.typecheck.tsbuildinfo
 .claude/
+.cursor/
 
 # Local generated automation/browser artifacts
 .playwright-cli/
