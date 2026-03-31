@@ -22,9 +22,11 @@ import {
   RotateCcw,
   FolderTree,
 } from 'lucide-react'
+import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 type AdminProfessional = {
   id: string
+  public_code?: number | null
   user_id: string
   status: string
   first_booking_enabled: boolean
@@ -661,7 +663,11 @@ export default function AdminPage() {
                             )}
 
                             <a
-                              href={`/profissional/${pro.id}`}
+                              href={buildProfessionalProfilePath({
+                                id: pro.id,
+                                fullName: pro.profiles?.full_name,
+                                publicCode: pro.public_code,
+                              })}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-neutral-200 hover:border-brand-300 text-neutral-700 rounded-xl text-sm font-medium transition-all"

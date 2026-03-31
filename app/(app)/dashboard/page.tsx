@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
   'pending',
@@ -350,7 +351,14 @@ export default async function DashboardPage() {
           <Link href="/editar-perfil-profissional" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
             Editar serviço e perfil
           </Link>
-          <Link href={`/profissional/${professionalId}`} className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+          <Link
+            href={buildProfessionalProfilePath({
+              id: professionalId,
+              fullName: profile.full_name,
+              publicCode: professional.public_code,
+            })}
+            className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+          >
             Visualizar perfil público
           </Link>
           <Link href="/financeiro" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">

@@ -1,10 +1,11 @@
 ﻿import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getAppBaseUrl } from '@/lib/config/app-url'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
-function getBaseUrl() {
-  return getAppBaseUrl()
+function getBaseUrl(request: NextRequest) {
+  // Keep OAuth callback on the same origin that started the login flow.
+  // This avoids cookie/domain drift between custom domain and vercel domain.
+  return request.nextUrl.origin
 }
 
 export async function GET(request: NextRequest) {
@@ -12,13 +13,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error')
   const roleHint = searchParams.get('role') === 'profissional' ? 'profissional' : 'usuario'
-  const baseUrl = getBaseUrl()
+  const baseUrl = getBaseUrl(request)
 
-  if (oauthError) {
-    return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
-  }
-
-  if (!code) {
+  if (oauthError || !code) {
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
 
@@ -49,14 +46,26 @@ export async function GET(request: NextRequest) {
       user.email?.split('@')[0] ||
       'Usuário'
 
-    await supabase.from('profiles').insert({
+    await supabase.from('profiles').upsert({
       id: user.id,
       email: user.email || '',
       full_name: String(fullName),
       role: roleHint,
     })
 
-    return NextResponse.redirect(`${baseUrl}/completar-conta`)
+    const { data: profileAfterUpsert } = await supabase
+      .from('profiles')
+      .select('country, role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!profileAfterUpsert?.country) {
+      return NextResponse.redirect(`${baseUrl}/completar-conta`)
+    }
+
+    return NextResponse.redirect(
+      `${baseUrl}${resolvePostLoginDestination(profileAfterUpsert.role)}`,
+    )
   }
 
   if (!profile.country) {

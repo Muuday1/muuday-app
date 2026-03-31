@@ -493,3 +493,32 @@ Use this for meaningful checkpoints only.
 ### Entry 42 (2026-03-31) — Search card subtitle with dynamic session duration
 - Updated `/buscar` card subtitle from `por sessão` to `por sessão de X min`.
 - Duration now reads from `session_duration_minutes` with fallback `60`.
+
+### Entry 38 (2026-03-31) — Public profile permalink foundation (`nome-1234`)
+- Added canonical profile URL helper `lib/professional/public-profile-url.ts` with slug generation, 4-digit code normalization, and legacy UUID compatibility.
+- Updated profile link generation in critical surfaces: `/buscar`, `/favoritos`, `/dashboard`, `/admin`, and `/mensagens`.
+- Updated `/profissional/[id]` to resolve both URL formats: legacy UUID and new slug+code (`nome-1234`).
+- Added DB migration `016-professional-public-profile-code.sql`:
+  - adds `professionals.public_code`
+  - backfills unique 4-digit codes for existing rows
+  - adds uniqueness/range constraints
+  - adds insert trigger to auto-assign new codes.
+- Updated schema snapshot through migration 016.
+- Validation run passed: `lint`, `typecheck`, `build`, `test:state-machines`.
+- Follow-up: apply migration 016 in production before expecting canonical slug URLs for all existing professional profiles.
+
+### Entry 39 (2026-03-31) — Public header auth-state correction (`Minha área`)
+- Fixed public header login-state behavior after authentication.
+- `components/public/PublicHeader.tsx` now checks session client-side and subscribes to auth state changes.
+- Logged-in state now reliably hides `Login/Criar conta` and shows `Minha área`.
+- Portuguese label standardized with accent (`Minha área`).
+- Validation passed: `lint`, `typecheck`, `build`, `test:state-machines`.
+
+### Entry 40 (2026-03-31) — Google OAuth login loop fix
+- Fixed OAuth callback redirect origin handling in `app/auth/callback/route.ts`.
+- Callback now uses `request.nextUrl.origin` instead of static app base URL to avoid cross-domain cookie loss.
+- Hardened first-login profile bootstrap with `upsert` before destination routing.
+- Role-based post-login destination preserved for all methods:
+  - `profissional` -> `/dashboard`
+  - `usuario/admin` -> `/buscar`
+- Validation passed: `lint`, `typecheck`, `build`, `test:state-machines`.

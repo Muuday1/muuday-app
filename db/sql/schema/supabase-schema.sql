@@ -2,7 +2,7 @@
 -- MUUDAY CANONICAL SCHEMA SNAPSHOT
 -- ============================================
 -- Snapshot aligned with migrations through:
--- - 014-wave2-request-bookings-foundation.sql
+-- - 016-professional-public-profile-code.sql
 --
 -- Notes:
 -- 1) Ordered migrations in db/sql/migrations remain the source of truth for evolution.
@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE TABLE IF NOT EXISTS professionals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  public_code INTEGER NOT NULL CHECK (public_code BETWEEN 1000 AND 9999),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending_review', 'approved', 'rejected', 'suspended')),
   bio TEXT,
@@ -397,6 +398,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS reviews_user_professional_unique
   ON reviews(user_id, professional_id);
 CREATE INDEX IF NOT EXISTS professionals_tier_idx ON professionals(tier);
 CREATE INDEX IF NOT EXISTS professionals_category_id_idx ON professionals(category_id);
+CREATE UNIQUE INDEX IF NOT EXISTS professionals_public_code_unique_idx ON professionals(public_code);
 CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories(sort_order);
 CREATE INDEX IF NOT EXISTS subcategories_category_id_sort_idx ON subcategories(category_id, sort_order);
 CREATE INDEX IF NOT EXISTS specialties_subcategory_id_sort_idx ON specialties(subcategory_id, sort_order);
@@ -930,6 +932,59 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER)
   TO anon, authenticated, service_role;
+
+-- ============================================
+-- PROFESSIONAL PUBLIC PROFILE CODE TRIGGER
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.assign_professional_public_code()
+RETURNS trigger AS $$
+DECLARE
+  candidate INTEGER;
+  attempts INTEGER := 0;
+BEGIN
+  IF NEW.public_code IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  LOOP
+    attempts := attempts + 1;
+    candidate := FLOOR(RANDOM() * 9000)::INTEGER + 1000;
+
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.professionals p
+      WHERE p.public_code = candidate
+    ) THEN
+      NEW.public_code := candidate;
+      RETURN NEW;
+    END IF;
+
+    IF attempts >= 200 THEN
+      SELECT gs
+      INTO candidate
+      FROM generate_series(1000, 9999) gs
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.professionals p WHERE p.public_code = gs
+      )
+      LIMIT 1;
+
+      IF candidate IS NULL THEN
+        RAISE EXCEPTION 'No available 4-digit public_code remaining for professionals';
+      END IF;
+
+      NEW.public_code := candidate;
+      RETURN NEW;
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_assign_professional_public_code ON public.professionals;
+CREATE TRIGGER trg_assign_professional_public_code
+  BEFORE INSERT ON public.professionals
+  FOR EACH ROW
+  EXECUTE FUNCTION public.assign_professional_public_code();
 
 -- ============================================
 -- AUTH TRIGGER

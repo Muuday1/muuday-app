@@ -40,6 +40,7 @@ interface BookingFormProps {
     category: string
   }
   profileName: string
+  profileHref: string
   availability: AvailabilitySlot[]
   existingBookings: ExistingBooking[]
   userTimezone: string
@@ -131,6 +132,7 @@ function timezoneLabel(value: string) {
 export default function BookingForm({
   professional,
   profileName,
+  profileHref,
   availability,
   existingBookings,
   userTimezone,
@@ -492,7 +494,7 @@ export default function BookingForm({
   return (
     <div className="mx-auto max-w-4xl p-6 md:p-8">
       <Link
-        href={`/profissional/${professional.id}`}
+        href={profileHref}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-700"
       >
         <ArrowLeft className="h-4 w-4" />

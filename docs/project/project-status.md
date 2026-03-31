@@ -163,6 +163,20 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 53. Search card pricing subtitle improved:
 - card subtitle now renders dynamic session duration in PT-BR: `por sessão de X min`.
 - duration is sourced from `session_duration_minutes` with safe fallback to `60`.
+54. Public profile permalink foundation delivered:
+- search/favorites/dashboard/admin/profile-intent links now build canonical profile URL format `nome-1234` when `public_code` exists.
+- profile route `/profissional/[id]` now resolves both legacy UUID links and new slug-code links.
+- added migration `016-professional-public-profile-code.sql` to create/backfill unique 4-digit `public_code` with auto-assignment trigger for new professionals.
+- schema snapshot updated through migration 016.
+55. Public header auth-state fix delivered:
+- after login, public header now detects session in client and switches CTA from `Login/Criar conta` to `Minha área`.
+- language corrected and standardized with accent: `Minha área`.
+56. Google OAuth callback loop hardening delivered:
+- `/auth/callback` now finalizes and redirects on the same request origin (no cross-domain base URL redirect).
+- profile bootstrap switched to `upsert` for safer first-login completion.
+- role-based destination remains enforced for all login methods:
+  - profissional -> `/dashboard`
+  - usuario/admin -> `/buscar`
 
 ## Immediate next actions
 
@@ -176,6 +190,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 5. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
 6. Prepare Stripe corridor validation packet and run external confirmation process.
 7. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.
+8. Apply migration `016-professional-public-profile-code.sql` in production before expecting `nome-1234` URLs for all profiles.
 
 ## Continuity rule
 

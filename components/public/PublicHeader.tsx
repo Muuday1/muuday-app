@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AuthOverlay } from '@/components/auth/AuthOverlay'
 import { LoginForm } from '@/components/auth/LoginForm'
+import { createClient } from '@/lib/supabase/client'
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 import {
   PUBLIC_CURRENCY_COOKIE,
   PUBLIC_CURRENCY_OPTIONS,
@@ -43,19 +45,59 @@ export function PublicHeader({
   initialLanguage,
   initialCurrency,
 }: PublicHeaderProps) {
+  const supabase = useMemo(() => createClient(), [])
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [authMenuOpen, setAuthMenuOpen] = useState(false)
+  const [isLoggedInClient, setIsLoggedInClient] = useState(isLoggedIn)
+  const [loggedInHrefClient, setLoggedInHrefClient] = useState(loggedInHref)
   const desktopLoginButtonRef = useRef<HTMLButtonElement | null>(null)
   const mobileLoginButtonRef = useRef<HTMLButtonElement | null>(null)
-  const showCurrencySelector = !isLoggedIn && pathname.startsWith('/buscar')
+  const showCurrencySelector = !isLoggedInClient && pathname.startsWith('/buscar')
 
   useEffect(() => {
     setMenuOpen(false)
     setAuthMenuOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    let active = true
+
+    async function syncSessionState() {
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
+      if (!active) return
+
+      if (!user) {
+        setIsLoggedInClient(false)
+        setLoggedInHrefClient('/buscar')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (!active) return
+      setIsLoggedInClient(true)
+      setLoggedInHrefClient(resolvePostLoginDestination(profile?.role))
+    }
+
+    void syncSessionState()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      void syncSessionState()
+    })
+
+    return () => {
+      active = false
+      authListener.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   function handleLanguageChange(language: string) {
     setCookie(PUBLIC_LANGUAGE_COOKIE, language)
@@ -132,9 +174,9 @@ export function PublicHeader({
               </select>
             )}
 
-            {isLoggedIn ? (
+            {isLoggedInClient ? (
               <Link
-                href={loggedInHref}
+                href={loggedInHrefClient}
                 className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Minha área
@@ -218,9 +260,9 @@ export function PublicHeader({
               </Link>
             ))}
 
-            {isLoggedIn ? (
+            {isLoggedInClient ? (
               <Link
-                href={loggedInHref}
+                href={loggedInHrefClient}
                 onClick={() => setMenuOpen(false)}
                 className="mt-1 rounded-xl bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
@@ -253,7 +295,7 @@ export function PublicHeader({
       )}
 
       <AuthOverlay
-        open={!isLoggedIn && authMenuOpen}
+        open={!isLoggedInClient && authMenuOpen}
         onClose={() => setAuthMenuOpen(false)}
         variant="popover"
         anchorEl={desktopLoginButtonRef.current || mobileLoginButtonRef.current}

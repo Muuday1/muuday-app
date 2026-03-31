@@ -25,6 +25,7 @@ import {
   matchesSelectedCategory,
   normalizeSearchCategorySlug,
 } from '@/lib/search-config'
+import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 type BuscarSearchParams = {
   q?: string
@@ -541,7 +542,11 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                   className="rounded-2xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 md:p-5"
                 >
                   <Link
-                    href={`/profissional/${professional.id}`}
+                    href={buildProfessionalProfilePath({
+                      id: professional.id,
+                      fullName: professional.profiles?.full_name,
+                      publicCode: professional.public_code,
+                    })}
                     className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 rounded-2xl"
                   >
                     <div className="flex items-start gap-4">

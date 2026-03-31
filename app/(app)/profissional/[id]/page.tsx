@@ -10,6 +10,9 @@ import { formatCurrency } from '@/lib/utils'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { PublicBookingAuthModal } from '@/components/auth/PublicBookingAuthModal'
 import { MobileBookingStickyCta } from '@/components/booking/MobileBookingStickyCta'
+import {
+  parseProfessionalProfileParam,
+} from '@/lib/professional/public-profile-url'
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -20,6 +23,11 @@ export default async function ProfissionalPage({
   params: { id: string }
   searchParams?: { erro?: string }
 }) {
+  const parsedParam = parseProfessionalProfileParam(params.id)
+  if (parsedParam.kind === 'unknown') {
+    notFound()
+  }
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   let viewerCurrency = 'BRL'
@@ -33,12 +41,20 @@ export default async function ProfissionalPage({
   }
 
   // Fetch professional with profile
-  const { data: professional } = await supabase
+  let professionalQuery = supabase
     .from('professionals')
     .select('*, profiles!inner(*), first_booking_enabled')
-    .eq('id', params.id)
     .eq('profiles.role', 'profissional')
-    .single()
+
+  if (parsedParam.kind === 'uuid') {
+    professionalQuery = professionalQuery.eq('id', parsedParam.id)
+  }
+
+  if (parsedParam.kind === 'publicCode') {
+    professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+  }
+
+  const { data: professional } = await professionalQuery.single()
 
   if (!professional || (professional.status !== 'approved' && professional.user_id !== user?.id)) {
     notFound()

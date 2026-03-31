@@ -102,6 +102,18 @@ Dependencies:
 - confirm logged-out public pages render even if Supabase request has transient failure
 - monitor Sentry for residual runtime exceptions in `app/(app)/layout` and `PublicPageLayout`.
 15. Data hygiene cleanup: remove legacy `professionals` row tied to admin test account to avoid analytics/ops noise (optional but recommended).
+16. Apply migration `016-professional-public-profile-code.sql` in production and validate canonical profile URLs:
+- from logged-out `/buscar`, clicking a professional opens `/profissional/nome-1234`.
+- legacy `/profissional/<uuid>` links still resolve.
+- confirm admin/favorites/dashboard links open canonical permalink after migration backfill.
+17. Validate public-header auth state in preview/production:
+- while logged out, header shows `Login` + `Criar conta`.
+- after login, header must hide those buttons and show only `Minha área`.
+- validate desktop and mobile header flows.
+18. Validate Google OAuth end-to-end on production domain:
+- start from public header login popup and from `/login`.
+- complete Google auth and confirm no loop back to login.
+- confirm post-login destination by role (`profissional -> /dashboard`, `usuario/admin -> /buscar`).
 
 Dependencies:
 - Wave 1 critical path complete.

@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import { Star, Clock, Heart, Search, Trash2 } from 'lucide-react'
 import { CATEGORIES } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 type Professional = {
   id: string
+  public_code?: number | null
   category: string
   rating: number
   total_reviews: number
@@ -54,7 +56,7 @@ export default function FavoritosPage() {
 
       const { data } = await supabase
         .from('professionals')
-        .select('id, category, rating, total_reviews, session_price_brl, session_duration_minutes, profiles(*)')
+        .select('*, profiles(*)')
         .in('id', ids)
         .eq('status', 'approved')
 
@@ -186,7 +188,14 @@ export default function FavoritosPage() {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
 
-                  <Link href={`/profissional/${pro.id}`} className="block focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  <Link
+                    href={buildProfessionalProfilePath({
+                      id: pro.id,
+                      fullName: name,
+                      publicCode: pro.public_code,
+                    })}
+                    className="block focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  >
                     <div className="bg-gradient-to-br from-brand-50 to-brand-100 h-24 flex items-center justify-center">
                       <div className="w-16 h-16 rounded-2xl bg-brand-500 flex items-center justify-center text-white font-display font-bold text-2xl">
                         {initial}

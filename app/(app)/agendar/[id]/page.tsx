@@ -6,6 +6,7 @@ import { CATEGORIES } from '@/types'
 import BookingForm from '@/components/booking/BookingForm'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
+import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 export default async function AgendarPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -23,14 +24,23 @@ export default async function AgendarPage({ params }: { params: { id: string } }
     notFound()
   }
 
+  const professionalProfile = Array.isArray(professional.profiles)
+    ? professional.profiles[0]
+    : professional.profiles
+  const professionalProfileHref = buildProfessionalProfilePath({
+    id: professional.id,
+    fullName: professionalProfile?.full_name,
+    publicCode: professional.public_code,
+  })
+
   // Prevent professionals from booking themselves
   if (professional.user_id === user.id) {
-    redirect(`/profissional/${params.id}?erro=auto-agendamento`)
+    redirect(`${professionalProfileHref}?erro=auto-agendamento`)
   }
 
   const firstBookingEligibility = await evaluateFirstBookingEligibility(supabase, professional.id)
   if (!firstBookingEligibility.ok) {
-    redirect(`/profissional/${params.id}?erro=primeiro-agendamento-bloqueado`)
+    redirect(`${professionalProfileHref}?erro=primeiro-agendamento-bloqueado`)
   }
 
   // Fetch user profile for timezone and currency
@@ -47,10 +57,6 @@ export default async function AgendarPage({ params }: { params: { id: string } }
     )
     .eq('professional_id', professional.id)
     .maybeSingle()
-
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
 
   const bookingSettings = normalizeProfessionalSettingsRow(
     settingsError ? null : (settingsRow as Record<string, unknown> | null),
@@ -123,6 +129,7 @@ export default async function AgendarPage({ params }: { params: { id: string } }
           category: professional.category,
         }}
         profileName={profProfile?.full_name || 'Profissional'}
+        profileHref={professionalProfileHref}
         availability={availability || []}
         existingBookings={existingBookings || []}
         userTimezone={profile?.timezone || 'America/Sao_Paulo'}

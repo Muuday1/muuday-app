@@ -7,6 +7,7 @@ import { createRequestBooking } from '@/lib/actions/request-booking'
 
 type RequestBookingFormProps = {
   professionalId: string
+  profileHref: string
   professionalName: string
   professionalTimezone: string
   userTimezone: string
@@ -24,6 +25,7 @@ function toDatetimeLocalValue(date: Date) {
 
 export default function RequestBookingForm({
   professionalId,
+  profileHref,
   professionalName,
   professionalTimezone,
   userTimezone,
@@ -75,7 +77,7 @@ export default function RequestBookingForm({
             Ir para agenda
           </Link>
           <Link
-            href={`/profissional/${professionalId}`}
+            href={profileHref}
             className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-center text-sm font-semibold text-neutral-700 transition-all hover:bg-neutral-50"
           >
             Voltar ao perfil
@@ -88,7 +90,7 @@ export default function RequestBookingForm({
   return (
     <div className="mx-auto max-w-3xl p-6 md:p-8">
       <Link
-        href={`/profissional/${professionalId}`}
+        href={profileHref}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-700"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -173,4 +175,3 @@ export default function RequestBookingForm({
     </div>
   )
 }
-

@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation'
 import RequestBookingForm from '@/components/booking/RequestBookingForm'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
+import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 export default async function SolicitarHorarioPage({ params }: { params: { id: string } }) {
@@ -16,9 +17,7 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
 
   const { data: professional } = await supabase
     .from('professionals')
-    .select(
-      'id, user_id, status, tier, first_booking_enabled, session_duration_minutes, profiles(*)',
-    )
+    .select('*, profiles(*)')
     .eq('id', params.id)
     .single()
 
@@ -26,17 +25,26 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
     notFound()
   }
 
+  const professionalProfile = Array.isArray(professional.profiles)
+    ? professional.profiles[0]
+    : professional.profiles
+  const professionalProfileHref = buildProfessionalProfilePath({
+    id: professional.id,
+    fullName: professionalProfile?.full_name,
+    publicCode: professional.public_code,
+  })
+
   if (professional.user_id === user.id) {
-    redirect(`/profissional/${params.id}?erro=auto-agendamento`)
+    redirect(`${professionalProfileHref}?erro=auto-agendamento`)
   }
 
   if (!REQUEST_BOOKING_ALLOWED_TIERS.includes(String(professional.tier))) {
-    redirect(`/profissional/${params.id}?erro=request-booking-indisponivel`)
+    redirect(`${professionalProfileHref}?erro=request-booking-indisponivel`)
   }
 
   const firstBookingEligibility = await evaluateFirstBookingEligibility(supabase, professional.id)
   if (!firstBookingEligibility.ok) {
-    redirect(`/profissional/${params.id}?erro=primeiro-agendamento-bloqueado`)
+    redirect(`${professionalProfileHref}?erro=primeiro-agendamento-bloqueado`)
   }
 
   const { data: profile } = await supabase
@@ -45,9 +53,6 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
     .eq('id', user.id)
     .single()
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
   const professionalTimezoneFallback = professionalProfile?.timezone || 'America/Sao_Paulo'
 
   const { data: settingsRow, error: settingsError } = await supabase
@@ -66,6 +71,7 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
   return (
     <RequestBookingForm
       professionalId={professional.id}
+      profileHref={professionalProfileHref}
       professionalName={professionalProfile?.full_name || 'Profissional'}
       professionalTimezone={bookingSettings.timezone}
       userTimezone={profile?.timezone || 'America/Sao_Paulo'}

@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 29)
+Last updated: 2026-03-31 (session 32)
 
 ## Canonical baseline status
 
@@ -149,6 +149,11 @@ Last updated: 2026-03-31 (session 29)
 - added canonical resolver `lib/professional/current-professional.ts` to deterministically pick one professional row by `user_id`.
 - replaced fragile `.single()`/`.maybeSingle()` lookups in core professional pages/actions (dashboard/agenda/perfil/configuracoes/disponibilidade/financeiro/onboarding + booking/request actions).
 - objective: prevent role-professional journeys from collapsing when legacy/seed data contains multiple `professionals` rows for the same user.
+64. Professional public permalink foundation implemented:
+- added helper `lib/professional/public-profile-url.ts` to build canonical profile URL `nome-1234` with UUID fallback.
+- `/profissional/[id]` now resolves both legacy UUID and slug+code URL params.
+- key links in `/buscar`, `/favoritos`, `/dashboard`, `/admin`, and `/mensagens` now use canonical profile URL builder.
+- migration `016-professional-public-profile-code.sql` added for backfill + unique 4-digit `public_code` assignment.
 
 ## Partially implemented (`In progress`)
 
@@ -267,3 +272,19 @@ Wave-driven delivery is now mandatory:
 81. Search card subtitle now includes dynamic session duration:
 - `por sessão` was replaced by `por sessão de X min` in `/buscar` cards.
 - value uses `session_duration_minutes` from professional record (fallback `60`).
+82. Public profile route now supports canonical visitor flow:
+- logged-out user can click any professional card in `/buscar` and open profile as before.
+- canonical URL format now prefers `nome-1234` once `public_code` exists.
+- compatibility remains for old `/profissional/<uuid>` links.
+83. Public header session-state fix:
+- public pages no longer depend on SSR auth to render login state in header.
+- `PublicHeader` now checks current session in client and listens to auth state changes.
+- when logged in, `Login/Criar conta` are hidden and `Minha área` is shown consistently.
+84. OAuth callback redirect-loop fix:
+- `/auth/callback` now resolves redirects using `request.nextUrl.origin` (same domain that initiated login).
+- removed dependency on static app base URL during OAuth completion to avoid cookie/domain mismatch.
+- callback profile bootstrap now uses `upsert` before role-based destination redirect.
+85. Login destination rule reaffirmed for all methods:
+- professional login -> `/dashboard`
+- user/admin login -> `/buscar`
+- applies to password and Google OAuth callback.
