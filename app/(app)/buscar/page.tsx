@@ -13,7 +13,11 @@ import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
 import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoApply'
 import { SearchQueryBar } from '@/components/search/SearchQueryBar'
 import { ExpandableTags } from '@/components/search/ExpandableTags'
-import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-specialties'
+import {
+  buildSpecialtyOptionsByCategorySlug,
+  loadActiveTaxonomyCatalog,
+  loadProfessionalSpecialtyContext,
+} from '@/lib/taxonomy/professional-specialties'
 import { getCachedRuntimeValue } from '@/lib/cache/runtime-cache'
 import {
   normalizeCurrency,
@@ -392,6 +396,14 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const specialtiesByProfessionalId = specialtyContext.byProfessionalId
   const primarySpecialtyByProfessionalId = specialtyContext.primaryByProfessionalId
   const categorySlugsByProfessionalId = specialtyContext.categorySlugsByProfessionalId
+  let taxonomySpecialtiesByCategory = new Map<string, string[]>()
+
+  if (readClient) {
+    const taxonomyCatalog = await loadActiveTaxonomyCatalog(readClient as any)
+    if (taxonomyCatalog) {
+      taxonomySpecialtiesByCategory = buildSpecialtyOptionsByCategorySlug(taxonomyCatalog)
+    }
+  }
 
   const categorySlugsWithProfessionals = new Set(
     professionals
@@ -420,23 +432,30 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     ? professionals.filter((professional: any) => professionalMatchesSelectedCategory(professional))
     : professionals
 
-  const specialtySet = new Map<string, string>()
+  const availableCanonicalSpecialties = new Set<string>()
   optionBaseProfessionals.forEach((professional: any) => {
     const canonicalSpecialties = specialtiesByProfessionalId.get(String(professional.id)) || []
-    ;[
-      ...canonicalSpecialties,
-      ...(professional.subcategories || []),
-      ...(professional.tags || []),
-    ].forEach((specialty: string) => {
-      const trimmed = String(specialty || '').trim()
-      if (!trimmed) return
-      const key = normalizeText(trimmed)
-      if (!specialtySet.has(key)) specialtySet.set(key, trimmed)
+    canonicalSpecialties.forEach((specialty: string) => {
+      const normalized = normalizeText(specialty)
+      if (normalized) availableCanonicalSpecialties.add(normalized)
     })
   })
-  const specialtyOptions = Array.from(specialtySet.values()).sort((a, b) =>
-    a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+
+  const fallbackCategorySpecialties = selectedCategory
+    ? SEARCH_CATEGORIES.find(category => category.slug === selectedCategory)?.specialties || []
+    : []
+  const specialtiesForSelectedCategory =
+    (selectedCategory && taxonomySpecialtiesByCategory.get(selectedCategory)) || fallbackCategorySpecialties
+  const categorySpecialtiesFilteredByAvailability = specialtiesForSelectedCategory.filter(specialty =>
+    availableCanonicalSpecialties.has(normalizeText(specialty)),
   )
+  const specialtyOptions = selectedCategory
+    ? (
+        categorySpecialtiesFilteredByAvailability.length > 0
+          ? categorySpecialtiesFilteredByAvailability
+          : specialtiesForSelectedCategory
+      )
+    : []
 
   const languageSet = new Map<string, string>()
   optionBaseProfessionals.forEach((professional: any) => {
@@ -469,15 +488,10 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
     if (selectedSpecialty) {
       const canonicalSpecialties = specialtiesByProfessionalId.get(String(pro.id)) || []
-      const specialtyHaystack = [
-        ...canonicalSpecialties,
-        ...(pro.tags || []),
-        ...(pro.subcategories || []),
-        pro.bio || '',
-      ]
-        .join(' ')
-        .toLowerCase()
-      if (!specialtyHaystack.includes(normalizeText(selectedSpecialty))) return false
+      const hasSelectedSpecialty = canonicalSpecialties.some(
+        specialty => normalizeText(specialty) === normalizeText(selectedSpecialty),
+      )
+      if (!hasSelectedSpecialty) return false
     }
 
     if (queryText) {

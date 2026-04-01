@@ -1,0 +1,8 @@
+﻿ACTIVE DEVELOPMENT NOTICE
+
+This folder is a secondary workspace snapshot and can drift.
+Use ONLY this canonical path for active development and commits:
+C:\dev\muuday-app
+
+Archived copy created at:
+C:\Users\igorp\OneDrive\Documents\Muuday__ARCHIVED_2026-04-01

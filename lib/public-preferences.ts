@@ -2,9 +2,7 @@ export const PUBLIC_LANGUAGE_COOKIE = 'muuday_public_language'
 export const PUBLIC_CURRENCY_COOKIE = 'muuday_public_currency'
 
 export const PUBLIC_LANGUAGE_OPTIONS = [
-  { value: 'pt-BR', label: 'Português (BR)' },
-  { value: 'en-US', label: 'English (US)' },
-  { value: 'es-ES', label: 'Español (ES)' },
+  { value: 'pt-BR', label: 'Português' },
 ]
 
 export const PUBLIC_CURRENCY_OPTIONS = [
@@ -53,10 +51,7 @@ function extractRegionCode(locale?: string | null) {
   return (region || '').toUpperCase()
 }
 
-export function resolveDefaultLanguageFromAcceptLanguage(acceptLanguage?: string | null) {
-  const locale = extractPrimaryLocale(acceptLanguage)
-  if (locale.startsWith('en')) return 'en-US'
-  if (locale.startsWith('es')) return 'es-ES'
+export function resolveDefaultLanguageFromAcceptLanguage(_acceptLanguage?: string | null) {
   return 'pt-BR'
 }
 

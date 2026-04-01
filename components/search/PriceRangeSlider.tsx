@@ -129,14 +129,16 @@ export function PriceRangeSlider({
 
     const handlePointerMove = (event: PointerEvent) => {
       const next = getValueFromClientX(event.clientX)
+      const currentMin = minRef.current
+      const currentMax = maxRef.current
       if (activeThumb === 'min') {
-        const nextMin = clamp(Math.min(next, maxValue), safeMinLimit, safeMaxLimit)
-        setValues(nextMin, maxValue)
+        const nextMin = clamp(Math.min(next, currentMax), safeMinLimit, safeMaxLimit)
+        setValues(nextMin, currentMax)
         return
       }
 
-      const nextMax = clamp(Math.max(next, minValue), safeMinLimit, safeMaxLimit)
-      setValues(minValue, nextMax)
+      const nextMax = clamp(Math.max(next, currentMin), safeMinLimit, safeMaxLimit)
+      setValues(currentMin, nextMax)
     }
 
     const handlePointerUp = () => {
@@ -153,7 +155,7 @@ export function PriceRangeSlider({
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('pointercancel', handlePointerUp)
     }
-  }, [activeThumb, getValueFromClientX, maxValue, minValue, onCommit, safeMaxLimit, safeMinLimit, setValues])
+  }, [activeThumb, getValueFromClientX, onCommit, safeMaxLimit, safeMinLimit, setValues])
 
   const handleKeyDown = (thumb: 'min' | 'max', key: string) => {
     let delta = 0
@@ -245,6 +247,7 @@ export function PriceRangeSlider({
           aria-valuenow={minValue}
           onPointerDown={event => {
             event.preventDefault()
+            event.stopPropagation()
             event.currentTarget.setPointerCapture(event.pointerId)
             setActiveThumb('min')
           }}
@@ -265,6 +268,7 @@ export function PriceRangeSlider({
           aria-valuenow={maxValue}
           onPointerDown={event => {
             event.preventDefault()
+            event.stopPropagation()
             event.currentTarget.setPointerCapture(event.pointerId)
             setActiveThumb('max')
           }}

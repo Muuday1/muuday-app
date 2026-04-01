@@ -146,15 +146,17 @@ function signoff(): string {
 
 // 1. Confirm sign up
 const confirmSignup = layout(
-  'Verificação',
-  'Confirme seu email. ✉️',
+  'Cadastro',
+  'Falta só confirmar seu e-mail.',
   `<p class="greet">Olá!</p>
-  <p class="bt">Obrigado por se cadastrar na Muuday! Clique no botão abaixo para confirmar seu endereço de email e ativar a sua conta.</p>
+  <p class="bt">Seu cadastro na Muuday foi criado com sucesso. Agora, confirme seu e-mail para ativar a conta e proteger seu acesso.</p>
+  <div class="hbox"><p>Depois da confirmação, você já pode entrar, salvar profissionais e agendar sua primeira sessão.</p></div>
   <div class="ctaw">
-    <a href="{{ .ConfirmationURL }}" class="cta">Confirmar email →</a>
-    <span class="ctasub">O link expira em 24 horas</span>
+    <a href="{{ .ConfirmationURL }}" class="cta">Confirmar e-mail →</a>
+    <span class="ctasub">Este link expira em 24 horas</span>
   </div>
-  <div class="warn"><p>⚠️ Se não foi você quem se cadastrou, ignore este email com segurança.</p></div>
+  <div class="warn"><p>⚠️ Se você não criou esta conta, ignore este e-mail com segurança.</p></div>
+  <p class="bt" style="font-size:13px;">Se o botão não funcionar, copie e cole este link no navegador:</p>
   <div class="urlbox"><a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a></div>
   ${signoff()}`
 )
@@ -240,7 +242,7 @@ async function updateTemplates() {
   console.log('\nAtualizando templates de email do Supabase...\n')
 
   const payload = {
-    mailer_subjects_confirmation:   'Confirme seu email na Muuday',
+    mailer_subjects_confirmation:   'Ative sua conta na Muuday',
     mailer_templates_confirmation_content: confirmSignup,
 
     mailer_subjects_invite:         'Você foi convidado para a Muuday 🎉',

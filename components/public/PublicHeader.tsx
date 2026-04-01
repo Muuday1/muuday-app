@@ -18,7 +18,6 @@ import {
 type PublicHeaderProps = {
   isLoggedIn: boolean
   loggedInHref: string
-  initialLanguage: string
   initialCurrency: string
 }
 
@@ -42,7 +41,6 @@ function setCookie(name: string, value: string) {
 export function PublicHeader({
   isLoggedIn,
   loggedInHref,
-  initialLanguage,
   initialCurrency,
 }: PublicHeaderProps) {
   const supabase = useMemo(() => createClient(), [])
@@ -55,6 +53,7 @@ export function PublicHeader({
   const [loggedInHrefClient, setLoggedInHrefClient] = useState(loggedInHref)
   const desktopLoginButtonRef = useRef<HTMLButtonElement | null>(null)
   const mobileLoginButtonRef = useRef<HTMLButtonElement | null>(null)
+  const hasLanguageChoice = PUBLIC_LANGUAGE_OPTIONS.length > 1
   const showCurrencySelector = !isLoggedInClient && pathname.startsWith('/buscar')
 
   useEffect(() => {
@@ -147,8 +146,9 @@ export function PublicHeader({
 
           <div className="hidden items-center gap-2 md:flex">
             <select
-              defaultValue={initialLanguage}
+              value="pt-BR"
               onChange={event => handleLanguageChange(event.target.value)}
+              disabled={!hasLanguageChoice}
               className="rounded-full border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar idioma"
             >
@@ -203,8 +203,9 @@ export function PublicHeader({
 
           <div className="flex items-center gap-2 md:hidden">
             <select
-              defaultValue={initialLanguage}
+              value="pt-BR"
               onChange={event => handleLanguageChange(event.target.value)}
+              disabled={!hasLanguageChoice}
               className="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar idioma"
             >

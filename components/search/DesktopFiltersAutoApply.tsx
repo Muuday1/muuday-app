@@ -58,6 +58,7 @@ function buildBuscarHref(pathname: string, state: SearchQueryState) {
 }
 
 function parseToInt(value: string, fallback: number) {
+  if (value === '') return fallback
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return fallback
   return Math.round(parsed)
