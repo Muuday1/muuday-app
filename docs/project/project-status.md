@@ -279,6 +279,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - selecting slider max keeps `precoMax` unset in query, intentionally including values above the threshold.
 - slider now commits URL/result updates on interaction end (not every drag frame), improving mobile responsiveness.
 - touch interaction reliability improved with pointer-capture + larger thumbs.
+75. Logout consistency fix for preview/prod domain drift:
+- `/auth/signout` now uses the request origin for redirect (no static base URL), preventing signout from jumping domains and leaving stale session cookies behind.
+- signout handler now explicitly binds Supabase cookie mutations to the redirect response.
+- both `POST` and `GET` are supported for logout endpoint robustness.
 
 ## Immediate next actions
 

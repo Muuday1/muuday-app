@@ -29,6 +29,17 @@ Use this for meaningful checkpoints only.
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
 
+### Entry 55
+- Fixed logout inconsistency across preview/prod domains:
+  - `/auth/signout` now redirects using `request.nextUrl.origin` (same domain as current request).
+  - Supabase signout now writes cookie-clearing changes directly to the redirect response.
+  - added `GET` support alongside `POST` to avoid no-op behavior from mixed callers.
+- Validation completed:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+
 ### Entry 52
 - Applied repository hygiene and branch governance hardening:
   - promoted validated branch to `main` via fast-forward only.

@@ -23,6 +23,9 @@ Execute in order. Build one batch at a time.
 - default range must show `0` to `+50 USD` equivalent in selected currency.
 - max selected must include professionals priced above threshold.
 - dragging both thumbs must remain smooth without triggering route refresh on every movement.
+6. Validate logout consistency on both deployment domains:
+- from authenticated app shell, `Sair` must always redirect to `/` on the same domain where logout was triggered.
+- after logout, accessing `/buscar` on that same domain must stay in public (non-member) mode until next login.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 

@@ -391,3 +391,7 @@ Wave-driven delivery is now mandatory:
 - obsolete local/remote branches removed after promotion to reduce operator confusion.
 - rollback tags published and preserved (`backup/pre-wave2-promotion-2026-04-01`, `backup/cursor-snapshot-debug-2026-04-01`).
 - secondary OneDrive workspace preserved as archive and marked non-active for development.
+91. Logout endpoint hardened against cross-domain session drift:
+- `/auth/signout` now redirects to `/` on the same request origin.
+- Supabase signout cookie updates are attached directly to the redirect response.
+- endpoint supports both `POST` and `GET` to avoid no-op logout behavior from mixed callers.
