@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error')
-  const roleHint = searchParams.get('role') === 'profissional' ? 'profissional' : 'usuario'
+  // Security: Always default to 'usuario' for OAuth signups.
+  // Professional onboarding requires an explicit flow after account creation.
+  const roleHint = 'usuario' as const
   const baseUrl = getBaseUrl(request)
 
   if (oauthError || !code) {

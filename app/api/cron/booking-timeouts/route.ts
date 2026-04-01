@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
 
@@ -18,8 +19,8 @@ function parseAuthToken(request: NextRequest) {
   if (match?.[1]?.trim()) return match[1].trim()
   const altHeader = request.headers.get('x-cron-secret') || ''
   if (altHeader.trim()) return altHeader.trim()
-  const queryToken = request.nextUrl.searchParams.get('token') || ''
-  return queryToken.trim()
+  // Never accept tokens via query string — they leak into logs, referrers, and browser history
+  return ''
 }
 
 function normalizeSecret(value: string | undefined | null) {
@@ -34,9 +35,8 @@ function normalizeSecret(value: string | undefined | null) {
 
 function isAuthorizedCronRequest(request: NextRequest) {
   const expectedSecret = normalizeSecret(process.env.CRON_SECRET)
-  if (!expectedSecret) {
-    return process.env.NODE_ENV !== 'production'
-  }
+  // Always require a secret — preview/staging deployments are publicly accessible
+  if (!expectedSecret) return false
   return normalizeSecret(parseAuthToken(request)) === expectedSecret
 }
 
@@ -71,16 +71,34 @@ export async function GET(request: NextRequest) {
 
   const now = new Date()
   const nowIso = now.toISOString()
+  let recurringReleaseError: string | null = null
+  let recurringRelease = {
+    checked: 0,
+    eligible: 0,
+    releasedSessions: 0,
+    releasedBookings: 0,
+    at: nowIso,
+  }
 
+  try {
+    recurringRelease = await runRecurringReservedSlotRelease(admin, now)
+  } catch (error) {
+    recurringReleaseError = error instanceof Error ? error.message : 'unknown'
+    console.error('[cron/booking-timeouts] recurring release error:', recurringReleaseError)
+  }
+
+  // Filter at database level to avoid loading all bookings into memory
   let bookingsResponse = (await admin
     .from('bookings')
     .select('id, created_at, metadata, status, booking_type, parent_booking_id')
+    .eq('status', 'pending_confirmation')
     .limit(500)) as { data: BookingRow[] | null; error: { message?: string } | null }
 
   if (bookingsResponse.error && bookingsResponse.error.message?.includes('metadata')) {
     bookingsResponse = (await admin
       .from('bookings')
       .select('id, created_at, status')
+      .eq('status', 'pending_confirmation')
       .limit(500)) as { data: BookingRow[] | null; error: { message?: string } | null }
   }
 
@@ -95,9 +113,8 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const pendingBookings = (bookingsResponse.data || []).filter(
-    booking => String(booking.status || '') === 'pending_confirmation',
-  )
+  // Already filtered at DB level via .eq('status', 'pending_confirmation')
+  const pendingBookings = bookingsResponse.data || []
 
   const expired = ((pendingBookings || []) as BookingRow[]).filter(booking => {
     const deadline = getConfirmationDeadline(booking)
@@ -110,6 +127,8 @@ export async function GET(request: NextRequest) {
       cancelled: 0,
       refunded: 0,
       checked: (pendingBookings || []).length,
+      recurringRelease,
+      recurringReleaseError,
       at: nowIso,
     })
   }
@@ -207,6 +226,8 @@ export async function GET(request: NextRequest) {
     expired: expired.length,
     cancelled,
     refunded,
+    recurringRelease,
+    recurringReleaseError,
     at: nowIso,
   })
 }

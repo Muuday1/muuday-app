@@ -1,8 +1,44 @@
 ﻿# Next Steps
 
-Last updated: 2026-03-31
+Last updated: 2026-04-01
 
 Execute in order. Build one batch at a time.
+
+## Security hardening — remaining items (from 2026-04-01 audit)
+
+Items already fixed in code are documented in `project-status.md` item 71. The items below require infrastructure, DB, or architectural work:
+
+### P1 — High priority
+
+1. **Hardcoded currency exchange rates** (`lib/actions/booking.ts`, `lib/actions/request-booking.ts`): Replace hardcoded `rates` map with dynamic rates stored in Supabase (updated via cron/API). Add staleness check — refuse bookings if rates are older than 24h.
+2. **No payment gateway** (legacy payment flow): Before Wave 3 launch, integrate Stripe. Current `provider: 'legacy'` + `status: 'captured'` flow records payments without processing them. Must be explicitly gated to beta/free-tier only.
+
+### P2 — Medium priority
+
+3. **Booking race condition**: Conflict check + lock + insert are not atomic. Consider wrapping in a Postgres transaction via `supabase.rpc()` or adding a unique constraint on `(professional_id, start_time_utc)`.
+4. **In-memory rate limiting fallback**: When Upstash is unavailable, the memory fallback doesn't survive serverless cold starts. Add monitoring alert when Upstash is down.
+5. **Middleware DB query per request**: Encode user role in JWT custom claims (`raw_app_meta_data`) to avoid per-request profile SELECT in middleware. Fall back to DB only when claim is missing.
+6. **Verify database indexes**: Run `EXPLAIN ANALYZE` on production for key queries. Confirm composite indexes exist for: `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `availability_exceptions(professional_id, date_local)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
+7. **Recurring booking atomicity**: `createBooking` for recurring type does parent insert, child inserts, and session inserts as separate operations. Wrap in RPC transaction.
+
+### P3 — Low priority
+
+8. **No admin audit trail**: Add `admin_audit_log` table to record admin mutations with `(admin_user_id, action, target_table, target_id, old_value, new_value, timestamp)`.
+
+## Wave 2 closure checklist (authoritative current sequence)
+
+1. Run manual acceptance for Wave 2 (must be green before closing wave):
+- recorrência/deadlines: dentro do prazo permitido; fora do prazo bloqueado com `reason_code`; release automático de slots reservados no deadline de 7 dias.
+- gates C1-C10: profissional incompleto fora da busca pública; gate de primeiro booking bloqueando ações críticas; desbloqueio automático após requisitos completos.
+- role split: `profissional -> /dashboard`; `usuario/admin -> /buscar`; guardas de workspace cruzado bloqueando acesso indevido.
+2. Confirm Inngest operational attachment:
+- app path atual `https://muuday-app.vercel.app/api/inngest`.
+- eliminar syncs antigos não anexados no dashboard.
+3. Keep fixture integrity for e2e (open-gate + blocked-gate):
+- manter `E2E_PROFESSIONAL_ID` e `E2E_BLOCKED_PROFESSIONAL_ID` válidos.
+- manter script `npm run fixtures:ensure-public-ready` disponível para recuperação de fixture.
+4. After Wave 2 manual sign-off, start Wave 3 scope only:
+- Stripe real billing/payout + ledger interno, sem reabrir contratos de gate de Wave 2.
 
 ## Priority 0 - Foundation lock (must finish first)
 

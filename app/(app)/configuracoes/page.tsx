@@ -318,8 +318,16 @@ export default function ConfiguracoesPage() {
     loadProfile()
   }, [supabase])
 
+  // Whitelist of fields users are allowed to update on their own profile.
+  // Prevents mass assignment attacks (e.g. setting role to 'admin').
+  const EDITABLE_PROFILE_FIELDS = ['currency', 'timezone', 'notification_preferences', 'full_name', 'country']
+
   async function saveField(field: string, value: unknown) {
     if (!userId) return
+    if (!EDITABLE_PROFILE_FIELDS.includes(field)) {
+      console.error(`[configuracoes] Blocked attempt to update restricted field: ${field}`)
+      return
+    }
     await supabase.from('profiles').update({ [field]: value }).eq('id', userId)
     setSavedField(field)
     setTimeout(() => setSavedField(null), 2000)

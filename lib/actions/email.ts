@@ -50,6 +50,42 @@ async function requireAuth(): Promise<string | null> {
   return user.id
 }
 
+/**
+ * Security: Verify the caller has a legitimate relationship with the recipient.
+ * Prevents IDOR where an authenticated user sends Muuday-branded emails to arbitrary addresses.
+ * Returns true if the email is allowed, false otherwise.
+ */
+async function assertCallerCanEmailRecipient(callerId: string, recipientEmail: string): Promise<boolean> {
+  const supabase = createClient()
+
+  // 1. Caller can always email themselves
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', callerId)
+    .single()
+
+  if (callerProfile?.email === recipientEmail) return true
+
+  // 2. Caller has a booking relationship with the recipient
+  const { data: recipientProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', recipientEmail)
+    .maybeSingle()
+
+  if (!recipientProfile) return false
+
+  // Check if there's any booking between caller and recipient (as user↔professional)
+  const { count: bookingCount } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .or(`and(user_id.eq.${callerId},professional_id.in.(select id from professionals where user_id='${recipientProfile.id}')),and(user_id.eq.${recipientProfile.id},professional_id.in.(select id from professionals where user_id='${callerId}'))`)
+    .limit(1)
+
+  return (bookingCount || 0) > 0
+}
+
 type NotifKey = 'booking_emails' | 'session_reminders' | 'news_promotions'
 
 // Returns false if the user has explicitly disabled this category
@@ -77,14 +113,18 @@ export async function addUserToResendAction(email: string, firstName: string) {
 }
 
 // ─── Transactional ────────────────────────────────────────────────────────
-// Welcome & account setup — always send (no preference check)
+// Welcome & account setup — only caller can send to their own email
 export async function sendWelcomeEmailAction(to: string, name: string) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   void safe(() => addContactToResend(to, name, SEGMENTS.usuarios), 'addContact')
   return safe(() => sendWelcomeEmail(to, name), 'welcome')
 }
 export async function sendCompleteAccountEmailAction(to: string, name: string) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   return safe(() => sendCompleteAccountEmail(to, name), 'completeAccount')
 }
 
@@ -94,7 +134,9 @@ export async function sendBookingConfirmationEmailAction(
   date: string, time: string, timezone: string,
   userId?: string,
 ) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendBookingConfirmationEmail(to, name, professionalName, service, date, time, timezone), 'bookingConfirmation')
 }
@@ -102,7 +144,9 @@ export async function sendNewBookingToProfessionalEmailAction(
   to: string, professionalName: string, clientName: string,
   service: string, date: string, time: string,
 ) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   return safe(() => sendNewBookingToProfessionalEmail(to, professionalName, clientName, service, date, time), 'newBookingProfessional')
 }
 export async function sendBookingCancelledEmailAction(
@@ -110,7 +154,9 @@ export async function sendBookingCancelledEmailAction(
   date: string, time: string, cancelledBy: 'user' | 'professional',
   userId?: string,
 ) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendBookingCancelledEmail(to, name, professionalName, date, time, cancelledBy), 'bookingCancelled')
 }
@@ -119,16 +165,22 @@ export async function sendPaymentConfirmationEmailAction(
   service: string, amount: string, date: string,
   userId?: string,
 ) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendPaymentConfirmationEmail(to, name, professionalName, service, amount, date), 'paymentConfirmation')
 }
 export async function sendPaymentFailedEmailAction(to: string, name: string, service: string, userId?: string) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   return safe(() => sendPaymentFailedEmail(to, name, service), 'paymentFailed')
 }
 export async function sendRefundEmailAction(to: string, name: string, amount: string, service: string, userId?: string) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   if (!await canSend(userId, 'booking_emails')) return
   return safe(() => sendRefundEmail(to, name, amount, service), 'refund')
 }
@@ -224,7 +276,17 @@ export async function sendWelcomeSeries3EmailAction(to: string, name: string, us
 export async function sendReferralInviteEmailAction(
   to: string, inviterName: string, referralLink: string,
 ) {
-  if (!await requireAuth()) return
+  const callerId = await requireAuth()
+  if (!callerId) return
+  // Referral invites are intentionally sent to external emails, but we verify
+  // the inviterName matches the caller's profile to prevent impersonation
+  const supabase = createClient()
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', callerId)
+    .single()
+  if (!callerProfile || callerProfile.full_name !== inviterName) return
   return safe(() => sendReferralInviteEmail(to, inviterName, referralLink), 'referralInvite')
 }
 export async function sendFirstBookingNudgeEmailAction(to: string, name: string, userId?: string) {

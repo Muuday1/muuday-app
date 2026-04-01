@@ -1,6 +1,6 @@
 ﻿# Project Status
 
-Last updated: 2026-03-31
+Last updated: 2026-04-01
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -17,9 +17,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 | --- | --- | --- | --- |
 | Taxonomy and discovery | Controlled taxonomy, weighted search, tier-aware discovery | Done | Taxonomy CRUD, tier ranking, public search operational |
 | Professional tiers | Basic/Professional/Premium with strict entitlements | Done | Tier column, entitlement config, badges, search boost |
-| Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | In progress | Full gate logic and admin review workflow parity pending |
-| Booking lifecycle | Explicit state machine + request booking + slot hold | In progress | Full transition parity/tests and recurring release rules pending |
-| Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | Planned/In progress | Full recurring lifecycle parity pending |
+| Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | In progress (Wave 2 backend scope complete) | Manual acceptance/sign-off still pending to mark Wave 2 done |
+| Booking lifecycle | Explicit state machine + request booking + slot hold | In progress (Wave 2 backend scope complete) | Manual acceptance/sign-off still pending to mark Wave 2 done |
+| Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | In progress (engine + release job delivered) | Validate production release behavior in cron/Inngest and close manual QA |
 | Payments and revenue | Stripe-backed charge/refund/payout/billing + ledger | In progress | Legacy placeholders still present; webhook/idempotent lifecycle pending |
 | Admin trust operations | Structured case queue and audit-first moderation | In progress | Case queue and full audit workflows pending |
 | Notifications and inbox | Event-driven email + in-app inbox + reminders | In progress | Delivery observability and full event routing pending |
@@ -229,28 +229,46 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - implemented structural fix for mobile header login popup centering in `components/auth/AuthOverlay.tsx`:
   - overlay now renders through `createPortal(..., document.body)` to avoid `position: fixed` being constrained by header `backdrop-blur`.
   - keeps desktop popover behavior and mobile modal fallback logic intact.
+66. Wave 2 recurring deadline policy engine finalized in backend:
+- canonical module `lib/booking/recurring-deadlines.ts` now defines fixed 7-day rules for release/change/pause.
+- shared recurring decision contract added (`allowed`, `reason_code`, `deadline_at_utc`, `reference_at_utc`).
+67. Recurring reserved-slot release flow delivered:
+- new ops runner `lib/ops/recurring-slot-release.ts` releases eligible recurring reserved sessions/bookings at deadline.
+- `/api/cron/booking-timeouts` now executes recurring release and returns structured release summary.
+68. Inngest parity expanded for recurring release:
+- new function `release-recurring-reserved-slots` added in `inngest/functions/index.ts` (hourly cron + event trigger).
+- `/api/inngest` now serves reminder sync + recurring release workflows.
+69. Gate matrix enforcement hardened end-to-end:
+- canonical gate evaluator remains `evaluateOnboardingGates` and gate bypass paths were removed from onboarding state loader.
+- booking/request actions now return structured gate reason codes for first-booking blocks.
+- recurring manage-booking actions now return deterministic `reasonCode` + `deadlineAtUtc` when blocked by recurring deadline policy.
+70. Wave 2 automated technical gate revalidated on new backend scope:
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run build` ✅
+- `npm run test:state-machines` ✅
+- `npm run test:e2e` ✅ (`10 passed`, `2 skipped` fixture-dependent scenarios in `wave2-onboarding-gates.spec.ts`).
+
+71. Security hardening audit — P0/P1/P2 fixes applied:
+- **P0-1**: Admin mutations moved from client-side Supabase calls to server actions (`lib/actions/admin.ts`) with explicit `role === 'admin'` checks. Admin page now imports and calls `adminUpdateProfessionalStatus`, `adminUpdateFirstBookingGate`, `adminToggleReviewVisibility`, `adminDeleteReview` instead of direct `supabase.from().update()`.
+- **P0-2**: Added `Content-Security-Policy` header to `next.config.js` covering `script-src`, `connect-src`, `img-src`, `frame-ancestors`, `object-src`, `form-action`, `base-uri` directives.
+- **P0-3**: Removed query string token fallback from cron endpoints (`/api/cron/booking-reminders`, `/api/cron/booking-timeouts`). Tokens now accepted only via `Authorization: Bearer` or `x-cron-secret` headers.
+- **P0-4**: Cron endpoints now require `CRON_SECRET` in all environments. Previously allowed unauthenticated access when secret was unset in non-production (preview/staging deployments are publicly accessible).
+- **P0-5**: Email IDOR mitigated — added `assertCallerCanEmailRecipient` guard to all transactional email server actions. Verifies caller either owns the recipient email or has a booking relationship. Referral invite emails now verify inviterName matches caller's profile.
+- **P1-8**: Mass assignment vulnerability fixed in `/configuracoes` — `saveField` now whitelists allowed fields (`currency`, `timezone`, `notification_preferences`, `full_name`, `country`). Blocks attempts to update `role`, `email`, or other restricted columns.
+- **P1-9**: OAuth callback no longer accepts `role` query parameter for new profile creation. Always defaults to `'usuario'`. Professional onboarding requires explicit post-signup flow.
+- **P1-10**: Silent catch block in `lib/supabase/server.ts` now logs in development mode to surface unexpected cookie-setting failures.
+- **P2-12**: Cron timeout handler now filters `status = 'pending_confirmation'` at database level instead of loading all bookings and filtering in JavaScript.
+- **P2-17**: Removed unnecessary `PUT` export from Inngest route handler (`/api/inngest`).
+- **P2-19**: Cron error responses no longer include internal error details in production. Details only shown when `NODE_ENV !== 'production'`.
+- validation run: `npm run typecheck` green.
 
 ## Immediate next actions
 
-1. Deploy latest `AuthOverlay` portal fix and validate mobile header login modal centering in preview/production.
-2. ~~Close Wave 0 schema parity and e2e fixture stability.~~ **Done** — schema applied, e2e passing baseline, Sentry active, Pro plans active.
-3. ~~Start Wave 1 parity tasks (taxonomy governance + tier entitlements + search parity).~~ **Done** — taxonomy, tiers, search ranking, review constraints, public search, admin CRUD all delivered.
-4. Continue Wave 2 parity tasks:
-- recurring deadline + slot-release behavior
-- apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production
-- finalize onboarding gate matrix enforcement end-to-end with migration 015 live
-5. Validate UX polish pass for role-specific shells (desktop/mobile) and finalize copy consistency (`Bookings` vs localized labels).
-6. Run `npm run fixtures:ensure-public-ready` with valid Supabase service-role key in local/ops environment to keep all E2E professional fixtures go-live eligible and visible in `/buscar`.
-7. Confirm Inngest cloud app sync is attached to latest deployment path (clear stale unattached sync records).
-8. Prepare Stripe corridor validation packet and run external confirmation process.
-9. Keep E2E fixtures stable (do not rotate IDs unless tests fail) and proceed to remaining Wave 2 functional backlog.
-10. Apply migration `016-professional-public-profile-code.sql` in production before expecting `nome-1234` URLs for all profiles.
-11. Apply migration `017-wave2-professional-signup-review-pipeline.sql` in production to activate professional application review persistence.
-12. Validate `/buscar` price slider on iPad and mobile touch devices after deployment (minimum and maximum drag both directions).
-13. Apply migration `018-wave2-real-professions-taxonomy.sql` in production and verify canonical specialty backfill:
-- existing professionals receive mapped specialties in `professional_specialties`.
-- signup/category-specialty options reflect canonical taxonomy in `/cadastro`.
-- search/admin/profile surfaces show canonical specialties consistently after deploy.
+1. Complete Wave 2 manual acceptance checklist (recurring deadlines, C1-C10 gates, role routes) and mark Wave 2 as `Done` only after manual sign-off.
+2. Confirm Inngest dashboard is attached to current app path (`/api/inngest`) and remove stale unattached sync records.
+3. Keep E2E fixtures stable and close skipped `wave2-onboarding-gates.spec.ts` scenarios by maintaining both open-gate and blocked-gate professional fixtures.
+4. After Wave 2 sign-off, open Wave 3 scope (Stripe real billing/payout/ledger) without changing current Wave 2 gate contracts.
 
 ## Continuity rule
 

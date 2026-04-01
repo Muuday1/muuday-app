@@ -24,8 +24,9 @@ Last updated: 2026-03-30
 
 Required config:
 
-- GitHub secret: `CRON_SECRET`
+- GitHub secret: `CRON_SECRET` (mandatory in all environments — endpoints reject requests when unset)
 - GitHub variable: `CRON_BASE_URL`
+- Tokens accepted via `Authorization: Bearer` or `x-cron-secret` headers only (query string not accepted)
 
 ## Monitoring baseline
 

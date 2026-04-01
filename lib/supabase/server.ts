@@ -14,7 +14,13 @@ export function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             )
-          } catch {}
+          } catch (e) {
+            // Expected in Server Components where cookies are read-only.
+            // Log in development to surface unexpected cookie issues.
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[supabase/server] Cookie set failed (expected in RSC):', e)
+            }
+          }
         },
       },
     }

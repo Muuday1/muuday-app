@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-03-31 (session 50)
+Last updated: 2026-04-01 (session 52)
 
 ## Canonical baseline status
 
@@ -193,11 +193,29 @@ Last updated: 2026-03-31 (session 50)
 - resolves Google login loop where auth completed but middleware saw anonymous request and returned user to `/login`.
 - admin callback destination is now hard-pinned to `/buscar`.
 - destination contract remains role-based after OAuth (`profissional -> /dashboard`, `usuario/admin -> /buscar`).
+71. Recurring deadline policy engine completed for Wave 2 backend scope:
+- canonical module `lib/booking/recurring-deadlines.ts` now centralizes 7-day rules for release/change/pause with shared decision contract (`allowed`, `reason_code`, `deadline_at_utc`).
+- recurring pause/change enforcement wired in `lib/actions/manage-booking.ts` with deterministic blocked responses (`reasonCode`, `deadlineAtUtc`).
+72. Reserved-slot recurring release automation delivered:
+- new ops runner `lib/ops/recurring-slot-release.ts` cancels eligible pending recurring sessions/bookings at deadline.
+- `/api/cron/booking-timeouts` now executes recurring release and returns structured release telemetry in cron response.
+73. Inngest operational parity extended:
+- new function `release-recurring-reserved-slots` added (`inngest/functions/index.ts`) with hourly cron + event trigger.
+- `/api/inngest` now exposes both `sync-booking-reminders` and recurring release workers.
+74. C1-C10 gate matrix enforcement hardened as single source of truth:
+- onboarding state loader keeps canonical evaluator (`evaluateOnboardingGates`) without legacy bypass behavior.
+- booking/request critical actions now return structured first-booking gate reason codes.
+75. Wave 2 automated technical gate revalidated on current backend scope:
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run build` ✅
+- `npm run test:state-machines` ✅
+- `npm run test:e2e` ✅ (`10 passed`, `2 skipped` fixture-dependent checks).
 
 ## Partially implemented (`In progress`)
 
 1. Full taxonomy governance and entitlement parity with Part 1.
-2. Full onboarding and request-booking parity with Part 2 (foundation delivered, full parity still pending).
+2. Full onboarding and request-booking parity with Part 2 (backend enforcement delivered, pending manual acceptance sign-off).
 3. Stripe-backed payment and payout lifecycle parity with Part 3.
 4. Structured case queue and full trust operations parity with Part 4.
 5. Session provider abstraction and compliance freeze parity with Part 5.
@@ -221,7 +239,7 @@ Wave-driven delivery is now mandatory:
 
 1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-012), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel, auth smoke flow validated.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
-3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress.** Dual-gate + request-booking foundation + B3 workspace + C10 gate engine delivered; next items are recurring release rules and production activation of migration 015.
+3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress (backend closure complete).** Remaining step is manual acceptance/sign-off (recorrência, gates, role routes, cron/Inngest attachment) before marking `Done`.
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
 6. Wave 5: session provider + compliance freeze.
@@ -348,3 +366,13 @@ Wave-driven delivery is now mandatory:
 88. Mobile header login popup centering root-cause fixed in code:
 - `AuthOverlay` now renders via portal (`document.body`) to prevent `fixed` overlay from being constrained by header `backdrop-blur`.
 - desktop popover + mobile modal behavior preserved.
+89. Security hardening audit — 11 fixes across P0/P1/P2 severity:
+- admin mutations moved to server actions with explicit role checks (`lib/actions/admin.ts`)
+- CSP header added to `next.config.js`
+- cron endpoints: removed query string token, require `CRON_SECRET` in all environments
+- email IDOR mitigated with `assertCallerCanEmailRecipient` guard
+- mass assignment blocked in `/configuracoes` via field whitelist
+- OAuth callback defaults to `usuario` role (no longer accepts `?role=profissional`)
+- cron timeout handler filters at DB level, error details stripped in production
+- Inngest route surface reduced (removed PUT)
+- silent catch blocks now log in development

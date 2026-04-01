@@ -1,8 +1,9 @@
 import { serve } from 'inngest/next'
 import { inngest } from '@/inngest/client'
-import { syncBookingReminders } from '@/inngest/functions'
+import { releaseRecurringReservedSlots, syncBookingReminders } from '@/inngest/functions'
 
-export const { GET, POST, PUT } = serve({
+// Only export GET and POST — PUT is unnecessary and increases API surface
+export const { GET, POST } = serve({
   client: inngest,
-  functions: [syncBookingReminders],
+  functions: [syncBookingReminders, releaseRecurringReservedSlots],
 })

@@ -8,8 +8,8 @@ function parseAuthToken(request: NextRequest) {
   if (match?.[1]?.trim()) return match[1].trim()
   const altHeader = request.headers.get('x-cron-secret') || ''
   if (altHeader.trim()) return altHeader.trim()
-  const queryToken = request.nextUrl.searchParams.get('token') || ''
-  return queryToken.trim()
+  // Never accept tokens via query string — they leak into logs, referrers, and browser history
+  return ''
 }
 
 function normalizeSecret(value: string | undefined | null) {
@@ -24,7 +24,8 @@ function normalizeSecret(value: string | undefined | null) {
 
 function isAuthorizedCronRequest(request: NextRequest) {
   const expectedSecret = normalizeSecret(process.env.CRON_SECRET)
-  if (!expectedSecret) return process.env.NODE_ENV !== 'production'
+  // Always require a secret — preview/staging deployments are publicly accessible
+  if (!expectedSecret) return false
   return normalizeSecret(parseAuthToken(request)) === expectedSecret
 }
 
@@ -53,6 +54,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown'
     console.error('[cron/booking-reminders] sync error:', message)
-    return NextResponse.json({ error: 'Failed to save reminders.', details: message }, { status: 500 })
+    // Only include details in non-production to avoid leaking internal info
+    const body: Record<string, string> = { error: 'Failed to save reminders.' }
+    if (process.env.NODE_ENV !== 'production') body.details = message
+    return NextResponse.json(body, { status: 500 })
   }
 }

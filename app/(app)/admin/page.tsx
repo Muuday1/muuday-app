@@ -5,6 +5,12 @@ import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES } from '@/types'
 import Link from 'next/link'
 import {
+  adminUpdateProfessionalStatus,
+  adminUpdateFirstBookingGate,
+  adminToggleReviewVisibility,
+  adminDeleteReview,
+} from '@/lib/actions/admin'
+import {
   Shield,
   CheckCircle,
   XCircle,
@@ -241,12 +247,9 @@ export default function AdminPage() {
 
   async function updateProfessionalStatus(id: string, newStatus: string) {
     setActionLoading(id)
-    const { error } = await supabase
-      .from('professionals')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', id)
+    const result = await adminUpdateProfessionalStatus(id, newStatus)
 
-    if (!error) {
+    if (result.success) {
       setProfessionals(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p))
       showSuccess(`Profissional ${newStatus === 'approved' ? 'aprovado' : newStatus === 'rejected' ? 'rejeitado' : newStatus === 'suspended' ? 'suspenso' : 'atualizado'}!`)
     }
@@ -256,17 +259,9 @@ export default function AdminPage() {
   async function updateFirstBookingGate(id: string, enabled: boolean) {
     const actionKey = `${id}:first-booking-gate`
     setActionLoading(actionKey)
-    const { error } = await supabase
-      .from('professionals')
-      .update({
-        first_booking_enabled: enabled,
-        first_booking_gate_note: enabled ? 'admin_enabled' : 'admin_blocked',
-        first_booking_gate_updated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
+    const result = await adminUpdateFirstBookingGate(id, enabled)
 
-    if (!error) {
+    if (result.success) {
       setProfessionals(prev =>
         prev.map(p =>
           p.id === id
@@ -287,27 +282,21 @@ export default function AdminPage() {
 
   async function toggleReviewVisibility(id: string, visible: boolean) {
     setActionLoading(id)
-    const { error } = await supabase
-      .from('reviews')
-      .update({ is_visible: visible })
-      .eq('id', id)
+    const result = await adminToggleReviewVisibility(id, visible)
 
-    if (!error) {
+    if (result.success) {
       setReviews(prev => prev.map(r => r.id === id ? { ...r, is_visible: visible } : r))
       showSuccess(visible ? 'Avaliação publicada!' : 'Avaliação ocultada!')
     }
     setActionLoading(null)
   }
 
-  async function deleteReview(id: string) {
+  async function handleDeleteReview(id: string) {
       if (!confirm('Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.')) return
     setActionLoading(id)
-    const { error } = await supabase
-      .from('reviews')
-      .delete()
-      .eq('id', id)
+    const result = await adminDeleteReview(id)
 
-    if (!error) {
+    if (result.success) {
       setReviews(prev => prev.filter(r => r.id !== id))
       if (stats) {
         setStats(prev => prev ? { ...prev, totalReviews: prev.totalReviews - 1, pendingReviews: Math.max(0, prev.pendingReviews - 1) } : prev)
@@ -819,7 +808,7 @@ export default function AdminPage() {
                         {actionLoading === review.id ? '...' : 'Aprovar'}
                       </button>
                       <button
-                        onClick={() => deleteReview(review.id)}
+                        onClick={() => handleDeleteReview(review.id)}
                         disabled={actionLoading === review.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-medium transition-all disabled:opacity-50"
                       >
