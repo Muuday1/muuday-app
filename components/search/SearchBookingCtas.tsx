@@ -9,6 +9,8 @@ type SearchBookingCtasProps = {
   isLoggedIn: boolean
   bookHref: string
   messageHref: string
+  bookLabel?: string
+  messageLabel?: string
 }
 
 type PendingAction = 'book' | 'message'
@@ -17,6 +19,8 @@ export function SearchBookingCtas({
   isLoggedIn,
   bookHref,
   messageHref,
+  bookLabel = 'Agendar',
+  messageLabel = 'Mandar mensagem',
 }: SearchBookingCtasProps) {
   const [open, setOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction>('book')
@@ -28,13 +32,13 @@ export function SearchBookingCtas({
           href={bookHref}
           className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
         >
-          Agendar
+          {bookLabel}
         </Link>
         <Link
           href={messageHref}
           className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
         >
-          Mandar mensagem
+          {messageLabel}
         </Link>
       </div>
     )
@@ -51,7 +55,7 @@ export function SearchBookingCtas({
           }}
           className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
         >
-          Agendar
+          {bookLabel}
         </button>
         <button
           type="button"
@@ -61,7 +65,7 @@ export function SearchBookingCtas({
           }}
           className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
         >
-          Mandar mensagem
+          {messageLabel}
         </button>
       </div>
 

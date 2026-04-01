@@ -407,3 +407,63 @@ Wave-driven delivery is now mandatory:
 - `app/(app)/profissional/[id]/page.tsx` now uses admin read client when no authenticated user is present.
 - eliminates mismatch where public `/buscar` card could render but profile route returned 404 for logged-out viewers.
 - visibility and onboarding gates remain enforced before rendering profile.
+95. Auth confirmation email copy refinement prepared:
+- Supabase `Confirm sign up` template text was updated in `scripts/ops/update-supabase-templates.ts` to align with current transactional body-copy format.
+- update includes revised hero/title/body, explicit fallback-link instruction, and subject `Ative sua conta na Muuday`.
+- this change is staged in code and requires running the template sync script with a valid Supabase management token to apply in production.
+96. `/buscar` price slider bugfix applied:
+- empty-string `precoMax` no longer collapses to `0` in client filter state parsing.
+- default behavior now keeps full-range selection when no explicit max is set.
+- max-thumb drag stability improved by isolating thumb pointer events from track-level pointer handler.
+- pointer move now reads current values from refs to reduce drag jitter/reset behavior.
+97. `/buscar` specialty filter source corrected:
+- specialty dropdown options now come only from canonical specialty taxonomy scoped by selected category.
+- `Foco de atuação`/tags are no longer injected into specialty options.
+- selected specialty matching now checks canonical specialties only, eliminating false matches from tags/bio text.
+98. Public language selector behavior updated:
+- public header language control is now Portuguese-only (`pt-BR`) across all public pages.
+- default language is pinned to Portuguese and no alternative locale option is presented until translation rollout exists.
+- currency selector behavior remains unchanged.
+99. Professional public profile page is now unified with booking context in-page:
+- `app/(app)/profissional/[id]/page.tsx` no longer renders separate static availability + old booking sidebar; it now uses `ProfileAvailabilityBookingSection`.
+- profile header now shows specialty only once, removes category display, and keeps `Foco de atuação`.
+- profile content now has explicit sections:
+  - `Sobre mim`
+  - `Idiomas`
+  - `Rating`
+  - `Comentários`
+  - recommendations carousel (`Pessoas que você também pode gostar`).
+- booking sidebar now updates price by selected duration and keeps trust/cancellation/fuso copy.
+- secondary CTA wording standardized to `Mandar mensagem` via `components/auth/PublicBookingAuthModal.tsx`.
+- build safety checks executed successfully (`lint`, `typecheck`, `build`, `test:state-machines`).
+100. Deprecated OneDrive workspace was operationally retired:
+- active repo remains `C:\dev\muuday-app` and should be the only development workspace.
+- selected durable reference artifacts were imported from `C:\Users\igorp\OneDrive\Documents\Muuday` to:
+  - `C:\dev\muuday-app\artifacts\onedrive-import-2026-04-01`
+- migration manifest created:
+  - `artifacts/onedrive-import-2026-04-01/MIGRATION_MANIFEST.md`
+- stop-use markers were written in deprecated folder to avoid future drift.
+101. Professional profile page now uses full-height sticky booking rail on desktop:
+- `ProfileAvailabilityBookingSection` accepts `topSections` + `children`, enabling a unified two-column layout.
+- left column includes profile header, `Sobre mim`, `Idiomas`, calendar/disponibilidade, rating, comentários, and recommendations.
+- right column keeps booking actions and pricing card sticky while scrolling through all left-column sections.
+102. Logged-out CTA behavior on professional page is now aligned with search-page auth UX:
+- `ProfileAvailabilityBookingSection` delegates CTA rendering to `SearchBookingCtas`.
+- unauthenticated `Agendar sessão`/`Mandar mensagem` open the same login modal used in `/buscar`.
+- authenticated users keep direct links for booking/message actions.
+103. Logged-out professional profile pages now expose public currency switcher in header:
+- `components/public/PublicHeader.tsx` now shows currency selector for both `/buscar` and `/profissional/*` while not authenticated.
+- keeps parity between search page and professional profile page for guest currency control.
+104. Recurring booking prefill path is now active end-to-end:
+- profile-side booking CTA appends recurring query context (`tipo=recurring`, `sessoes`, optional `data/hora`).
+- `/agendar/[id]` consumes those params and preloads booking type + session count + selected slot when valid.
+- recurring package size options were expanded to `2..12` in both profile and booking form.
+- recurring toggle in profile is now guarded by professional capability (`enable_recurring`).
+105. Password recovery now has server-side delivery orchestration:
+- `/recuperar-senha` no longer calls Supabase reset directly from browser.
+- new route `/api/auth/password-reset` handles recovery request with:
+  - rate-limit (`auth` preset) per `ip+email`
+  - canonical redirect (`getAppBaseUrl()/auth/callback`)
+  - preferred delivery: admin `generateLink(recovery)` + Resend email template
+  - fallback: Supabase `resetPasswordForEmail`
+- this improves reliability when Supabase hosted auth emails are delayed or inconsistent.

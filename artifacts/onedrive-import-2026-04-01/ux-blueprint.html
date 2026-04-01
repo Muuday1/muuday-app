@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muuday UX Blueprint v2</title>
+  <style>
+    :root { --bg:#f4f8f5; --surface:#fff; --ink:#101713; --muted:#506158; --line:#d8e5dd; --brand:#1a8a50; }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:linear-gradient(180deg,#f8fbf9,#edf4ef);color:var(--ink)}
+    .page{width:1920px;margin:0 auto;padding:24px 24px 120px;background:var(--bg)}
+    .hero,.sec{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:10px}
+    .hero{padding:16px 18px}.hero h1{margin:0 0 6px;font-size:28px}.hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.chip{border:1px solid var(--line);border-radius:999px;padding:4px 9px;font-size:10px;background:#fff}
+    .sec-head{display:flex;justify-content:space-between;align-items:baseline;padding:9px 12px;border-bottom:1px solid var(--line);background:#f2faf6}
+    .sec-head h2{margin:0;font-size:15px}.sec-head p{margin:0;font-size:10px;color:var(--muted)}
+    .pad{padding:10px 12px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.card{border:1px solid var(--line);border-radius:8px;padding:8px}
+    .card h4{margin:0 0 4px;font-size:11px}.card p{margin:0;font-size:10px;line-height:1.4;color:var(--muted)}
+    .journey{border-top:1px solid #e4ece7;padding:9px 0}.journey:first-child{border-top:0}
+    .jt{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px}.jt h3{margin:0;font-size:13px}
+    .track{font-size:9px;border:1px solid #cadecf;background:#f1fbf6;border-radius:999px;padding:2px 7px;text-transform:uppercase}
+    .row{display:grid;grid-template-columns:1.05fr 1.15fr .95fr;gap:8px}.col{border:1px solid var(--line);border-radius:8px;padding:7px;min-height:220px}
+    .col h5{margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:#2a4d3c}
+    .ref{border:1px solid #d7e3db;border-radius:7px;padding:5px;margin-bottom:5px}.ref:last-child{margin-bottom:0}
+    .ref b{font-size:10px;display:block}.ref p{margin:0;font-size:9px;color:#5e7167}.ref a{color:#1f6d45;text-decoration:none}
+    .strip{display:flex;align-items:center;gap:4px;overflow-x:auto}.arrow{font-size:11px;color:#6a8174;font-weight:700}
+    .node{min-width:112px;max-width:112px;border:1px solid #d8e4dc;border-radius:7px;overflow:hidden;background:#fff;flex:0 0 auto}
+    .node img{width:100%;height:65px;object-fit:cover;display:block;background:#ebf1ed}.node p{margin:0;padding:4px 5px;font-size:9px;color:#3e5649;line-height:1.25}
+    .wire{border:1px dashed #bfd2c6;border-radius:7px;padding:6px;background:#fbfefc;margin-bottom:5px}.wire:last-child{margin-bottom:0}
+    .wire h6{margin:0 0 5px;font-size:9px;text-transform:uppercase;color:#1f5f3b}
+    .step{min-width:126px;max-width:156px;border:1px solid #cfe0d6;border-radius:7px;background:#f5fcf8;color:#284a3a;padding:5px 6px;font-size:9px;line-height:1.3;flex:0 0 auto}
+    .states{margin-top:5px;display:flex;gap:4px;flex-wrap:wrap}.state{font-size:8px;border:1px solid #d2e1d9;border-radius:999px;padding:2px 5px;background:#f8fcfa;color:#496458}
+    .notes{display:grid;gap:5px}.note{border:1px solid #d8e5de;border-left:3px solid var(--brand);border-radius:7px;padding:5px 6px;background:#fcfffd}
+    .note b{display:block;font-size:9.5px;margin-bottom:1px;color:#234f38}.note p{margin:0;font-size:9px;line-height:1.3;color:#455b50}
+    .rev{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.rv{border:1px solid var(--line);border-radius:8px;padding:7px}.rv h4{margin:0 0 4px;font-size:10px}.rv p{margin:0;font-size:9px;color:#495d53}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>Muuday Marketplace UX Blueprint v2</h1>
+      <p>Now with explicit screen-to-screen arrows and step-by-step journey sequences for every journey.</p>
+      <div class="chips"><span class="chip">91 journeys</span><span class="chip">Arrow-linked flows</span><span class="chip">System events</span><span class="chip">Trust notes</span></div>
+    </section>
+    <section class="sec"><div class="sec-head"><h2>01 - Design Principles</h2><p>Trust-first</p></div><div class="pad grid" id="p1"></div></section>
+    <section class="sec"><div class="sec-head"><h2>02 - Design System</h2><p>Scalable visual language</p></div><div class="pad grid" id="p2"></div></section>
+    <section class="sec"><div class="sec-head"><h2>03 - Reusable Components</h2><p>Core marketplace UI kit</p></div><div class="pad grid" id="components"></div></section>
+    <section class="sec"><div class="sec-head"><h2>04 - Global IA</h2><p>User + Professional + Shared</p></div><div class="pad grid" id="ia"></div></section>
+    <section class="sec"><div class="sec-head"><h2>05 - User Journeys</h2><p>Client side</p></div><div class="pad" id="userJourneyList"></div></section>
+    <section class="sec"><div class="sec-head"><h2>06 - Professional Journeys</h2><p>Provider side</p></div><div class="pad" id="proJourneyList"></div></section>
+    <section class="sec"><div class="sec-head"><h2>07 - Shared Journeys</h2><p>Cross-side lifecycles</p></div><div class="pad" id="crossJourneyList"></div></section>
+    <section class="sec"><div class="sec-head"><h2>08 - Edge Cases</h2><p>Failure and resilience</p></div><div class="pad" id="edgeJourneyList"></div></section>
+    <section class="sec"><div class="sec-head"><h2>09 - State Variants</h2><p>Empty/loading/success/error</p></div><div class="pad" id="stateJourneyList"></div></section>
+    <section class="sec"><div class="sec-head"><h2>10 - Review Notes</h2><p>Second pass</p></div><div class="pad rev" id="review"></div></section>
+  </div>
+  <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+  <script>
+  const refs = {
+    webDiscovery: { label: "Preply Web Reference", product: "Preply", url: "https://refero.design/s/52a4c711-2b96-4c2c-b620-20434697c86a" },
+    webProfile: { label: "Preply Web Reference", product: "Preply", url: "https://refero.design/s/5a27e237-31f9-4ff8-8931-0de93b23248b" },
+    webMessaging: { label: "Preply Web Reference", product: "Preply", url: "https://refero.design/s/6453782f-b322-421b-be9f-990880a1db4f" },
+    webReschedule: { label: "Preply Web Reference", product: "Preply", url: "https://refero.design/s/194f3fd6-0efa-4033-bf82-9e2d1a0bf379" },
+    webCancel: { label: "Preply Web Reference", product: "Preply", url: "https://refero.design/s/0e7abc51-c8c3-466f-a48b-b718f5eb5c37" },
+    webSupport: { label: "Alternative Web Reference", product: "Acuity", url: "https://refero.design/s/eae971bb-15fe-4971-ae2a-cd2c6edb6e91" },
+    iosOnboarding: { label: "Alternative iOS Reference", product: "Airbnb", url: "https://refero.design/s/16688ee0-96a6-4edc-a779-6bd440f5b99a" },
+    iosMessaging: { label: "Alternative iOS Reference", product: "Telegram", url: "https://refero.design/s/53f3b8eb-8430-4bb7-ac1a-475c6ffd6bf8" },
+    iosBooking: { label: "Alternative iOS Reference", product: "Fresha", url: "https://refero.design/s/c47ba8db-9d16-44df-ae9a-80072b58db30" },
+    iosSupport: { label: "Alternative iOS Reference", product: "Omio", url: "https://refero.design/s/ff5bfd7f-7071-4f23-9761-9421b5b80e3d" }
+  };
+
+  const refFlows = {
+    discoveryWeb: [
+      { n: "Landing", i: "https://images.refero.design/screenshots/preply.com/desktop/561aa66c-27ca-4069-bcb5-797790251696_thumb.jpg" },
+      { n: "Filter", i: "https://images.refero.design/screenshots/preply.com/desktop/e40b22b1-539b-46c6-875f-46f65349b2b5_thumb.jpg" },
+      { n: "Results", i: "https://images.refero.design/screenshots/preply.com/desktop/633ce9fd-8dc5-4d0f-b8d3-c9300e4b8ae8_thumb.jpg" },
+      { n: "Profile", i: "https://images.refero.design/screenshots/preply.com/desktop/5a27e237-31f9-4ff8-8931-0de93b23248b_thumb.jpg" }
+    ],
+    profileWeb: [
+      { n: "Profile", i: "https://images.refero.design/screenshots/preply.com/desktop/5a27e237-31f9-4ff8-8931-0de93b23248b_thumb.jpg" },
+      { n: "Trust details", i: "https://images.refero.design/screenshots/preply.com/desktop/78d14a0b-98ea-4765-a814-d72fd252baed_thumb.jpg" },
+      { n: "Share/save", i: "https://images.refero.design/screenshots/preply.com/desktop/364faceb-1ba7-4384-8cd0-68075cb70953_thumb.jpg" },
+      { n: "Book CTA", i: "https://images.refero.design/screenshots/preply.com/desktop/91cc2b94-53eb-4725-84fe-d1ee113a396c_thumb.jpg" }
+    ],
+    messagingWeb: [
+      { n: "Open inbox", i: "https://images.refero.design/screenshots/preply.com/desktop/b7f37f28-063a-4fad-b935-594598708dd5_thumb.jpg" },
+      { n: "Thread", i: "https://images.refero.design/screenshots/preply.com/desktop/682a72cc-d0b1-418d-aad5-a5e99f1f0916_thumb.jpg" },
+      { n: "Compose", i: "https://images.refero.design/screenshots/preply.com/desktop/2497f0ca-6b6a-4419-b8b8-720236443ed3_thumb.jpg" },
+      { n: "Sent", i: "https://images.refero.design/screenshots/preply.com/desktop/50ca8780-8596-4e9a-9a32-2440fe501295_thumb.jpg" }
+    ],
+    bookingWeb: [
+      { n: "Duration", i: "https://images.refero.design/screenshots/preply.com/desktop/91cc2b94-53eb-4725-84fe-d1ee113a396c_thumb.jpg" },
+      { n: "Slot", i: "https://images.refero.design/screenshots/preply.com/desktop/854db95c-f096-42ba-9a9f-05bedcb63c16_thumb.jpg" },
+      { n: "Checkout", i: "https://images.refero.design/screenshots/preply.com/desktop/9b284208-7706-4036-ae43-94799a67a973_thumb.jpg" },
+      { n: "Success", i: "https://images.refero.design/screenshots/preply.com/desktop/d2b0261e-051b-4cb6-816b-9d1cec442ac5_thumb.jpg" }
+    ],
+    rescheduleWeb: [
+      { n: "Lesson menu", i: "https://images.refero.design/screenshots/preply.com/desktop/fa8714c0-cf01-43e1-bd8c-1b8ee72e7654_thumb.jpg" },
+      { n: "Choose slot", i: "https://images.refero.design/screenshots/preply.com/desktop/194f3fd6-0efa-4033-bf82-9e2d1a0bf379_thumb.jpg" },
+      { n: "Reason", i: "https://images.refero.design/screenshots/preply.com/desktop/6075ffa4-0edf-4028-a9b0-c2fca6249b99_thumb.jpg" },
+      { n: "Updated", i: "https://images.refero.design/screenshots/preply.com/desktop/5212a829-449d-4191-8254-9dcd39f6319b_thumb.jpg" }
+    ],
+    cancelWeb: [
+      { n: "Cancel modal", i: "https://images.refero.design/screenshots/preply.com/desktop/4207ce2b-7f66-49cc-b167-6f24726c2dde_thumb.jpg" },
+      { n: "Reason", i: "https://images.refero.design/screenshots/preply.com/desktop/57a01a6c-5dbe-44d8-aa52-ccde1a482224_thumb.jpg" },
+      { n: "Message", i: "https://images.refero.design/screenshots/preply.com/desktop/297b86da-f057-44ff-9958-2b57e6d74ac0_thumb.jpg" },
+      { n: "Cancelled", i: "https://images.refero.design/screenshots/preply.com/desktop/0abd5a7d-3dd1-40a0-9e91-68fb8be9bb16_thumb.jpg" }
+    ],
+    onboardingIos: [
+      { n: "Start", i: "https://images.refero.design/screenshots/2/mobile/8a9c3e56-6572-4c9b-86dd-2d79ae67e88e_thumb.jpg" },
+      { n: "Details", i: "https://images.refero.design/screenshots/2/mobile/59e12e68-c4eb-4f23-8db9-54a3e7195ce4_thumb.jpg" },
+      { n: "Language", i: "https://images.refero.design/screenshots/196/mobile/ea7343e1-555d-429d-99a8-b348adc2f47a_thumb.jpg" },
+      { n: "Complete", i: "https://images.refero.design/screenshots/2/mobile/0a473609-d5f8-4bd3-9881-09ed2a5d0ae3_thumb.jpg" }
+    ],
+    messagingIos: [
+      { n: "Inbox", i: "https://images.refero.design/screenshots/46/mobile/a5a54213-91c6-4ef0-a76c-1ba76d3a0cdf_thumb.jpg" },
+      { n: "Thread", i: "https://images.refero.design/screenshots/46/mobile/a5a54213-91c6-4ef0-a76c-1ba76d3a0cdf_thumb.jpg" },
+      { n: "Reply", i: "https://images.refero.design/screenshots/46/mobile/a5a54213-91c6-4ef0-a76c-1ba76d3a0cdf_thumb.jpg" },
+      { n: "Sent", i: "https://images.refero.design/screenshots/46/mobile/a5a54213-91c6-4ef0-a76c-1ba76d3a0cdf_thumb.jpg" }
+    ],
+    bookingIos: [
+      { n: "Discover", i: "https://images.refero.design/screenshots/175/mobile/919fd707-d7a2-46e9-80e1-395a0246ba83_thumb.jpg" },
+      { n: "Pick slot", i: "https://images.refero.design/screenshots/175/mobile/919fd707-d7a2-46e9-80e1-395a0246ba83_thumb.jpg" },
+      { n: "Pay", i: "https://images.refero.design/screenshots/55/mobile/01cd1854-af05-4fe3-adf7-6f0f62296a44_thumb.jpg" },
+      { n: "Confirmed", i: "https://images.refero.design/screenshots/55/mobile/01cd1854-af05-4fe3-adf7-6f0f62296a44_thumb.jpg" }
+    ],
+    supportIos: [
+      { n: "Help center", i: "https://images.refero.design/screenshots/178/mobile/eed7ad33-8d10-4257-b292-906920376f52_thumb.jpg" },
+      { n: "Search", i: "https://images.refero.design/screenshots/178/mobile/82fd61b4-6228-468f-bf80-cf9709543487_thumb.jpg" },
+      { n: "Article", i: "https://images.refero.design/screenshots/178/mobile/eed7ad33-8d10-4257-b292-906920376f52_thumb.jpg" },
+      { n: "Ticket", i: "https://images.refero.design/screenshots/178/mobile/82fd61b4-6228-468f-bf80-cf9709543487_thumb.jpg" }
+    ]
+  };
+
+  const localBundles = {
+    addingReaction: { folder: "refero.design - Adding reaction to message on Preply", count: 3 },
+    archivingChat: { folder: "refero.design - Archiving chat on Preply", count: 3 },
+    bookingLesson: { folder: "refero.design - Booking lesson with tutor on Preply", count: 22 },
+    bookmarking: { folder: "refero.design - Bookmarking to list on Preply", count: 2 },
+    cancelingLesson: { folder: "refero.design - Canceling booked lesson on Preply", count: 8 },
+    chattingUser: { folder: "refero.design - Chatting with user on Preply", count: 7 },
+    completingExercise: { folder: "refero.design - Completing lesson exercise on Preply", count: 12 },
+    customizingTopics: { folder: "refero.design - Customizing lesson topics on Preply", count: 4 },
+    deletingAccount: { folder: "refero.design - Deleting account on Preply", count: 6 },
+    deletingGeneric: { folder: "refero.design - Deleting on Preply", count: 3 },
+    classroomFeatures: { folder: "refero.design - Exploring classroom features on Preply", count: 5 },
+    findingTutor: { folder: "refero.design - Finding tutor on Preply", count: 14 },
+    guidedTour: { folder: "refero.design - Going through guided tour on Preply", count: 3 },
+    loggingIn: { folder: "refero.design - Logging in on Preply", count: 4 },
+    personalizingPlan: { folder: "refero.design - Personalizing study plan on Preply", count: 11 },
+    recordingVideo: { folder: "refero.design - Recording test video on Preply", count: 6 },
+    reschedulingLesson: { folder: "refero.design - Rescheduling lesson on Preply", count: 8 },
+    resettingPassword: { folder: "refero.design - Resetting password on Preply", count: 9 },
+    sharingLink: { folder: "refero.design - Sharing by copied link on Preply", count: 3 },
+    signingUp: { folder: "refero.design - Signing up on Preply", count: 4 },
+    languageQuiz: { folder: "refero.design - Taking language level quiz on Preply", count: 25 },
+    testingConnection: { folder: "refero.design - Testing connection and device on Preply", count: 11 },
+    profileImage: { folder: "refero.design - Uploading profile image on Preply", count: 3 }
+  };
+
+  function localNodes(bundleKey, maxScreens = 8) {
+    const b = localBundles[bundleKey];
+    if (!b) return null;
+    const nodes = [];
+    const take = Math.min(b.count, maxScreens);
+    for (let i = 1; i <= take; i += 1) {
+      nodes.push({ n: `Step ${i}`, i: `sandbox/refero/journey_assets/${b.folder}/step - ${i}.jpg` });
+    }
+    if (b.count > maxScreens) {
+      nodes.push({ n: `+${b.count - maxScreens} more`, i: `sandbox/refero/journey_assets/${b.folder}/step - ${b.count}.jpg` });
+    }
+    return nodes;
+  }
+
+  const userJourneys = "1. Anonymous landing page exploration|2. Join waitlist|3. Sign up|4. Login|5. Email verification|6. Forgot password / reset password|7. Onboarding / preference collection|8. Browse categories|9. Search professionals|10. Apply filters|11. Sort results|12. No results / refine search|13. View professional profile|14. Watch intro video|15. Review credentials / trust|16. Save professional / shortlist|17. Compare professionals|18. Send pre-booking message|19. Booking first session|20. Booking recurring sessions|21. Payment flow|22. Payment success|23. Payment failure|24. Reschedule booking|25. Cancel booking|26. Pre-session reminder flow|27. Join video session|28. In-session interaction|29. Session ends|30. Leave review|31. Report issue after session|32. Rebook same professional|33. Book another professional|34. Messaging inbox journey|35. Notification center journey|36. User dashboard|37. Session history|38. Saved professionals|39. Payment methods|40. Account settings|41. Notification settings|42. Delete account|43. Request refund / dispute|44. Contact support".split("|");
+  const proJourneys = "45. Professional landing page exploration|46. Apply to join platform|47. Create account|48. Verify email|49. Submit credentials|50. Identity / professional verification|51. Approval / rejection flow|52. Complete profile|53. Add bio|54. Add specialization|55. Add languages|56. Add pricing|57. Add intro video|58. Upload documents|59. Set availability|60. Configure timezone|61. Configure recurring availability|62. Block calendar times|63. Accept booking|64. Decline booking|65. Reschedule booking|66. Professional dashboard|67. Session preparation|68. Join session|69. Messaging with client|70. Session completed|71. Receive review|72. Earnings dashboard|73. Payout setup|74. Payout history|75. Tax/payment info|76. Notification center|77. Profile edits|78. Availability updates|79. Pause profile / vacation mode|80. Support/contact help|81. Report issue|82. Delete/deactivate account".split("|");
+  const crossJourneys = "83. Trust & verification flow|84. Review lifecycle|85. Booking lifecycle end-to-end|86. Session lifecycle end-to-end|87. Notification lifecycle|88. Refund / dispute lifecycle|89. Messaging lifecycle|90. Waitlist to active user lifecycle|91. Professional application to approved provider lifecycle".split("|");
+  const edgeFlows = "Edge. No professionals available|Edge. Professional unavailable after booking|Edge. User no-show|Edge. Professional no-show|Edge. Failed payment|Edge. Expired payment method|Edge. Session connection issue|Edge. Reschedule conflict|Edge. Account blocked / flagged|Edge. Refund denied|Edge. Review moderation|Edge. Invalid verification submission".split("|");
+  const stateFlows = "State Matrix. Search results|State Matrix. Inbox|State Matrix. Notifications|State Matrix. Calendar|State Matrix. Dashboard|State Matrix. Saved list|State Matrix. Payments|State Matrix. Reviews".split("|");
+
+  const principles = [
+    ["Trust before conversion","Credentials, reviews, badges and policy safety shown before any commitment action."],
+    ["Bilateral clarity","Both sides see synchronized lifecycle status with timestamps and next actions."],
+    ["Risk-aware friction","Sensitive actions add confirmation and clear consequence messaging."],
+    ["Recovery-first UX","Every critical flow includes fallback and error-recovery routes."]
+  ];
+  const tokens = [
+    ["Color system","Neutral surfaces, green trust accents, explicit warning/error layers."],
+    ["Typography","H1/H2/H3 + readable body scale with clear hierarchy for dense workflows."],
+    ["Spacing and radius","4/8/12/16/24/32 spacing with rounded geometry for consistency."],
+    ["Status design","Unified booking/session/payment/payout status chips and banners."]
+  ];
+  const components = ["Top nav","Side nav","Mobile bottom nav","Search bar","Filters","Professional cards","Category cards","Profile header","Review module","Pricing module","Availability calendar","Booking widget","Session card","Dashboard widgets","Chat bubbles","Inbox row","Notification item","Payment form","Payout card","Verification badge","Upload fields","Settings form","Status banner","Empty state","Modal","Confirmation state","Error banner","Skeleton loader"];
+  const iaBlocks = [
+    ["User IA","Homepage, discovery, profile, booking, sessions, inbox, notifications, dashboard, settings, support."],
+    ["Professional IA","Apply, verify, profile setup, availability, bookings, sessions, earnings, payout, support."],
+    ["Shared IA","Trust layer, booking lifecycle, session lifecycle, messaging lifecycle, notification lifecycle, dispute lifecycle."],
+    ["System IA","Identity service, matching engine, booking service, payments, notifications, moderation."]
+  ];
+  const reviewNotes = [
+    ["Coverage","All requested journeys are mapped with explicit steps and arrows."],
+    ["Weak area","Provider rejection and remediation can still be more guided."],
+    ["Trust gap","Earlier dispute SLA visibility can reduce booking anxiety."],
+    ["Simplification","Onboarding can be shortened using role-aware progressive disclosure."],
+    ["Supply-demand","Add liquidity indicators and dynamic waitlist routing per timezone."]
+  ];
+
+  function flowType(name){
+    const t=name.toLowerCase();
+    if(t.includes("message")||t.includes("inbox")||t.includes("notification")) return "messaging";
+    if(t.includes("book")||t.includes("session")||t.includes("calendar")||t.includes("availability")) return "booking";
+    if(t.includes("reschedule")) return "reschedule";
+    if(t.includes("cancel")) return "cancel";
+    if(t.includes("support")||t.includes("refund")||t.includes("dispute")||t.includes("issue")) return "support";
+    if(t.includes("profile")||t.includes("credentials")||t.includes("verification")) return "profile";
+    return "discovery";
+  }
+
+  function refMeta(name){
+    const k=flowType(name);
+    if(k==="messaging") return {web:refs.webMessaging,ios:refs.iosMessaging};
+    if(k==="booking") return {web:refs.webDiscovery,ios:refs.iosBooking};
+    if(k==="reschedule") return {web:refs.webReschedule,ios:refs.iosBooking};
+    if(k==="cancel") return {web:refs.webCancel,ios:refs.iosBooking};
+    if(k==="support") return {web:refs.webSupport,ios:refs.iosSupport};
+    if(k==="profile") return {web:refs.webProfile,ios:refs.iosOnboarding};
+    return {web:refs.webDiscovery,ios:refs.iosOnboarding};
+  }
+
+  function refFlow(name){
+    const k=flowType(name);
+    if(k==="messaging") return {web:refFlows.messagingWeb,ios:refFlows.messagingIos};
+    if(k==="booking") return {web:refFlows.bookingWeb,ios:refFlows.bookingIos};
+    if(k==="reschedule") return {web:refFlows.rescheduleWeb,ios:refFlows.bookingIos};
+    if(k==="cancel") return {web:refFlows.cancelWeb,ios:refFlows.bookingIos};
+    if(k==="support") return {web:refFlows.discoveryWeb,ios:refFlows.supportIos};
+    if(k==="profile") return {web:refFlows.profileWeb,ios:refFlows.onboardingIos};
+    return {web:refFlows.discoveryWeb,ios:refFlows.onboardingIos};
+  }
+
+  function localRefsForJourney(name) {
+    const t = name.toLowerCase();
+    if (t.includes("sign up") || t.includes("create account")) return { web: "signingUp", ios: "signingUp" };
+    if (t.includes("login")) return { web: "loggingIn", ios: "loggingIn" };
+    if (t.includes("forgot password") || t.includes("reset password")) return { web: "resettingPassword", ios: "resettingPassword" };
+    if (t.includes("waitlist")) return { web: "guidedTour", ios: "guidedTour" };
+    if (t.includes("onboarding")) return { web: "personalizingPlan", ios: "personalizingPlan" };
+    if (t.includes("browse categories") || t.includes("search professionals") || t.includes("apply filters") || t.includes("sort results") || t.includes("no results")) return { web: "findingTutor", ios: "findingTutor" };
+    if (t.includes("view professional profile") || t.includes("review credentials") || t.includes("trust & verification")) return { web: "findingTutor", ios: "profileImage" };
+    if (t.includes("watch intro video")) return { web: "recordingVideo", ios: "recordingVideo" };
+    if (t.includes("save professional") || t.includes("shortlist") || t.includes("saved professionals") || t.includes("saved list")) return { web: "bookmarking", ios: "bookmarking" };
+    if (t.includes("compare professionals")) return { web: "sharingLink", ios: "sharingLink" };
+    if (t.includes("message") || t.includes("inbox") || t.includes("notification center") || t.includes("messaging lifecycle")) return { web: "chattingUser", ios: "addingReaction" };
+    if (t.includes("booking first") || t.includes("booking recurring") || t.includes("payment flow") || t.includes("payment success") || t.includes("payment failure") || t.includes("booking lifecycle")) return { web: "bookingLesson", ios: "bookingLesson" };
+    if (t.includes("reschedule")) return { web: "reschedulingLesson", ios: "reschedulingLesson" };
+    if (t.includes("cancel booking")) return { web: "cancelingLesson", ios: "cancelingLesson" };
+    if (t.includes("join video") || t.includes("in-session") || t.includes("session ends") || t.includes("session lifecycle")) return { web: "classroomFeatures", ios: "completingExercise" };
+    if (t.includes("leave review") || t.includes("review lifecycle")) return { web: "sharingLink", ios: "addingReaction" };
+    if (t.includes("report issue") || t.includes("refund") || t.includes("dispute") || t.includes("support")) return { web: "archivingChat", ios: "archivingChat" };
+    if (t.includes("delete account") || t.includes("deactivate")) return { web: "deletingAccount", ios: "deletingGeneric" };
+    if (t.includes("submit credentials") || t.includes("identity / professional verification")) return { web: "recordingVideo", ios: "profileImage" };
+    if (t.includes("complete profile") || t.includes("add bio") || t.includes("add specialization") || t.includes("add languages") || t.includes("add pricing") || t.includes("add intro video") || t.includes("upload documents") || t.includes("profile edits")) return { web: "profileImage", ios: "profileImage" };
+    if (t.includes("set availability") || t.includes("configure timezone") || t.includes("configure recurring availability") || t.includes("block calendar times") || t.includes("availability updates")) return { web: "bookingLesson", ios: "reschedulingLesson" };
+    if (t.includes("accept booking") || t.includes("decline booking")) return { web: "bookingLesson", ios: "cancelingLesson" };
+    if (t.includes("session preparation")) return { web: "testingConnection", ios: "testingConnection" };
+    if (t.includes("join session")) return { web: "classroomFeatures", ios: "classroomFeatures" };
+    if (t.includes("pause profile")) return { web: "archivingChat", ios: "archivingChat" };
+    if (t.includes("anonymous landing page exploration") || t.includes("professional landing page exploration")) return { web: "findingTutor", ios: "guidedTour" };
+    if (t.includes("notification lifecycle")) return { web: "chattingUser", ios: "addingReaction" };
+    if (t.includes("waitlist to active user lifecycle")) return { web: "guidedTour", ios: "guidedTour" };
+    if (t.includes("professional application to approved provider lifecycle")) return { web: "signingUp", ios: "profileImage" };
+    if (t.includes("edge. session connection issue")) return { web: "testingConnection", ios: "testingConnection" };
+    if (t.includes("edge. no professionals available")) return { web: "findingTutor", ios: "findingTutor" };
+    if (t.includes("edge. reschedule conflict")) return { web: "reschedulingLesson", ios: "reschedulingLesson" };
+    if (t.includes("edge. failed payment") || t.includes("edge. expired payment method")) return { web: "bookingLesson", ios: "bookingLesson" };
+    if (t.includes("edge. user no-show") || t.includes("edge. professional no-show")) return { web: "classroomFeatures", ios: "classroomFeatures" };
+    if (t.includes("edge. review moderation")) return { web: "addingReaction", ios: "addingReaction" };
+    if (t.includes("edge. invalid verification submission")) return { web: "profileImage", ios: "recordingVideo" };
+    if (t.includes("state matrix.")) {
+      if (t.includes("inbox") || t.includes("notifications")) return { web: "chattingUser", ios: "addingReaction" };
+      if (t.includes("calendar")) return { web: "reschedulingLesson", ios: "reschedulingLesson" };
+      if (t.includes("search")) return { web: "findingTutor", ios: "findingTutor" };
+      if (t.includes("payments")) return { web: "bookingLesson", ios: "bookingLesson" };
+      if (t.includes("reviews")) return { web: "sharingLink", ios: "addingReaction" };
+      return { web: "guidedTour", ios: "guidedTour" };
+    }
+    return null;
+  }
+
+  function steps(name,track){
+    const s=name.replace(/^\d+\.\s*/,"").replace(/^Edge\.\s*/,"").replace(/^State Matrix\.\s*/,"");
+    const t=s.toLowerCase();
+    if(t.includes("landing")) return ["Open page","Scan trust proof","Explore options","Pick role path","Continue"];
+    if(t.includes("waitlist")) return ["Open waitlist","Enter contact","Choose role","Submit","Show confirmation"];
+    if(t.includes("sign up")||t.includes("create account")) return ["Open auth","Enter details","Create password","Accept terms","Account created"];
+    if(t.includes("login")) return ["Open login","Enter credentials","Validate","Start session","Load dashboard"];
+    if(t.includes("verify email")) return ["Send verification","Open inbox","Click link","Validate token","Unlock account"];
+    if(t.includes("forgot password")||t.includes("reset password")) return ["Request reset","Receive link","Set new password","Re-login","Continue"];
+    if(t.includes("onboarding")) return ["Collect intent","Collect preferences","Collect locale/timezone","Set notifications","Complete"];
+    if(t.includes("browse categories")) return ["Open categories","Inspect cards","Open category","View top professionals","Continue"];
+    if(t.includes("search professionals")) return ["Enter query","Fetch results","Render trust cards","Refine","Open profile"];
+    if(t.includes("filter")) return ["Open filters","Set params","Apply","Refresh list","Persist preset"];
+    if(t.includes("sort")) return ["Open sort","Choose strategy","Apply ranking","Compare top options","Continue"];
+    if(t.includes("no results")) return ["Detect empty","Explain reason","Suggest relax filters","Offer adjacent category","Recover"];
+    if(t.includes("profile")) return ["Open profile","Review credentials","Review reviews","Review availability","Take action"];
+    if(t.includes("intro video")) return ["Open media","Play intro","Assess fit","Read transcript","Continue"];
+    if(t.includes("save")||t.includes("shortlist")) return ["Tap save","Add tag","Store shortlist","Sync devices","Confirm"];
+    if(t.includes("compare")) return ["Select candidates","Open compare","Compare trust/price","Choose provider","Proceed"];
+    if(t.includes("message")||t.includes("inbox")) return ["Open thread","Draft message","Send","Receive reply","Continue"];
+    if(t.includes("booking first")) return ["Open booking widget","Pick first slot","Review policy","Review price","Go to payment"];
+    if(t.includes("booking recurring")) return ["Set recurrence","Pick repeating slots","Define constraints","Review estimate","Confirm"];
+    if(t.includes("payment")) return ["Choose method","Run risk checks","Authorize","Generate receipt","Persist billing"];
+    if(t.includes("reschedule")) return ["Initiate","Check constraints","Pick new slot","Notify counterpart","Confirm update"];
+    if(t.includes("cancel")) return ["Initiate cancel","Select reason","Show policy impact","Confirm","Apply refund rule"];
+    if(t.includes("join video")||t.includes("join session")) return ["Run device checks","Enter waiting room","Join","Mark start","Monitor quality"];
+    if(t.includes("in-session")) return ["Session live","Use tools/chat","Track engagement","Flag issues","Capture notes"];
+    if(t.includes("session ends")||t.includes("session completed")) return ["End","Log attendance","Generate summary","Prompt review","Update history"];
+    if(t.includes("review")) return ["Prompt","Collect score/text","Moderate","Publish","Update ranking"];
+    if(t.includes("issue")) return ["Open issue form","Attach evidence","Classify severity","Create ticket","Track SLA"];
+    if(t.includes("rebook")) return ["Open history","Select provider","Pick slot","Fast pay","Confirmed"];
+    if(t.includes("dashboard")) return ["Open dashboard","Load widgets","Prioritize actions","Take action","Track outcomes"];
+    if(t.includes("notification")) return ["Open center","Group items","Open context","Apply action","Sync read state"];
+    if(t.includes("settings")) return ["Open settings","Edit fields","Validate","Save","Confirm"];
+    if(t.includes("delete account")||t.includes("deactivate")) return ["Open warning","Explain consequences","Collect reason","Confirm","Finalize"];
+    if(t.includes("refund")||t.includes("dispute")) return ["Open claim","Collect details","Policy check","Decision","Notify both sides"];
+    if(t.includes("support")) return ["Open help center","Search topic","Open article","Escalate ticket","Resolve"];
+    if(track==="Edge-case") return ["Detect edge","Block unsafe action","Explain","Offer recovery","Write audit"];
+    if(track==="State-variant") return ["Empty","Loading","Skeleton","Success","Error/disabled"];
+    if(track==="Cross-side") return ["Start lifecycle","Sync both actors","Apply trust rules","Commit transition","Close loop"];
+    if(track==="Professional") return ["Start flow","Collect required data","Configure operations","Publish","Monitor"];
+    return ["Start","Capture intent","Primary action","Confirm state","Route next"];
+  }
+
+  function events(name){
+    const t=name.toLowerCase(); const e=["account_created","notification_dispatched"];
+    if(t.includes("verify")) e.push("verification_email_sent");
+    if(t.includes("book")) e.push("booking_created");
+    if(t.includes("reschedule")) e.push("booking_updated");
+    if(t.includes("cancel")) e.push("booking_cancelled");
+    if(t.includes("payment")) e.push("payment_processed");
+    if(t.includes("session")||t.includes("join")) e.push("session_started","session_completed");
+    if(t.includes("review")) e.push("review_submitted");
+    if(t.includes("payout")) e.push("payout_triggered");
+    if(t.includes("support")||t.includes("issue")||t.includes("dispute")) e.push("support_case_opened");
+    return [...new Set(e)].slice(0,6).join(" | ");
+  }
+
+  function toStrip(nodes){
+    const out=[]; nodes.forEach((n,i)=>{out.push(`<div class="node"><img src="${n.i}" alt="${n.n}"><p>${n.n}</p></div>`); if(i<nodes.length-1) out.push(`<span class="arrow">→</span>`);});
+    return `<div class="strip">${out.join("")}</div>`;
+  }
+  function toSteps(st){
+    const out=[]; st.forEach((n,i)=>{out.push(`<div class="step">${i+1}. ${n}</div>`); if(i<st.length-1) out.push(`<span class="arrow">→</span>`);});
+    return `<div class="strip">${out.join("")}</div>`;
+  }
+
+  function fillCards(id,list){const el=document.getElementById(id); list.forEach(i=>{const c=document.createElement("div"); c.className="card"; c.innerHTML=`<h4>${i[0]}</h4><p>${i[1]}</p>`; el.appendChild(c);});}
+  fillCards("p1",principles); fillCards("p2",tokens); fillCards("ia",iaBlocks); fillCards("review",reviewNotes);
+  const comp=document.getElementById("components"); components.forEach(n=>{const c=document.createElement("div"); c.className="card"; c.innerHTML=`<h4>${n}</h4><p>Reusable component with web and iOS variants, states, and trust behavior.</p>`; comp.appendChild(c);});
+
+  function addJourney(target,name,track){
+    const rm=refMeta(name), rf=refFlow(name), st=steps(name,track), mob=st.slice(0,Math.min(4,st.length)).concat("Sync and confirmation");
+    const el=document.createElement("div"); el.className="journey";
+    el.innerHTML=`<div class="jt"><h3>${name}</h3><span class="track">${track}</span></div>
+      <div class="row">
+        <div class="col"><h5>Left column - references with arrows</h5>
+          <div class="ref"><b>${rm.web.label} - ${rm.web.product}</b><p><a href="${rm.web.url}">${rm.web.url}</a></p>${toStrip(rf.web)}</div>
+          <div class="ref"><b>${rm.ios.label} - ${rm.ios.product}</b><p><a href="${rm.ios.url}">${rm.ios.url}</a></p>${toStrip(rf.ios)}</div>
+        </div>
+        <div class="col"><h5>Center column - Muuday steps with arrows</h5>
+          <div class="wire"><h6>Desktop flow</h6>${toSteps(st)}<div class="states"><span class="state">empty</span><span class="state">loading</span><span class="state">skeleton</span><span class="state">success</span><span class="state">error</span><span class="state">disabled</span></div></div>
+          <div class="wire"><h6>iOS flow</h6>${toSteps(mob)}<div class="states"><span class="state">mobile-native</span><span class="state">trust cues</span><span class="state">fallback path</span></div></div>
+        </div>
+        <div class="col"><h5>Right column - annotations</h5>
+          <div class="notes">
+            <div class="note"><b>User intent</b><p>Complete "${name}" with confidence and clear next action.</p></div>
+            <div class="note"><b>System events</b><p>${events(name)}</p></div>
+            <div class="note"><b>Business / trust notes</b><p>Ratings, credentials, response speed, availability clarity, payment reassurance.</p></div>
+            <div class="note"><b>State / edge notes</b><p>No-result, failure, moderation, and connectivity recovery paths are explicit.</p></div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById(target).appendChild(el);
+  }
+
+  function imageSrc(path){
+    return /^https?:\/\//i.test(path) ? path : encodeURI(path);
+  }
+
+  function toStrip(nodes){
+    const out=[]; nodes.forEach((n,i)=>{out.push(`<div class="node"><img src="${imageSrc(n.i)}" alt="${n.n}"><p>${n.n}</p></div>`); if(i<nodes.length-1) out.push(`<span class="arrow">&rarr;</span>`);});
+    return `<div class="strip">${out.join("")}</div>`;
+  }
+
+  function toSteps(st){
+    const out=[]; st.forEach((n,i)=>{out.push(`<div class="step">${i+1}. ${n}</div>`); if(i<st.length-1) out.push(`<span class="arrow">&rarr;</span>`);});
+    return `<div class="strip">${out.join("")}</div>`;
+  }
+
+  function addJourney(target,name,track){
+    const rm=refMeta(name), rf=refFlow(name), st=steps(name,track), mob=st.slice(0,Math.min(4,st.length)).concat("Sync and confirmation");
+    const local = localRefsForJourney(name);
+    const webNodes = local?.web ? localNodes(local.web) : rf.web;
+    const iosNodes = local?.ios ? localNodes(local.ios) : rf.ios;
+    const webLabel = local?.web ? `Preply Local Journey Reference (Sandbox) - ${localBundles[local.web].folder.replace("refero.design - ","").replace(" on Preply","")}` : `${rm.web.label} - ${rm.web.product}`;
+    const iosLabel = local?.ios ? `Preply Local Journey Reference (Sandbox) - ${localBundles[local.ios].folder.replace("refero.design - ","").replace(" on Preply","")}` : `${rm.ios.label} - ${rm.ios.product}`;
+    const webHref = local?.web ? encodeURI(`sandbox/refero/journey_assets/${localBundles[local.web].folder}`) : rm.web.url;
+    const iosHref = local?.ios ? encodeURI(`sandbox/refero/journey_assets/${localBundles[local.ios].folder}`) : rm.ios.url;
+    const el=document.createElement("div"); el.className="journey";
+    el.innerHTML=`<div class="jt"><h3>${name}</h3><span class="track">${track}</span></div>
+      <div class="row">
+        <div class="col"><h5>Left column - references with arrows</h5>
+          <div class="ref"><b>${webLabel}</b><p><a href="${webHref}">${webHref}</a></p>${toStrip(webNodes)}</div>
+          <div class="ref"><b>${iosLabel}</b><p><a href="${iosHref}">${iosHref}</a></p>${toStrip(iosNodes)}</div>
+        </div>
+        <div class="col"><h5>Center column - Muuday steps with arrows</h5>
+          <div class="wire"><h6>Desktop flow</h6>${toSteps(st)}<div class="states"><span class="state">empty</span><span class="state">loading</span><span class="state">skeleton</span><span class="state">success</span><span class="state">error</span><span class="state">disabled</span></div></div>
+          <div class="wire"><h6>iOS flow</h6>${toSteps(mob)}<div class="states"><span class="state">mobile-native</span><span class="state">trust cues</span><span class="state">fallback path</span></div></div>
+        </div>
+        <div class="col"><h5>Right column - annotations</h5>
+          <div class="notes">
+            <div class="note"><b>User intent</b><p>Complete "${name}" with confidence and clear next action.</p></div>
+            <div class="note"><b>System events</b><p>${events(name)}</p></div>
+            <div class="note"><b>Business / trust notes</b><p>Ratings, credentials, response speed, availability clarity, payment reassurance.</p></div>
+            <div class="note"><b>State / edge notes</b><p>No-result, failure, moderation, and connectivity recovery paths are explicit.</p></div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById(target).appendChild(el);
+  }
+
+  userJourneys.forEach(j=>addJourney("userJourneyList",j,"User"));
+  proJourneys.forEach(j=>addJourney("proJourneyList",j,"Professional"));
+  crossJourneys.forEach(j=>addJourney("crossJourneyList",j,"Cross-side"));
+  edgeFlows.forEach(j=>addJourney("edgeJourneyList",j,"Edge-case"));
+  stateFlows.forEach(j=>addJourney("stateJourneyList",j,"State-variant"));
+  </script>
+</body>
+</html>

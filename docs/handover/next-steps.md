@@ -23,6 +23,18 @@ Execute in order. Build one batch at a time.
 - default range must show `0` to `+50 USD` equivalent in selected currency.
 - max selected must include professionals priced above threshold.
 - dragging both thumbs must remain smooth without triggering route refresh on every movement.
+5.1 Validate max-thumb persistence in desktop/tablet:
+- move max thumb to right edge and confirm it does not reset to `0` after pointer release.
+- with no active price filter in URL (`precoMin/precoMax` absent), confirm UI starts in full-range mode.
+- confirm setting max to edge still maps to open-ended filter (`precoMax` omitted from URL).
+5.2 Validate specialty filter taxonomy behavior:
+- select one category in `/buscar` and confirm specialty dropdown lists only real specialties from that category.
+- confirm `Foco de atuação` tags never appear in specialty selector.
+- confirm selecting specialty filters only professionals with matching canonical specialty.
+5.3 Validate public language control (Portuguese-only mode):
+- in desktop and mobile headers, confirm language control shows only `Português`.
+- confirm page rendering remains in PT-BR after hard refresh and cookie carry-over from old locales.
+- keep this mode until multi-language rollout is explicitly reopened in roadmap/docs.
 6. Validate logout consistency on both deployment domains:
 - from authenticated app shell, `Sair` must always redirect to `/` on the same domain where logout was triggered.
 - after logout, accessing `/buscar` on that same domain must stay in public (non-member) mode until next login.
@@ -38,6 +50,10 @@ Execute in order. Build one batch at a time.
 - from `/buscar` (logged out), open at least 5 different professional cards and confirm profile page loads (no 404).
 - test both permalink formats if available (`/profissional/<uuid>` and `/profissional/nome-1234`).
 - confirm blocked/incomplete professionals still return not found as expected by gate model.
+10. Apply updated Supabase auth confirmation template in active project:
+- run `npx tsx scripts/ops/update-supabase-templates.ts <SUPABASE_MANAGEMENT_TOKEN>` from `C:\dev\muuday-app`.
+- validate with a fresh user signup that the confirmation email subject/body matches the new standard copy.
+- confirm the CTA link, fallback URL box, and warning copy render correctly across Gmail/Outlook/mobile.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 
@@ -233,6 +249,37 @@ Dependencies:
 - admin account (`igorpinto.lds@gmail.com`) must complete OAuth and land in `/buscar` with no loop to `/login`.
 - professional OAuth must land in `/dashboard`.
 - repeat from both `/login` and public header login popup.
+30. Run focused QA pass on updated professional profile experience (`/profissional/[id]`):
+- validate specialty appears once and category is not displayed in header.
+- validate `Foco de atuação`, badges/favorite, `Sobre mim`, `Idiomas`, `Rating`, and `Comentários` sections render correctly.
+- validate in-page availability booking block:
+  - duration selector updates displayed price and `por sessão de X min`;
+  - recurrence controls behave as expected;
+  - `Agendar sessão` and `Mandar mensagem` routes are correct for logged-in and logged-out users.
+- validate recommendations carousel links and card data for approved/public professionals only.
+31. Keep workspace hygiene enforced:
+- start all dev sessions from `C:\dev\muuday-app` only.
+- treat `C:\Users\igorp\OneDrive\Documents\Muuday` as archived/non-active.
+- if a legacy file is needed from OneDrive, import it intentionally into `artifacts/` with a dedicated commit and update handover docs.
+32. Run visual QA on `/profissional/[id]` sticky rail behavior:
+- desktop/laptop: booking rail stays visible while scrolling to `Comentários` and recommendation carousel.
+- confirm left column card widths are consistent with calendar width and no extra full-width profile cards remain.
+- mobile/tablet: verify no overlap/regression in CTA visibility when sticky rail is not active.
+33. Validate logged-out CTA parity between `/buscar` and `/profissional/[id]`:
+- logged-out click on `Agendar sessão` or `Mandar mensagem` in professional page must open the same login modal as search cards.
+- logged-in click must navigate directly with no modal.
+- confirm this behavior on desktop and mobile modal variants.
+34. Validate guest currency selector parity:
+- on `/profissional/[id]` while logged out, header must show currency selector like `/buscar`.
+- switching currency should persist via cookie and reflect converted values after navigation back to search/profile views.
+35. Run recurring-package acceptance test from profile entry point:
+- in `/profissional/[id]`, select `Recorrência`, choose session count, date and time, then click `Agendar sessão`.
+- confirm `/agendar/[id]` opens with prefilled recurring mode and selected package size.
+- submit once and verify package bookings are created together (parent + child sessions) and visible in agenda context.
+36. Validate password-recovery delivery in production:
+- request reset for one known existing account and confirm email arrival + working link.
+- verify endpoint fallback by checking route logs for `admin generateLink` failures (should be rare).
+- confirm Vercel env has valid `SUPABASE_SERVICE_ROLE_KEY` (service role, not publishable key) so admin-path delivery remains active.
 
 Dependencies:
 - Wave 1 critical path complete.

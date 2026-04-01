@@ -818,3 +818,26 @@ export async function sendLaunchEmail(to: string, name: string) {
   })
 }
 
+// ——— 27. Recuperação de senha (auth fallback via Resend) ————————————————
+export async function sendPasswordResetEmail(to: string, actionLink: string) {
+  return resend.emails.send({
+    from: from(),
+    to,
+    subject: 'Redefina sua senha da Muuday',
+    html: emailLayout(
+      'Segurança',
+      'Redefina sua senha com segurança.',
+      `<p class="greet">Olá,</p>
+      <p class="bt">Recebemos uma solicitação para redefinir a senha da sua conta Muuday.</p>
+      <p class="bt">Se foi você, use o botão abaixo para continuar:</p>
+      ${cta(actionLink, 'Redefinir minha senha')}
+      <div class="warn">
+        <p>Este link expira em breve. Se você não solicitou esta ação, ignore este e-mail.</p>
+      </div>
+      <p class="bt">Se o botão não abrir, copie e cole este link no navegador:</p>
+      <p class="bt" style="word-break:break-all;font-size:13px;color:#5c5a52;">${actionLink}</p>
+      ${signoff()}`,
+    ),
+  })
+}
+

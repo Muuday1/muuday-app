@@ -51,6 +51,10 @@ interface BookingFormProps {
   confirmationMode: 'auto_accept' | 'manual'
   requireSessionPurpose: boolean
   enableRecurring: boolean
+  initialBookingType?: 'one_off' | 'recurring'
+  initialRecurringSessionsCount?: number
+  initialDate?: string
+  initialTime?: string
 }
 
 const MONTH_NAMES_PT = [
@@ -70,6 +74,7 @@ const MONTH_NAMES_PT = [
 
 const DAY_NAMES_PT_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
 const DAY_NAMES_PT_FULL = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
+const RECURRING_SESSION_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 const PLATFORM_CANCELLATION_POLICY = [
   'Cancelamento com 48h ou mais: reembolso de 100%',
@@ -143,9 +148,14 @@ export default function BookingForm({
   confirmationMode,
   requireSessionPurpose,
   enableRecurring,
+  initialBookingType = 'one_off',
+  initialRecurringSessionsCount = 4,
+  initialDate,
+  initialTime,
 }: BookingFormProps) {
   const bookingViewTracked = useRef(false)
   const slotSelectionTracked = useRef(false)
+  const prefillApplied = useRef(false)
   const recurringFlagEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.bookingRecurringEnabled)
 
   const today = useMemo(() => {
@@ -163,8 +173,12 @@ export default function BookingForm({
   const [acceptPolicy, setAcceptPolicy] = useState(false)
   const [acceptTimezone, setAcceptTimezone] = useState(false)
   const [timezoneMode, setTimezoneMode] = useState<'user' | 'professional'>('user')
-  const [bookingType, setBookingType] = useState<'one_off' | 'recurring'>('one_off')
-  const [recurringSessionsCount, setRecurringSessionsCount] = useState(4)
+  const [bookingType, setBookingType] = useState<'one_off' | 'recurring'>(initialBookingType)
+  const [recurringSessionsCount, setRecurringSessionsCount] = useState(
+    RECURRING_SESSION_OPTIONS.includes(initialRecurringSessionsCount)
+      ? initialRecurringSessionsCount
+      : 4,
+  )
   const [isPending, startTransition] = useTransition()
   const [bookingResult, setBookingResult] = useState<
     { success: true; bookingId: string } | { success: false; error: string } | null
@@ -358,6 +372,42 @@ export default function BookingForm({
     }
   }, [bookingType, canUseRecurring])
 
+  useEffect(() => {
+    if (prefillApplied.current) return
+    prefillApplied.current = true
+
+    if (initialBookingType === 'recurring' && canUseRecurring) {
+      setBookingType('recurring')
+      if (RECURRING_SESSION_OPTIONS.includes(initialRecurringSessionsCount)) {
+        setRecurringSessionsCount(initialRecurringSessionsCount)
+      }
+    }
+
+    if (!initialDate) return
+    const parsedDate = fromIsoDateToLocalDate(initialDate)
+    if (Number.isNaN(parsedDate.getTime())) return
+    if (parsedDate < today || parsedDate > maxDate) return
+    if (!slotsByUserDate.has(initialDate)) return
+
+    setCurrentMonth(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1))
+    setSelectedDate(parsedDate)
+
+    if (!initialTime) return
+    const availableSlots = slotsByUserDate.get(initialDate) || []
+    if (availableSlots.includes(initialTime)) {
+      setSelectedTime(initialTime)
+    }
+  }, [
+    canUseRecurring,
+    initialBookingType,
+    initialDate,
+    initialRecurringSessionsCount,
+    initialTime,
+    maxDate,
+    slotsByUserDate,
+    today,
+  ])
+
   function prevMonth() {
     if (!canGoPrev) return
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
@@ -550,8 +600,11 @@ export default function BookingForm({
                   onChange={e => setRecurringSessionsCount(Number(e.target.value))}
                   className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
                 >
-                  <option value={4}>4 sessões</option>
-                  <option value={8}>8 sessões</option>
+                  {RECURRING_SESSION_OPTIONS.map(option => (
+                    <option key={option} value={option}>
+                      {option} sessões
+                    </option>
+                  ))}
                 </select>
               </div>
             )}

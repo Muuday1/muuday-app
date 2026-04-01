@@ -56,6 +56,8 @@ export function PublicBookingAuthModal({
     return bookHref
   }, [bookHref, pendingAction, requestHref])
 
+  const isRequestAction = pendingAction === 'request'
+
   if (isLoggedIn) {
     return (
       <div className="space-y-2">
@@ -74,7 +76,7 @@ export function PublicBookingAuthModal({
             className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-center text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
           >
             <span className="inline-flex items-center justify-center gap-2">
-              <MessageCircle className="h-4 w-4" /> Solicitar horário
+              <MessageCircle className="h-4 w-4" /> Mandar mensagem
             </span>
           </Link>
         ) : (
@@ -83,7 +85,7 @@ export function PublicBookingAuthModal({
             disabled
             className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 py-3 text-sm font-semibold text-neutral-400"
           >
-            <MessageCircle className="h-4 w-4" /> Solicitação de horário indisponível no plano atual
+            <MessageCircle className="h-4 w-4" /> Envio de mensagem indisponível no momento
           </button>
         )}
       </div>
@@ -109,10 +111,10 @@ export function PublicBookingAuthModal({
             type="button"
             onClick={() => setPendingAction('request')}
             className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
-            aria-label="Entrar para solicitar horário"
+            aria-label="Entrar para mandar mensagem"
           >
             <span className="inline-flex items-center justify-center gap-2">
-              <MessageCircle className="h-4 w-4" /> Solicitar horário
+              <MessageCircle className="h-4 w-4" /> Mandar mensagem
             </span>
           </button>
         ) : (
@@ -121,19 +123,21 @@ export function PublicBookingAuthModal({
             disabled
             className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 py-3 text-sm font-semibold text-neutral-400"
           >
-            <MessageCircle className="h-4 w-4" /> Solicitação de horário indisponível no plano atual
+            <MessageCircle className="h-4 w-4" /> Envio de mensagem indisponível no momento
           </button>
         )}
       </div>
 
       {pendingAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4" role="dialog" aria-modal="true" aria-label="Autenticação para agendamento">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4" role="dialog" aria-modal="true" aria-label="Autenticação para continuar">
           <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-xl font-bold text-neutral-900">Continue para agendar</h3>
+                <h3 className="font-display text-xl font-bold text-neutral-900">
+                  {isRequestAction ? 'Continue para mandar mensagem' : 'Continue para agendar'}
+                </h3>
                 <p className="mt-1 text-sm text-neutral-500">
-                  Crie uma conta de usuário para continuar com agendamento e pagamentos.
+                  Crie uma conta de usuário para continuar.
                 </p>
               </div>
               <button

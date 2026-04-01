@@ -296,6 +296,75 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - `/profissional/[id]` now reads data via admin client when viewer is anonymous (with fallback to server client), matching the same visibility model used by `/buscar`.
 - this removes false 404 cases where cards were visible in public search but opening profile failed due anon-RLS read mismatch.
 - route still enforces public visibility gates (`canGoLive`) and ownership checks.
+79. User signup confirmation email copy/design aligned to transactional standard:
+- updated Supabase `Confirm sign up` template content in `scripts/ops/update-supabase-templates.ts` to match current Muuday transactional tone (clear activation step, contextual benefit, fallback URL guidance).
+- updated subject for confirmation flow to `Ative sua conta na Muuday`.
+- keeps same visual design system/tokens already used by other auth templates; change is editorial/content-focused.
+80. Search price filter stability/default behavior fix:
+- fixed parsing bug where empty `precoMax` could be interpreted as `0` in filter components, causing max thumb regressions/resets.
+- `parseToInt` in desktop/mobile filters now treats empty string as fallback value (not numeric zero).
+- default slider state now correctly represents full range (`mínimo -> máximo`) when no explicit price filter is active.
+- slider pointer handling hardened:
+  - thumb `pointerdown` now stops propagation to prevent track handler conflicts;
+  - pointer-move calculations use current refs to avoid stale-state jitter while dragging.
+- validation run green: `lint`, `typecheck`, `build`, `test:state-machines`.
+81. Search specialty filter corrected to canonical category specialties only:
+- `/buscar` now builds specialty filter options from canonical taxonomy by selected category (DB taxonomy first, static category fallback only if taxonomy unavailable).
+- removed `tags` / `Foco de atuação` / legacy `subcategories` from specialty filter option source.
+- specialty filter matching now requires canonical specialty equality (no fuzzy match against tags/bio).
+- this keeps specialty selector constrained to real specialties inside the selected category and aligned with admin taxonomy governance.
+82. Public language selector constrained to Portuguese-only:
+- `lib/public-preferences.ts` now exposes a single public language option (`pt-BR`, label `Português`).
+- public language default resolver now always returns `pt-BR` (no accept-language branching for language).
+- top language selector in `PublicHeader` is locked to `pt-BR` on desktop/mobile and rendered as single-option control.
+- this reflects current product state: no translated public UI yet; Portuguese is the only supported language.
+83. Professional profile page (`/profissional/[id]`) updated to the requested information architecture:
+- removed duplicated specialty rendering and removed category label from profile header.
+- kept `Foco de atuação`, tier/favorite/rating badges, `Sobre mim`, and `Idiomas`.
+- moved availability booking experience into profile page itself with calendar, duration selection, recurrence controls, and dynamic price by selected duration.
+- booking actions standardized in profile sidebar: `Agendar sessão` and `Mandar mensagem`.
+- added dedicated `Rating` section, dedicated `Comentários` section, and horizontal recommendations carousel (`Pessoas que você também pode gostar`).
+- kept policy/trust copy in booking sidebar:
+  - `Cancelamento gratuito até 24h antes`
+  - `Sessão por vídeo (link enviado após confirmação)`
+  - `Conversão automática de fuso horário`.
+- technical validation completed: `lint`, `typecheck`, `build`, `test:state-machines` all green.
+84. Workspace consolidation completed (OneDrive -> canonical repo):
+- canonical active workspace reaffirmed as `C:\dev\muuday-app` only.
+- migrated durable OneDrive artifacts into repo at `artifacts/onedrive-import-2026-04-01`:
+  - `ux-blueprint.html`
+  - `refero-main.js`
+  - `pdf-page.png`
+  - `DO_NOT_USE_FOR_ACTIVE_DEV.txt`
+- intentionally excluded temporary files/logs from migration (`tmp_pw_*.sh`, `.playwright-cli`, legacy sandbox trees).
+- OneDrive folder now has explicit stop-use markers (`DO_NOT_USE_FOR_ACTIVE_DEV.txt`, `OPEN_ACTIVE_REPO.txt`) pointing to canonical path.
+85. Professional page layout updated to persistent right-side booking rail:
+- `app/(app)/profissional/[id]` now renders all main content (header/about/languages/calendar/rating/comments/recommendations) in the left column.
+- booking card rail remains sticky on desktop across full-page scroll (`top-24`) so `Agendar sessão` and `Mandar mensagem` stay visible.
+- left-side cards now align to the same content width as the calendar block, reducing oversized full-width sections.
+- validation run: `lint`, `typecheck`, `build` green.
+86. Professional page unauthenticated booking/message CTA now uses the same login modal flow as `/buscar`:
+- replaced standalone `PublicBookingAuthModal` usage in `ProfileAvailabilityBookingSection` with shared `SearchBookingCtas`.
+- when logged out, clicking `Agendar sessão` or `Mandar mensagem` opens the same `AuthOverlay + LoginForm` experience used in search cards.
+- logged-in behavior remains direct navigation to booking/message routes.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
+87. Public currency selector is now visible for logged-out visitors on professional profile pages:
+- `PublicHeader` currency visibility rule now includes `/profissional/*` in addition to `/buscar`.
+- behavior remains unchanged for logged-in sessions (selector hidden in authenticated workspace/header context).
+- currency update still writes the same public preference cookie and query param flow used in public search.
+88. Recurring booking flow from professional profile to `/agendar/[id]` is now fully connected:
+- `/agendar/[id]` now parses query prefill (`tipo`, `sessoes`, `data`, `hora`) and hydrates booking form initial state.
+- `BookingForm` now applies recurring prefill and supports configurable package size options from 2 to 12 sessions.
+- recurring confirmation still executes single-submit batch creation via `createBooking` (parent + child sessions created in one action).
+- professional profile recurring selector now supports 2..12 sessions and only enables recurring CTA when `enable_recurring` is allowed for the professional.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
+89. Password recovery flow hardened to reduce false-positive "email sent" cases:
+- new API endpoint `POST /api/auth/password-reset` added.
+- endpoint applies auth rate limit by `ip+email` and uses canonical redirect target from `getAppBaseUrl()`.
+- primary path: generate Supabase recovery link via admin client + send transactional reset email through Resend template.
+- fallback path: if admin delivery is unavailable, uses Supabase `resetPasswordForEmail` directly.
+- `/recuperar-senha` now calls this endpoint and displays clearer UX copy about delivery behavior.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
 
 ## Immediate next actions
 

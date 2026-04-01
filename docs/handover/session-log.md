@@ -723,3 +723,142 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck`
   - `npm run build`
   - `npm run test:state-machines`
+
+### Entry 47 (2026-04-01) — Ajuste de copy do email de confirmação de cadastro (usuário)
+- Atualizado o template Supabase `Confirm sign up` em `scripts/ops/update-supabase-templates.ts` para alinhar o texto ao padrão dos outros emails transacionais da Muuday.
+- Mudanças aplicadas:
+  - badge/título de abertura mais direto para ativação de conta;
+  - corpo com benefício contextual pós-confirmação;
+  - instrução explícita de fallback para copiar/colar URL;
+  - assunto alterado para `Ative sua conta na Muuday`.
+- Escopo: apenas conteúdo/editorial do template; layout/tokens visuais foram preservados.
+- Ação pendente para efetivar em produção: executar script com token de management do Supabase.
+
+### Entry 48 (2026-04-01) — Correção de estabilidade do filtro de preço em `/buscar`
+- Corrigido bug de parsing em filtros client-side (`DesktopFiltersAutoApply`, `MobileFiltersDrawer`) onde `precoMax=''` era interpretado como `0`.
+- Efeito corrigido:
+  - slider no default volta a representar faixa completa (mínimo até máximo);
+  - thumb máximo não sofre reset para `0` ao finalizar interação.
+- Hardening adicional no componente `PriceRangeSlider`:
+  - `pointerdown` dos thumbs agora evita propagação para o trilho;
+  - cálculo de `pointermove` passa a usar refs atuais (`minRef/maxRef`) para reduzir jitter/efeitos de estado obsoleto.
+- Validação executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 49 (2026-04-01) — Filtro de especialidade alinhado à taxonomia canônica
+- Ajustada a lógica de `/buscar` para que o filtro de especialidade use apenas especialidades reais da categoria selecionada.
+- Fonte de opções:
+  - prioritariamente taxonomia ativa no banco (`categories/subcategories/specialties`);
+  - fallback para catálogo estático por categoria somente quando taxonomia não estiver disponível.
+- Removidas `tags`/`Foco de atuação` da montagem de opções de especialidade.
+- Matching de filtro alterado para igualdade em especialidade canônica (sem busca em tags/bio).
+- Validação executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 50 (2026-04-01) — Idioma público fixado em Português
+- Atualizado `lib/public-preferences.ts` para suportar apenas idioma público `pt-BR`.
+- Removidas opções públicas `en-US` e `es-ES` do seletor de idioma.
+- `resolveDefaultLanguageFromAcceptLanguage` agora retorna sempre `pt-BR`.
+- `PublicHeader` (desktop e mobile) foi ajustado para idioma fixo em Português no botão superior.
+- Validação executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 51 (2026-04-01) — Página do profissional reestruturada com agenda in-page
+- Reestruturada `app/(app)/profissional/[id]/page.tsx` para remover duplicidades e consolidar booking na própria página.
+- Atualizações entregues:
+  - especialidade exibida uma única vez no topo;
+  - categoria removida do cabeçalho;
+  - `Foco de atuação` preservado;
+  - seções separadas de `Sobre mim`, `Idiomas`, `Rating` e `Comentários`;
+  - adicionado carrossel de recomendações (`Pessoas que você também pode gostar`).
+- Disponibilidade/agendamento migrados para `components/professional/ProfileAvailabilityBookingSection.tsx`:
+  - calendário + seleção de horário;
+  - duração variável (30/50/60/90 + base do profissional);
+  - recorrência com opção de pacotes;
+  - preço dinâmico por duração no card lateral;
+  - cópia de confiança mantida (cancelamento, vídeo, conversão de fuso).
+- CTA secundário padronizado para `Mandar mensagem` em `components/auth/PublicBookingAuthModal.tsx`.
+- Validação técnica concluída:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 52 (2026-04-01) — Consolidação de workspace e migração de artefatos do OneDrive
+- Confirmado `C:\dev\muuday-app` como único workspace ativo da Muuday.
+- Migrados artefatos úteis do workspace legado (`C:\Users\igorp\OneDrive\Documents\Muuday`) para:
+  - `artifacts/onedrive-import-2026-04-01/`
+- Arquivos importados:
+  - `ux-blueprint.html`
+  - `refero-main.js`
+  - `pdf-page.png`
+  - `DO_NOT_USE_FOR_ACTIVE_DEV.txt`
+- Criado manifesto de migração:
+  - `artifacts/onedrive-import-2026-04-01/MIGRATION_MANIFEST.md`
+- Workspace legado recebeu reforço de sinalização:
+  - atualização de `DO_NOT_USE_FOR_ACTIVE_DEV.txt`
+  - criação de `OPEN_ACTIVE_REPO.txt` apontando para `C:\dev\muuday-app`
+
+### Entry 53 (2026-04-01) — Modal de login unificado no perfil profissional (visitante)
+- Atualizado `ProfileAvailabilityBookingSection` para reutilizar `SearchBookingCtas`.
+- Comportamento resultante:
+  - visitante em `/profissional/[id]` ao clicar `Agendar sessão` ou `Mandar mensagem` abre o mesmo modal da busca (`AuthOverlay + LoginForm`);
+  - usuário logado mantém navegação direta para as rotas de agendamento e mensagem.
+- `SearchBookingCtas` ganhou labels configuráveis (`bookLabel`, `messageLabel`) sem alterar o comportamento existente em `/buscar`.
+- Validação executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 54 (2026-04-01) — Seletor de moeda no perfil profissional para visitante
+- Ajustada a regra de visibilidade do seletor de moeda no `PublicHeader`.
+- Visitante deslogado agora vê o mesmo controle de moeda em:
+  - `/buscar`
+  - `/profissional/[id]`
+- Sessão logada mantém comportamento atual (controle de moeda não é exibido no header autenticado).
+
+### Entry 55 (2026-04-01) — Recorrência do perfil para agendamento em lote
+- Ajustado `app/(app)/agendar/[id]/page.tsx` para consumir parâmetros de prefill:
+  - `tipo` (`one_off` | `recurring`)
+  - `sessoes` (2..12)
+  - `data` (`YYYY-MM-DD`)
+  - `hora` (`HH:mm`)
+- `components/booking/BookingForm.tsx` agora:
+  - recebe prefill inicial de recorrência;
+  - aplica prefill de data/horário quando válido;
+  - expande pacote recorrente para seleção de `2..12` sessões.
+- `components/professional/ProfileAvailabilityBookingSection.tsx` agora:
+  - expande seleção recorrente para `2..12` sessões;
+  - bloqueia toggle de recorrência quando `enable_recurring` estiver desativado.
+- Resultado funcional: usuário seleciona recorrência e quantidade e confirma todas as sessões em um único envio do checkout.
+- Validação executada:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 56 (2026-04-01) — Recuperação de senha com entrega robusta
+- Criado endpoint `app/api/auth/password-reset/route.ts` para centralizar o fluxo de recuperação:
+  - validação de payload (`email`);
+  - rate-limit com chave `ip+email` (preset `auth`);
+  - redirect canônico com `getAppBaseUrl()/auth/callback`.
+- Entrega principal implementada via:
+  - `createAdminClient().auth.admin.generateLink({ type: 'recovery' })`
+  - envio de template de reset por Resend (`sendPasswordResetEmail`).
+- Fallback mantido para `supabase.auth.resetPasswordForEmail` quando caminho admin não estiver disponível.
+- `app/(auth)/recuperar-senha/page.tsx` migrada para consumir a nova API e melhorar a mensagem de confirmação para o usuário.
+- Validação executada:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
