@@ -26,6 +26,15 @@ type SessionSlot = {
 }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
+const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
+
+type PostgrestLikeError = {
+  code?: string | null
+  message?: string | null
+  details?: string | null
+  hint?: string | null
+}
+
 function reportBookingError(
   error: unknown,
   context: Record<string, unknown>,
@@ -40,6 +49,21 @@ function reportBookingError(
     tags: { area: 'booking_create' },
     extra: context,
   })
+}
+
+function isUniqueConstraintError(error: unknown, constraintName: string) {
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes(constraintName)
+}
+
+function isActiveSlotCollision(error: unknown) {
+  if (isUniqueConstraintError(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) return true
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes('(professional_id, start_time_utc)')
 }
 
 function hhmmToMinutes(value: string) {
@@ -417,6 +441,12 @@ export async function createBooking(data: {
         .single()
 
       if (error || !booking) {
+        if (isActiveSlotCollision(error)) {
+          return {
+            success: false,
+            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+          }
+        }
         reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
         return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
       }
@@ -458,6 +488,12 @@ export async function createBooking(data: {
         .single()
 
       if (parentError || !parentBooking) {
+        if (isActiveSlotCollision(parentError)) {
+          return {
+            success: false,
+            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+          }
+        }
         reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
         return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
       }
@@ -493,6 +529,13 @@ export async function createBooking(data: {
 
       const { error: childError } = await supabase.from('bookings').insert(childBookingsPayload)
       if (childError) {
+        if (isActiveSlotCollision(childError)) {
+          await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          return {
+            success: false,
+            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+          }
+        }
         reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
         return { success: false, error: 'Erro ao criar sessoes recorrentes. Tente novamente.' }

@@ -80,14 +80,27 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
     router.refresh()
   }
 
+  const titleClass = compact
+    ? 'font-display font-bold text-2xl leading-tight text-neutral-900 mb-1'
+    : 'font-display font-bold text-3xl text-neutral-900 mb-2'
+  const subtitleClass = compact ? 'text-sm text-neutral-500 mb-4' : 'text-neutral-500 mb-8'
+  const formSpacingClass = compact ? 'space-y-3' : 'space-y-4'
+  const inputClass = compact
+    ? 'w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
+    : 'w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
+  const submitClass = compact
+    ? 'w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-sm text-white font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30'
+    : 'w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30'
+  const dividerClass = compact ? 'relative flex items-center gap-2 my-4' : 'relative flex items-center gap-3 my-6'
+
   return (
     <div>
-      {title && <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">{title}</h1>}
-      {subtitle && <p className="text-neutral-500 mb-8">{subtitle}</p>}
+      {title && <h1 className={titleClass}>{title}</h1>}
+      {subtitle && <p className={subtitleClass}>{subtitle}</p>}
 
-      <form onSubmit={handleLogin} className="space-y-4" noValidate>
+      <form onSubmit={handleLogin} className={formSpacingClass} noValidate>
         <div>
-          <label htmlFor={emailId} className="block text-sm font-medium text-neutral-700 mb-1.5">
+          <label htmlFor={emailId} className="mb-1 block text-sm font-medium text-neutral-700">
             E-mail
           </label>
           <input
@@ -97,14 +110,14 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
             onChange={e => setEmail(e.target.value)}
             required
             placeholder="seu@email.com"
-            className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+            className={inputClass}
             aria-invalid={Boolean(error)}
             autoComplete="email"
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="mb-1 flex items-center justify-between">
             <label htmlFor={passwordId} className="block text-sm font-medium text-neutral-700">
               Senha
             </label>
@@ -122,7 +135,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
             onChange={e => setPassword(e.target.value)}
             required
             placeholder="••••••••"
-            className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+            className={inputClass}
             aria-invalid={Boolean(error)}
             autoComplete="current-password"
           />
@@ -137,7 +150,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className={submitClass}
         >
           {loading ? (
             <>
@@ -149,26 +162,24 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
         </button>
       </form>
 
-      <div className="mt-6">
-        <div className="relative flex items-center gap-3 my-6">
+      <div className={compact ? 'mt-4' : 'mt-6'}>
+        <div className={dividerClass}>
           <div className="flex-1 h-px bg-neutral-200" />
           <span className="text-xs text-neutral-400 font-medium">ou entre com</span>
           <div className="flex-1 h-px bg-neutral-200" />
         </div>
-        <SocialAuthButtons roleHint="usuario" />
+        <SocialAuthButtons roleHint="usuario" compact={compact} />
       </div>
 
-      {!compact && (
-        <p className="text-center text-sm text-neutral-500 mt-6">
-          Ainda não é membro?{' '}
-          <Link
-            href="/cadastro"
-            className="rounded-md text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
-          >
-            Criar conta
-          </Link>
-        </p>
-      )}
+      <p className={compact ? 'mt-4 text-center text-xs text-neutral-500' : 'mt-6 text-center text-sm text-neutral-500'}>
+        Ainda não é membro?{' '}
+        <Link
+          href="/cadastro"
+          className="rounded-md font-medium text-brand-600 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+        >
+          Criar conta
+        </Link>
+      </p>
     </div>
   )
 }

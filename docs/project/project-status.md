@@ -365,6 +365,57 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - fallback path: if admin delivery is unavailable, uses Supabase `resetPasswordForEmail` directly.
 - `/recuperar-senha` now calls this endpoint and displays clearer UX copy about delivery behavior.
 - validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
+90. User account settings are now unified inside `/perfil`:
+- profile page now embeds full account controls (`Idioma e região`, `Notificações`, `Segurança`, `Zona de risco`) via `components/profile/ProfileAccountSettings.tsx`.
+- user/admin no longer need a separate settings page to manage notifications and security actions.
+- top profile card remains intact (name, email, country, timezone, currency + edit profile).
+91. `/configuracoes` is now professional-only:
+- `app/(app)/configuracoes/page.tsx` converted to server gate wrapper.
+- non-professional roles are redirected to `/perfil`.
+- professional settings workspace preserved through `components/settings/ProfessionalSettingsWorkspace.tsx`.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
+92. Provider vs customer role boundary enforced on booking entry routes:
+- professional accounts are now blocked from `/agendar/[id]` and `/solicitar/[id]`.
+- both routes perform server-side role check (`profiles.role`) and redirect professional users to:
+  - `/dashboard?erro=conta-profissional-nao-pode-contratar`
+- this codifies product rule: only `usuario` account can purchase/schedule with professionals.
+- E2E guard added to prevent regressions: professional attempting booking/request flow must be redirected.
+93. Login modal density adjusted for `/buscar` and `/profissional/[id]` unauthenticated CTAs:
+- `AuthOverlay` modal variant reduced to `max-w-md` with smaller padding and desktop no-internal-scroll behavior (`md:max-h-none`, `md:overflow-visible`).
+- `LoginForm` compact mode now actually compresses title/spacing/inputs/button/divider and keeps `Ainda não é membro? Criar conta` visible.
+- `SocialAuthButtons` now supports `compact` rendering (smaller padding/gap/icon) for modal contexts.
+- `SearchBookingCtas` now passes `compact` mode and removes extra non-essential helper copy below login form.
+- auth logic and role-based redirect policy remain unchanged.
+94. Professional profile sticky booking box expanded to tablet + desktop:
+- `components/professional/ProfileAvailabilityBookingSection.tsx` grid now switches to two columns from `md` (`content + booking rail`).
+- booking rail sticky behavior now starts at `md` (`md:sticky md:top-24`) instead of only large desktop.
+- mobile remains single-column with non-sticky booking box.
+95. Search scalability baseline moved to Postgres full-text strategy (`pg_trgm + GIN`):
+- added migration `019-wave2-search-pgtrgm.sql` with:
+  - `pg_trgm` extension
+  - trigram indexes for `profiles.full_name`, `profiles.country`, `professionals.bio`, `professionals.category`, `professionals.tags`, `professionals.subcategories`, and `specialties.name_pt`
+  - filter indexes for price/category/language/specialty joins
+  - RPC `search_public_professionals_pgtrgm(...)` for candidate ID retrieval with DB-side filtering.
+- `/buscar` now attempts DB-side candidate filtering via RPC before loading professional payloads, reducing client-side filtering pressure.
+- fallback behavior preserved: if RPC is unavailable/error, `/buscar` keeps existing flow (no hard failure).
+- strategy locked: remain Postgres-first now; migrate to Typesense only after scale trigger (> 2k profissionais ativos).
+- migration compatibility fix applied: replaced direct `array_to_string(...)` index expressions with immutable helper `public.search_text_from_array(text[])` to avoid `42P17` on index creation in Supabase SQL editor.
+96. Wave 2 composite-index hardening patch prepared for critical audit paths:
+- added migration `020-wave2-composite-indexes.sql` with:
+  - `bookings(professional_id, status)`
+  - `bookings(user_id, status)`
+  - `availability_rules(professional_id, is_active)`
+  - `payments(booking_id, status)`
+- added operational validation script `db/sql/analysis/wave2-indexes-explain-analyze.sql` with `EXPLAIN (ANALYZE, BUFFERS)` checks for booking queues, user history, availability rules, and payments.
+- production apply confirmed by operator (`020` ran in Supabase SQL).
+- pending only operational evidence capture: run explain script and record index usage + p50/p95 impact in this file.
+97. Booking race-condition safety-net implemented at code + schema level:
+- added migration `021-wave2-booking-atomic-slot-constraint.sql` with:
+  - dedupe pass for conflicting active slots (keeps earliest booking, auto-cancels duplicates with metadata trail),
+  - partial unique index `bookings_unique_active_professional_start_idx` on `(professional_id, start_time_utc)` for active slot-reserving statuses.
+- `lib/actions/booking.ts` now handles DB unique collision (`23505`) deterministically and returns user-facing conflict message (`horário já reservado`) instead of generic insert failure.
+- recurring package wrapper rows (`booking_type='recurring_parent'`) are intentionally excluded from slot uniqueness to preserve current parent+child model.
+- production apply confirmed by operator (`021` ran in Supabase SQL).
 
 ## Immediate next actions
 
@@ -372,6 +423,21 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. Confirm Inngest dashboard is attached to current app path (`/api/inngest`) and remove stale unattached sync records.
 3. Keep E2E fixtures stable and close skipped `wave2-onboarding-gates.spec.ts` scenarios by maintaining both open-gate and blocked-gate professional fixtures.
 4. After Wave 2 sign-off, open Wave 3 scope (Stripe real billing/payout/ledger) without changing current Wave 2 gate contracts.
+5. Run visual regression pass for compact auth modal:
+- desktop (`/buscar` and `/profissional/[id]`) must render full modal content without inner scrollbar.
+- mobile modal must remain centered and usable with fallback scroll only when viewport height is constrained.
+6. Run sticky rail QA on professional profile:
+- tablet + desktop: booking box must remain visible while scrolling profile sections.
+- mobile: booking box must remain in normal flow (not sticky) without overlap.
+7. Post-apply validation for `019`:
+- run `/buscar` smoke with and without filters to ensure RPC path and fallback path both behave correctly.
+- record p50/p95 before/after with same region and update this file.
+8. Post-apply validation for `020`:
+- run `db/sql/analysis/wave2-indexes-explain-analyze.sql`.
+- confirm index scans for critical paths listed in audit.
+9. Post-apply validation for `021`:
+- create two concurrent booking attempts for same professional/start time and confirm one succeeds while the other fails with deterministic conflict error.
+- verify no false-positive collisions for recurring parent wrapper rows.
 
 ## Continuity rule
 

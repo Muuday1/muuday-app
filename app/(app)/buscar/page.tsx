@@ -69,6 +69,20 @@ type SearchQueryState = {
   moeda: string
 }
 
+type SearchPgTrgmParams = {
+  queryText: string
+  selectedCategory: string
+  selectedSpecialty: string
+  selectedLanguage: string
+  selectedLocation: string
+  minPriceBrl: number | null
+  maxPriceBrl: number | null
+}
+
+type SearchCandidateRow = {
+  professional_id: string
+}
+
 type SpecialtyContext = Awaited<ReturnType<typeof loadProfessionalSpecialtyContext>>
 
 type PublicSearchBaseData = {
@@ -250,13 +264,34 @@ function buildHref(basePath: string, state: SearchQueryState, overrides: Partial
 }
 
 async function loadPublicSearchBaseData(readClient: any): Promise<PublicSearchBaseData> {
-  const { data: professionalsRaw } = await readClient
+  return loadPublicSearchBaseDataByIds(readClient, null)
+}
+
+async function loadPublicSearchBaseDataByIds(
+  readClient: any,
+  candidateIds: string[] | null,
+): Promise<PublicSearchBaseData> {
+  if (candidateIds && candidateIds.length === 0) {
+    return {
+      professionals: [],
+      specialtyContext: EMPTY_SPECIALTY_CONTEXT,
+      availabilityRows: [],
+    }
+  }
+
+  let query = readClient
     .from('professionals')
     .select('*,profiles!inner(full_name,country,avatar_url,role)')
     .eq('status', 'approved')
     .eq('profiles.role', 'profissional')
-    .order('rating', { ascending: false })
-    .limit(250)
+
+  if (candidateIds && candidateIds.length > 0) {
+    query = query.in('id', candidateIds)
+  } else {
+    query = query.order('rating', { ascending: false }).limit(250)
+  }
+
+  const { data: professionalsRaw } = await query
 
   let professionals = professionalsRaw || []
   if (professionals.length > 0) {
@@ -284,6 +319,50 @@ async function loadPublicSearchBaseData(readClient: any): Promise<PublicSearchBa
     professionals,
     specialtyContext,
     availabilityRows,
+  }
+}
+
+async function fetchSearchCandidateIdsPgTrgm(
+  readClient: any,
+  params: SearchPgTrgmParams,
+): Promise<string[] | null> {
+  const shouldUsePgSearch = Boolean(
+    params.queryText ||
+      params.selectedCategory ||
+      params.selectedSpecialty ||
+      params.selectedLanguage !== 'qualquer' ||
+      params.selectedLocation ||
+      params.minPriceBrl !== null ||
+      params.maxPriceBrl !== null,
+  )
+
+  if (!shouldUsePgSearch) {
+    return null
+  }
+
+  try {
+    const { data, error } = await readClient.rpc('search_public_professionals_pgtrgm', {
+      p_query: params.queryText || null,
+      p_category: params.selectedCategory || null,
+      p_specialty: params.selectedSpecialty || null,
+      p_language: params.selectedLanguage !== 'qualquer' ? params.selectedLanguage : null,
+      p_location: params.selectedLocation || null,
+      p_min_price_brl: params.minPriceBrl,
+      p_max_price_brl: params.maxPriceBrl,
+      p_limit: 1200,
+    })
+
+    if (error) return null
+
+    return Array.from(
+      new Set(
+        ((data || []) as SearchCandidateRow[])
+          .map(row => String(row.professional_id || '').trim())
+          .filter(Boolean),
+      ),
+    )
+  } catch {
+    return null
   }
 }
 
@@ -371,7 +450,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   let cachedAvailabilityRows: AvailabilityRow[] = []
   if (readClient) {
     try {
-      if (!isLoggedIn && adminSupabase) {
+      const candidateIds = await fetchSearchCandidateIdsPgTrgm(readClient, {
+        queryText,
+        selectedCategory,
+        selectedSpecialty,
+        selectedLanguage,
+        selectedLocation: rawSelectedLocation,
+        minPriceBrl,
+        maxPriceBrl,
+      })
+
+      if (!isLoggedIn && adminSupabase && candidateIds === null) {
         const cached = await getCachedRuntimeValue(
           PUBLIC_SEARCH_BASE_CACHE_KEY,
           PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
@@ -381,7 +470,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         specialtyContext = cached.specialtyContext
         cachedAvailabilityRows = cached.availabilityRows
       } else {
-        const uncached = await loadPublicSearchBaseData(readClient)
+        const uncached = await loadPublicSearchBaseDataByIds(readClient, candidateIds)
         professionals = uncached.professionals
         specialtyContext = uncached.specialtyContext
         cachedAvailabilityRows = uncached.availabilityRows

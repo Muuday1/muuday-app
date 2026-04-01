@@ -1,6 +1,6 @@
 ﻿# Tech Stack
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 Status legend:
 - `Done`
@@ -32,16 +32,45 @@ Wave legend:
 | Upstash | Rate limiting | In progress | Wave 0 | Abuse patterns or higher API throughput require tighter controls |
 | Inngest | Background job orchestration | In progress | Wave 2 prep / Wave 4 scale | Fragmented retries and async workflow reliability pressure |
 
+## Wave 2 close — infrastructure hardening (deploy before Wave 3)
+
+| Component | Purpose | Status | Deploy timing | Growth update trigger |
+| --- | --- | --- | --- | --- |
+| Database composite indexes | Query performance for booking/search paths | In progress (migration `020` criada) | Wave 2 close | `EXPLAIN ANALYZE` mostra seq scans após aplicação dos índices |
+| Booking race condition fix | Atomic conflict check + insert via Postgres RPC or UNIQUE constraint | Planned | Wave 2 close | Double-booking reports in production |
+| JWT custom claims for role | Eliminate per-request DB query in middleware | Planned | Wave 2 close | Middleware latency > 50ms p95 or DB connection saturation |
+| Zod validation hardening | Schema validation on ALL server actions (booking amounts, dates, IDs) | Planned | Wave 2 close | Input validation gaps in server actions |
+| GitHub Actions CI pipeline | `lint → typecheck → build → test:unit → test:e2e` on every push | Planned | Wave 2 close | Any deploy-breaking regression reaching production |
+| Upstash rate limit monitoring | Alert when fallback in-memory limiter is active | Planned | Wave 2 close | Abuse patterns or Upstash outage goes unnoticed |
+| Dynamic exchange rates | Replace hardcoded rates with Supabase table + cron refresh + 24h staleness check | Planned | Wave 2 close | Currency conversion drift or stale-rate booking disputes |
+
 ## Approved build targets from canonical spec
 
 | Component | Purpose | Status | Planned entry wave | Growth update trigger |
 | --- | --- | --- | --- | --- |
 | Stripe Payments + Connect + Billing | Booking charges, refunds, payouts, professional billing | Planned | Wave 3 | Corridor/volume complexity and reconciliation requirements |
+| Stripe webhook endpoint | Signature-verified `/api/webhooks/stripe` with idempotency + Inngest retry | Planned | Wave 3 | Required for any real payment processing |
+| Stripe MCP server (dev tooling) | Claude Code direct access to Stripe API for setup/testing | Planned | Wave 3 | Speeds up Stripe integration development |
 | Internal financial ledger | Booking-finance auditability and reconciliation | Planned | Wave 3 | Finance/audit traceability gaps in payment lifecycle |
+| Recurring booking atomicity | Wrap parent + child + session inserts in Postgres RPC transaction | Planned | Wave 3 | Partial booking creation on failure |
+| Supabase Vault | Encrypted storage for sensitive payout/bank details | Planned | Wave 3 | PII compliance when handling financial data |
+| Admin audit trail table | `admin_audit_log` for all admin mutations | Planned | Wave 3 | Financial compliance requires audit-grade traceability |
 | Case queue subsystem | Admin exception handling and trust operations | Planned | Wave 4 | Case volume and dispute turnaround SLA pressure |
 | Event-driven notification dispatcher | Consistent email + in-app delivery | Planned/In progress | Wave 4 | Reminder reliability and multi-channel routing needs |
+| Checkly synthetic monitoring | Uptime and critical-path monitoring (already in devDependencies) | Planned | Wave 4 | SLA incidents require broader check set/escalation |
+| Sentry alert rules | Custom alerts for error rate spike, payment failures, auth failures | Planned | Wave 4 | Production incident detection is manual |
 | Session provider abstraction | Provider-agnostic video/session execution | Planned | Wave 5 | Video experience reliability and no-show evidence requirements |
 | Compliance disclaimer versioning | Sensitive-category checkout/profile governance | Planned | Wave 5 | Legal wording changes and category expansion complexity |
+
+## Scale-triggered additions (deploy when threshold is met)
+
+| Component | Purpose | Status | Trigger threshold | Estimated cost |
+| --- | --- | --- | --- | --- |
+| pg_trgm + GIN indexes | Full-text search on professional names/bios/specialties | In progress | Wave 2 close (migration `019` + production validation) | Free (Supabase) |
+| Typesense or Meilisearch | Dedicated search engine with facets and typo tolerance | Under evaluation | > 2k active professionals (or search latency > 500ms p95 after pg_trgm tuning) | ~$50/month cloud |
+| Cloudflare Images or imgproxy | Image resize/optimization pipeline for profile photos | Under evaluation | > 1k uploaded avatars or LCP > 2.5s on profiles | ~$5/month |
+| Redis cache layer (Upstash) | Cache public profiles (5min TTL), taxonomy (1h), exchange rates (1h) | Planned | DB read IOPS > 80% of plan limit or search latency regression | Already in stack, minimal incremental cost |
+| Next.js ISR with revalidateTag | Incremental Static Regeneration for public profile pages | Under evaluation | > 5k daily profile views | Free (Vercel Pro) |
 
 ## Under evaluation (explicitly provisional)
 

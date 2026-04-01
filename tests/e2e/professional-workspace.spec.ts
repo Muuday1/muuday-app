@@ -6,10 +6,12 @@ const professionalEmail = process.env.E2E_PROFESSIONAL_EMAIL
 const professionalPassword = process.env.E2E_PROFESSIONAL_PASSWORD
 const adminEmail = process.env.E2E_ADMIN_EMAIL || process.env.E2E_USER_EMAIL
 const adminPassword = process.env.E2E_ADMIN_PASSWORD || process.env.E2E_USER_PASSWORD
+const bookableProfessionalId = process.env.E2E_PROFESSIONAL_ID
 
 const hasUserConfig = Boolean(userEmail && userPassword)
 const hasProfessionalConfig = Boolean(professionalEmail && professionalPassword)
 const hasAdminConfig = Boolean(adminEmail && adminPassword)
+const hasBookableProfessional = Boolean(bookableProfessionalId)
 
 async function login(page: Page, email: string, password: string) {
   await page.goto('/login')
@@ -78,6 +80,23 @@ test.describe('Role guard integrity', () => {
     await login(page, professionalEmail as string, professionalPassword as string)
     await page.goto('/favoritos')
     await page.waitForURL('**/dashboard')
+    await expect(page).toHaveURL(/\/dashboard/)
+  })
+
+  test('blocks professional from agendar e solicitar flow', async ({ page }) => {
+    test.skip(
+      !hasProfessionalConfig || !hasBookableProfessional,
+      'Set E2E_PROFESSIONAL_EMAIL, E2E_PROFESSIONAL_PASSWORD and E2E_PROFESSIONAL_ID to run booking guard tests.',
+    )
+
+    await login(page, professionalEmail as string, professionalPassword as string)
+
+    await page.goto(`/agendar/${bookableProfessionalId}`)
+    await page.waitForURL('**/dashboard**')
+    await expect(page).toHaveURL(/\/dashboard/)
+
+    await page.goto(`/solicitar/${bookableProfessionalId}`)
+    await page.waitForURL('**/dashboard**')
     await expect(page).toHaveURL(/\/dashboard/)
   })
 

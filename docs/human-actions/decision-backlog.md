@@ -1,6 +1,6 @@
 # Human Decision Backlog
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 This list includes decisions and validations that should be owned by a human decision-maker.
 Ordered by execution impact.
@@ -14,6 +14,10 @@ Ordered by execution impact.
 - Sev 1 ack <= 15m, mitigate <= 2h
 - Sev 2 ack <= 4h, mitigate <= 24h
 - Sev 3 ack next business block, mitigate <= 3 business days
+
+2. Search scaling strategy (Wave 2)
+- Resolved: 2026-04-01
+- Decision: keep Postgres-first search with `pg_trgm + GIN` now; migrate to Typesense only after `> 2k` active professionals (or if latency remains > 500ms p95 after tuning).
 
 ## Decision deadlines by wave (by when)
 

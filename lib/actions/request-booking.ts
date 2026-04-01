@@ -28,6 +28,14 @@ type RequestBookingActionResult =
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 const OFFER_EXPIRATION_HOURS = 24
 const REQUEST_BOOKING_STATUS_SET = new Set<string>(REQUEST_BOOKING_STATUSES)
+const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
+
+type PostgrestLikeError = {
+  code?: string | null
+  message?: string | null
+  details?: string | null
+  hint?: string | null
+}
 
 const createRequestSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional inv?lido.'),
@@ -68,6 +76,21 @@ function getUserCurrencyRate(currency: string) {
     AUD: 0.29,
   }
   return rates[currency] || 1
+}
+
+function isUniqueConstraintError(error: unknown, constraintName: string) {
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes(constraintName)
+}
+
+function isActiveSlotCollision(error: unknown) {
+  if (isUniqueConstraintError(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) return true
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes('(professional_id, start_time_utc)')
 }
 
 async function getAuthenticatedContext() {
@@ -855,6 +878,9 @@ export async function acceptRequestBooking(
     .single()
 
   if (bookingInsertError || !booking) {
+    if (isActiveSlotCollision(bookingInsertError)) {
+      return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
+    }
     return { success: false, error: 'N?o foi poss?vel converter a proposta em agendamento.' }
   }
 

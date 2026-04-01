@@ -42,6 +42,17 @@ export default async function AgendarPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  // Professional accounts are provider-only workspaces and cannot purchase sessions.
+  if (userProfile?.role === 'profissional') {
+    redirect('/dashboard?erro=conta-profissional-nao-pode-contratar')
+  }
+
   // Fetch professional with profile
   const { data: professional } = await supabase
     .from('professionals')

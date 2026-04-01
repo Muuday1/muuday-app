@@ -8,6 +8,7 @@ type Provider = 'google'
 type SocialAuthButtonsProps = {
   redirectPath?: string
   roleHint?: 'usuario' | 'profissional'
+  compact?: boolean
 }
 
 const PROVIDERS = [
@@ -32,7 +33,11 @@ function sanitizeRedirectPath(value?: string) {
   return value
 }
 
-export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }: SocialAuthButtonsProps) {
+export default function SocialAuthButtons({
+  redirectPath,
+  roleHint = 'usuario',
+  compact = false,
+}: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null)
   const [error, setError] = useState('')
 
@@ -67,13 +72,17 @@ export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }
           type="button"
           onClick={() => handleSocialLogin(provider.id)}
           disabled={loadingProvider !== null}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className={`w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-60 ${
+            compact
+              ? 'flex items-center justify-center gap-2 px-3 py-2.5 hover:bg-neutral-50'
+              : 'flex items-center justify-center gap-3 px-4 py-3 hover:bg-neutral-50'
+          }`}
           aria-label={provider.label}
         >
           {loadingProvider === provider.id ? (
-            <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
+            <Loader2 className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} animate-spin text-neutral-400`} />
           ) : (
-            provider.icon
+            <span className={compact ? 'scale-90' : undefined}>{provider.icon}</span>
           )}
           {provider.label}
         </button>

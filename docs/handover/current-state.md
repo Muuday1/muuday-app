@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-04-01 (session 52)
+Last updated: 2026-04-01 (session 64)
 
 ## Canonical baseline status
 
@@ -467,3 +467,50 @@ Wave-driven delivery is now mandatory:
   - preferred delivery: admin `generateLink(recovery)` + Resend email template
   - fallback: Supabase `resetPasswordForEmail`
 - this improves reliability when Supabase hosted auth emails are delayed or inconsistent.
+106. User profile page now contains full account settings experience in one place:
+- new client module `components/profile/ProfileAccountSettings.tsx` manages:
+  - timezone and currency preferences
+  - notification preferences toggles
+  - security actions (password reset entry point)
+  - risk zone sign out action
+- `app/(app)/perfil/page.tsx` now renders this section directly after profile/professional blocks.
+107. Settings route split by role is now explicit:
+- `app/(app)/configuracoes/page.tsx` is a server-side role gate.
+- `role !== profissional` redirects to `/perfil`.
+- professional workflow remains available through `components/settings/ProfessionalSettingsWorkspace.tsx` (moved from page route).
+108. Booking entry points now enforce customer-only behavior:
+- `app/(app)/agendar/[id]/page.tsx` and `app/(app)/solicitar/[id]/page.tsx` now check caller role via `profiles.role`.
+- if caller role is `profissional`, both routes redirect to:
+  - `/dashboard?erro=conta-profissional-nao-pode-contratar`
+- effective product rule is explicit in code: professional account cannot contract another professional; user account is required.
+109. Login modal density was compacted for unauthenticated booking/message CTAs:
+- `AuthOverlay` modal now uses smaller desktop width/padding and avoids inner scrollbar on desktop (`md:max-h-none`, `md:overflow-visible`).
+- `LoginForm` compact mode now reduces spacing/field/button height while keeping `Ainda não é membro? Criar conta` visible.
+- `SocialAuthButtons` now supports compact rendering and is used by compact `LoginForm`.
+- `SearchBookingCtas` modal removed extra helper line under the form to keep all required controls visible without scrolling in standard desktop viewports.
+110. Sticky booking rail now applies to tablet and desktop in professional profile:
+- `ProfileAvailabilityBookingSection` now adopts two-column layout from `md` breakpoint.
+- booking box uses `md:sticky md:top-24` (previously sticky only in `lg`), so iPad/tablet keeps action rail visible while scrolling.
+- mobile keeps one-column flow and non-sticky booking box behavior.
+111. `/buscar` now has Postgres-first search candidate filtering path:
+- migration `019-wave2-search-pgtrgm.sql` added with `pg_trgm + GIN` indexes and RPC `search_public_professionals_pgtrgm`.
+- `app/(app)/buscar/page.tsx` now calls RPC when search filters are active (`q`, categoria, especialidade, idioma, localização, preço) and loads only candidate professionals.
+- runtime fallback is preserved: if RPC fails or is not yet deployed, search falls back to existing behavior without breaking the page.
+- strategy baseline documented: keep Postgres search now; move to Typesense only when active professionals exceed 2k.
+- production apply confirmed by operator (`019` ran in Supabase SQL).
+112. Composite index patch created for P2 audit critical queries:
+- new migration `020-wave2-composite-indexes.sql` adds:
+  - `bookings(professional_id, status)`
+  - `bookings(user_id, status)`
+  - `availability_rules(professional_id, is_active)`
+  - `payments(booking_id, status)`
+- new runbook SQL `db/sql/analysis/wave2-indexes-explain-analyze.sql` provides `EXPLAIN ANALYZE` checks to confirm real index usage on booking/search/payment paths.
+- production apply confirmed by operator (`020` ran in Supabase SQL).
+- pending only explain output capture for audit evidence.
+113. Booking atomicity safety-net implemented for race-condition hardening (P2 audit):
+- new migration `021-wave2-booking-atomic-slot-constraint.sql`:
+  - auto-normalizes existing duplicate active slots (keeps earliest active booking, cancels duplicate rows with metadata marker),
+  - adds partial unique index `bookings_unique_active_professional_start_idx` on `(professional_id, start_time_utc)` for active slot-reserving statuses.
+- `lib/actions/booking.ts` now detects unique violation (`23505`) from that index and returns deterministic message (`horário já reservado`) for one-off and recurring child insert paths.
+- recurring parent wrapper rows are excluded from unique scope (`booking_type <> 'recurring_parent'`) to keep current package modeling stable.
+- production apply confirmed by operator (`021` ran in Supabase SQL).

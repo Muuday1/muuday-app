@@ -4,6 +4,100 @@ Use this for meaningful checkpoints only.
 
 ## 2026-04-01
 
+### Entry 65
+- Operator confirmou execução em produção das migrations:
+  - `019-wave2-search-pgtrgm.sql`
+  - `020-wave2-composite-indexes.sql`
+  - `021-wave2-booking-atomic-slot-constraint.sql`
+- Itens de schema do bloco P2 (search indexes, composite indexes, atomic slot uniqueness) agora estão ativos em produção.
+- Pendências remanescentes desse bloco passaram a ser apenas validação operacional:
+  - captura de `EXPLAIN (ANALYZE, BUFFERS)` para evidência de uso de índice;
+  - smoke de concorrência para confirmar `1 sucesso + 1 conflito determinístico` no mesmo slot.
+
+### Entry 64
+- Endereçado item P2 de race condition em criação de booking (check+insert não atômicos).
+- Nova migration adicionada: `db/sql/migrations/021-wave2-booking-atomic-slot-constraint.sql`.
+- A migration aplica duas proteções:
+  - normalização de duplicidade ativa existente (mantém booking mais antigo e cancela duplicados com marcador em `metadata`);
+  - índice único parcial `bookings_unique_active_professional_start_idx` em `(professional_id, start_time_utc)` para estados ativos.
+- `lib/actions/booking.ts` atualizado para tratar `23505` desse índice e retornar erro funcional determinístico:
+  - `Um ou mais horários já foram reservados. Escolha outro horário.`
+- Escopo intencional: `booking_type='recurring_parent'` fica fora da unicidade para não quebrar o modelo atual de parent+children recorrente.
+- Próximo passo operacional obrigatório: aplicar `021` em produção e validar corrida concorrente real (um sucesso + uma falha controlada).
+
+### Entry 59
+- Ajustado o modal de login usado por CTAs de visitante em `/buscar` e `/profissional/[id]` para remover scroll interno no desktop padrão.
+- `AuthOverlay` (variante `modal`) foi compactado:
+  - largura reduzida (`max-w-md`),
+  - padding menor,
+  - sem restrição de altura/scroll interno em desktop (`md:max-h-none`, `md:overflow-visible`),
+  - fallback com scroll mantido para viewports pequenos.
+- `LoginForm` recebeu compactação real quando `compact=true`:
+  - título/subtítulo menores,
+  - gaps verticais menores,
+  - campos e botão com altura reduzida,
+  - separador social compacto,
+  - CTA `Ainda não é membro? Criar conta` mantida visível no modal.
+- `SocialAuthButtons` agora aceita prop `compact` para reduzir densidade (padding/gap/ícone).
+- `SearchBookingCtas` passou `compact` para o `LoginForm` e removeu copy auxiliar extra abaixo do formulário para economizar altura.
+- Validação técnica concluída:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 60
+- Executado ajuste `Sticky Booking Box` no perfil profissional para tablet + desktop.
+- `components/professional/ProfileAvailabilityBookingSection.tsx` atualizado:
+  - grid principal agora abre 2 colunas a partir de `md` (`conteúdo + booking rail`);
+  - sticky da box de booking ativado em `md` (`md:sticky md:top-24`), mantendo comportamento anterior no desktop;
+  - mobile permanece em uma coluna sem sticky.
+- Objetivo entregue: manter a caixa de `Agendar sessão / Mandar mensagem` visível durante scroll em iPad/tablet e desktop.
+- Validação técnica concluída:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 61
+- Implementada base de search escalável Postgres-first (`pg_trgm + GIN`) para `/buscar`.
+- Nova migration adicionada:
+  - `db/sql/migrations/019-wave2-search-pgtrgm.sql`
+  - inclui extensão `pg_trgm`, índices trigram/filtro e RPC `search_public_professionals_pgtrgm(...)`.
+- Atualização de código em `app/(app)/buscar/page.tsx`:
+  - busca agora tenta obter `candidate IDs` via RPC quando há filtros/texto ativos;
+  - depois carrega somente os profissionais candidatos para aplicar o restante do pipeline;
+  - fallback preservado para não quebrar a busca se RPC não estiver disponível.
+- Estratégia registrada:
+  - continuar com Postgres até ultrapassar 2k profissionais ativos;
+  - migrar para Typesense após esse gatilho de escala.
+- Validação técnica concluída:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 62
+- Endereçado item de audit P2 para índices compostos em queries críticas.
+- Criada migration:
+  - `db/sql/migrations/020-wave2-composite-indexes.sql`
+  - índices adicionados:
+    - `bookings(professional_id, status)`
+    - `bookings(user_id, status)`
+    - `availability_rules(professional_id, is_active)`
+    - `payments(booking_id, status)`
+- Criado script operacional:
+  - `db/sql/analysis/wave2-indexes-explain-analyze.sql`
+  - inclui consultas `EXPLAIN (ANALYZE, BUFFERS)` para validar uso real dos índices em caminhos de booking/search/payment.
+- Próximo passo operacional: rodar migration + explain no Supabase produção e registrar plano/tempos no handover.
+
+### Entry 63
+- Corrigida compatibilidade da migration `019-wave2-search-pgtrgm.sql` após erro `42P17` no Supabase (`functions in index expression must be marked IMMUTABLE`).
+- Ajuste aplicado:
+  - criada função helper imutável `public.search_text_from_array(text[])`;
+  - índices trigram em `tags` e `subcategories` passaram a usar helper imutável em vez de `array_to_string(...)` direto.
+- Resultado esperado: migration 019 agora executa normalmente no SQL Editor sem falhar na criação desses índices.
+
 ### Entry 53
 - Delivered no-cost backend performance optimization for `/buscar`:
   - runtime cache now deduplicates concurrent in-flight loads for identical keys.
@@ -862,3 +956,30 @@ Use this for meaningful checkpoints only.
   - `npm.cmd run typecheck`
   - `npm.cmd run build`
   - `npm.cmd run test:state-machines`
+
+### Entry 57 (2026-04-01) — Perfil do usuário consolidado com configurações de conta
+- Página `app/(app)/perfil/page.tsx` agora incorpora o bloco completo de conta sem depender de navegação para `/configuracoes`.
+- Criado componente `components/profile/ProfileAccountSettings.tsx` com:
+  - `Idioma e região` (fuso horário + moeda);
+  - `Notificações` (toggles persistidos em `profiles.notification_preferences`);
+  - `Segurança` (atalho para recuperação de senha);
+  - `Zona de risco` (logout).
+- Rota `app/(app)/configuracoes/page.tsx` foi convertida para gate de papel:
+  - usuário/admin redirecionam para `/perfil`;
+  - profissional mantém acesso ao workspace de configurações (`components/settings/ProfessionalSettingsWorkspace.tsx`).
+- Validação executada:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 58 (2026-04-01) — Bloqueio de contratação para contas profissionais
+- Regra de produto aplicada no servidor:
+  - conta `profissional` não pode contratar/agendar com outro profissional.
+- Implementação:
+  - `app/(app)/agendar/[id]/page.tsx`: valida `profiles.role` e redireciona profissional para `/dashboard?erro=conta-profissional-nao-pode-contratar`.
+  - `app/(app)/solicitar/[id]/page.tsx`: mesma validação e mesmo redirecionamento.
+- Cobertura de regressão:
+  - novo teste E2E em `tests/e2e/professional-workspace.spec.ts` valida bloqueio em ambos os entry points.
+- Resultado esperado:
+  - somente conta `usuario` pode passar pelos fluxos de contratação; profissionais atuam apenas no workspace provider.

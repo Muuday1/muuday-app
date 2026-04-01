@@ -280,8 +280,8 @@ export function ProfileAvailabilityBookingSection({
   const canGoNext = currentMonth < maxMonth
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-      <div className="space-y-6 lg:col-span-2">
+    <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 space-y-6">
         {topSections}
 
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -489,8 +489,8 @@ export function ProfileAvailabilityBookingSection({
         {children}
       </div>
 
-      <div className="lg:col-span-1">
-        <div className="sticky top-24 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className="min-w-0">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm md:sticky md:top-24">
           <div className="mb-4 border-b border-neutral-100 pb-4 text-center">
             <p className="text-3xl font-bold text-neutral-900">{selectedPriceText}</p>
             <p className="mt-1 text-sm text-neutral-500">por sessão de {selectedDuration} min</p>

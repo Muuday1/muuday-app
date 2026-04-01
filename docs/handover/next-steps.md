@@ -57,24 +57,36 @@ Execute in order. Build one batch at a time.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 
-Items already fixed in code are documented in `project-status.md` item 71. The items below require infrastructure, DB, or architectural work:
+Items already fixed in code are documented in `project-status.md` item 71. The items below require infrastructure, DB, or architectural work. Each item is now assigned to a wave — see `docs/project/roadmap.md` and `docs/architecture/tech-stack.md` for full context.
 
-### P1 — High priority
+### Wave 2 close — infrastructure hardening (deploy before Wave 3)
 
-1. **Hardcoded currency exchange rates** (`lib/actions/booking.ts`, `lib/actions/request-booking.ts`): Replace hardcoded `rates` map with dynamic rates stored in Supabase (updated via cron/API). Add staleness check — refuse bookings if rates are older than 24h.
-2. **No payment gateway** (legacy payment flow): Before Wave 3 launch, integrate Stripe. Current `provider: 'legacy'` + `status: 'captured'` flow records payments without processing them. Must be explicitly gated to beta/free-tier only.
+1. **Hardcoded currency exchange rates** (`lib/actions/booking.ts`, `lib/actions/request-booking.ts`): Replace hardcoded `rates` map with `exchange_rates` Supabase table + cron/API refresh + 24h staleness check on booking creation.
+2. **Booking race condition (schema + code applied)**:
+- `021-wave2-booking-atomic-slot-constraint.sql` já aplicado em produção.
+- pending action: run concurrency smoke (two simultaneous creates same slot -> one success, one deterministic collision).
+3. **In-memory rate limiting fallback**: Add monitoring alert/log when Upstash is unavailable and fallback is active (doesn't survive serverless cold starts).
+4. **Middleware DB query per request**: Encode user role in JWT custom claims (`raw_app_meta_data`) to avoid per-request profile SELECT. Fall back to DB only when claim is missing.
+5. **Verify database indexes**: Run `EXPLAIN ANALYZE` on production. Create composite indexes: `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `availability_exceptions(professional_id, date_local)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
+6. **Zod validation audit**: Ensure ALL server actions that accept user input have Zod schema validation (booking amounts, dates, IDs, profile fields).
+7. **GitHub Actions CI pipeline**: Create workflow `lint → typecheck → build → test:state-machines → test:e2e` on every push. Block Vercel deploy on failure.
+8. **pg_trgm + GIN indexes**: schema already applied (`019`); pending operational validation (query plans + latency evidence).
 
-### P2 — Medium priority
+### Wave 3 — payments security and compliance
 
-3. **Booking race condition**: Conflict check + lock + insert are not atomic. Consider wrapping in a Postgres transaction via `supabase.rpc()` or adding a unique constraint on `(professional_id, start_time_utc)`.
-4. **In-memory rate limiting fallback**: When Upstash is unavailable, the memory fallback doesn't survive serverless cold starts. Add monitoring alert when Upstash is down.
-5. **Middleware DB query per request**: Encode user role in JWT custom claims (`raw_app_meta_data`) to avoid per-request profile SELECT in middleware. Fall back to DB only when claim is missing.
-6. **Verify database indexes**: Run `EXPLAIN ANALYZE` on production for key queries. Confirm composite indexes exist for: `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `availability_exceptions(professional_id, date_local)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
-7. **Recurring booking atomicity**: `createBooking` for recurring type does parent insert, child inserts, and session inserts as separate operations. Wrap in RPC transaction.
+9. **No payment gateway** (legacy payment flow): Integrate Stripe Connect (Separate Charges and Transfers). Current `provider: 'legacy'` + `status: 'captured'` records payments without processing. Must be replaced before revenue starts.
+10. **Stripe webhook security**: Create `/api/webhooks/stripe` with signature verification (`stripe.webhooks.constructEvent`), idempotency handling, and Inngest retry queue.
+11. **Recurring booking atomicity**: Wrap parent + child + session inserts in Postgres RPC transaction.
+12. **Supabase Vault**: Use for encrypted storage of sensitive payout/bank details. Never store card numbers (Stripe Elements handles).
+13. **Admin audit trail**: Add `admin_audit_log` table — `(admin_user_id, action, target_table, target_id, old_value, new_value, timestamp)`. Required for financial compliance.
+14. **RLS audit for payment tables**: Verify all new financial tables have correct RLS policies before going live.
+15. **Rate limiting expansion**: Add rate limits to Stripe webhook endpoint, booking creation, and signup/login for brute force prevention.
+16. **CORS hardening**: Explicit CORS policy on all API routes, especially webhooks.
 
-### P3 — Low priority
+### Wave 4 — operational monitoring
 
-8. **No admin audit trail**: Add `admin_audit_log` table to record admin mutations with `(admin_user_id, action, target_table, target_id, old_value, new_value, timestamp)`.
+17. **Sentry alert rules**: Custom alerts for error rate spike, payment failures, auth failures, webhook processing delays.
+18. **Checkly synthetic monitoring**: Activate uptime checks and critical-path journey monitoring.
 
 ## Wave 2 closure checklist (authoritative current sequence)
 
@@ -88,7 +100,8 @@ Items already fixed in code are documented in `project-status.md` item 71. The i
 3. Keep fixture integrity for e2e (open-gate + blocked-gate):
 - manter `E2E_PROFESSIONAL_ID` e `E2E_BLOCKED_PROFESSIONAL_ID` válidos.
 - manter script `npm run fixtures:ensure-public-ready` disponível para recuperação de fixture.
-4. After Wave 2 manual sign-off, start Wave 3 scope only:
+4. Deploy Wave 2 close infrastructure hardening (items 1-8 above) before starting Wave 3.
+5. After Wave 2 manual sign-off + infrastructure hardening, start Wave 3 scope only:
 - Stripe real billing/payout + ledger interno, sem reabrir contratos de gate de Wave 2.
 
 ## Priority 0 - Foundation lock (must finish first)
@@ -286,20 +299,69 @@ Dependencies:
 
 ## Priority 3 - Wave 3 delivery batch
 
-1. Replace legacy payment placeholders with Stripe-backed lifecycle.
-2. Implement payout eligibility and weekly payout batch model.
-3. Implement professional subscription billing with grace/block behavior.
-4. Implement internal ledger and reconciliation projections.
+### Pre-requisites (must complete before starting Wave 3 code)
+1. Stripe corridor validation for UK platform to Brazil payout confirmed with Stripe support.
+2. Wave 2 close infrastructure hardening deployed (items 1-8 in security hardening section).
+3. Install Stripe MCP server for Claude Code: `npm install @anthropic-ai/tool-use-package-stripe` or configure MCP in `.claude.json`.
+
+### Stripe integration — implementation sequence
+4. `npm install stripe` and configure Stripe Connect (Separate Charges and Transfers) per Part 3 spec.
+5. Create Supabase migration for payment tables:
+   - `stripe_customers(id, user_id, stripe_customer_id, created_at)`
+   - `stripe_connected_accounts(id, professional_id, stripe_account_id, onboarding_complete, created_at)`
+   - `payment_intents(id, booking_id, stripe_payment_intent_id, amount, currency, status, created_at)`
+   - `transfers(id, payment_intent_id, stripe_transfer_id, amount, currency, status, created_at)`
+   - `subscriptions(id, professional_id, stripe_subscription_id, plan, status, current_period_end, created_at)`
+   - `internal_ledger(id, booking_id, entry_type, amount, currency, description, created_at)`
+   - `admin_audit_log(id, admin_user_id, action, target_table, target_id, old_value, new_value, created_at)`
+   - RLS policies for all new tables.
+6. Professional onboarding → Stripe Express connected account creation flow.
+7. Booking checkout → Stripe Payment Intent → `/api/webhooks/stripe` confirmation → booking status update.
+8. Replace legacy `provider: 'legacy'` + `status: 'captured'` with real Stripe charge flow.
+9. Implement payout eligibility and weekly payout batch via Inngest cron.
+10. Implement professional subscription billing (3-month free trial, then Stripe Billing) with grace/block logic.
+11. Implement internal ledger entries on every financial event (charge, refund, transfer, subscription).
+12. Wire Inngest for: webhook processing retry, failed payment retry, payout batch, subscription renewal checks.
+13. Supabase Vault for encrypted payout/bank details storage.
+14. Admin audit trail logging on all admin mutations.
+15. Rate limiting on: Stripe webhook endpoint, booking creation, signup/login.
+16. CORS explicit policy on all API routes.
+17. Env vars to add to Vercel: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`.
 
 Dependencies:
 - Stripe corridor validation packet submitted and response path active.
+- Wave 2 close infrastructure hardening complete.
 
-## Priority 4 - Wave 4 and Wave 5 setup
+## Priority 4 - Wave 4 delivery batch
 
+### Operations
 1. Implement structured admin case queue and audit-first moderation controls.
-2. Finalize event-driven notifications + inbox consistency.
-3. Implement provider-agnostic session execution abstraction.
-4. Freeze compliance disclaimer versioning and checkout acceptance snapshots.
+2. Review moderation and trust-flag governance.
+
+### Monitoring and alerting
+3. Configure Sentry alert rules: error rate spike, payment failures, auth failures, webhook delays.
+4. Activate Checkly synthetic monitoring: uptime checks + critical-path journey monitoring.
+5. Configure PostHog alerts: signup drop-off, booking conversion drop, payment failure rate.
+
+### Notifications
+6. Finalize event-driven notification dispatcher + in-app inbox via Inngest.
+7. Multi-channel routing (email + in-app + future push).
+
+### Scale (deploy when threshold met)
+8. Redis cache (Upstash) for public profiles (5min TTL), taxonomy (1h), exchange rates (1h) — trigger: DB IOPS > 80%.
+9. Next.js ISR with `revalidateTag` for public profile pages — trigger: > 5k daily profile views.
+
+## Priority 5 - Wave 5 delivery batch
+
+1. Implement provider-agnostic session execution abstraction.
+2. Freeze compliance disclaimer versioning and checkout acceptance snapshots.
+3. Close external validations (Stripe corridor final, legal, tax/accounting).
+
+## Post-MVP — scale triggers (deploy only when threshold is met)
+
+1. Typesense or Meilisearch for dedicated search — trigger: > 2k professionals or search latency > 500ms p95.
+2. Cloudflare Images or imgproxy for image optimization — trigger: > 1k uploaded avatars or LCP > 2.5s on profiles.
+3. Deep tax automation — trigger: new jurisdictions or regulatory complexity beyond light model.
 
 Dependencies:
 - Wave 3 stable baseline.
@@ -343,3 +405,40 @@ Status: `Done` for automated gate + fixture setup. Keep this list as regression 
 8. ~~Configure deterministic booking E2E fixtures in `.env.local`:~~ Done.
 - `E2E_PROFESSIONAL_ID` points to an approved professional with first-booking gate open.
 - `E2E_MANUAL_PROFESSIONAL_ID` points to an approved professional in `manual` confirmation mode.
+9. Validate unified account flow in `/perfil` for user/admin:
+- confirm notification toggles persist correctly without navigating to `/configuracoes`.
+- confirm timezone/currency changes are saved and reflected on next session.
+- confirm security + risk zone actions (password reset entry and logout) remain functional.
+10. Validate professional role split after settings refactor:
+- professional still opens `/configuracoes` workspace normally.
+- user/admin direct access to `/configuracoes` is redirected to `/perfil`.
+- keep professional nav unchanged (`Dashboard`, `Calendário`, `Financeiro`, `Configurações`).
+11. Validate customer-only booking boundary:
+- login with professional account and attempt `/agendar/{id}` and `/solicitar/{id}`.
+- both routes must redirect to `/dashboard?erro=conta-profissional-nao-pode-contratar`.
+- keep this as non-negotiable guard: professionals cannot purchase sessions; they must use `usuario` account.
+12. Validate compact auth modal behavior after density patch:
+- desktop (`/buscar` and `/profissional/[id]` while logged out): modal must show title, email, password, `Entrar`, Google button, and `Criar conta` without internal scrollbar.
+- mobile (375x812 baseline): modal remains centered; content can scroll only when device height is truly constrained.
+- confirm `Esc` + backdrop click still close modal and login redirect behavior remains role-based.
+13. Validate sticky booking rail behavior after tablet/desktop expansion:
+- `/profissional/[id]` on tablet (`md`) and desktop must keep booking box visible while scrolling `Sobre mim`, `Idiomas`, `Disponibilidade`, `Rating`, `Comentários`, and recomendações.
+- confirm no horizontal overflow or clipping in iPad portrait/landscape.
+- confirm mobile remains non-sticky and does not overlap content/CTAs.
+14. Validate Postgres full-text search baseline (`019-wave2-search-pgtrgm.sql`):
+- confirm RPC `search_public_professionals_pgtrgm` is callable by app roles (`anon/authenticated`).
+- run `/buscar` smoke for:
+  - no filters (cached baseline),
+  - text query,
+  - category + specialty,
+  - language + location,
+  - min/max price.
+15. Record scale trigger policy for search engine migration:
+- keep Postgres (`pg_trgm + GIN`) until `> 2k` active professionals.
+- when threshold is crossed, create Wave 3/4 migration task to Typesense with zero-downtime dual-run (`Postgres + Typesense`) before cutover.
+16. Validate composite indexes for audit P2:
+- run `db/sql/analysis/wave2-indexes-explain-analyze.sql`.
+- attach results in handover with:
+  - whether planner used index scan/bitmap index scan,
+  - execution time before/after where available,
+  - any query still showing seq scan and next index action.

@@ -73,12 +73,10 @@ export function SearchBookingCtas({
         <LoginForm
           title="Entre para continuar"
           subtitle="Faça login para concluir esta ação."
+          compact
           idPrefix={`search-modal-${pendingAction}`}
           onSuccess={() => setOpen(false)}
         />
-        <p className="mt-4 text-center text-xs text-neutral-500">
-          Após o login, você será direcionado para sua área.
-        </p>
       </AuthOverlay>
     </>
   )
