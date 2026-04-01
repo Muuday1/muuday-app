@@ -107,6 +107,24 @@ export function DesktopFiltersAutoApply({
     })
   }
 
+  const applyPriceState = (nextMin: number, nextMax: number) => {
+    setState(prev => {
+      const normalized = normalizeForApply(
+        {
+          ...prev,
+          precoMin: String(nextMin),
+          precoMax: String(nextMax),
+        },
+        priceMax,
+      )
+      const href = buildBuscarHref(pathname, normalized)
+      startTransition(() => {
+        router.replace(href, { scroll: false })
+      })
+      return normalized
+    })
+  }
+
   return (
     <div className="hidden md:block p-3 md:p-4">
       <div className="grid grid-cols-2 lg:grid-cols-5 xl:grid-cols-10 gap-2.5 items-end">
@@ -160,11 +178,15 @@ export function DesktopFiltersAutoApply({
             valueMax={sliderMax}
             currencyLabel={selectedCurrencyLabel}
             onChange={(nextMin, nextMax) =>
-              applyState({
-                ...state,
+              setState(prev => ({
+                ...prev,
                 precoMin: String(nextMin),
                 precoMax: String(nextMax),
-              })
+                pagina: '1',
+              }))
+            }
+            onCommit={(nextMin, nextMax) =>
+              applyPriceState(nextMin, nextMax)
             }
             compact
           />

@@ -120,6 +120,24 @@ export function MobileFiltersDrawer({
     })
   }
 
+  const applyPriceState = (nextMin: number, nextMax: number) => {
+    setState(prev => {
+      const normalized = normalizeForApply(
+        {
+          ...prev,
+          precoMin: String(nextMin),
+          precoMax: String(nextMax),
+        },
+        priceMax,
+      )
+      const href = buildBuscarHref(pathname, normalized)
+      startTransition(() => {
+        router.replace(href, { scroll: false })
+      })
+      return normalized
+    })
+  }
+
   const clearHref = `${pathname}${state.moeda ? `?moeda=${encodeURIComponent(state.moeda)}` : ''}`
 
   return (
@@ -221,13 +239,16 @@ export function MobileFiltersDrawer({
                   valueMax={sliderMax}
                   currencyLabel={selectedCurrencyLabel}
                   onChange={(nextMin, nextMax) =>
-                    applyState({
-                      ...state,
+                    setState(prev => ({
+                      ...prev,
                       precoMin: String(nextMin),
                       precoMax: String(nextMax),
-                    })
+                      pagina: '1',
+                    }))
                   }
-                  compact
+                  onCommit={(nextMin, nextMax) =>
+                    applyPriceState(nextMin, nextMax)
+                  }
                 />
               </div>
 

@@ -274,6 +274,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - increased public search base cache TTL from `45s` to `180s` and versioned key to `buscar:public-base:v2`.
 - reduced auth overhead for anonymous search requests by skipping `supabase.auth.getUser()` when no Supabase session cookie is present.
 - parallelized public-visibility and base-data loading queries (settings/availability/specialties/services), cutting cold-request DB wait time without introducing new infra/services.
+74. Search price filter behavior updated to match UX rule:
+- max price slider now defaults to open-ended `+50 USD` equivalent in selected currency (`0` remains the minimum).
+- selecting slider max keeps `precoMax` unset in query, intentionally including values above the threshold.
+- slider now commits URL/result updates on interaction end (not every drag frame), improving mobile responsiveness.
+- touch interaction reliability improved with pointer-capture + larger thumbs.
 
 ## Immediate next actions
 

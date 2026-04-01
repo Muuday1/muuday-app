@@ -216,6 +216,11 @@ Last updated: 2026-04-01 (session 52)
 - anonymous requests without Supabase auth cookie no longer trigger `auth.getUser()` in `/buscar`.
 - public search base cache TTL raised to `180s` (`buscar:public-base:v2`) for higher warm-hit probability.
 - public visibility and search base-data fetches were parallelized to reduce server-side latency without changing product behavior.
+77. Search price-filter UX and mobile interaction were adjusted:
+- slider max now represents open-ended `+50 USD` equivalent in selected currency.
+- when max is selected, `/buscar` keeps `precoMax` empty to include all professionals above threshold.
+- slider drag updates local state instantly but only applies query/navigation on commit (pointer-up/keyboard), reducing mobile lag.
+- slider thumb hit-area was enlarged and pointer capture enabled for better touch behavior.
 
 ## Partially implemented (`In progress`)
 

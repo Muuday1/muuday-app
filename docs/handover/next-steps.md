@@ -19,6 +19,10 @@ Execute in order. Build one batch at a time.
 2. Compare p50/p95 with before/after snapshots (at least 10 runs each, same region/time window).
 3. If still slow on cold runs, next low-risk step is DB index validation for search-path reads (`professional_settings`, `availability`, `professional_specialties`, `professional_services` by `professional_id`) before any infra change.
 4. Keep current constraint: no paid infra/services added for this optimization track.
+5. Validate price-slider UX on real mobile devices:
+- default range must show `0` to `+50 USD` equivalent in selected currency.
+- max selected must include professionals priced above threshold.
+- dragging both thumbs must remain smooth without triggering route refresh on every movement.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 

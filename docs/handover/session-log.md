@@ -17,6 +17,18 @@ Use this for meaningful checkpoints only.
   - `npm run test:state-machines` ✅
 - Quick latency samples after patch stayed in the same or better range for repeated `/buscar` requests (warm-path ~`1.5s-2.0s` total in current region).
 
+### Entry 54
+- Updated `/buscar` price slider semantics and mobile interaction:
+  - max now defaults to open-ended `+50 USD` equivalent per selected currency (minimum remains `0`).
+  - selecting max keeps query `precoMax` unset to include all values above threshold.
+  - slider now applies filters on commit (pointer up / keyboard step) instead of on every drag movement.
+  - improved touch reliability with larger thumbs and pointer capture.
+- Validation completed:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+
 ### Entry 52
 - Applied repository hygiene and branch governance hardening:
   - promoted validated branch to `main` via fast-forward only.

@@ -92,6 +92,7 @@ const CURRENCY_LABELS: Record<string, string> = {
   CAD: 'CA$',
   AUD: 'A$',
 }
+const OPEN_ENDED_MAX_USD = 50
 
 const EMPTY_SPECIALTY_CONTEXT: SpecialtyContext = {
   byProfessionalId: new Map<string, string[]>(),
@@ -570,11 +571,11 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const endIndex = startIndex + PAGE_SIZE
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
 
-  const maxPriceCurrency = Math.max(
-    0,
-    ...professionals.map((pro: any) => Number(pro.session_price_brl || 0) * selectedCurrencyRate),
+  const usdRate = CURRENCY_RATES.USD || 1
+  const openEndedCapInSelectedCurrency = Math.ceil(
+    OPEN_ENDED_MAX_USD * (selectedCurrencyRate / usdRate),
   )
-  const priceSliderMax = Math.max(50, Math.ceil(maxPriceCurrency))
+  const priceSliderMax = Math.max(50, openEndedCapInSelectedCurrency)
 
   const pageRangeStart = Math.max(1, currentPage - 2)
   const pageRangeEnd = Math.min(totalPages, currentPage + 2)

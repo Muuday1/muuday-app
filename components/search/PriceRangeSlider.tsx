@@ -15,6 +15,7 @@ type PriceRangeSliderProps = {
   nameMin?: string
   nameMax?: string
   onChange?: (min: number, max: number) => void
+  onCommit?: (min: number, max: number) => void
   compact?: boolean
 }
 
@@ -40,9 +41,12 @@ export function PriceRangeSlider({
   nameMin,
   nameMax,
   onChange,
+  onCommit,
   compact = false,
 }: PriceRangeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null)
+  const minRef = useRef<number>(0)
+  const maxRef = useRef<number>(0)
   const [activeThumb, setActiveThumb] = useState<ActiveThumb>(null)
 
   const safeStep = Math.max(1, Math.floor(step))
@@ -66,6 +70,9 @@ export function PriceRangeSlider({
     ? clamp(roundToStep(valueMax as number, safeStep), safeMinLimit, safeMaxLimit)
     : internalMax
 
+  minRef.current = minValue
+  maxRef.current = maxValue
+
   useEffect(() => {
     if (minValue <= maxValue) return
     if (isControlled) {
@@ -87,9 +94,12 @@ export function PriceRangeSlider({
 
   const display = useMemo(() => {
     const minText = `${currencyLabel} ${Math.round(minValue)}`
-    const maxText = `${currencyLabel} ${Math.round(maxValue)}`
+    const maxText =
+      maxValue >= safeMaxLimit
+        ? `${currencyLabel} ${Math.round(safeMaxLimit)}+`
+        : `${currencyLabel} ${Math.round(maxValue)}`
     return `${minText} - ${maxText}`
-  }, [currencyLabel, minValue, maxValue])
+  }, [currencyLabel, minValue, maxValue, safeMaxLimit])
 
   const setValues = useCallback((nextMin: number, nextMax: number) => {
     if (isControlled) {
@@ -130,6 +140,7 @@ export function PriceRangeSlider({
     }
 
     const handlePointerUp = () => {
+      onCommit?.(minRef.current, maxRef.current)
       setActiveThumb(null)
     }
 
@@ -142,7 +153,7 @@ export function PriceRangeSlider({
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('pointercancel', handlePointerUp)
     }
-  }, [activeThumb, getValueFromClientX, maxValue, minValue, safeMaxLimit, safeMinLimit, setValues])
+  }, [activeThumb, getValueFromClientX, maxValue, minValue, onCommit, safeMaxLimit, safeMinLimit, setValues])
 
   const handleKeyDown = (thumb: 'min' | 'max', key: string) => {
     let delta = 0
@@ -156,22 +167,34 @@ export function PriceRangeSlider({
       if (thumb === 'min') {
         const nextMin = clamp(minValue + delta, safeMinLimit, maxValue)
         setValues(nextMin, maxValue)
+        onCommit?.(nextMin, maxValue)
       } else {
         const nextMax = clamp(maxValue + delta, minValue, safeMaxLimit)
         setValues(minValue, nextMax)
+        onCommit?.(minValue, nextMax)
       }
       return
     }
 
     if (key === 'Home') {
-      if (thumb === 'min') setValues(safeMinLimit, maxValue)
-      else setValues(minValue, minValue)
+      if (thumb === 'min') {
+        setValues(safeMinLimit, maxValue)
+        onCommit?.(safeMinLimit, maxValue)
+      } else {
+        setValues(minValue, minValue)
+        onCommit?.(minValue, minValue)
+      }
       return
     }
 
     if (key === 'End') {
-      if (thumb === 'min') setValues(maxValue, maxValue)
-      else setValues(minValue, safeMaxLimit)
+      if (thumb === 'min') {
+        setValues(maxValue, maxValue)
+        onCommit?.(maxValue, maxValue)
+      } else {
+        setValues(minValue, safeMaxLimit)
+        onCommit?.(minValue, safeMaxLimit)
+      }
     }
   }
 
@@ -188,7 +211,9 @@ export function PriceRangeSlider({
         <div
           ref={trackRef}
           className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-neutral-200"
+          style={{ touchAction: 'none' }}
           onPointerDown={event => {
+            event.preventDefault()
             const next = getValueFromClientX(event.clientX)
             const distanceToMin = Math.abs(next - minValue)
             const distanceToMax = Math.abs(next - maxValue)
@@ -220,11 +245,12 @@ export function PriceRangeSlider({
           aria-valuenow={minValue}
           onPointerDown={event => {
             event.preventDefault()
+            event.currentTarget.setPointerCapture(event.pointerId)
             setActiveThumb('min')
           }}
           onKeyDown={event => handleKeyDown('min', event.key)}
           className={cn(
-            'absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
+            'absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
             activeThumb === 'min' ? 'z-30' : 'z-20',
           )}
           style={{ left: `${minPercent}%`, touchAction: 'none' }}
@@ -239,11 +265,12 @@ export function PriceRangeSlider({
           aria-valuenow={maxValue}
           onPointerDown={event => {
             event.preventDefault()
+            event.currentTarget.setPointerCapture(event.pointerId)
             setActiveThumb('max')
           }}
           onKeyDown={event => handleKeyDown('max', event.key)}
           className={cn(
-            'absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
+            'absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
             activeThumb === 'max' ? 'z-30' : 'z-20',
           )}
           style={{ left: `${maxPercent}%`, touchAction: 'none' }}
