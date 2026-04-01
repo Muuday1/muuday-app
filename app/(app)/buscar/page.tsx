@@ -14,6 +14,7 @@ import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoA
 import { SearchQueryBar } from '@/components/search/SearchQueryBar'
 import { ExpandableTags } from '@/components/search/ExpandableTags'
 import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-specialties'
+import { getCachedRuntimeValue } from '@/lib/cache/runtime-cache'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -64,7 +65,17 @@ type SearchQueryState = {
   moeda: string
 }
 
+type SpecialtyContext = Awaited<ReturnType<typeof loadProfessionalSpecialtyContext>>
+
+type PublicSearchBaseData = {
+  professionals: any[]
+  specialtyContext: SpecialtyContext
+  availabilityRows: AvailabilityRow[]
+}
+
 const PAGE_SIZE = 10
+const PUBLIC_SEARCH_BASE_CACHE_KEY = 'buscar:public-base:v2'
+const PUBLIC_SEARCH_BASE_CACHE_TTL_MS = 180_000
 const CURRENCY_RATES: Record<string, number> = {
   BRL: 1,
   USD: 0.19,
@@ -80,6 +91,20 @@ const CURRENCY_LABELS: Record<string, string> = {
   GBP: '£',
   CAD: 'CA$',
   AUD: 'A$',
+}
+
+const EMPTY_SPECIALTY_CONTEXT: SpecialtyContext = {
+  byProfessionalId: new Map<string, string[]>(),
+  primaryByProfessionalId: new Map<string, string>(),
+  categorySlugsByProfessionalId: new Map<string, string[]>(),
+}
+
+function hasSupabaseSessionCookie(
+  cookieStore: ReturnType<typeof cookies>,
+) {
+  return cookieStore
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-') && cookie.name.includes('-auth-token'))
 }
 
 function normalizeText(value?: string | null) {
@@ -219,12 +244,58 @@ function buildHref(basePath: string, state: SearchQueryState, overrides: Partial
   return query ? `${basePath}?${query}` : basePath
 }
 
+async function loadPublicSearchBaseData(readClient: any): Promise<PublicSearchBaseData> {
+  const { data: professionalsRaw } = await readClient
+    .from('professionals')
+    .select('*,profiles!inner(full_name,country,avatar_url,role)')
+    .eq('status', 'approved')
+    .eq('profiles.role', 'profissional')
+    .order('rating', { ascending: false })
+    .limit(250)
+
+  let professionals = professionalsRaw || []
+  if (professionals.length > 0) {
+    professionals = await filterPubliclyVisibleProfessionals(readClient as any, professionals)
+  }
+
+  const professionalIds = professionals.map((professional: any) => String(professional.id))
+  let specialtyContext: SpecialtyContext = EMPTY_SPECIALTY_CONTEXT
+  let availabilityRows: AvailabilityRow[] = []
+  if (professionalIds.length > 0) {
+    const [resolvedSpecialtyContext, availabilityResult] = await Promise.all([
+      loadProfessionalSpecialtyContext(readClient as any, professionalIds),
+      readClient
+        .from('availability')
+        .select('professional_id,day_of_week,start_time,end_time')
+        .in('professional_id', professionalIds)
+        .eq('is_active', true),
+    ])
+
+    specialtyContext = resolvedSpecialtyContext
+    availabilityRows = (availabilityResult.data || []) as AvailabilityRow[]
+  }
+
+  return {
+    professionals,
+    specialtyContext,
+    availabilityRows,
+  }
+}
+
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
+  const cookieStore = cookies()
+  const acceptLanguage = headers().get('accept-language')
+  const hasAuthCookie = hasSupabaseSessionCookie(cookieStore)
+
   let supabase: any = null
   let user: any = null
   let isLoggedIn = false
   try {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (
+      hasAuthCookie &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ) {
       supabase = createClient()
       user = (await supabase.auth.getUser()).data.user
       isLoggedIn = Boolean(user)
@@ -237,8 +308,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
   const adminSupabase = !user ? createAdminClient() : null
   const readClient = adminSupabase || supabase
-  const cookieStore = cookies()
-  const acceptLanguage = headers().get('accept-language')
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
@@ -293,35 +362,31 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   })
 
   let professionals: any[] = []
+  let specialtyContext: SpecialtyContext = EMPTY_SPECIALTY_CONTEXT
+  let cachedAvailabilityRows: AvailabilityRow[] = []
   if (readClient) {
     try {
-      const { data: professionalsRaw } = await readClient
-        .from('professionals')
-        .select('*,profiles!inner(full_name,country,avatar_url,role)')
-        .eq('status', 'approved')
-        .eq('profiles.role', 'profissional')
-        .order('rating', { ascending: false })
-        .limit(250)
-      professionals = professionalsRaw || []
-      if (professionals.length > 0) {
-        professionals = await filterPubliclyVisibleProfessionals(readClient as any, professionals)
+      if (!isLoggedIn && adminSupabase) {
+        const cached = await getCachedRuntimeValue(
+          PUBLIC_SEARCH_BASE_CACHE_KEY,
+          PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
+          () => loadPublicSearchBaseData(readClient),
+        )
+        professionals = cached.professionals
+        specialtyContext = cached.specialtyContext
+        cachedAvailabilityRows = cached.availabilityRows
+      } else {
+        const uncached = await loadPublicSearchBaseData(readClient)
+        professionals = uncached.professionals
+        specialtyContext = uncached.specialtyContext
+        cachedAvailabilityRows = uncached.availabilityRows
       }
     } catch {
       professionals = []
+      specialtyContext = EMPTY_SPECIALTY_CONTEXT
+      cachedAvailabilityRows = []
     }
   }
-
-  const specialtyContext =
-    readClient && professionals.length > 0
-      ? await loadProfessionalSpecialtyContext(
-          readClient as any,
-          professionals.map((professional: any) => String(professional.id)),
-        )
-      : {
-          byProfessionalId: new Map<string, string[]>(),
-          primaryByProfessionalId: new Map<string, string>(),
-          categorySlugsByProfessionalId: new Map<string, string[]>(),
-        }
 
   const specialtiesByProfessionalId = specialtyContext.byProfessionalId
   const primarySpecialtyByProfessionalId = specialtyContext.primaryByProfessionalId
@@ -434,11 +499,21 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
   if (readClient && selectedAvailability !== 'qualquer' && filteredProfessionals.length > 0) {
     const ids = filteredProfessionals.map((pro: any) => pro.id)
-    const { data: availabilityRows, error: availabilityError } = await readClient
-      .from('availability')
-      .select('professional_id,day_of_week,start_time,end_time')
-      .in('professional_id', ids)
-      .eq('is_active', true)
+    const idsSet = new Set(ids)
+    let availabilityRows: AvailabilityRow[] = []
+    let availabilityError = false
+
+    if (!isLoggedIn && cachedAvailabilityRows.length > 0) {
+      availabilityRows = cachedAvailabilityRows.filter(row => idsSet.has(row.professional_id))
+    } else {
+      const availabilityResult = await readClient
+        .from('availability')
+        .select('professional_id,day_of_week,start_time,end_time')
+        .in('professional_id', ids)
+        .eq('is_active', true)
+      availabilityRows = (availabilityResult.data || []) as AvailabilityRow[]
+      availabilityError = Boolean(availabilityResult.error)
+    }
 
     if (!availabilityError) {
       const availabilityMap = new Map<string, AvailabilityRow[]>()

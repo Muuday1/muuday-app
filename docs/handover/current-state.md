@@ -211,6 +211,11 @@ Last updated: 2026-04-01 (session 52)
 - `npm run build` ✅
 - `npm run test:state-machines` ✅
 - `npm run test:e2e` ✅ (`10 passed`, `2 skipped` fixture-dependent checks).
+76. No-cost `/buscar` performance optimization applied (backend-only):
+- runtime cache now deduplicates concurrent recomputation for shared keys (`lib/cache/runtime-cache.ts`).
+- anonymous requests without Supabase auth cookie no longer trigger `auth.getUser()` in `/buscar`.
+- public search base cache TTL raised to `180s` (`buscar:public-base:v2`) for higher warm-hit probability.
+- public visibility and search base-data fetches were parallelized to reduce server-side latency without changing product behavior.
 
 ## Partially implemented (`In progress`)
 

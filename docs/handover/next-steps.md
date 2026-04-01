@@ -11,6 +11,15 @@ Execute in order. Build one batch at a time.
 3. Before production promotion, always create a rollback tag on current `main`.
 4. Keep archived workspaces as read-only historical snapshots only.
 
+## Search performance follow-up (no added cost)
+
+1. Deploy current `/buscar` performance patch and re-measure with the same URLs used in baseline:
+- `https://muuday-app.vercel.app/buscar`
+- `https://muuday-app-muuday1s-projects.vercel.app/buscar`
+2. Compare p50/p95 with before/after snapshots (at least 10 runs each, same region/time window).
+3. If still slow on cold runs, next low-risk step is DB index validation for search-path reads (`professional_settings`, `availability`, `professional_specialties`, `professional_services` by `professional_id`) before any infra change.
+4. Keep current constraint: no paid infra/services added for this optimization track.
+
 ## Security hardening — remaining items (from 2026-04-01 audit)
 
 Items already fixed in code are documented in `project-status.md` item 71. The items below require infrastructure, DB, or architectural work:

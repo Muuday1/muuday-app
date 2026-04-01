@@ -269,6 +269,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
   - `backup/pre-wave2-promotion-2026-04-01`
   - `backup/cursor-snapshot-debug-2026-04-01`
 - parallel OneDrive workspace preserved only as archive (`Muuday__ARCHIVED_2026-04-01`) and marked non-active.
+73. No-cost search performance hardening delivered on `/buscar`:
+- added server runtime cache deduplication (`lib/cache/runtime-cache.ts`) to prevent duplicate concurrent recomputation for the same cache key.
+- increased public search base cache TTL from `45s` to `180s` and versioned key to `buscar:public-base:v2`.
+- reduced auth overhead for anonymous search requests by skipping `supabase.auth.getUser()` when no Supabase session cookie is present.
+- parallelized public-visibility and base-data loading queries (settings/availability/specialties/services), cutting cold-request DB wait time without introducing new infra/services.
 
 ## Immediate next actions
 

@@ -4,6 +4,19 @@ Use this for meaningful checkpoints only.
 
 ## 2026-04-01
 
+### Entry 53
+- Delivered no-cost backend performance optimization for `/buscar`:
+  - runtime cache now deduplicates concurrent in-flight loads for identical keys.
+  - raised public search base cache TTL from `45s` to `180s` (`buscar:public-base:v2`).
+  - skipped `supabase.auth.getUser()` on anonymous requests with no Supabase auth cookie.
+  - parallelized public-visibility and base search data queries to reduce serial DB wait.
+- Validation completed:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+- Quick latency samples after patch stayed in the same or better range for repeated `/buscar` requests (warm-path ~`1.5s-2.0s` total in current region).
+
 ### Entry 52
 - Applied repository hygiene and branch governance hardening:
   - promoted validated branch to `main` via fast-forward only.

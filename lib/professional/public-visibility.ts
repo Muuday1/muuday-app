@@ -152,71 +152,103 @@ export async function getPublicVisibilityByProfessionalId(
 
   if (!professionalIds.length) return results
 
-  let settingsMap = new Map<string, SettingsRow>()
-  try {
-    const { data: settingsRows } = await supabase
-      .from('professional_settings')
-      .select(
-        'professional_id,confirmation_mode,minimum_notice_hours,max_booking_window_days,billing_card_on_file,payout_onboarding_started,payout_kyc_completed',
-      )
-      .in('professional_id', professionalIds)
+  const [
+    settingsMap,
+    availabilityRulesCounts,
+    availabilityLegacyCounts,
+    specialtyCounts,
+    serviceData,
+  ] = await Promise.all([
+    (async () => {
+      try {
+        const { data: settingsRows } = await supabase
+          .from('professional_settings')
+          .select(
+            'professional_id,confirmation_mode,minimum_notice_hours,max_booking_window_days,billing_card_on_file,payout_onboarding_started,payout_kyc_completed',
+          )
+          .in('professional_id', professionalIds)
 
-    settingsMap = new Map(
-      (settingsRows || []).map((row: SettingsRow) => [asId(row.professional_id), row]),
-    )
-  } catch {}
+        return new Map(
+          (settingsRows || []).map((row: SettingsRow) => [asId(row.professional_id), row]),
+        )
+      } catch {
+        return new Map<string, SettingsRow>()
+      }
+    })(),
+    (async () => {
+      try {
+        const { data: availabilityRuleRows } = await supabase
+          .from('availability_rules')
+          .select('professional_id')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true)
+        return createCountMap(
+          availabilityRuleRows as Array<{ professional_id?: string | null }>,
+        )
+      } catch {
+        return new Map<string, number>()
+      }
+    })(),
+    (async () => {
+      try {
+        const { data: availabilityLegacyRows } = await supabase
+          .from('availability')
+          .select('professional_id')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true)
+        return createCountMap(
+          availabilityLegacyRows as Array<{ professional_id?: string | null }>,
+        )
+      } catch {
+        return new Map<string, number>()
+      }
+    })(),
+    (async () => {
+      try {
+        const { data: professionalSpecialtyRows } = await supabase
+          .from('professional_specialties')
+          .select('professional_id')
+          .in('professional_id', professionalIds)
+        return createCountMap(
+          professionalSpecialtyRows as Array<{ professional_id?: string | null }>,
+        )
+      } catch {
+        return new Map<string, number>()
+      }
+    })(),
+    (async () => {
+      try {
+        const { data: serviceRows } = await supabase
+          .from('professional_services')
+          .select('professional_id,price_brl,duration_minutes')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true)
 
-  let availabilityRulesCounts: CountMap = new Map()
-  try {
-    const { data: availabilityRuleRows } = await supabase
-      .from('availability_rules')
-      .select('professional_id')
-      .in('professional_id', professionalIds)
-      .eq('is_active', true)
-    availabilityRulesCounts = createCountMap(availabilityRuleRows as Array<{ professional_id?: string | null }>)
-  } catch {}
+        const serviceCounts = createCountMap(
+          serviceRows as Array<{ professional_id?: string | null }>,
+        )
+        const serviceWithPricingCounts: CountMap = new Map()
+        ;(serviceRows as ServiceRow[] | null | undefined || []).forEach(row => {
+          const professionalId = asId(row.professional_id)
+          if (!professionalId) return
+          if (Number(row.price_brl || 0) <= 0 || Number(row.duration_minutes || 0) <= 0) return
+          serviceWithPricingCounts.set(
+            professionalId,
+            (serviceWithPricingCounts.get(professionalId) || 0) + 1,
+          )
+        })
 
-  let availabilityLegacyCounts: CountMap = new Map()
-  try {
-    const { data: availabilityLegacyRows } = await supabase
-      .from('availability')
-      .select('professional_id')
-      .in('professional_id', professionalIds)
-      .eq('is_active', true)
-    availabilityLegacyCounts = createCountMap(availabilityLegacyRows as Array<{ professional_id?: string | null }>)
-  } catch {}
+        return { serviceCounts, serviceWithPricingCounts }
+      } catch {
+        return {
+          serviceCounts: new Map<string, number>(),
+          serviceWithPricingCounts: new Map<string, number>(),
+        }
+      }
+    })(),
+  ])
 
-  let specialtyCounts: CountMap = new Map()
-  try {
-    const { data: professionalSpecialtyRows } = await supabase
-      .from('professional_specialties')
-      .select('professional_id')
-      .in('professional_id', professionalIds)
-    specialtyCounts = createCountMap(
-      professionalSpecialtyRows as Array<{ professional_id?: string | null }>,
-    )
-  } catch {}
-
-  let serviceCounts: CountMap = new Map()
-  let serviceWithPricingCounts: CountMap = new Map()
-  try {
-    const { data: serviceRows } = await supabase
-      .from('professional_services')
-      .select('professional_id,price_brl,duration_minutes')
-      .in('professional_id', professionalIds)
-      .eq('is_active', true)
-
-    serviceCounts = createCountMap(serviceRows as Array<{ professional_id?: string | null }>)
-    ;(serviceRows as ServiceRow[] | null | undefined || []).forEach(row => {
-      const professionalId = asId(row.professional_id)
-      if (!professionalId) return
-      if (Number(row.price_brl || 0) <= 0 || Number(row.duration_minutes || 0) <= 0) return
-      serviceWithPricingCounts.set(
-        professionalId,
-        (serviceWithPricingCounts.get(professionalId) || 0) + 1,
-      )
-    })
-  } catch {}
+  const { serviceCounts, serviceWithPricingCounts } = serviceData
 
   professionals.forEach(professional => {
     const professionalId = asId(professional.id)
