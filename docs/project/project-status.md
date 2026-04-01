@@ -262,6 +262,13 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - **P2-17**: Removed unnecessary `PUT` export from Inngest route handler (`/api/inngest`).
 - **P2-19**: Cron error responses no longer include internal error details in production. Details only shown when `NODE_ENV !== 'production'`.
 - validation run: `npm run typecheck` green.
+72. Repository governance hardening applied (operational best practices):
+- canonical active workspace standardized to `C:\dev\muuday-app` to avoid multi-repo drift.
+- obsolete feature branches removed locally/remotely after merge; branch surface reduced to `main` only.
+- rollback strategy formalized with published tags:
+  - `backup/pre-wave2-promotion-2026-04-01`
+  - `backup/cursor-snapshot-debug-2026-04-01`
+- parallel OneDrive workspace preserved only as archive (`Muuday__ARCHIVED_2026-04-01`) and marked non-active.
 
 ## Immediate next actions
 

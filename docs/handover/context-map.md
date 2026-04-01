@@ -1,8 +1,11 @@
 ﻿# Context Map
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 ## Repository map
+
+- Canonical active local workspace: `C:\dev\muuday-app`
+- Archived/non-active workspace snapshots must not be used for commits or deploys.
 
 - `app/`: routes and UX surfaces
 - `components/`: reusable UI

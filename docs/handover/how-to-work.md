@@ -1,6 +1,21 @@
 ﻿# How To Work
 
-Last updated: 2026-03-29
+Last updated: 2026-04-01
+
+## 0) Workspace governance (mandatory)
+
+1. Use a single active local repository as source of truth:
+   - `C:\dev\muuday-app`
+2. Do not run active development from parallel snapshots (OneDrive copies, temp mirrors, archive folders).
+3. Keep branch lifecycle short:
+   - create branch for a scoped change,
+   - merge to `main`,
+   - delete local and remote branch after promotion.
+4. Before promoting to production:
+   - run full technical gate (`lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e`),
+   - create rollback tag on current `main`,
+   - prefer `--ff-only` promotion path.
+5. Keep backup tags for operational recoverability; do not rely on old long-lived branches.
 
 ## 1) Mandatory read order
 

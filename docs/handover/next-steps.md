@@ -4,6 +4,13 @@ Last updated: 2026-04-01
 
 Execute in order. Build one batch at a time.
 
+## Workspace best practices (must keep)
+
+1. Use only `C:\dev\muuday-app` for active development, commits, and deploy actions.
+2. Keep feature branches short-lived; delete local/remote branch right after merge to `main`.
+3. Before production promotion, always create a rollback tag on current `main`.
+4. Keep archived workspaces as read-only historical snapshots only.
+
 ## Security hardening — remaining items (from 2026-04-01 audit)
 
 Items already fixed in code are documented in `project-status.md` item 71. The items below require infrastructure, DB, or architectural work:

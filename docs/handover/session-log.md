@@ -4,6 +4,18 @@ Use this for meaningful checkpoints only.
 
 ## 2026-04-01
 
+### Entry 52
+- Applied repository hygiene and branch governance hardening:
+  - promoted validated branch to `main` via fast-forward only.
+  - deleted obsolete local/remote feature branches after merge to reduce drift risk.
+  - preserved rollback tags:
+    - `backup/pre-wave2-promotion-2026-04-01`
+    - `backup/cursor-snapshot-debug-2026-04-01`
+- Consolidated workspace usage policy:
+  - canonical active repository is `C:\dev\muuday-app`.
+  - parallel OneDrive workspace archived to `C:\Users\igorp\OneDrive\Documents\Muuday__ARCHIVED_2026-04-01`.
+  - original OneDrive path now carries `DO_NOT_USE_FOR_ACTIVE_DEV.txt`.
+
 ### Entry 51
 - Closed Wave 2 backend scope for recurring deadlines and booking lifecycle enforcement without UI expansion:
   - added canonical recurring policy engine (`lib/booking/recurring-deadlines.ts`) with fixed 7-day rules.

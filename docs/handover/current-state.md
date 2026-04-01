@@ -376,3 +376,8 @@ Wave-driven delivery is now mandatory:
 - cron timeout handler filters at DB level, error details stripped in production
 - Inngest route surface reduced (removed PUT)
 - silent catch blocks now log in development
+90. Repository hygiene and workspace governance hardening completed:
+- active source-of-truth repo fixed to `C:\dev\muuday-app`.
+- obsolete local/remote branches removed after promotion to reduce operator confusion.
+- rollback tags published and preserved (`backup/pre-wave2-promotion-2026-04-01`, `backup/cursor-snapshot-debug-2026-04-01`).
+- secondary OneDrive workspace preserved as archive and marked non-active for development.
