@@ -34,6 +34,10 @@ Execute in order. Build one batch at a time.
 - complete user signup with fresh email and confirm modal appears with verification instructions.
 - click `OK` and verify redirect to landing page (`/`).
 - confirm user is not left authenticated immediately after modal close.
+9. Validate public professional-card navigation when logged out:
+- from `/buscar` (logged out), open at least 5 different professional cards and confirm profile page loads (no 404).
+- test both permalink formats if available (`/profissional/<uuid>` and `/profissional/nome-1234`).
+- confirm blocked/incomplete professionals still return not found as expected by gate model.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 

@@ -1,6 +1,7 @@
 export const metadata = { title: 'Profissional | Muuday' }
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -31,6 +32,7 @@ export default async function ProfissionalPage({
 
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const readClient = (user ? supabase : createAdminClient()) || supabase
   let viewerCurrency = 'BRL'
   if (user) {
     const { data: viewerProfile } = await supabase
@@ -42,7 +44,7 @@ export default async function ProfissionalPage({
   }
 
   // Fetch professional with profile
-  let professionalQuery = supabase
+  let professionalQuery = readClient
     .from('professionals')
     .select('*, profiles!inner(*), first_booking_enabled')
     .eq('profiles.role', 'profissional')
@@ -55,7 +57,7 @@ export default async function ProfissionalPage({
     professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
   }
 
-  const { data: professional } = await professionalQuery.single()
+  const { data: professional } = await professionalQuery.maybeSingle()
 
   if (!professional || (professional.status !== 'approved' && professional.user_id !== user?.id)) {
     notFound()
@@ -63,7 +65,7 @@ export default async function ProfissionalPage({
 
   const isOwnProfessional = user ? professional.user_id === user.id : false
   if (!isOwnProfessional) {
-    const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(supabase as any, [professional])
+    const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient as any, [professional])
     const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
     if (!canGoLive) {
       notFound()
@@ -71,7 +73,7 @@ export default async function ProfissionalPage({
   }
 
   // Fetch availability
-  const { data: availability } = await supabase
+  const { data: availability } = await readClient
     .from('availability')
     .select('*')
     .eq('professional_id', professional.id)
@@ -79,7 +81,7 @@ export default async function ProfissionalPage({
     .order('day_of_week')
 
   // Fetch reviews
-  const { data: reviews } = await supabase
+  const { data: reviews } = await readClient
     .from('reviews')
     .select('*, profiles(full_name)')
     .eq('professional_id', professional.id)
@@ -87,7 +89,7 @@ export default async function ProfissionalPage({
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const { data: professionalSpecialtyLinks } = await supabase
+  const { data: professionalSpecialtyLinks } = await readClient
     .from('professional_specialties')
     .select('specialty_id')
     .eq('professional_id', professional.id)
@@ -102,7 +104,7 @@ export default async function ProfissionalPage({
 
   let professionalSpecialties: string[] = []
   if (specialtyIds.length > 0) {
-    const { data: specialtyRows } = await supabase
+    const { data: specialtyRows } = await readClient
       .from('specialties')
       .select('id,name_pt')
       .in('id', specialtyIds)
@@ -134,7 +136,7 @@ export default async function ProfissionalPage({
     'no_show',
     'rescheduled',
   ]
-  const { count: existingAcceptedBookingsCount } = await supabase
+  const { count: existingAcceptedBookingsCount } = await readClient
     .from('bookings')
     .select('id', { count: 'exact', head: true })
     .eq('professional_id', professional.id)

@@ -403,3 +403,7 @@ Wave-driven delivery is now mandatory:
 - successful user signup opens modal with verification instructions (email confirmation required).
 - modal confirmation returns user to landing page (`/`).
 - signup flow signs user out before modal render to prevent inconsistent auth-shell state.
+94. Public profile link opening fixed for anonymous visitors:
+- `app/(app)/profissional/[id]/page.tsx` now uses admin read client when no authenticated user is present.
+- eliminates mismatch where public `/buscar` card could render but profile route returned 404 for logged-out viewers.
+- visibility and onboarding gates remain enforced before rendering profile.

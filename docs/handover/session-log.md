@@ -65,6 +65,17 @@ Use this for meaningful checkpoints only.
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
 
+### Entry 58
+- Fixed logged-out public profile navigation regression:
+  - `app/(app)/profissional/[id]/page.tsx` now reads professional/profile/availability/review data with admin client when anonymous.
+  - aligned profile route data access with `/buscar` public listing model to prevent false “Página não encontrada”.
+  - preserved go-live visibility gate and owner exceptions.
+- Validation completed:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+
 ### Entry 52
 - Applied repository hygiene and branch governance hardening:
   - promoted validated branch to `main` via fast-forward only.

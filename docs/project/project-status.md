@@ -292,6 +292,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - after successful user signup, app now shows a confirmation modal explaining that email verification is required.
 - modal `OK` redirects user back to landing page (`/`), matching requested post-signup UX.
 - user session is signed out before showing modal to avoid accidental immediate member-shell state.
+78. Public professional-profile route fix for logged-out users:
+- `/profissional/[id]` now reads data via admin client when viewer is anonymous (with fallback to server client), matching the same visibility model used by `/buscar`.
+- this removes false 404 cases where cards were visible in public search but opening profile failed due anon-RLS read mismatch.
+- route still enforces public visibility gates (`canGoLive`) and ownership checks.
 
 ## Immediate next actions
 
