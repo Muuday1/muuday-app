@@ -443,3 +443,27 @@ Wave-driven delivery is now mandatory:
 - migration manifest created:
   - `artifacts/onedrive-import-2026-04-01/MIGRATION_MANIFEST.md`
 - stop-use markers were written in deprecated folder to avoid future drift.
+101. Professional profile page now uses full-height sticky booking rail on desktop:
+- `ProfileAvailabilityBookingSection` accepts `topSections` + `children`, enabling a unified two-column layout.
+- left column includes profile header, `Sobre mim`, `Idiomas`, calendar/disponibilidade, rating, comentários, and recommendations.
+- right column keeps booking actions and pricing card sticky while scrolling through all left-column sections.
+102. Logged-out CTA behavior on professional page is now aligned with search-page auth UX:
+- `ProfileAvailabilityBookingSection` delegates CTA rendering to `SearchBookingCtas`.
+- unauthenticated `Agendar sessão`/`Mandar mensagem` open the same login modal used in `/buscar`.
+- authenticated users keep direct links for booking/message actions.
+103. Logged-out professional profile pages now expose public currency switcher in header:
+- `components/public/PublicHeader.tsx` now shows currency selector for both `/buscar` and `/profissional/*` while not authenticated.
+- keeps parity between search page and professional profile page for guest currency control.
+104. Recurring booking prefill path is now active end-to-end:
+- profile-side booking CTA appends recurring query context (`tipo=recurring`, `sessoes`, optional `data/hora`).
+- `/agendar/[id]` consumes those params and preloads booking type + session count + selected slot when valid.
+- recurring package size options were expanded to `2..12` in both profile and booking form.
+- recurring toggle in profile is now guarded by professional capability (`enable_recurring`).
+105. Password recovery now has server-side delivery orchestration:
+- `/recuperar-senha` no longer calls Supabase reset directly from browser.
+- new route `/api/auth/password-reset` handles recovery request with:
+  - rate-limit (`auth` preset) per `ip+email`
+  - canonical redirect (`getAppBaseUrl()/auth/callback`)
+  - preferred delivery: admin `generateLink(recovery)` + Resend email template
+  - fallback: Supabase `resetPasswordForEmail`
+- this improves reliability when Supabase hosted auth emails are delayed or inconsistent.

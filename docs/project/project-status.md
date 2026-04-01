@@ -338,6 +338,33 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
   - `DO_NOT_USE_FOR_ACTIVE_DEV.txt`
 - intentionally excluded temporary files/logs from migration (`tmp_pw_*.sh`, `.playwright-cli`, legacy sandbox trees).
 - OneDrive folder now has explicit stop-use markers (`DO_NOT_USE_FOR_ACTIVE_DEV.txt`, `OPEN_ACTIVE_REPO.txt`) pointing to canonical path.
+85. Professional page layout updated to persistent right-side booking rail:
+- `app/(app)/profissional/[id]` now renders all main content (header/about/languages/calendar/rating/comments/recommendations) in the left column.
+- booking card rail remains sticky on desktop across full-page scroll (`top-24`) so `Agendar sessão` and `Mandar mensagem` stay visible.
+- left-side cards now align to the same content width as the calendar block, reducing oversized full-width sections.
+- validation run: `lint`, `typecheck`, `build` green.
+86. Professional page unauthenticated booking/message CTA now uses the same login modal flow as `/buscar`:
+- replaced standalone `PublicBookingAuthModal` usage in `ProfileAvailabilityBookingSection` with shared `SearchBookingCtas`.
+- when logged out, clicking `Agendar sessão` or `Mandar mensagem` opens the same `AuthOverlay + LoginForm` experience used in search cards.
+- logged-in behavior remains direct navigation to booking/message routes.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
+87. Public currency selector is now visible for logged-out visitors on professional profile pages:
+- `PublicHeader` currency visibility rule now includes `/profissional/*` in addition to `/buscar`.
+- behavior remains unchanged for logged-in sessions (selector hidden in authenticated workspace/header context).
+- currency update still writes the same public preference cookie and query param flow used in public search.
+88. Recurring booking flow from professional profile to `/agendar/[id]` is now fully connected:
+- `/agendar/[id]` now parses query prefill (`tipo`, `sessoes`, `data`, `hora`) and hydrates booking form initial state.
+- `BookingForm` now applies recurring prefill and supports configurable package size options from 2 to 12 sessions.
+- recurring confirmation still executes single-submit batch creation via `createBooking` (parent + child sessions created in one action).
+- professional profile recurring selector now supports 2..12 sessions and only enables recurring CTA when `enable_recurring` is allowed for the professional.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
+89. Password recovery flow hardened to reduce false-positive "email sent" cases:
+- new API endpoint `POST /api/auth/password-reset` added.
+- endpoint applies auth rate limit by `ip+email` and uses canonical redirect target from `getAppBaseUrl()`.
+- primary path: generate Supabase recovery link via admin client + send transactional reset email through Resend template.
+- fallback path: if admin delivery is unavailable, uses Supabase `resetPasswordForEmail` directly.
+- `/recuperar-senha` now calls this endpoint and displays clearer UX copy about delivery behavior.
+- validation run: `lint`, `typecheck`, `build`, `test:state-machines` green.
 
 ## Immediate next actions
 

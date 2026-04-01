@@ -9,7 +9,10 @@ import { ArrowLeft, Globe, MapPin, Star } from 'lucide-react'
 import { getSearchCategoryLabel } from '@/lib/search-config'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { ProfileAvailabilityBookingSection } from '@/components/professional/ProfileAvailabilityBookingSection'
-import { buildProfessionalProfilePath, parseProfessionalProfileParam } from '@/lib/professional/public-profile-url'
+import {
+  buildProfessionalProfilePath,
+  parseProfessionalProfileParam,
+} from '@/lib/professional/public-profile-url'
 import {
   filterPubliclyVisibleProfessionals,
   getPublicVisibilityByProfessionalId,
@@ -27,7 +30,9 @@ function getCountryDisplayName(countryCodeOrName?: string | null) {
       const displayNames = new Intl.DisplayNames(['pt-BR', 'en'], { type: 'region' })
       const resolved = displayNames.of(normalized.toUpperCase())
       if (resolved) return resolved
-    } catch {}
+    } catch {
+      return normalized
+    }
   }
 
   return normalized
@@ -68,10 +73,12 @@ export default async function ProfissionalPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
   const readClient = (user ? supabase : createAdminClient()) || supabase
 
   let viewerCurrency = 'BRL'
   let viewerTimezone = 'America/Sao_Paulo'
+
   if (user) {
     const { data: viewerProfile } = await supabase
       .from('profiles')
@@ -168,6 +175,7 @@ export default async function ProfissionalPage({
     'no_show',
     'rescheduled',
   ]
+
   const { count: existingAcceptedBookingsCount } = await readClient
     .from('bookings')
     .select('id', { count: 'exact', head: true })
@@ -179,7 +187,9 @@ export default async function ProfissionalPage({
 
   const { data: recommendationCandidatesRaw } = await readClient
     .from('professionals')
-    .select('id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!inner(full_name,country,avatar_url,role),category,subcategories')
+    .select(
+      'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!inner(full_name,country,avatar_url,role),category,subcategories',
+    )
     .eq('status', 'approved')
     .eq('profiles.role', 'profissional')
     .neq('id', professional.id)
@@ -205,7 +215,6 @@ export default async function ProfissionalPage({
         }
 
   const recommendations = recommendationCandidates.slice(0, 10)
-
   const profile = professional.profiles as any
   const primarySpecialty = getPrimarySpecialty(professional, professionalSpecialties)
   const professionalTimezone = String(professional.timezone || viewerTimezone)
@@ -219,123 +228,125 @@ export default async function ProfissionalPage({
         <ArrowLeft className="h-4 w-4" /> Voltar à busca
       </Link>
 
-      <div className="space-y-6">
-        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-          <div className="relative h-28 bg-gradient-to-br from-brand-400 to-brand-600">
-            <div className="absolute -bottom-10 left-6">
-              {profile?.avatar_url ? (
-                <Image
-                  src={profile.avatar_url}
-                  alt={`Foto de ${profile?.full_name || 'Profissional'}`}
-                  width={96}
-                  height={96}
-                  className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-sm"
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-white text-3xl font-bold text-brand-600 shadow-sm">
-                  {getNameInitial(profile?.full_name)}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="px-6 pb-6 pt-14">
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-              <div>
-                <h1 className="font-display text-2xl font-bold text-neutral-900">{profile?.full_name}</h1>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
-                  <span>{primarySpecialty}</span>
-                  {professional.years_experience > 0 ? (
-                    <span>• {professional.years_experience} anos de experiência</span>
-                  ) : null}
+      <ProfileAvailabilityBookingSection
+        availability={(availability || []) as any[]}
+        existingBookings={(existingBookings || []) as any[]}
+        isLoggedIn={Boolean(user)}
+        isOwnProfessional={isOwnProfessional}
+        firstBookingBlocked={firstBookingBlocked}
+        errorCode={searchParams?.erro}
+        bookHref={`/agendar/${professional.id}`}
+        messageHref={`/mensagens?profissional=${professional.id}`}
+        userTimezone={viewerTimezone}
+        professionalTimezone={professionalTimezone}
+        minimumNoticeHours={Math.max(0, Number(professional.minimum_notice_hours || 24))}
+        maxBookingWindowDays={Math.max(7, Number(professional.max_booking_window_days || 60))}
+        enableRecurring={professional.enable_recurring !== false}
+        basePriceBrl={Math.max(0, Number(professional.session_price_brl || 0))}
+        baseDurationMinutes={Math.max(1, Number(professional.session_duration_minutes || 60))}
+        viewerCurrency={viewerCurrency}
+        topSections={
+          <>
+            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <div className="relative h-28 bg-gradient-to-br from-brand-400 to-brand-600">
+                <div className="absolute -bottom-10 left-6">
+                  {profile?.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt={`Foto de ${profile?.full_name || 'Profissional'}`}
+                      width={96}
+                      height={96}
+                      className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-white text-3xl font-bold text-brand-600 shadow-sm">
+                      {getNameInitial(profile?.full_name)}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                {professional.tier && professional.tier !== 'basic' ? (
-                  <span
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                      professional.tier === 'premium'
-                        ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700'
-                        : 'border-blue-200 bg-blue-50 text-blue-700'
-                    }`}
-                  >
-                    {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
-                  </span>
+              <div className="px-6 pb-6 pt-14">
+                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                  <div>
+                    <h1 className="font-display text-2xl font-bold text-neutral-900">{profile?.full_name}</h1>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+                      <span>{primarySpecialty}</span>
+                      {professional.years_experience > 0 ? (
+                        <span>• {professional.years_experience} anos de experiência</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {professional.tier && professional.tier !== 'basic' ? (
+                      <span
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                          professional.tier === 'premium'
+                            ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700'
+                            : 'border-blue-200 bg-blue-50 text-blue-700'
+                        }`}
+                      >
+                        {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
+                      </span>
+                    ) : null}
+
+                    <FavoriteButton professionalId={professional.id} />
+
+                    <div className="flex items-center gap-1.5 rounded-full bg-accent-50 px-3 py-1.5">
+                      <Star className="h-4 w-4 fill-accent-500 text-accent-500" />
+                      <span className="text-sm font-semibold text-accent-700">
+                        {professional.rating > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
+                      </span>
+                      {professional.total_reviews > 0 ? (
+                        <span className="text-xs text-accent-500">({professional.total_reviews})</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {professional.tags?.length > 0 ? (
+                  <div className="mt-4">
+                    <p className="mb-1 text-[11px] text-neutral-400">Foco de atuação</p>
+                    <div className="flex flex-wrap gap-2">
+                      {professional.tags.map((tag: string) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 ) : null}
-
-                <FavoriteButton professionalId={professional.id} />
-
-                <div className="flex items-center gap-1.5 rounded-full bg-accent-50 px-3 py-1.5">
-                  <Star className="h-4 w-4 fill-accent-500 text-accent-500" />
-                  <span className="text-sm font-semibold text-accent-700">
-                    {professional.rating > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
-                  </span>
-                  {professional.total_reviews > 0 ? (
-                    <span className="text-xs text-accent-500">({professional.total_reviews})</span>
-                  ) : null}
-                </div>
               </div>
             </div>
 
-            {professional.tags?.length > 0 ? (
-              <div className="mt-4">
-                <p className="mb-1 text-[11px] text-neutral-400">Foco de atuação</p>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-3 font-display text-lg font-semibold text-neutral-900">Sobre mim</h2>
+              <p className="whitespace-pre-line leading-relaxed text-neutral-600">
+                {professional.bio || 'Sem descrição.'}
+              </p>
+            </div>
+
+            {(professional.languages || []).length > 0 ? (
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
+                  <Globe className="h-4 w-4 text-neutral-400" /> Idiomas
+                </h2>
                 <div className="flex flex-wrap gap-2">
-                  {professional.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
-                    >
-                      {tag}
+                  {(professional.languages || []).map((language: string) => (
+                    <span key={language} className="rounded-full bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">
+                      {language}
                     </span>
                   ))}
                 </div>
               </div>
             ) : null}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 font-display text-lg font-semibold text-neutral-900">Sobre mim</h2>
-          <p className="whitespace-pre-line leading-relaxed text-neutral-600">
-            {professional.bio || 'Sem descrição.'}
-          </p>
-        </div>
-
-        {(professional.languages || []).length > 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
-              <Globe className="h-4 w-4 text-neutral-400" /> Idiomas
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {(professional.languages || []).map((language: string) => (
-                <span key={language} className="rounded-full bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">
-                  {language}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <ProfileAvailabilityBookingSection
-          availability={(availability || []) as any[]}
-          existingBookings={(existingBookings || []) as any[]}
-          isLoggedIn={Boolean(user)}
-          isOwnProfessional={isOwnProfessional}
-          firstBookingBlocked={firstBookingBlocked}
-          errorCode={searchParams?.erro}
-          bookHref={`/agendar/${professional.id}`}
-          messageHref={`/mensagens?profissional=${professional.id}`}
-          userTimezone={viewerTimezone}
-          professionalTimezone={professionalTimezone}
-          minimumNoticeHours={Math.max(0, Number(professional.minimum_notice_hours || 24))}
-          maxBookingWindowDays={Math.max(7, Number(professional.max_booking_window_days || 60))}
-          basePriceBrl={Math.max(0, Number(professional.session_price_brl || 0))}
-          baseDurationMinutes={Math.max(1, Number(professional.session_duration_minutes || 60))}
-          viewerCurrency={viewerCurrency}
-        />
-
+          </>
+        }
+      >
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Rating</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -457,7 +468,7 @@ export default async function ProfissionalPage({
             </div>
           </div>
         ) : null}
-      </div>
+      </ProfileAvailabilityBookingSection>
     </div>
   )
 }

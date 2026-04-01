@@ -54,7 +54,9 @@ export function PublicHeader({
   const desktopLoginButtonRef = useRef<HTMLButtonElement | null>(null)
   const mobileLoginButtonRef = useRef<HTMLButtonElement | null>(null)
   const hasLanguageChoice = PUBLIC_LANGUAGE_OPTIONS.length > 1
-  const showCurrencySelector = !isLoggedInClient && pathname.startsWith('/buscar')
+  const showCurrencySelector =
+    !isLoggedInClient &&
+    (pathname.startsWith('/buscar') || pathname.startsWith('/profissional'))
 
   useEffect(() => {
     setMenuOpen(false)

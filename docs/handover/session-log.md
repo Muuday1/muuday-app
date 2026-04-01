@@ -807,3 +807,58 @@ Use this for meaningful checkpoints only.
 - Workspace legado recebeu reforço de sinalização:
   - atualização de `DO_NOT_USE_FOR_ACTIVE_DEV.txt`
   - criação de `OPEN_ACTIVE_REPO.txt` apontando para `C:\dev\muuday-app`
+
+### Entry 53 (2026-04-01) — Modal de login unificado no perfil profissional (visitante)
+- Atualizado `ProfileAvailabilityBookingSection` para reutilizar `SearchBookingCtas`.
+- Comportamento resultante:
+  - visitante em `/profissional/[id]` ao clicar `Agendar sessão` ou `Mandar mensagem` abre o mesmo modal da busca (`AuthOverlay + LoginForm`);
+  - usuário logado mantém navegação direta para as rotas de agendamento e mensagem.
+- `SearchBookingCtas` ganhou labels configuráveis (`bookLabel`, `messageLabel`) sem alterar o comportamento existente em `/buscar`.
+- Validação executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 54 (2026-04-01) — Seletor de moeda no perfil profissional para visitante
+- Ajustada a regra de visibilidade do seletor de moeda no `PublicHeader`.
+- Visitante deslogado agora vê o mesmo controle de moeda em:
+  - `/buscar`
+  - `/profissional/[id]`
+- Sessão logada mantém comportamento atual (controle de moeda não é exibido no header autenticado).
+
+### Entry 55 (2026-04-01) — Recorrência do perfil para agendamento em lote
+- Ajustado `app/(app)/agendar/[id]/page.tsx` para consumir parâmetros de prefill:
+  - `tipo` (`one_off` | `recurring`)
+  - `sessoes` (2..12)
+  - `data` (`YYYY-MM-DD`)
+  - `hora` (`HH:mm`)
+- `components/booking/BookingForm.tsx` agora:
+  - recebe prefill inicial de recorrência;
+  - aplica prefill de data/horário quando válido;
+  - expande pacote recorrente para seleção de `2..12` sessões.
+- `components/professional/ProfileAvailabilityBookingSection.tsx` agora:
+  - expande seleção recorrente para `2..12` sessões;
+  - bloqueia toggle de recorrência quando `enable_recurring` estiver desativado.
+- Resultado funcional: usuário seleciona recorrência e quantidade e confirma todas as sessões em um único envio do checkout.
+- Validação executada:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 56 (2026-04-01) — Recuperação de senha com entrega robusta
+- Criado endpoint `app/api/auth/password-reset/route.ts` para centralizar o fluxo de recuperação:
+  - validação de payload (`email`);
+  - rate-limit com chave `ip+email` (preset `auth`);
+  - redirect canônico com `getAppBaseUrl()/auth/callback`.
+- Entrega principal implementada via:
+  - `createAdminClient().auth.admin.generateLink({ type: 'recovery' })`
+  - envio de template de reset por Resend (`sendPasswordResetEmail`).
+- Fallback mantido para `supabase.auth.resetPasswordForEmail` quando caminho admin não estiver disponível.
+- `app/(auth)/recuperar-senha/page.tsx` migrada para consumir a nova API e melhorar a mensagem de confirmação para o usuário.
+- Validação executada:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`

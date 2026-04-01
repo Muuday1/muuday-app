@@ -261,6 +261,25 @@ Dependencies:
 - start all dev sessions from `C:\dev\muuday-app` only.
 - treat `C:\Users\igorp\OneDrive\Documents\Muuday` as archived/non-active.
 - if a legacy file is needed from OneDrive, import it intentionally into `artifacts/` with a dedicated commit and update handover docs.
+32. Run visual QA on `/profissional/[id]` sticky rail behavior:
+- desktop/laptop: booking rail stays visible while scrolling to `Comentários` and recommendation carousel.
+- confirm left column card widths are consistent with calendar width and no extra full-width profile cards remain.
+- mobile/tablet: verify no overlap/regression in CTA visibility when sticky rail is not active.
+33. Validate logged-out CTA parity between `/buscar` and `/profissional/[id]`:
+- logged-out click on `Agendar sessão` or `Mandar mensagem` in professional page must open the same login modal as search cards.
+- logged-in click must navigate directly with no modal.
+- confirm this behavior on desktop and mobile modal variants.
+34. Validate guest currency selector parity:
+- on `/profissional/[id]` while logged out, header must show currency selector like `/buscar`.
+- switching currency should persist via cookie and reflect converted values after navigation back to search/profile views.
+35. Run recurring-package acceptance test from profile entry point:
+- in `/profissional/[id]`, select `Recorrência`, choose session count, date and time, then click `Agendar sessão`.
+- confirm `/agendar/[id]` opens with prefilled recurring mode and selected package size.
+- submit once and verify package bookings are created together (parent + child sessions) and visible in agenda context.
+36. Validate password-recovery delivery in production:
+- request reset for one known existing account and confirm email arrival + working link.
+- verify endpoint fallback by checking route logs for `admin generateLink` failures (should be rare).
+- confirm Vercel env has valid `SUPABASE_SERVICE_ROLE_KEY` (service role, not publishable key) so admin-path delivery remains active.
 
 Dependencies:
 - Wave 1 critical path complete.

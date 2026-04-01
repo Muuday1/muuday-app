@@ -8,7 +8,36 @@ import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
-export default async function AgendarPage({ params }: { params: { id: string } }) {
+function parseInitialBookingType(value?: string) {
+  return value === 'recurring' ? 'recurring' : 'one_off'
+}
+
+function parseInitialRecurringSessionsCount(value?: string) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return 4
+  const normalized = Math.trunc(parsed)
+  if (normalized < 2) return 2
+  if (normalized > 12) return 12
+  return normalized
+}
+
+function parseInitialDate(value?: string) {
+  if (!value) return undefined
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined
+}
+
+function parseInitialTime(value?: string) {
+  if (!value) return undefined
+  return /^\d{2}:\d{2}$/.test(value) ? value : undefined
+}
+
+export default async function AgendarPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -101,6 +130,20 @@ export default async function AgendarPage({ params }: { params: { id: string } }
     .gte('scheduled_at', now.toISOString())
     .lte('scheduled_at', thirtyDaysLater.toISOString())
 
+  const queryTipo = searchParams?.tipo
+  const querySessoes = searchParams?.sessoes
+  const queryData = searchParams?.data
+  const queryHora = searchParams?.hora
+
+  const initialBookingType = parseInitialBookingType(
+    Array.isArray(queryTipo) ? queryTipo[0] : queryTipo
+  )
+  const initialRecurringSessionsCount = parseInitialRecurringSessionsCount(
+    Array.isArray(querySessoes) ? querySessoes[0] : querySessoes
+  )
+  const initialDate = parseInitialDate(Array.isArray(queryData) ? queryData[0] : queryData)
+  const initialTime = parseInitialTime(Array.isArray(queryHora) ? queryHora[0] : queryHora)
+
   const profProfile = professionalProfile as any
   const category = CATEGORIES.find(c => c.slug === professional.category)
 
@@ -140,6 +183,10 @@ export default async function AgendarPage({ params }: { params: { id: string } }
         confirmationMode={bookingSettings.confirmationMode}
         requireSessionPurpose={bookingSettings.requireSessionPurpose}
         enableRecurring={bookingSettings.enableRecurring}
+        initialBookingType={initialBookingType}
+        initialRecurringSessionsCount={initialRecurringSessionsCount}
+        initialDate={initialDate}
+        initialTime={initialTime}
       />
     </div>
   )

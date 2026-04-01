@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
-import { PublicBookingAuthModal } from '@/components/auth/PublicBookingAuthModal'
+import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
 
 type AvailabilitySlot = {
   id: string
@@ -31,9 +31,12 @@ type ProfileAvailabilityBookingSectionProps = {
   professionalTimezone: string
   minimumNoticeHours: number
   maxBookingWindowDays: number
+  enableRecurring: boolean
   basePriceBrl: number
   baseDurationMinutes: number
   viewerCurrency: string
+  topSections?: ReactNode
+  children?: ReactNode
 }
 
 const MONTH_NAMES_PT = [
@@ -118,9 +121,12 @@ export function ProfileAvailabilityBookingSection({
   professionalTimezone,
   minimumNoticeHours,
   maxBookingWindowDays,
+  enableRecurring,
   basePriceBrl,
   baseDurationMinutes,
   viewerCurrency,
+  topSections,
+  children,
 }: ProfileAvailabilityBookingSectionProps) {
   const today = useMemo(() => {
     const date = new Date()
@@ -143,6 +149,7 @@ export function ProfileAvailabilityBookingSection({
   const [selectedDuration, setSelectedDuration] = useState(
     durationOptions.includes(60) ? 60 : Math.max(1, baseDurationMinutes),
   )
+  const recurringSessionOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
   const maxDate = useMemo(() => {
     const result = new Date(today)
@@ -273,8 +280,10 @@ export function ProfileAvailabilityBookingSection({
   const canGoNext = currentMonth < maxMonth
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="space-y-5 lg:col-span-2">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <div className="space-y-6 lg:col-span-2">
+        {topSections}
+
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
@@ -297,6 +306,7 @@ export function ProfileAvailabilityBookingSection({
                   </option>
                 ))}
               </select>
+
               <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-neutral-50 p-1 text-xs">
                 <button
                   type="button"
@@ -341,12 +351,17 @@ export function ProfileAvailabilityBookingSection({
             </button>
             <button
               type="button"
-              onClick={() => setBookingType('recurring')}
+              onClick={() => {
+                if (!enableRecurring) return
+                setBookingType('recurring')
+              }}
+              disabled={!enableRecurring}
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
                 bookingType === 'recurring'
                   ? 'border-brand-500 bg-brand-50 text-brand-700'
                   : 'border-neutral-200 text-neutral-600 hover:border-brand-300',
+                !enableRecurring && 'cursor-not-allowed opacity-50',
               )}
             >
               Recorrência
@@ -358,9 +373,15 @@ export function ProfileAvailabilityBookingSection({
                 className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
                 aria-label="Quantidade de sessões recorrentes"
               >
-                <option value={4}>4 sessões</option>
-                <option value={8}>8 sessões</option>
+                {recurringSessionOptions.map(option => (
+                  <option key={option} value={option}>
+                    {option} sessões
+                  </option>
+                ))}
               </select>
+            ) : null}
+            {!enableRecurring ? (
+              <span className="text-xs text-neutral-500">Recorrência indisponível para este profissional.</span>
             ) : null}
           </div>
 
@@ -464,10 +485,12 @@ export function ProfileAvailabilityBookingSection({
             </div>
           ) : null}
         </div>
+
+        {children}
       </div>
 
       <div className="lg:col-span-1">
-        <div className="sticky top-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="sticky top-24 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <div className="mb-4 border-b border-neutral-100 pb-4 text-center">
             <p className="text-3xl font-bold text-neutral-900">{selectedPriceText}</p>
             <p className="mt-1 text-sm text-neutral-500">por sessão de {selectedDuration} min</p>
@@ -526,22 +549,29 @@ export function ProfileAvailabilityBookingSection({
               </p>
             </div>
           ) : (
-            <PublicBookingAuthModal
+            <SearchBookingCtas
               isLoggedIn={isLoggedIn}
               bookHref={bookHrefWithSelection}
-              requestHref={messageHref}
-              requestEnabled
+              messageHref={messageHref}
+              bookLabel="Agendar sessão"
+              messageLabel="Mandar mensagem"
             />
           )}
 
           {errorCode === 'auto-agendamento' ? (
-            <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700" role="alert">
+            <div
+              className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700"
+              role="alert"
+            >
               Não é permitido agendar sessão com o próprio perfil profissional.
             </div>
           ) : null}
 
           {errorCode === 'primeiro-agendamento-bloqueado' ? (
-            <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700" role="alert">
+            <div
+              className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700"
+              role="alert"
+            >
               Este profissional ainda não está habilitado para aceitar o primeiro agendamento.
             </div>
           ) : null}
