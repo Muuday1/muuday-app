@@ -20,7 +20,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 | Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | In progress (Wave 2 backend scope complete) | Manual acceptance/sign-off still pending to mark Wave 2 done |
 | Booking lifecycle | Explicit state machine + request booking + slot hold | In progress (Wave 2 backend scope complete) | Manual acceptance/sign-off still pending to mark Wave 2 done |
 | Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | In progress (engine + release job delivered) | Validate production release behavior in cron/Inngest and close manual QA |
-| Payments and revenue | Stripe-backed charge/refund/payout/billing + ledger | In progress | Legacy placeholders still present; webhook/idempotent lifecycle pending |
+| Payments and revenue | Stripe-backed charge/refund/payout/billing + ledger | In progress | Legacy placeholders still present; resilient webhook/job foundation delivered, real-money execution pending |
 | Admin trust operations | Structured case queue and audit-first moderation | In progress | Case queue and full audit workflows pending |
 | Notifications and inbox | Event-driven email + in-app inbox + reminders | In progress | Delivery observability and full event routing pending |
 | Session execution | Provider-agnostic model with delayed provider lock | Planned | Final provider implementation pending |
@@ -416,6 +416,137 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - `lib/actions/booking.ts` now handles DB unique collision (`23505`) deterministically and returns user-facing conflict message (`horário já reservado`) instead of generic insert failure.
 - recurring package wrapper rows (`booking_type='recurring_parent'`) are intentionally excluded from slot uniqueness to preserve current parent+child model.
 - production apply confirmed by operator (`021` ran in Supabase SQL).
+98. Caching layer baseline delivered with Upstash Redis + ISR-tag invalidation:
+- public professional profile base payload is now cached for `5 min` in `app/(app)/profissional/[id]/page.tsx` (`public-profile:*` keys).
+- taxonomy active catalog (`categories/subcategories/specialties`) now caches for `1h` in `lib/taxonomy/professional-specialties.ts`.
+- exchange rates now cache for `1h` in `lib/exchange-rates.ts` and are consumed by `/buscar`, `lib/actions/booking.ts`, and `lib/actions/request-booking.ts`.
+- profile-affecting writes now trigger `revalidateTag('public-profiles')` in `lib/actions/admin.ts` and `lib/actions/professional.ts`.
+99. Middleware role guard now prioritizes JWT claims and falls back to DB only when claim is missing:
+- `lib/supabase/middleware.ts` now reads role from auth metadata claim (`app_metadata.role` and `raw_app_meta_data.role`) before querying `profiles`.
+- valid roles are normalized with an explicit allow-list: `usuario`, `profissional`, `admin`.
+- DB fallback remains active only for users whose JWT metadata does not yet include a valid role, preserving backward compatibility while removing most per-request profile reads.
+100. CI/CD quality gate and synthetic monitoring workflows hardened:
+- `.github/workflows/ci.yml` now runs the full chain in order: `lint` -> `typecheck` -> `build` -> `test:unit` -> `test:e2e`.
+- `package.json` now exposes explicit `test:unit` script (mapped to current deterministic state-machine unit suite).
+- Playwright Chromium install and report artifact upload are now part of CI.
+- main-branch push now hard-fails if required E2E fixture secrets are missing.
+- `.github/workflows/checkly-validate.yml` now includes scheduled synthetic runs, `checkly:test`, and `checkly:deploy` on `main` when Checkly secrets are present.
+- deploy blocking model is now CI-first: production promotion must rely on required status checks (`CI`) before merge/deploy.
+101. RLS audit toolkit delivered for full verification of user-data isolation:
+- added SQL inventory audit script: `db/sql/analysis/022-rls-audit-inventory.sql`.
+- added SQL cross-user isolation harness: `db/sql/analysis/023-rls-cross-user-isolation.sql`.
+- added direct API audit script: `scripts/ops/audit-rls-direct-api.cjs` and npm command `npm run audit:rls:api`.
+- direct API run now supports deterministic sample row IDs via env (`RLS_SAMPLE_*`) when automatic sample discovery finds no rows.
+- added runbook: `docs/engineering/runbooks/rls-audit-runbook.md`.
+- current execution status: credentials validated, but audit run had no executable private-row samples in target tables; evidence capture remains pending sample IDs.
+102. Secrets rotation governance baseline is now documented with periodic cadence (including Stripe):
+- new runbook: `docs/engineering/runbooks/secrets-rotation-runbook.md`.
+- covered secrets: `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY`, `CRON_SECRET`, `RESEND_API_KEY`, `UPSTASH_REDIS_REST_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
+- cadence and triggers are now explicit (periodic + immediate rotation on risk events).
+- rotation register is now mandatory after every rotation cycle (date, owner, validation, next due).
+- linked in operations docs and release checklist to prevent undocumented rotations.
+103. Input validation hardening completed for server actions:
+- `lib/actions/admin.ts` now validates all inputs with Zod (UUID/status/boolean) before any admin mutation.
+- `lib/actions/email.ts` now validates all action payloads with Zod (email, IDs, dates, times, amounts, URLs, ratings, lists) before auth and send operations.
+- `lib/actions/booking.ts` and `lib/actions/request-booking.ts` now enforce semantic local datetime validation (not regex-only) for booking/request inputs.
+- Result: action-layer input boundary is now typed and deterministic for critical fields (IDs, dates, monetary strings).
+104. API CORS policy hardened across all current route handlers:
+- added shared CORS module `lib/http/cors.ts` with explicit origin evaluation, response header attachment, and preflight helper.
+- all current `app/api/*` routes now implement explicit CORS + `OPTIONS`:
+  - `/api/auth/password-reset`
+  - `/api/waitlist`
+  - `/api/inngest`
+  - `/api/cron/booking-reminders`
+  - `/api/cron/booking-timeouts`
+- added env controls in `.env.local.example`: `API_CORS_ORIGINS`, `WAITLIST_CORS_ORIGINS`, `WEBHOOK_CORS_ORIGINS`.
+- webhook policy abstraction (`WEBHOOK_API_CORS_POLICY`) is ready for `/api/webhooks/*` routes to avoid ad-hoc CORS when Stripe webhook endpoint is introduced.
+105. Financial PII pre-hardening for Wave 3 completed:
+- policy baseline consolidated in `docs/engineering/financial-pii-encryption-and-vault.md`.
+- added code guard `lib/stripe/pii-guards.ts` and applied it to payment metadata writes in:
+  - `lib/actions/booking.ts`
+  - `lib/actions/request-booking.ts`
+- added SQL preflight audit pack `db/sql/analysis/024-wave3-pii-column-audit.sql`:
+  - forbidden card-column detection,
+  - payout-sensitive-column inventory,
+  - `pgcrypto` / `vault` extension readiness check,
+  - RLS status inventory for finance-like tables.
+106. Admin audit trail compliance foundation implemented:
+- migration added: `db/sql/migrations/022-admin-audit-log-foundation.sql`.
+- table `admin_audit_log` created with required compliance fields:
+  - `admin_user_id`, `action`, `target_table`, `target_id`, `old_value`, `new_value`, `created_at`.
+- RLS enabled with admin-only `SELECT`/`INSERT` policies.
+- admin server actions now append audit events on success:
+  - `adminUpdateProfessionalStatus`
+  - `adminUpdateFirstBookingGate`
+  - `adminToggleReviewVisibility`
+  - `adminDeleteReview`
+- helper added: `lib/admin/audit-log.ts` (`ADMIN_AUDIT_FAIL_ON_ERROR=true` supports fail-closed mode).
+107. Error-budget and alerting baseline hardened (cost-efficient):
+- new runbook added: `docs/engineering/runbooks/error-budget-and-alerting.md`.
+- Sentry signal instrumentation expanded for alertable auth/payment failures:
+  - auth: login, OAuth start/callback, signup failure paths.
+  - payment: request-booking payment record failure path.
+- PostHog funnel instrumentation expanded with `auth_signup_started` for explicit signup drop-off alerting.
+- Checkly uptime/journey monitoring remains active via monitoring-as-code checks and email subscriptions.
+108. Supabase connection pooling policy hardened for production:
+- added env model for pooled vs direct DB URLs in `.env.local.example` (`SUPABASE_DB_POOLER_URL`/`SUPABASE_DB_DIRECT_URL` + aliases).
+- added operational validator `scripts/ops/validate-db-pooling-config.cjs`.
+- added npm command `npm run db:validate-pooling`.
+- documentation and release checklist now require pooler validation before production promotion.
+109. Rate limiting coverage expanded (auth + booking + webhook + fallback monitoring):
+- new route `/api/auth/attempt-guard` applies dedicated limits for `login`, `signup`, and `oauth_start`.
+- login/signup/social OAuth UI flows now call attempt guard before Supabase auth operations.
+- booking creation hardening: booking-creating paths now use dedicated `bookingCreate` preset:
+  - `createBooking`
+  - `createRequestBooking`
+  - `acceptRequestBooking`
+- new guarded endpoint `/api/webhooks/stripe` added with `stripeWebhook` rate limit + explicit CORS policy.
+- in-memory fallback observability added in `lib/security/rate-limit.ts`:
+  - warning logs + Sentry signal `rate_limit_fallback_memory_active` (throttled).
+110. Stripe background-job resilience foundation delivered (Wave 3 prep, no real-money execution yet):
+- migration `023-wave3-stripe-job-resilience-foundation.sql` added with durable operational tables:
+  - `stripe_webhook_events` (idempotency inbox + retry metadata),
+  - `stripe_payment_retry_queue`,
+  - `stripe_subscription_check_queue`,
+  - `stripe_job_runs` (batch idempotency window log).
+- webhook route `/api/webhooks/stripe` upgraded:
+  - Stripe signature verification (`constructEvent`),
+  - durable inbox persistence,
+  - async enqueue to Inngest (`stripe/webhook.received`),
+  - keeps non-blocking `202` acknowledgment model.
+- new operational engine `lib/ops/stripe-resilience.ts` added:
+  - webhook inbox processor with retry/backoff and per-event status transitions,
+  - weekly payout-eligibility scan job,
+  - subscription renewal-check job,
+  - failed-payment retry job.
+- Inngest functions wired and exposed at `/api/inngest`:
+  - `process-stripe-webhook-inbox`,
+  - `stripe-weekly-payout-eligibility-scan`,
+  - `stripe-subscription-renewal-checks`,
+  - `stripe-failed-payment-retries`.
+- scope intentionally safe for current phase:
+  - no transfer creation,
+  - no payout release,
+  - no billing charge mutations outside existing payment status updates.
+111. JWT role-claim coverage audit + fallback monitoring instrumentation delivered:
+- new audit command `npm run audit:auth-role-claims` (`scripts/ops/audit-role-claim-coverage.cjs`) to measure:
+  - valid/missing/invalid `app_metadata.role`,
+  - claim vs `profiles.role` consistency,
+  - estimated middleware fallback rate.
+- middleware fallback instrumentation added in `lib/supabase/middleware.ts`:
+  - when JWT role claim is missing and DB fallback is used, emits sampled Sentry signal `middleware_role_fallback_to_profile`.
+- current blocker found during execution:
+  - `.env.local` had `SUPABASE_SERVICE_ROLE_KEY` set to a publishable key (`sb_publishable...`), preventing Admin API audit execution.
+112. Secrets-rotation operations are now automation-ready (register + reminders + sync audit):
+- added canonical register: `docs/engineering/runbooks/secrets-rotation-register.json`.
+- added register automation scripts:
+  - `npm run secrets:rotation:check` (`scripts/ops/check-secrets-rotation.cjs`)
+  - `npm run secrets:rotation:stamp` (`scripts/ops/stamp-secrets-rotation.cjs`)
+  - `npm run secrets:sync:audit` (`scripts/ops/audit-secrets-sync.cjs`)
+- added scheduled workflows:
+  - `.github/workflows/secrets-rotation-reminder.yml` (daily due-window reminders).
+  - `.github/workflows/secrets-sync-audit.yml` (weekly GitHub vs Vercel secret-name sync check + manual trigger).
+- runbook `docs/engineering/runbooks/secrets-rotation-runbook.md` now includes command-level operational flow for first-cycle baseline, recurring checks, and post-rotation sync validation.
 
 ## Immediate next actions
 
@@ -438,6 +569,15 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 9. Post-apply validation for `021`:
 - create two concurrent booking attempts for same professional/start time and confirm one succeeds while the other fails with deterministic conflict error.
 - verify no false-positive collisions for recurring parent wrapper rows.
+10. Production env alignment for DB pooling:
+- set `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) to Supavisor transaction endpoint (`:6543`) in Vercel production.
+- keep `SUPABASE_DB_DIRECT_URL` (or `DATABASE_DIRECT_URL`) only for migration/maintenance contexts.
+- run `npm run db:validate-pooling` before every release cut.
+11. Validate rate-limit expansion in preview/production:
+- auth: repeated invalid login/signup attempts should return deterministic throttle message.
+- booking: burst attempts on `createBooking`/`createRequestBooking` should hit `bookingCreate` limiter.
+- webhook: `/api/webhooks/stripe` should return `429` when burst threshold is exceeded.
+- verify Sentry receives `rate_limit_fallback_memory_active` only when Upstash is unavailable.
 
 ## Continuity rule
 

@@ -61,32 +61,89 @@ Items already fixed in code are documented in `project-status.md` item 71. The i
 
 ### Wave 2 close — infrastructure hardening (deploy before Wave 3)
 
-1. **Hardcoded currency exchange rates** (`lib/actions/booking.ts`, `lib/actions/request-booking.ts`): Replace hardcoded `rates` map with `exchange_rates` Supabase table + cron/API refresh + 24h staleness check on booking creation.
-2. **Booking race condition (schema + code applied)**:
+1. **Supabase DB connection pooling policy (new mandatory ops gate)**:
+- set `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) to Supavisor transaction endpoint (`:6543`) in production runtime.
+- keep `SUPABASE_DB_DIRECT_URL` (or `DATABASE_DIRECT_URL`) restricted to migrations/maintenance contexts only.
+- run `npm run db:validate-pooling` before every production release and after env edits.
+2. **Exchange-rate source hardening** (baseline delivered): booking/request-booking/search now consume shared `getExchangeRates()` cache provider. Next step is operational: keep `exchange_rates` table populated by refresh job and add stale-rate alerting (>=24h).
+3. **Booking race condition (schema + code applied)**:
 - `021-wave2-booking-atomic-slot-constraint.sql` já aplicado em produção.
 - pending action: run concurrency smoke (two simultaneous creates same slot -> one success, one deterministic collision).
-3. **In-memory rate limiting fallback**: Add monitoring alert/log when Upstash is unavailable and fallback is active (doesn't survive serverless cold starts).
-4. **Middleware DB query per request**: Encode user role in JWT custom claims (`raw_app_meta_data`) to avoid per-request profile SELECT. Fall back to DB only when claim is missing.
-5. **Verify database indexes**: Run `EXPLAIN ANALYZE` on production. Create composite indexes: `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `availability_exceptions(professional_id, date_local)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
-6. **Zod validation audit**: Ensure ALL server actions that accept user input have Zod schema validation (booking amounts, dates, IDs, profile fields).
-7. **GitHub Actions CI pipeline**: Create workflow `lint → typecheck → build → test:state-machines → test:e2e` on every push. Block Vercel deploy on failure.
-8. **pg_trgm + GIN indexes**: schema already applied (`019`); pending operational validation (query plans + latency evidence).
+4. ~~**In-memory rate limiting fallback**: Add monitoring alert/log when Upstash is unavailable and fallback is active (doesn't survive serverless cold starts).~~ Done (2026-04-01):
+- `lib/security/rate-limit.ts` now emits throttled warning + Sentry signal `rate_limit_fallback_memory_active`.
+- follow-up: create explicit Sentry alert rule for this signal in production.
+5. ~~**Middleware DB query per request**: Encode user role in JWT custom claims (`raw_app_meta_data`) to avoid per-request profile SELECT.~~ Done (2026-04-01):
+- middleware now resolves role from JWT claims first and falls back to DB only when claim is missing/invalid.
+- follow-up: keep claim coverage high for legacy accounts to reduce fallback frequency.
+- operational close step added:
+  - run `npm run audit:auth-role-claims` and archive JSON output in `session-log`.
+  - prerequisite: `SUPABASE_SERVICE_ROLE_KEY` must be a real service-role/secret key (not publishable/anon key).
+  - monitor Sentry event `middleware_role_fallback_to_profile` to track fallback frequency trend over time.
+6. **Verify database indexes**: Run `EXPLAIN ANALYZE` on production. Create composite indexes: `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `availability_exceptions(professional_id, date_local)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
+7. ~~**Zod validation audit**: Ensure ALL server actions that accept user input have Zod schema validation (booking amounts, dates, IDs, profile fields).~~ Done (2026-04-01):
+- `admin.ts` and `email.ts` fully covered with Zod input parsing.
+- booking/request local datetime inputs hardened with semantic checks.
+- Follow-up rule: every new server action must include schema parse on input boundary before auth/mutation side effects.
+8. **GitHub Actions CI pipeline**: Create workflow `lint → typecheck → build → test:state-machines → test:e2e` on every push. Block Vercel deploy on failure.
+9. **pg_trgm + GIN indexes**: schema already applied (`019`); pending operational validation (query plans + latency evidence).
 
 ### Wave 3 — payments security and compliance
 
 9. **No payment gateway** (legacy payment flow): Integrate Stripe Connect (Separate Charges and Transfers). Current `provider: 'legacy'` + `status: 'captured'` records payments without processing. Must be replaced before revenue starts.
 10. **Stripe webhook security**: Create `/api/webhooks/stripe` with signature verification (`stripe.webhooks.constructEvent`), idempotency handling, and Inngest retry queue.
+10.1 **Status update (implemented in code, pending production apply):**
+- `/api/webhooks/stripe` now verifies signature, persists idempotent inbox event, and enqueues Inngest processing.
+- required DB migration to apply before enabling endpoint in production traffic:
+  - `023-wave3-stripe-job-resilience-foundation.sql`.
+10.2 **Post-apply validation required:**
+- replay one valid Stripe test webhook and confirm:
+  - one row in `stripe_webhook_events`,
+  - one Inngest execution in `process-stripe-webhook-inbox`,
+  - final status `processed` or `ignored` with no stuck `processing`.
 11. **Recurring booking atomicity**: Wrap parent + child + session inserts in Postgres RPC transaction.
 12. **Supabase Vault**: Use for encrypted storage of sensitive payout/bank details. Never store card numbers (Stripe Elements handles).
+- prework done: policy + guards + SQL audit pack delivered (`docs/engineering/financial-pii-encryption-and-vault.md`, `lib/stripe/pii-guards.ts`, `db/sql/analysis/024-wave3-pii-column-audit.sql`).
+- next action before Stripe go-live: run `024-wave3-pii-column-audit.sql` in production and store evidence in handover/session log.
+- decision pending to close before Wave 3 freeze:
+  - `recommended`: Stripe-only storage for payout/KYC sensitive data.
+  - `fallback`: local encrypted columns with Vault-backed key path + audited read access.
 13. **Admin audit trail**: Add `admin_audit_log` table — `(admin_user_id, action, target_table, target_id, old_value, new_value, timestamp)`. Required for financial compliance.
+13. **Admin audit trail**: foundation delivered in code + migration (`022-admin-audit-log-foundation.sql` + `lib/admin/audit-log.ts` + `lib/actions/admin.ts` integration).
+- pending operator action: apply migration `022` in production Supabase.
+- post-apply validation required:
+  - execute one mutation from each admin action and confirm one `admin_audit_log` row per action.
+  - confirm non-admin cannot read/write `admin_audit_log` via direct API.
+- follow-up scope (Wave 3): extend audit coverage to manual financial/admin operations in `manage-booking` (refund/reversal/exception paths).
 14. **RLS audit for payment tables**: Verify all new financial tables have correct RLS policies before going live.
-15. **Rate limiting expansion**: Add rate limits to Stripe webhook endpoint, booking creation, and signup/login for brute force prevention.
-16. **CORS hardening**: Explicit CORS policy on all API routes, especially webhooks.
+15. ~~**Rate limiting expansion**: Add rate limits to Stripe webhook endpoint, booking creation, and signup/login for brute force prevention.~~ Done (2026-04-01):
+- auth guard endpoint added: `/api/auth/attempt-guard` (`login`, `signup`, `oauth_start`).
+- booking creation paths now use `bookingCreate` preset.
+- stripe webhook endpoint now has `stripeWebhook` limiter (`/api/webhooks/stripe`).
+- follow-up (Wave 3): tune thresholds with real traffic (signature-verified webhook processing already implemented in code and pending production migration apply `023`).
+16. **Background job resilience for Stripe (partially delivered in code, pending production migration apply):**
+- delivered:
+  - webhook processing via Inngest with durable idempotency inbox + retry/backoff,
+  - weekly payout-eligibility scan job (`read-only` financial scan),
+  - subscription renewal check job,
+  - failed payment retry queue/job.
+- still pending to close this item:
+  - apply migration `023` in production,
+  - confirm Inngest cloud receives these new functions on active app sync,
+  - run end-to-end dry run with Stripe test events and record evidence in `session-log`.
+16. ~~**CORS hardening**: Explicit CORS policy on all API routes, especially webhooks.~~ Done for all current API routes (2026-04-01):
+- centralized CORS policy helper in `lib/http/cors.ts`.
+- explicit CORS + `OPTIONS` applied to all current `app/api/*` handlers.
+- follow-up rule: every new webhook route (`/api/webhooks/*`) must use `WEBHOOK_API_CORS_POLICY` from the same helper.
 
 ### Wave 4 — operational monitoring
 
-17. **Sentry alert rules**: Custom alerts for error rate spike, payment failures, auth failures, webhook processing delays.
-18. **Checkly synthetic monitoring**: Activate uptime checks and critical-path journey monitoring.
+17. **Sentry alert rules**: templates and signal instrumentation are now in place; execute dashboard setup for:
+- error rate spike,
+- payment failures,
+- auth failures,
+- webhook processing delays.
+- reference: `docs/engineering/runbooks/error-budget-and-alerting.md`.
+18. **Checkly synthetic monitoring**: baseline already active (API + browser journeys + email subscriptions). Keep checks green and aligned with domain/env changes.
 
 ## Wave 2 closure checklist (authoritative current sequence)
 
@@ -339,17 +396,17 @@ Dependencies:
 2. Review moderation and trust-flag governance.
 
 ### Monitoring and alerting
-3. Configure Sentry alert rules: error rate spike, payment failures, auth failures, webhook delays.
-4. Activate Checkly synthetic monitoring: uptime checks + critical-path journey monitoring.
-5. Configure PostHog alerts: signup drop-off, booking conversion drop, payment failure rate.
+3. Configure Sentry alert rules (manual dashboard) using runbook thresholds for: error rate spike, payment failures, auth failures, webhook delays.
+4. Keep Checkly monitoring active and validated after each deploy (uptime + critical-path journeys).
+5. Configure PostHog alerts (manual dashboard): signup drop-off and booking conversion drop.
 
 ### Notifications
 6. Finalize event-driven notification dispatcher + in-app inbox via Inngest.
 7. Multi-channel routing (email + in-app + future push).
 
 ### Scale (deploy when threshold met)
-8. Redis cache (Upstash) for public profiles (5min TTL), taxonomy (1h), exchange rates (1h) — trigger: DB IOPS > 80%.
-9. Next.js ISR with `revalidateTag` for public profile pages — trigger: > 5k daily profile views.
+8. ~~Redis cache (Upstash) for public profiles (5min TTL), taxonomy (1h), exchange rates (1h)~~ Done in Wave 2 baseline.
+9. ~~Next.js ISR with `revalidateTag` for public profile pages~~ Done in Wave 2 baseline (`revalidateTag('public-profiles')` on profile-affecting mutations).
 
 ## Priority 5 - Wave 5 delivery batch
 
@@ -442,3 +499,33 @@ Status: `Done` for automated gate + fixture setup. Keep this list as regression 
   - whether planner used index scan/bitmap index scan,
   - execution time before/after where available,
   - any query still showing seq scan and next index action.
+17. Validate JWT role-claim coverage after middleware JWT-first patch:
+- confirm active auth sessions contain `app_metadata.role` (or `raw_app_meta_data.role`) for `usuario`, `profissional`, and `admin`.
+- monitor middleware behavior in preview/prod and verify DB fallback only occurs for legacy/missing-claim accounts.
+- after claim coverage is confirmed, keep fallback for safety but treat frequent fallback hits as data backfill action item.
+18. Finalize deploy-blocking policy in platform settings (human action required):
+- GitHub: set branch protection on `main` requiring status check `CI` before merge.
+- Vercel: keep production branch as `main` and disable any bypass path that promotes failed commits.
+- confirm no direct production deploy path exists outside branch-protected `main`.
+19. Configure CI/E2E and Checkly secrets in GitHub repository settings:
+- required for CI main gate: `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, `E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`, `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`, `E2E_BLOCKED_PROFESSIONAL_ID`.
+- required for synthetic monitoring workflow: `CHECKLY_API_KEY`, `CHECKLY_ACCOUNT_ID`.
+- optional variable overrides: `E2E_BASE_URL`, `CHECKLY_BASE_URL`.
+20. Complete the pending RLS audit evidence pass (critical before Wave 3 finance hardening):
+- run `db/sql/analysis/022-rls-audit-inventory.sql` in production and attach output.
+- run `db/sql/analysis/023-rls-cross-user-isolation.sql` with real sample UUIDs for `bookings`, `payments`, hidden `reviews`, and `messages` (if implemented).
+- run `npm run audit:rls:api` with explicit `RLS_SAMPLE_*` IDs when auto-discovery returns no rows.
+- if `messages` table is not implemented yet, explicitly log "N/A — Wave 4 inbox not launched" and keep as tracked gap.
+21. Execute first full secrets-rotation cycle and record baseline due dates:
+- follow `docs/engineering/runbooks/secrets-rotation-runbook.md`.
+- rotate and validate now: `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_SECRET_KEY`, `CRON_SECRET`, `RESEND_API_KEY`, `UPSTASH_REDIS_REST_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+- stamp baseline in register after each completed rotation batch:
+  - `npm run secrets:rotation:stamp -- --secrets <SECRET_A,SECRET_B> --date <YYYY-MM-DD> --by <owner>`.
+- run sync audit immediately after every rotation:
+  - `npm run secrets:sync:audit`.
+- required automation precondition in GitHub settings:
+  - `VERCEL_TOKEN` (secret), `VERCEL_PROJECT_ID` (variable), optional `VERCEL_TEAM_ID` (variable).
+22. Add recurring operator reminder cadence for secret rotation:
+- automated by `.github/workflows/secrets-rotation-reminder.yml` (daily schedule).
+- cadence source-of-truth is `docs/engineering/runbooks/secrets-rotation-register.json` (`cadence_days` 60/90/180).
+- workflow fails when any secret is due soon (`<=14 days`) or overdue, so alerts do not depend on manual calendar reminders.
