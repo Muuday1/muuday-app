@@ -399,3 +399,7 @@ Wave-driven delivery is now mandatory:
 - detects Supabase duplicate-account signal when `signUp` succeeds but no new identity is created.
 - blocks account creation completion in this case and renders recovery CTA (`/recuperar-senha?email=...`).
 - prevents welcome-email trigger on duplicate-email attempts.
+93. User signup success UX now includes verification modal:
+- successful user signup opens modal with verification instructions (email confirmation required).
+- modal confirmation returns user to landing page (`/`).
+- signup flow signs user out before modal render to prevent inconsistent auth-shell state.

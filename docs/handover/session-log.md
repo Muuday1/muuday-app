@@ -54,6 +54,17 @@ Use this for meaningful checkpoints only.
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
 
+### Entry 57
+- Updated user-signup completion flow in `/cadastro`:
+  - after successful user signup, app now shows modal with “confirm/verify your email” instructions.
+  - clicking `OK` closes modal and redirects to landing page (`/`).
+  - user is signed out before modal display to avoid immediate member state after signup.
+- Validation completed:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+
 ### Entry 52
 - Applied repository hygiene and branch governance hardening:
   - promoted validated branch to `main` via fast-forward only.

@@ -73,6 +73,8 @@ export default function CadastroPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showForgotPasswordLink, setShowForgotPasswordLink] = useState(false)
+  const [showSignupSuccessModal, setShowSignupSuccessModal] = useState(false)
+  const [signupSuccessEmail, setSignupSuccessEmail] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [requestedRole, setRequestedRole] = useState('')
   const [redirectPath, setRedirectPath] = useState('')
@@ -428,7 +430,17 @@ export default function CadastroPage() {
 
     captureEvent('auth_signup_succeeded', { role, country, timezone, currency })
 
-    const destination = role === 'profissional' ? '/cadastro/profissional-em-analise' : redirectPath || '/buscar'
+    if (role === 'usuario') {
+      try {
+        await supabase.auth.signOut()
+      } catch {}
+      setSignupSuccessEmail(email.trim())
+      setShowSignupSuccessModal(true)
+      setLoading(false)
+      return
+    }
+
+    const destination = '/cadastro/profissional-em-analise'
     router.push(destination)
     router.refresh()
   }
@@ -464,6 +476,12 @@ export default function CadastroPage() {
       return 'w-full rounded-xl border border-red-300 bg-red-50/40 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200'
     }
     return 'w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
+  }
+
+  function handleSignupSuccessConfirm() {
+    setShowSignupSuccessModal(false)
+    router.push('/')
+    router.refresh()
   }
 
   return (
@@ -1162,6 +1180,34 @@ export default function CadastroPage() {
           Entrar
         </Link>
       </p>
+
+      {showSignupSuccessModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmação de cadastro"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="font-display text-xl font-bold text-neutral-900">Conta criada com sucesso</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              Enviamos um e-mail para{' '}
+              <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span>.
+              Verifique sua caixa de entrada e confirme seu e-mail para ativar sua conta.
+            </p>
+            <p className="mt-2 text-xs text-neutral-500">
+              Se não encontrar, confira também a pasta de spam/lixo eletrônico.
+            </p>
+            <button
+              type="button"
+              onClick={handleSignupSuccessConfirm}
+              className="mt-5 w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

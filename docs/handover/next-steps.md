@@ -30,6 +30,10 @@ Execute in order. Build one batch at a time.
 - attempt cadastro with an existing email and confirm process is blocked with `Esqueceu a senha? Clique aqui.`.
 - confirm no redirect to member area occurs in duplicate-email attempts.
 - run one fresh alias signup (e.g., `+test`) to confirm confirmation email flow still works.
+8. Validate new user-signup success modal:
+- complete user signup with fresh email and confirm modal appears with verification instructions.
+- click `OK` and verify redirect to landing page (`/`).
+- confirm user is not left authenticated immediately after modal close.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 

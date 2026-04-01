@@ -288,6 +288,10 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - in duplicate-email cases, UI now shows explicit guidance with recovery CTA: `Esqueceu a senha? Clique aqui.` (`/recuperar-senha?email=...`).
 - welcome-email action is no longer triggered in duplicate-email paths.
 - auth smoke validation still returns signup/reset accepted for fresh aliases, indicating issue was primarily duplicate-account UX handling (email delivery checks remain SMTP-dependent).
+77. User-signup completion flow updated:
+- after successful user signup, app now shows a confirmation modal explaining that email verification is required.
+- modal `OK` redirects user back to landing page (`/`), matching requested post-signup UX.
+- user session is signed out before showing modal to avoid accidental immediate member-shell state.
 
 ## Immediate next actions
 
