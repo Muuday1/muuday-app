@@ -26,6 +26,10 @@ Execute in order. Build one batch at a time.
 6. Validate logout consistency on both deployment domains:
 - from authenticated app shell, `Sair` must always redirect to `/` on the same domain where logout was triggered.
 - after logout, accessing `/buscar` on that same domain must stay in public (non-member) mode until next login.
+7. Validate signup duplicate-email behavior in preview/production:
+- attempt cadastro with an existing email and confirm process is blocked with `Esqueceu a senha? Clique aqui.`.
+- confirm no redirect to member area occurs in duplicate-email attempts.
+- run one fresh alias signup (e.g., `+test`) to confirm confirmation email flow still works.
 
 ## Security hardening — remaining items (from 2026-04-01 audit)
 

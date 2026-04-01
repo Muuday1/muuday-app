@@ -283,6 +283,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - `/auth/signout` now uses the request origin for redirect (no static base URL), preventing signout from jumping domains and leaving stale session cookies behind.
 - signout handler now explicitly binds Supabase cookie mutations to the redirect response.
 - both `POST` and `GET` are supported for logout endpoint robustness.
+76. Signup duplicate-email UX hardening:
+- `/cadastro` now detects Supabase duplicate-email silent acceptance (signup success with no new identity) and blocks signup completion.
+- in duplicate-email cases, UI now shows explicit guidance with recovery CTA: `Esqueceu a senha? Clique aqui.` (`/recuperar-senha?email=...`).
+- welcome-email action is no longer triggered in duplicate-email paths.
+- auth smoke validation still returns signup/reset accepted for fresh aliases, indicating issue was primarily duplicate-account UX handling (email delivery checks remain SMTP-dependent).
 
 ## Immediate next actions
 

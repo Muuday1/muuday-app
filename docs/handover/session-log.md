@@ -40,6 +40,20 @@ Use this for meaningful checkpoints only.
   - `npm run build` ✅
   - `npm run test:state-machines` ✅
 
+### Entry 56
+- Diagnosed signup issue reported with `igor@muuday.com`:
+  - auth smoke script confirms fresh alias signup/reset are accepted by Supabase.
+  - root issue addressed in app UX: duplicate-email signup path was not explicit.
+- Implemented duplicate-email handling in `/cadastro`:
+  - detects duplicate signal when `signUp` returns success without new identity.
+  - blocks flow and shows recovery guidance with `Esqueceu a senha? Clique aqui.` link.
+  - suppresses welcome-email action on duplicate-email attempts.
+- Validation completed:
+  - `npm run lint` ✅
+  - `npm run typecheck` ✅
+  - `npm run build` ✅
+  - `npm run test:state-machines` ✅
+
 ### Entry 52
 - Applied repository hygiene and branch governance hardening:
   - promoted validated branch to `main` via fast-forward only.

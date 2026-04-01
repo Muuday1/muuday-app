@@ -72,6 +72,7 @@ export default function CadastroPage() {
   const [currency, setCurrency] = useState('GBP')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showForgotPasswordLink, setShowForgotPasswordLink] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [requestedRole, setRequestedRole] = useState('')
   const [redirectPath, setRedirectPath] = useState('')
@@ -333,6 +334,7 @@ export default function CadastroPage() {
     event.preventDefault()
     setLoading(true)
     setError('')
+    setShowForgotPasswordLink(false)
 
     const validationErrors = validateForCurrentStep()
     if (Object.keys(validationErrors).length > 0) {
@@ -377,7 +379,7 @@ export default function CadastroPage() {
       signupMetadata.professional_specialties = professionalSpecialtyName.trim()
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -386,9 +388,30 @@ export default function CadastroPage() {
       },
     })
 
+    const createdIdentityCount = signUpData?.user?.identities?.length ?? 0
+    const duplicateByIdentitySignal = !signUpError && createdIdentityCount === 0
+
     if (signUpError) {
       captureEvent('auth_signup_failed', { role, reason: signUpError.message })
-      setError(signUpError.message)
+      const duplicateByErrorMessage =
+        signUpError.message.toLowerCase().includes('already') ||
+        signUpError.message.toLowerCase().includes('registered') ||
+        signUpError.message.toLowerCase().includes('exists')
+
+      if (duplicateByErrorMessage) {
+        setError('Este e-mail já está cadastrado.')
+        setShowForgotPasswordLink(true)
+      } else {
+        setError(signUpError.message)
+      }
+      setLoading(false)
+      return
+    }
+
+    if (duplicateByIdentitySignal) {
+      captureEvent('auth_signup_failed', { role, reason: 'email_already_registered' })
+      setError('Este e-mail já está cadastrado.')
+      setShowForgotPasswordLink(true)
       setLoading(false)
       return
     }
@@ -711,6 +734,17 @@ export default function CadastroPage() {
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
               <p className="font-semibold">{error}</p>
+              {showForgotPasswordLink ? (
+                <p className="mt-1 text-xs">
+                  Esqueceu a senha?{' '}
+                  <Link
+                    href={`/recuperar-senha?email=${encodeURIComponent(email.trim())}`}
+                    className="font-semibold underline"
+                  >
+                    Clique aqui.
+                  </Link>
+                </p>
+              ) : null}
               {errorList.length > 0 && (
                 <ul className="mt-1 list-disc pl-4 text-xs">
                   {errorList.map(item => (
@@ -1069,6 +1103,17 @@ export default function CadastroPage() {
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
               <p className="font-semibold">{error}</p>
+              {showForgotPasswordLink ? (
+                <p className="mt-1 text-xs">
+                  Esqueceu a senha?{' '}
+                  <Link
+                    href={`/recuperar-senha?email=${encodeURIComponent(email.trim())}`}
+                    className="font-semibold underline"
+                  >
+                    Clique aqui.
+                  </Link>
+                </p>
+              ) : null}
               {errorList.length > 0 && (
                 <ul className="mt-1 list-disc pl-4 text-xs">
                   {errorList.map(item => (

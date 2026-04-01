@@ -395,3 +395,7 @@ Wave-driven delivery is now mandatory:
 - `/auth/signout` now redirects to `/` on the same request origin.
 - Supabase signout cookie updates are attached directly to the redirect response.
 - endpoint supports both `POST` and `GET` to avoid no-op logout behavior from mixed callers.
+92. Signup now handles duplicate-email deterministically:
+- detects Supabase duplicate-account signal when `signUp` succeeds but no new identity is created.
+- blocks account creation completion in this case and renders recovery CTA (`/recuperar-senha?email=...`).
+- prevents welcome-email trigger on duplicate-email attempts.
