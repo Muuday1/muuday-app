@@ -21,8 +21,20 @@ import {
   isSlotWithinWorkingHours,
   mapLegacyAvailabilityToRules,
 } from '@/lib/booking/availability-engine'
+import {
+  evaluateRecurringChangeDeadline,
+  evaluateRecurringPauseDeadline,
+  type RecurringDeadlineDecision,
+} from '@/lib/booking/recurring-deadlines'
 
-type ActionResult = { success: true } | { success: false; error: string }
+type ActionResult =
+  | { success: true }
+  | {
+      success: false
+      error: string
+      reasonCode?: string
+      deadlineAtUtc?: string | null
+    }
 
 const bookingIdSchema = z.string().uuid('Identificador de agendamento inv?lido.')
 const cancelReasonSchema = z.string().trim().max(300, 'Motivo de cancelamento muito longo.')
@@ -34,6 +46,18 @@ const scheduledAtSchema = z
 const RATE_LIMIT_ERROR: ActionResult = {
   success: false,
   error: 'Muitas tentativas. Tente novamente em breve.',
+}
+
+function recurringDeadlineBlockedResult(
+  message: string,
+  decision: RecurringDeadlineDecision,
+): ActionResult {
+  return {
+    success: false,
+    error: message,
+    reasonCode: decision.reason_code,
+    deadlineAtUtc: decision.deadline_at_utc,
+  }
 }
 
 function validateBookingId(bookingId: string): { ok: true; id: string } | { ok: false; result: ActionResult } {
@@ -308,7 +332,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, professional_id, user_id, scheduled_at, metadata')
+    .select('id, status, professional_id, user_id, scheduled_at, booking_type, metadata')
     .eq('id', safeBookingId)
     .single()
 
@@ -322,6 +346,17 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 
   const transition = assertBookingTransition(booking.status, 'cancelled')
   if (!transition.ok) return { success: false, error: 'Este agendamento n?o pode ser cancelado.' }
+
+  if (booking.booking_type === 'recurring_parent' || booking.booking_type === 'recurring_child') {
+    const deadlineDecision = evaluateRecurringPauseDeadline(booking.scheduled_at)
+    if (!deadlineDecision.allowed) {
+      const message =
+        booking.booking_type === 'recurring_parent'
+          ? 'Pausa de pacote recorrente fora do prazo de 7 dias.'
+          : 'Pausa de sessao recorrente fora do prazo de 7 dias.'
+      return recurringDeadlineBlockedResult(message, deadlineDecision)
+    }
+  }
 
   const hoursUntilSession = getHoursUntilSession(booking.scheduled_at)
   const refundDecision = isBookingUser
@@ -407,6 +442,16 @@ export async function rescheduleBooking(
 
   if (booking.booking_type === 'recurring_parent') {
     return { success: false, error: 'Remarca??o de pacote recorrente ainda n?o est? dispon?vel.' }
+  }
+
+  if (booking.booking_type === 'recurring_child') {
+    const deadlineDecision = evaluateRecurringChangeDeadline(booking.scheduled_at)
+    if (!deadlineDecision.allowed) {
+      return recurringDeadlineBlockedResult(
+        'Alteracao de sessao recorrente fora do prazo de 7 dias.',
+        deadlineDecision,
+      )
+    }
   }
 
   if (!['pending', 'pending_confirmation', 'confirmed'].includes(booking.status)) {

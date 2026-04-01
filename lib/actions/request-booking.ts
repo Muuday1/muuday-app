@@ -19,9 +19,11 @@ import {
 
 type RequestBookingResult =
   | { success: true; requestId: string }
-  | { success: false; error: string }
+  | { success: false; error: string; reasonCode?: string }
 
-type RequestBookingActionResult = { success: true } | { success: false; error: string }
+type RequestBookingActionResult =
+  | { success: true }
+  | { success: false; error: string; reasonCode?: string }
 
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 const OFFER_EXPIRATION_HOURS = 24
@@ -251,20 +253,23 @@ async function hasInternalConflict(
 async function professionalCanReceiveRequestBooking(
   supabase: ReturnType<typeof createClient>,
   professional: Record<string, any>,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string; reasonCode?: string }> {
   if (professional.status !== 'approved') {
-    return { ok: false, error: 'Profissional n?o dispon?vel.' }
+    return { ok: false, error: 'Profissional n?o dispon?vel.', reasonCode: 'pending_admin_approval' }
   }
 
   if (!REQUEST_BOOKING_ALLOWED_TIERS.includes(String(professional.tier))) {
     return {
       ok: false,
       error: 'Solicitacoes de hor?rio estao dispon?veis apenas para planos Professional/Premium.',
+      reasonCode: 'missing_plan_selection',
     }
   }
 
   const eligibility = await evaluateFirstBookingEligibility(supabase, String(professional.id))
-  if (!eligibility.ok) return { ok: false, error: eligibility.message }
+  if (!eligibility.ok) {
+    return { ok: false, error: eligibility.message, reasonCode: eligibility.reasonCode }
+  }
 
   return { ok: true }
 }
@@ -301,7 +306,13 @@ export async function createRequestBooking(input: {
   }
 
   const requestBookingEligibility = await professionalCanReceiveRequestBooking(supabase, professional)
-  if (!requestBookingEligibility.ok) return { success: false, error: requestBookingEligibility.error }
+  if (!requestBookingEligibility.ok) {
+    return {
+      success: false,
+      error: requestBookingEligibility.error,
+      reasonCode: requestBookingEligibility.reasonCode,
+    }
+  }
 
   const professionalProfile = Array.isArray(professional.profiles)
     ? professional.profiles[0]
@@ -435,7 +446,13 @@ export async function offerRequestBooking(input: {
 
   if (!professional) return { success: false, error: 'Profissional n?o encontrado.' }
   const requestBookingEligibility = await professionalCanReceiveRequestBooking(supabase, professional)
-  if (!requestBookingEligibility.ok) return { success: false, error: requestBookingEligibility.error }
+  if (!requestBookingEligibility.ok) {
+    return {
+      success: false,
+      error: requestBookingEligibility.error,
+      reasonCode: requestBookingEligibility.reasonCode,
+    }
+  }
 
   const professionalProfile = Array.isArray(professional.profiles)
     ? professional.profiles[0]
@@ -676,7 +693,9 @@ export async function declineRequestBookingByUser(
 
 export async function acceptRequestBooking(
   requestId: string,
-): Promise<{ success: true; bookingId: string } | { success: false; error: string }> {
+): Promise<
+  { success: true; bookingId: string } | { success: false; error: string; reasonCode?: string }
+> {
   const parsed = requestIdSchema.safeParse(requestId)
   if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
@@ -726,7 +745,13 @@ export async function acceptRequestBooking(
 
   if (!professional) return { success: false, error: 'Profissional n?o encontrado.' }
   const requestBookingEligibility = await professionalCanReceiveRequestBooking(supabase, professional)
-  if (!requestBookingEligibility.ok) return { success: false, error: requestBookingEligibility.error }
+  if (!requestBookingEligibility.ok) {
+    return {
+      success: false,
+      error: requestBookingEligibility.error,
+      reasonCode: requestBookingEligibility.reasonCode,
+    }
+  }
 
   const professionalProfile = Array.isArray(professional.profiles)
     ? professional.profiles[0]

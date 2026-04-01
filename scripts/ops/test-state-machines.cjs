@@ -124,6 +124,36 @@ function run() {
     ],
   })
 
+  const recurringDeadlinesSource = readFile('lib/booking/recurring-deadlines.ts')
+  assert(
+    /RECURRING_RELEASE_DEADLINE_DAYS\s*=\s*7/.test(recurringDeadlinesSource),
+    'recurring_deadlines: release deadline must be 7 days',
+  )
+  assert(
+    /RECURRING_CHANGE_DEADLINE_DAYS\s*=\s*7/.test(recurringDeadlinesSource),
+    'recurring_deadlines: change deadline must be 7 days',
+  )
+  assert(
+    /RECURRING_PAUSE_DEADLINE_DAYS\s*=\s*7/.test(recurringDeadlinesSource),
+    'recurring_deadlines: pause deadline must be 7 days',
+  )
+  assert(
+    recurringDeadlinesSource.includes('type RecurringDeadlineDecision') &&
+      recurringDeadlinesSource.includes('reason_code') &&
+      recurringDeadlinesSource.includes('deadline_at_utc'),
+    'recurring_deadlines: decision type must expose allowed/reason_code/deadline_at_utc',
+  )
+
+  const onboardingGatesSource = readFile('lib/professional/onboarding-gates.ts')
+  assert(
+    onboardingGatesSource.includes('export function evaluateOnboardingGates('),
+    'onboarding_gates: evaluateOnboardingGates must exist as canonical gate evaluator',
+  )
+  assert(
+    onboardingGatesSource.includes('return evaluateOnboardingGates(snapshot)'),
+    'onboarding_gates: compatibility wrapper must delegate to evaluateOnboardingGates',
+  )
+
   console.log('State machine validation passed.')
 }
 

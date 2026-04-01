@@ -2,6 +2,31 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-04-01
+
+### Entry 51
+- Closed Wave 2 backend scope for recurring deadlines and booking lifecycle enforcement without UI expansion:
+  - added canonical recurring policy engine (`lib/booking/recurring-deadlines.ts`) with fixed 7-day rules.
+  - added recurring reserved-slot release runner (`lib/ops/recurring-slot-release.ts`) and wired into `/api/cron/booking-timeouts`.
+  - added recurring release Inngest function (`release-recurring-reserved-slots`) and registered on `/api/inngest`.
+- Hardened C1-C10 gate matrix enforcement as backend truth:
+  - onboarding state remains centralized on `evaluateOnboardingGates`.
+  - booking/request actions now return structured gate blockers with `reasonCode`.
+  - recurring management blocks now return deterministic `reasonCode` + `deadlineAtUtc`.
+- Expanded Wave 2 E2E and state-machine coverage:
+  - added `tests/e2e/wave2-onboarding-gates.spec.ts`.
+  - extended professional role-split checks and booking helper stability in existing specs.
+  - `scripts/ops/test-state-machines.cjs` now asserts recurring constants and canonical gate delegation.
+- Technical gate executed and green:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run test:state-machines`
+  - `npm run test:e2e` (`10 passed`, `2 skipped` fixture-dependent checks).
+- Follow-up required:
+  - manual acceptance checklist for Wave 2 sign-off.
+  - confirm Inngest dashboard attachment (remove stale unattached sync records).
+
 ## 2026-03-31
 
 ### Entry 48

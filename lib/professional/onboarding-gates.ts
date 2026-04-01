@@ -23,6 +23,30 @@ export type OnboardingBlocker = {
   actionHref?: string
 }
 
+export type OnboardingGateReasonCode =
+  | 'missing_name'
+  | 'missing_country_or_timezone'
+  | 'missing_taxonomy'
+  | 'missing_display_name'
+  | 'missing_bio'
+  | 'missing_profile_photo'
+  | 'missing_languages'
+  | 'missing_credibility_summary'
+  | 'missing_service'
+  | 'missing_service_pricing_duration'
+  | 'missing_availability'
+  | 'missing_booking_rules'
+  | 'missing_plan_selection'
+  | 'missing_payout_onboarding'
+  | 'missing_review_requirements'
+  | 'pending_admin_approval'
+  | 'missing_billing_card'
+  | 'missing_payout_setup'
+  | 'missing_payout_kyc'
+  | 'first_booking_gate_disabled'
+  | 'sensitive_disclaimer_missing'
+  | 'unknown_gate_blocker'
+
 export type OnboardingStageStatus = {
   id: OnboardingStageId
   title: string
@@ -119,7 +143,7 @@ function isSensitiveCategory(category: string | null | undefined) {
   return SENSITIVE_CATEGORY_KEYWORDS.some(keyword => normalized.includes(keyword))
 }
 
-export function evaluateProfessionalOnboarding(
+export function evaluateOnboardingGates(
   snapshot: ProfessionalOnboardingSnapshot,
 ): ProfessionalOnboardingEvaluation {
   const hasPrimaryLanguage =
@@ -382,7 +406,7 @@ export function evaluateProfessionalOnboarding(
   const identityBlockers: OnboardingBlocker[] = []
   if (!fieldState.category_subcategory_specialty) {
     identityBlockers.push({
-      code: 'taxonomy_incomplete',
+      code: 'missing_taxonomy',
       title: 'Taxonomia incompleta',
       description: 'Selecione categoria e especialidade para posicionar seu perfil.',
       stage: 'c2_basic_identity',
@@ -391,7 +415,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!fieldState.display_name) {
     identityBlockers.push({
-      code: 'display_name_missing',
+      code: 'missing_display_name',
       title: 'Nome profissional ausente',
       description: 'Defina um nome profissional visivel para os usuarios.',
       stage: 'c2_basic_identity',
@@ -402,7 +426,7 @@ export function evaluateProfessionalOnboarding(
   const publicProfileBlockers: OnboardingBlocker[] = []
   if (!fieldState.headline_short_bio) {
     publicProfileBlockers.push({
-      code: 'bio_missing',
+      code: 'missing_bio',
       title: 'Bio curta ausente',
       description: 'Adicione uma bio curta para explicar sua proposta de valor.',
       stage: 'c3_public_profile',
@@ -411,7 +435,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!fieldState.profile_photo) {
     publicProfileBlockers.push({
-      code: 'avatar_missing',
+      code: 'missing_profile_photo',
       title: 'Foto de perfil ausente',
       description: 'Inclua uma foto para melhorar credibilidade do perfil.',
       stage: 'c3_public_profile',
@@ -420,7 +444,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!fieldState.primary_language) {
     publicProfileBlockers.push({
-      code: 'languages_missing',
+      code: 'missing_languages',
       title: 'Idiomas ausentes',
       description: 'Defina ao menos um idioma de atendimento.',
       stage: 'c3_public_profile',
@@ -429,7 +453,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!hasCredibilitySummary) {
     publicProfileBlockers.push({
-      code: 'credibility_missing',
+      code: 'missing_credibility_summary',
       title: 'Resumo de experiencia ausente',
       description: 'Adicione dados basicos de experiencia para publicar com confianca.',
       stage: 'c3_public_profile',
@@ -440,7 +464,7 @@ export function evaluateProfessionalOnboarding(
   const serviceBlockers: OnboardingBlocker[] = []
   if (!fieldState.at_least_one_service) {
     serviceBlockers.push({
-      code: 'service_missing',
+      code: 'missing_service',
       title: 'Servico nao configurado',
       description: 'Cadastre ao menos um servico para envio a revisao.',
       stage: 'c4_service_setup',
@@ -448,7 +472,7 @@ export function evaluateProfessionalOnboarding(
     })
   } else if (!fieldState.service_price_and_duration) {
     serviceBlockers.push({
-      code: 'service_pricing_missing',
+      code: 'missing_service_pricing_duration',
       title: 'Servico sem preco/duracao',
       description: 'Servico precisa de preco e duracao para entrar em operacao.',
       stage: 'c4_service_setup',
@@ -459,7 +483,7 @@ export function evaluateProfessionalOnboarding(
   const availabilityBlockers: OnboardingBlocker[] = []
   if (!fieldState.availability_baseline) {
     availabilityBlockers.push({
-      code: 'availability_missing',
+      code: 'missing_availability',
       title: 'Disponibilidade nao configurada',
       description: 'Defina dias/horarios antes de enviar perfil para revisao.',
       stage: 'c5_availability_calendar',
@@ -468,7 +492,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!fieldState.acceptance_mode_choice || !hasMinimumNotice || !hasMaxWindow) {
     availabilityBlockers.push({
-      code: 'booking_rules_missing',
+      code: 'missing_booking_rules',
       title: 'Regras de booking incompletas',
       description: 'Configure modo de confirmacao, antecedencia minima e janela maxima.',
       stage: 'c5_availability_calendar',
@@ -479,7 +503,7 @@ export function evaluateProfessionalOnboarding(
   const billingBlockers: OnboardingBlocker[] = []
   if (!fieldState.professional_plan_selection) {
     billingBlockers.push({
-      code: 'plan_missing',
+      code: 'missing_plan_selection',
       title: 'Plano profissional nao definido',
       description: 'Selecione tier (Basic/Professional/Premium) para finalizar setup.',
       stage: 'c6_plan_billing_setup',
@@ -490,7 +514,7 @@ export function evaluateProfessionalOnboarding(
   const payoutBlockers: OnboardingBlocker[] = []
   if (!fieldState.payout_connected_account_minimum) {
     payoutBlockers.push({
-      code: 'payout_onboarding_missing',
+      code: 'missing_payout_onboarding',
       title: 'Onboarding de repasse pendente',
       description: 'Inicie o onboarding de payout antes do primeiro booking.',
       stage: 'c7_payout_payments',
@@ -522,7 +546,7 @@ export function evaluateProfessionalOnboarding(
   const goLiveBlockers: OnboardingBlocker[] = []
   if (!canSubmitForReview) {
     goLiveBlockers.push({
-      code: 'review_requirements_incomplete',
+      code: 'missing_review_requirements',
       title: 'Requisitos de revisao incompletos',
       description: 'Complete C2-C6 antes de ir para publicacao.',
       stage: 'c9_go_live',
@@ -531,7 +555,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (snapshot.professional.status !== 'approved') {
     goLiveBlockers.push({
-      code: 'admin_approval_pending',
+      code: 'pending_admin_approval',
       title: 'Aprovacao administrativa pendente',
       description: 'Perfil precisa estar aprovado para aparecer publicamente.',
       stage: 'c9_go_live',
@@ -546,7 +570,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!fieldState.billing_card_for_professional_plan) {
     firstBookingBlockers.push({
-      code: 'billing_card_missing',
+      code: 'missing_billing_card',
       title: 'Cartao de cobranca ausente',
       description: 'Inclua cartao para ativar o primeiro booking.',
       stage: 'c6_plan_billing_setup',
@@ -555,7 +579,7 @@ export function evaluateProfessionalOnboarding(
   }
   if (!fieldState.payout_connected_account_minimum) {
     firstBookingBlockers.push({
-      code: 'payout_setup_missing',
+      code: 'missing_payout_setup',
       title: 'Payout nao iniciado',
       description: 'Inicie onboarding de payout para aceitar o primeiro booking.',
       stage: 'c7_payout_payments',
@@ -576,7 +600,7 @@ export function evaluateProfessionalOnboarding(
   const payoutBlockersGate = [...firstBookingBlockers]
   if (!fieldState.payout_kyc_complete) {
     payoutBlockersGate.push({
-      code: 'kyc_incomplete',
+      code: 'missing_payout_kyc',
       title: 'KYC de payout incompleto',
       description: 'Finalize KYC para receber repasses.',
       stage: 'c7_payout_payments',
@@ -591,8 +615,8 @@ export function evaluateProfessionalOnboarding(
     canSubmitForReview
       ? []
       : [
-          {
-            code: 'submission_gate_blocked',
+            {
+            code: 'missing_review_requirements',
             title: 'Envio para revisao bloqueado',
             description: 'Complete os campos obrigatorios de C2 a C6.',
             stage: 'c8_submit_review',
@@ -640,6 +664,21 @@ export function evaluateProfessionalOnboarding(
       canReceivePayout,
     },
   }
+}
+
+export function evaluateProfessionalOnboarding(
+  snapshot: ProfessionalOnboardingSnapshot,
+): ProfessionalOnboardingEvaluation {
+  return evaluateOnboardingGates(snapshot)
+}
+
+export function getPrimaryGateBlockerReasonCode(
+  evaluation: ProfessionalOnboardingEvaluation,
+  gateId: OnboardingGateId,
+): OnboardingGateReasonCode {
+  const primary = evaluation.gates[gateId].blockers[0]
+  if (!primary?.code) return 'unknown_gate_blocker'
+  return primary.code as OnboardingGateReasonCode
 }
 
 export function firstBookingGateErrorMessage(evaluation: ProfessionalOnboardingEvaluation) {

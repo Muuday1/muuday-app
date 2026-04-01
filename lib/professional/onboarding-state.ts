@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import {
-  evaluateProfessionalOnboarding,
+  evaluateOnboardingGates,
   firstBookingGateErrorMessage,
+  getPrimaryGateBlockerReasonCode,
+  type OnboardingGateReasonCode,
   type ProfessionalOnboardingEvaluation,
   type ProfessionalOnboardingSnapshot,
 } from './onboarding-gates'
@@ -107,8 +109,7 @@ export async function loadProfessionalOnboardingState(
   }
 
   // Optional C6/C7 flags from migration 015.
-  // If columns do not exist yet, we keep backward compatibility by mirroring
-  // first_booking_enabled behavior.
+  // If columns are unavailable, readiness defaults to false (no legacy bypass).
   const { data: readinessRow, error: readinessError } = await supabase
     .from('professional_settings')
     .select('billing_card_on_file, payout_onboarding_started, payout_kyc_completed')
@@ -120,10 +121,9 @@ export async function loadProfessionalOnboardingState(
     snapshot.settings.payoutOnboardingStarted = Boolean(readinessRow.payout_onboarding_started)
     snapshot.settings.payoutKycCompleted = Boolean(readinessRow.payout_kyc_completed)
   } else {
-    const mirrored = Boolean(professionalRow.first_booking_enabled)
-    snapshot.settings.billingCardOnFile = mirrored
-    snapshot.settings.payoutOnboardingStarted = mirrored
-    snapshot.settings.payoutKycCompleted = mirrored
+    snapshot.settings.billingCardOnFile = false
+    snapshot.settings.payoutOnboardingStarted = false
+    snapshot.settings.payoutKycCompleted = false
   }
 
   const { count: availabilityRulesCount } = await supabase
@@ -171,14 +171,22 @@ export async function loadProfessionalOnboardingState(
   }
 
   snapshot.sensitiveCategory = false
-  const evaluation = evaluateProfessionalOnboarding(snapshot)
+  const evaluation = evaluateOnboardingGates(snapshot)
   return { snapshot, evaluation }
 }
 
 export async function evaluateFirstBookingEligibility(
   supabase: SupabaseClient,
   professionalId: string,
-): Promise<{ ok: true } | { ok: false; message: string; evaluation?: ProfessionalOnboardingEvaluation }> {
+): Promise<
+  | { ok: true }
+  | {
+      ok: false
+      message: string
+      reasonCode: OnboardingGateReasonCode
+      evaluation?: ProfessionalOnboardingEvaluation
+    }
+> {
   const { count: existingAcceptedBookingsCount } = await supabase
     .from('bookings')
     .select('id', { count: 'exact', head: true })
@@ -193,6 +201,7 @@ export async function evaluateFirstBookingEligibility(
     return {
       ok: false,
       message: 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.',
+      reasonCode: 'unknown_gate_blocker',
     }
   }
 
@@ -203,6 +212,10 @@ export async function evaluateFirstBookingEligibility(
   return {
     ok: false,
     message: firstBookingGateErrorMessage(onboardingState.evaluation),
+    reasonCode: getPrimaryGateBlockerReasonCode(
+      onboardingState.evaluation,
+      'first_booking_acceptance',
+    ),
     evaluation: onboardingState.evaluation,
   }
 }

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  evaluateProfessionalOnboarding,
+  evaluateOnboardingGates,
   type ProfessionalOnboardingEvaluation,
   type ProfessionalOnboardingSnapshot,
 } from '@/lib/professional/onboarding-gates'
@@ -112,15 +112,15 @@ function buildSnapshot(
       maxBookingWindowDays: Number(settings?.max_booking_window_days || 0),
       billingCardOnFile:
         settings?.billing_card_on_file === null || settings?.billing_card_on_file === undefined
-          ? Boolean(professional.first_booking_enabled)
+          ? false
           : Boolean(settings.billing_card_on_file),
       payoutOnboardingStarted:
         settings?.payout_onboarding_started === null || settings?.payout_onboarding_started === undefined
-          ? Boolean(professional.first_booking_enabled)
+          ? false
           : Boolean(settings.payout_onboarding_started),
       payoutKycCompleted:
         settings?.payout_kyc_completed === null || settings?.payout_kyc_completed === undefined
-          ? Boolean(professional.first_booking_enabled)
+          ? false
           : Boolean(settings.payout_kyc_completed),
     },
     serviceCount,
@@ -230,7 +230,7 @@ export async function getPublicVisibilityByProfessionalId(
       serviceCounts,
       serviceWithPricingCounts,
     )
-    const evaluation = evaluateProfessionalOnboarding(snapshot)
+    const evaluation = evaluateOnboardingGates(snapshot)
     results.set(professionalId, {
       canGoLive: evaluation.summary.canGoLive,
       evaluation,

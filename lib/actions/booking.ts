@@ -15,7 +15,9 @@ import {
 } from '@/lib/booking/availability-engine'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 
-type BookingCreateResult = { success: true; bookingId: string } | { success: false; error: string }
+type BookingCreateResult =
+  | { success: true; bookingId: string }
+  | { success: false; error: string; reasonCode?: string }
 
 type SessionSlot = {
   startUtc: Date
@@ -224,6 +226,7 @@ export async function createBooking(data: {
     return {
       success: false,
       error: eligibility.message,
+      reasonCode: eligibility.reasonCode,
     }
   }
 
