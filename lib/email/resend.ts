@@ -1,7 +1,36 @@
 import { Resend } from 'resend'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resendClient: Resend | null = null
+
+function getResendClient(): Resend | null {
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  if (!apiKey) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[email/resend] RESEND_API_KEY missing. Email delivery disabled.')
+    }
+    return null
+  }
+
+  if (!resendClient) {
+    resendClient = new Resend(apiKey)
+  }
+
+  return resendClient
+}
+
+function sendEmail(payload: Parameters<Resend['emails']['send']>[0]) {
+  const client = getResendClient()
+  if (!client) {
+    return Promise.resolve({
+      data: null,
+      error: { message: 'RESEND_API_KEY missing' },
+    } as Awaited<ReturnType<Resend['emails']['send']>>)
+  }
+
+  return client.emails.send(payload)
+}
+
 const APP_URL = getAppBaseUrl()
 
 // ─── Resend Topics (notification preferences) ─────────────────────────────
@@ -25,7 +54,10 @@ export async function addContactToResend(
   segmentId: string,
 ) {
   try {
-    await resend.contacts.create({
+    const client = getResendClient()
+    if (!client) return
+
+    await client.contacts.create({
       email,
       firstName,
       unsubscribed: false,
@@ -220,7 +252,7 @@ function from() { return THEME.from }
 
 // ─── 1. Boas-vindas ────────────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: 'Bem-vindo à Muuday! 🎉',
     html: emailLayout(
@@ -241,7 +273,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
 // ─── 2. Completar conta (social login) ────────────────────────────────────
 export async function sendCompleteAccountEmail(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: 'Complete seu perfil na Muuday ✨',
     html: emailLayout(
@@ -262,7 +294,7 @@ export async function sendBookingConfirmationEmail(
   professionalName: string, service: string,
   date: string, time: string, timezone: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Sessão confirmada com ${professionalName} ✅`,
     html: emailLayout(
@@ -289,7 +321,7 @@ export async function sendNewBookingToProfessionalEmail(
   clientName: string, service: string,
   date: string, time: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Novo agendamento: ${clientName} reservou uma sessão 📅`,
     html: emailLayout(
@@ -315,7 +347,7 @@ export async function sendSessionReminder24hEmail(
   professionalName: string, service: string,
   date: string, time: string, timezone: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Lembrete: sua sessão com ${professionalName} é amanhã ⏰`,
     html: emailLayout(
@@ -341,7 +373,7 @@ export async function sendSessionReminder1hEmail(
   to: string, name: string,
   professionalName: string, time: string, timezone: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Sua sessão começa em 1 hora! 🚀`,
     html: emailLayout(
@@ -362,7 +394,7 @@ export async function sendProfessionalReminder24hEmail(
   clientName: string, service: string,
   date: string, time: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Lembrete: sessão com ${clientName} amanhã ⏰`,
     html: emailLayout(
@@ -388,7 +420,7 @@ export async function sendBookingCancelledEmail(
   professionalName: string, date: string, time: string,
   cancelledBy: 'user' | 'professional',
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Sessão cancelada com ${professionalName}`,
     html: emailLayout(
@@ -414,7 +446,7 @@ export async function sendPaymentConfirmationEmail(
   professionalName: string, service: string,
   amount: string, date: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Pagamento confirmado — ${amount} ✅`,
     html: emailLayout(
@@ -439,7 +471,7 @@ export async function sendPaymentConfirmationEmail(
 export async function sendPaymentFailedEmail(
   to: string, name: string, service: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Falha no pagamento — ação necessária ⚠️`,
     html: emailLayout(
@@ -460,7 +492,7 @@ export async function sendRefundEmail(
   to: string, name: string,
   amount: string, service: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Reembolso processado — ${amount} 💰`,
     html: emailLayout(
@@ -481,7 +513,7 @@ export async function sendNewReviewEmail(
   clientName: string, rating: number, comment: string,
 ) {
   const stars = '⭐'.repeat(rating)
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `${clientName} deixou uma avaliação — ${stars}`,
     html: emailLayout(
@@ -502,7 +534,7 @@ export async function sendNewReviewEmail(
 
 // ─── 13. Perfil aprovado (profissional) ───────────────────────────────────
 export async function sendProfileApprovedEmail(to: string, professionalName: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Seu perfil foi aprovado na Muuday! 🎉`,
     html: emailLayout(
@@ -526,7 +558,7 @@ export async function sendProfileApprovedEmail(to: string, professionalName: str
 export async function sendProfileRejectedEmail(
   to: string, professionalName: string, reason: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Atualização sobre seu perfil na Muuday`,
     html: emailLayout(
@@ -551,7 +583,7 @@ export async function sendNewsletterEmail(
   subject: string, badge: string, headline: string, body: string,
   ctaLabel: string, ctaUrl: string, ctaSub?: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to, subject,
     html: emailLayout(
       badge,
@@ -569,7 +601,7 @@ export async function sendRequestReviewEmail(
   to: string, name: string,
   professionalName: string, service: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Como foi sua sessão com ${professionalName}? ⭐`,
     html: emailLayout(
@@ -593,7 +625,7 @@ export async function sendRescheduledEmail(
   newDate: string, newTime: string, timezone: string,
   rescheduledBy: 'user' | 'professional',
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Sessão reagendada com ${professionalName} 📅`,
     html: emailLayout(
@@ -626,7 +658,7 @@ export async function sendIncompleteProfileReminderEmail(
   const items = missingItems.map(i =>
     `<li class="fi"><div class="ficon">⚠️</div><div><div class="ftitle">${i}</div></div></li>`
   ).join('')
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Seu perfil está incompleto — complete para aparecer nas buscas`,
     html: emailLayout(
@@ -648,7 +680,7 @@ export async function sendIncompleteProfileReminderEmail(
 
 // ─── 19. Confirmação lista de espera (landing page) ───────────────────────
 export async function sendWaitlistConfirmationEmail(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Você está na lista! 🎉`,
     html: emailLayout(
@@ -666,7 +698,7 @@ export async function sendWaitlistConfirmationEmail(to: string, name: string) {
 
 // ─── 20. Série boas-vindas #1 — Dia 0 (o que estamos construindo) ─────────
 export async function sendWelcomeSeries1Email(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `O que estamos construindo para você`,
     html: emailLayout(
@@ -690,7 +722,7 @@ export async function sendWelcomeSeries1Email(to: string, name: string) {
 
 // ─── 21. Série boas-vindas #2 — Dia 3 (quem são os profissionais) ─────────
 export async function sendWelcomeSeries2Email(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Quem são os profissionais da Muuday?`,
     html: emailLayout(
@@ -715,7 +747,7 @@ export async function sendWelcomeSeries2Email(to: string, name: string) {
 
 // ─── 22. Série boas-vindas #3 — Dia 7 (acesso antecipado) ────────────────
 export async function sendWelcomeSeries3Email(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Você tem acesso antecipado — o que isso significa`,
     html: emailLayout(
@@ -740,7 +772,7 @@ export async function sendWelcomeSeries3Email(to: string, name: string) {
 export async function sendReferralInviteEmail(
   to: string, inviterName: string, referralLink: string,
 ) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `${inviterName} te convidou para a Muuday 👋`,
     html: emailLayout(
@@ -759,7 +791,7 @@ export async function sendReferralInviteEmail(
 
 // ─── 24. Nudge primeiro agendamento (3 dias sem agendar) ──────────────────
 export async function sendFirstBookingNudgeEmail(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `${name}, já encontrou seu profissional? 🔍`,
     html: emailLayout(
@@ -776,7 +808,7 @@ export async function sendFirstBookingNudgeEmail(to: string, name: string) {
 
 // ─── 25. Re-engajamento (30 dias sem login) ───────────────────────────────
 export async function sendReengagementEmail(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `Sentimos sua falta, ${name} 👋`,
     html: emailLayout(
@@ -797,7 +829,7 @@ export async function sendReengagementEmail(to: string, name: string) {
 
 // ─── 26. Email de lançamento (para lista de espera) ───────────────────────
 export async function sendLaunchEmail(to: string, name: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(), to,
     subject: `A Muuday está aberta. Você é um dos primeiros. 🚀`,
     html: emailLayout(
@@ -820,7 +852,7 @@ export async function sendLaunchEmail(to: string, name: string) {
 
 // ——— 27. Recuperação de senha (auth fallback via Resend) ————————————————
 export async function sendPasswordResetEmail(to: string, actionLink: string) {
-  return resend.emails.send({
+  return sendEmail({
     from: from(),
     to,
     subject: 'Redefina sua senha da Muuday',
