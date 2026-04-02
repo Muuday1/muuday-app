@@ -1,11 +1,16 @@
 'use server'
 
+import { z } from 'zod'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
+const submitProfessionalForReviewInputSchema = z.object({})
+
 export async function submitProfessionalForReviewAction() {
+  submitProfessionalForReviewInputSchema.parse({})
+
   const supabase = createClient()
   const {
     data: { user },

@@ -1,9 +1,8 @@
 import 'server-only'
 
+import * as Sentry from '@sentry/nextjs'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 type RateLimitOptions = {
   key: string
@@ -19,7 +18,7 @@ export type RateLimitResult = {
   source: 'upstash' | 'memory'
 }
 
-// ─── Upstash Redis (primary) ─────────────────────────────────────────────────
+const MEMORY_FALLBACK_ALERT_INTERVAL_MS = 15 * 60 * 1000
 
 let redis: Redis | null = null
 const limiters = new Map<string, Ratelimit>()
@@ -76,8 +75,6 @@ async function checkUpstashRateLimit({
   }
 }
 
-// ─── In-memory fallback ──────────────────────────────────────────────────────
-
 type MemoryBucket = {
   hits: number
   windowStartedAt: number
@@ -86,6 +83,8 @@ type MemoryBucket = {
 declare global {
   // eslint-disable-next-line no-var
   var __muudayRateLimitStore: Map<string, MemoryBucket> | undefined
+  // eslint-disable-next-line no-var
+  var __muudayRateLimitFallbackAlerts: Map<string, number> | undefined
 }
 
 function getStore() {
@@ -93,6 +92,46 @@ function getStore() {
     globalThis.__muudayRateLimitStore = new Map<string, MemoryBucket>()
   }
   return globalThis.__muudayRateLimitStore
+}
+
+function getFallbackAlertStore() {
+  if (!globalThis.__muudayRateLimitFallbackAlerts) {
+    globalThis.__muudayRateLimitFallbackAlerts = new Map<string, number>()
+  }
+  return globalThis.__muudayRateLimitFallbackAlerts
+}
+
+function getPresetNameFromKey(key: string) {
+  const [preset] = key.split(':')
+  return preset || 'unknown'
+}
+
+function reportMemoryFallback(options: RateLimitOptions) {
+  const preset = getPresetNameFromKey(options.key)
+  const now = Date.now()
+  const alertStore = getFallbackAlertStore()
+  const lastAlertAt = alertStore.get(preset) || 0
+
+  if (now - lastAlertAt < MEMORY_FALLBACK_ALERT_INTERVAL_MS) {
+    return
+  }
+
+  alertStore.set(preset, now)
+
+  const message = `[rate-limit] Upstash unavailable; using in-memory fallback for preset="${preset}" (non-persistent across cold starts).`
+  console.warn(message)
+  Sentry.captureMessage('rate_limit_fallback_memory_active', {
+    level: 'warning',
+    tags: {
+      area: 'rate_limit',
+      source: 'memory',
+      preset,
+    },
+    extra: {
+      limit: options.limit,
+      windowSeconds: options.windowSeconds,
+    },
+  })
 }
 
 function checkMemoryRateLimit({ key, limit, windowSeconds }: RateLimitOptions): RateLimitResult {
@@ -103,59 +142,57 @@ function checkMemoryRateLimit({ key, limit, windowSeconds }: RateLimitOptions): 
 
   if (!existing || now - existing.windowStartedAt >= windowMs) {
     store.set(key, { hits: 1, windowStartedAt: now })
-    return { allowed: true, limit, remaining: Math.max(0, limit - 1), retryAfterSeconds: 0, source: 'memory' }
+    return {
+      allowed: true,
+      limit,
+      remaining: Math.max(0, limit - 1),
+      retryAfterSeconds: 0,
+      source: 'memory',
+    }
   }
 
   existing.hits += 1
   store.set(key, existing)
 
   if (existing.hits <= limit) {
-    return { allowed: true, limit, remaining: Math.max(0, limit - existing.hits), retryAfterSeconds: 0, source: 'memory' }
+    return {
+      allowed: true,
+      limit,
+      remaining: Math.max(0, limit - existing.hits),
+      retryAfterSeconds: 0,
+      source: 'memory',
+    }
   }
 
-  const retryAfterSeconds = Math.max(1, Math.ceil((windowMs - (now - existing.windowStartedAt)) / 1000))
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((windowMs - (now - existing.windowStartedAt)) / 1000),
+  )
   return { allowed: false, limit, remaining: 0, retryAfterSeconds, source: 'memory' }
 }
 
-// ─── Public API ───────────────────────���──────────────────────────────────────
-
-/**
- * Check rate limit. Uses Upstash Redis when configured, falls back to in-memory.
- */
 export async function checkRateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
   const upstashResult = await checkUpstashRateLimit(options)
   if (upstashResult) return upstashResult
+  reportMemoryFallback(options)
   return checkMemoryRateLimit(options)
 }
 
-// ─── Preset limiters for common use cases ────���───────────────────────────────
-
-/** Rate limit presets — use these in server actions and API routes */
 export const RATE_LIMITS = {
-  /** Booking creation: 5 per minute per user */
   booking: { limit: 5, windowSeconds: 60 },
-  /** Booking management (confirm/cancel/complete): 10 per minute per user */
+  bookingCreate: { limit: 6, windowSeconds: 120 },
   bookingManage: { limit: 10, windowSeconds: 60 },
-  /** Email sending: 10 per minute per user */
   email: { limit: 10, windowSeconds: 60 },
-  /** Professional profile creation: 3 per hour per user */
   professionalProfile: { limit: 3, windowSeconds: 3600 },
-  /** Availability update: 10 per minute per user */
   availability: { limit: 10, windowSeconds: 60 },
-  /** Waitlist signup: 10 per 5 minutes per IP */
   waitlist: { limit: 10, windowSeconds: 300 },
-  /** Auth actions: 10 per minute per IP */
   auth: { limit: 10, windowSeconds: 60 },
+  authLogin: { limit: 12, windowSeconds: 300 },
+  authSignup: { limit: 6, windowSeconds: 600 },
+  authOAuth: { limit: 12, windowSeconds: 300 },
+  stripeWebhook: { limit: 120, windowSeconds: 60 },
 } as const
 
-/**
- * Shorthand: check rate limit with a preset + identifier.
- * Returns the result (check `.allowed`).
- *
- * @example
- * const rl = await rateLimit('booking', userId)
- * if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
- */
 export async function rateLimit(
   preset: keyof typeof RATE_LIMITS,
   identifier: string,

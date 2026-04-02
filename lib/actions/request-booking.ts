@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -11,6 +12,8 @@ import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { getExchangeRates } from '@/lib/exchange-rates'
+import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 import {
   REQUEST_BOOKING_STATUSES,
   assertRequestBookingTransition,
@@ -28,21 +31,51 @@ type RequestBookingActionResult =
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 const OFFER_EXPIRATION_HOURS = 24
 const REQUEST_BOOKING_STATUS_SET = new Set<string>(REQUEST_BOOKING_STATUSES)
+const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
+
+type PostgrestLikeError = {
+  code?: string | null
+  message?: string | null
+  details?: string | null
+  hint?: string | null
+}
+
+function isValidIsoLocalDateTime(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
+  if (!match) return false
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw] = match
+  const year = Number(yearRaw)
+  const month = Number(monthRaw)
+  const day = Number(dayRaw)
+  const hour = Number(hourRaw)
+  const minute = Number(minuteRaw)
+
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute
+  )
+}
+
+const localDateTimeSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Horario preferencial invalido.')
+  .refine(isValidIsoLocalDateTime, 'Horario preferencial invalido.')
 
 const createRequestSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional inv?lido.'),
-  preferredStartLocal: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Hor?rio preferencial inv?lido.'),
+  preferredStartLocal: localDateTimeSchema,
   durationMinutes: z.number().int().min(15).max(240).optional(),
   userMessage: z.string().trim().max(1200, 'Mensagem muito longa.').optional(),
 })
 
 const offerRequestSchema = z.object({
   requestId: z.string().uuid('Solicita??o invalida.'),
-  proposalStartLocal: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Hor?rio proposto inv?lido.'),
+  proposalStartLocal: localDateTimeSchema,
   proposalDurationMinutes: z.number().int().min(15).max(240).optional(),
   proposalMessage: z.string().trim().max(1200, 'Mensagem da proposta muito longa.').optional(),
 })
@@ -58,16 +91,19 @@ function getMinutesInTimezone(date: Date, timezone: string) {
   return hhmmToMinutes(formatInTimeZone(date, timezone, 'HH:mm'))
 }
 
-function getUserCurrencyRate(currency: string) {
-  const rates: Record<string, number> = {
-    BRL: 1,
-    USD: 0.19,
-    EUR: 0.17,
-    GBP: 0.15,
-    CAD: 0.26,
-    AUD: 0.29,
-  }
-  return rates[currency] || 1
+function isUniqueConstraintError(error: unknown, constraintName: string) {
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes(constraintName)
+}
+
+function isActiveSlotCollision(error: unknown) {
+  if (isUniqueConstraintError(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) return true
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes('(professional_id, start_time_utc)')
 }
 
 async function getAuthenticatedContext() {
@@ -289,7 +325,7 @@ export async function createRequestBooking(input: {
   }
 
   const { supabase, user, profile } = await getAuthenticatedContext()
-  const rl = await rateLimit('bookingManage', user.id)
+  const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const { data: professional } = await supabase
@@ -700,7 +736,7 @@ export async function acceptRequestBooking(
   if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
   const { supabase, adminSupabase, user, profile } = await getAuthenticatedContext()
-  const rl = await rateLimit('bookingManage', user.id)
+  const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const { data: request } = await supabase
@@ -812,7 +848,8 @@ export async function acceptRequestBooking(
 
   const userCurrency = profile?.currency || 'BRL'
   const sessionPriceBrl = Number(professional.session_price_brl) || 0
-  const sessionPriceUserCurrency = roundCurrency(sessionPriceBrl * getUserCurrencyRate(userCurrency))
+  const exchangeRates = await getExchangeRates(supabase as any)
+  const sessionPriceUserCurrency = roundCurrency(sessionPriceBrl * (exchangeRates[userCurrency] || 1))
   const bookingStatus = settings.confirmationMode === 'manual' ? 'pending_confirmation' : 'confirmed'
   const confirmationDeadlineAt =
     settings.confirmationMode === 'manual'
@@ -855,7 +892,26 @@ export async function acceptRequestBooking(
     .single()
 
   if (bookingInsertError || !booking) {
+    if (isActiveSlotCollision(bookingInsertError)) {
+      return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
+    }
     return { success: false, error: 'N?o foi poss?vel converter a proposta em agendamento.' }
+  }
+
+  const paymentMetadata = {
+    capturedBy: 'request_booking_accept_flow',
+    request_booking_id: freshRequest.id,
+    confirmationMode: settings.confirmationMode,
+  }
+
+  try {
+    assertNoSensitivePaymentPayload(paymentMetadata, 'payments.metadata.acceptRequestBooking')
+  } catch (error) {
+    console.error('[request-booking] blocked sensitive payment metadata', error)
+    return {
+      success: false,
+      error: 'Não foi possível processar a proposta neste momento.',
+    }
   }
 
   const { error: paymentError } = await supabase.from('payments').insert({
@@ -866,15 +922,27 @@ export async function acceptRequestBooking(
     amount_total: sessionPriceUserCurrency,
     currency: userCurrency,
     status: 'captured',
-    metadata: {
-      capturedBy: 'request_booking_accept_flow',
-      request_booking_id: freshRequest.id,
-      confirmationMode: settings.confirmationMode,
-    },
+    metadata: paymentMetadata,
     captured_at: new Date().toISOString(),
   })
 
   if (paymentError) {
+    Sentry.captureException(paymentError, {
+      tags: { area: 'request_booking_accept', flow: 'payment' },
+      extra: {
+        requestBookingId: freshRequest.id,
+        bookingId: booking.id,
+        professionalId: professional.id,
+      },
+    })
+    Sentry.captureMessage('request_booking_payment_record_failed', {
+      level: 'error',
+      tags: { area: 'request_booking_accept', flow: 'payment' },
+      extra: {
+        requestBookingId: freshRequest.id,
+        bookingId: booking.id,
+      },
+    })
     await supabase
       .from('bookings')
       .update({

@@ -1,6 +1,6 @@
 # Integration: Checkly Monitoring
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 ## Purpose
 
@@ -12,6 +12,7 @@ External health monitoring for production endpoint availability, cron operations
 - Monitoring-as-code is implemented, deployed in Checkly, and validated in cloud run.
 - Email alert channel is now provisioned in code and linked to the monitoring group.
 - Alert receipt and solo on-call ownership policy are now defined.
+- Uptime and critical-path journey monitoring baseline is active via API + browser checks.
 
 ## Implemented in repository
 

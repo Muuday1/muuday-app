@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 function getBaseUrl(request: NextRequest) {
@@ -18,6 +19,14 @@ export async function GET(request: NextRequest) {
   const baseUrl = getBaseUrl(request)
 
   if (oauthError || !code) {
+    Sentry.captureMessage('auth_oauth_callback_invalid_request', {
+      level: 'warning',
+      tags: { area: 'auth', flow: 'oauth_callback' },
+      extra: {
+        has_code: Boolean(code),
+        oauth_error: oauthError || null,
+      },
+    })
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
 
@@ -42,6 +51,9 @@ export async function GET(request: NextRequest) {
 
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
   if (exchangeError) {
+    Sentry.captureException(exchangeError, {
+      tags: { area: 'auth', flow: 'oauth_callback' },
+    })
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
 
@@ -50,6 +62,10 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user) {
+    Sentry.captureMessage('auth_oauth_callback_missing_user', {
+      level: 'error',
+      tags: { area: 'auth', flow: 'oauth_callback' },
+    })
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
 

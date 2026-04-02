@@ -1,13 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { guardAuthAttempt } from '@/lib/auth/attempt-guard-client'
+import { AUTH_MESSAGES } from '@/lib/auth/messages'
 
 type Provider = 'google'
 type SocialAuthButtonsProps = {
   redirectPath?: string
   roleHint?: 'usuario' | 'profissional'
+  compact?: boolean
 }
 
 const PROVIDERS = [
@@ -32,13 +36,24 @@ function sanitizeRedirectPath(value?: string) {
   return value
 }
 
-export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }: SocialAuthButtonsProps) {
+export default function SocialAuthButtons({
+  redirectPath,
+  roleHint = 'usuario',
+  compact = false,
+}: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null)
   const [error, setError] = useState('')
 
   async function handleSocialLogin(provider: Provider) {
     setLoadingProvider(provider)
     setError('')
+
+    const guard = await guardAuthAttempt('oauth_start')
+    if (!guard.allowed) {
+      setError(guard.error || AUTH_MESSAGES.login.rateLimited)
+      setLoadingProvider(null)
+      return
+    }
 
     const callbackUrl = new URL('/auth/callback', window.location.origin)
     const safeRedirect = sanitizeRedirectPath(redirectPath)
@@ -54,7 +69,15 @@ export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }
     })
 
     if (authError) {
-      setError('Erro ao conectar com Google. Tente novamente.')
+      Sentry.captureMessage('auth_oauth_start_failed', {
+        level: 'warning',
+        tags: { area: 'auth', flow: 'oauth' },
+        extra: {
+          reason: authError.message || 'unknown',
+          provider,
+        },
+      })
+      setError(AUTH_MESSAGES.login.oauthFailed)
       setLoadingProvider(null)
     }
   }
@@ -67,13 +90,17 @@ export default function SocialAuthButtons({ redirectPath, roleHint = 'usuario' }
           type="button"
           onClick={() => handleSocialLogin(provider.id)}
           disabled={loadingProvider !== null}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className={`w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-60 ${
+            compact
+              ? 'flex items-center justify-center gap-2 px-3 py-2.5 hover:bg-neutral-50'
+              : 'flex items-center justify-center gap-3 px-4 py-3 hover:bg-neutral-50'
+          }`}
           aria-label={provider.label}
         >
           {loadingProvider === provider.id ? (
-            <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
+            <Loader2 className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} animate-spin text-neutral-400`} />
           ) : (
-            provider.icon
+            <span className={compact ? 'scale-90' : undefined}>{provider.icon}</span>
           )}
           {provider.label}
         </button>

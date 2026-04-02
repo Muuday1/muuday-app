@@ -5,6 +5,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { sendPasswordResetEmail } from '@/lib/email/resend'
+import {
+  PUBLIC_API_CORS_POLICY,
+  applyCorsHeaders,
+  createCorsErrorResponse,
+  createCorsPreflightResponse,
+  evaluateCorsRequest,
+} from '@/lib/http/cors'
 
 const requestSchema = z.object({
   email: z.string().email(),
@@ -36,11 +43,18 @@ function getPublicSupabaseClient() {
 }
 
 export async function POST(request: NextRequest) {
+  const corsDecision = evaluateCorsRequest(request, PUBLIC_API_CORS_POLICY)
+  if (!corsDecision.allowed) {
+    return createCorsErrorResponse(request, PUBLIC_API_CORS_POLICY)
+  }
+
+  const withCors = (response: NextResponse) => applyCorsHeaders(response, corsDecision.headers)
+
   const body = await request.json().catch(() => null)
   const parsed = requestSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'E-mail inválido.' }, { status: 400 })
+    return withCors(NextResponse.json({ error: 'E-mail inválido.' }, { status: 400 }))
   }
 
   const email = normalizeEmail(parsed.data.email)
@@ -48,9 +62,11 @@ export async function POST(request: NextRequest) {
   const limiter = await rateLimit('auth', `${ip}:${email}`)
 
   if (!limiter.allowed) {
-    return NextResponse.json(
-      { error: 'Muitas tentativas. Aguarde alguns instantes e tente novamente.' },
-      { status: 429 },
+    return withCors(
+      NextResponse.json(
+        { error: 'Muitas tentativas. Aguarde alguns instantes e tente novamente.' },
+        { status: 429 },
+      ),
     )
   }
 
@@ -79,21 +95,28 @@ export async function POST(request: NextRequest) {
   if (!deliveredByResend) {
     const supabase = getPublicSupabaseClient()
     if (!supabase) {
-      return NextResponse.json(
-        { error: 'Serviço de autenticação indisponível no momento.' },
-        { status: 503 },
+      return withCors(
+        NextResponse.json(
+          { error: 'Serviço de autenticação indisponível no momento.' },
+          { status: 503 },
+        ),
       )
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     if (error) {
-      return NextResponse.json(
-        { error: 'Não foi possível enviar o e-mail de recuperação.' },
-        { status: 500 },
+      return withCors(
+        NextResponse.json(
+          { error: 'Não foi possível enviar o e-mail de recuperação.' },
+          { status: 500 },
+        ),
       )
     }
   }
 
-  return NextResponse.json({ success: true })
+  return withCors(NextResponse.json({ success: true }))
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return createCorsPreflightResponse(request, PUBLIC_API_CORS_POLICY)
+}

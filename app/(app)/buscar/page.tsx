@@ -19,6 +19,7 @@ import {
   loadProfessionalSpecialtyContext,
 } from '@/lib/taxonomy/professional-specialties'
 import { getCachedRuntimeValue } from '@/lib/cache/runtime-cache'
+import { getExchangeRates } from '@/lib/exchange-rates'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -69,6 +70,20 @@ type SearchQueryState = {
   moeda: string
 }
 
+type SearchPgTrgmParams = {
+  queryText: string
+  selectedCategory: string
+  selectedSpecialty: string
+  selectedLanguage: string
+  selectedLocation: string
+  minPriceBrl: number | null
+  maxPriceBrl: number | null
+}
+
+type SearchCandidateRow = {
+  professional_id: string
+}
+
 type SpecialtyContext = Awaited<ReturnType<typeof loadProfessionalSpecialtyContext>>
 
 type PublicSearchBaseData = {
@@ -80,14 +95,6 @@ type PublicSearchBaseData = {
 const PAGE_SIZE = 10
 const PUBLIC_SEARCH_BASE_CACHE_KEY = 'buscar:public-base:v2'
 const PUBLIC_SEARCH_BASE_CACHE_TTL_MS = 180_000
-const CURRENCY_RATES: Record<string, number> = {
-  BRL: 1,
-  USD: 0.19,
-  EUR: 0.17,
-  GBP: 0.15,
-  CAD: 0.26,
-  AUD: 0.29,
-}
 const CURRENCY_LABELS: Record<string, string> = {
   BRL: 'R$',
   USD: 'US$',
@@ -161,8 +168,13 @@ function getCountryDisplayName(countryCodeOrName?: string | null) {
   return normalized
 }
 
-function formatSearchPrice(amountBRL: number, currency = 'BRL', locale = 'pt-BR'): string {
-  const rate = CURRENCY_RATES[currency] || 1
+function formatSearchPrice(
+  amountBRL: number,
+  currency = 'BRL',
+  locale = 'pt-BR',
+  exchangeRates?: Record<string, number>,
+): string {
+  const rate = exchangeRates?.[currency] || 1
   const converted = Math.ceil(Number(amountBRL || 0) * rate)
   try {
     return new Intl.NumberFormat(locale, {
@@ -250,13 +262,34 @@ function buildHref(basePath: string, state: SearchQueryState, overrides: Partial
 }
 
 async function loadPublicSearchBaseData(readClient: any): Promise<PublicSearchBaseData> {
-  const { data: professionalsRaw } = await readClient
+  return loadPublicSearchBaseDataByIds(readClient, null)
+}
+
+async function loadPublicSearchBaseDataByIds(
+  readClient: any,
+  candidateIds: string[] | null,
+): Promise<PublicSearchBaseData> {
+  if (candidateIds && candidateIds.length === 0) {
+    return {
+      professionals: [],
+      specialtyContext: EMPTY_SPECIALTY_CONTEXT,
+      availabilityRows: [],
+    }
+  }
+
+  let query = readClient
     .from('professionals')
     .select('*,profiles!inner(full_name,country,avatar_url,role)')
     .eq('status', 'approved')
     .eq('profiles.role', 'profissional')
-    .order('rating', { ascending: false })
-    .limit(250)
+
+  if (candidateIds && candidateIds.length > 0) {
+    query = query.in('id', candidateIds)
+  } else {
+    query = query.order('rating', { ascending: false }).limit(250)
+  }
+
+  const { data: professionalsRaw } = await query
 
   let professionals = professionalsRaw || []
   if (professionals.length > 0) {
@@ -287,6 +320,50 @@ async function loadPublicSearchBaseData(readClient: any): Promise<PublicSearchBa
   }
 }
 
+async function fetchSearchCandidateIdsPgTrgm(
+  readClient: any,
+  params: SearchPgTrgmParams,
+): Promise<string[] | null> {
+  const shouldUsePgSearch = Boolean(
+    params.queryText ||
+      params.selectedCategory ||
+      params.selectedSpecialty ||
+      params.selectedLanguage !== 'qualquer' ||
+      params.selectedLocation ||
+      params.minPriceBrl !== null ||
+      params.maxPriceBrl !== null,
+  )
+
+  if (!shouldUsePgSearch) {
+    return null
+  }
+
+  try {
+    const { data, error } = await readClient.rpc('search_public_professionals_pgtrgm', {
+      p_query: params.queryText || null,
+      p_category: params.selectedCategory || null,
+      p_specialty: params.selectedSpecialty || null,
+      p_language: params.selectedLanguage !== 'qualquer' ? params.selectedLanguage : null,
+      p_location: params.selectedLocation || null,
+      p_min_price_brl: params.minPriceBrl,
+      p_max_price_brl: params.maxPriceBrl,
+      p_limit: 1200,
+    })
+
+    if (error) return null
+
+    return Array.from(
+      new Set(
+        ((data || []) as SearchCandidateRow[])
+          .map(row => String(row.professional_id || '').trim())
+          .filter(Boolean),
+      ),
+    )
+  } catch {
+    return null
+  }
+}
+
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
   const cookieStore = cookies()
   const acceptLanguage = headers().get('accept-language')
@@ -313,6 +390,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
   const adminSupabase = !user ? createAdminClient() : null
   const readClient = adminSupabase || supabase
+  const exchangeRates = await getExchangeRates((readClient as any) || undefined)
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
@@ -347,7 +425,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       cookieCurrency ||
       resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
   }
-  const selectedCurrencyRate = CURRENCY_RATES[selectedCurrency] || 1
+  const selectedCurrencyRate = exchangeRates[selectedCurrency] || 1
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
   const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
   const maxPriceBrl = maxPrice === null ? null : maxPrice / selectedCurrencyRate
@@ -371,7 +449,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   let cachedAvailabilityRows: AvailabilityRow[] = []
   if (readClient) {
     try {
-      if (!isLoggedIn && adminSupabase) {
+      const candidateIds = await fetchSearchCandidateIdsPgTrgm(readClient, {
+        queryText,
+        selectedCategory,
+        selectedSpecialty,
+        selectedLanguage,
+        selectedLocation: rawSelectedLocation,
+        minPriceBrl,
+        maxPriceBrl,
+      })
+
+      if (!isLoggedIn && adminSupabase && candidateIds === null) {
         const cached = await getCachedRuntimeValue(
           PUBLIC_SEARCH_BASE_CACHE_KEY,
           PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
@@ -381,7 +469,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         specialtyContext = cached.specialtyContext
         cachedAvailabilityRows = cached.availabilityRows
       } else {
-        const uncached = await loadPublicSearchBaseData(readClient)
+        const uncached = await loadPublicSearchBaseDataByIds(readClient, candidateIds)
         professionals = uncached.professionals
         specialtyContext = uncached.specialtyContext
         cachedAvailabilityRows = uncached.availabilityRows
@@ -585,7 +673,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const endIndex = startIndex + PAGE_SIZE
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
 
-  const usdRate = CURRENCY_RATES.USD || 1
+  const usdRate = exchangeRates.USD || 1
   const openEndedCapInSelectedCurrency = Math.ceil(
     OPEN_ENDED_MAX_USD * (selectedCurrencyRate / usdRate),
   )
@@ -695,6 +783,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           alt={`Foto de ${professional.profiles?.full_name || 'Profissional'}`}
                           width={56}
                           height={56}
+                          sizes="56px"
+                          quality={70}
                           className="h-14 w-14 rounded-2xl border border-neutral-200 object-cover flex-shrink-0"
                         />
                       ) : (
@@ -719,7 +809,12 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-neutral-900">
-                              {formatSearchPrice(professional.session_price_brl, selectedCurrency)}
+                              {formatSearchPrice(
+                                professional.session_price_brl,
+                                selectedCurrency,
+                                'pt-BR',
+                                exchangeRates,
+                              )}
                             </p>
                             <p className="text-[11px] text-neutral-400">
                               por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min

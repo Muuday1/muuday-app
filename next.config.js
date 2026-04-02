@@ -7,6 +7,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'jbbnbbrroifghrshplsq.supabase.co' },
       { protocol: 'https', hostname: 'ui-avatars.com' },
     ],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
   },
 
   async headers() {

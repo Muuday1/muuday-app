@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
+import {
+  INTERNAL_API_CORS_POLICY,
+  applyCorsHeaders,
+  createCorsErrorResponse,
+  createCorsPreflightResponse,
+  evaluateCorsRequest,
+} from '@/lib/http/cors'
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
 
@@ -57,16 +64,23 @@ function getConfirmationDeadline(booking: BookingRow) {
 }
 
 export async function GET(request: NextRequest) {
+  const corsDecision = evaluateCorsRequest(request, INTERNAL_API_CORS_POLICY)
+  if (!corsDecision.allowed) {
+    return createCorsErrorResponse(request, INTERNAL_API_CORS_POLICY)
+  }
+
+  const withCors = (response: NextResponse) => applyCorsHeaders(response, corsDecision.headers)
+
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
   }
 
   const admin = createAdminClient()
   if (!admin) {
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Admin client not configured. Set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY.' },
       { status: 500 },
-    )
+    ))
   }
 
   const now = new Date()
@@ -109,7 +123,7 @@ export async function GET(request: NextRequest) {
         error: 'Failed to load pending bookings.',
         details: bookingsResponse.error.message || 'unknown',
       },
-      { status: 500 },
+      { status: 500, headers: corsDecision.headers },
     )
   }
 
@@ -122,7 +136,7 @@ export async function GET(request: NextRequest) {
   })
 
   if (expired.length === 0) {
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       ok: true,
       cancelled: 0,
       refunded: 0,
@@ -130,7 +144,7 @@ export async function GET(request: NextRequest) {
       recurringRelease,
       recurringReleaseError,
       at: nowIso,
-    })
+    }))
   }
 
   let cancelled = 0
@@ -220,7 +234,7 @@ export async function GET(request: NextRequest) {
     refunded += 1
   }
 
-  return NextResponse.json({
+  return withCors(NextResponse.json({
     ok: true,
     checked: (pendingBookings || []).length,
     expired: expired.length,
@@ -229,5 +243,9 @@ export async function GET(request: NextRequest) {
     recurringRelease,
     recurringReleaseError,
     at: nowIso,
-  })
+  }))
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return createCorsPreflightResponse(request, INTERNAL_API_CORS_POLICY)
 }

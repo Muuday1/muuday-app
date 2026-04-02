@@ -14,6 +14,8 @@ import {
   mapLegacyAvailabilityToRules,
 } from '@/lib/booking/availability-engine'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
+import { getExchangeRates } from '@/lib/exchange-rates'
+import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 
 type BookingCreateResult =
   | { success: true; bookingId: string }
@@ -26,6 +28,15 @@ type SessionSlot = {
 }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
+const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
+
+type PostgrestLikeError = {
+  code?: string | null
+  message?: string | null
+  details?: string | null
+  hint?: string | null
+}
+
 function reportBookingError(
   error: unknown,
   context: Record<string, unknown>,
@@ -40,6 +51,21 @@ function reportBookingError(
     tags: { area: 'booking_create' },
     extra: context,
   })
+}
+
+function isUniqueConstraintError(error: unknown, constraintName: string) {
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes(constraintName)
+}
+
+function isActiveSlotCollision(error: unknown) {
+  if (isUniqueConstraintError(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) return true
+  const pgError = error as PostgrestLikeError | null
+  if (!pgError || pgError.code !== '23505') return false
+  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
+  return details.includes('(professional_id, start_time_utc)')
 }
 
 function hhmmToMinutes(value: string) {
@@ -74,11 +100,39 @@ function addDaysToLocalDateTime(localDateTime: string, daysToAdd: number) {
   return `${y}-${m}-${d}T${hh}:${mm}:00`
 }
 
+function isValidIsoLocalDateTime(value: string) {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
+  )
+  if (!match) return false
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw] = match
+  const year = Number(yearRaw)
+  const month = Number(monthRaw)
+  const day = Number(dayRaw)
+  const hour = Number(hourRaw)
+  const minute = Number(minuteRaw)
+  const second = Number(secondRaw || '0')
+
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second
+  )
+}
+
+const localDateTimeSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horario invalido.')
+  .refine(isValidIsoLocalDateTime, 'Horario invalido.')
+
 const createBookingSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional invalido.'),
-  scheduledAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horario invalido.'),
+  scheduledAt: localDateTimeSchema,
   notes: z.string().trim().max(500, 'Observacoes muito longas.').optional(),
   sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessao muito longo.').optional(),
   bookingType: z.enum(['one_off', 'recurring']).default('one_off').optional(),
@@ -196,7 +250,7 @@ export async function createBooking(data: {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const rl = await rateLimit('booking', user.id)
+  const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const { data: profile } = await supabase
@@ -362,14 +416,7 @@ export async function createBooking(data: {
   }
 
   const currency = profile?.currency || 'BRL'
-  const rates: Record<string, number> = {
-    BRL: 1,
-    USD: 0.19,
-    EUR: 0.17,
-    GBP: 0.15,
-    CAD: 0.26,
-    AUD: 0.29,
-  }
+  const rates = await getExchangeRates(supabase as any)
   const priceBrl = Number(professional.session_price_brl) || 0
   const perSessionPriceUserCurrency = roundCurrency(priceBrl * (rates[currency] || 1))
   const totalPriceUserCurrency = roundCurrency(perSessionPriceUserCurrency * sessionCount)
@@ -417,6 +464,12 @@ export async function createBooking(data: {
         .single()
 
       if (error || !booking) {
+        if (isActiveSlotCollision(error)) {
+          return {
+            success: false,
+            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+          }
+        }
         reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
         return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
       }
@@ -458,6 +511,12 @@ export async function createBooking(data: {
         .single()
 
       if (parentError || !parentBooking) {
+        if (isActiveSlotCollision(parentError)) {
+          return {
+            success: false,
+            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+          }
+        }
         reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
         return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
       }
@@ -493,6 +552,13 @@ export async function createBooking(data: {
 
       const { error: childError } = await supabase.from('bookings').insert(childBookingsPayload)
       if (childError) {
+        if (isActiveSlotCollision(childError)) {
+          await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          return {
+            success: false,
+            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+          }
+        }
         reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
         return { success: false, error: 'Erro ao criar sessoes recorrentes. Tente novamente.' }
@@ -524,6 +590,27 @@ export async function createBooking(data: {
     return { success: false, error: 'Erro ao finalizar agendamento.' }
   }
 
+  const paymentMetadata = {
+    capturedBy: 'legacy_booking_flow',
+    confirmationMode: bookingSettings.confirmationMode,
+    bookingType,
+    sessionsCount: sessionCount,
+  }
+
+  try {
+    assertNoSensitivePaymentPayload(paymentMetadata, 'payments.metadata.createBooking')
+  } catch (error) {
+    reportBookingError(
+      error,
+      { parentBookingId, bookingType },
+      'booking_payment_sensitive_metadata_blocked',
+    )
+    return {
+      success: false,
+      error: 'Erro interno ao preparar pagamento.',
+    }
+  }
+
   const { error: paymentError } = await supabase.from('payments').insert({
     booking_id: parentBookingId,
     user_id: user.id,
@@ -532,12 +619,7 @@ export async function createBooking(data: {
     amount_total: totalPriceUserCurrency,
     currency,
     status: 'captured',
-    metadata: {
-      capturedBy: 'legacy_booking_flow',
-      confirmationMode: bookingSettings.confirmationMode,
-      bookingType,
-      sessionsCount: sessionCount,
-    },
+    metadata: paymentMetadata,
     captured_at: new Date().toISOString(),
   })
 

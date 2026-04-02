@@ -1,6 +1,6 @@
 ﻿# Release Checklist
 
-Last updated: 2026-03-29
+Last updated: 2026-04-01
 
 ## Pre-release
 
@@ -11,6 +11,8 @@ Last updated: 2026-03-29
 - [ ] `npm run build` passes
 - [ ] Migration impact reviewed
 - [ ] Env variable changes documented
+- [ ] `npm run db:validate-pooling` passes (pooler `:6543` validated for production runtime)
+- [ ] Secret changes (if any) followed `secrets-rotation-runbook` and register updated
 - [ ] Rollback path identified
 
 ## Deploy window

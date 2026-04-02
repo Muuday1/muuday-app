@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
-import { getWaitlistAllowedOrigins } from '@/lib/config/app-url'
+import {
+  WAITLIST_API_CORS_POLICY,
+  applyCorsHeaders,
+  createCorsErrorResponse,
+  createCorsPreflightResponse,
+  evaluateCorsRequest,
+} from '@/lib/http/cors'
 
 const LEAD_TYPES = ['usuario', 'profissional', 'empresa', 'parceiro'] as const
 
@@ -13,33 +19,6 @@ const waitlistSchema = z.object({
   tipo_lead: z.enum(LEAD_TYPES).optional(),
   origem_lead: z.string().trim().max(120, 'origem_lead is too long').optional().or(z.literal('')),
 })
-
-function getAllowedOrigins() {
-  return getWaitlistAllowedOrigins()
-}
-
-function getCorsContext(request: NextRequest) {
-  const originHeader = request.headers.get('origin')
-  const origin = originHeader ? originHeader.replace(/\/+$/, '') : null
-  const allowedOrigins = getAllowedOrigins()
-  const isAllowed = !origin || allowedOrigins.has(origin)
-  return { origin, isAllowed }
-}
-
-function buildCorsHeaders(origin: string | null): Record<string, string> {
-  const headers: Record<string, string> = {}
-
-  if (!origin) {
-    return headers
-  }
-
-  headers['Access-Control-Allow-Origin'] = origin
-  headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-  headers['Access-Control-Allow-Headers'] = 'Content-Type'
-  headers.Vary = 'Origin'
-
-  return headers
-}
 
 function getClientIp(request: NextRequest) {
   const forwardedFor = request.headers.get('x-forwarded-for')
@@ -54,41 +33,48 @@ function getClientIp(request: NextRequest) {
   return 'unknown'
 }
 
-function buildRateLimitHeaders(rateLimit: RateLimitResult): Record<string, string> {
+function buildRateLimitHeaders(rateLimitResult: RateLimitResult): Record<string, string> {
   const headers: Record<string, string> = {
-    'X-RateLimit-Limit': String(rateLimit.limit),
-    'X-RateLimit-Remaining': String(rateLimit.remaining),
-    'X-RateLimit-Source': rateLimit.source,
+    'X-RateLimit-Limit': String(rateLimitResult.limit),
+    'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+    'X-RateLimit-Source': rateLimitResult.source,
   }
 
-  if (!rateLimit.allowed && rateLimit.retryAfterSeconds > 0) {
-    headers['Retry-After'] = String(rateLimit.retryAfterSeconds)
+  if (!rateLimitResult.allowed && rateLimitResult.retryAfterSeconds > 0) {
+    headers['Retry-After'] = String(rateLimitResult.retryAfterSeconds)
   }
 
   return headers
 }
 
-export async function POST(request: NextRequest) {
-  const corsContext = getCorsContext(request)
-
-  if (!corsContext.isAllowed) {
-    return NextResponse.json(
-      { error: 'Origin not allowed' },
-      { status: 403, headers: buildCorsHeaders(corsContext.origin) }
-    )
+function applyExtraHeaders(response: NextResponse, headers: Record<string, string>) {
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value)
   }
+  return response
+}
+
+export async function POST(request: NextRequest) {
+  const corsDecision = evaluateCorsRequest(request, WAITLIST_API_CORS_POLICY)
+  if (!corsDecision.allowed) {
+    return createCorsErrorResponse(request, WAITLIST_API_CORS_POLICY)
+  }
+
+  const withCors = (response: NextResponse) => applyCorsHeaders(response, corsDecision.headers)
 
   try {
     const rl = await rateLimit('waitlist', getClientIp(request))
-    const responseHeaders = {
-      ...buildCorsHeaders(corsContext.origin),
-      ...buildRateLimitHeaders(rl),
-    }
+    const rateLimitHeaders = buildRateLimitHeaders(rl)
 
     if (!rl.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again in a few minutes.' },
-        { status: 429, headers: responseHeaders }
+      return applyExtraHeaders(
+        withCors(
+          NextResponse.json(
+            { error: 'Too many requests. Please try again in a few minutes.' },
+            { status: 429 },
+          ),
+        ),
+        rateLimitHeaders,
       )
     }
 
@@ -96,9 +82,14 @@ export async function POST(request: NextRequest) {
     const parsed = waitlistSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: parsed.error.flatten().fieldErrors },
-        { status: 400, headers: responseHeaders }
+      return applyExtraHeaders(
+        withCors(
+          NextResponse.json(
+            { error: 'Invalid request body', details: parsed.error.flatten().fieldErrors },
+            { status: 400 },
+          ),
+        ),
+        rateLimitHeaders,
       )
     }
 
@@ -116,20 +107,27 @@ export async function POST(request: NextRequest) {
           origem_lead: origem_lead || null,
           status: 'na_lista',
         },
-        { onConflict: 'email' }
+        { onConflict: 'email' },
       )
 
     if (dbError) {
       console.error('[waitlist] DB error:', dbError)
-      return NextResponse.json(
-        { error: 'Unable to save waitlist entry right now. Please try again shortly.' },
-        { status: 500, headers: responseHeaders }
+      return applyExtraHeaders(
+        withCors(
+          NextResponse.json(
+            { error: 'Unable to save waitlist entry right now. Please try again shortly.' },
+            { status: 500 },
+          ),
+        ),
+        rateLimitHeaders,
       )
     }
 
     void (async () => {
       try {
-        const { sendWaitlistConfirmationEmail, addContactToResend, SEGMENTS } = await import('@/lib/email/resend')
+        const { sendWaitlistConfirmationEmail, addContactToResend, SEGMENTS } = await import(
+          '@/lib/email/resend'
+        )
         await Promise.all([
           sendWaitlistConfirmationEmail(email, firstname),
           addContactToResend(email, firstname, SEGMENTS.waitlist),
@@ -139,31 +137,13 @@ export async function POST(request: NextRequest) {
       }
     })()
 
-    return NextResponse.json({ success: true }, { headers: responseHeaders })
+    return applyExtraHeaders(withCors(NextResponse.json({ success: true })), rateLimitHeaders)
   } catch (error) {
     console.error('[waitlist] Error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500, headers: buildCorsHeaders(corsContext.origin) }
-    )
+    return withCors(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  const corsContext = getCorsContext(request)
-
-  if (!corsContext.isAllowed) {
-    return new NextResponse(null, {
-      status: 403,
-      headers: buildCorsHeaders(corsContext.origin),
-    })
-  }
-
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      ...buildCorsHeaders(corsContext.origin),
-      'Access-Control-Max-Age': '86400',
-    },
-  })
+  return createCorsPreflightResponse(request, WAITLIST_API_CORS_POLICY)
 }

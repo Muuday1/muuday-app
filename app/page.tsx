@@ -84,6 +84,8 @@ export default async function RootPage() {
                       alt="Ilustração abstrata representando conexão, agenda e atendimento online."
                       width={920}
                       height={720}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 460px"
+                      quality={80}
                       priority
                       className="h-auto w-full"
                     />

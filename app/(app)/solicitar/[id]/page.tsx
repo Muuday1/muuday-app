@@ -15,6 +15,17 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=/solicitar/${params.id}`)
 
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  // Professional accounts are provider-only workspaces and cannot purchase sessions.
+  if (userProfile?.role === 'profissional') {
+    redirect('/dashboard?erro=conta-profissional-nao-pode-contratar')
+  }
+
   const { data: professional } = await supabase
     .from('professionals')
     .select('*, profiles(*)')

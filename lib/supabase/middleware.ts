@@ -1,5 +1,27 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
+
+type ProfileRole = 'usuario' | 'profissional' | 'admin'
+
+const ALLOWED_PROFILE_ROLES = new Set<ProfileRole>(['usuario', 'profissional', 'admin'])
+
+function normalizeProfileRole(value: unknown): ProfileRole | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  return ALLOWED_PROFILE_ROLES.has(normalized as ProfileRole)
+    ? (normalized as ProfileRole)
+    : null
+}
+
+function shouldSampleFallback(userId: string, sampleRatePercent = 5) {
+  if (!userId) return false
+  let hash = 0
+  for (let i = 0; i < userId.length; i += 1) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0
+  }
+  return hash % 100 < sampleRatePercent
+}
 
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -59,6 +81,10 @@ export async function updateSession(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const jwtClaimRole = normalizeProfileRole(
+    user?.app_metadata?.role ??
+    (user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role
+  )
 
   const pathname = request.nextUrl.pathname
 
@@ -85,12 +111,31 @@ export async function updateSession(request: NextRequest) {
     if (didLoadRole) return cachedRole
     didLoadRole = true
     if (!user) return null
+    if (jwtClaimRole) {
+      cachedRole = jwtClaimRole
+      return cachedRole
+    }
+
+    if (process.env.NODE_ENV === 'production' && shouldSampleFallback(user.id, 5)) {
+      Sentry.captureMessage('middleware_role_fallback_to_profile', {
+        level: 'warning',
+        tags: {
+          area: 'auth_role',
+          role_source: 'profile_fallback',
+        },
+        extra: {
+          userIdPrefix: user.id.slice(0, 8),
+          path: pathname,
+        },
+      })
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
-    cachedRole = profile?.role || null
+    cachedRole = normalizeProfileRole(profile?.role) ?? null
     return cachedRole
   }
 

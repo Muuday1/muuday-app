@@ -120,7 +120,7 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
         <div
           ref={surfaceRef}
           id={overlayId}
-          className="my-auto w-full max-w-lg max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-2xl border border-white/40 bg-white/80 p-6 shadow-xl backdrop-blur"
+          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-white/40 bg-white/85 p-4 shadow-xl backdrop-blur md:max-h-none md:overflow-visible md:p-5"
         >
           {children}
         </div>

@@ -2,7 +2,353 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-04-02
+
+### Entry 80
+- Fluxo de autenticação padronizado em app-level:
+  - `app/(auth)/login/page.tsx` agora usa `components/auth/LoginForm.tsx` como fonte única de login (página + modal).
+  - catálogo único de mensagens criado em `lib/auth/messages.ts` (login/signup/password).
+  - `components/auth/SocialAuthButtons.tsx` passou a usar mensagens padronizadas para rate-limit/OAuth fail.
+- Novo endpoint de suporte a UX de login social:
+  - `POST /api/auth/login-hint` (`app/api/auth/login-hint/route.ts`).
+  - identifica quando conta é social-only e devolve hint para mensagem de erro determinística após falha de senha.
+- Cadastro alinhado com mensagens padronizadas:
+  - `app/(auth)/cadastro/page.tsx` agora usa `mapSignupErrorMessage` e `isDuplicateSignupError`.
+  - duplicate-email exibe mensagem padrão com orientação para login social ou recuperação de senha.
+- Segurança de conta em `/perfil` ampliada:
+  - `components/profile/ProfileAccountSettings.tsx` agora permite definir/atualizar senha em sessão ativa.
+  - inclui validação de confirmação, tamanho mínimo e feedback de sucesso/erro padronizado.
+- Validação técnica executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
 ## 2026-04-01
+
+### Entry 79
+- Implementado auditor de cobertura de claim de role para middleware:
+  - script novo `scripts/ops/audit-role-claim-coverage.cjs`
+  - comando novo `npm run audit:auth-role-claims`
+  - relatório inclui: claim válido/ausente/inválido, consistência claim vs `profiles.role`, e estimativa de fallback.
+- Middleware (`lib/supabase/middleware.ts`) agora emite sinal de observabilidade para fallback de role:
+  - evento Sentry amostrado: `middleware_role_fallback_to_profile`
+  - disparado quando claim JWT não existe e middleware precisa consultar `profiles`.
+- Tentativa de auditoria real executada e bloqueada por configuração de ambiente:
+  - `SUPABASE_SERVICE_ROLE_KEY` local estava com chave publishable (`sb_publishable...`), sem permissão para `auth.admin.listUsers`.
+  - ação pendente: substituir pela service-role key real e rerodar `npm run audit:auth-role-claims`.
+
+### Entry 78
+- Entregue fundação de resiliência de jobs Stripe (Wave 3 prep, sem execução de dinheiro real).
+- Nova migration criada:
+  - `db/sql/migrations/023-wave3-stripe-job-resilience-foundation.sql`
+  - adiciona tabelas:
+    - `stripe_webhook_events` (inbox/idempotência/retry),
+    - `stripe_payment_retry_queue`,
+    - `stripe_subscription_check_queue`,
+    - `stripe_job_runs`.
+- Webhook Stripe evoluído (`app/api/webhooks/stripe/route.ts`):
+  - valida assinatura Stripe (`constructEvent`),
+  - persiste evento no inbox idempotente,
+  - enfileira processamento assíncrono no Inngest (`stripe/webhook.received`),
+  - mantém ACK `202` para desacoplamento.
+- Novo motor operacional:
+  - `lib/ops/stripe-resilience.ts`
+  - implementa:
+    - processamento de inbox com backoff/retry e estados terminais,
+    - varredura semanal de elegibilidade de payout (read-only),
+    - checagens de renovação de assinatura,
+    - retries de pagamentos falhos.
+- Inngest expandido:
+  - `process-stripe-webhook-inbox`,
+  - `stripe-weekly-payout-eligibility-scan`,
+  - `stripe-subscription-renewal-checks`,
+  - `stripe-failed-payment-retries`.
+- Pendência operacional:
+  - aplicar migration `023` no Supabase produção antes de ativar tráfego Stripe real.
+
+### Entry 77
+- Cobertura de rate limiting expandida em auth, booking creation, webhook Stripe e observabilidade de fallback.
+- `lib/security/rate-limit.ts` reestruturado com novos presets:
+  - `authLogin`, `authSignup`, `authOAuth`
+  - `bookingCreate`
+  - `stripeWebhook`
+- Fallback in-memory agora gera sinal operacional:
+  - `console.warn` throttled
+  - Sentry `rate_limit_fallback_memory_active` throttled.
+- Nova rota de guard de tentativas de auth:
+  - `POST /api/auth/attempt-guard`
+  - aplicada antes de operações de login/signup/oauth start nas telas/componentes de auth.
+- Novo endpoint de webhook Stripe com proteção de rate limit e CORS:
+  - `POST /api/webhooks/stripe`
+  - status atual proposital: `501` placeholder até implementação completa Wave 3.
+- Criação de booking reforçada:
+  - `createBooking`, `createRequestBooking`, `acceptRequestBooking` agora usam preset `bookingCreate`.
+- Docs/handover atualizados para refletir conclusão parcial do bloco de segurança de rate limiting e próximos follow-ups.
+
+### Entry 76
+- Conexão de banco com pooling (Supabase Pro/Supavisor) formalizada como requisito operacional obrigatório.
+- Criado validador de configuração:
+  - `scripts/ops/validate-db-pooling-config.cjs`
+  - comando `npm run db:validate-pooling`
+- Regras implementadas no validador:
+  - URL de runtime (`SUPABASE_DB_POOLER_URL` ou `DATABASE_URL`) deve usar porta `6543`;
+  - URL direta (`SUPABASE_DB_DIRECT_URL` ou `DATABASE_DIRECT_URL`), quando presente, não pode usar `6543`.
+- `.env.local.example` atualizado com slots explícitos de pooler/direct.
+- Runbooks/docs atualizados para exigir validação de pooling antes de deploy:
+  - `docs/engineering/setup-and-environments.md`
+  - `docs/engineering/database-and-migrations.md`
+  - `docs/engineering/deployment-and-operations.md`
+  - `docs/engineering/runbooks/release-checklist.md`
+  - `docs/project/project-status.md`
+  - `docs/handover/current-state.md`
+  - `docs/handover/next-steps.md`
+
+### Entry 75
+- Error budget + alerting hardening batch concluído com foco custo-eficiente.
+- Nova referência operacional:
+  - `docs/engineering/runbooks/error-budget-and-alerting.md`
+  - inclui SLO/error-budget e thresholds de alertas para Sentry/Checkly/PostHog.
+- Instrumentação de sinais para alertas adicionada:
+  - Auth failures -> Sentry:
+    - `app/(auth)/login/page.tsx`
+    - `components/auth/LoginForm.tsx`
+    - `components/auth/SocialAuthButtons.tsx`
+    - `app/auth/callback/route.ts`
+    - `app/(auth)/cadastro/page.tsx`
+  - Payment failure -> Sentry:
+    - `lib/actions/request-booking.ts` (`request_booking_payment_record_failed`)
+- Taxonomia de eventos PostHog expandida:
+  - novo evento `auth_signup_started` para medir drop-off de signup.
+- Docs de integração atualizadas:
+  - `docs/integrations/sentry.md`
+  - `docs/integrations/posthog.md`
+  - `docs/integrations/checkly.md`
+- Estado final desta rodada:
+  - instrumentação e runbook prontos no código,
+  - criação efetiva de alert rules no dashboard de Sentry/PostHog permanece ação operacional humana.
+
+### Entry 74
+- Implementada fundação de trilha de auditoria administrativa (compliance para dinheiro real).
+- Migration criada:
+  - `db/sql/migrations/022-admin-audit-log-foundation.sql`
+- Estrutura entregue:
+  - tabela `admin_audit_log` com `admin_user_id`, `action`, `target_table`, `target_id`, `old_value`, `new_value`, `metadata`, `created_at`.
+  - índices por alvo, admin e tempo.
+  - RLS admin-only para leitura e inserção.
+- Integração no app:
+  - helper `lib/admin/audit-log.ts` para escrita padronizada.
+  - ações admin em `lib/actions/admin.ts` agora registram evento de auditoria ao concluir:
+    - update de status de profissional,
+    - update de first-booking gate,
+    - toggle de visibilidade de review,
+    - delete de review.
+- Modo fail-closed opcional suportado por env:
+  - `ADMIN_AUDIT_FAIL_ON_ERROR=true`.
+- Pendência operacional:
+  - aplicar migration `022` em produção e validar evidência de trilha para cada ação admin acima.
+
+### Entry 73
+- Entregue pre-hardening de PII financeira para preparação de Wave 3 (Stripe).
+- Novo guard de payload sensível:
+  - `lib/stripe/pii-guards.ts`
+  - bloqueia chaves proibidas em payload de pagamento (`card_number`, `cvv/cvc`, `iban`, `routing_number`, etc.).
+- Guard aplicado nos fluxos atuais de escrita de pagamento:
+  - `lib/actions/booking.ts`
+  - `lib/actions/request-booking.ts`
+- Novo pacote de auditoria SQL criado:
+  - `db/sql/analysis/024-wave3-pii-column-audit.sql`
+  - cobre: colunas proibidas de cartão, inventário de colunas sensíveis de payout, presença de extensões `pgcrypto`/`vault`, status de RLS em tabelas financeiras.
+- Documento técnico consolidado/atualizado:
+  - `docs/engineering/financial-pii-encryption-and-vault.md`
+  - define regra não-negociável de nunca armazenar dados brutos de cartão e o caminho de decisão Stripe-only vs colunas locais criptografadas.
+
+### Entry 72
+- Hardening de CORS concluído com política explícita em todas as rotas API atuais.
+- Novo módulo compartilhado criado:
+  - `lib/http/cors.ts`
+  - inclui avaliação de origem allowlist, aplicação de headers CORS em respostas e helper de preflight `OPTIONS`.
+- Rotas atualizadas com CORS explícito + preflight:
+  - `app/api/auth/password-reset/route.ts`
+  - `app/api/waitlist/route.ts`
+  - `app/api/inngest/route.ts`
+  - `app/api/cron/booking-reminders/route.ts`
+  - `app/api/cron/booking-timeouts/route.ts`
+- Variáveis de ambiente adicionadas/documentadas em `.env.local.example`:
+  - `API_CORS_ORIGINS`
+  - `WAITLIST_CORS_ORIGINS`
+  - `WEBHOOK_CORS_ORIGINS`
+- Observação operacional:
+  - `WEBHOOK_API_CORS_POLICY` foi deixado pronto para aplicação obrigatória em `/api/webhooks/*` quando Stripe webhook entrar.
+
+### Entry 71
+- Executado hardening de validação de input em server actions com Zod como fronteira obrigatória.
+- `lib/actions/admin.ts` reescrito com schemas explícitos por ação:
+  - `adminUpdateProfessionalStatus` (UUID + enum de status),
+  - `adminUpdateFirstBookingGate` (UUID + boolean),
+  - `adminToggleReviewVisibility` (UUID + boolean),
+  - `adminDeleteReview` (UUID).
+- `lib/actions/email.ts` atualizado para parse/validação de todos os payloads antes de qualquer side effect:
+  - email, IDs opcionais de usuário, datas, horários, valores monetários, URLs, rating, listas de itens faltantes.
+- `lib/actions/booking.ts` e `lib/actions/request-booking.ts` reforçados com validação semântica de datetime local (não apenas regex de formato).
+- Gate técnico pós-hardening validado:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 70
+- Política de rotação periódica de secrets formalizada e documentada com runbook operacional:
+  - `docs/engineering/runbooks/secrets-rotation-runbook.md`.
+- Escopo de rotação agora inclui explicitamente:
+  - `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_SECRET_KEY`,
+  - `CRON_SECRET`,
+  - `RESEND_API_KEY`,
+  - `UPSTASH_REDIS_REST_TOKEN`,
+  - `STRIPE_SECRET_KEY`,
+  - `STRIPE_WEBHOOK_SECRET`,
+  - `STRIPE_CONNECT_CLIENT_ID`,
+  - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (com rollovers Stripe).
+- Checklist de release e docs de setup/deploy foram atualizados para exigir registro de rotação e validação pós-cutover.
+- Backlog de decisões e checklist do operador foram alinhados para tratar rotação como requisito contínuo, não opcional.
+
+### Entry 69
+- Entregue toolkit completo para auditoria RLS:
+  - `db/sql/analysis/022-rls-audit-inventory.sql` (inventário de RLS + políticas + risco de permissividade),
+  - `db/sql/analysis/023-rls-cross-user-isolation.sql` (harness SQL de isolamento cross-user),
+  - `scripts/ops/audit-rls-direct-api.cjs` + `npm run audit:rls:api` (teste via API direta com anon key).
+- Script API direto agora carrega `.env.local` automaticamente e suporta `RLS_SAMPLE_*` para execução determinística quando a base não tiver amostras descobertas automaticamente.
+- Execução atual:
+  - autenticação de dois usuários funcionou,
+  - mas não havia amostras privadas elegíveis (`bookings/payments/hidden reviews/messages`) para validar isolamento por ID nesta rodada.
+- Gap registrado em handover: coletar/fornecer IDs de amostra e rerodar para evidência final de "no cross-user leak".
+
+### Entry 68
+- CI workflow (`.github/workflows/ci.yml`) expandido para gate completo em cadeia:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run test:unit`
+  - `npm run test:e2e`
+- Adicionado `test:unit` em `package.json` (mapeado para suite determinística atual de state machines).
+- CI agora instala Playwright Chromium e publica `playwright-report` como artifact.
+- Push em `main` agora falha se faltar segredo E2E obrigatório, evitando falso-positivo com testes pulados por ausência de fixture.
+- Workflow de Checkly (`.github/workflows/checkly-validate.yml`) ampliado com:
+  - schedule (`a cada 6h`),
+  - execução de `checkly:test`,
+  - deploy automático de checks em `main` via `checkly:deploy` quando segredos estiverem presentes.
+
+### Entry 67
+- Middleware atualizado para resolver role via claims JWT antes de consultar `profiles`.
+- `lib/supabase/middleware.ts` agora prioriza:
+  - `user.app_metadata.role`
+  - `user.raw_app_meta_data.role`
+- Fallback de role no banco permanece somente quando claim estiver ausente/inválida.
+- Guard de role agora usa allow-list explícita (`usuario`, `profissional`, `admin`) para evitar valores fora do padrão.
+- Resultado esperado: menos `SELECT` por request em rotas protegidas com compatibilidade para sessões legadas.
+
+### Entry 66
+- Implementada camada de cache com Upstash Redis para leituras públicas críticas:
+  - perfis públicos de profissionais com TTL de 5 minutos (`app/(app)/profissional/[id]/page.tsx`);
+  - taxonomia ativa (categorias/subcategorias/especialidades) com TTL de 1 hora (`lib/taxonomy/professional-specialties.ts`);
+  - câmbio com TTL de 1 hora em provider único (`lib/exchange-rates.ts`), agora consumido por `/buscar`, `createBooking` e `acceptRequestBooking`.
+- Adicionada invalidação por tag ISR para perfis públicos:
+  - `revalidateTag('public-profiles')` em mutações admin/profissional que impactam superfície pública (`lib/actions/admin.ts`, `lib/actions/professional.ts`).
+- Resultado: queda de leituras repetidas no DB para páginas públicas sem alterar comportamento funcional.
+
+### Entry 65
+- Operator confirmou execução em produção das migrations:
+  - `019-wave2-search-pgtrgm.sql`
+  - `020-wave2-composite-indexes.sql`
+  - `021-wave2-booking-atomic-slot-constraint.sql`
+- Itens de schema do bloco P2 (search indexes, composite indexes, atomic slot uniqueness) agora estão ativos em produção.
+- Pendências remanescentes desse bloco passaram a ser apenas validação operacional:
+  - captura de `EXPLAIN (ANALYZE, BUFFERS)` para evidência de uso de índice;
+  - smoke de concorrência para confirmar `1 sucesso + 1 conflito determinístico` no mesmo slot.
+
+### Entry 64
+- Endereçado item P2 de race condition em criação de booking (check+insert não atômicos).
+- Nova migration adicionada: `db/sql/migrations/021-wave2-booking-atomic-slot-constraint.sql`.
+- A migration aplica duas proteções:
+  - normalização de duplicidade ativa existente (mantém booking mais antigo e cancela duplicados com marcador em `metadata`);
+  - índice único parcial `bookings_unique_active_professional_start_idx` em `(professional_id, start_time_utc)` para estados ativos.
+- `lib/actions/booking.ts` atualizado para tratar `23505` desse índice e retornar erro funcional determinístico:
+  - `Um ou mais horários já foram reservados. Escolha outro horário.`
+- Escopo intencional: `booking_type='recurring_parent'` fica fora da unicidade para não quebrar o modelo atual de parent+children recorrente.
+- Próximo passo operacional obrigatório: aplicar `021` em produção e validar corrida concorrente real (um sucesso + uma falha controlada).
+
+### Entry 59
+- Ajustado o modal de login usado por CTAs de visitante em `/buscar` e `/profissional/[id]` para remover scroll interno no desktop padrão.
+- `AuthOverlay` (variante `modal`) foi compactado:
+  - largura reduzida (`max-w-md`),
+  - padding menor,
+  - sem restrição de altura/scroll interno em desktop (`md:max-h-none`, `md:overflow-visible`),
+  - fallback com scroll mantido para viewports pequenos.
+- `LoginForm` recebeu compactação real quando `compact=true`:
+  - título/subtítulo menores,
+  - gaps verticais menores,
+  - campos e botão com altura reduzida,
+  - separador social compacto,
+  - CTA `Ainda não é membro? Criar conta` mantida visível no modal.
+- `SocialAuthButtons` agora aceita prop `compact` para reduzir densidade (padding/gap/ícone).
+- `SearchBookingCtas` passou `compact` para o `LoginForm` e removeu copy auxiliar extra abaixo do formulário para economizar altura.
+- Validação técnica concluída:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 60
+- Executado ajuste `Sticky Booking Box` no perfil profissional para tablet + desktop.
+- `components/professional/ProfileAvailabilityBookingSection.tsx` atualizado:
+  - grid principal agora abre 2 colunas a partir de `md` (`conteúdo + booking rail`);
+  - sticky da box de booking ativado em `md` (`md:sticky md:top-24`), mantendo comportamento anterior no desktop;
+  - mobile permanece em uma coluna sem sticky.
+- Objetivo entregue: manter a caixa de `Agendar sessão / Mandar mensagem` visível durante scroll em iPad/tablet e desktop.
+- Validação técnica concluída:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 61
+- Implementada base de search escalável Postgres-first (`pg_trgm + GIN`) para `/buscar`.
+- Nova migration adicionada:
+  - `db/sql/migrations/019-wave2-search-pgtrgm.sql`
+  - inclui extensão `pg_trgm`, índices trigram/filtro e RPC `search_public_professionals_pgtrgm(...)`.
+- Atualização de código em `app/(app)/buscar/page.tsx`:
+  - busca agora tenta obter `candidate IDs` via RPC quando há filtros/texto ativos;
+  - depois carrega somente os profissionais candidatos para aplicar o restante do pipeline;
+  - fallback preservado para não quebrar a busca se RPC não estiver disponível.
+- Estratégia registrada:
+  - continuar com Postgres até ultrapassar 2k profissionais ativos;
+  - migrar para Typesense após esse gatilho de escala.
+- Validação técnica concluída:
+  - `npm.cmd run lint` ✅
+  - `npm.cmd run typecheck` ✅
+  - `npm.cmd run build` ✅
+  - `npm.cmd run test:state-machines` ✅
+
+### Entry 62
+- Endereçado item de audit P2 para índices compostos em queries críticas.
+- Criada migration:
+  - `db/sql/migrations/020-wave2-composite-indexes.sql`
+  - índices adicionados:
+    - `bookings(professional_id, status)`
+    - `bookings(user_id, status)`
+    - `availability_rules(professional_id, is_active)`
+    - `payments(booking_id, status)`
+- Criado script operacional:
+  - `db/sql/analysis/wave2-indexes-explain-analyze.sql`
+  - inclui consultas `EXPLAIN (ANALYZE, BUFFERS)` para validar uso real dos índices em caminhos de booking/search/payment.
+- Próximo passo operacional: rodar migration + explain no Supabase produção e registrar plano/tempos no handover.
+
+### Entry 63
+- Corrigida compatibilidade da migration `019-wave2-search-pgtrgm.sql` após erro `42P17` no Supabase (`functions in index expression must be marked IMMUTABLE`).
+- Ajuste aplicado:
+  - criada função helper imutável `public.search_text_from_array(text[])`;
+  - índices trigram em `tags` e `subcategories` passaram a usar helper imutável em vez de `array_to_string(...)` direto.
+- Resultado esperado: migration 019 agora executa normalmente no SQL Editor sem falhar na criação desses índices.
 
 ### Entry 53
 - Delivered no-cost backend performance optimization for `/buscar`:
@@ -862,3 +1208,62 @@ Use this for meaningful checkpoints only.
   - `npm.cmd run typecheck`
   - `npm.cmd run build`
   - `npm.cmd run test:state-machines`
+
+### Entry 57 (2026-04-01) — Perfil do usuário consolidado com configurações de conta
+- Página `app/(app)/perfil/page.tsx` agora incorpora o bloco completo de conta sem depender de navegação para `/configuracoes`.
+- Criado componente `components/profile/ProfileAccountSettings.tsx` com:
+  - `Idioma e região` (fuso horário + moeda);
+  - `Notificações` (toggles persistidos em `profiles.notification_preferences`);
+  - `Segurança` (atalho para recuperação de senha);
+  - `Zona de risco` (logout).
+- Rota `app/(app)/configuracoes/page.tsx` foi convertida para gate de papel:
+  - usuário/admin redirecionam para `/perfil`;
+  - profissional mantém acesso ao workspace de configurações (`components/settings/ProfessionalSettingsWorkspace.tsx`).
+- Validação executada:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
+### Entry 58 (2026-04-01) — Bloqueio de contratação para contas profissionais
+- Regra de produto aplicada no servidor:
+  - conta `profissional` não pode contratar/agendar com outro profissional.
+- Implementação:
+  - `app/(app)/agendar/[id]/page.tsx`: valida `profiles.role` e redireciona profissional para `/dashboard?erro=conta-profissional-nao-pode-contratar`.
+  - `app/(app)/solicitar/[id]/page.tsx`: mesma validação e mesmo redirecionamento.
+- Cobertura de regressão:
+  - novo teste E2E em `tests/e2e/professional-workspace.spec.ts` valida bloqueio em ambos os entry points.
+- Resultado esperado:
+  - somente conta `usuario` pode passar pelos fluxos de contratação; profissionais atuam apenas no workspace provider.
+
+### Entry 59 (2026-04-01) — Automação operacional para rotação de secrets
+- Criado register estruturado para rotação:
+  - `docs/engineering/runbooks/secrets-rotation-register.json`
+- Criados scripts operacionais:
+  - `scripts/ops/check-secrets-rotation.cjs` (`npm run secrets:rotation:check`)
+  - `scripts/ops/stamp-secrets-rotation.cjs` (`npm run secrets:rotation:stamp`)
+  - `scripts/ops/audit-secrets-sync.cjs` (`npm run secrets:sync:audit`)
+- Criados workflows agendados:
+  - `.github/workflows/secrets-rotation-reminder.yml` (diário, falha em due_soon/overdue com artifact de status).
+  - `.github/workflows/secrets-sync-audit.yml` (semanal + manual, valida presença de secrets em GitHub e Vercel).
+- Runbook atualizado com comandos e pré-requisitos:
+  - `docs/engineering/runbooks/secrets-rotation-runbook.md`.
+
+### Entry 60 (2026-04-02) — Hotfix de compatibilidade em `payments` para restaurar booking
+- Incidente observado:
+  - qualquer tentativa de booking/request terminava com `Falha ao processar pagamento. Nenhum agendamento foi confirmado.`
+  - bookings eram cancelados com `metadata.cancelled_reason = payment_capture_failed`.
+- Diagnóstico SQL:
+  - `public.payments` possuía campos `NOT NULL` fora do payload atual do app:
+    - `base_price_brl`
+    - `platform_fee_brl`
+    - `total_charged`
+  - policy de INSERT em `payments` também estava com comparação tautológica no `WITH CHECK`.
+- Ação tomada:
+  - criado patch canônico: `db/sql/migrations/026-wave3-payments-insert-compatibility-hotfix.sql`.
+  - patch aplica:
+    - defaults + backfill para colunas legadas obrigatórias;
+    - trigger `trg_fill_payments_legacy_required_fields`;
+    - recriação da policy `System creates payments for booking owner` com vínculo estrito booking↔payment.
+- Resultado:
+  - fluxo de booking voltou a funcionar após aplicação do patch no banco.

@@ -1,4 +1,5 @@
-﻿import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 
 type CategoryRow = {
   id: string
@@ -7,6 +8,7 @@ type CategoryRow = {
   is_active: boolean
   sort_order: number
 }
+
 
 type SubcategoryRow = {
   id: string
@@ -48,6 +50,9 @@ const EMPTY_CONTEXT: ProfessionalSpecialtyContext = {
   categorySlugsByProfessionalId: new Map(),
 }
 
+const TAXONOMY_ACTIVE_CATALOG_CACHE_KEY = 'taxonomy:active-catalog:v1'
+const TAXONOMY_ACTIVE_CATALOG_TTL_SECONDS = 60 * 60
+
 function normalizeName(value?: string | null) {
   return String(value || '').trim()
 }
@@ -55,33 +60,40 @@ function normalizeName(value?: string | null) {
 export async function loadActiveTaxonomyCatalog(
   supabase: SupabaseClient,
 ): Promise<TaxonomyCatalog | null> {
-  const [categoriesRes, subcategoriesRes, specialtiesRes] = await Promise.all([
-    supabase
-      .from('categories')
-      .select('id,slug,name_pt,is_active,sort_order')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true }),
-    supabase
-      .from('subcategories')
-      .select('id,category_id,slug,name_pt,is_active,sort_order')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true }),
-    supabase
-      .from('specialties')
-      .select('id,subcategory_id,name_pt,is_active,sort_order')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true }),
-  ])
+  return getOrSetUpstashJsonCache<TaxonomyCatalog | null>({
+    key: TAXONOMY_ACTIVE_CATALOG_CACHE_KEY,
+    ttlSeconds: TAXONOMY_ACTIVE_CATALOG_TTL_SECONDS,
+    version: 'v1',
+    loader: async () => {
+      const [categoriesRes, subcategoriesRes, specialtiesRes] = await Promise.all([
+        supabase
+          .from('categories')
+          .select('id,slug,name_pt,is_active,sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('subcategories')
+          .select('id,category_id,slug,name_pt,is_active,sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('specialties')
+          .select('id,subcategory_id,name_pt,is_active,sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+      ])
 
-  if (categoriesRes.error || subcategoriesRes.error || specialtiesRes.error) {
-    return null
-  }
+      if (categoriesRes.error || subcategoriesRes.error || specialtiesRes.error) {
+        return null
+      }
 
-  return {
-    categories: (categoriesRes.data as CategoryRow[]) || [],
-    subcategories: (subcategoriesRes.data as SubcategoryRow[]) || [],
-    specialties: (specialtiesRes.data as SpecialtyRow[]) || [],
-  }
+      return {
+        categories: (categoriesRes.data as CategoryRow[]) || [],
+        subcategories: (subcategoriesRes.data as SubcategoryRow[]) || [],
+        specialties: (specialtiesRes.data as SpecialtyRow[]) || [],
+      }
+    },
+  })
 }
 
 export function buildSpecialtyOptionsByCategorySlug(catalog: TaxonomyCatalog) {

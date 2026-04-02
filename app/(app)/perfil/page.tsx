@@ -3,9 +3,10 @@ export const metadata = { title: 'Meu Perfil | Muuday' }
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, Bell, SlidersHorizontal } from 'lucide-react'
+import { Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, SlidersHorizontal } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { ProfileAccountSettings } from '@/components/profile/ProfileAccountSettings'
 
 export default async function PerfilPage() {
   const supabase = createClient()
@@ -272,57 +273,7 @@ export default async function PerfilPage() {
         </div>
       )}
 
-      {/* Account info */}
-      <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display font-bold text-lg text-neutral-900">Conta</h3>
-          <Link
-            href="/configuracoes"
-            className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
-          >
-            Notificações e preferências
-          </Link>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-neutral-50">
-            <div>
-              <p className="text-sm font-medium text-neutral-700">Membro desde</p>
-              <p className="text-xs text-neutral-400">
-                {profile?.created_at
-                  ? new Date(profile.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-                  : 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <p className="text-sm font-medium text-neutral-700">Alterar senha</p>
-              <p className="text-xs text-neutral-400">Redefina sua senha de acesso</p>
-            </div>
-            <a
-              href="/recuperar-senha"
-              className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
-            >
-              Alterar
-            </a>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-brand-500" />
-              <div>
-                <p className="text-sm font-medium text-neutral-700">Notificações</p>
-                <p className="text-xs text-neutral-400">Ative e ajuste lembretes, emails e novidades</p>
-              </div>
-            </div>
-            <Link
-              href="/configuracoes"
-              className="text-xs text-brand-600 hover:text-brand-700 font-medium bg-brand-50 px-3 py-1.5 rounded-full transition-all"
-            >
-              Gerir
-            </Link>
-          </div>
-        </div>
-      </div>
+      <ProfileAccountSettings />
     </div>
   )
 }
