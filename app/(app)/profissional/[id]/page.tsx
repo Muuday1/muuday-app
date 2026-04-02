@@ -3,6 +3,7 @@ export const metadata = { title: 'Profissional | Muuday' }
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
+import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Globe, MapPin, Star } from 'lucide-react'
@@ -18,7 +19,11 @@ import {
   getPublicVisibilityByProfessionalId,
 } from '@/lib/professional/public-visibility'
 import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-specialties'
+import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { formatCurrency } from '@/lib/utils'
+
+const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
+const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
 
 function getCountryDisplayName(countryCodeOrName?: string | null) {
   if (!countryCodeOrName) return 'Online'
@@ -59,6 +64,71 @@ function getPrimarySpecialty(professional: any, specialties: string[]) {
   return getSearchCategoryLabel(professional.category)
 }
 
+function getPublicProfileCacheIdentity(
+  parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
+) {
+  if (parsedParam.kind === 'uuid') {
+    return `professional-id:${parsedParam.id}`
+  }
+  if (parsedParam.kind === 'publicCode') {
+    return `public-code:${parsedParam.code}`
+  }
+  return `unknown:${parsedParam.raw}`
+}
+
+async function loadPublicProfessionalByParam(
+  parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
+) {
+  const adminClient = createAdminClient()
+  if (!adminClient) return null
+  let professionalQuery = adminClient
+    .from('professionals')
+    .select('*, profiles!inner(*), first_booking_enabled')
+    .eq('status', 'approved')
+    .eq('profiles.role', 'profissional')
+
+  if (parsedParam.kind === 'uuid') {
+    professionalQuery = professionalQuery.eq('id', parsedParam.id)
+  }
+
+  if (parsedParam.kind === 'publicCode') {
+    professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+  }
+
+  const { data: professional } = await professionalQuery.maybeSingle()
+  if (!professional) return null
+
+  const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient as any, [
+    professional,
+  ])
+  const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
+  if (!canGoLive) return null
+
+  return professional
+}
+
+async function loadCachedPublicProfessionalByParam(
+  parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
+) {
+  const cacheIdentity = getPublicProfileCacheIdentity(parsedParam)
+  const getWithIsrTag = unstable_cache(
+    async () =>
+      getOrSetUpstashJsonCache<any | null>({
+        key: `public-profile:${cacheIdentity}`,
+        ttlSeconds: PUBLIC_PROFILE_CACHE_TTL_SECONDS,
+        version: PUBLIC_PROFILE_CACHE_VERSION,
+        loader: () => loadPublicProfessionalByParam(parsedParam),
+      }),
+    ['public-profile', cacheIdentity],
+    {
+      revalidate: PUBLIC_PROFILE_CACHE_TTL_SECONDS,
+      tags: ['public-profiles'],
+    },
+  )
+
+  return getWithIsrTag()
+}
+
 export default async function ProfissionalPage({
   params,
   searchParams,
@@ -90,27 +160,33 @@ export default async function ProfissionalPage({
     viewerTimezone = String(viewerProfile?.timezone || viewerTimezone)
   }
 
-  let professionalQuery = readClient
-    .from('professionals')
-    .select('*, profiles!inner(*), first_booking_enabled')
-    .eq('profiles.role', 'profissional')
+  let professional: any = null
+  if (user) {
+    let professionalQuery = readClient
+      .from('professionals')
+      .select('*, profiles!inner(*), first_booking_enabled')
+      .eq('profiles.role', 'profissional')
 
-  if (parsedParam.kind === 'uuid') {
-    professionalQuery = professionalQuery.eq('id', parsedParam.id)
+    if (parsedParam.kind === 'uuid') {
+      professionalQuery = professionalQuery.eq('id', parsedParam.id)
+    }
+
+    if (parsedParam.kind === 'publicCode') {
+      professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+    }
+
+    const { data } = await professionalQuery.maybeSingle()
+    professional = data
+  } else {
+    professional = await loadCachedPublicProfessionalByParam(parsedParam)
   }
 
-  if (parsedParam.kind === 'publicCode') {
-    professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
-  }
-
-  const { data: professional } = await professionalQuery.maybeSingle()
-
-  if (!professional || (professional.status !== 'approved' && professional.user_id !== user?.id)) {
+  if (!professional || (user && professional.status !== 'approved' && professional.user_id !== user?.id)) {
     notFound()
   }
 
   const isOwnProfessional = user ? professional.user_id === user.id : false
-  if (!isOwnProfessional) {
+  if (user && !isOwnProfessional) {
     const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient as any, [professional])
     const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
     if (!canGoLive) notFound()
@@ -256,6 +332,9 @@ export default async function ProfissionalPage({
                       alt={`Foto de ${profile?.full_name || 'Profissional'}`}
                       width={96}
                       height={96}
+                      sizes="96px"
+                      quality={75}
+                      priority
                       className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-sm"
                     />
                   ) : (
@@ -435,6 +514,8 @@ export default async function ProfissionalPage({
                           alt={`Foto de ${item.profiles?.full_name || 'Profissional'}`}
                           width={44}
                           height={44}
+                          sizes="44px"
+                          quality={68}
                           className="h-11 w-11 rounded-xl border border-neutral-200 object-cover"
                         />
                       ) : (

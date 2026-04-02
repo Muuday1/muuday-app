@@ -14,6 +14,8 @@ import {
   mapLegacyAvailabilityToRules,
 } from '@/lib/booking/availability-engine'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
+import { getExchangeRates } from '@/lib/exchange-rates'
+import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 
 type BookingCreateResult =
   | { success: true; bookingId: string }
@@ -98,11 +100,39 @@ function addDaysToLocalDateTime(localDateTime: string, daysToAdd: number) {
   return `${y}-${m}-${d}T${hh}:${mm}:00`
 }
 
+function isValidIsoLocalDateTime(value: string) {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
+  )
+  if (!match) return false
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw] = match
+  const year = Number(yearRaw)
+  const month = Number(monthRaw)
+  const day = Number(dayRaw)
+  const hour = Number(hourRaw)
+  const minute = Number(minuteRaw)
+  const second = Number(secondRaw || '0')
+
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second
+  )
+}
+
+const localDateTimeSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horario invalido.')
+  .refine(isValidIsoLocalDateTime, 'Horario invalido.')
+
 const createBookingSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional invalido.'),
-  scheduledAt: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horario invalido.'),
+  scheduledAt: localDateTimeSchema,
   notes: z.string().trim().max(500, 'Observacoes muito longas.').optional(),
   sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessao muito longo.').optional(),
   bookingType: z.enum(['one_off', 'recurring']).default('one_off').optional(),
@@ -220,7 +250,7 @@ export async function createBooking(data: {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const rl = await rateLimit('booking', user.id)
+  const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const { data: profile } = await supabase
@@ -386,14 +416,7 @@ export async function createBooking(data: {
   }
 
   const currency = profile?.currency || 'BRL'
-  const rates: Record<string, number> = {
-    BRL: 1,
-    USD: 0.19,
-    EUR: 0.17,
-    GBP: 0.15,
-    CAD: 0.26,
-    AUD: 0.29,
-  }
+  const rates = await getExchangeRates(supabase as any)
   const priceBrl = Number(professional.session_price_brl) || 0
   const perSessionPriceUserCurrency = roundCurrency(priceBrl * (rates[currency] || 1))
   const totalPriceUserCurrency = roundCurrency(perSessionPriceUserCurrency * sessionCount)
@@ -567,6 +590,27 @@ export async function createBooking(data: {
     return { success: false, error: 'Erro ao finalizar agendamento.' }
   }
 
+  const paymentMetadata = {
+    capturedBy: 'legacy_booking_flow',
+    confirmationMode: bookingSettings.confirmationMode,
+    bookingType,
+    sessionsCount: sessionCount,
+  }
+
+  try {
+    assertNoSensitivePaymentPayload(paymentMetadata, 'payments.metadata.createBooking')
+  } catch (error) {
+    reportBookingError(
+      error,
+      { parentBookingId, bookingType },
+      'booking_payment_sensitive_metadata_blocked',
+    )
+    return {
+      success: false,
+      error: 'Erro interno ao preparar pagamento.',
+    }
+  }
+
   const { error: paymentError } = await supabase.from('payments').insert({
     booking_id: parentBookingId,
     user_id: user.id,
@@ -575,12 +619,7 @@ export async function createBooking(data: {
     amount_total: totalPriceUserCurrency,
     currency,
     status: 'captured',
-    metadata: {
-      capturedBy: 'legacy_booking_flow',
-      confirmationMode: bookingSettings.confirmationMode,
-      bookingType,
-      sessionsCount: sessionCount,
-    },
+    metadata: paymentMetadata,
     captured_at: new Date().toISOString(),
   })
 

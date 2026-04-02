@@ -54,11 +54,11 @@ Wave legend:
 | Internal financial ledger | Booking-finance auditability and reconciliation | Planned | Wave 3 | Finance/audit traceability gaps in payment lifecycle |
 | Recurring booking atomicity | Wrap parent + child + session inserts in Postgres RPC transaction | Planned | Wave 3 | Partial booking creation on failure |
 | Supabase Vault | Encrypted storage for sensitive payout/bank details | Planned | Wave 3 | PII compliance when handling financial data |
-| Admin audit trail table | `admin_audit_log` for all admin mutations | Planned | Wave 3 | Financial compliance requires audit-grade traceability |
+| Admin audit trail table | `admin_audit_log` for all admin mutations | In progress (foundation delivered) | Wave 3 | Extend audit coverage to all financial/admin mutation paths |
 | Case queue subsystem | Admin exception handling and trust operations | Planned | Wave 4 | Case volume and dispute turnaround SLA pressure |
 | Event-driven notification dispatcher | Consistent email + in-app delivery | Planned/In progress | Wave 4 | Reminder reliability and multi-channel routing needs |
-| Checkly synthetic monitoring | Uptime and critical-path monitoring (already in devDependencies) | Planned | Wave 4 | SLA incidents require broader check set/escalation |
-| Sentry alert rules | Custom alerts for error rate spike, payment failures, auth failures | Planned | Wave 4 | Production incident detection is manual |
+| Checkly synthetic monitoring | Uptime and critical-path monitoring (already in devDependencies) | In progress | Wave 4 | SLA incidents require broader check set/escalation |
+| Sentry alert rules | Custom alerts for error rate spike, payment failures, auth failures | In progress | Wave 4 | Final dashboard alert-rule setup still manual |
 | Session provider abstraction | Provider-agnostic video/session execution | Planned | Wave 5 | Video experience reliability and no-show evidence requirements |
 | Compliance disclaimer versioning | Sensitive-category checkout/profile governance | Planned | Wave 5 | Legal wording changes and category expansion complexity |
 

@@ -19,14 +19,20 @@ Ordered by execution impact.
 - Resolved: 2026-04-01
 - Decision: keep Postgres-first search with `pg_trgm + GIN` now; migrate to Typesense only after `> 2k` active professionals (or if latency remains > 500ms p95 after tuning).
 
+3. Secrets rotation policy baseline
+- Resolved: 2026-04-01
+- Decision: periodic rotation is mandatory (not only incident-driven), including Supabase service/admin key, CRON secret, Resend, Upstash token, and Stripe keys.
+
 ## Decision deadlines by wave (by when)
 
 | Decision | Owner | Must be decided by when | Why |
 | --- | --- | --- | --- |
 | Stripe corridor and legal entity confirmation | Founder/Ops/Finance/Legal | Before Wave 3 start gate | Blocks payment architecture freeze |
 | Tax/accounting operating model | Finance/Accounting | Before Wave 3 exit gate | Blocks ledger reconciliation and finance ops hardening |
+| Payout-sensitive data storage model (Stripe-only vs local encrypted) | Founder + Engineering + Compliance | Before Wave 3 start gate | Required for Vault/encryption implementation scope and compliance boundaries |
 | Refund/dispute authority matrix | Operations lead | Before Wave 4 start gate | Needed for case queue and safe refund operations |
 | Monitoring and on-call ownership | Ops | Resolved (2026-03-30) | Baseline operational response policy active |
+| Secrets rotation periodic cadence (core + Stripe) | Ops/Security owner | Before Wave 3 start gate | Required before finance engine hardening and launch risk reduction |
 | Final session provider decision (LiveKit vs Google Meet) | Product + Engineering | Before Wave 5 start gate | Blocks session provider freeze |
 | Legal/compliance text freeze | Legal/Compliance + Founder | Before Wave 5 exit gate | Blocks sensitive-category launch readiness |
 | Data retention/legal-hold final approval | Legal/Compliance + Ops | Before Wave 4 exit gate | Required before lifecycle automation rollout completion |
@@ -53,6 +59,11 @@ Ordered by execution impact.
 - Approve bookkeeping model for held funds, reversals, and subscription revenue.
 - Owner: finance/accounting.
 - Blocks: Wave 3 ledger and reconciliation operations.
+
+5. Payout-sensitive data storage model
+- Decide if payout/KYC sensitive fields will be stored only in Stripe (recommended) or also locally with encryption.
+- Owner: founder + engineering + compliance.
+- Gate: before Wave 3 start.
 
 ## P1 - Launch quality decisions
 

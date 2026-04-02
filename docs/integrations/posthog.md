@@ -1,6 +1,6 @@
 # PostHog Integration
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 ## Status
 
@@ -25,6 +25,7 @@ Last updated: 2026-03-30
 ## Event taxonomy (implemented)
 
 Auth:
+- `auth_signup_started`
 - `auth_login_succeeded`
 - `auth_login_failed`
 - `auth_signup_succeeded`
@@ -54,6 +55,10 @@ Feature flags:
    2. `booking_time_selected`
    3. `booking_submit_clicked`
    4. `booking_created`
+5. Configure alert thresholds (manual dashboard step) from:
+   - `docs/engineering/runbooks/error-budget-and-alerting.md`
+   - signup drop-off: `auth_signup_started -> auth_signup_succeeded`
+   - booking conversion drop: `booking_submit_clicked -> booking_created`
 
 ## Notes
 

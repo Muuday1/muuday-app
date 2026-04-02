@@ -1,6 +1,6 @@
 ﻿# Setup and Environments
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 ## Local setup
 
@@ -35,6 +35,8 @@ Optional but recommended:
 - `INNGEST_EVENT_KEY`
 - `INNGEST_SIGNING_KEY`
 - `SUPABASE_AUTH_TEST_EMAIL` (for auth smoke validation)
+- `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) for direct SQL clients in runtime (must be `:6543` in production)
+- `SUPABASE_DB_DIRECT_URL` (or `DATABASE_DIRECT_URL`) for migrations/maintenance only
 
 4. Run app
 
@@ -68,6 +70,18 @@ npm run inngest:dev
 - Active stable domain: `https://muuday-app.vercel.app`
 - Future primary domain: `https://muuday.com`
 
+### Production DB connection policy (Supabase Pro / Supavisor)
+
+1. Runtime/serverless direct SQL clients must use pooled connection string (Supavisor transaction mode):
+- `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) on port `6543`.
+2. Direct database connection string must be reserved for migrations/maintenance only:
+- `SUPABASE_DB_DIRECT_URL` (or `DATABASE_DIRECT_URL`) typically on port `5432`.
+3. Before each production release, validate env with:
+
+```bash
+npm run db:validate-pooling
+```
+
 3. Domain cutover strategy
 - Update env values only:
   - `APP_BASE_URL`
@@ -79,9 +93,17 @@ npm run inngest:dev
 
 1. Never commit `.env.local`.
 2. Keep SaaS tokens in provider-managed secret stores.
-3. Rotate credentials if accidental exposure is detected.
+3. Follow periodic rotation policy (not only incident-driven rotation):
+- `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY`: every 90 days
+- `CRON_SECRET`: every 60 days
+- `RESEND_API_KEY`: every 90 days
+- `UPSTASH_REDIS_REST_TOKEN`: every 90 days
+- `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`: every 90 days
+4. Rotate credentials immediately on suspected exposure, owner offboarding, or unauthorized usage signal.
+5. Record every completed rotation in runbook register.
 
 ## Related docs
 
 - [Deployment and Operations](./deployment-and-operations.md)
+- [Secrets Rotation Runbook](./runbooks/secrets-rotation-runbook.md)
 - [Vercel and GitHub Actions](../integrations/vercel-github-actions.md)

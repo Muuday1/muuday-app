@@ -1,32 +1,46 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
-
-function mapLoginErrorMessage(rawMessage: string) {
-  const normalized = rawMessage.toLowerCase()
-  if (normalized.includes('email not confirmed')) {
-    return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.'
-  }
-  if (normalized.includes('invalid login credentials')) {
-    return 'E-mail ou senha incorretos.'
-  }
-  return 'Não foi possível entrar agora. Tente novamente em instantes.'
-}
+import { guardAuthAttempt } from '@/lib/auth/attempt-guard-client'
+import {
+  AUTH_MESSAGES,
+  type AuthLoginHint,
+  isInvalidCredentialsError,
+  mapLoginErrorMessage,
+} from '@/lib/auth/messages'
 
 type LoginFormProps = {
-  redirectTo?: string
   compact?: boolean
   title?: string
   subtitle?: string
   onSuccess?: () => void
   idPrefix?: string
+}
+
+async function resolveLoginHint(email: string): Promise<AuthLoginHint> {
+  try {
+    const response = await fetch('/api/auth/login-hint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    })
+    if (!response.ok) return 'unknown'
+
+    const payload = (await response.json().catch(() => null)) as { hint?: AuthLoginHint } | null
+    if (payload?.hint === 'social_only') return 'social_only'
+    if (payload?.hint === 'existing_account') return 'existing_account'
+    return 'unknown'
+  } catch {
+    return 'unknown'
+  }
 }
 
 export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: LoginFormProps) {
@@ -37,14 +51,21 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
   const passwordId = `${resolvedIdPrefix}-password`
 
   const oauthError = searchParams.get('erro')
-  const [email, setEmail] = useState('')
+  const initialEmail = searchParams.get('email')?.trim() || ''
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showRecoveryHint, setShowRecoveryHint] = useState(false)
 
   useEffect(() => {
     if (oauthError === 'oauth') {
-      setError('Não foi possível concluir o login com Google. Tente novamente.')
+      Sentry.captureMessage('auth_oauth_callback_failed', {
+        level: 'warning',
+        tags: { area: 'auth', flow: 'oauth' },
+      })
+      setError(AUTH_MESSAGES.login.oauthCallbackFailed)
+      setShowRecoveryHint(false)
     }
   }, [oauthError])
 
@@ -52,13 +73,32 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
     e.preventDefault()
     setLoading(true)
     setError('')
+    setShowRecoveryHint(false)
+
+    const guard = await guardAuthAttempt('login', email)
+    if (!guard.allowed) {
+      captureEvent('auth_login_rate_limited')
+      setError(guard.error || AUTH_MESSAGES.login.rateLimited)
+      setLoading(false)
+      return
+    }
 
     const supabase = createClient()
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (loginError) {
       captureEvent('auth_login_failed', { reason: 'invalid_credentials' })
-      setError(mapLoginErrorMessage(loginError.message || ''))
+      Sentry.captureMessage('auth_login_failed', {
+        level: 'warning',
+        tags: { area: 'auth', flow: 'password' },
+        extra: { reason: loginError.message || 'unknown' },
+      })
+
+      const rawError = loginError.message || ''
+      const invalidCredentials = isInvalidCredentialsError(rawError)
+      const hint = invalidCredentials ? await resolveLoginHint(email) : 'unknown'
+      setError(mapLoginErrorMessage(rawError, hint))
+      setShowRecoveryHint(invalidCredentials)
       setLoading(false)
       return
     }
@@ -95,8 +135,8 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
 
   return (
     <div>
-      {title && <h1 className={titleClass}>{title}</h1>}
-      {subtitle && <p className={subtitleClass}>{subtitle}</p>}
+      {title ? <h1 className={titleClass}>{title}</h1> : null}
+      {subtitle ? <p className={subtitleClass}>{subtitle}</p> : null}
 
       <form onSubmit={handleLogin} className={formSpacingClass} noValidate>
         <div>
@@ -122,7 +162,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
               Senha
             </label>
             <Link
-              href="/recuperar-senha"
+              href={email.trim() ? `/recuperar-senha?email=${encodeURIComponent(email.trim())}` : '/recuperar-senha'}
               className="rounded-md text-sm font-medium text-brand-600 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
             >
               Esqueceu a senha?
@@ -141,20 +181,27 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
           />
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600" role="alert">
-            {error}
+        {error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+            <p>{error}</p>
+            {showRecoveryHint ? (
+              <p className="mt-1 text-xs">
+                Esqueceu a senha?{' '}
+                <Link
+                  href={email.trim() ? `/recuperar-senha?email=${encodeURIComponent(email.trim())}` : '/recuperar-senha'}
+                  className="font-semibold underline"
+                >
+                  Clique aqui.
+                </Link>
+              </p>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className={submitClass}
-        >
+        <button type="submit" disabled={loading} className={submitClass}>
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Entrando...
+              <Loader2 className="h-4 w-4 animate-spin" /> Entrando...
             </>
           ) : (
             'Entrar'
@@ -164,9 +211,9 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
 
       <div className={compact ? 'mt-4' : 'mt-6'}>
         <div className={dividerClass}>
-          <div className="flex-1 h-px bg-neutral-200" />
-          <span className="text-xs text-neutral-400 font-medium">ou entre com</span>
-          <div className="flex-1 h-px bg-neutral-200" />
+          <div className="h-px flex-1 bg-neutral-200" />
+          <span className="text-xs font-medium text-neutral-400">ou entre com</span>
+          <div className="h-px flex-1 bg-neutral-200" />
         </div>
         <SocialAuthButtons roleHint="usuario" compact={compact} />
       </div>

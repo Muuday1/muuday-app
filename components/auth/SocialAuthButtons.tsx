@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { guardAuthAttempt } from '@/lib/auth/attempt-guard-client'
+import { AUTH_MESSAGES } from '@/lib/auth/messages'
 
 type Provider = 'google'
 type SocialAuthButtonsProps = {
@@ -45,6 +48,13 @@ export default function SocialAuthButtons({
     setLoadingProvider(provider)
     setError('')
 
+    const guard = await guardAuthAttempt('oauth_start')
+    if (!guard.allowed) {
+      setError(guard.error || AUTH_MESSAGES.login.rateLimited)
+      setLoadingProvider(null)
+      return
+    }
+
     const callbackUrl = new URL('/auth/callback', window.location.origin)
     const safeRedirect = sanitizeRedirectPath(redirectPath)
     if (safeRedirect) callbackUrl.searchParams.set('next', safeRedirect)
@@ -59,7 +69,15 @@ export default function SocialAuthButtons({
     })
 
     if (authError) {
-      setError('Erro ao conectar com Google. Tente novamente.')
+      Sentry.captureMessage('auth_oauth_start_failed', {
+        level: 'warning',
+        tags: { area: 'auth', flow: 'oauth' },
+        extra: {
+          reason: authError.message || 'unknown',
+          provider,
+        },
+      })
+      setError(AUTH_MESSAGES.login.oauthFailed)
       setLoadingProvider(null)
     }
   }

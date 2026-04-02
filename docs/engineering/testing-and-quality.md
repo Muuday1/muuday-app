@@ -1,15 +1,17 @@
 ﻿# Testing and Quality
 
-Last updated: 2026-03-30
+Last updated: 2026-04-01
 
 ## CI baseline
 
 GitHub Actions workflow `ci.yml` runs on push and PR to `main`:
 
 1. `npm ci`
-2. `npm run typecheck`
-3. `npm run lint`
+2. `npm run lint`
+3. `npm run typecheck`
 4. `npm run build`
+5. `npm run test:unit`
+6. `npm run test:e2e`
 
 ## Local verification commands
 
@@ -17,8 +19,10 @@ GitHub Actions workflow `ci.yml` runs on push and PR to `main`:
 npm run typecheck
 npm run lint
 npm run build
+npm run test:unit
 npm run test:e2e
 npm run test:state-machines
+npm run audit:rls:api
 ```
 
 Required env vars for `test:e2e`:
@@ -30,6 +34,14 @@ Required env vars for `test:e2e`:
 - `E2E_PROFESSIONAL_PASSWORD` (for professional workspace e2e)
 - `E2E_PROFESSIONAL_ID`
 - `E2E_MANUAL_PROFESSIONAL_ID` (optional, only for manual-confirmation smoke test)
+- `E2E_BLOCKED_PROFESSIONAL_ID` (for blocked-gate onboarding/booking checks)
+
+Required env vars for `audit:rls:api`:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `RLS_A_EMAIL` + `RLS_A_PASSWORD` (or E2E user fallback)
+- `RLS_B_EMAIL` + `RLS_B_PASSWORD` (or E2E professional fallback)
 
 ## Current quality status
 
@@ -74,4 +86,5 @@ Latest production execution snapshot:
 ## Related docs
 
 - [Release Checklist](./runbooks/release-checklist.md)
+- [RLS Audit Runbook](./runbooks/rls-audit-runbook.md)
 - [Project Status](../project/project-status.md)

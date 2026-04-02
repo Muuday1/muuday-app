@@ -4,12 +4,67 @@ Last updated: 2026-04-01
 
 Source: `docs/spec/source-of-truth/part3-payments-billing-revenue-engine.md`
 
+## Background Job Resilience Foundation — Implemented (code level)
+
+Delivered in repository (pending migration apply in production):
+
+- Migration: `db/sql/migrations/023-wave3-stripe-job-resilience-foundation.sql`
+  - `stripe_webhook_events` (idempotent webhook inbox with retry metadata)
+  - `stripe_payment_retry_queue`
+  - `stripe_subscription_check_queue`
+  - `stripe_job_runs`
+- Webhook route now verifies signature and persists/enqueues:
+  - `app/api/webhooks/stripe/route.ts`
+- Inngest workers added:
+  - `process-stripe-webhook-inbox`
+  - `stripe-weekly-payout-eligibility-scan`
+  - `stripe-subscription-renewal-checks`
+  - `stripe-failed-payment-retries`
+
+Important boundary: this foundation is orchestration-only. It does not yet execute real payout transfers or full Stripe billing lifecycle mutations.
+
+## Stripe corridor validation — CONFIRMED (2026-04-01)
+
+All questions answered by Stripe. Summary:
+
+| Question | Answer |
+|----------|--------|
+| UK platform → BR Express accounts | **Supported** |
+| Separate Charges and Transfers | **Supported** (UK + BR both listed) |
+| BR payout currency | **BRL** — charges settle in GBP on platform, transfers settle in BRL on connected account |
+| Payout timing for BR accounts | **Automatic daily only** — cannot be set to manual or weekly. Use Balance Settings API for minimum balances. |
+| PayPal for UK platform | **Supported** |
+| Fallback needed? | **No** — corridor is fully supported |
+
+### Critical constraint: BR daily automatic payouts
+
+The Part 3 spec defines "weekly payout cycle" (Section 2.4, 11.1). **This conflicts with Stripe's Brazil requirement of automatic daily payouts.**
+
+**Adapted architecture:**
+- Platform still controls WHEN to create the Transfer (48h after session + eligibility check + BRL 100 minimum).
+- Once the Transfer is created to the connected account, Stripe pays out daily automatically.
+- The "weekly batch" becomes a "weekly transfer eligibility scan" — the app decides when to move money from platform to connected account, but once moved, Stripe pays out daily.
+- This is functionally equivalent: professional doesn't get money until the app creates the Transfer. The daily payout just means the connected account balance drains daily instead of weekly.
+- **No product behavior change** — professional still sees "payout eligible after 48h" and money arrives after the weekly scan transfers it.
+
+### Currency flow (confirmed)
+
+```
+Customer (any currency) → PaymentIntent → Platform account (settles GBP)
+                                              ↓
+                                     Transfer (app-controlled timing)
+                                              ↓
+                              Connected account (settles BRL, auto daily payout)
+```
+
+---
+
 ## Rule-by-rule Stripe compatibility assessment
 
 Each rule from Part 3 is classified as:
 - **Works** — Stripe supports natively, standard implementation
 - **Works with config** — Stripe supports but needs specific setup/configuration
-- **Needs Stripe validation** — Must confirm with Stripe before building
+- **Confirmed** — Previously "Needs Stripe validation", now confirmed working
 - **Needs alternative** — Stripe alone does not solve this; custom code or third-party required
 
 ---
@@ -25,15 +80,11 @@ Each rule from Part 3 is classified as:
 | 2.7 | Express-style connected accounts | **Works with config** | Use `type: 'express'` in `stripe.accounts.create()`. Hosted onboarding via Account Links. |
 
 **Action items:**
-- [ ] Send validation packet to Stripe (Section 3.4 of Part 3) before writing any code
-- [ ] Confirm: Can UK platform create Express accounts for Brazil-based professionals?
-- [ ] Confirm: What payout currencies are supported for BR connected accounts?
-- [ ] Confirm: Are there volume/corridor restrictions?
-
-**If Stripe says no to UK→BR corridor:**
-- **Fallback A**: Create a Brazilian subsidiary entity on Stripe (BR platform for BR payouts, UK platform for customer collection). Two Stripe accounts, bridge via internal ledger.
-- **Fallback B**: Use Stripe for customer collection only. Use a Brazil payment provider (e.g., Payoneer, Wise Business API, or direct bank transfer via API) for professional payouts.
-- **Fallback C**: Stripe Global Payouts (if available for BR) — platform sends payouts to BR bank accounts without full Connect.
+- [x] Send validation packet to Stripe — **CONFIRMED 2026-04-01**. Corridor supported. No fallback needed.
+- [x] UK platform → BR Express accounts — **Confirmed**
+- [x] BR payout currency BRL — **Confirmed**
+- [x] No volume/corridor restrictions reported
+- [ ] Request appropriate capabilities for connected accounts during onboarding
 
 ---
 
@@ -42,7 +93,7 @@ Each rule from Part 3 is classified as:
 | # | Rule | Stripe status | Notes |
 |---|------|--------------|-------|
 | 2.4 | Payout eligible 48h after session end | **Works with config** | Don't transfer until 48h. Custom logic in app, not Stripe-native. Transfer created by Inngest cron job. |
-| 2.4 | Weekly payout cycle | **Works with config** | Set `settings.payouts.schedule.interval: 'weekly'` on connected accounts. Or control entirely via app-side batch. |
+| 2.4 | Weekly payout cycle | **Adapted** | BR accounts have mandatory daily auto-payout. App controls Transfer timing (weekly scan), not payout schedule. Once transferred, Stripe pays out daily. Functionally equivalent. |
 | 2.4 | Minimum payout BRL 100 equivalent | **Needs custom code** | Stripe has no native minimum payout threshold. App must accumulate and only create transfer when threshold is met. |
 | 2.4 | Rollover if minimum not met | **Needs custom code** | Track accumulated eligible amount in internal ledger. Transfer only when >= BRL 100 equiv. |
 | 11.6 | Payout failure: 7-day fix window, then block new bookings | **Needs custom code** | Listen to `payout.failed` webhook. App enforces the grace period and booking block. |
@@ -245,28 +296,30 @@ Each rule from Part 3 is classified as:
 - Professional earnings dashboard
 - Financial data export
 
-### Needs Stripe validation before building (3 rules)
-1. **UK platform → Brazil professional payout corridor** — Can Express accounts in BR receive transfers from UK platform?
-2. **PayPal availability** — Is PayPal available as payment method for UK Stripe accounts?
-3. **Cross-border payout currency** — Can transfers land in BRL for BR connected accounts?
+### Stripe validation — ALL CONFIRMED (2026-04-01)
+1. ~~UK platform → Brazil professional payout corridor~~ — **Confirmed.** Express accounts in BR supported.
+2. ~~PayPal availability~~ — **Confirmed.** PayPal available for UK Stripe accounts.
+3. ~~Cross-border payout currency~~ — **Confirmed.** Transfers settle in BRL for BR connected accounts.
 
-### Needs re-think / alternative solution (0 blocking, 2 contingencies)
-1. **If UK→BR corridor is rejected:** See fallback options A/B/C in Section 1 above.
-2. **If per-session payout within subscription is too complex for MVP:** Simplify to cycle-level payout (pay professional after full month + 48h of last session). Document as V2 improvement.
+### Adapted rules (1 constraint discovered)
+1. **BR accounts have mandatory daily automatic payouts.** Original spec said "weekly payout cycle". Adapted: app controls Transfer timing (weekly eligibility scan), Stripe handles daily payout from connected account balance. No product behavior change for professionals.
+
+### Remaining contingency (1)
+1. **If per-session payout within subscription is too complex for MVP:** Simplify to cycle-level payout (pay professional after full month + 48h of last session). Document as V2 improvement.
 
 ---
 
 ## Implementation sequence
 
-### Phase 1: Foundation (Week 1-2)
-1. Send Stripe validation packet (Section 3.4 of Part 3)
+### Phase 1: Foundation (Track A — in progress)
+1. ~~Send Stripe validation packet~~ — **CONFIRMED 2026-04-01**
 2. Install Stripe MCP server for Claude Code
-3. `npm install stripe`
-4. Create Stripe account + Connect setup
-5. Create Products/Prices for professional subscriptions
+3. ~~`npm install stripe`~~ — **Done** (v21.0.1)
+4. ~~Create Stripe account~~ — **Done**. Enable Connect in Dashboard.
+5. Create Products/Prices for professional subscriptions (Basic/Professional/Premium × monthly/annual)
 6. Database migration: payment tables + internal ledger
-7. Stripe customer creation on user signup
-8. Stripe connected account creation in professional onboarding
+7. Webhook endpoint skeleton with signature verification
+8. ~~Add env vars to `.env.local`~~ — **Done** (test mode keys)
 
 ### Phase 2: One-off payments (Week 2-3)
 9. Payment Element checkout for one-off bookings

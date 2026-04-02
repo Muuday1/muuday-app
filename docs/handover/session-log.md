@@ -2,6 +2,28 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-04-02
+
+### Entry 80
+- Fluxo de autenticação padronizado em app-level:
+  - `app/(auth)/login/page.tsx` agora usa `components/auth/LoginForm.tsx` como fonte única de login (página + modal).
+  - catálogo único de mensagens criado em `lib/auth/messages.ts` (login/signup/password).
+  - `components/auth/SocialAuthButtons.tsx` passou a usar mensagens padronizadas para rate-limit/OAuth fail.
+- Novo endpoint de suporte a UX de login social:
+  - `POST /api/auth/login-hint` (`app/api/auth/login-hint/route.ts`).
+  - identifica quando conta é social-only e devolve hint para mensagem de erro determinística após falha de senha.
+- Cadastro alinhado com mensagens padronizadas:
+  - `app/(auth)/cadastro/page.tsx` agora usa `mapSignupErrorMessage` e `isDuplicateSignupError`.
+  - duplicate-email exibe mensagem padrão com orientação para login social ou recuperação de senha.
+- Segurança de conta em `/perfil` ampliada:
+  - `components/profile/ProfileAccountSettings.tsx` agora permite definir/atualizar senha em sessão ativa.
+  - inclui validação de confirmação, tamanho mínimo e feedback de sucesso/erro padronizado.
+- Validação técnica executada com sucesso:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+
 ## 2026-04-01
 
 ### Entry 79

@@ -1,6 +1,6 @@
 ﻿# Current State
 
-Last updated: 2026-04-01 (session 78)
+Last updated: 2026-04-02 (session 80)
 
 ## Canonical baseline status
 
@@ -133,6 +133,11 @@ Last updated: 2026-04-01 (session 78)
 - `/buscar` query uses inner profile join + `profiles.role = profissional`.
 - `/profissional/[id]` now requires linked `profiles.role = profissional`.
 59. Agenda role detection no longer infers professional mode from orphan/legacy rows in `professionals`; it now requires `profiles.role = profissional`.
+60. Auth flow standardization applied across login + cadastro + perfil segurança:
+- login page and modal now share one code path (`components/auth/LoginForm.tsx`);
+- standardized messaging via `lib/auth/messages.ts` for login/signup/password flows;
+- new endpoint `/api/auth/login-hint` informs social-only account guidance after failed password login;
+- `/perfil` account security now allows setting/updating password directly in-session (social-first and password accounts).
 60. Auth and signup stabilization patch delivered:
 - signout now returns to landing page (`/`), not login page.
 - login now surfaces explicit `email not confirmed` and oauth failure messages instead of generic invalid-credentials only.

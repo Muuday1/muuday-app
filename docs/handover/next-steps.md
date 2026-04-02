@@ -1,6 +1,6 @@
 ﻿# Next Steps
 
-Last updated: 2026-04-01
+Last updated: 2026-04-02
 
 Execute in order. Build one batch at a time.
 
@@ -10,6 +10,22 @@ Execute in order. Build one batch at a time.
 2. Keep feature branches short-lived; delete local/remote branch right after merge to `main`.
 3. Before production promotion, always create a rollback tag on current `main`.
 4. Keep archived workspaces as read-only historical snapshots only.
+
+## Auth flow validation after standardization (execute before new UI work)
+
+1. Validate password login error UX for three cases:
+- invalid credential (`E-mail ou senha incorretos`);
+- unconfirmed email;
+- social-only account (message must direct user to Google or password reset).
+2. Validate signup duplicate-email flow:
+- duplicate email must show standardized duplicate message and recovery link.
+3. Validate profile security flow in `/perfil`:
+- social-first account can set password in-session;
+- password account can update password in-session;
+- success/error messages must match shared catalog (`lib/auth/messages.ts`).
+4. Validate role destinations remain unchanged after login:
+- profissional -> `/dashboard`
+- usuario/admin -> `/buscar`
 
 ## Search performance follow-up (no added cost)
 

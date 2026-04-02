@@ -60,6 +60,18 @@ Ordered migrations remain canonical runtime truth.
 3. Validate app behavior after each migration set with smoke tests.
 4. Keep migration docs and project status in sync.
 
+## Connection pooling policy (Supabase Pro)
+
+1. For any runtime path that uses direct SQL clients (server actions/jobs/workers), use pooled connection string:
+- `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) with port `6543` (Supavisor transaction mode).
+2. Keep direct Postgres connection string only for migrations/maintenance tooling:
+- `SUPABASE_DB_DIRECT_URL` (or `DATABASE_DIRECT_URL`) with direct DB endpoint (typically `5432`).
+3. Validate configuration before deploy:
+
+```bash
+npm run db:validate-pooling
+```
+
 ## Runtime entities (high level)
 
 - `profiles`

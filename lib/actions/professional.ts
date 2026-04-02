@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { revalidateTag } from 'next/cache'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { z } from 'zod'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -149,6 +150,7 @@ export async function createProfessionalProfile(formData: FormData) {
       durationMinutes: sessionDurationMinutes,
       priceBrl: sessionPriceBrl,
     })
+    revalidateTag('public-profiles')
   }
 
   redirect('/perfil')
@@ -199,5 +201,6 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
     if (error) return { error: error.message }
   }
 
+  revalidateTag('public-profiles')
   return { success: true }
 }

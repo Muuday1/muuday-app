@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bell, Check, Globe, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ALL_TIMEZONES, STRIPE_CURRENCIES } from '@/lib/constants'
+import { AUTH_MESSAGES, mapPasswordUpdateErrorMessage } from '@/lib/auth/messages'
 
 type NotificationPreferences = {
   booking_emails: boolean
@@ -50,6 +51,12 @@ export function ProfileAccountSettings() {
   const [currency, setCurrency] = useState('BRL')
   const [notifications, setNotifications] = useState<NotificationPreferences>(DEFAULT_NOTIFICATIONS)
   const [savedField, setSavedField] = useState<string | null>(null)
+  const [hasPasswordProvider, setHasPasswordProvider] = useState(true)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [securityLoading, setSecurityLoading] = useState(false)
+  const [securityError, setSecurityError] = useState('')
+  const [securitySuccess, setSecuritySuccess] = useState('')
 
   useEffect(() => {
     async function loadProfile() {
@@ -63,6 +70,19 @@ export function ProfileAccountSettings() {
       }
 
       setUserId(user.id)
+      const providers = new Set<string>()
+      const appProvider = user.app_metadata?.provider
+      if (typeof appProvider === 'string' && appProvider) providers.add(appProvider)
+      const appProviders = user.app_metadata?.providers
+      if (Array.isArray(appProviders)) {
+        appProviders.forEach(provider => {
+          if (typeof provider === 'string' && provider) providers.add(provider)
+        })
+      }
+
+      // If metadata is unavailable for older sessions, default to allowing password update.
+      const hasEmailProvider = providers.size === 0 || providers.has('email')
+      setHasPasswordProvider(hasEmailProvider)
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -107,6 +127,35 @@ export function ProfileAccountSettings() {
     const updated = { ...notifications, [key]: !notifications[key] }
     setNotifications(updated)
     await saveField('notification_preferences', updated)
+  }
+
+  async function handleUpdatePassword(event: React.FormEvent) {
+    event.preventDefault()
+    setSecurityError('')
+    setSecuritySuccess('')
+
+    if (newPassword.length < 8) {
+      setSecurityError(AUTH_MESSAGES.password.minLength)
+      return
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setSecurityError(AUTH_MESSAGES.password.mismatch)
+      return
+    }
+
+    setSecurityLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setSecurityError(mapPasswordUpdateErrorMessage(error.message || ''))
+      setSecurityLoading(false)
+      return
+    }
+
+    setSecuritySuccess(AUTH_MESSAGES.password.updateSuccess)
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setSecurityLoading(false)
   }
 
   if (loading) {
@@ -256,21 +305,101 @@ export function ProfileAccountSettings() {
       <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
         <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
           <Lock className="h-4 w-4 text-brand-500" />
-          <h3 className="font-display font-bold text-neutral-900">Segurança</h3>
+          <h3 className="font-display font-bold text-neutral-900">Seguran?a</h3>
         </div>
-        <div className="divide-y divide-neutral-50">
-          <div className="flex items-center justify-between px-6 py-4">
-            <p className="text-sm font-medium text-neutral-700">Alterar senha</p>
-            <a
-              href="/recuperar-senha"
-              className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 transition-all hover:text-brand-700"
-            >
-              Alterar
-            </a>
+        <div className="space-y-4 px-6 py-4">
+          <div className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+            <p className="text-sm font-medium text-neutral-700">
+              {hasPasswordProvider ? 'Alterar senha' : 'Definir senha para login com e-mail'}
+            </p>
+            <p className="mt-1 text-xs text-neutral-500">
+              {hasPasswordProvider
+                ? 'Use este formul?rio para atualizar sua senha de acesso.'
+                : 'Sua conta foi criada com login social. Defina uma senha para tamb?m entrar com e-mail e senha.'}
+            </p>
           </div>
-          <div className="flex items-center justify-between px-6 py-4">
+
+          <form onSubmit={handleUpdatePassword} className="space-y-3" noValidate>
             <div>
-              <p className="text-sm font-medium text-neutral-700">Autenticação de dois fatores</p>
+              <label htmlFor="profile-new-password" className="mb-1 block text-sm font-medium text-neutral-700">
+                Nova senha
+              </label>
+              <input
+                id="profile-new-password"
+                type="password"
+                minLength={8}
+                required
+                value={newPassword}
+                onChange={event => {
+                  setNewPassword(event.target.value)
+                  if (securityError) setSecurityError('')
+                  if (securitySuccess) setSecuritySuccess('')
+                }}
+                placeholder="M?nimo de 8 caracteres"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                aria-invalid={Boolean(securityError)}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="profile-confirm-password" className="mb-1 block text-sm font-medium text-neutral-700">
+                Confirmar nova senha
+              </label>
+              <input
+                id="profile-confirm-password"
+                type="password"
+                minLength={8}
+                required
+                value={confirmNewPassword}
+                onChange={event => {
+                  setConfirmNewPassword(event.target.value)
+                  if (securityError) setSecurityError('')
+                  if (securitySuccess) setSecuritySuccess('')
+                }}
+                placeholder="Repita a nova senha"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                aria-invalid={Boolean(securityError)}
+                autoComplete="new-password"
+              />
+            </div>
+
+            {securityError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600" role="alert">
+                {securityError}
+              </div>
+            ) : null}
+
+            {securitySuccess ? (
+              <div
+                className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700"
+                role="status"
+              >
+                {securitySuccess}
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="submit"
+                disabled={securityLoading}
+                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              >
+                {securityLoading ? 'Salvando...' : hasPasswordProvider ? 'Atualizar senha' : 'Definir senha'}
+              </button>
+
+              <a
+                href="/recuperar-senha"
+                className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 transition-all hover:text-brand-700"
+              >
+                Esqueci minha senha
+              </a>
+            </div>
+          </form>
+
+          <div className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-neutral-700">Autentica??o de dois fatores</p>
               <p className="mt-0.5 text-xs text-neutral-400">Desativado</p>
             </div>
             <span className="rounded-full bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-400">
@@ -295,4 +424,3 @@ export function ProfileAccountSettings() {
     </div>
   )
 }
-

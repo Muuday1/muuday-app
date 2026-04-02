@@ -1,6 +1,6 @@
 ﻿# Project Status
 
-Last updated: 2026-04-01
+Last updated: 2026-04-02
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -10,6 +10,14 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Documentation consolidation and execution framing: `Done`
 - Product implementation parity with canonical baseline: `In progress`
 - Architecture freeze readiness: `Blocked` (open external validations)
+
+## Latest auth flow standardization (2026-04-02)
+
+1. Login flow unified through shared `LoginForm` logic for page and modal entry points.
+2. Added API hint endpoint (`/api/auth/login-hint`) to classify social-only accounts and show deterministic guidance when password login fails.
+3. Signup flow now uses standardized auth messages for duplicate-email and retry-rate scenarios.
+4. Profile account security now supports in-session password set/update (including social-first accounts), with consistent success/error feedback.
+5. Added shared auth message catalog (`lib/auth/messages.ts`) to remove ad-hoc message drift across login/signup/security flows.
 
 ## Status by domain
 

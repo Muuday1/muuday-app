@@ -19,6 +19,7 @@ import {
   loadProfessionalSpecialtyContext,
 } from '@/lib/taxonomy/professional-specialties'
 import { getCachedRuntimeValue } from '@/lib/cache/runtime-cache'
+import { getExchangeRates } from '@/lib/exchange-rates'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -94,14 +95,6 @@ type PublicSearchBaseData = {
 const PAGE_SIZE = 10
 const PUBLIC_SEARCH_BASE_CACHE_KEY = 'buscar:public-base:v2'
 const PUBLIC_SEARCH_BASE_CACHE_TTL_MS = 180_000
-const CURRENCY_RATES: Record<string, number> = {
-  BRL: 1,
-  USD: 0.19,
-  EUR: 0.17,
-  GBP: 0.15,
-  CAD: 0.26,
-  AUD: 0.29,
-}
 const CURRENCY_LABELS: Record<string, string> = {
   BRL: 'R$',
   USD: 'US$',
@@ -175,8 +168,13 @@ function getCountryDisplayName(countryCodeOrName?: string | null) {
   return normalized
 }
 
-function formatSearchPrice(amountBRL: number, currency = 'BRL', locale = 'pt-BR'): string {
-  const rate = CURRENCY_RATES[currency] || 1
+function formatSearchPrice(
+  amountBRL: number,
+  currency = 'BRL',
+  locale = 'pt-BR',
+  exchangeRates?: Record<string, number>,
+): string {
+  const rate = exchangeRates?.[currency] || 1
   const converted = Math.ceil(Number(amountBRL || 0) * rate)
   try {
     return new Intl.NumberFormat(locale, {
@@ -392,6 +390,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
 
   const adminSupabase = !user ? createAdminClient() : null
   const readClient = adminSupabase || supabase
+  const exchangeRates = await getExchangeRates((readClient as any) || undefined)
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
@@ -426,7 +425,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
       cookieCurrency ||
       resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
   }
-  const selectedCurrencyRate = CURRENCY_RATES[selectedCurrency] || 1
+  const selectedCurrencyRate = exchangeRates[selectedCurrency] || 1
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
   const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
   const maxPriceBrl = maxPrice === null ? null : maxPrice / selectedCurrencyRate
@@ -674,7 +673,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const endIndex = startIndex + PAGE_SIZE
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
 
-  const usdRate = CURRENCY_RATES.USD || 1
+  const usdRate = exchangeRates.USD || 1
   const openEndedCapInSelectedCurrency = Math.ceil(
     OPEN_ENDED_MAX_USD * (selectedCurrencyRate / usdRate),
   )
@@ -784,6 +783,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           alt={`Foto de ${professional.profiles?.full_name || 'Profissional'}`}
                           width={56}
                           height={56}
+                          sizes="56px"
+                          quality={70}
                           className="h-14 w-14 rounded-2xl border border-neutral-200 object-cover flex-shrink-0"
                         />
                       ) : (
@@ -808,7 +809,12 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                           </div>
                           <div className="text-right">
                             <p className="font-semibold text-neutral-900">
-                              {formatSearchPrice(professional.session_price_brl, selectedCurrency)}
+                              {formatSearchPrice(
+                                professional.session_price_brl,
+                                selectedCurrency,
+                                'pt-BR',
+                                exchangeRates,
+                              )}
                             </p>
                             <p className="text-[11px] text-neutral-400">
                               por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min

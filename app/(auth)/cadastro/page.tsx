@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Briefcase, Loader2, User } from 'lucide-react'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { sendWelcomeEmailAction } from '@/lib/actions/email'
@@ -11,6 +12,12 @@ import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 import { COUNTRIES } from '@/lib/utils'
 import { ALL_TIMEZONES, STRIPE_CURRENCIES } from '@/lib/constants'
 import { LANGUAGE_OPTIONS, SEARCH_CATEGORIES } from '@/lib/search-config'
+import { guardAuthAttempt } from '@/lib/auth/attempt-guard-client'
+import {
+  AUTH_MESSAGES,
+  isDuplicateSignupError,
+  mapSignupErrorMessage,
+} from '@/lib/auth/messages'
 import {
   buildSpecialtyOptionsByCategorySlug,
   loadActiveTaxonomyCatalog,
@@ -351,6 +358,15 @@ export default function CadastroPage() {
     const allLanguages = [professionalPrimaryLanguage, ...professionalSecondaryLanguages].filter(Boolean)
 
     const supabase = createClient()
+    captureEvent('auth_signup_started', { role, country, timezone, currency })
+
+    const guard = await guardAuthAttempt('signup', email)
+    if (!guard.allowed) {
+      captureEvent('auth_signup_rate_limited', { role })
+      setError(guard.error || AUTH_MESSAGES.signup.rateLimited)
+      setLoading(false)
+      return
+    }
 
     const signupMetadata: Record<string, unknown> = {
       full_name: fullName,
@@ -395,24 +411,32 @@ export default function CadastroPage() {
 
     if (signUpError) {
       captureEvent('auth_signup_failed', { role, reason: signUpError.message })
-      const duplicateByErrorMessage =
-        signUpError.message.toLowerCase().includes('already') ||
-        signUpError.message.toLowerCase().includes('registered') ||
-        signUpError.message.toLowerCase().includes('exists')
-
-      if (duplicateByErrorMessage) {
-        setError('Este e-mail já está cadastrado.')
-        setShowForgotPasswordLink(true)
-      } else {
-        setError(signUpError.message)
-      }
+      Sentry.captureMessage('auth_signup_failed', {
+        level: 'warning',
+        tags: { area: 'auth', flow: 'signup' },
+        extra: {
+          role,
+          reason: signUpError.message || 'unknown',
+        },
+      })
+      const normalizedMessage = signUpError.message || ''
+      setError(mapSignupErrorMessage(normalizedMessage))
+      setShowForgotPasswordLink(isDuplicateSignupError(normalizedMessage))
       setLoading(false)
       return
     }
 
     if (duplicateByIdentitySignal) {
       captureEvent('auth_signup_failed', { role, reason: 'email_already_registered' })
-      setError('Este e-mail já está cadastrado.')
+      Sentry.captureMessage('auth_signup_failed_duplicate_email', {
+        level: 'warning',
+        tags: { area: 'auth', flow: 'signup' },
+        extra: {
+          role,
+          reason: 'email_already_registered',
+        },
+      })
+      setError(AUTH_MESSAGES.signup.duplicateEmail)
       setShowForgotPasswordLink(true)
       setLoading(false)
       return
@@ -1189,11 +1213,11 @@ export default function CadastroPage() {
           aria-label="Confirmação de cadastro"
         >
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="font-display text-xl font-bold text-neutral-900">Conta criada com sucesso</h2>
+            <h2 className="font-display text-xl font-bold text-neutral-900">{AUTH_MESSAGES.signup.successTitle}</h2>
             <p className="mt-2 text-sm text-neutral-600">
               Enviamos um e-mail para{' '}
               <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span>.
-              Verifique sua caixa de entrada e confirme seu e-mail para ativar sua conta.
+              {` ${AUTH_MESSAGES.signup.successDescription}`}
             </p>
             <p className="mt-2 text-xs text-neutral-500">
               Se não encontrar, confira também a pasta de spam/lixo eletrônico.
