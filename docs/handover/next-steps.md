@@ -111,6 +111,8 @@ Items already fixed in code are documented in `project-status.md` item 71. The i
 - `/api/webhooks/stripe` now verifies signature, persists idempotent inbox event, and enqueues Inngest processing.
 - required DB migration to apply before enabling endpoint in production traffic:
   - `023-wave3-stripe-job-resilience-foundation.sql`.
+ - operator decision (2026-04-02): `STRIPE_WEBHOOK_SECRET` provisioning is intentionally deferred until webhook go-live.
+ - temporary expected state: `secrets:sync:audit` can fail only on `STRIPE_WEBHOOK_SECRET`; treat as acknowledged exception until enablement date.
 10.2 **Post-apply validation required:**
 - replay one valid Stripe test webhook and confirm:
   - one row in `stripe_webhook_events`,

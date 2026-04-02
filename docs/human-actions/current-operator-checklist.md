@@ -26,6 +26,9 @@ Use this as the live checklist of actions that require human access to provider 
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
 - update rotation register with `date`, `owner`, and `next due`.
+ - approved temporary defer (2026-04-02): `STRIPE_WEBHOOK_SECRET` will be added only when Stripe webhook is enabled in production.
+ - expected interim behavior: `npm run secrets:sync:audit` may fail with exactly one missing key (`STRIPE_WEBHOOK_SECRET`) until webhook go-live.
+ - closure rule: once webhook is enabled, add key in both Vercel + GitHub and rerun `npm run secrets:sync:audit` to green.
 7. Apply migration `db/sql/migrations/022-admin-audit-log-foundation.sql` in production Supabase.
 8. Validate admin audit trail after migration 022:
 - execute each admin action once (`status`, `first booking gate`, `review visibility`, `review delete`);
