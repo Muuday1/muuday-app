@@ -1,5 +1,6 @@
+import { addDays, addMonths } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
-import type { ProfessionalBookingSettings } from './types'
+import type { ProfessionalBookingSettings, RecurrencePeriodicity } from './types'
 
 type AvailabilityRule = {
   weekday: number
@@ -16,6 +17,11 @@ type LegacyAvailabilityRule = {
   is_active?: boolean
 }
 
+type ExistingBookingSlot = {
+  startUtc: Date
+  endUtc: Date
+}
+
 function timeToMinutes(value: string) {
   const [hours, minutes] = value.slice(0, 5).split(':').map(Number)
   return hours * 60 + minutes
@@ -28,6 +34,13 @@ function getWeekdayInTimezone(dateUtc: Date, timezone: string) {
 
 function getMinutesInTimezone(dateUtc: Date, timezone: string) {
   return timeToMinutes(formatInTimeZone(dateUtc, timezone, 'HH:mm'))
+}
+
+function getPeriodicIncrementDays(periodicity: RecurrencePeriodicity, intervalDays?: number) {
+  if (periodicity === 'custom_days') return Math.max(1, intervalDays || 1)
+  if (periodicity === 'biweekly') return 14
+  if (periodicity === 'weekly') return 7
+  return 0
 }
 
 export function isSlotWithinWorkingHours(
@@ -63,4 +76,67 @@ export function mapLegacyAvailabilityToRules(
     timezone,
     is_active: rule.is_active ?? true,
   }))
+}
+
+export function isSlotConflictWithBufferedRange(
+  slotStartUtc: Date,
+  slotEndUtc: Date,
+  existingStartUtc: Date,
+  existingEndUtc: Date,
+  bufferMinutes: number,
+): boolean {
+  const bufferedStart = new Date(existingStartUtc.getTime() - bufferMinutes * 60 * 1000)
+  const bufferedEnd = new Date(existingEndUtc.getTime() + bufferMinutes * 60 * 1000)
+  return slotStartUtc < bufferedEnd && slotEndUtc > bufferedStart
+}
+
+export function hasConflictWithExistingBookings(
+  slotStartUtc: Date,
+  slotEndUtc: Date,
+  existingBookings: ExistingBookingSlot[],
+  bufferMinutes: number,
+): boolean {
+  return existingBookings.some(existing =>
+    isSlotConflictWithBufferedRange(
+      slotStartUtc,
+      slotEndUtc,
+      existing.startUtc,
+      existing.endUtc,
+      bufferMinutes,
+    ),
+  )
+}
+
+export function generateRecurringSlotStarts(
+  initialStartUtc: Date,
+  periodicity: RecurrencePeriodicity,
+  bookingWindowDays: number,
+  options?: {
+    intervalDays?: number
+    occurrences?: number
+    endDateUtc?: Date | null
+  },
+): Date[] {
+  const maxEndByWindow = addDays(new Date(), Math.max(1, bookingWindowDays))
+  const explicitEndDate = options?.endDateUtc || null
+  const hardEndDate = explicitEndDate && explicitEndDate < maxEndByWindow ? explicitEndDate : maxEndByWindow
+
+  const starts: Date[] = []
+  const maxOccurrences = Math.max(1, options?.occurrences || 1)
+  let cursor = new Date(initialStartUtc)
+
+  for (let i = 0; i < maxOccurrences; i += 1) {
+    if (cursor > hardEndDate) break
+    starts.push(new Date(cursor))
+
+    if (periodicity === 'monthly') {
+      cursor = addMonths(cursor, 1)
+      continue
+    }
+
+    const incrementDays = getPeriodicIncrementDays(periodicity, options?.intervalDays)
+    cursor = addDays(cursor, incrementDays)
+  }
+
+  return starts
 }

@@ -16,6 +16,8 @@ import {
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
+import { createBatchBookingGroup } from '@/lib/booking/batch-booking'
+import { generateRecurrenceSlots } from '@/lib/booking/recurrence-engine'
 
 type BookingCreateResult =
   | { success: true; bookingId: string }
@@ -25,6 +27,7 @@ type SessionSlot = {
   startUtc: Date
   endUtc: Date
   localScheduledAt: string
+  recurrenceOccurrenceIndex?: number
 }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
@@ -86,20 +89,6 @@ function buildCancellationPolicySnapshot(code: string) {
   }
 }
 
-function addDaysToLocalDateTime(localDateTime: string, daysToAdd: number) {
-  const [datePart, timePart] = localDateTime.split('T')
-  const [year, month, day] = datePart.split('-').map(Number)
-  const [hour, minute] = (timePart || '00:00').split(':').map(Number)
-  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
-  date.setUTCDate(date.getUTCDate() + daysToAdd)
-  const y = date.getUTCFullYear()
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(date.getUTCDate()).padStart(2, '0')
-  const hh = String(date.getUTCHours()).padStart(2, '0')
-  const mm = String(date.getUTCMinutes()).padStart(2, '0')
-  return `${y}-${m}-${d}T${hh}:${mm}:00`
-}
-
 function isValidIsoLocalDateTime(value: string) {
   const match = value.match(
     /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
@@ -127,16 +116,24 @@ function isValidIsoLocalDateTime(value: string) {
 
 const localDateTimeSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horario invalido.')
-  .refine(isValidIsoLocalDateTime, 'Horario invalido.')
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Hor�rio inv�lido.')
+  .refine(isValidIsoLocalDateTime, 'Hor�rio inv�lido.')
+
+const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inv�lida.')
 
 const createBookingSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invalido.'),
-  scheduledAt: localDateTimeSchema,
-  notes: z.string().trim().max(500, 'Observacoes muito longas.').optional(),
-  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessao muito longo.').optional(),
-  bookingType: z.enum(['one_off', 'recurring']).default('one_off').optional(),
-  recurringSessionsCount: z.number().int().min(2).max(12).optional(),
+  professionalId: z.string().uuid('Identificador de profissional inv�lido.'),
+  scheduledAt: localDateTimeSchema.optional(),
+  notes: z.string().trim().max(500, 'Observa��es muito longas.').optional(),
+  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sess�o muito longo.').optional(),
+  bookingType: z.enum(['one_off', 'recurring', 'batch']).default('one_off').optional(),
+  recurringPeriodicity: z.enum(['weekly', 'biweekly', 'monthly', 'custom_days']).optional(),
+  recurringIntervalDays: z.number().int().min(1).max(365).optional(),
+  recurringOccurrences: z.number().int().min(2).max(52).optional(),
+  recurringSessionsCount: z.number().int().min(2).max(52).optional(),
+  recurringEndDate: localDateSchema.optional(),
+  recurringAutoRenew: z.boolean().optional(),
+  batchDates: z.array(localDateTimeSchema).min(2).max(20).optional(),
 })
 
 async function loadAvailabilityRules(
@@ -229,17 +226,38 @@ async function hasInternalConflict(
   })
 }
 
+function parseSlotFromLocalDateTime(
+  localDateTime: string,
+  userTimezone: string,
+  durationMinutes: number,
+): SessionSlot | null {
+  try {
+    const startUtc = fromZonedTime(localDateTime, userTimezone)
+    if (Number.isNaN(startUtc.getTime())) return null
+    const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000)
+    return { startUtc, endUtc, localScheduledAt: localDateTime }
+  } catch {
+    return null
+  }
+}
+
 export async function createBooking(data: {
   professionalId: string
-  scheduledAt: string
+  scheduledAt?: string
   notes?: string
   sessionPurpose?: string
-  bookingType?: 'one_off' | 'recurring'
+  bookingType?: 'one_off' | 'recurring' | 'batch'
+  recurringPeriodicity?: 'weekly' | 'biweekly' | 'monthly' | 'custom_days'
+  recurringIntervalDays?: number
+  recurringOccurrences?: number
   recurringSessionsCount?: number
+  recurringEndDate?: string
+  recurringAutoRenew?: boolean
+  batchDates?: string[]
 }): Promise<BookingCreateResult> {
   const parsedInput = createBookingSchema.safeParse(data)
   if (!parsedInput.success) {
-    const firstError = parsedInput.error.issues[0]?.message || 'Dados invalidos para agendamento.'
+    const firstError = parsedInput.error.issues[0]?.message || 'Dados inv�lidos para agendamento.'
     return { success: false, error: firstError }
   }
 
@@ -262,17 +280,17 @@ export async function createBooking(data: {
   const { data: professional } = await supabase
     .from('professionals')
     .select(
-      'id, user_id, session_price_brl, session_duration_minutes, status, first_booking_enabled, profiles!professionals_user_id_fkey(timezone)'
+      'id, user_id, tier, session_price_brl, session_duration_minutes, status, first_booking_enabled, profiles!professionals_user_id_fkey(timezone)',
     )
     .eq('id', bookingInput.professionalId)
     .single()
 
   if (!professional || professional.status !== 'approved') {
-    return { success: false, error: 'Profissional nao disponivel.' }
+    return { success: false, error: 'Profissional n�o dispon�vel.' }
   }
 
   if (professional.user_id === user.id) {
-    return { success: false, error: 'Nao e permitido agendar sessao com seu proprio perfil.' }
+    return { success: false, error: 'N�o � permitido agendar sess�o com seu pr�prio perfil.' }
   }
 
   const eligibility = await evaluateFirstBookingEligibility(supabase, bookingInput.professionalId)
@@ -293,7 +311,7 @@ export async function createBooking(data: {
   const { data: settingsRow, error: settingsError } = await supabase
     .from('professional_settings')
     .select(
-      'timezone, session_duration_minutes, buffer_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose'
+      'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose',
     )
     .eq('professional_id', bookingInput.professionalId)
     .maybeSingle()
@@ -305,30 +323,93 @@ export async function createBooking(data: {
 
   const bookingType = bookingInput.bookingType || 'one_off'
   if (bookingType === 'recurring' && !bookingSettings.enableRecurring) {
-    return { success: false, error: 'Este profissional nao aceita pacotes recorrentes no momento.' }
+    return { success: false, error: 'Este profissional n�o aceita pacotes recorrentes no momento.' }
   }
 
   if (bookingSettings.requireSessionPurpose && !bookingInput.sessionPurpose?.trim()) {
-    return { success: false, error: 'Informe o objetivo da sessao antes de continuar.' }
+    return { success: false, error: 'Informe o objetivo da sess�o antes de continuar.' }
   }
 
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const durationMinutes = bookingSettings.sessionDurationMinutes || professional.session_duration_minutes
-  const sessionCount =
-    bookingType === 'recurring' ? bookingInput.recurringSessionsCount || 4 : 1
 
   const plannedSessions: SessionSlot[] = []
-  for (let i = 0; i < sessionCount; i++) {
-    const localScheduledAt = addDaysToLocalDateTime(bookingInput.scheduledAt, i * 7)
-    let startUtc: Date
-    try {
-      startUtc = fromZonedTime(localScheduledAt, userTimezone)
-    } catch {
-      return { success: false, error: 'Horario invalido.' }
+  let recurrenceGroupId: string | null = null
+  let batchBookingGroupId: string | null = null
+
+  if (bookingType === 'one_off') {
+    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha um hor�rio para agendar.' }
+    const slot = parseSlotFromLocalDateTime(bookingInput.scheduledAt, userTimezone, durationMinutes)
+    if (!slot) return { success: false, error: 'Hor�rio inv�lido.' }
+    plannedSessions.push(slot)
+  }
+
+  if (bookingType === 'recurring') {
+    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha o hor�rio base da recorr�ncia.' }
+
+    const firstSlot = parseSlotFromLocalDateTime(bookingInput.scheduledAt, userTimezone, durationMinutes)
+    if (!firstSlot) return { success: false, error: 'Hor�rio inv�lido.' }
+
+    let recurrenceEndDateUtc: Date | null = null
+    if (bookingInput.recurringEndDate) {
+      const endCandidate = parseSlotFromLocalDateTime(
+        `${bookingInput.recurringEndDate}T23:59:00`,
+        userTimezone,
+        0,
+      )
+      recurrenceEndDateUtc = endCandidate?.startUtc || null
     }
-    if (Number.isNaN(startUtc.getTime())) return { success: false, error: 'Horario invalido.' }
-    const endUtc = new Date(startUtc.getTime() + durationMinutes * 60 * 1000)
-    plannedSessions.push({ startUtc, endUtc, localScheduledAt })
+
+    const recurrenceDecision = generateRecurrenceSlots({
+      startDateUtc: firstSlot.startUtc,
+      endDateUtc: firstSlot.endUtc,
+      periodicity: bookingInput.recurringPeriodicity || 'weekly',
+      intervalDays: bookingInput.recurringIntervalDays,
+      occurrences: bookingInput.recurringOccurrences || bookingInput.recurringSessionsCount || 4,
+      endDateLimitUtc: recurrenceEndDateUtc,
+      bookingWindowDays: bookingSettings.maxBookingWindowDays,
+    })
+
+    recurrenceGroupId = recurrenceDecision.recurrenceGroupId
+    for (const slot of recurrenceDecision.slots) {
+      plannedSessions.push({
+        startUtc: slot.startUtc,
+        endUtc: slot.endUtc,
+        localScheduledAt: formatInTimeZone(slot.startUtc, userTimezone, "yyyy-MM-dd'T'HH:mm:ss"),
+        recurrenceOccurrenceIndex: slot.occurrenceIndex,
+      })
+    }
+  }
+
+  if (bookingType === 'batch') {
+    if (!bookingInput.batchDates || bookingInput.batchDates.length < 2) {
+      return { success: false, error: 'Selecione ao menos duas datas para m�ltiplos agendamentos.' }
+    }
+
+    const parsedBatch = bookingInput.batchDates
+      .map(localDateTime => parseSlotFromLocalDateTime(localDateTime, userTimezone, durationMinutes))
+      .filter(Boolean) as SessionSlot[]
+
+    if (parsedBatch.length !== bookingInput.batchDates.length) {
+      return { success: false, error: 'Uma ou mais datas do pacote est�o inv�lidas.' }
+    }
+
+    const batchDecision = createBatchBookingGroup({
+      dates: parsedBatch.map(item => ({ startUtc: item.startUtc, endUtc: item.endUtc })),
+    })
+
+    batchBookingGroupId = batchDecision.batchBookingGroupId
+    for (const slot of batchDecision.slots) {
+      plannedSessions.push({
+        startUtc: slot.startUtc,
+        endUtc: slot.endUtc,
+        localScheduledAt: formatInTimeZone(slot.startUtc, userTimezone, "yyyy-MM-dd'T'HH:mm:ss"),
+      })
+    }
+  }
+
+  if (plannedSessions.length === 0) {
+    return { success: false, error: 'N�o foi poss�vel montar os hor�rios do agendamento.' }
   }
 
   const availabilityRules = await loadAvailabilityRules(
@@ -342,7 +423,7 @@ export async function createBooking(data: {
     if (slot.startUtc.getTime() < minimumStartTime) {
       return {
         success: false,
-        error: `Selecione um horario com pelo menos ${bookingSettings.minimumNoticeHours} horas de antecedencia.`,
+        error: `Selecione um hor�rio com pelo menos ${bookingSettings.minimumNoticeHours} horas de anteced�ncia.`,
       }
     }
 
@@ -362,7 +443,7 @@ export async function createBooking(data: {
       availabilityRules,
     )
     if (!fitsAvailability) {
-      return { success: false, error: 'Um ou mais horarios nao estao disponiveis para este profissional.' }
+      return { success: false, error: 'Um ou mais hor�rios n�o est�o dispon�veis para este profissional.' }
     }
 
     const allowedByException = await isSlotAllowedByExceptions(
@@ -373,7 +454,7 @@ export async function createBooking(data: {
       slot.endUtc,
     )
     if (!allowedByException) {
-      return { success: false, error: 'Um ou mais horarios foram bloqueados por indisponibilidade.' }
+      return { success: false, error: 'Um ou mais hor�rios foram bloqueados por indisponibilidade.' }
     }
 
     const conflict = await hasInternalConflict(
@@ -384,7 +465,7 @@ export async function createBooking(data: {
       bookingSettings.bufferMinutes,
     )
     if (conflict) {
-      return { success: false, error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.' }
+      return { success: false, error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.' }
     }
   }
 
@@ -408,13 +489,14 @@ export async function createBooking(data: {
         success: false,
         error:
           lockResult.reason === 'locked'
-            ? 'Outro cliente acabou de selecionar este horario. Escolha outro.'
-            : 'Nao foi possivel reservar o horario. Tente novamente.',
+            ? 'Outro cliente acabou de selecionar este hor�rio. Escolha outro.'
+            : 'N�o foi poss�vel reservar o hor�rio. Tente novamente.',
       }
     }
     acquiredLockIds.push(lockResult.lockId)
   }
 
+  const sessionCount = plannedSessions.length
   const currency = profile?.currency || 'BRL'
   const rates = await getExchangeRates(supabase as any)
   const priceBrl = Number(professional.session_price_brl) || 0
@@ -427,7 +509,7 @@ export async function createBooking(data: {
       : null
 
   let bookingId: string | null = null
-  let parentBookingId: string | null = null
+  let paymentAnchorBookingId: string | null = null
 
   try {
     if (bookingType === 'one_off') {
@@ -457,6 +539,7 @@ export async function createBooking(data: {
           session_purpose: bookingInput.sessionPurpose || null,
           metadata: {
             booking_source: 'web_checkout',
+            booking_mode: 'one_off',
             confirmation_deadline_utc: confirmationDeadlineAt,
           },
         })
@@ -467,16 +550,20 @@ export async function createBooking(data: {
         if (isActiveSlotCollision(error)) {
           return {
             success: false,
-            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
           }
         }
         reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
         return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
       }
       bookingId = booking.id
-      parentBookingId = booking.id
-    } else {
+      paymentAnchorBookingId = booking.id
+    } else if (bookingType === 'recurring') {
       const firstSlot = plannedSessions[0]
+      const recurrencePeriodicity = bookingInput.recurringPeriodicity || 'weekly'
+      const recurrenceIntervalDays =
+        recurrencePeriodicity === 'custom_days' ? bookingInput.recurringIntervalDays || 1 : null
+
       const { data: parentBooking, error: parentError } = await supabase
         .from('bookings')
         .insert({
@@ -490,6 +577,12 @@ export async function createBooking(data: {
           duration_minutes: durationMinutes,
           status: bookingStatus,
           booking_type: 'recurring_parent',
+          recurrence_group_id: recurrenceGroupId,
+          recurrence_periodicity: recurrencePeriodicity,
+          recurrence_interval_days: recurrenceIntervalDays,
+          recurrence_end_date: bookingInput.recurringEndDate || null,
+          recurrence_occurrence_index: 1,
+          recurrence_auto_renew: Boolean(bookingInput.recurringAutoRenew),
           confirmation_mode_snapshot: bookingSettings.confirmationMode,
           cancellation_policy_snapshot: buildCancellationPolicySnapshot(
             bookingSettings.cancellationPolicyCode,
@@ -502,9 +595,11 @@ export async function createBooking(data: {
           session_purpose: bookingInput.sessionPurpose || null,
           metadata: {
             booking_source: 'web_checkout',
+            booking_mode: 'recurring',
             confirmation_deadline_utc: confirmationDeadlineAt,
-            recurring_frequency: 'weekly',
+            recurring_frequency: recurrencePeriodicity,
             recurring_sessions_count: sessionCount,
+            recurring_auto_renew: Boolean(bookingInput.recurringAutoRenew),
           },
         })
         .select('id')
@@ -514,14 +609,12 @@ export async function createBooking(data: {
         if (isActiveSlotCollision(parentError)) {
           return {
             success: false,
-            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
           }
         }
         reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
         return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
       }
-      parentBookingId = parentBooking.id
-      bookingId = parentBooking.id
 
       const childBookingsPayload = plannedSessions.map((slot, index) => ({
         user_id: user.id,
@@ -533,8 +626,14 @@ export async function createBooking(data: {
         timezone_professional: bookingSettings.timezone,
         duration_minutes: durationMinutes,
         status: bookingStatus,
-        booking_type: 'recurring_child',
-        parent_booking_id: parentBooking.id,
+        booking_type: index === 0 ? 'recurring_parent' : 'recurring_child',
+        parent_booking_id: index === 0 ? null : parentBooking.id,
+        recurrence_group_id: recurrenceGroupId,
+        recurrence_periodicity: recurrencePeriodicity,
+        recurrence_interval_days: recurrenceIntervalDays,
+        recurrence_end_date: bookingInput.recurringEndDate || null,
+        recurrence_occurrence_index: slot.recurrenceOccurrenceIndex || index + 1,
+        recurrence_auto_renew: Boolean(bookingInput.recurringAutoRenew),
         confirmation_mode_snapshot: bookingSettings.confirmationMode,
         cancellation_policy_snapshot: buildCancellationPolicySnapshot(
           bookingSettings.cancellationPolicyCode,
@@ -550,18 +649,22 @@ export async function createBooking(data: {
         },
       }))
 
-      const { error: childError } = await supabase.from('bookings').insert(childBookingsPayload)
+      // keep parent row, replace recurrence children
+      await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
+      const { error: childError } = await supabase
+        .from('bookings')
+        .insert(childBookingsPayload.slice(1))
       if (childError) {
         if (isActiveSlotCollision(childError)) {
           await supabase.from('bookings').delete().eq('id', parentBooking.id)
           return {
             success: false,
-            error: 'Um ou mais horarios ja foram reservados. Escolha outro horario.',
+            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
           }
         }
         reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
-        return { success: false, error: 'Erro ao criar sessoes recorrentes. Tente novamente.' }
+        return { success: false, error: 'Erro ao criar sess�es recorrentes. Tente novamente.' }
       }
 
       const sessionsPayload = plannedSessions.map((slot, index) => ({
@@ -579,6 +682,61 @@ export async function createBooking(data: {
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
         return { success: false, error: 'Erro ao criar estrutura de pacote recorrente.' }
       }
+
+      bookingId = parentBooking.id
+      paymentAnchorBookingId = parentBooking.id
+    } else {
+      const batchGroupId = batchBookingGroupId || crypto.randomUUID()
+
+      const batchPayload = plannedSessions.map((slot, index) => ({
+        user_id: user.id,
+        professional_id: bookingInput.professionalId,
+        scheduled_at: slot.startUtc.toISOString(),
+        start_time_utc: slot.startUtc.toISOString(),
+        end_time_utc: slot.endUtc.toISOString(),
+        timezone_user: userTimezone,
+        timezone_professional: bookingSettings.timezone,
+        duration_minutes: durationMinutes,
+        status: bookingStatus,
+        booking_type: 'one_off',
+        batch_booking_group_id: batchGroupId,
+        confirmation_mode_snapshot: bookingSettings.confirmationMode,
+        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
+          bookingSettings.cancellationPolicyCode,
+        ),
+        price_brl: priceBrl,
+        price_user_currency: perSessionPriceUserCurrency,
+        price_total: perSessionPriceUserCurrency,
+        user_currency: currency,
+        notes: bookingInput.notes || null,
+        session_purpose: bookingInput.sessionPurpose || null,
+        metadata: {
+          booking_source: 'web_checkout',
+          booking_mode: 'batch',
+          batch_index: index + 1,
+          batch_group_id: batchGroupId,
+          confirmation_deadline_utc: confirmationDeadlineAt,
+        },
+      }))
+
+      const { data: batchRows, error: batchInsertError } = await supabase
+        .from('bookings')
+        .insert(batchPayload)
+        .select('id')
+
+      if (batchInsertError || !batchRows || batchRows.length === 0) {
+        if (isActiveSlotCollision(batchInsertError)) {
+          return {
+            success: false,
+            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
+          }
+        }
+        reportBookingError(batchInsertError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_batch_insert_failed')
+        return { success: false, error: 'Erro ao criar agendamentos em lote. Tente novamente.' }
+      }
+
+      bookingId = String(batchRows[0].id)
+      paymentAnchorBookingId = String(batchRows[0].id)
     }
   } finally {
     for (const lockId of acquiredLockIds) {
@@ -586,7 +744,7 @@ export async function createBooking(data: {
     }
   }
 
-  if (!bookingId || !parentBookingId) {
+  if (!bookingId || !paymentAnchorBookingId) {
     return { success: false, error: 'Erro ao finalizar agendamento.' }
   }
 
@@ -595,6 +753,8 @@ export async function createBooking(data: {
     confirmationMode: bookingSettings.confirmationMode,
     bookingType,
     sessionsCount: sessionCount,
+    recurrenceGroupId,
+    batchBookingGroupId,
   }
 
   try {
@@ -602,7 +762,7 @@ export async function createBooking(data: {
   } catch (error) {
     reportBookingError(
       error,
-      { parentBookingId, bookingType },
+      { paymentAnchorBookingId, bookingType },
       'booking_payment_sensitive_metadata_blocked',
     )
     return {
@@ -612,7 +772,7 @@ export async function createBooking(data: {
   }
 
   const { error: paymentError } = await supabase.from('payments').insert({
-    booking_id: parentBookingId,
+    booking_id: paymentAnchorBookingId,
     user_id: user.id,
     professional_id: bookingInput.professionalId,
     provider: 'legacy',
@@ -624,7 +784,7 @@ export async function createBooking(data: {
   })
 
   if (paymentError) {
-    reportBookingError(paymentError, { parentBookingId, bookingType }, 'booking_payment_record_failed')
+    reportBookingError(paymentError, { paymentAnchorBookingId, bookingType }, 'booking_payment_record_failed')
     await supabase
       .from('bookings')
       .update({
@@ -633,7 +793,7 @@ export async function createBooking(data: {
           cancelled_reason: 'payment_capture_failed',
         },
       })
-      .eq('id', parentBookingId)
+      .eq('id', paymentAnchorBookingId)
 
     await supabase
       .from('bookings')
@@ -643,7 +803,7 @@ export async function createBooking(data: {
           cancelled_reason: 'parent_payment_capture_failed',
         },
       })
-      .eq('parent_booking_id', parentBookingId)
+      .eq('parent_booking_id', paymentAnchorBookingId)
 
     return {
       success: false,

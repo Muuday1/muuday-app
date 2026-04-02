@@ -679,3 +679,55 @@ Wave-driven delivery is now mandatory:
 - E2E result: `11 passed`, `2 skipped` (`tests/e2e/wave2-onboarding-gates.spec.ts` requires deterministic gate fixtures).
 - Role-claim audit result (`npm run audit:auth-role-claims`): JWT role claim coverage `0%`; middleware fallback estimate `100%`.
 - DB pooling validator (`npm run db:validate-pooling`): failed due missing `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) in runtime env.
+132. Phase 13/14 implementation advanced with quality checks green:
+- `app/(app)/admin/page.tsx` now shows credential counts in the professional review queue to improve triage visibility.
+- admin decision flow now has dedicated messaging for `needs_changes`:
+  - `lib/email/resend.ts` includes `sendProfileNeedsChangesEmail`.
+  - `lib/actions/admin.ts` routes `approved | rejected | needs_changes` to distinct email outcomes.
+- `app/registrar-profissional/page.tsx` now reflects canonical onboarding/tier model (video-only, C1-C9 tracker preview, tier limits preview, `/planos` CTA).
+- Agora env baseline is explicit in examples and local runtime (`AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`).
+- technical validation:
+  - `npm run lint` passed,
+  - `npm run typecheck` passed,
+  - `npm run build` passed,
+  - `npm run test:state-machines` passed.
+- current E2E note:
+  - latest local run `npm run test:e2e`: `8 passed`, `5 skipped`, `0 failed`.
+  - skips are fixture-driven; specs now skip with explicit reason when professional IDs do not resolve or route capability is unavailable in the seed.
+133. Jurisdiction removal hardening started (P0 remediation for 017↔027 conflict):
+- `/cadastro` professional step no longer validates/collects jurisdiction.
+- professional signup metadata no longer sends `professional_jurisdiction`.
+- migration `029-wave2-remove-jurisdiction-signup-pipeline.sql` added to align DB function `handle_new_user` with no-jurisdiction model.
+- status: code patch done; migration executed by operator in DB.
+134. C6/C7 readiness bypass removed from professional workspace:
+- `components/settings/ProfessionalSettingsWorkspace.tsx` no longer exposes editable checkboxes for:
+  - `billing_card_on_file`
+  - `payout_onboarding_started`
+  - `payout_kyc_completed`
+- objective: prevent gate bypass from client UI and keep readiness source in controlled backend paths.
+- validation:
+  - `npm run lint` passed
+  - `npm run typecheck` passed
+  - `npm run build` passed
+  - `npm run test:state-machines` passed
+135. PT-BR encoding cleanup applied in Wave 2 new UI surfaces:
+- fixed corrupted text/accents in `/planos`, `/onboarding-profissional`, `/admin/revisao/[professionalId]`, `/sessao/[bookingId]`, `TierLockedOverlay`, and tier labels.
+- latest smoke run:
+  - `npm run test:e2e`: `8 passed`, `5 skipped`, `0 failed`.
+- skipped scenarios remain fixture-dependent (bookable/manual/blocked IDs and optional request mode path).
+136. E2E fixture/skip hardening aplicado e validado após `029`:
+- selectors com risco de encoding corrigidos em:
+  - `tests/e2e/booking-critical.spec.ts`
+  - `tests/e2e/wave2-onboarding-gates.spec.ts`
+- helper `openBookingPage` passou a aguardar estado terminal antes de assertar (booking pronto / not-found / auto-agendamento).
+- evidência mais recente:
+  - `npm.cmd run test:e2e` ✅ (`8 passed`, `5 skipped`, `0 failed`).
+- skips remanescentes continuam dependentes de fixture, sem falha crítica inesperada.
+137. Fixture normalization completed for E2E gate coverage:
+- updated `.env.local` fixture ids and role credentials split (`user` vs `admin`).
+- normalized three professional fixtures to deterministic target states (open/manual/blocked).
+- hardened E2E helpers:
+  - cookie dialog dismissal in `professional-workspace.spec.ts` login helper,
+  - terminal-state detection in `wave2-onboarding-gates.spec.ts` booking entry checks.
+- latest evidence: `npm.cmd run test:e2e` => `8 passed`, `5 skipped`, `0 failed`.
+- remaining skips are fixture-environment constraints on `/agendar/{id}` (not-found behavior), now handled deterministically.

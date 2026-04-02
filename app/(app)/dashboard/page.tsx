@@ -19,6 +19,7 @@ import { formatCurrency } from '@/lib/utils'
 import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
+import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
   'pending',
@@ -226,9 +227,46 @@ export default async function DashboardPage() {
 
   const nextBooking = upcomingBookings?.[0]
   const currency = profile.currency || 'BRL'
+  const onboardingState = await loadProfessionalOnboardingState(supabase, professionalId)
+  const onboardingEvaluation = onboardingState?.evaluation || null
+  const onboardingIncomplete = Boolean(onboardingEvaluation && !onboardingEvaluation.summary.canGoLive)
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
+      {onboardingIncomplete && onboardingEvaluation ? (
+        <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-display text-lg font-bold text-amber-900">Complete o onboarding para liberar o perfil</h2>
+          <p className="mt-1 text-sm text-amber-800">
+            Você ainda tem pendências nas etapas C1-C9. O painel operacional fica limitado até concluir os requisitos.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {onboardingEvaluation.stages.map(stage => (
+              <div
+                key={stage.id}
+                className={`rounded-xl border px-3 py-2 text-xs ${
+                  stage.complete
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : 'border-amber-200 bg-amber-100 text-amber-900'
+                }`}
+              >
+                <p className="font-semibold">{stage.title}</p>
+                <p className="mt-0.5">
+                  {stage.complete ? 'Concluído' : stage.blockers[0]?.title || 'Pendente'}
+                </p>
+              </div>
+            ))}
+          </div>
+          <Link
+            href="/onboarding-profissional"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800"
+          >
+            Abrir tracker C1-C9
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </section>
+      ) : null}
+
+      <div className={onboardingIncomplete ? 'pointer-events-none select-none blur-[1px] opacity-80' : ''}>
       <div className="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-neutral-900">Dashboard</h1>
@@ -439,6 +477,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </section>
+      </div>
     </div>
   )
 }

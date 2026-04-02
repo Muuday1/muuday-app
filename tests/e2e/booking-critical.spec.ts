@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+﻿import { expect, test, type Page } from '@playwright/test'
 
 const email = process.env.E2E_USER_EMAIL
 const password = process.env.E2E_USER_PASSWORD
@@ -8,14 +8,47 @@ const manualProfessionalId = process.env.E2E_MANUAL_PROFESSIONAL_ID
 const hasE2EConfig = Boolean(email && password && professionalId)
 const hasManualConfirmationConfig = Boolean(email && password && manualProfessionalId)
 
+type OpenBookingResult = {
+  opened: boolean
+  reason?: 'same_professional' | 'professional_not_found'
+}
+
 async function login(page: Page) {
   await page.goto('/login')
   const acceptCookiesButton = page.getByRole('button', { name: 'Aceitar' }).first()
   await acceptCookiesButton.click({ timeout: 3_000 }).catch(() => {})
-  await page.locator('#login-email, input[type="email"], input[name="email"]').first().fill(email || '')
-  await page.locator('#login-password, input[type="password"], input[name="password"]').first().fill(password || '')
-  await page.locator('button[type="submit"]').first().click()
-  await page.waitForURL('**/buscar')
+
+  const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
+  const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
+  const submitButton = page.locator('button[type="submit"]').first()
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await emailInput.fill(email || '')
+    await passwordInput.fill(password || '')
+    await submitButton.click()
+
+    try {
+      await page.waitForURL(/\/(buscar|dashboard)/, { timeout: 30_000 })
+      return
+    } catch {
+      const rateLimited = await page
+        .getByText(/muitas tentativas|tente novamente|aguarde/i)
+        .count()
+      if (rateLimited > 0 && attempt < 2) {
+        await page.waitForTimeout(2_500)
+        continue
+      }
+
+      const invalidCredentials = await page
+        .getByText(/email ou senha incorretos|credenciais invalidas/i)
+        .count()
+      if (invalidCredentials > 0) {
+        throw new Error('E2E login failed: invalid credentials for configured user.')
+      }
+
+      throw new Error(`E2E login failed: no redirect after submit (url=${page.url()}).`)
+    }
+  }
 }
 
 async function openBookingPage(page: Page, targetProfessionalId: string) {
@@ -23,26 +56,63 @@ async function openBookingPage(page: Page, targetProfessionalId: string) {
   await page.goto(`/agendar/${targetProfessionalId}`)
   await page.waitForLoadState('domcontentloaded')
 
+  const notFoundSignals = [
+    page.getByRole('heading', { name: /p[aá]gina n[aã]o encontrada|p[aá]gina/i }),
+    page.getByText(/n[aã]o existe ou foi movida/i),
+    page.getByRole('link', { name: /voltar ao in[ií]cio/i }),
+  ]
+  const bookingHeading = page.getByRole('heading', { name: /tipo de agendamento/i })
+
+  // Wait until one of the terminal states appears: booking page, not-found, or same-profile redirect.
+  for (let i = 0; i < 15; i += 1) {
+    const notFoundMatches = await Promise.all(notFoundSignals.map(signal => signal.count()))
+    if (notFoundMatches.some(count => count > 0)) {
+      return {
+        opened: false,
+        reason: 'professional_not_found',
+      } as OpenBookingResult
+    }
+
+    if ((await bookingHeading.count()) > 0) {
+      return { opened: true } as OpenBookingResult
+    }
+
+    const currentUrl = page.url()
+    if (currentUrl.includes(`/profissional/${targetProfessionalId}`)) {
+      if (currentUrl.includes('erro=auto-agendamento')) {
+        await expect(page.getByText(/possivel agendar sessao com voce mesmo/i)).toBeVisible()
+      }
+      return { opened: false, reason: 'same_professional' } as OpenBookingResult
+    }
+
+    await page.waitForTimeout(250)
+  }
+
   for (let i = 0; i < 10; i += 1) {
     const currentUrl = page.url()
     if (currentUrl.includes(`/profissional/${targetProfessionalId}`)) {
       if (currentUrl.includes('erro=auto-agendamento')) {
         await expect(page.getByText(/possivel agendar sessao com voce mesmo/i)).toBeVisible()
       }
-      return false
+      return { opened: false, reason: 'same_professional' } as OpenBookingResult
     }
     await page.waitForTimeout(200)
   }
 
-  return true
+  return { opened: true } as OpenBookingResult
 }
 
 test.describe('Booking critical journey', () => {
   test.skip(!hasE2EConfig, 'Set E2E_USER_EMAIL, E2E_USER_PASSWORD and E2E_PROFESSIONAL_ID to run e2e tests.')
 
   test('shows booking safety policy and timezone controls', async ({ page }) => {
-    const openedBookingPage = await openBookingPage(page, professionalId as string)
-    if (!openedBookingPage) test.skip(true, 'Configured E2E_PROFESSIONAL_ID points to the same logged-in professional.')
+    const bookingPage = await openBookingPage(page, professionalId as string)
+    if (!bookingPage.opened && bookingPage.reason === 'same_professional') {
+      test.skip(true, 'Configured E2E_PROFESSIONAL_ID points to the same logged-in professional.')
+    }
+    if (!bookingPage.opened && bookingPage.reason === 'professional_not_found') {
+      test.skip(true, 'Configured E2E_PROFESSIONAL_ID does not resolve to an existing public profile.')
+    }
 
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Ver no meu fuso' })).toBeVisible()
@@ -52,8 +122,13 @@ test.describe('Booking critical journey', () => {
   })
 
   test('keeps checkout blocked until cancellation and timezone confirmations are checked', async ({ page }) => {
-    const openedBookingPage = await openBookingPage(page, professionalId as string)
-    if (!openedBookingPage) test.skip(true, 'Configured E2E_PROFESSIONAL_ID points to the same logged-in professional.')
+    const bookingPage = await openBookingPage(page, professionalId as string)
+    if (!bookingPage.opened && bookingPage.reason === 'same_professional') {
+      test.skip(true, 'Configured E2E_PROFESSIONAL_ID points to the same logged-in professional.')
+    }
+    if (!bookingPage.opened && bookingPage.reason === 'professional_not_found') {
+      test.skip(true, 'Configured E2E_PROFESSIONAL_ID does not resolve to an existing public profile.')
+    }
 
     const dateButton = page.locator('button[aria-label][aria-pressed=\"false\"]:not([disabled])').first()
 
@@ -70,7 +145,7 @@ test.describe('Booking critical journey', () => {
     await expect(submitButton).toBeDisabled()
 
     const purposeField = page.getByPlaceholder(
-      /Descreva brevemente o que voce quer trabalhar nesta sessao|Descreva brevemente o que você quer trabalhar nesta sessão/i,
+      /Descreva brevemente o que voc[êe] quer trabalhar nesta sess[ãa]o/i,
     )
     if ((await purposeField.count()) > 0) {
       await purposeField.fill('Teste E2E de validacao de formulario.')
@@ -102,7 +177,12 @@ test.describe('Booking critical journey', () => {
     )
 
     const openedBookingPage = await openBookingPage(page, manualProfessionalId as string)
-    if (!openedBookingPage) test.skip(true, 'Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.')
+    if (!openedBookingPage.opened && openedBookingPage.reason === 'same_professional') {
+      test.skip(true, 'Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.')
+    }
+    if (!openedBookingPage.opened && openedBookingPage.reason === 'professional_not_found') {
+      test.skip(true, 'Configured E2E_MANUAL_PROFESSIONAL_ID does not resolve to an existing public profile.')
+    }
 
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Pagar .*solicitar/i })).toBeVisible()

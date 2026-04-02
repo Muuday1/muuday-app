@@ -473,10 +473,10 @@ Required now:
 - public/professional display name
 - category
 - subcategory/profession
-- specialties
+- specialties (limit by tier: Basic 1, Professional 3, Premium 3)
 - headline
 - base country
-- service jurisdiction / where they can legally operate or advise
+- (removed — professionals serve globally, no jurisdiction restriction)
 - sensitive-category disclaimer prompts where relevant
 
 Stage 3 - Public profile
@@ -485,36 +485,54 @@ Required now:
 - short bio
 - languages spoken
 - credibility/experience summary (minimum starter)
+- cover photo (available to all tiers, optional but strongly encouraged)
 Optional now / required later by category:
-- long bio
-- credential upload
+- long bio (Professional: up to 2000 chars, Premium: up to 5000 chars — not available for Basic)
+- credential upload (required_for_go_live for sensitive categories: saude, juridico, medico)
 - trust badge evidence fields
+New items (not in original spec):
+- WhatsApp number (optional — visible on public profile for Professional and Premium only)
+- video intro link (YouTube/Vimeo — available for Professional and Premium only)
+- social media / website links (Professional: up to 2, Premium: up to 5 — not available for Basic)
+- notification preferences (email, push, WhatsApp — defaults to all enabled, configurable; WhatsApp notifications for Professional and Premium only)
 
 Stage 4 - Service setup
 Required before submission:
 - service name
 - service type (one-off / one-off+recurring / monthly subscription)
-- duration options
+- duration options (up to 3 per service Basic, 6 Professional, 10 Premium)
 - pricing
 - description
 - category/subcategory/specialty association
 - availability relation
+- service type count limit: Basic 1, Professional 5, Premium 10 distinct service offerings
+Service delivery:
+- All sessions are video via Agora (no in-person option)
+- Video session setup is automatic (Agora backend config, no manual professional setup)
 Optional by tier/category:
-- recurring enabled flag
+- recurring enabled flag (available to all tiers — recurrence = same day/time, user picks periodicity)
 - monthly-plan settings
 - advanced tags
 - sensitive-category disclaimers
+Booking modes supported per service:
+- single booking (one date)
+- multiple bookings (user selects several non-recurring dates in one checkout)
+- recurring booking (same day/time, user chooses periodicity: weekly, biweekly, monthly, or every X weeks/days)
 
 Stage 5 - Availability / calendar
 Required before go-live:
 - working days/hours
 - timezone confirmation
-- minimum notice
-- maximum booking window (tier-based)
-- auto-accept or manual-accept choice
+- minimum notice (Basic 2h-48h, Professional 1h-72h, Premium 30min-168h)
+- maximum booking window (Basic 60 days, Professional 90 days, Premium 180 days)
+- auto-accept or manual-accept choice (manual-accept only for Professional and Premium)
 - blocked times baseline
+- buffer time between sessions (Basic: fixed 15min, Professional/Premium: configurable 5-60min)
+- cancellation/no-show policy acceptance (platform default policy — professional must accept before review submission, required_for_review_submission)
+Required before go-live (strongly recommended at Stage 5):
+- external calendar sync — Google Calendar (all tiers), Outlook (Professional and Premium only)
+- calendar sync is not a hard blocker for go-live but the system shows a persistent banner post go-live if not connected
 Optional now:
-- external calendar sync completion
 - advanced recurring slot preferences
 
 Stage 6 - Plan selection / billing setup
@@ -523,8 +541,10 @@ Rules:
 - show plans early, default starts as Basic
 - final confirmation near go-live
 - 3 months free on sign-up
-- annual plan exists with 15% discount
+- annual plan: annual = 10× monthly price (not a percentage discount)
 - during trial: upgrade allowed, downgrade only in next cycle
+Required before review submission:
+- terms of service acceptance (termsAcceptedAt + termsVersion — required_for_review_submission)
 Required before first booking acceptance:
 - card on file for future professional billing
 
@@ -564,23 +584,34 @@ Minimum matrix:
 - primary_language: account_creation
 - display_name: valid_profile_draft
 - category/subcategory/specialty: valid_profile_draft + review_submission
+- (service_jurisdiction removed — professionals serve globally)
 - headline + short_bio: valid_profile_draft + review_submission
 - profile_photo: review_submission + go_live
 - at_least_one_service: review_submission + go_live
 - service_price_and_duration: review_submission + go_live
 - availability_baseline: review_submission + go_live
 - acceptance_mode_choice: review_submission + go_live
+- cancellation_policy_accepted: review_submission (platform default policy, not customizable in MVP)
+- terms_accepted (termsAcceptedAt + termsVersion): review_submission
 - professional_plan_selection: review_submission
 - billing_card_for_professional_plan: first_booking_acceptance
 - payout_connected_account_minimum: first_booking_acceptance
 - payout_kyc_complete: payout
 - sensitive_category_disclaimer_fields: review_submission + go_live (where applicable)
 - sensitive_category_credentials: go_live or first_booking_acceptance based on category risk policy
+- credential_upload: go_live (for sensitive categories only — saude, juridico, medico)
+Optional but tracked:
+- cover_photo: optional (all tiers)
+- whatsapp_number: optional (visible on profile for Professional/Premium only)
+- video_intro_url: optional (Professional/Premium only)
+- social_links: optional (Professional up to 2, Premium up to 5)
+- calendar_sync_provider: optional but strongly recommended — persistent banner if not connected post go-live
+- notification_preferences: optional — defaults to all enabled
 
 1.13 Gating summary (explicit)
 - Minimum required to create account: Stage 1 required fields only.
-- Minimum required to submit for review: stages 2 to 6 baseline fields complete.
-- Minimum required to go live: approved submission + go-live blockers cleared.
+- Minimum required to submit for review: stages 2 to 6 baseline fields complete + cancellation policy accepted + terms accepted.
+- Minimum required to go live: approved submission + go-live blockers cleared + credential upload (sensitive categories).
 - Minimum required to accept first booking: payout/billing gating requirements complete.
 - Minimum required to receive payout: payout/KYC requirements complete.
 
@@ -1211,12 +1242,25 @@ Final decision:
 
 13.2 How recurring schedule should be structured
 Final decision:
-- Plans with recurring sessions should begin with a fixed default schedule pattern.
+- Recurrence means: same day of the week, same time slot, repeating.
+- The user (client) chooses the periodicity at checkout: every week, every 2 weeks, every 3 weeks, monthly, or custom interval in days.
+- The user chooses how long the recurrence lasts: by number of occurrences or by end date, constrained by the professional's booking window (tier-based: Basic 60d, Professional 90d, Premium 180d).
+- The system replicates slots within the professional's available booking window.
+- If a recurring slot falls on a blocked/unavailable day, the system notifies both parties to reschedule that specific occurrence.
+- Each recurring booking is an individual booking linked by a recurrence_group_id — each can be independently cancelled or rescheduled.
 - Within rules, the user can reschedule individual sessions.
 
 This means:
-- recurring service starts with a stable schedule structure
+- recurring service starts with a stable schedule structure chosen by the user
 - not a pure “book ad hoc every week” mess
+- periodicity is user-driven, not fixed by the professional
+
+13.2.1 Multiple bookings (non-recurring batch)
+- Users can select several non-recurring dates in a single checkout for the same service and professional.
+- Dates do not need to be the same day of the week.
+- All selected slots are booked and paid in one transaction.
+- Each booking within the batch is an independent booking — can be individually cancelled or rescheduled.
+- Available to all tiers.
 
 13.3 Next-cycle reserved slots
 Final decision:
@@ -1276,9 +1320,12 @@ Final decision:
 - If the user wants another professional, the current relationship ends and a new one begins.
 
 Technical requirements for recurring scheduling
-- recurring_schedule object
+- recurring_schedule object with: day_of_week, time, periodicity (weekly/biweekly/monthly/custom_days), start_date, end_date_or_count
+- recurrence_group_id linking individual bookings within a recurrence
 - reserved_future_slot states separate from financially confirmed sessions
 - recurrence template logic
+- batch_booking_group_id for multiple bookings (non-recurring batch checkout)
+- conflict detection when recurring slot overlaps with blocked time or existing booking
 - slot release scheduler tied to renewal status
 - recurring pause request workflow
 

@@ -109,7 +109,6 @@ export default function CadastroPage() {
   )
   const [professionalQualificationFiles, setProfessionalQualificationFiles] = useState<File[]>([])
   const [professionalQualificationNote, setProfessionalQualificationNote] = useState('')
-  const [professionalJurisdiction, setProfessionalJurisdiction] = useState('')
   const [professionalYearsExperience, setProfessionalYearsExperience] = useState('')
   const [professionalSessionPrice, setProfessionalSessionPrice] = useState('')
   const [professionalSessionDuration, setProfessionalSessionDuration] = useState('60')
@@ -309,8 +308,6 @@ export default function CadastroPage() {
       nextErrors.professionalPrimaryLanguage = 'Selecione o idioma principal de atendimento.'
     }
 
-    if (!professionalJurisdiction.trim()) nextErrors.professionalJurisdiction = 'Informe a jurisdição de atuação.'
-
     const years = Number(professionalYearsExperience)
     if (!professionalYearsExperience || Number.isNaN(years) || years < 0 || years > 60) {
       nextErrors.professionalYearsExperience = 'Informe anos de experiência entre 0 e 60.'
@@ -388,7 +385,6 @@ export default function CadastroPage() {
       signupMetadata.professional_primary_language = professionalPrimaryLanguage
       signupMetadata.professional_secondary_languages = professionalSecondaryLanguages
       signupMetadata.professional_languages = allLanguages
-      signupMetadata.professional_jurisdiction = professionalJurisdiction
       signupMetadata.professional_years_experience = Number(professionalYearsExperience || 0)
       signupMetadata.professional_session_price = Number(professionalSessionPrice || 0)
       signupMetadata.professional_session_duration_minutes = Number(professionalSessionDuration || 60)
@@ -1026,26 +1022,6 @@ export default function CadastroPage() {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="professional-jurisdiction" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Jurisdição / países onde pode atuar
-            </label>
-            <input
-              id="professional-jurisdiction"
-              type="text"
-              value={professionalJurisdiction}
-              onChange={event => {
-                setProfessionalJurisdiction(event.target.value)
-                clearFieldError('professionalJurisdiction')
-              }}
-              required
-              placeholder="Ex.: Brasil, Portugal"
-              className={inputClass(Boolean(fieldErrors.professionalJurisdiction))}
-              aria-invalid={Boolean(fieldErrors.professionalJurisdiction)}
-            />
-            {fieldErrors.professionalJurisdiction && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalJurisdiction}</p>}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

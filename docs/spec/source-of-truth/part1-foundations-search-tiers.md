@@ -292,9 +292,9 @@ Tags should be used to improve:
 3.10 Limit rules by tier
 Specialties per tier:
 
-* Basic: up to 2 specialties
+* Basic: up to 1 specialty
 * Professional: up to 3 specialties
-* Premium: up to 5 specialties
+* Premium: up to 3 specialties
 
 Tags per tier:
 
@@ -428,7 +428,7 @@ Premium
 
 * Monthly plan exists.
 * Annual plan exists.
-* Annual discount: 15%.
+* Annual pricing rule: annual = 10× monthly price (not a percentage discount).
 * All professional plans should support a 3-month free signup period.
 
 4.6 Tier selection timing
@@ -447,7 +447,12 @@ This avoids confusion at the first step while still selling upgrade value.
 4.8 Annual plan rule
 
 * Annual plan available.
-* Annual discount: 15%.
+* Annual pricing rule: annual = 10× monthly price. This is the canonical rule — do not express as a percentage discount.
+* Reference prices (Stripe test mode, created 2026-03):
+  - Basic: BRL 49.99/mês → 499.90/ano | USD 9.99/mês → 99.90/ano | EUR 9.99/mês → 99.90/ano | GBP 9.99/mês → 99.90/ano
+  - Professional: BRL 99.99/mês → 999.90/ano | USD 19.99/mês → 199.90/ano | EUR 19.99/mês → 199.90/ano | GBP 19.99/mês → 199.90/ano
+  - Premium: BRL 149.99/mês → 1499.90/ano | USD 29.99/mês → 299.90/ano | EUR 29.99/mês → 299.90/ano | GBP 29.99/mês → 299.90/ano
+* Currency shown to professional is based on their country/IP. All currencies exist as Stripe prices on the same product.
 * This must be reflected in the plan comparison and upgrade flows.
 
 4.9 Plan switching logic (high-level, as relevant here)
@@ -489,11 +494,11 @@ Examples:
 * Professional: 90 days
 * Premium: 180 days
 
-4.12 Service count by tier
+4.12 Service type count by tier (distinct service offerings within a profile)
 
-* Basic: 3 services
-* Professional: 10 services
-* Premium: 20 services
+* Basic: 1 service type
+* Professional: 5 service types
+* Premium: 10 service types
 
 4.13 Service option count (durations / service variants) by tier
 
@@ -502,25 +507,84 @@ Examples:
 * Premium: up to 10 options per service
 
 4.14 Recurring/plan sophistication by tier
-Basic in MVP
+All tiers support:
+* one-off sessions
+* recurring sessions (same day, same time — user chooses periodicity: weekly, biweekly, monthly, or every X weeks/days)
+* session packages
+* multiple bookings (user selects multiple non-recurring dates in one checkout)
 
+Basic in MVP
 * simpler packaging
 * limited promotional/commercial sophistication
-* one-off and basic recurring allowed, but less flexibility in advanced offers
+* no request booking (auto-accept only)
 
 Professional
-
 * stronger commercial flexibility
-* request booking available
-* promotions allowed
+* request booking available (manual-accept mode)
+* promotions/discounts allowed
 * stronger visibility
 
 Premium
-
 * strongest commercial flexibility
 * more advanced promotional possibilities
 * stronger discovery placement
 * future premium-only monetization options such as more advanced first-session conversion or loyalty constructs
+
+4.14.1 Recurrence rules (authoritative)
+* Recurrence means: same day of the week, same time slot, repeating.
+* The user (client) chooses the periodicity: every week, every 2 weeks, every 3 weeks, monthly, or custom interval in days.
+* The user chooses how long the recurrence lasts (number of occurrences or end date), constrained by the professional's booking window (tier-based).
+* The system replicates slots within the professional's available booking window.
+* If a recurring slot falls on a blocked day, the system notifies both parties to reschedule that specific occurrence.
+* Recurring bookings are individual bookings linked by a recurrence_group_id — each can be independently cancelled/rescheduled.
+
+4.14.2 Multiple bookings rules (authoritative)
+* Multiple bookings allow a user to select several non-recurring dates in a single checkout.
+* Dates do not need to be the same day of the week.
+* All selected slots are booked and paid in one transaction.
+* Each booking within the batch is an independent booking — can be individually cancelled/rescheduled.
+* Available to all tiers.
+
+4.14.3 Complete tier-gated settings matrix
+
+PUBLIC PROFILE settings by tier:
+* Cover photo: Basic yes | Professional yes | Premium yes
+* Video intro: Basic no | Professional yes | Premium yes
+* WhatsApp visible on profile: Basic no | Professional yes | Premium yes
+* Social links on profile: Basic no | Professional up to 2 | Premium up to 5
+* Extended bio (long section): Basic no | Professional yes (2000 chars) | Premium yes (5000 chars)
+* Tier badge on profile: Basic none | Professional "Profissional" badge | Premium "Premium" badge
+
+SCHEDULING settings by tier:
+* Auto-accept mode: all tiers yes
+* Manual-accept (request booking): Basic no | Professional yes | Premium yes
+* Minimum notice range: Basic 2h-48h | Professional 1h-72h | Premium 30min-168h
+* Buffer time between sessions: Basic fixed 15min | Professional configurable 5-60min | Premium configurable 5-60min
+* Calendar sync Google: all tiers yes
+* Calendar sync Outlook: Basic no | Professional yes | Premium yes
+
+COMMUNICATION settings by tier:
+* Email notifications: all tiers yes
+* Push notifications: all tiers yes
+* WhatsApp notifications: Basic no | Professional yes | Premium yes
+* Pre-booking chat with client: Basic no | Professional yes (request booking) | Premium yes
+
+VIDEO SESSIONS (Agora) by tier:
+* 1:1 video session: all tiers yes
+* Group session: Basic no | Professional no | Premium future
+
+FINANCIAL settings by tier:
+* Standard payout: all tiers yes
+* Receiving currency: 1 for all tiers
+* Promotions/discounts: Basic no | Professional yes | Premium yes
+* Session packages: all tiers yes
+* Exportable financial report: Basic no | Professional CSV | Premium CSV + PDF
+
+DISCOVERY settings by tier:
+* Search listing: all tiers yes
+* Ranking boost: Basic none | Professional moderate | Premium high
+* Category highlight: Basic no | Professional yes (rotating) | Premium yes (priority)
+* Featured profile: Basic no | Professional no | Premium yes
 
 4.15 Loyalty/fidelity rules (future)
 Default marketplace model remains no-fidelity/month-to-month.

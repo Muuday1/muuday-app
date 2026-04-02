@@ -566,3 +566,62 @@ Status: `Done` for automated gate + fixture setup. Keep this list as regression 
   - direct booking (`/agendar`)
   - request acceptance (`/solicitar`)
   and confirm no new `payment_capture_failed` cancellations are generated.
+24. Regularize E2E booking fixtures before Wave 2 sign-off:
+- update `.env.local` with deterministic IDs for:
+  - `E2E_PROFESSIONAL_ID` (bookable/open gate),
+  - `E2E_MANUAL_PROFESSIONAL_ID` (manual confirmation),
+  - `E2E_BLOCKED_PROFESSIONAL_ID` (blocked gate).
+- confirm each ID resolves in `/agendar/{id}` and `/solicitar/{id}`.
+- rerun `npm run test:e2e` and require zero not-found failures.
+25. Finish admin review cycle QA with credentials visibility:
+- queue card must show credential count (`Sem credenciais` or `N credencial(is)`).
+- review detail route `/admin/revisao/[professionalId]` must complete all three outcomes:
+  - `approved`,
+  - `needs_changes`,
+  - `rejected`.
+- verify professional receives corresponding status transition and audit log entry.
+26. Confirm public acquisition consistency after landing/plan updates:
+- validate `/registrar-profissional` copy against canonical model:
+  - video-only,
+  - no jurisdiction,
+  - C1-C9 onboarding path,
+  - tier preview and `/planos` CTA.
+- validate `/planos` checkout entrypoints for Professional/Premium with trial messaging intact.
+27. Apply migration `029-wave2-remove-jurisdiction-signup-pipeline.sql` in all environments (dev/staging/prod):
+- required to prevent `handle_new_user` from referencing dropped `professional_applications.jurisdiction`.
+- after apply, run smoke:
+  - professional signup (`/cadastro`) completes,
+  - row inserted/updated in `professional_applications`,
+  - no trigger errors in Supabase logs.
+28. After migration 029, execute P0 #2 remediation:
+- remove self-service toggles for `billing_card_on_file`, `payout_onboarding_started`, `payout_kyc_completed` from professional workspace.
+- keep C6/C7 readiness sourced from Stripe/webhook/admin-only paths.
+29. Close remaining Stripe webhook lifecycle coverage (Phase 12 hardening):
+- add explicit event handling in webhook processor for:
+  - `checkout.session.completed`
+  - `customer.subscription.created`
+  - `customer.subscription.trial_will_end`
+  - `invoice.finalized`
+- ensure idempotent mapping from event → domain state (`professional_settings`, subscription queue, billing status transitions).
+- add regression tests for duplicate event delivery and out-of-order delivery.
+- emit observability fields (`event_type`, `provider_event_id`, processing outcome) in job summary.
+30. Complete Wave 2 sign-off smoke with zero critical skips:
+- ensure deterministic fixture IDs exist for:
+  - `E2E_PROFESSIONAL_ID`
+  - `E2E_MANUAL_PROFESSIONAL_ID`
+  - `E2E_BLOCKED_PROFESSIONAL_ID`
+- rerun `npm run test:e2e` after fixture refresh and target `0 failed`, `0 unexpected skips`.
+- keep evidence in handover with exact run timestamp and command output summary.
+31. Finalizar fechamento de skips E2E por fixture determinística (sem mudança de produto):
+- garantir que os três IDs no ambiente apontem para perfis públicos válidos e estáveis:
+  - `E2E_PROFESSIONAL_ID`
+  - `E2E_MANUAL_PROFESSIONAL_ID`
+  - `E2E_BLOCKED_PROFESSIONAL_ID`
+- objetivo do próximo run: manter `0 failed` e reduzir skips esperados para apenas cenários explicitamente opcionais.
+- referência: último run após hardening dos specs (`booking-critical` + `wave2-onboarding-gates`) ficou em `8 passed`, `5 skipped`, `0 failed`.
+32. Reduce remaining E2E skips by fixing bookable fixture parity on `/agendar` in target environment:
+- current run is stable (`0 failed`) but still `5 skipped` due booking fixtures resolving to not-found in `/agendar/{id}`.
+- next action:
+  - validate RLS + server query path for `app/(app)/agendar/[id]/page.tsx` in target env,
+  - confirm fixture IDs are reachable by non-admin E2E user in server-rendered route,
+  - once reachable, rerun `npm.cmd run test:e2e` and target reduction from `5 skipped`.

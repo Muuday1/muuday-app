@@ -4,6 +4,11 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { writeAdminAuditLog } from '@/lib/admin/audit-log'
+import {
+  sendProfileApprovedEmail,
+  sendProfileNeedsChangesEmail,
+  sendProfileRejectedEmail,
+} from '@/lib/email/resend'
 
 type AdminActionResult =
   | { success: true }
@@ -14,6 +19,8 @@ const professionalStatusSchema = z.enum([
   'rejected',
   'suspended',
   'pending_review',
+  'needs_changes',
+  'draft',
 ])
 
 const adminUpdateProfessionalStatusInputSchema = z.object({
@@ -28,6 +35,12 @@ const adminUpdateFirstBookingGateInputSchema = z.object({
 
 const adminReviewActionInputSchema = z.object({
   reviewId: z.string().uuid('Identificador de avaliacao invalido.'),
+})
+
+const adminProfessionalDecisionInputSchema = z.object({
+  professionalId: z.string().uuid('Identificador de profissional invalido.'),
+  decision: z.enum(['approved', 'rejected', 'needs_changes']),
+  notes: z.string().trim().max(1200, 'Notas muito longas.').optional(),
 })
 
 const adminToggleReviewVisibilityInputSchema = adminReviewActionInputSchema.extend({
@@ -306,6 +319,113 @@ export async function adminDeleteReview(reviewId: string): Promise<AdminActionRe
     }
 
     revalidatePath('/admin')
+    revalidateTag('public-profiles')
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+  }
+}
+
+export async function adminReviewProfessionalDecision(
+  professionalId: string,
+  decision: 'approved' | 'rejected' | 'needs_changes',
+  notes?: string,
+): Promise<AdminActionResult> {
+  const parsed = adminProfessionalDecisionInputSchema.safeParse({
+    professionalId,
+    decision,
+    notes,
+  })
+  if (!parsed.success) {
+    return { success: false, error: getFirstValidationError(parsed.error) }
+  }
+
+  try {
+    const { supabase, userId } = await requireAdmin()
+    const { data: currentProfessional, error: currentProfessionalError } = await supabase
+      .from('professionals')
+      .select('id,user_id,status,updated_at')
+      .eq('id', parsed.data.professionalId)
+      .maybeSingle()
+
+    if (currentProfessionalError) {
+      return { success: false, error: currentProfessionalError.message }
+    }
+    if (!currentProfessional) {
+      return { success: false, error: 'Profissional nao encontrado.' }
+    }
+
+    const targetStatus = parsed.data.decision
+    const nowIso = new Date().toISOString()
+    const { error: updateError } = await supabase
+      .from('professionals')
+      .update({
+        status: targetStatus,
+        admin_review_notes: parsed.data.notes || null,
+        reviewed_by: userId,
+        reviewed_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq('id', parsed.data.professionalId)
+
+    if (updateError) {
+      return { success: false, error: updateError.message }
+    }
+
+    const { data: professionalOwner } = await supabase
+      .from('profiles')
+      .select('email,full_name')
+      .eq('id', currentProfessional.user_id)
+      .maybeSingle()
+
+    if (professionalOwner?.email) {
+      try {
+        if (targetStatus === 'approved') {
+          await sendProfileApprovedEmail(
+            professionalOwner.email,
+            professionalOwner.full_name || 'Profissional',
+          )
+        } else if (targetStatus === 'needs_changes') {
+          await sendProfileNeedsChangesEmail(
+            professionalOwner.email,
+            professionalOwner.full_name || 'Profissional',
+            parsed.data.notes || 'Revise os dados enviados e atualize seu perfil.',
+          )
+        } else {
+          await sendProfileRejectedEmail(
+            professionalOwner.email,
+            professionalOwner.full_name || 'Profissional',
+            parsed.data.notes || 'Seu perfil precisa de ajustes para publicação.',
+          )
+        }
+      } catch {
+        // keep admin decision successful even if email provider is unavailable
+      }
+    }
+
+    const auditResult = await writeAdminAuditLog(supabase, {
+      adminUserId: userId,
+      action: 'professional.review.decision',
+      targetTable: 'professionals',
+      targetId: parsed.data.professionalId,
+      oldValue: currentProfessional,
+      newValue: {
+        ...currentProfessional,
+        status: targetStatus,
+        admin_review_notes: parsed.data.notes || null,
+        reviewed_by: userId,
+        reviewed_at: nowIso,
+      },
+      metadata: {
+        decision: targetStatus,
+      },
+    })
+    if (!auditResult.success) {
+      return { success: false, error: auditResult.error }
+    }
+
+    revalidatePath('/admin')
+    revalidatePath(`/admin/revisao/${parsed.data.professionalId}`)
     revalidateTag('public-profiles')
     return { success: true }
   } catch (error) {

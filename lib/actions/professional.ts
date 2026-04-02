@@ -6,6 +6,7 @@ import { revalidateTag } from 'next/cache'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { z } from 'zod'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { getSocialLinksLimit, isFeatureAvailable } from '@/lib/tier-config'
 
 const VALID_CATEGORIES = [
   'saude-mental-bem-estar', 'saude-corpo-movimento', 'educacao-desenvolvimento',
@@ -165,6 +166,22 @@ const slotSchema = z.object({
 
 const slotsSchema = z.array(slotSchema).max(50, 'Máximo 50 horários')
 
+const professionalDraftSchema = z.object({
+  professionalId: z.string().uuid(),
+  category: z.enum(VALID_CATEGORIES, { errorMap: () => ({ message: 'Categoria inválida' }) }),
+  bio: z.string().trim().min(20, 'Bio muito curta').max(5000, 'Bio muito longa'),
+  tags: z.array(z.string().trim().min(1).max(50)).max(10, 'Limite de tags excedido'),
+  languages: z.array(z.string().trim().min(1).max(50)).min(1, 'Selecione pelo menos um idioma').max(10),
+  yearsExperience: z.number().int().min(0).max(60),
+  sessionPriceBrl: z.number().min(0).max(50000),
+  sessionDurationMinutes: z.number().int().min(15).max(480),
+  whatsappNumber: z.string().trim().max(32).optional().default(''),
+  coverPhotoUrl: z.string().trim().url('URL de capa inválida').optional().or(z.literal('')),
+  videoIntroUrl: z.string().trim().url('URL de vídeo inválida').optional().or(z.literal('')),
+  socialLinks: z.array(z.string().trim().url('Link social inválido')).max(5).default([]),
+  credentialUrls: z.array(z.string().trim().url('URL de credencial inválida')).max(10).default([]),
+})
+
 export async function updateAvailability(slots: { day_of_week: number; start_time: string; end_time: string }[]) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -203,4 +220,129 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
 
   revalidateTag('public-profiles')
   return { success: true }
+}
+
+export async function saveProfessionalProfileDraft(input: {
+  professionalId: string
+  category: string
+  bio: string
+  tags: string[]
+  languages: string[]
+  yearsExperience: number
+  sessionPriceBrl: number
+  sessionDurationMinutes: number
+  whatsappNumber?: string
+  coverPhotoUrl?: string
+  videoIntroUrl?: string
+  socialLinks?: string[]
+  credentialUrls?: string[]
+}) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sessão expirada. Faça login novamente.' }
+
+  const rl = await rateLimit('professionalProfile', user.id)
+  if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  const parsed = professionalDraftSchema.safeParse({
+    professionalId: input.professionalId,
+    category: input.category,
+    bio: input.bio,
+    tags: (input.tags || []).filter(Boolean),
+    languages: (input.languages || []).filter(Boolean),
+    yearsExperience: Number(input.yearsExperience || 0),
+    sessionPriceBrl: Number(input.sessionPriceBrl || 0),
+    sessionDurationMinutes: Number(input.sessionDurationMinutes || 60),
+    whatsappNumber: input.whatsappNumber || '',
+    coverPhotoUrl: input.coverPhotoUrl || '',
+    videoIntroUrl: input.videoIntroUrl || '',
+    socialLinks: (input.socialLinks || []).filter(Boolean),
+    credentialUrls: (input.credentialUrls || []).filter(Boolean),
+  })
+
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message || 'Dados inválidos.' }
+  }
+
+  const { data: professional } = await getPrimaryProfessionalForUser(
+    supabase,
+    user.id,
+    'id,tier',
+  )
+  if (!professional || professional.id !== parsed.data.professionalId) {
+    return { error: 'Perfil profissional inválido para este usuário.' }
+  }
+
+  const tier = String(professional.tier || 'basic').toLowerCase()
+  const socialLinksLimit = getSocialLinksLimit(tier)
+  if (parsed.data.socialLinks.length > socialLinksLimit) {
+    return {
+      error:
+        socialLinksLimit === 0
+          ? 'Links sociais não estão disponíveis no plano atual.'
+          : `Seu plano permite até ${socialLinksLimit} links sociais.`,
+    }
+  }
+
+  if (!isFeatureAvailable(tier, 'video_intro') && parsed.data.videoIntroUrl) {
+    return { error: 'Vídeo de apresentação disponível apenas no plano Professional ou Premium.' }
+  }
+
+  const socialLinksPayload =
+    parsed.data.socialLinks.length > 0
+      ? parsed.data.socialLinks.reduce<Record<string, string>>((acc, url, index) => {
+          acc[`link_${index + 1}`] = url
+          return acc
+        }, {})
+      : null
+
+  const { error: updateError } = await supabase
+    .from('professionals')
+    .update({
+      category: parsed.data.category,
+      bio: parsed.data.bio,
+      tags: parsed.data.tags,
+      languages: parsed.data.languages,
+      years_experience: parsed.data.yearsExperience,
+      session_price_brl: parsed.data.sessionPriceBrl,
+      session_duration_minutes: parsed.data.sessionDurationMinutes,
+      whatsapp_number: parsed.data.whatsappNumber || null,
+      cover_photo_url: parsed.data.coverPhotoUrl || null,
+      video_intro_url:
+        isFeatureAvailable(tier, 'video_intro') && parsed.data.videoIntroUrl
+          ? parsed.data.videoIntroUrl
+          : null,
+      social_links: socialLinksPayload,
+      status: 'pending_review',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', parsed.data.professionalId)
+
+  if (updateError) return { error: updateError.message }
+
+  await upsertPrimaryService({
+    professionalId: parsed.data.professionalId,
+    category: parsed.data.category,
+    bio: parsed.data.bio,
+    durationMinutes: parsed.data.sessionDurationMinutes,
+    priceBrl: parsed.data.sessionPriceBrl,
+  })
+
+  await supabase.from('professional_credentials').delete().eq('professional_id', parsed.data.professionalId)
+  if (parsed.data.credentialUrls.length > 0) {
+    const { error: credentialsError } = await supabase.from('professional_credentials').insert(
+      parsed.data.credentialUrls.map(fileUrl => ({
+        professional_id: parsed.data.professionalId,
+        file_url: fileUrl,
+        file_name: fileUrl.split('/').pop() || 'documento',
+        credential_type: 'other',
+      })),
+    )
+    if (credentialsError) return { error: credentialsError.message }
+  }
+
+  revalidateTag('public-profiles')
+  return { success: true as const }
 }

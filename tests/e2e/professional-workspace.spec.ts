@@ -13,14 +13,57 @@ const hasProfessionalConfig = Boolean(professionalEmail && professionalPassword)
 const hasAdminConfig = Boolean(adminEmail && adminPassword)
 const hasBookableProfessional = Boolean(bookableProfessionalId)
 
+async function dismissCookieDialogIfPresent(page: Page) {
+  const acceptButton = page.getByRole('button', { name: /Aceitar/i }).first()
+  await acceptButton.click({ timeout: 2_000 }).catch(() => {})
+
+  const closeButton = page.getByRole('button', { name: /Fechar/i }).first()
+  await closeButton.click({ timeout: 1_000 }).catch(() => {})
+
+  const cookieBackdropClose = page
+    .locator('[role=\"dialog\"][aria-label*=\"cookies\" i] button[aria-label=\"Fechar\"]')
+    .first()
+  await cookieBackdropClose.click({ timeout: 1_000 }).catch(() => {})
+}
+
 async function login(page: Page, email: string, password: string) {
   await page.goto('/login')
-  const acceptCookiesButton = page.getByRole('button', { name: 'Aceitar' }).first()
-  await acceptCookiesButton.click({ timeout: 3_000 }).catch(() => {})
-  await page.locator('#login-email, input[type="email"], input[name="email"]').first().fill(email)
-  await page.locator('#login-password, input[type="password"], input[name="password"]').first().fill(password)
-  await page.locator('button[type="submit"]').first().click()
-  await page.waitForURL(/\/(buscar|dashboard)/)
+  await dismissCookieDialogIfPresent(page)
+  const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
+  const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
+  const submitButton = page.locator('button[type="submit"]').first()
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await dismissCookieDialogIfPresent(page)
+    await emailInput.fill(email)
+    await passwordInput.fill(password)
+    await submitButton.click().catch(async () => {
+      await dismissCookieDialogIfPresent(page)
+      await submitButton.click()
+    })
+
+    try {
+      await page.waitForURL(/\/(buscar|dashboard)/, { timeout: 30_000 })
+      return
+    } catch {
+      const rateLimited = await page
+        .getByText(/muitas tentativas|tente novamente|aguarde/i)
+        .count()
+      if (rateLimited > 0 && attempt < 2) {
+        await page.waitForTimeout(2_500)
+        continue
+      }
+
+      const invalidCredentials = await page
+        .getByText(/email ou senha incorretos|credenciais invalidas/i)
+        .count()
+      if (invalidCredentials > 0) {
+        throw new Error('E2E login failed: invalid credentials for configured user.')
+      }
+
+      throw new Error(`E2E login failed: no redirect after submit (url=${page.url()}).`)
+    }
+  }
 }
 
 test.describe('Professional workspace role split', () => {
