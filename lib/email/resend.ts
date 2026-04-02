@@ -555,6 +555,28 @@ export async function sendProfileApprovedEmail(to: string, professionalName: str
 }
 
 // ─── 14. Perfil rejeitado (profissional) ──────────────────────────────────
+export async function sendProfileNeedsChangesEmail(
+  to: string, professionalName: string, notes: string,
+) {
+  return sendEmail({
+    from: from(), to,
+    subject: `Seu perfil precisa de ajustes na Muuday`,
+    html: emailLayout(
+      'Ajustes necessarios',
+      'Seu perfil precisa de ajustes antes da publicacao.',
+      `<p class="greet">Ola, ${professionalName}!</p>
+      <p class="bt">Sua solicitacao foi revisada e precisamos de alguns ajustes antes de liberar seu perfil.</p>
+      <div class="danger">
+        <p style="font-weight:600;margin-bottom:6px;">Ajustes solicitados:</p>
+        <p>${notes}</p>
+      </div>
+      <p class="bt">Assim que voce atualizar, envie novamente para revisao.</p>
+      ${cta(`${APP_URL}/editar-perfil-profissional`, 'Atualizar meu perfil ->')}
+      ${signoff()}`
+    ),
+  })
+}
+
 export async function sendProfileRejectedEmail(
   to: string, professionalName: string, reason: string,
 ) {
