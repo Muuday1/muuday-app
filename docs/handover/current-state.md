@@ -254,7 +254,7 @@ Wave-driven delivery is now mandatory:
 
 1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-012), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel, auth smoke flow validated.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
-3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress (backend closure complete).** Remaining step is manual acceptance/sign-off (recorrência, gates, role routes, cron/Inngest attachment) before marking `Done`.
+3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress (backend closure complete).** Remaining step is manual acceptance/sign-off (recorrência, gates, role routes), close dos 2 skips de E2E de gates e alinhamento de infraestrutura (`SUPABASE_DB_POOLER_URL`) antes de marcar `Done`.
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
 6. Wave 5: session provider + compliance freeze.
@@ -675,3 +675,7 @@ Wave-driven delivery is now mandatory:
 - deterministic post-deploy sync command:
   - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
 - this closes the prior operational gap tracked as "unattached syncs pending external confirmation".
+131. Wave 2 close audit executed (2026-04-02):
+- E2E result: `11 passed`, `2 skipped` (`tests/e2e/wave2-onboarding-gates.spec.ts` requires deterministic gate fixtures).
+- Role-claim audit result (`npm run audit:auth-role-claims`): JWT role claim coverage `0%`; middleware fallback estimate `100%`.
+- DB pooling validator (`npm run db:validate-pooling`): failed due missing `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) in runtime env.

@@ -579,28 +579,32 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. Run deterministic Inngest resync after each deploy:
 - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
 - if dashboard still shows historical unattached records, treat them as stale history when latest resync succeeds.
-3. Keep E2E fixtures stable and close skipped `wave2-onboarding-gates.spec.ts` scenarios by maintaining both open-gate and blocked-gate professional fixtures.
-4. After Wave 2 sign-off, open Wave 3 scope (Stripe real billing/payout/ledger) without changing current Wave 2 gate contracts.
-5. Run visual regression pass for compact auth modal:
+3. Close remaining Wave 2 gate E2E skips:
+- current run: `11 passed`, `2 skipped` (`wave2-onboarding-gates.spec.ts`).
+- maintain deterministic open-gate and blocked-gate fixtures and rerun `npm run test:e2e`.
+4. Enforce runtime DB pooling configuration:
+- set `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) to Supavisor `:6543`.
+- current status: `npm run db:validate-pooling` failing due missing pooled runtime URL.
+5. Backfill JWT role claims and rerun coverage audit:
+- current status from `npm run audit:auth-role-claims`: `0%` valid claims, `100%` fallback estimate.
+6. Keep E2E fixtures stable and close skipped `wave2-onboarding-gates.spec.ts` scenarios by maintaining both open-gate and blocked-gate professional fixtures.
+7. After Wave 2 sign-off, open Wave 3 scope (Stripe real billing/payout/ledger) without changing current Wave 2 gate contracts.
+8. Run visual regression pass for compact auth modal:
 - desktop (`/buscar` and `/profissional/[id]`) must render full modal content without inner scrollbar.
 - mobile modal must remain centered and usable with fallback scroll only when viewport height is constrained.
-6. Run sticky rail QA on professional profile:
+9. Run sticky rail QA on professional profile:
 - tablet + desktop: booking box must remain visible while scrolling profile sections.
 - mobile: booking box must remain in normal flow (not sticky) without overlap.
-7. Post-apply validation for `019`:
+10. Post-apply validation for `019`:
 - run `/buscar` smoke with and without filters to ensure RPC path and fallback path both behave correctly.
 - record p50/p95 before/after with same region and update this file.
-8. Post-apply validation for `020`:
+11. Post-apply validation for `020`:
 - run `db/sql/analysis/wave2-indexes-explain-analyze.sql`.
 - confirm index scans for critical paths listed in audit.
-9. Post-apply validation for `021`:
+12. Post-apply validation for `021`:
 - create two concurrent booking attempts for same professional/start time and confirm one succeeds while the other fails with deterministic conflict error.
 - verify no false-positive collisions for recurring parent wrapper rows.
-10. Production env alignment for DB pooling:
-- set `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) to Supavisor transaction endpoint (`:6543`) in Vercel production.
-- keep `SUPABASE_DB_DIRECT_URL` (or `DATABASE_DIRECT_URL`) only for migration/maintenance contexts.
-- run `npm run db:validate-pooling` before every release cut.
-11. Validate rate-limit expansion in preview/production:
+13. Validate rate-limit expansion in preview/production:
 - auth: repeated invalid login/signup attempts should return deterministic throttle message.
 - booking: burst attempts on `createBooking`/`createRequestBooking` should hit `bookingCreate` limiter.
 - webhook: `/api/webhooks/stripe` should return `429` when burst threshold is exceeded.

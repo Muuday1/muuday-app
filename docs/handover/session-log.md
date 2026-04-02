@@ -31,6 +31,16 @@ Use this for meaningful checkpoints only.
   - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
 - Handover atualizado para tratar sync como fluxo reproduzível por CLI/CI.
 
+### Entry 82
+- Executado checklist técnico de fechamento Wave 2 (rodada de evidência automática):
+  - `npm run test:e2e` -> `11 passed`, `2 skipped` (skips em `wave2-onboarding-gates.spec.ts` ainda dependem de fixture de gate bloqueado/aberto totalmente determinística).
+  - `npm run audit:auth-role-claims` -> `0%` cobertura de claim JWT de role e `100%` fallback estimado para query em `profiles`.
+  - `npm run db:validate-pooling` -> falha por ausência de `SUPABASE_DB_POOLER_URL` (ou `DATABASE_URL`) com endpoint pooler `:6543`.
+- Status consolidado de Wave 2 permanece `In progress` até:
+  - fechamento do sign-off manual (recorrência/gates/role split),
+  - eliminação dos 2 skips de E2E de gates,
+  - ajuste de pooling runtime e backfill de JWT role claims.
+
 ## 2026-04-01
 
 ### Entry 79
