@@ -43,6 +43,12 @@ export default async function RootPage() {
                 >
                   Sou profissional
                 </Link>
+                <Link
+                  href="/planos"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:border-brand-300 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                >
+                  Ver planos
+                </Link>
               </div>
 
               <div className="mt-7 grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2">
@@ -99,9 +105,9 @@ export default async function RootPage() {
                       </p>
                     </div>
                     <div className="rounded-2xl border border-neutral-200 bg-white/80 p-4">
-                      <p className="text-sm font-semibold text-neutral-900">Profissionais verificados</p>
+                      <p className="text-sm font-semibold text-neutral-900">Vídeo, recorrência e múltiplas datas</p>
                       <p className="mt-1 text-sm text-neutral-600">
-                        Perfis revisados antes de aparecerem na plataforma.
+                        Sessão única, pacote recorrente ou várias datas no mesmo checkout.
                       </p>
                     </div>
                   </div>

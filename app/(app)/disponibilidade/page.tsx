@@ -60,6 +60,9 @@ export default function DisponibilidadePage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [bufferMinutes, setBufferMinutes] = useState(15)
+  const [maxWindowDays, setMaxWindowDays] = useState(60)
+  const [calendarConnected, setCalendarConnected] = useState(false)
 
   const loadAvailability = useCallback(async () => {
     setLoading(true)
@@ -95,6 +98,25 @@ export default function DisponibilidadePage() {
     }
 
     setProfessionalId(professional.id)
+
+    const [{ data: settingsRow }, { data: calendarRow }] = await Promise.all([
+      supabase
+        .from('professional_settings')
+        .select('buffer_minutes, buffer_time_minutes, max_booking_window_days')
+        .eq('professional_id', professional.id)
+        .maybeSingle(),
+      supabase
+        .from('calendar_integrations')
+        .select('sync_enabled')
+        .eq('professional_id', professional.id)
+        .maybeSingle(),
+    ])
+
+    setBufferMinutes(
+      Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15),
+    )
+    setMaxWindowDays(Number(settingsRow?.max_booking_window_days || 60))
+    setCalendarConnected(Boolean(calendarRow?.sync_enabled))
 
     // Load existing availability
     const { data: rows } = await supabase
@@ -258,6 +280,23 @@ export default function DisponibilidadePage() {
         <p className="text-sm text-brand-700">
           Os horários são exibidos para clientes no fuso horário local deles. Configure os dias em que você está disponível para sessões.
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
+        <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
+          <p className="text-xs text-neutral-500">Buffer ativo</p>
+          <p className="text-sm font-semibold text-neutral-900">{bufferMinutes} min</p>
+        </div>
+        <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
+          <p className="text-xs text-neutral-500">Janela máxima</p>
+          <p className="text-sm font-semibold text-neutral-900">{maxWindowDays} dias</p>
+        </div>
+        <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
+          <p className="text-xs text-neutral-500">Sync de calendário</p>
+          <p className="text-sm font-semibold text-neutral-900">
+            {calendarConnected ? 'Conectado' : 'Não conectado'}
+          </p>
+        </div>
       </div>
 
       <div className="mb-6">

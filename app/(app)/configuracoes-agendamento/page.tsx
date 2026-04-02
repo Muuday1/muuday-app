@@ -7,6 +7,8 @@ import { ALL_TIMEZONES } from '@/lib/constants'
 import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS, normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { AlertCircle, CalendarClock, Check, ChevronLeft, Loader2 } from 'lucide-react'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { getBufferConfig, getMinNoticeRange, getTierLimits } from '@/lib/tier-config'
+import { TierLockedOverlay } from '@/components/tier/TierLockedOverlay'
 
 type BookingSettingsForm = {
   timezone: string
@@ -35,6 +37,7 @@ export default function ConfiguracoesAgendamentoPage() {
   const [accessDenied, setAccessDenied] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
+  const [tier, setTier] = useState('basic')
   const [form, setForm] = useState<BookingSettingsForm>({
     ...DEFAULT_PROFESSIONAL_BOOKING_SETTINGS,
     confirmationMode: DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.confirmationMode,
@@ -70,7 +73,7 @@ export default function ConfiguracoesAgendamentoPage() {
       const { data: professional } = await getPrimaryProfessionalForUser(
         supabase,
         user.id,
-        'id, session_duration_minutes',
+        'id, session_duration_minutes, tier',
       )
 
       if (!professional) {
@@ -80,6 +83,7 @@ export default function ConfiguracoesAgendamentoPage() {
       }
 
       setProfessionalId(professional.id)
+      setTier(String(professional.tier || 'basic').toLowerCase())
 
       const { data: settingsRow, error: settingsError } = await supabase
         .from('professional_settings')
@@ -102,7 +106,10 @@ export default function ConfiguracoesAgendamentoPage() {
       setForm({
         timezone: normalized.timezone,
         sessionDurationMinutes: durationFromProfessional,
-        bufferMinutes: normalized.bufferMinutes,
+        bufferMinutes:
+          String(professional.tier || 'basic').toLowerCase() === 'basic'
+            ? 15
+            : normalized.bufferMinutes,
         minimumNoticeHours: normalized.minimumNoticeHours,
         maxBookingWindowDays: normalized.maxBookingWindowDays,
         enableRecurring: normalized.enableRecurring,
@@ -115,6 +122,18 @@ export default function ConfiguracoesAgendamentoPage() {
 
     loadData()
   }, [supabase])
+
+  const noticeRange = useMemo(() => getMinNoticeRange(tier), [tier])
+  const tierLimits = useMemo(() => getTierLimits(tier), [tier])
+  const bufferConfig = useMemo(() => getBufferConfig(tier), [tier])
+  const allowedMinNoticeOptions = useMemo(
+    () => MIN_NOTICE_OPTIONS.filter(hours => hours >= noticeRange.min && hours <= noticeRange.max),
+    [noticeRange.max, noticeRange.min],
+  )
+  const allowedMaxWindowOptions = useMemo(
+    () => MAX_WINDOW_OPTIONS.filter(days => days <= tierLimits.bookingWindowDays),
+    [tierLimits.bookingWindowDays],
+  )
 
   const minNoticeLabel = useMemo(() => {
     if (form.minimumNoticeHours >= 24 && form.minimumNoticeHours % 24 === 0) {
@@ -138,11 +157,12 @@ export default function ConfiguracoesAgendamentoPage() {
         professional_id: professionalId,
         timezone: form.timezone,
         session_duration_minutes: form.sessionDurationMinutes,
-        buffer_minutes: form.bufferMinutes,
+        buffer_minutes: bufferConfig.configurable ? form.bufferMinutes : 15,
+        buffer_time_minutes: bufferConfig.configurable ? form.bufferMinutes : 15,
         minimum_notice_hours: form.minimumNoticeHours,
-        max_booking_window_days: form.maxBookingWindowDays,
+        max_booking_window_days: Math.min(form.maxBookingWindowDays, tierLimits.bookingWindowDays),
         enable_recurring: form.enableRecurring,
-        confirmation_mode: form.confirmationMode,
+        confirmation_mode: tier === 'basic' ? 'auto_accept' : form.confirmationMode,
         cancellation_policy_code: form.cancellationPolicyCode,
         require_session_purpose: form.requireSessionPurpose,
         updated_at: nowIso,
@@ -295,17 +315,25 @@ export default function ConfiguracoesAgendamentoPage() {
               <label className="block text-sm font-medium text-neutral-700 mb-1.5">
                 Buffer entre sessões
               </label>
-              <select
-                value={form.bufferMinutes}
-                onChange={e => setForm(prev => ({ ...prev, bufferMinutes: Number(e.target.value) }))}
-                className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-              >
-                {BUFFER_OPTIONS.map(value => (
-                  <option key={value} value={value}>
-                    {value === 0 ? 'Sem buffer' : `${value} min`}
-                  </option>
-                ))}
-              </select>
+              {bufferConfig.configurable ? (
+                <select
+                  value={form.bufferMinutes}
+                  onChange={e => setForm(prev => ({ ...prev, bufferMinutes: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                >
+                  {BUFFER_OPTIONS.filter(value => value >= 5).map(value => (
+                    <option key={value} value={value}>
+                      {value} min
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  disabled
+                  value="15 min (fixo no plano Basic)"
+                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50 text-sm text-neutral-500"
+                />
+              )}
             </div>
 
             <div>
@@ -319,7 +347,7 @@ export default function ConfiguracoesAgendamentoPage() {
                 }
                 className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
               >
-                {MIN_NOTICE_OPTIONS.map(hours => (
+                {allowedMinNoticeOptions.map(hours => (
                   <option key={hours} value={hours}>
                     {hours >= 24 && hours % 24 === 0
                       ? `${hours / 24} ${hours / 24 === 1 ? 'dia' : 'dias'}`
@@ -340,7 +368,7 @@ export default function ConfiguracoesAgendamentoPage() {
                 }
                 className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
               >
-                {MAX_WINDOW_OPTIONS.map(days => (
+                {allowedMaxWindowOptions.map(days => (
                   <option key={days} value={days}>
                     {days} {days === 1 ? 'dia' : 'dias'}
                   </option>
@@ -353,37 +381,43 @@ export default function ConfiguracoesAgendamentoPage() {
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">
           <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Fluxo de confirmação</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setForm(prev => ({ ...prev, confirmationMode: 'auto_accept' }))}
-              className={`rounded-xl border px-4 py-3 text-left transition-all ${
-                form.confirmationMode === 'auto_accept'
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-neutral-200 hover:border-neutral-300'
-              }`}
-            >
-              <p className="text-sm font-semibold text-neutral-900">Aceitar automaticamente</p>
-              <p className="text-xs text-neutral-500 mt-1">
-                A sessão fica confirmada após pagamento.
-              </p>
-            </button>
+          <TierLockedOverlay
+            currentTier={tier}
+            requiredTier="professional"
+            featureName="Confirmação manual de pedidos"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, confirmationMode: 'auto_accept' }))}
+                className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                  form.confirmationMode === 'auto_accept'
+                    ? 'border-brand-500 bg-brand-50'
+                    : 'border-neutral-200 hover:border-neutral-300'
+                }`}
+              >
+                <p className="text-sm font-semibold text-neutral-900">Aceitar automaticamente</p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  A sessão fica confirmada após pagamento.
+                </p>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setForm(prev => ({ ...prev, confirmationMode: 'manual' }))}
-              className={`rounded-xl border px-4 py-3 text-left transition-all ${
-                form.confirmationMode === 'manual'
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-neutral-200 hover:border-neutral-300'
-              }`}
-            >
-              <p className="text-sm font-semibold text-neutral-900">Confirmação manual</p>
-              <p className="text-xs text-neutral-500 mt-1">
-                O pedido fica pendente até sua aprovação (SLA de 24h).
-              </p>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, confirmationMode: 'manual' }))}
+                className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                  form.confirmationMode === 'manual'
+                    ? 'border-brand-500 bg-brand-50'
+                    : 'border-neutral-200 hover:border-neutral-300'
+                }`}
+              >
+                <p className="text-sm font-semibold text-neutral-900">Confirmação manual</p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  O pedido fica pendente até sua aprovação (SLA de 24h).
+                </p>
+              </button>
+            </div>
+          </TierLockedOverlay>
         </div>
 
         <div className="bg-white rounded-2xl border border-neutral-100 p-6">

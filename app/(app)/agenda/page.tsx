@@ -110,6 +110,17 @@ function alertClasses(level: 'info' | 'warning' | 'critical') {
   }
 }
 
+function bookingModeMeta(booking: Record<string, any>) {
+  const bookingType = String(booking.booking_type || '')
+  if (booking.recurrence_group_id || bookingType.startsWith('recurring')) {
+    return { label: 'Recorrência', className: 'bg-blue-50 text-blue-700' }
+  }
+  if (booking.batch_booking_group_id) {
+    return { label: 'Várias datas', className: 'bg-purple-50 text-purple-700' }
+  }
+  return null
+}
+
 export default async function AgendaPage({
   searchParams,
 }: {
@@ -652,6 +663,13 @@ export default async function AgendaPage({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {bookingModeMeta(booking) ? (
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${bookingModeMeta(booking)?.className}`}
+                        >
+                          {bookingModeMeta(booking)?.label}
+                        </span>
+                      ) : null}
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                           booking.status === 'confirmed'
@@ -672,17 +690,15 @@ export default async function AgendaPage({
                           {slaLabel}
                         </span>
                       )}
-                      {booking.session_link && (
-                        <a
-                          href={booking.session_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {['pending_confirmation', 'confirmed'].includes(booking.status) ? (
+                        <Link
+                          href={`/sessao/${booking.id}`}
                           className="flex items-center gap-1.5 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-600"
                         >
                           <Video className="h-3.5 w-3.5" />
-                          Entrar
-                        </a>
-                      )}
+                          Entrar na sessão
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
                   {slaLabel && (
@@ -750,6 +766,13 @@ export default async function AgendaPage({
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {bookingModeMeta(booking) ? (
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${bookingModeMeta(booking)?.className}`}
+                        >
+                          {bookingModeMeta(booking)?.label}
+                        </span>
+                      ) : null}
                       {canReview && (
                         <Link
                           href={`/avaliar/${booking.id}`}
@@ -768,15 +791,24 @@ export default async function AgendaPage({
                     </div>
                   </div>
 
-                  {['pending', 'pending_confirmation', 'confirmed'].includes(booking.status) && (
-                    <BookingActions
-                      bookingId={booking.id}
-                      status={booking.status}
-                      sessionLink={booking.session_link}
-                      scheduledAt={booking.scheduled_at}
-                      isProfessional={isProfessional}
-                    />
-                  )}
+                  {['pending', 'pending_confirmation', 'confirmed'].includes(booking.status) ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <BookingActions
+                        bookingId={booking.id}
+                        status={booking.status}
+                        sessionLink={booking.session_link}
+                        scheduledAt={booking.scheduled_at}
+                        isProfessional={isProfessional}
+                      />
+                      <Link
+                        href={`/sessao/${booking.id}`}
+                        className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+                      >
+                        <Video className="h-3.5 w-3.5" />
+                        Abrir sessão
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
               )
             })}

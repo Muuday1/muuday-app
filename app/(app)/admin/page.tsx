@@ -48,7 +48,10 @@ type AdminProfessional = {
   rating: number
   total_reviews: number
   total_bookings: number
+  credential_count?: number
   created_at: string
+  admin_review_notes?: string | null
+  reviewed_at?: string | null
   profiles: {
     full_name: string
     email: string
@@ -94,6 +97,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [professionals, setProfessionals] = useState<AdminProfessional[]>([])
   const [professionalSpecialties, setProfessionalSpecialties] = useState<Record<string, string[]>>({})
+  const [professionalCredentialCounts, setProfessionalCredentialCounts] = useState<Record<string, number>>({})
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -162,7 +166,22 @@ export default function AdminPage() {
       const professionalIds = resolvedProfessionals.map(professional => professional.id).filter(Boolean)
       if (professionalIds.length === 0) {
         setProfessionalSpecialties({})
+        setProfessionalCredentialCounts({})
       } else {
+        const { data: credentialRows } = await supabase
+          .from('professional_credentials')
+          .select('professional_id')
+          .in('professional_id', professionalIds)
+
+        const credentialCountMap = (credentialRows || []).reduce((acc, row: any) => {
+          const professionalId = String(row.professional_id || '').trim()
+          if (!professionalId) return acc
+          acc[professionalId] = (acc[professionalId] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+
+        setProfessionalCredentialCounts(credentialCountMap)
+
         const { data: linkRows } = await supabase
           .from('professional_specialties')
           .select('professional_id,specialty_id')
@@ -341,6 +360,7 @@ export default function AdminPage() {
   const statusColors: Record<string, string> = {
     draft: 'bg-neutral-100 text-neutral-600',
     pending_review: 'bg-amber-50 text-amber-700',
+    needs_changes: 'bg-amber-100 text-amber-800',
     approved: 'bg-green-50 text-green-700',
     rejected: 'bg-red-50 text-red-700',
     suspended: 'bg-orange-50 text-orange-700',
@@ -349,6 +369,7 @@ export default function AdminPage() {
   const statusLabels: Record<string, string> = {
     draft: 'Rascunho',
     pending_review: 'Pendente',
+    needs_changes: 'Ajustes solicitados',
     approved: 'Aprovado',
     rejected: 'Rejeitado',
     suspended: 'Suspenso',
@@ -493,7 +514,7 @@ export default function AdminPage() {
         <div className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-2">
-            {['all', 'pending_review', 'approved', 'rejected', 'suspended', 'draft'].map(status => (
+            {['all', 'pending_review', 'needs_changes', 'approved', 'rejected', 'suspended', 'draft'].map(status => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -536,6 +557,7 @@ export default function AdminPage() {
             <div className="space-y-3">
               {professionals.map(pro => {
                 const isExpanded = expandedId === pro.id
+                const credentialCount = professionalCredentialCounts[pro.id] || 0
 
                 return (
                   <div key={pro.id} className="bg-white rounded-2xl border border-neutral-100 overflow-hidden transition-all">
@@ -556,6 +578,15 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            credentialCount > 0 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {credentialCount > 0
+                            ? `${credentialCount} credencial(is)`
+                            : 'Sem credenciais'}
+                        </span>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[pro.status]}`}>
                           {statusLabels[pro.status]}
                         </span>
@@ -631,6 +662,14 @@ export default function AdminPage() {
                               </div>
                             </div>
                             <div>
+                              <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Credenciais</p>
+                              <p className="text-sm text-neutral-700">
+                                {credentialCount > 0
+                                  ? `${credentialCount} documento(s) enviado(s)`
+                                  : 'Nenhum documento enviado'}
+                              </p>
+                            </div>
+                            <div>
                               <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Gate do 1o agendamento</p>
                               <p className={`text-sm font-medium ${pro.first_booking_enabled ? 'text-green-700' : 'text-amber-700'}`}>
                                 {pro.first_booking_enabled ? 'Liberado' : 'Bloqueado'}
@@ -650,6 +689,14 @@ export default function AdminPage() {
                           {/* Actions */}
                           <div className="space-y-3">
                             <p className="text-xs font-medium text-neutral-400 uppercase mb-2">Ações</p>
+
+                            <Link
+                              href={`/admin/revisao/${pro.id}`}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-neutral-200 hover:border-brand-300 text-neutral-700 rounded-xl text-sm font-medium transition-all"
+                            >
+                              <Clock className="w-4 h-4" />
+                              Revisar detalhes
+                            </Link>
 
                             {pro.status !== 'approved' && (
                               <button

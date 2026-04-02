@@ -51,7 +51,7 @@ interface BookingFormProps {
   confirmationMode: 'auto_accept' | 'manual'
   requireSessionPurpose: boolean
   enableRecurring: boolean
-  initialBookingType?: 'one_off' | 'recurring'
+  initialBookingType?: 'one_off' | 'recurring' | 'batch'
   initialRecurringSessionsCount?: number
   initialDate?: string
   initialTime?: string
@@ -134,6 +134,41 @@ function timezoneLabel(value: string) {
   return value.replaceAll('_', ' ')
 }
 
+function deriveRecurringOccurrencesFromEndDate(params: {
+  startDate: Date
+  endDate: string
+  periodicity: 'weekly' | 'biweekly' | 'monthly' | 'custom_days'
+  intervalDays: number
+  maxBookingWindowDays: number
+}) {
+  if (!params.endDate) return 0
+  const [year, month, day] = params.endDate.split('-').map(Number)
+  const endDate = new Date(year, (month || 1) - 1, day || 1, 23, 59, 59, 999)
+  if (Number.isNaN(endDate.getTime())) return 0
+
+  const hardMaxDate = new Date(params.startDate.getTime())
+  hardMaxDate.setDate(hardMaxDate.getDate() + params.maxBookingWindowDays)
+
+  let count = 0
+  let cursor = new Date(params.startDate.getTime())
+  while (cursor <= endDate && cursor <= hardMaxDate && count < 52) {
+    count += 1
+    if (params.periodicity === 'monthly') {
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, cursor.getDate(), cursor.getHours(), cursor.getMinutes(), cursor.getSeconds())
+      continue
+    }
+    const jumpDays =
+      params.periodicity === 'weekly'
+        ? 7
+        : params.periodicity === 'biweekly'
+          ? 14
+          : Math.max(1, params.intervalDays)
+    cursor = new Date(cursor.getTime())
+    cursor.setDate(cursor.getDate() + jumpDays)
+  }
+  return count
+}
+
 export default function BookingForm({
   professional,
   profileName,
@@ -173,12 +208,18 @@ export default function BookingForm({
   const [acceptPolicy, setAcceptPolicy] = useState(false)
   const [acceptTimezone, setAcceptTimezone] = useState(false)
   const [timezoneMode, setTimezoneMode] = useState<'user' | 'professional'>('user')
-  const [bookingType, setBookingType] = useState<'one_off' | 'recurring'>(initialBookingType)
+  const [bookingType, setBookingType] = useState<'one_off' | 'recurring' | 'batch'>(initialBookingType)
   const [recurringSessionsCount, setRecurringSessionsCount] = useState(
     RECURRING_SESSION_OPTIONS.includes(initialRecurringSessionsCount)
       ? initialRecurringSessionsCount
       : 4,
   )
+  const [recurringPeriodicity, setRecurringPeriodicity] = useState<'weekly' | 'biweekly' | 'monthly' | 'custom_days'>('weekly')
+  const [recurringIntervalDays, setRecurringIntervalDays] = useState(7)
+  const [recurringDurationMode, setRecurringDurationMode] = useState<'occurrences' | 'end_date'>('occurrences')
+  const [recurringEndDate, setRecurringEndDate] = useState('')
+  const [recurringAutoRenew, setRecurringAutoRenew] = useState(false)
+  const [batchDateTimes, setBatchDateTimes] = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
   const [bookingResult, setBookingResult] = useState<
     { success: true; bookingId: string } | { success: false; error: string } | null
@@ -310,7 +351,34 @@ export default function BookingForm({
     userTimezone,
   ])
 
-  const totalSessions = bookingType === 'recurring' ? recurringSessionsCount : 1
+  const resolvedRecurringSessionsCount = useMemo(() => {
+    if (bookingType !== 'recurring') return 1
+    if (recurringDurationMode === 'occurrences') return recurringSessionsCount
+    if (!selectedDate) return 0
+    return deriveRecurringOccurrencesFromEndDate({
+      startDate: selectedDate,
+      endDate: recurringEndDate,
+      periodicity: recurringPeriodicity,
+      intervalDays: recurringIntervalDays,
+      maxBookingWindowDays,
+    })
+  }, [
+    bookingType,
+    maxBookingWindowDays,
+    recurringDurationMode,
+    recurringEndDate,
+    recurringIntervalDays,
+    recurringPeriodicity,
+    recurringSessionsCount,
+    selectedDate,
+  ])
+
+  const totalSessions =
+    bookingType === 'recurring'
+      ? Math.max(1, resolvedRecurringSessionsCount)
+      : bookingType === 'batch'
+        ? batchDateTimes.length
+        : 1
   const totalPrice = professional.session_price_brl * totalSessions
   const priceFormatted = formatCurrency(professional.session_price_brl, userCurrency)
   const totalPriceFormatted = formatCurrency(totalPrice, userCurrency)
@@ -327,12 +395,21 @@ export default function BookingForm({
     return `${professionalDate} ${professionalTime}`
   }, [professionalTimezone, selectedDate, selectedTime, userTimezone])
 
+  const hasValidRecurringDuration =
+    bookingType !== 'recurring'
+      ? true
+      : recurringDurationMode === 'occurrences'
+        ? recurringSessionsCount >= 2
+        : resolvedRecurringSessionsCount >= 2
+
   const canSubmit =
-    Boolean(selectedDate && selectedTime) &&
     !isPending &&
     acceptPolicy &&
     acceptTimezone &&
-    (!requireSessionPurpose || sessionPurpose.trim().length > 0)
+    (!requireSessionPurpose || sessionPurpose.trim().length > 0) &&
+    (bookingType === 'batch'
+      ? batchDateTimes.length >= 2
+      : Boolean(selectedDate && selectedTime) && hasValidRecurringDuration)
 
   const canUseRecurring = enableRecurring && recurringFlagEnabled !== false
 
@@ -340,10 +417,31 @@ export default function BookingForm({
     confirmationMode === 'manual'
       ? bookingType === 'recurring'
         ? 'Pagar pacote e solicitar'
+        : bookingType === 'batch'
+          ? 'Pagar lote e solicitar'
         : 'Pagar e solicitar agendamento'
       : bookingType === 'recurring'
         ? 'Pagar pacote e confirmar'
+        : bookingType === 'batch'
+          ? 'Pagar lote e confirmar'
         : 'Pagar e confirmar agendamento'
+
+  const batchSlotsPreview = useMemo(() => {
+    return batchDateTimes.map(value => {
+      const startUtc = fromZonedTime(value, userTimezone)
+      const userDateTime = formatInTimeZone(startUtc, userTimezone, "EEE, dd/MM 'às' HH:mm")
+      const professionalDateTime = formatInTimeZone(
+        startUtc,
+        professionalTimezone,
+        "EEE, dd/MM 'às' HH:mm",
+      )
+      return {
+        value,
+        userDateTime,
+        professionalDateTime,
+      }
+    })
+  }, [batchDateTimes, professionalTimezone, userTimezone])
 
   useEffect(() => {
     if (bookingViewTracked.current) return
@@ -439,25 +537,61 @@ export default function BookingForm({
     return formatInTimeZone(selectedUtc, professionalTimezone, 'HH:mm')
   }
 
+  function addCurrentSelectionToBatch() {
+    if (!selectedDate || !selectedTime) return
+    const value = buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
+    setBatchDateTimes(prev => {
+      if (prev.includes(value)) return prev
+      return [...prev, value].sort()
+    })
+  }
+
+  function removeBatchDate(dateTime: string) {
+    setBatchDateTimes(prev => prev.filter(item => item !== dateTime))
+  }
+
   function handleConfirm() {
-    if (!selectedDate || !selectedTime || !canSubmit) return
+    if (!canSubmit) return
+    if (bookingType !== 'batch' && (!selectedDate || !selectedTime)) return
 
     captureEvent('booking_submit_clicked', {
       professional_id: professional.id,
       booking_type: bookingType,
       confirmation_mode: confirmationMode,
-      recurring_sessions_count: bookingType === 'recurring' ? recurringSessionsCount : 1,
+      recurring_sessions_count: bookingType === 'recurring' ? resolvedRecurringSessionsCount : 1,
+      batch_sessions_count: bookingType === 'batch' ? batchDateTimes.length : undefined,
     })
 
     startTransition(async () => {
-      const scheduledAt = buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
+      const scheduledAt =
+        selectedDate && selectedTime
+          ? buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
+          : undefined
       const result = await createBooking({
         professionalId: professional.id,
         scheduledAt,
         notes: sessionPurpose.trim() || undefined,
         sessionPurpose: sessionPurpose.trim() || undefined,
         bookingType,
-        recurringSessionsCount: bookingType === 'recurring' ? recurringSessionsCount : undefined,
+        recurringSessionsCount:
+          bookingType === 'recurring' && recurringDurationMode === 'occurrences'
+            ? recurringSessionsCount
+            : undefined,
+        recurringOccurrences:
+          bookingType === 'recurring' && recurringDurationMode === 'end_date'
+            ? Math.max(2, resolvedRecurringSessionsCount)
+            : undefined,
+        recurringPeriodicity: bookingType === 'recurring' ? recurringPeriodicity : undefined,
+        recurringIntervalDays:
+          bookingType === 'recurring' && recurringPeriodicity === 'custom_days'
+            ? recurringIntervalDays
+            : undefined,
+        recurringEndDate:
+          bookingType === 'recurring' && recurringDurationMode === 'end_date'
+            ? recurringEndDate
+            : undefined,
+        recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
+        batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
       })
       setBookingResult(result)
       if (result.success) {
@@ -465,7 +599,9 @@ export default function BookingForm({
           professional_id: professional.id,
           booking_type: bookingType,
           confirmation_mode: confirmationMode,
-          recurring_sessions_count: bookingType === 'recurring' ? recurringSessionsCount : 1,
+          recurring_sessions_count:
+            bookingType === 'recurring' ? resolvedRecurringSessionsCount : undefined,
+          batch_sessions_count: bookingType === 'batch' ? batchDateTimes.length : undefined,
         })
       } else {
         captureEvent('booking_create_failed', {
@@ -497,17 +633,25 @@ export default function BookingForm({
           {bookingType === 'recurring' ? 'Seu pacote de sessões' : 'Sua sessão'} com{' '}
           <span className="font-semibold text-neutral-700">{profileName}</span> foi criado.
         </p>
-        <p className="mb-1 text-sm text-neutral-500">
-          {dateLabel} às {selectedTime} ({timezoneLabel(userTimezone)})
-        </p>
-        {selectedTimeInProfessionalTimezone && (
-          <p className="mb-6 text-xs text-neutral-500">
-            Horário no fuso do profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
+        {bookingType === 'batch' ? (
+          <p className="mb-1 text-sm text-neutral-500">
+            {batchDateTimes.length} sessões avulsas agendadas no mesmo checkout.
           </p>
+        ) : (
+          <>
+            <p className="mb-1 text-sm text-neutral-500">
+              {dateLabel} às {selectedTime} ({timezoneLabel(userTimezone)})
+            </p>
+            {selectedTimeInProfessionalTimezone && (
+              <p className="mb-6 text-xs text-neutral-500">
+                Horário no fuso do profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
+              </p>
+            )}
+          </>
         )}
         {bookingType === 'recurring' && (
           <p className="mb-6 text-xs text-neutral-500">
-            Pacote semanal com {recurringSessionsCount} sessões (mesmo dia e horário).
+            Pacote recorrente com {resolvedRecurringSessionsCount} sessões (mesmo dia e horário).
           </p>
         )}
 
@@ -555,7 +699,7 @@ export default function BookingForm({
         <div className="space-y-5 lg:col-span-2">
           <div className="rounded-2xl border border-neutral-100 bg-white p-6">
             <h2 className="mb-3 text-lg font-semibold text-neutral-900 font-display">Tipo de agendamento</h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setBookingType('one_off')}
@@ -567,8 +711,8 @@ export default function BookingForm({
                 )}
               >
                 <p className="font-semibold">Sessão única</p>
-                <p className="mt-0.5 text-xs text-neutral-500">1 sessão com pagamento único.</p>
-              </button>
+                  <p className="mt-0.5 text-xs text-neutral-500">1 sessão com pagamento único.</p>
+                </button>
               <button
                 type="button"
                 onClick={() => canUseRecurring && setBookingType('recurring')}
@@ -581,33 +725,125 @@ export default function BookingForm({
                   !canUseRecurring && 'cursor-not-allowed opacity-50',
                 )}
               >
-                <p className="font-semibold">Pacote semanal</p>
+                <p className="font-semibold">Recorrente</p>
                 <p className="mt-0.5 text-xs text-neutral-500">
                   {!enableRecurring
                     ? 'Este profissional não oferece pacote recorrente.'
                     : recurringFlagEnabled === false
                       ? 'Pacote recorrente indisponível temporariamente.'
-                      : 'Mesmo dia e horário toda semana, pago antecipado.'}
+                      : 'Mesmo dia e horário, com periodicidade configurável.'}
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBookingType('batch')}
+                className={cn(
+                  'rounded-xl border px-4 py-3 text-left text-sm transition-all',
+                  bookingType === 'batch'
+                    ? 'border-brand-400 bg-brand-50 text-brand-700'
+                    : 'border-neutral-200 text-neutral-700 hover:border-brand-300',
+                )}
+              >
+                <p className="font-semibold">Várias datas</p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Escolha datas avulsas e reserve todas de uma vez.
                 </p>
               </button>
             </div>
 
             {bookingType === 'recurring' && (
-              <div className="mt-4 flex items-center gap-3">
-                <label className="text-sm font-medium text-neutral-700">Quantidade de sessões:</label>
-                <select
-                  value={recurringSessionsCount}
-                  onChange={e => setRecurringSessionsCount(Number(e.target.value))}
-                  className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
-                >
-                  {RECURRING_SESSION_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option} sessões
-                    </option>
-                  ))}
-                </select>
+              <div className="mt-4 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-600">Periodicidade</label>
+                    <select
+                      value={recurringPeriodicity}
+                      onChange={e => setRecurringPeriodicity(e.target.value as 'weekly' | 'biweekly' | 'monthly' | 'custom_days')}
+                      className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    >
+                      <option value="weekly">Semanal</option>
+                      <option value="biweekly">Quinzenal</option>
+                      <option value="monthly">Mensal</option>
+                      <option value="custom_days">A cada X dias</option>
+                    </select>
+                  </div>
+
+                  {recurringPeriodicity === 'custom_days' ? (
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-600">Intervalo (dias)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={recurringIntervalDays}
+                        onChange={e => setRecurringIntervalDays(Math.max(1, Number(e.target.value || 1)))}
+                        className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                      />
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-neutral-600">Duração</label>
+                    <select
+                      value={recurringDurationMode}
+                      onChange={e => setRecurringDurationMode(e.target.value as 'occurrences' | 'end_date')}
+                      className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    >
+                      <option value="occurrences">Por ocorrências</option>
+                      <option value="end_date">Até data final</option>
+                    </select>
+                  </div>
+                </div>
+
+                {recurringDurationMode === 'occurrences' ? (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-neutral-700">Quantidade de sessões:</label>
+                    <select
+                      value={recurringSessionsCount}
+                      onChange={e => setRecurringSessionsCount(Number(e.target.value))}
+                      className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    >
+                      {RECURRING_SESSION_OPTIONS.map(option => (
+                        <option key={option} value={option}>
+                          {option} sessões
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-neutral-700">Data final:</label>
+                    <input
+                      type="date"
+                      value={recurringEndDate}
+                      onChange={e => setRecurringEndDate(e.target.value)}
+                      className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    />
+                    <span className="text-xs text-neutral-500">
+                      {resolvedRecurringSessionsCount > 0
+                        ? `${resolvedRecurringSessionsCount} sessão(ões) dentro da janela`
+                        : 'Escolha uma data final válida'}
+                    </span>
+                  </div>
+                )}
+
+                <label className="flex items-center gap-2 text-xs text-neutral-600">
+                  <input
+                    type="checkbox"
+                    checked={recurringAutoRenew}
+                    onChange={e => setRecurringAutoRenew(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
+                  />
+                  Renovar automaticamente após o término deste pacote
+                </label>
               </div>
             )}
+
+            {bookingType === 'batch' ? (
+              <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
+                Selecione data e horário e clique em <strong>Adicionar ao lote</strong>. Para concluir, escolha ao menos 2 sessões.
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-2xl border border-neutral-100 bg-white p-6">
@@ -741,7 +977,7 @@ export default function BookingForm({
                   </div>
                   <p className="text-sm font-medium text-neutral-600">Nenhum horário disponível</p>
                   <p className="mt-1 text-xs text-neutral-400">
-                    Todos os horários dest? data já foram reservados.
+                    Todos os horários desta data já foram reservados.
                   </p>
                 </div>
               ) : (
@@ -792,6 +1028,61 @@ export default function BookingForm({
                 className="w-full resize-none rounded-xl border border-neutral-200 p-3 text-sm text-neutral-700 placeholder-neutral-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
               <p className="mt-1 text-right text-xs text-neutral-400">{sessionPurpose.length}/500</p>
+            </div>
+          )}
+
+          {bookingType === 'batch' && (
+            <div className="rounded-2xl border border-neutral-100 bg-white p-6">
+              <h2 className="mb-3 text-lg font-semibold text-neutral-900 font-display">
+                Lote de sessões avulsas
+              </h2>
+              <p className="mb-3 text-xs text-neutral-500">
+                Selecione uma data e um horário e adicione ao lote. Você precisa de pelo menos 2 sessões.
+              </p>
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addCurrentSelectionToBatch}
+                  disabled={!selectedDate || !selectedTime}
+                  className={cn(
+                    'rounded-xl px-4 py-2 text-xs font-semibold transition',
+                    selectedDate && selectedTime
+                      ? 'bg-brand-500 text-white hover:bg-brand-600'
+                      : 'cursor-not-allowed bg-neutral-100 text-neutral-400',
+                  )}
+                >
+                  Adicionar ao lote
+                </button>
+                <span className="text-xs text-neutral-500">
+                  {batchDateTimes.length} sessão(ões) adicionada(s)
+                </span>
+              </div>
+              {batchSlotsPreview.length > 0 ? (
+                <ul className="space-y-2">
+                  {batchSlotsPreview.map(item => (
+                    <li
+                      key={item.value}
+                      className="flex items-center justify-between rounded-xl border border-neutral-200 px-3 py-2 text-xs"
+                    >
+                      <div>
+                        <p className="font-medium text-neutral-800">{item.userDateTime}</p>
+                        <p className="text-neutral-500">
+                          Profissional: {item.professionalDateTime} ({timezoneLabel(professionalTimezone)})
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeBatchDate(item.value)}
+                        className="rounded-lg border border-neutral-200 px-2 py-1 text-[11px] font-semibold text-neutral-600 hover:border-red-200 hover:text-red-600"
+                      >
+                        Remover
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-neutral-500">Nenhuma sessão adicionada ao lote ainda.</p>
+              )}
             </div>
           )}
         </div>

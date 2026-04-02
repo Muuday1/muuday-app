@@ -7,7 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cookies, headers } from 'next/headers'
-import { Star, MapPin } from 'lucide-react'
+import { Star, MapPin, PlayCircle, MessageCircle } from 'lucide-react'
 import { MobileFiltersDrawer } from '@/components/search/MobileFiltersDrawer'
 import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
 import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoApply'
@@ -776,6 +776,19 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                     })}
                     className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 rounded-2xl"
                   >
+                    {professional.cover_photo_url ? (
+                      <div className="mb-3 h-20 w-full overflow-hidden rounded-xl border border-neutral-200">
+                        <Image
+                          src={professional.cover_photo_url}
+                          alt={`Capa de ${professional.profiles?.full_name || 'Profissional'}`}
+                          width={800}
+                          height={240}
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          quality={70}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex items-start gap-4">
                       {professional.profiles?.avatar_url ? (
                         <Image
@@ -836,6 +849,18 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                               }`}
                             >
                               {professional.tier === 'premium' ? 'Premium' : 'Profissional'}
+                            </span>
+                          ) : null}
+                          {professional.video_intro_url ? (
+                            <span className="inline-flex items-center gap-1 bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
+                              <PlayCircle className="w-3 h-3" />
+                              Vídeo
+                            </span>
+                          ) : null}
+                          {professional.tier !== 'basic' && professional.whatsapp_number ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-medium">
+                              <MessageCircle className="w-3 h-3" />
+                              WhatsApp
                             </span>
                           ) : null}
                           <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">

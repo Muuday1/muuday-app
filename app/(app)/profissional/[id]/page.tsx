@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Globe, MapPin, Star } from 'lucide-react'
+import { ArrowLeft, Globe, MapPin, Star, MessageCircle, ExternalLink, PlayCircle } from 'lucide-react'
 import { getSearchCategoryLabel } from '@/lib/search-config'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { ProfileAvailabilityBookingSection } from '@/components/professional/ProfileAvailabilityBookingSection'
@@ -21,6 +21,7 @@ import {
 import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-specialties'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { formatCurrency } from '@/lib/utils'
+import { isFeatureAvailable } from '@/lib/tier-config'
 
 const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
@@ -62,6 +63,81 @@ function getPrimarySpecialty(professional: any, specialties: string[]) {
   if (tag) return String(tag)
 
   return getSearchCategoryLabel(professional.category)
+}
+
+function normalizeExternalUrl(url: string) {
+  if (!url) return ''
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+function parseSocialLinks(value: unknown): Array<{ label: string; url: string }> {
+  if (!value) return []
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry, index) => {
+        if (typeof entry !== 'string') return null
+        const url = normalizeExternalUrl(entry)
+        if (!url) return null
+        return { label: `Link ${index + 1}`, url }
+      })
+      .filter((entry): entry is { label: string; url: string } => Boolean(entry))
+  }
+
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, rawUrl]) => {
+        if (typeof rawUrl !== 'string') return null
+        const url = normalizeExternalUrl(rawUrl)
+        if (!url) return null
+        return { label: key || 'Link', url }
+      })
+      .filter((entry): entry is { label: string; url: string } => Boolean(entry))
+  }
+
+  return []
+}
+
+function toVideoEmbedUrl(value?: string | null) {
+  const input = String(value || '').trim()
+  if (!input) return null
+
+  try {
+    const parsed = new URL(normalizeExternalUrl(input))
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase()
+
+    if (host === 'youtu.be') {
+      const videoId = parsed.pathname.split('/').filter(Boolean)[0]
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`
+    }
+
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      const videoId = parsed.searchParams.get('v')
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`
+      const pathParts = parsed.pathname.split('/').filter(Boolean)
+      if (pathParts[0] === 'embed' && pathParts[1]) {
+        return `https://www.youtube.com/embed/${pathParts[1]}`
+      }
+    }
+
+    if (host === 'vimeo.com' || host.endsWith('.vimeo.com')) {
+      const videoId = parsed.pathname.split('/').filter(Boolean)[0]
+      if (videoId && /^\d+$/.test(videoId)) return `https://player.vimeo.com/video/${videoId}`
+    }
+  } catch {}
+
+  return null
+}
+
+function isSensitiveCategory(category?: string | null) {
+  const normalized = String(category || '').toLowerCase()
+  if (!normalized) return false
+  return ['saude', 'mental', 'medic', 'direito', 'jurid', 'legal'].some(keyword =>
+    normalized.includes(keyword),
+  )
 }
 
 function getPublicProfileCacheIdentity(
@@ -213,6 +289,12 @@ export default async function ProfissionalPage({
     .order('created_at', { ascending: false })
     .limit(20)
 
+  const { count: verifiedCredentialsCount } = await readClient
+    .from('professional_credentials')
+    .select('id', { count: 'exact', head: true })
+    .eq('professional_id', professional.id)
+    .eq('verified', true)
+
   const { data: professionalSpecialtyLinks } = await readClient
     .from('professional_specialties')
     .select('specialty_id')
@@ -294,6 +376,17 @@ export default async function ProfissionalPage({
   const profile = professional.profiles as any
   const primarySpecialty = getPrimarySpecialty(professional, professionalSpecialties)
   const professionalTimezone = String(professional.timezone || viewerTimezone)
+  const tier = String(professional.tier || 'basic').toLowerCase()
+  const socialLinks = parseSocialLinks(professional.social_links).slice(0, tier === 'premium' ? 5 : 2)
+  const whatsappUrl = professional.whatsapp_number
+    ? `https://wa.me/${String(professional.whatsapp_number).replace(/[^\d]/g, '')}`
+    : null
+  const videoEmbedUrl =
+    isFeatureAvailable(tier, 'video_intro') && professional.video_intro_url
+      ? toVideoEmbedUrl(professional.video_intro_url)
+      : null
+  const showSensitiveVerifiedBadge =
+    isSensitiveCategory(professional.category) && Number(verifiedCredentialsCount || 0) > 0
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
@@ -324,7 +417,18 @@ export default async function ProfissionalPage({
         topSections={
           <>
             <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <div className="relative h-28 bg-gradient-to-br from-brand-400 to-brand-600">
+              <div
+                className="relative h-28 bg-gradient-to-br from-brand-400 to-brand-600"
+                style={
+                  professional.cover_photo_url
+                    ? {
+                        backgroundImage: `linear-gradient(rgba(0,0,0,0.22), rgba(0,0,0,0.22)), url('${professional.cover_photo_url}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }
+                    : undefined
+                }
+              >
                 <div className="absolute -bottom-10 left-6">
                   {profile?.avatar_url ? (
                     <Image
@@ -354,6 +458,33 @@ export default async function ProfissionalPage({
                       {professional.years_experience > 0 ? (
                         <span>• {professional.years_experience} anos de experiência</span>
                       ) : null}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {tier !== 'basic' && whatsappUrl ? (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          WhatsApp
+                        </a>
+                      ) : null}
+                      {tier !== 'basic' && socialLinks.length > 0
+                        ? socialLinks.map(link => (
+                            <a
+                              key={`${link.label}-${link.url}`}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                            >
+                              {link.label}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ))
+                        : null}
                     </div>
                   </div>
 
@@ -399,6 +530,13 @@ export default async function ProfissionalPage({
                     </div>
                   </div>
                 ) : null}
+                {showSensitiveVerifiedBadge ? (
+                  <div className="mt-4">
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                      Credenciais verificadas
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -408,6 +546,24 @@ export default async function ProfissionalPage({
                 {professional.bio || 'Sem descrição.'}
               </p>
             </div>
+
+            {videoEmbedUrl ? (
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
+                  <PlayCircle className="h-5 w-5 text-brand-500" />
+                  Vídeo de apresentação
+                </h2>
+                <div className="overflow-hidden rounded-xl border border-neutral-200">
+                  <iframe
+                    src={videoEmbedUrl}
+                    title="Vídeo de apresentação do profissional"
+                    className="aspect-video h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            ) : null}
 
             {(professional.languages || []).length > 0 ? (
               <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
