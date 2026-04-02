@@ -172,11 +172,20 @@ Items already fixed in code are documented in `project-status.md` item 71. The i
 2. Inngest operational attachment (done via deterministic resync command):
 - app path atual `https://muuday-app.vercel.app/api/inngest`.
 - executar pós-deploy: `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
-3. Keep fixture integrity for e2e (open-gate + blocked-gate):
+3. Close remaining E2E skips for gate coverage:
+- current automated state: `11 passed`, `2 skipped` in `wave2-onboarding-gates.spec.ts`.
+- keep deterministic fixtures for both gate states (`E2E_PROFESSIONAL_ID` open, `E2E_BLOCKED_PROFESSIONAL_ID` blocked).
+4. Keep fixture integrity for e2e (open-gate + blocked-gate):
 - manter `E2E_PROFESSIONAL_ID` e `E2E_BLOCKED_PROFESSIONAL_ID` válidos.
 - manter script `npm run fixtures:ensure-public-ready` disponível para recuperação de fixture.
-4. Deploy Wave 2 close infrastructure hardening (items 1-8 above) before starting Wave 3.
-5. After Wave 2 manual sign-off + infrastructure hardening, start Wave 3 scope only:
+5. Enforce runtime DB pooling config before Wave 2 close:
+- configure `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) for Supavisor `:6543`.
+- rerun `npm run db:validate-pooling` until green.
+6. Backfill JWT role claims to reduce middleware fallback:
+- current state from `npm run audit:auth-role-claims`: role claim coverage `0%`, fallback estimate `100%`.
+- update auth metadata role claim for `usuario/profissional/admin` accounts and rerun audit.
+7. Deploy Wave 2 close infrastructure hardening (items 1-8 above) before starting Wave 3.
+8. After Wave 2 manual sign-off + infrastructure hardening, start Wave 3 scope only:
 - Stripe real billing/payout + ledger interno, sem reabrir contratos de gate de Wave 2.
 
 ## Priority 0 - Foundation lock (must finish first)
