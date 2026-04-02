@@ -16,8 +16,8 @@ async function login(page: Page, email: string, password: string) {
   await page.goto('/login')
   const acceptCookiesButton = page.getByRole('button', { name: 'Aceitar' }).first()
   await acceptCookiesButton.click({ timeout: 3_000 }).catch(() => {})
-  await page.locator('#login-email').fill(email)
-  await page.locator('#login-password').fill(password)
+  await page.locator('#login-email, input[type="email"], input[name="email"]').first().fill(email)
+  await page.locator('#login-password, input[type="password"], input[name="password"]').first().fill(password)
   await page.locator('button[type="submit"]').first().click()
   await page.waitForURL(/\/(buscar|dashboard)/)
 }
