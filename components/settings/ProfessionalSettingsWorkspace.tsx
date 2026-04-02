@@ -247,6 +247,11 @@ export default function ProfessionalSettingsWorkspace() {
             .select('id', { count: 'exact', head: true })
             .eq('professional_id', professional.id)
 
+          const { count: credentialUploadCount } = await supabase
+            .from('professional_credentials')
+            .select('id', { count: 'exact', head: true })
+            .eq('professional_id', professional.id)
+
           const onboarding = evaluateProfessionalOnboarding({
             account: {
               fullName: profile.full_name,
@@ -288,6 +293,7 @@ export default function ProfessionalSettingsWorkspace() {
             availabilityCount: availabilityBaselineCount,
             specialtyCount: specialtyCount || 0,
             sensitiveCategory: false,
+            credentialUploadCount: credentialUploadCount || 0,
           })
           setOnboardingEvaluation(onboarding)
 
