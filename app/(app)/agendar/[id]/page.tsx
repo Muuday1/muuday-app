@@ -9,9 +9,7 @@ import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-s
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 function parseInitialBookingType(value?: string) {
-  if (value === 'recurring') return 'recurring'
-  if (value === 'batch') return 'batch'
-  return 'one_off'
+  return value === 'recurring' ? 'recurring' : 'one_off'
 }
 
 function parseInitialRecurringSessionsCount(value?: string) {
