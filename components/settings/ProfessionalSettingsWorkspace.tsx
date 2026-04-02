@@ -384,9 +384,9 @@ export default function ProfessionalSettingsWorkspace() {
                   <p>Pendências de confirmação: {professionalSummary.pendingConfirmations}</p>
                 <p>Requests abertos: {professionalSummary.openRequests}</p>
                 <p>Disponibilidade ativa: {professionalSummary.availabilityCount}</p>
-                <p>Confirma??o: {professionalSummary.confirmationMode}</p>
+                <p>Confirmação: {professionalSummary.confirmationMode}</p>
                   <p>Antecedência mínima: {professionalSummary.minNoticeHours}h</p>
-                <p>Janela maxima: {professionalSummary.maxWindowDays} dias</p>
+                <p>Janela máxima: {professionalSummary.maxWindowDays} dias</p>
               </div>
             </div>
           )}
@@ -429,7 +429,7 @@ export default function ProfessionalSettingsWorkspace() {
                     >
                       {gate.passed
                         ? 'OK'
-                        : gate.blockers[0]?.description || 'Bloqueado por pendencias'}
+                        : gate.blockers[0]?.description || 'Bloqueado por pendências'}
                     </p>
                   </div>
                 ))}
@@ -592,7 +592,7 @@ export default function ProfessionalSettingsWorkspace() {
           <div className="flex items-center justify-between border-b border-neutral-50 px-6 py-4">
             <div className="flex items-center gap-3">
               <Bell className="h-4 w-4 text-brand-500" />
-              <h2 className="font-display font-bold text-neutral-900">Notificacoes</h2>
+              <h2 className="font-display font-bold text-neutral-900">Notificações</h2>
             </div>
             {savedField === 'notification_preferences' && (
               <span className="flex items-center gap-1 text-xs font-medium text-green-600">
@@ -636,7 +636,7 @@ export default function ProfessionalSettingsWorkspace() {
         <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
           <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
             <Lock className="h-4 w-4 text-brand-500" />
-            <h2 className="font-display font-bold text-neutral-900">Seguranca</h2>
+            <h2 className="font-display font-bold text-neutral-900">Segurança</h2>
           </div>
           <div className="divide-y divide-neutral-50">
             <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
