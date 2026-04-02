@@ -33,11 +33,23 @@ function defaultSnapshot(professionalId: string): ProfessionalOnboardingSnapshot
     availabilityCount: 0,
     specialtyCount: 0,
     sensitiveCategory: false,
+    credentialUploadCount: 0,
   }
 }
 
 function hasMinimumServiceData(row: { session_price_brl?: number | null; session_duration_minutes?: number | null }) {
   return Number(row.session_price_brl || 0) > 0 && Number(row.session_duration_minutes || 0) > 0
+}
+
+function isSensitiveCategory(category: string | null | undefined) {
+  const normalized = String(category || '').toLowerCase()
+  return (
+    normalized.includes('saude') ||
+    normalized.includes('mental') ||
+    normalized.includes('medic') ||
+    normalized.includes('jurid') ||
+    normalized.includes('direito')
+  )
 }
 
 export async function loadProfessionalOnboardingState(
@@ -47,7 +59,7 @@ export async function loadProfessionalOnboardingState(
   const { data: professionalRow } = await supabase
     .from('professionals')
     .select(
-      'id, user_id, status, tier, first_booking_enabled, bio, category, subcategories, languages, years_experience, session_price_brl, session_duration_minutes',
+      'id, user_id, status, tier, first_booking_enabled, bio, category, subcategories, languages, years_experience, session_price_brl, session_duration_minutes, whatsapp_number, cover_photo_url, video_intro_url, social_links',
     )
     .eq('id', professionalId)
     .maybeSingle()
@@ -69,6 +81,13 @@ export async function loadProfessionalOnboardingState(
       ? (professionalRow.languages as string[])
       : [],
     yearsExperience: Number(professionalRow.years_experience || 0),
+    whatsappNumber: String(professionalRow.whatsapp_number || ''),
+    coverPhotoUrl: String(professionalRow.cover_photo_url || ''),
+    videoIntroUrl: String(professionalRow.video_intro_url || ''),
+    socialLinks:
+      professionalRow.social_links && typeof professionalRow.social_links === 'object'
+        ? (professionalRow.social_links as Record<string, string>)
+        : null,
   }
 
   const { data: profileRow } = await supabase
@@ -92,7 +111,7 @@ export async function loadProfessionalOnboardingState(
   const { data: settingsRow, error: settingsError } = await supabase
     .from('professional_settings')
     .select(
-      'timezone, session_duration_minutes, buffer_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose',
+      'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, cancellation_policy_accepted, require_session_purpose, billing_card_on_file, payout_onboarding_started, payout_kyc_completed, terms_accepted_at, terms_version, calendar_sync_provider, notification_email, notification_push, notification_whatsapp',
     )
     .eq('professional_id', professionalId)
     .maybeSingle()
@@ -106,24 +125,21 @@ export async function loadProfessionalOnboardingState(
     confirmationMode: normalizedSettings.confirmationMode,
     minimumNoticeHours: normalizedSettings.minimumNoticeHours,
     maxBookingWindowDays: normalizedSettings.maxBookingWindowDays,
-  }
-
-  // Optional C6/C7 flags from migration 015.
-  // If columns are unavailable, readiness defaults to false (no legacy bypass).
-  const { data: readinessRow, error: readinessError } = await supabase
-    .from('professional_settings')
-    .select('billing_card_on_file, payout_onboarding_started, payout_kyc_completed')
-    .eq('professional_id', professionalId)
-    .maybeSingle()
-
-  if (!readinessError && readinessRow) {
-    snapshot.settings.billingCardOnFile = Boolean(readinessRow.billing_card_on_file)
-    snapshot.settings.payoutOnboardingStarted = Boolean(readinessRow.payout_onboarding_started)
-    snapshot.settings.payoutKycCompleted = Boolean(readinessRow.payout_kyc_completed)
-  } else {
-    snapshot.settings.billingCardOnFile = false
-    snapshot.settings.payoutOnboardingStarted = false
-    snapshot.settings.payoutKycCompleted = false
+    billingCardOnFile: Boolean((settingsRow as Record<string, unknown> | null)?.billing_card_on_file),
+    payoutOnboardingStarted: Boolean(
+      (settingsRow as Record<string, unknown> | null)?.payout_onboarding_started,
+    ),
+    payoutKycCompleted: Boolean((settingsRow as Record<string, unknown> | null)?.payout_kyc_completed),
+    calendarSyncProvider: normalizedSettings.calendarSyncProvider || null,
+    cancellationPolicyAccepted: Boolean(normalizedSettings.cancellationPolicyAccepted),
+    termsAcceptedAt: normalizedSettings.termsAcceptedAt || null,
+    termsVersion: normalizedSettings.termsVersion || null,
+    bufferTimeMinutes: normalizedSettings.bufferMinutes,
+    notificationPreferences: {
+      email: Boolean(normalizedSettings.notificationEmail),
+      push: Boolean(normalizedSettings.notificationPush),
+      whatsapp: Boolean(normalizedSettings.notificationWhatsapp),
+    },
   }
 
   const { count: availabilityRulesCount } = await supabase
@@ -149,6 +165,12 @@ export async function loadProfessionalOnboardingState(
     .eq('professional_id', professionalId)
   snapshot.specialtyCount = specialtiesCount || 0
 
+  const { count: credentialsCount } = await supabase
+    .from('professional_credentials')
+    .select('id', { head: true, count: 'exact' })
+    .eq('professional_id', professionalId)
+  snapshot.credentialUploadCount = credentialsCount || 0
+
   const { count: servicesCount, error: servicesCountError } = await supabase
     .from('professional_services')
     .select('id', { head: true, count: 'exact' })
@@ -170,7 +192,7 @@ export async function loadProfessionalOnboardingState(
     snapshot.hasServicePricingAndDuration = hasMinimumServiceData(professionalRow)
   }
 
-  snapshot.sensitiveCategory = false
+  snapshot.sensitiveCategory = isSensitiveCategory(professionalRow.category)
   const evaluation = evaluateOnboardingGates(snapshot)
   return { snapshot, evaluation }
 }
@@ -200,7 +222,7 @@ export async function evaluateFirstBookingEligibility(
   if (!onboardingState) {
     return {
       ok: false,
-      message: 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.',
+      message: 'Este profissional ainda n�o est� habilitado para aceitar o primeiro agendamento.',
       reasonCode: 'unknown_gate_blocker',
     }
   }

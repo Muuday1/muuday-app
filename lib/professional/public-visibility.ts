@@ -23,6 +23,10 @@ type ProfessionalSearchRecord = {
   years_experience?: number | null
   session_price_brl?: number | null
   session_duration_minutes?: number | null
+  whatsapp_number?: string | null
+  cover_photo_url?: string | null
+  video_intro_url?: string | null
+  social_links?: Record<string, string> | null
   profiles?: ProfessionalSearchProfile | null
 }
 
@@ -39,6 +43,14 @@ type SettingsRow = {
   billing_card_on_file?: boolean | null
   payout_onboarding_started?: boolean | null
   payout_kyc_completed?: boolean | null
+  calendar_sync_provider?: string | null
+  cancellation_policy_accepted?: boolean | null
+  terms_accepted_at?: string | null
+  terms_version?: string | null
+  buffer_time_minutes?: number | null
+  notification_email?: boolean | null
+  notification_push?: boolean | null
+  notification_whatsapp?: boolean | null
 }
 
 type ServiceRow = {
@@ -78,6 +90,7 @@ function buildSnapshot(
   availabilityRulesCounts: CountMap,
   availabilityLegacyCounts: CountMap,
   specialtyCounts: CountMap,
+  credentialCounts: CountMap,
   serviceCounts: CountMap,
   serviceWithPricingCounts: CountMap,
 ): ProfessionalOnboardingSnapshot {
@@ -105,6 +118,13 @@ function buildSnapshot(
       subcategories: asStringArray(professional.subcategories),
       languages: asStringArray(professional.languages),
       yearsExperience: Number(professional.years_experience || 0),
+      whatsappNumber: asText(professional.whatsapp_number),
+      coverPhotoUrl: asText(professional.cover_photo_url),
+      videoIntroUrl: asText(professional.video_intro_url),
+      socialLinks:
+        professional.social_links && typeof professional.social_links === 'object'
+          ? professional.social_links
+          : null,
     },
     settings: {
       confirmationMode: asText(settings?.confirmation_mode),
@@ -122,6 +142,20 @@ function buildSnapshot(
         settings?.payout_kyc_completed === null || settings?.payout_kyc_completed === undefined
           ? false
           : Boolean(settings.payout_kyc_completed),
+      calendarSyncProvider: asText(settings?.calendar_sync_provider),
+      cancellationPolicyAccepted:
+        settings?.cancellation_policy_accepted === null ||
+        settings?.cancellation_policy_accepted === undefined
+          ? false
+          : Boolean(settings.cancellation_policy_accepted),
+      termsAcceptedAt: asText(settings?.terms_accepted_at),
+      termsVersion: asText(settings?.terms_version),
+      bufferTimeMinutes: Number(settings?.buffer_time_minutes || 0),
+      notificationPreferences: {
+        email: Boolean(settings?.notification_email),
+        push: Boolean(settings?.notification_push),
+        whatsapp: Boolean(settings?.notification_whatsapp),
+      },
     },
     serviceCount,
     hasServicePricingAndDuration:
@@ -132,6 +166,7 @@ function buildSnapshot(
     availabilityCount: availabilityRulesCount > 0 ? availabilityRulesCount : availabilityLegacyCount,
     specialtyCount: specialtyCounts.get(professionalId) || 0,
     sensitiveCategory: false,
+    credentialUploadCount: credentialCounts.get(professionalId) || 0,
   }
 }
 
@@ -157,6 +192,7 @@ export async function getPublicVisibilityByProfessionalId(
     availabilityRulesCounts,
     availabilityLegacyCounts,
     specialtyCounts,
+    credentialCounts,
     serviceData,
   ] = await Promise.all([
     (async () => {
@@ -164,7 +200,7 @@ export async function getPublicVisibilityByProfessionalId(
         const { data: settingsRows } = await supabase
           .from('professional_settings')
           .select(
-            'professional_id,confirmation_mode,minimum_notice_hours,max_booking_window_days,billing_card_on_file,payout_onboarding_started,payout_kyc_completed',
+            'professional_id,confirmation_mode,minimum_notice_hours,max_booking_window_days,billing_card_on_file,payout_onboarding_started,payout_kyc_completed,calendar_sync_provider,cancellation_policy_accepted,terms_accepted_at,terms_version,buffer_time_minutes,notification_email,notification_push,notification_whatsapp',
           )
           .in('professional_id', professionalIds)
 
@@ -218,6 +254,17 @@ export async function getPublicVisibilityByProfessionalId(
     })(),
     (async () => {
       try {
+        const { data: credentialRows } = await supabase
+          .from('professional_credentials')
+          .select('professional_id')
+          .in('professional_id', professionalIds)
+        return createCountMap(credentialRows as Array<{ professional_id?: string | null }>)
+      } catch {
+        return new Map<string, number>()
+      }
+    })(),
+    (async () => {
+      try {
         const { data: serviceRows } = await supabase
           .from('professional_services')
           .select('professional_id,price_brl,duration_minutes')
@@ -259,6 +306,7 @@ export async function getPublicVisibilityByProfessionalId(
       availabilityRulesCounts,
       availabilityLegacyCounts,
       specialtyCounts,
+      credentialCounts,
       serviceCounts,
       serviceWithPricingCounts,
     )
