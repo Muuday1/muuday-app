@@ -1226,3 +1226,22 @@ Use this for meaningful checkpoints only.
   - `.github/workflows/secrets-sync-audit.yml` (semanal + manual, valida presença de secrets em GitHub e Vercel).
 - Runbook atualizado com comandos e pré-requisitos:
   - `docs/engineering/runbooks/secrets-rotation-runbook.md`.
+
+### Entry 60 (2026-04-02) — Hotfix de compatibilidade em `payments` para restaurar booking
+- Incidente observado:
+  - qualquer tentativa de booking/request terminava com `Falha ao processar pagamento. Nenhum agendamento foi confirmado.`
+  - bookings eram cancelados com `metadata.cancelled_reason = payment_capture_failed`.
+- Diagnóstico SQL:
+  - `public.payments` possuía campos `NOT NULL` fora do payload atual do app:
+    - `base_price_brl`
+    - `platform_fee_brl`
+    - `total_charged`
+  - policy de INSERT em `payments` também estava com comparação tautológica no `WITH CHECK`.
+- Ação tomada:
+  - criado patch canônico: `db/sql/migrations/026-wave3-payments-insert-compatibility-hotfix.sql`.
+  - patch aplica:
+    - defaults + backfill para colunas legadas obrigatórias;
+    - trigger `trg_fill_payments_legacy_required_fields`;
+    - recriação da policy `System creates payments for booking owner` com vínculo estrito booking↔payment.
+- Resultado:
+  - fluxo de booking voltou a funcionar após aplicação do patch no banco.

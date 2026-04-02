@@ -656,3 +656,12 @@ Wave-driven delivery is now mandatory:
   - `.github/workflows/secrets-rotation-reminder.yml` (daily due reminder on 60/90/180-day cadence via register).
   - `.github/workflows/secrets-sync-audit.yml` (weekly GitHub↔Vercel secret-presence audit).
 - remaining human step: execute first full rotation cycle once, stamp baseline dates in register, then keep automated reminders/sync checks green.
+129. Booking/payment insertion failure is now resolved with DB compatibility hardening:
+- issue observed in production flow: booking creation and request acceptance were cancelling immediately with `payment_capture_failed`.
+- root cause: schema drift in `public.payments` introduced additional `NOT NULL` fields (`base_price_brl`, `platform_fee_brl`, `total_charged`) without defaults; app inserts do not send those fields.
+- additional policy issue identified and corrected: `payments` INSERT policy had tautological comparisons in `WITH CHECK`, weakening row-binding guarantees.
+- canonical fix was captured in migration:
+  - `db/sql/migrations/026-wave3-payments-insert-compatibility-hotfix.sql`
+  - sets defaults + backfill + trigger `fill_payments_legacy_required_fields()`
+  - recreates strict INSERT policy `System creates payments for booking owner` using explicit bookings↔payments ownership match.
+- current status: booking flow validated as working again after applying the patch.

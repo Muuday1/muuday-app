@@ -547,6 +547,18 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
   - `.github/workflows/secrets-rotation-reminder.yml` (daily due-window reminders).
   - `.github/workflows/secrets-sync-audit.yml` (weekly GitHub vs Vercel secret-name sync check + manual trigger).
 - runbook `docs/engineering/runbooks/secrets-rotation-runbook.md` now includes command-level operational flow for first-cycle baseline, recurring checks, and post-rotation sync validation.
+113. Payments booking flow failure root cause was closed with compatibility hotfix:
+- root cause confirmed in production: `public.payments` had drifted NOT NULL fields (`base_price_brl`, `platform_fee_brl`, `total_charged`) not present in the current app insert payload.
+- symptom observed in product:
+  - booking/request acceptance ended as `cancelled` with `metadata.cancelled_reason = payment_capture_failed`.
+  - user-facing error: `Falha ao processar pagamento. Nenhum agendamento foi confirmado.`
+- canonical migration added: `db/sql/migrations/026-wave3-payments-insert-compatibility-hotfix.sql`.
+- migration responsibilities:
+  - set safe defaults for legacy-required fields.
+  - backfill null legacy-required values.
+  - create trigger `trg_fill_payments_legacy_required_fields` to fill missing fields on insert/update.
+  - recreate policy `System creates payments for booking owner` with strict booking ownership comparison (`bookings.user_id/professional_id` matched against `payments` row values), removing tautological checks.
+- validation outcome: booking flow resumed successfully after patch.
 
 ## Immediate next actions
 

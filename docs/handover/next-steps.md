@@ -529,3 +529,13 @@ Status: `Done` for automated gate + fixture setup. Keep this list as regression 
 - automated by `.github/workflows/secrets-rotation-reminder.yml` (daily schedule).
 - cadence source-of-truth is `docs/engineering/runbooks/secrets-rotation-register.json` (`cadence_days` 60/90/180).
 - workflow fails when any secret is due soon (`<=14 days`) or overdue, so alerts do not depend on manual calendar reminders.
+23. Normalize `payments` schema across all environments using canonical migration `026`:
+- apply `db/sql/migrations/026-wave3-payments-insert-compatibility-hotfix.sql` in every non-prod/prod environment that still has schema drift.
+- verify post-apply:
+  - defaults exist for `base_price_brl`, `platform_fee_brl`, `total_charged`.
+  - trigger `trg_fill_payments_legacy_required_fields` is active.
+  - INSERT policy `System creates payments for booking owner` references `payments.user_id` / `payments.professional_id` in booking ownership checks.
+- run smoke for both flows:
+  - direct booking (`/agendar`)
+  - request acceptance (`/solicitar`)
+  and confirm no new `payment_capture_failed` cancellations are generated.
