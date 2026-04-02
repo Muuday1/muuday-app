@@ -18,3 +18,5 @@ output/
 test-results/
 playwright-report/
 build.out
+# Local ops artifacts (machine-specific)
+artifacts/ops/*.local.json
