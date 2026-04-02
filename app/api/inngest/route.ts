@@ -49,6 +49,16 @@ export async function POST(request: NextRequest, context: unknown) {
   return applyCorsHeaders(response, corsDecision.headers)
 }
 
+export async function PUT(request: NextRequest, context: unknown) {
+  const corsDecision = evaluateCorsRequest(request, INTERNAL_API_CORS_POLICY)
+  if (!corsDecision.allowed) {
+    return createCorsErrorResponse(request, INTERNAL_API_CORS_POLICY)
+  }
+
+  const response = await inngestHandler.PUT(request, context as never)
+  return applyCorsHeaders(response, corsDecision.headers)
+}
+
 export async function OPTIONS(request: NextRequest) {
   return createCorsPreflightResponse(request, INTERNAL_API_CORS_POLICY)
 }

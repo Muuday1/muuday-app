@@ -1,12 +1,14 @@
 # Current Operator Checklist
 
-Last updated: 2026-04-01
+Last updated: 2026-04-02
 
 Use this as the live checklist of actions that require human access to provider dashboards.
 
 ## Do now
 
-1. In Inngest Cloud, confirm the app sync is attached to the current endpoint `https://muuday-app.vercel.app/api/inngest` and clear stale unattached sync records.
+1. Run deterministic Inngest resync after deploy:
+- `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
+- if historical unattached syncs remain visible in dashboard, treat as stale history when latest resync succeeds.
 2. Run one manual cloud invocation of `sync-booking-reminders` and confirm success.
 3. Apply migration `db/sql/migrations/015-wave2-onboarding-gate-matrix-foundation.sql` in production Supabase.
 4. Validate professional onboarding checklist route `/onboarding-profissional` with a professional account after migration 015:

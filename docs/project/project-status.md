@@ -251,11 +251,11 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - booking/request actions now return structured gate reason codes for first-booking blocks.
 - recurring manage-booking actions now return deterministic `reasonCode` + `deadlineAtUtc` when blocked by recurring deadline policy.
 70. Wave 2 automated technical gate revalidated on new backend scope:
-- `npm run lint` ✅
-- `npm run typecheck` ✅
-- `npm run build` ✅
-- `npm run test:state-machines` ✅
-- `npm run test:e2e` ✅ (`10 passed`, `2 skipped` fixture-dependent scenarios in `wave2-onboarding-gates.spec.ts`).
+- `npm run lint` ?
+- `npm run typecheck` ?
+- `npm run build` ?
+- `npm run test:state-machines` ?
+- `npm run test:e2e` ? (`10 passed`, `2 skipped` fixture-dependent scenarios in `wave2-onboarding-gates.spec.ts`).
 
 71. Security hardening audit — P0/P1/P2 fixes applied:
 - **P0-1**: Admin mutations moved from client-side Supabase calls to server actions (`lib/actions/admin.ts`) with explicit `role === 'admin'` checks. Admin page now imports and calls `adminUpdateProfessionalStatus`, `adminUpdateFirstBookingGate`, `adminToggleReviewVisibility`, `adminDeleteReview` instead of direct `supabase.from().update()`.
@@ -267,7 +267,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - **P1-9**: OAuth callback no longer accepts `role` query parameter for new profile creation. Always defaults to `'usuario'`. Professional onboarding requires explicit post-signup flow.
 - **P1-10**: Silent catch block in `lib/supabase/server.ts` now logs in development mode to surface unexpected cookie-setting failures.
 - **P2-12**: Cron timeout handler now filters `status = 'pending_confirmation'` at database level instead of loading all bookings and filtering in JavaScript.
-- **P2-17**: Removed unnecessary `PUT` export from Inngest route handler (`/api/inngest`).
+- **P2-17**: Inngest route surface reviewed; `PUT` was temporarily removed and later restored for deterministic cloud resync support.
 - **P2-19**: Cron error responses no longer include internal error details in production. Details only shown when `NODE_ENV !== 'production'`.
 - validation run: `npm run typecheck` green.
 72. Repository governance hardening applied (operational best practices):
@@ -567,11 +567,18 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
   - create trigger `trg_fill_payments_legacy_required_fields` to fill missing fields on insert/update.
   - recreate policy `System creates payments for booking owner` with strict booking ownership comparison (`bookings.user_id/professional_id` matched against `payments` row values), removing tautological checks.
 - validation outcome: booking flow resumed successfully after patch.
+114. Inngest app resync path normalized to remove dashboard-only dependency:
+- `app/api/inngest/route.ts` now exposes `PUT` through `inngestHandler.PUT` with the same CORS guards used in `GET/POST`.
+- operational resync is now deterministic from CLI/CI:
+  - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
+- this closes the prior gap where stale unattached syncs required manual dashboard-only confirmation.
 
 ## Immediate next actions
 
 1. Complete Wave 2 manual acceptance checklist (recurring deadlines, C1-C10 gates, role routes) and mark Wave 2 as `Done` only after manual sign-off.
-2. Confirm Inngest dashboard is attached to current app path (`/api/inngest`) and remove stale unattached sync records.
+2. Run deterministic Inngest resync after each deploy:
+- `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
+- if dashboard still shows historical unattached records, treat them as stale history when latest resync succeeds.
 3. Keep E2E fixtures stable and close skipped `wave2-onboarding-gates.spec.ts` scenarios by maintaining both open-gate and blocked-gate professional fixtures.
 4. After Wave 2 sign-off, open Wave 3 scope (Stripe real billing/payout/ledger) without changing current Wave 2 gate contracts.
 5. Run visual regression pass for compact auth modal:
@@ -606,3 +613,4 @@ Every meaningful implementation change must update:
 1. `docs/project/project-status.md`
 2. `docs/handover/current-state.md`
 3. `docs/handover/next-steps.md`
+

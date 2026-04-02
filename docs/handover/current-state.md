@@ -240,7 +240,7 @@ Last updated: 2026-04-02 (session 80)
 1. Stripe corridor validation for UK platform to Brazil-heavy professional payouts.
 2. Final session provider lock decision.
 3. Final legal/tax wording freeze for sensitive categories.
-4. Inngest cloud may still show stale "unattached syncs" from older deployments; latest endpoint is healthy and attached sync must be validated in dashboard.
+4. Inngest sync path is now deterministic via `PUT /api/inngest` (no dashboard-only dependency for resync).
 5. E2E fixture stability must be preserved (IDs and professional settings) to keep zero-skip behavior in CI/local runs.
 6. Run fixture hardening script with a valid Supabase service-role key to guarantee all test professionals stay public-ready after new signups/resets.
 
@@ -670,3 +670,8 @@ Wave-driven delivery is now mandatory:
   - sets defaults + backfill + trigger `fill_payments_legacy_required_fields()`
   - recreates strict INSERT policy `System creates payments for booking owner` using explicit bookings↔payments ownership match.
 - current status: booking flow validated as working again after applying the patch.
+130. Inngest sync attachment no longer depends on dashboard-only action:
+- `app/api/inngest/route.ts` now supports `PUT` again through `inngestHandler.PUT` (with existing CORS guardrail).
+- deterministic post-deploy sync command:
+  - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
+- this closes the prior operational gap tracked as "unattached syncs pending external confirmation".

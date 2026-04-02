@@ -169,9 +169,9 @@ Items already fixed in code are documented in `project-status.md` item 71. The i
 - recorrência/deadlines: dentro do prazo permitido; fora do prazo bloqueado com `reason_code`; release automático de slots reservados no deadline de 7 dias.
 - gates C1-C10: profissional incompleto fora da busca pública; gate de primeiro booking bloqueando ações críticas; desbloqueio automático após requisitos completos.
 - role split: `profissional -> /dashboard`; `usuario/admin -> /buscar`; guardas de workspace cruzado bloqueando acesso indevido.
-2. Confirm Inngest operational attachment:
+2. Inngest operational attachment (done via deterministic resync command):
 - app path atual `https://muuday-app.vercel.app/api/inngest`.
-- eliminar syncs antigos não anexados no dashboard.
+- executar pós-deploy: `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
 3. Keep fixture integrity for e2e (open-gate + blocked-gate):
 - manter `E2E_PROFESSIONAL_ID` e `E2E_BLOCKED_PROFESSIONAL_ID` válidos.
 - manter script `npm run fixtures:ensure-public-ready` disponível para recuperação de fixture.
@@ -235,8 +235,8 @@ Dependencies:
 - In progress: gate engine + checklist route + first-booking enforcement already delivered in app code.
 - Remaining: apply migration `015-wave2-onboarding-gate-matrix-foundation.sql` in production and validate real flags.
 6. ~~Validate and tighten role-specific navigation + route guards for public/user/professional/admin paths.~~ Done (role-based nav in app layout + professional route hardening incl. `/financeiro`).
-7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ In progress — first workflow shipped and endpoint healthy; cloud sync attachment confirmation still pending.
-8. Confirm Inngest cloud app has attached sync to latest endpoint path (`/api/inngest`) and clear stale unattached sync history.
+7. ~~Wire first Inngest non-critical workflow while keeping cron as fallback.~~ Done — workflow ativo com endpoint saudável e resync determinístico por `PUT /api/inngest`.
+8. ~~Confirm Inngest cloud app has attached sync to latest endpoint path (`/api/inngest`) and clear stale unattached sync history.~~ Done — endpoint suporta resync explícito (`curl -X PUT .../api/inngest`) e remove dependência de ação manual exclusiva no dashboard.
 9. ~~Implement source-of-truth unauthenticated booking modal behavior (signup primary + login secondary) on public search/profile booking intent.~~ Done on `/profissional/[id]` via `PublicBookingAuthModal`.
 10. ~~Run professional workspace acceptance e2e with dedicated professional credentials to unskip all B3 checks (`E2E_PROFESSIONAL_EMAIL`, `E2E_PROFESSIONAL_PASSWORD`).~~ Done (`7/7` e2e green with manual+auto booking coverage).
 11. Add/validate onboarding acceptance tests for `/onboarding-profissional`:

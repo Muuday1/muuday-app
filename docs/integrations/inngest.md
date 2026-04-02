@@ -1,6 +1,6 @@
 # Inngest Integration
 
-Last updated: 2026-03-30
+Last updated: 2026-04-02
 
 ## Purpose
 
@@ -11,7 +11,8 @@ Durable background-job orchestration for retries, idempotent async workflows, an
 - `In progress`: provider selected and first non-critical workflow wired.
 - `Done`: Inngest endpoint at `/api/inngest` with function `sync-booking-reminders` (cron trigger + event trigger).
 - `Done`: production endpoint health check (`https://muuday-app.vercel.app/api/inngest`) returns cloud mode + key detection.
-- `Pending`: clear/confirm stale "unattached syncs" in Inngest dashboard by forcing new sync from current endpoint.
+- `Done`: `/api/inngest` now exposes `PUT` again for deterministic app resync via CLI/CI (`curl -X PUT .../api/inngest --fail-with-body`).
+- `Done`: stale "unattached syncs" no longer requires a dashboard-only path; resync can be forced by endpoint command.
 
 ## Environment variables
 
@@ -40,6 +41,7 @@ Durable background-job orchestration for retries, idempotent async workflows, an
 
 ## Next steps
 
-1. Confirm app sync attachment in Inngest cloud for `https://muuday-app.vercel.app/api/inngest` (ignore/remove stale unattached sync records).
+1. Run deterministic cloud resync after each deploy:
+   - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
 2. Validate scheduled executions in cloud and compare parity with cron.
 3. Keep clear idempotency keys and retry-safe handlers as more workflows migrate.

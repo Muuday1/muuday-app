@@ -24,6 +24,13 @@ Use this for meaningful checkpoints only.
   - `npm.cmd run build`
   - `npm.cmd run test:state-machines`
 
+### Entry 81
+- Fechada lacuna operacional de sync do Inngest sem depender de ação manual exclusiva no dashboard.
+- `app/api/inngest/route.ts` voltou a expor `PUT` com o mesmo controle de CORS de `GET/POST`, permitindo resync determinístico via endpoint.
+- Comando operacional oficial para pós-deploy:
+  - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
+- Handover atualizado para tratar sync como fluxo reproduzível por CLI/CI.
+
 ## 2026-04-01
 
 ### Entry 79
