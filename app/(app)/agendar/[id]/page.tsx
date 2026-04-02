@@ -9,7 +9,9 @@ import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-s
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 function parseInitialBookingType(value?: string) {
-  return value === 'recurring' ? 'recurring' : 'one_off'
+  if (value === 'recurring') return 'recurring'
+  if (value === 'batch') return 'batch'
+  return 'one_off'
 }
 
 function parseInitialRecurringSessionsCount(value?: string) {
@@ -53,10 +55,11 @@ export default async function AgendarPage({
     redirect('/dashboard?erro=conta-profissional-nao-pode-contratar')
   }
 
-  // Fetch professional with profile
+  // Fetch professional first. Profile is loaded separately to avoid ambiguous embed joins
+  // when multiple foreign keys exist between professionals and profiles.
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*, profiles(*), first_booking_enabled')
+    .select('*')
     .eq('id', params.id)
     .single()
 
@@ -64,9 +67,11 @@ export default async function AgendarPage({
     notFound()
   }
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
+  const { data: professionalProfile } = await supabase
+    .from('profiles')
+    .select('full_name, timezone')
+    .eq('id', professional.user_id)
+    .maybeSingle()
   const professionalProfileHref = buildProfessionalProfilePath({
     id: professional.id,
     fullName: professionalProfile?.full_name,
