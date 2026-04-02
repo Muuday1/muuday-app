@@ -150,7 +150,37 @@ async function findHiddenReviewSample(ownerClient, ownerUserId) {
 }
 
 async function findMessageSample(ownerClient, ownerUserId, userAId) {
-  const { data, error } = await ownerClient
+  // Current schema uses receiver_id, but keep recipient_id fallback for legacy datasets.
+  const primary = await ownerClient
+    .from('messages')
+    .select('id,sender_id,receiver_id')
+    .or(`sender_id.eq.${ownerUserId},receiver_id.eq.${ownerUserId}`)
+    .neq('sender_id', userAId)
+    .neq('receiver_id', userAId)
+    .limit(1)
+
+  const primaryError = primary.error
+  if (!primaryError) {
+    return { id: primary.data?.[0]?.id || null, missingTable: false }
+  }
+
+  const primaryCode = String(primaryError.code || '')
+  const primaryMessage = String(primaryError.message || '').toLowerCase()
+  if (
+    primaryCode === 'PGRST205' ||
+    primaryCode === '42P01' ||
+    primaryMessage.includes('could not find the table') ||
+    (primaryMessage.includes('relation') && primaryMessage.includes('does not exist'))
+  ) {
+    return { id: null, missingTable: true }
+  }
+
+  // If receiver_id is missing on older schema, retry against recipient_id.
+  if (!primaryMessage.includes('receiver_id')) {
+    return { id: null, missingTable: false }
+  }
+
+  const fallback = await ownerClient
     .from('messages')
     .select('id,sender_id,recipient_id')
     .or(`sender_id.eq.${ownerUserId},recipient_id.eq.${ownerUserId}`)
@@ -158,21 +188,21 @@ async function findMessageSample(ownerClient, ownerUserId, userAId) {
     .neq('recipient_id', userAId)
     .limit(1)
 
-  if (error) {
-    const code = String(error.code || '')
-    const message = String(error.message || '').toLowerCase()
+  if (fallback.error) {
+    const fallbackCode = String(fallback.error.code || '')
+    const fallbackMessage = String(fallback.error.message || '').toLowerCase()
     if (
-      code === 'PGRST205' ||
-      code === '42P01' ||
-      message.includes('could not find the table') ||
-      message.includes('relation') && message.includes('does not exist')
+      fallbackCode === 'PGRST205' ||
+      fallbackCode === '42P01' ||
+      fallbackMessage.includes('could not find the table') ||
+      (fallbackMessage.includes('relation') && fallbackMessage.includes('does not exist'))
     ) {
       return { id: null, missingTable: true }
     }
     return { id: null, missingTable: false }
   }
 
-  return { id: data?.[0]?.id || null, missingTable: false }
+  return { id: fallback.data?.[0]?.id || null, missingTable: false }
 }
 
 async function run() {
