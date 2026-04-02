@@ -28,7 +28,7 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
 
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*, profiles(*)')
+    .select('*')
     .eq('id', params.id)
     .single()
 
@@ -36,9 +36,11 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
     notFound()
   }
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
+  const { data: professionalProfile } = await supabase
+    .from('profiles')
+    .select('full_name, timezone')
+    .eq('id', professional.user_id)
+    .maybeSingle()
   const professionalProfileHref = buildProfessionalProfilePath({
     id: professional.id,
     fullName: professionalProfile?.full_name,

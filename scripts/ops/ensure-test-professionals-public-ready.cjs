@@ -86,7 +86,11 @@ async function resolveProfessionalIdByEmail(supabase, email) {
   return professional?.id ? String(professional.id) : null
 }
 
-async function ensureProfessionalReadyForPublicSearch(supabase, professionalId, confirmationMode) {
+async function ensureProfessionalReadyForPublicSearch(
+  supabase,
+  professionalId,
+  { confirmationMode, firstBookingEnabled },
+) {
   const { data: professional } = await supabase
     .from('professionals')
     .select('id,user_id,status,tier,bio,category,subcategories,tags,languages,years_experience,session_price_brl,session_duration_minutes')
@@ -129,7 +133,7 @@ async function ensureProfessionalReadyForPublicSearch(supabase, professionalId, 
     .from('professionals')
     .update({
       status: 'approved',
-      first_booking_enabled: true,
+      first_booking_enabled: firstBookingEnabled,
       tier: normalizeText(professional.tier, 'professional'),
       bio: normalizeText(
         professional.bio,
@@ -246,6 +250,7 @@ async function main() {
   const envIds = [
     normalizeText(process.env.E2E_PROFESSIONAL_ID),
     normalizeText(process.env.E2E_MANUAL_PROFESSIONAL_ID),
+    normalizeText(process.env.E2E_BLOCKED_PROFESSIONAL_ID),
   ].filter(Boolean)
 
   const envEmails = [
@@ -265,18 +270,22 @@ async function main() {
 
   if (resolvedIds.size === 0) {
     throw new Error(
-      'No professional fixture IDs found. Set E2E_PROFESSIONAL_ID/E2E_MANUAL_PROFESSIONAL_ID or pass --ids.',
+      'No professional fixture IDs found. Set E2E_PROFESSIONAL_ID/E2E_MANUAL_PROFESSIONAL_ID/E2E_BLOCKED_PROFESSIONAL_ID or pass --ids.',
     )
   }
 
   const manualId = normalizeText(process.env.E2E_MANUAL_PROFESSIONAL_ID)
+  const blockedId = normalizeText(process.env.E2E_BLOCKED_PROFESSIONAL_ID)
   const summary = []
   for (const professionalId of resolvedIds) {
-    const confirmationMode = professionalId === manualId ? 'manual' : 'auto_accept'
+    const isManualFixture = professionalId === manualId
+    const isBlockedFixture = professionalId === blockedId
+    const confirmationMode = isManualFixture ? 'manual' : 'auto_accept'
+    const firstBookingEnabled = !isBlockedFixture
     const result = await ensureProfessionalReadyForPublicSearch(
       supabase,
       professionalId,
-      confirmationMode,
+      { confirmationMode, firstBookingEnabled },
     )
     summary.push(result)
   }
