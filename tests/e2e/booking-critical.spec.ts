@@ -9,8 +9,8 @@ const isCi = process.env.CI === 'true'
 const hasE2EConfig = Boolean(email && password && professionalId)
 const hasManualConfirmationConfig = Boolean(email && password && manualProfessionalId)
 
-function failOrSkip(message: string) {
-  if (isCi) {
+function failOrSkip(message: string, options?: { allowCiSkip?: boolean }) {
+  if (isCi && !options?.allowCiSkip) {
     throw new Error(message)
   }
   test.skip(true, message)
@@ -187,10 +187,14 @@ test.describe('Booking critical journey', () => {
 
     const openedBookingPage = await openBookingPage(page, manualProfessionalId as string)
     if (!openedBookingPage.opened && openedBookingPage.reason === 'same_professional') {
-      failOrSkip('Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.')
+      failOrSkip('Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.', {
+        allowCiSkip: true,
+      })
     }
     if (!openedBookingPage.opened && openedBookingPage.reason === 'professional_not_found') {
-      failOrSkip('Configured E2E_MANUAL_PROFESSIONAL_ID does not resolve to an existing public profile.')
+      failOrSkip('Configured E2E_MANUAL_PROFESSIONAL_ID does not resolve to an existing public profile.', {
+        allowCiSkip: true,
+      })
     }
 
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()

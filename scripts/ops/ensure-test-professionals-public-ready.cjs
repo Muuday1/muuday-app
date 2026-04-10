@@ -63,6 +63,26 @@ function normalizeText(value, fallback = '') {
   return normalized || fallback
 }
 
+function exportCiVariable(name, value) {
+  const normalizedValue = normalizeText(value)
+  if (!normalizedValue) return
+
+  if (process.env.GITHUB_ENV) {
+    fs.appendFileSync(process.env.GITHUB_ENV, `${name}=${normalizedValue}\n`)
+  }
+
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name.toLowerCase()}=${normalizedValue}\n`)
+  }
+}
+
+function assertNoSupabaseError(result, context) {
+  if (result?.error) {
+    throw new Error(`[${context}] ${result.error.message}`)
+  }
+  return result
+}
+
 async function resolveProfessionalIdByEmail(supabase, email) {
   const normalizedEmail = normalizeText(email).toLowerCase()
   if (!normalizedEmail) return null
@@ -84,6 +104,49 @@ async function resolveProfessionalIdByEmail(supabase, email) {
     .maybeSingle()
 
   return professional?.id ? String(professional.id) : null
+}
+
+async function listProfessionalCandidateIds(supabase) {
+  const { data, error } = await supabase
+    .from('professionals')
+    .select('id')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (error) {
+    throw new Error(`Failed to list professionals: ${error.message}`)
+  }
+
+  return (data || []).map(row => String(row.id)).filter(Boolean)
+}
+
+function pickDistinctFixtureId({ label, preferredId, requestedIds, candidateIds, usedIds }) {
+  const preferred = normalizeText(preferredId)
+  if (preferred && !usedIds.has(preferred)) {
+    if (candidateIds.includes(preferred)) {
+      usedIds.add(preferred)
+      return preferred
+    }
+    console.warn(`[fixtures] WARN: ${label} preferred id not found: ${preferred}`)
+  }
+
+  for (const id of requestedIds) {
+    if (!usedIds.has(id)) {
+      usedIds.add(id)
+      return id
+    }
+  }
+
+  for (const id of candidateIds) {
+    if (!usedIds.has(id)) {
+      usedIds.add(id)
+      return id
+    }
+  }
+
+  throw new Error(
+    `Unable to resolve distinct fixture for ${label}. Need at least 3 professionals available for open/manual/blocked fixtures.`,
+  )
 }
 
 async function ensureProfessionalReadyForPublicSearch(
@@ -111,16 +174,22 @@ async function ensureProfessionalReadyForPublicSearch(
     normalizeText(profile?.full_name, professionalId),
   )}`
 
-  await supabase
+  assertNoSupabaseError(
+    await supabase
     .from('profiles')
     .update({
       avatar_url: normalizeText(profile?.avatar_url, fallbackAvatar),
       country: normalizeText(profile?.country, 'BR'),
       timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
     })
-    .eq('id', String(professional.user_id))
+    .eq('id', String(professional.user_id)),
+    `profiles.update:${professional.user_id}`,
+  )
 
-  const normalizedCategory = normalizeText(professional.category, 'carreira-negocios-desenvolvimento-profissional')
+  const normalizedCategory = normalizeText(
+    professional.category,
+    'carreira-negocios-desenvolvimento-profissional',
+  )
   const normalizedSubcategories = Array.isArray(professional.subcategories)
     ? professional.subcategories.filter(Boolean)
     : []
@@ -129,28 +198,67 @@ async function ensureProfessionalReadyForPublicSearch(
     : []
   const normalizedTags = Array.isArray(professional.tags) ? professional.tags.filter(Boolean) : []
 
-  await supabase
+  assertNoSupabaseError(
+    await supabase
     .from('professionals')
     .update({
       status: 'approved',
       first_booking_enabled: firstBookingEnabled,
       tier: normalizeText(professional.tier, 'professional'),
-      bio: normalizeText(
-        professional.bio,
-        'Profissional validado para ambiente de testes da Muuday.',
-      ),
+      bio: normalizeText(professional.bio, 'Professional fixture validated for CI public journeys.'),
       category: normalizedCategory,
       subcategories: normalizedSubcategories.length > 0 ? normalizedSubcategories : ['Mentoria'],
-      tags: normalizedTags.length > 0 ? normalizedTags : ['Foco de atuação'],
-      languages: normalizedLanguages.length > 0 ? normalizedLanguages : ['Português'],
+      tags: normalizedTags.length > 0 ? normalizedTags : ['Foco de atuacao'],
+      languages: normalizedLanguages.length > 0 ? normalizedLanguages : ['Portugues'],
       years_experience: Math.max(Number(professional.years_experience || 0), 1),
       session_price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
       session_duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
     })
-    .eq('id', professionalId)
+    .eq('id', professionalId),
+    `professionals.update:${professionalId}`,
+  )
 
-  await supabase.from('professional_settings').upsert(
-    {
+  const defaultDisplayName = normalizeText(
+    profile?.full_name,
+    `Profissional ${String(professionalId).slice(0, 8)}`,
+  )
+  assertNoSupabaseError(
+    await supabase.from('professional_applications').upsert(
+      {
+      user_id: String(professional.user_id),
+      professional_id: professionalId,
+      display_name: defaultDisplayName,
+      headline: normalizeText(
+        professional.bio,
+        'Profissional validado para jornada publica de testes.',
+      ),
+      category: normalizedCategory,
+      specialty_name:
+        normalizedSubcategories.length > 0
+          ? String(normalizedSubcategories[0])
+          : 'Mentoria',
+      specialty_custom: false,
+      specialty_validation_message: null,
+      focus_areas: normalizedTags.length > 0 ? normalizedTags : ['Foco de atuacao'],
+      primary_language:
+        normalizedLanguages.length > 0 ? String(normalizedLanguages[0]) : 'Portugues',
+      secondary_languages:
+        normalizedLanguages.length > 1 ? normalizedLanguages.slice(1) : [],
+      years_experience: Math.max(Number(professional.years_experience || 0), 1),
+      session_price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
+      session_duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
+      qualification_file_names: [],
+      qualification_note: null,
+      status: 'approved',
+      },
+      { onConflict: 'user_id' },
+    ),
+    `professional_applications.upsert:${professional.user_id}`,
+  )
+
+  assertNoSupabaseError(
+    await supabase.from('professional_settings').upsert(
+      {
       professional_id: professionalId,
       timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
       session_duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
@@ -164,65 +272,113 @@ async function ensureProfessionalReadyForPublicSearch(
       billing_card_on_file: true,
       payout_onboarding_started: true,
       payout_kyc_completed: true,
-    },
-    { onConflict: 'professional_id' },
+      cancellation_policy_accepted: true,
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: 'wave2-e2e-fixture',
+      },
+      { onConflict: 'professional_id' },
+    ),
+    `professional_settings.upsert:${professionalId}`,
   )
 
-  const { count: serviceCount } = await supabase
+  const serviceCountResponse = await supabase
     .from('professional_services')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+  assertNoSupabaseError(serviceCountResponse, `professional_services.count:${professionalId}`)
+  const serviceCount = serviceCountResponse.count
 
   if ((serviceCount || 0) === 0) {
-    await supabase.from('professional_services').insert({
-      professional_id: professionalId,
-      name: 'Sessão de teste validada',
-      service_type: 'one_off',
-      description: 'Serviço de teste para validação da jornada pública.',
-      duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
-      price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
-      enable_recurring: false,
-      enable_monthly: false,
-      is_active: true,
-      is_draft: false,
-    })
+    assertNoSupabaseError(
+      await supabase.from('professional_services').insert({
+        professional_id: professionalId,
+        name: 'Sessao de teste validada',
+        service_type: 'one_off',
+        description: 'Servico de teste para validacao da jornada publica.',
+        duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
+        price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
+        enable_recurring: false,
+        enable_monthly: false,
+        is_active: true,
+        is_draft: false,
+      }),
+      `professional_services.insert:${professionalId}`,
+    )
   }
 
-  const { count: availabilityRuleCount } = await supabase
+  const availabilityRuleCountResponse = await supabase
     .from('availability_rules')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+  assertNoSupabaseError(
+    availabilityRuleCountResponse,
+    `availability_rules.count:${professionalId}`,
+  )
+  const availabilityRuleCount = availabilityRuleCountResponse.count
 
   if ((availabilityRuleCount || 0) === 0) {
-    await supabase.from('availability_rules').insert({
-      professional_id: professionalId,
-      weekday: 1,
-      start_time_local: '09:00',
-      end_time_local: '17:00',
-      timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
-      is_active: true,
-    })
+    assertNoSupabaseError(
+      await supabase.from('availability_rules').insert({
+        professional_id: professionalId,
+        weekday: 1,
+        start_time_local: '09:00',
+        end_time_local: '17:00',
+        timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
+        is_active: true,
+      }),
+      `availability_rules.insert:${professionalId}`,
+    )
   }
 
-  const { count: availabilityLegacyCount } = await supabase
+  const availabilityLegacyCountResponse = await supabase
     .from('availability')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+  assertNoSupabaseError(
+    availabilityLegacyCountResponse,
+    `availability_legacy.count:${professionalId}`,
+  )
+  const availabilityLegacyCount = availabilityLegacyCountResponse.count
 
   if ((availabilityLegacyCount || 0) === 0) {
-    await supabase.from('availability').insert({
-      professional_id: professionalId,
-      day_of_week: 1,
-      start_time: '09:00',
-      end_time: '17:00',
-      is_active: true,
-    })
+    assertNoSupabaseError(
+      await supabase.from('availability').insert({
+        professional_id: professionalId,
+        day_of_week: 1,
+        start_time: '09:00',
+        end_time: '17:00',
+        is_active: true,
+      }),
+      `availability_legacy.insert:${professionalId}`,
+    )
   }
 
-  return { professionalId, updated: true, reason: 'ready' }
+  const verification = await supabase
+    .from('professional_settings')
+    .select(
+      'confirmation_mode,billing_card_on_file,payout_onboarding_started,payout_kyc_completed,cancellation_policy_accepted,terms_accepted_at',
+    )
+    .eq('professional_id', professionalId)
+    .maybeSingle()
+  assertNoSupabaseError(verification, `professional_settings.verify:${professionalId}`)
+  const settings = verification.data || {}
+
+  if (String(settings.confirmation_mode || '') !== confirmationMode) {
+    throw new Error(
+      `[professional_settings.verify:${professionalId}] confirmation_mode expected ${confirmationMode} but found ${String(settings.confirmation_mode || '')}`,
+    )
+  }
+  if (!settings.billing_card_on_file || !settings.payout_onboarding_started || !settings.payout_kyc_completed) {
+    throw new Error(`[professional_settings.verify:${professionalId}] payout/billing flags were not persisted.`)
+  }
+  if (!settings.cancellation_policy_accepted || !String(settings.terms_accepted_at || '').trim()) {
+    throw new Error(`[professional_settings.verify:${professionalId}] cancellation policy/terms were not persisted.`)
+  }
+
+  return { professionalId, updated: true, reason: 'ready', confirmationMode, firstBookingEnabled }
 }
 
 async function main() {
@@ -247,66 +403,120 @@ async function main() {
   const argIds = parseListArg(getArgValue('--ids'))
   const argEmails = parseListArg(getArgValue('--emails'))
 
-  const envIds = [
-    normalizeText(process.env.E2E_PROFESSIONAL_ID),
-    normalizeText(process.env.E2E_MANUAL_PROFESSIONAL_ID),
-    normalizeText(process.env.E2E_BLOCKED_PROFESSIONAL_ID),
-  ].filter(Boolean)
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 
+  const candidateIds = await listProfessionalCandidateIds(supabase)
+  if (candidateIds.length === 0) {
+    throw new Error('No professionals found in database. Cannot auto-heal fixtures.')
+  }
+
+  const resolvedFromEmails = []
   const envEmails = [
     normalizeText(process.env.E2E_PROFESSIONAL_EMAIL),
     normalizeText(process.env.E2E_USER_EMAIL),
   ].filter(Boolean)
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
-
-  const resolvedIds = new Set([...argIds, ...envIds])
   for (const email of [...argEmails, ...envEmails]) {
     const resolved = await resolveProfessionalIdByEmail(supabase, email)
-    if (resolved) resolvedIds.add(resolved)
+    if (resolved) {
+      resolvedFromEmails.push(resolved)
+    } else {
+      console.warn(`[fixtures] WARN: no professional found for email ${email}`)
+    }
   }
 
-  if (resolvedIds.size === 0) {
-    throw new Error(
-      'No professional fixture IDs found. Set E2E_PROFESSIONAL_ID/E2E_MANUAL_PROFESSIONAL_ID/E2E_BLOCKED_PROFESSIONAL_ID or pass --ids.',
-    )
+  const requestedIds = [
+    ...argIds,
+    normalizeText(process.env.E2E_PROFESSIONAL_ID),
+    normalizeText(process.env.E2E_MANUAL_PROFESSIONAL_ID),
+    normalizeText(process.env.E2E_BLOCKED_PROFESSIONAL_ID),
+    ...resolvedFromEmails,
+  ].filter(Boolean)
+
+  const requestedUniqueExistingIds = []
+  for (const id of requestedIds) {
+    if (!candidateIds.includes(id)) {
+      console.warn(`[fixtures] WARN: requested fixture id not found: ${id}`)
+      continue
+    }
+    if (!requestedUniqueExistingIds.includes(id)) {
+      requestedUniqueExistingIds.push(id)
+    }
   }
 
-  const manualId = normalizeText(process.env.E2E_MANUAL_PROFESSIONAL_ID)
-  const blockedId = normalizeText(process.env.E2E_BLOCKED_PROFESSIONAL_ID)
-  const openId = normalizeText(process.env.E2E_PROFESSIONAL_ID)
+  const usedIds = new Set()
+  const openFixtureId = pickDistinctFixtureId({
+    label: 'E2E_PROFESSIONAL_ID',
+    preferredId: process.env.E2E_PROFESSIONAL_ID,
+    requestedIds: requestedUniqueExistingIds,
+    candidateIds,
+    usedIds,
+  })
 
-  if (manualId && openId && manualId === openId) {
-    throw new Error(
-      'Fixture collision: E2E_MANUAL_PROFESSIONAL_ID must be different from E2E_PROFESSIONAL_ID.',
-    )
-  }
-  if (manualId && blockedId && manualId === blockedId) {
-    throw new Error(
-      'Fixture collision: E2E_MANUAL_PROFESSIONAL_ID must be different from E2E_BLOCKED_PROFESSIONAL_ID.',
-    )
-  }
-  if (openId && blockedId && openId === blockedId) {
-    throw new Error(
-      'Fixture collision: E2E_PROFESSIONAL_ID must be different from E2E_BLOCKED_PROFESSIONAL_ID.',
-    )
-  }
+  const manualFixtureId = pickDistinctFixtureId({
+    label: 'E2E_MANUAL_PROFESSIONAL_ID',
+    preferredId: process.env.E2E_MANUAL_PROFESSIONAL_ID,
+    requestedIds: requestedUniqueExistingIds,
+    candidateIds,
+    usedIds,
+  })
+
+  const blockedFixtureId = pickDistinctFixtureId({
+    label: 'E2E_BLOCKED_PROFESSIONAL_ID',
+    preferredId: process.env.E2E_BLOCKED_PROFESSIONAL_ID,
+    requestedIds: requestedUniqueExistingIds,
+    candidateIds,
+    usedIds,
+  })
+
+  const fixturePlan = [
+    {
+      fixture: 'open',
+      professionalId: openFixtureId,
+      confirmationMode: 'auto_accept',
+      firstBookingEnabled: true,
+    },
+    {
+      fixture: 'manual',
+      professionalId: manualFixtureId,
+      confirmationMode: 'manual',
+      firstBookingEnabled: true,
+    },
+    {
+      fixture: 'blocked',
+      professionalId: blockedFixtureId,
+      confirmationMode: 'auto_accept',
+      firstBookingEnabled: false,
+    },
+  ]
 
   const summary = []
-  for (const professionalId of resolvedIds) {
-    const isManualFixture = professionalId === manualId
-    const isBlockedFixture = professionalId === blockedId
-    const confirmationMode = isManualFixture ? 'manual' : 'auto_accept'
-    const firstBookingEnabled = !isBlockedFixture
-    const result = await ensureProfessionalReadyForPublicSearch(
-      supabase,
-      professionalId,
-      { confirmationMode, firstBookingEnabled },
-    )
-    summary.push(result)
+  for (const entry of fixturePlan) {
+    const result = await ensureProfessionalReadyForPublicSearch(supabase, entry.professionalId, {
+      confirmationMode: entry.confirmationMode,
+      firstBookingEnabled: entry.firstBookingEnabled,
+    })
+    summary.push({ fixture: entry.fixture, ...result })
   }
+
+  exportCiVariable('E2E_PROFESSIONAL_ID', openFixtureId)
+  exportCiVariable('E2E_MANUAL_PROFESSIONAL_ID', manualFixtureId)
+  exportCiVariable('E2E_BLOCKED_PROFESSIONAL_ID', blockedFixtureId)
+
+  console.log('[fixtures] Resolved fixture IDs:')
+  console.log(
+    JSON.stringify(
+      {
+        E2E_PROFESSIONAL_ID: openFixtureId,
+        E2E_MANUAL_PROFESSIONAL_ID: manualFixtureId,
+        E2E_BLOCKED_PROFESSIONAL_ID: blockedFixtureId,
+      },
+      null,
+      2,
+    ),
+  )
 
   console.log('[fixtures] Professional visibility sync summary:')
   console.log(JSON.stringify(summary, null, 2))
