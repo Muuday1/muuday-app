@@ -61,7 +61,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
-  let supabaseResponse = NextResponse.next({ request })
+  const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
+  const supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     supabaseUrl,
@@ -70,15 +71,21 @@ export async function updateSession(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            pendingCookies.push({ name, value, options })
+          })
         },
       },
     }
   )
+
+  const applyPendingCookies = (response: NextResponse) => {
+    pendingCookies.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options)
+    })
+    return response
+  }
 
   const { data: { user } } = await supabase.auth.getUser()
   const jwtClaimRole = normalizeProfileRole(
@@ -143,13 +150,13 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(url)
+    return applyPendingCookies(NextResponse.redirect(url))
   }
 
   if (!user && isAdminRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return applyPendingCookies(NextResponse.redirect(url))
   }
 
   // Role-based guards (admin and professional routes)
@@ -159,19 +166,19 @@ export async function updateSession(request: NextRequest) {
     if (isAdminRoute && role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
-      return NextResponse.redirect(url)
+      return applyPendingCookies(NextResponse.redirect(url))
     }
 
     if (isProfessionalRoute && role !== 'profissional') {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
-      return NextResponse.redirect(url)
+      return applyPendingCookies(NextResponse.redirect(url))
     }
 
     if (isUserOnlyRoute && role !== 'usuario' && role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = role === 'profissional' ? '/dashboard' : '/buscar'
-      return NextResponse.redirect(url)
+      return applyPendingCookies(NextResponse.redirect(url))
     }
   }
 
@@ -180,8 +187,8 @@ export async function updateSession(request: NextRequest) {
     const role = await getProfileRole()
     const url = request.nextUrl.clone()
     url.pathname = role === 'profissional' ? '/dashboard' : '/buscar'
-    return NextResponse.redirect(url)
+    return applyPendingCookies(NextResponse.redirect(url))
   }
 
-  return supabaseResponse
+  return applyPendingCookies(supabaseResponse)
 }
