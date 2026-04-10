@@ -33,7 +33,7 @@ async function login(page: Page, email: string, password: string) {
   const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
   const submitButton = page.locator('button[type="submit"]').first()
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     await dismissCookieDialogIfPresent(page)
     await emailInput.fill(email)
     await passwordInput.fill(password)
@@ -46,11 +46,16 @@ async function login(page: Page, email: string, password: string) {
       await page.waitForURL(/\/(buscar|dashboard)/, { timeout: 30_000 })
       return
     } catch {
-      const rateLimited = await page
-        .getByText(/muitas tentativas|tente novamente|aguarde/i)
-        .count()
-      if (rateLimited > 0 && attempt < 2) {
-        await page.waitForTimeout(2_500)
+      let rateLimited = 0
+      try {
+        rateLimited = await page
+          .getByText(/muitas tentativas|tente novamente|aguarde/i)
+          .count()
+      } catch {
+        throw new Error(`E2E login failed: page became unavailable during login (url=${page.url()}).`)
+      }
+      if (rateLimited > 0 && attempt < 4) {
+        await page.waitForTimeout(4_000)
         continue
       }
 

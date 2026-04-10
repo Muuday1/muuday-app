@@ -4,9 +4,17 @@ const email = process.env.E2E_USER_EMAIL
 const password = process.env.E2E_USER_PASSWORD
 const professionalId = process.env.E2E_PROFESSIONAL_ID
 const manualProfessionalId = process.env.E2E_MANUAL_PROFESSIONAL_ID
+const isCi = process.env.CI === 'true'
 
 const hasE2EConfig = Boolean(email && password && professionalId)
 const hasManualConfirmationConfig = Boolean(email && password && manualProfessionalId)
+
+function failOrSkip(message: string) {
+  if (isCi) {
+    throw new Error(message)
+  }
+  test.skip(true, message)
+}
 
 type OpenBookingResult = {
   opened: boolean
@@ -171,17 +179,18 @@ test.describe('Booking critical journey', () => {
   })
 
   test('shows manual confirmation submit copy when professional requires approval', async ({ page }) => {
-    test.skip(
-      !hasManualConfirmationConfig,
-      'Set E2E_MANUAL_PROFESSIONAL_ID with E2E_USER_EMAIL and E2E_USER_PASSWORD to validate manual confirmation mode.'
-    )
+    if (!hasManualConfirmationConfig) {
+      failOrSkip(
+        'Missing manual-confirmation fixture. Set E2E_MANUAL_PROFESSIONAL_ID with E2E_USER_EMAIL and E2E_USER_PASSWORD.',
+      )
+    }
 
     const openedBookingPage = await openBookingPage(page, manualProfessionalId as string)
     if (!openedBookingPage.opened && openedBookingPage.reason === 'same_professional') {
-      test.skip(true, 'Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.')
+      failOrSkip('Configured E2E_MANUAL_PROFESSIONAL_ID points to the same logged-in professional.')
     }
     if (!openedBookingPage.opened && openedBookingPage.reason === 'professional_not_found') {
-      test.skip(true, 'Configured E2E_MANUAL_PROFESSIONAL_ID does not resolve to an existing public profile.')
+      failOrSkip('Configured E2E_MANUAL_PROFESSIONAL_ID does not resolve to an existing public profile.')
     }
 
     await expect(page.getByRole('heading', { name: 'Tipo de agendamento' })).toBeVisible()

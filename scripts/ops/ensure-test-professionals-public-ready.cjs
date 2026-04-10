@@ -276,6 +276,24 @@ async function main() {
 
   const manualId = normalizeText(process.env.E2E_MANUAL_PROFESSIONAL_ID)
   const blockedId = normalizeText(process.env.E2E_BLOCKED_PROFESSIONAL_ID)
+  const openId = normalizeText(process.env.E2E_PROFESSIONAL_ID)
+
+  if (manualId && openId && manualId === openId) {
+    throw new Error(
+      'Fixture collision: E2E_MANUAL_PROFESSIONAL_ID must be different from E2E_PROFESSIONAL_ID.',
+    )
+  }
+  if (manualId && blockedId && manualId === blockedId) {
+    throw new Error(
+      'Fixture collision: E2E_MANUAL_PROFESSIONAL_ID must be different from E2E_BLOCKED_PROFESSIONAL_ID.',
+    )
+  }
+  if (openId && blockedId && openId === blockedId) {
+    throw new Error(
+      'Fixture collision: E2E_PROFESSIONAL_ID must be different from E2E_BLOCKED_PROFESSIONAL_ID.',
+    )
+  }
+
   const summary = []
   for (const professionalId of resolvedIds) {
     const isManualFixture = professionalId === manualId
