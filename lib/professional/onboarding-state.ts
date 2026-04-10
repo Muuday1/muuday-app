@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import {
   evaluateOnboardingGates,
@@ -96,6 +96,15 @@ export async function loadProfessionalOnboardingState(
     .eq('id', String(professionalRow.user_id))
     .maybeSingle()
 
+  const { data: applicationRow } = await supabase
+    .from('professional_applications')
+    .select('display_name')
+    .eq('user_id', String(professionalRow.user_id))
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   snapshot.account = {
     fullName: String(profileRow?.full_name || ''),
     email: String(profileRow?.email || ''),
@@ -107,6 +116,8 @@ export async function loadProfessionalOnboardingState(
         ? String(professionalRow.languages[0] || '')
         : null,
   }
+
+  snapshot.professional.displayName = String(applicationRow?.display_name || '')
 
   const { data: settingsRow, error: settingsError } = await supabase
     .from('professional_settings')
@@ -222,7 +233,7 @@ export async function evaluateFirstBookingEligibility(
   if (!onboardingState) {
     return {
       ok: false,
-      message: 'Este profissional ainda n�o est� habilitado para aceitar o primeiro agendamento.',
+      message: 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.',
       reasonCode: 'unknown_gate_blocker',
     }
   }
@@ -241,3 +252,4 @@ export async function evaluateFirstBookingEligibility(
     evaluation: onboardingState.evaluation,
   }
 }
+

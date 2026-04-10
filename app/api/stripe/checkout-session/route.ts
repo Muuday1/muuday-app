@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -14,9 +14,13 @@ const payloadSchema = z.object({
 
 const PRICE_ENV_KEYS: Record<
   StripePlatformRegion,
-  Record<'professional' | 'premium', Record<'monthly' | 'annual', string>>
+  Record<'basic' | 'professional' | 'premium', Record<'monthly' | 'annual', string>>
 > = {
   uk: {
+    basic: {
+      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_UK',
+      annual: 'STRIPE_PRICE_BASIC_ANNUAL_UK',
+    },
     professional: {
       monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_UK',
       annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_UK',
@@ -27,6 +31,10 @@ const PRICE_ENV_KEYS: Record<
     },
   },
   br: {
+    basic: {
+      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_BR',
+      annual: 'STRIPE_PRICE_BASIC_ANNUAL_BR',
+    },
     professional: {
       monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_BR',
       annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_BR',
@@ -45,7 +53,7 @@ function appBaseUrl(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos para checkout de plano.' }, { status: 400 })
+    return NextResponse.json({ error: 'Dados invalidos para checkout de plano.' }, { status: 400 })
   }
 
   const supabase = createClient()
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Faça login para continuar.' }, { status: 401 })
+    return NextResponse.json({ error: 'Faca login para continuar.' }, { status: 401 })
   }
 
   const { data: profile } = await supabase
@@ -77,21 +85,17 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (!professional?.id) {
-    return NextResponse.json({ error: 'Perfil profissional não encontrado.' }, { status: 404 })
+    return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
   }
 
-  if (parsed.data.tier === 'basic') {
-    return NextResponse.json(
-      { error: 'Plano Básico é gratuito. Ajuste direto no painel de planos.' },
-      { status: 400 },
-    )
-  }
+  const region =
+    (professional.platform_region as StripePlatformRegion | null) ||
+    resolveStripePlatformRegion(profile.country)
 
-  const region = (professional.platform_region as StripePlatformRegion | null) || resolveStripePlatformRegion(profile.country)
   const stripe = getStripeClientForRegion(region)
   if (!stripe) {
     return NextResponse.json(
-      { error: 'Stripe indisponível para esta região no momento.' },
+      { error: 'Stripe indisponivel para esta regiao no momento.' },
       { status: 503 },
     )
   }
@@ -100,7 +104,7 @@ export async function POST(request: NextRequest) {
   const priceId = process.env[envKey]
   if (!priceId) {
     return NextResponse.json(
-      { error: `Preço de plano não configurado (${envKey}).` },
+      { error: `Preco de plano nao configurado (${envKey}).` },
       { status: 503 },
     )
   }
@@ -132,4 +136,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ url: session.url })
 }
-
