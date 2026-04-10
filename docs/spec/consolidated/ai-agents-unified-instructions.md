@@ -1,4 +1,4 @@
-# Muuday Unified AI-Agnostic Build Instructions
+﻿# Muuday Unified AI-Agnostic Build Instructions
 
 Last updated: 2026-03-30
 
@@ -37,12 +37,12 @@ Implement Muuday according to `docs/spec/source-of-truth/part1..part5` with stri
 ## Session and provider abstraction rules
 
 1. Build provider-agnostic session abstraction first.
-2. Do not hardwire LiveKit event names or Google Meet assumptions into core booking logic.
+2. Do not hardwire Agora event names directly into core booking logic.
 3. Implement booking/session boundary as clean interfaces.
-4. If final provider remains open, scaffold:
+4. Provider decision is locked to Agora in current roadmap:
 - `SessionProvider` interface
-- `LiveKitProvider` implementation stub
-- `GoogleMeetProvider` implementation stub
+- `AgoraProvider` implementation stub
+- optional `ProviderFallback` adapter only if roadmap reopens provider decision.
 5. Keep core booking/payments logic independent from provider adapters.
 
 ## What to use AI assistance for

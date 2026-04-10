@@ -33,9 +33,9 @@ Primary references:
 
 1. Achieve schema and state-model parity for booking foundation in production.
 2. Complete Wave 1 and Wave 2 journey correctness (taxonomy/search/onboarding/booking).
-3. Implement Wave 3 payments-revenue engine with Stripe-backed lifecycle and internal ledger safety.
+3. Implement Wave 3 payments-revenue engine with dual-rail lifecycle (UK Stripe + BR Airwallex/dLocal) and internal ledger safety.
 4. Implement Wave 4 admin/trust/notifications operational layer.
-5. Freeze Wave 5 session provider and compliance validations.
+5. Keep Agora as active video provider and execute Wave 5 compliance validations.
 
 ## Program constraints
 

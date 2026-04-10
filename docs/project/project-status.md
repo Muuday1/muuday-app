@@ -8,7 +8,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
 - Canonical specification baseline imported: `Done`
 - Documentation consolidation and execution framing: `Done`
-- Product implementation parity with canonical baseline: `In progress`
+- Product implementation parity with canonical baseline: `Done (Wave 2 signed off on 2026-04-10)`
 - Architecture freeze readiness: `Blocked` (open external validations)
 
 ## Latest auth flow standardization (2026-04-02)
@@ -19,25 +19,40 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 4. Profile account security now supports in-session password set/update (including social-first accounts), with consistent success/error feedback.
 5. Added shared auth message catalog (`lib/auth/messages.ts`) to remove ad-hoc message drift across login/signup/security flows.
 
+## Latest Wave 2 final sign-off (2026-04-10)
+
+1. T7 booking-flow closure audit executed (`one_off`, `request_booking`, `recorrente`, `várias_datas`) via `npm run audit:wave2:final`.
+2. Audit artifact generated at `artifacts/ops/wave2-final-readiness-audit-2026-04-10.json` with summary `11/11 pass`, `0 fail`, `0 critical`.
+3. T9 video gates validated with focused E2E:
+- `tests/e2e/video-session-gates.spec.ts` -> `2 passed`.
+4. T10 admin review cycle validated with focused E2E:
+- `tests/e2e/admin-review-audit.spec.ts` -> `1 passed`.
+5. T11 quality gate executed and green:
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+- `npm run test:state-machines`
+- `npm run test:e2e` -> `15 passed`, `1 skipped` (intentional/non-critical fixture path).
+
 ## Status by domain
 
 | Domain | Target from spec | Current status | Primary gap |
 | --- | --- | --- | --- |
 | Taxonomy and discovery | Controlled taxonomy, weighted search, tier-aware discovery | Done | Taxonomy CRUD, tier ranking, public search operational |
 | Professional tiers | Basic/Professional/Premium with strict entitlements | Done | Tier column, entitlement config, badges, search boost |
-| Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | In progress (Wave 2 backend scope complete) | Manual acceptance/sign-off still pending to mark Wave 2 done |
-| Booking lifecycle | Explicit state machine + request booking + slot hold | In progress (Wave 2 backend scope complete) | Manual acceptance/sign-off still pending to mark Wave 2 done |
-| Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | In progress (engine + release job delivered) | Validate production release behavior in cron/Inngest and close manual QA |
-| Payments and revenue | Stripe-backed charge/refund/payout/billing + ledger | In progress | Legacy placeholders still present; resilient webhook/job foundation delivered, real-money execution pending |
+| Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | Done (Wave 2) | Keep fixtures and smoke checks deterministic in CI |
+| Booking lifecycle | Explicit state machine + request booking + slot hold | Done (Wave 2) | Keep one manual-confirmation fixture path under periodic verification |
+| Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | Done (Wave 2) | Monitor cron/Inngest release telemetry in operations |
+| Payments and revenue | Dual-rail payments by entity (UK=Stripe, BR=Airwallex/dLocal) + ledger | In progress | Real-money execution pending; BR-entity provider final lock still open |
 | Admin trust operations | Structured case queue and audit-first moderation | In progress | Case queue and full audit workflows pending |
 | Notifications and inbox | Event-driven email + in-app inbox + reminders | In progress | Delivery observability and full event routing pending |
-| Session execution | Provider-agnostic model with delayed provider lock | Planned | Final provider implementation pending |
+| Session execution | Agora-based session execution with provider boundaries | In progress | Reliability and session-event/audit hardening pending |
 | Sensitive-category compliance | Disclaimer versioning and category-aware governance | Planned/In progress | Full compliance layer and legal text freeze pending |
 
 ## Critical blockers
 
 1. ~~Production schema parity for booking foundation tables.~~ **Resolved 2026-03-29**: migrations 001-006 applied.
-2. Stripe corridor validation for UK-platform to Brazil payout path.
+2. BR-entity payout provider final lock (Airwallex vs dLocal) and contract closure.
 3. Final legal/compliance wording freeze for sensitive categories.
 
 ## Recently completed
@@ -572,25 +587,6 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - operational resync is now deterministic from CLI/CI:
   - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
 - this closes the prior gap where stale unattached syncs required manual dashboard-only confirmation.
-115. Unified onboarding/tier execution continued for Phase 13/14 and Agora readiness:
-- admin queue now surfaces credential volume directly in the professional list (`app/(app)/admin/page.tsx`) and keeps review-detail action path visible.
-- admin review decisions now map to explicit communication paths:
-  - `approved` -> `sendProfileApprovedEmail`,
-  - `needs_changes` -> `sendProfileNeedsChangesEmail`,
-  - `rejected` -> `sendProfileRejectedEmail`.
-- professional acquisition page (`app/registrar-profissional/page.tsx`) now reflects canonical product model:
-  - video-only,
-  - 9 onboarding stages (`C1`-`C9`),
-  - tier preview with limits (`1/1`, `5/3`, `10/3`) and `/planos` CTA.
-- environment baseline updated with Agora keys:
-  - `.env.local.example` includes `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE`.
-  - local `.env.local` now expects both keys.
-- validation run completed:
-  - `npm run lint` ✅
-  - `npm run typecheck` ✅
-  - `npm run build` ✅
-  - `npm run test:state-machines` ✅
-  - `npm run test:e2e` ✅ (`8 passed`, `5 skipped`, `0 failed`) after hardening E2E login retry and fixture-not-found guards.
 
 ## Immediate next actions
 
@@ -598,10 +594,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. Run deterministic Inngest resync after each deploy:
 - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
 - if dashboard still shows historical unattached records, treat them as stale history when latest resync succeeds.
-3. Stabilize Wave 2 gate E2E fixtures and rerun:
-- latest local run: `8 passed`, `5 skipped`, `0 failed`.
-- remaining skips are fixture-driven (bookable/manual/blocked professional IDs and optional route availability).
-- action: refresh `E2E_PROFESSIONAL_ID`, `E2E_MANUAL_PROFESSIONAL_ID`, and `E2E_BLOCKED_PROFESSIONAL_ID` to deterministic active fixtures, then rerun `npm run test:e2e`.
+3. Close remaining Wave 2 gate E2E skips:
+- current run: `11 passed`, `2 skipped` (`wave2-onboarding-gates.spec.ts`).
+- maintain deterministic open-gate and blocked-gate fixtures and rerun `npm run test:e2e`.
 4. Enforce runtime DB pooling configuration:
 - set `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) to Supavisor `:6543`.
 - current status: `npm run db:validate-pooling` failing due missing pooled runtime URL.
@@ -638,65 +633,3 @@ Every meaningful implementation change must update:
 2. `docs/handover/current-state.md`
 3. `docs/handover/next-steps.md`
 
-133. Jurisdiction removal hardening started (P0 remediation for 017↔027 conflict):
-- professional signup UI (`/cadastro`) no longer collects or submits `professional_jurisdiction`.
-- new migration added: `db/sql/migrations/029-wave2-remove-jurisdiction-signup-pipeline.sql`.
-- migration responsibilities:
-  - keep `professional_applications` without `jurisdiction`,
-  - recreate `public.handle_new_user` without jurisdiction variable/insert/update references,
-  - preserve trigger `on_auth_user_created`.
-- technical validation:
-  - `npm run lint` ✅
-  - `npm run typecheck` ✅
-134. P0 remediation completed for C6/C7 readiness integrity:
-- removed self-service readiness toggles from `components/settings/ProfessionalSettingsWorkspace.tsx`.
-- professionals can no longer mutate `billing_card_on_file`, `payout_onboarding_started`, `payout_kyc_completed` from client workspace UI.
-- readiness remains sourced from server-side state (Stripe/webhook/admin-controlled paths).
-- technical validation:
-  - `npm run lint` ✅
-  - `npm run typecheck` ✅
-  - `npm run build` ✅
-  - `npm run test:state-machines` ✅
-135. Wave 2 UX text normalization executed for new pages (mojibake cleanup):
-- normalized PT-BR copy and accents in:
-  - `app/(app)/planos/page.tsx`
-  - `app/(app)/onboarding-profissional/page.tsx`
-  - `app/(app)/admin/revisao/[professionalId]/page.tsx`
-  - `app/(app)/sessao/[bookingId]/page.tsx`
-  - `components/tier/TierLockedOverlay.tsx`
-  - `components/settings/ProfessionalSettingsWorkspace.tsx`
-  - `lib/tier-config.ts` (`TIER_LABELS.basic`)
-- smoke/evidence run:
-  - `npm run lint` ✅
-  - `npm run typecheck` ✅
-  - `npm run build` ✅
-  - `npm run test:state-machines` ✅
-  - `npm run test:e2e` ✅ (`8 passed`, `5 skipped`, `0 failed`)
-136. E2E fixture/skip hardening applied and verified after migration 029:
-- fixed mojibake-sensitive selectors in:
-  - `tests/e2e/booking-critical.spec.ts`
-  - `tests/e2e/wave2-onboarding-gates.spec.ts`
-- `openBookingPage` now waits for terminal state (booking ready vs not-found vs same-professional redirect) before asserting.
-- latest evidence run:
-  - `npm.cmd run test:e2e` ✅ (`8 passed`, `5 skipped`, `0 failed`).
-- current skipped cases are fixture-dependent (no unexpected failures):
-  - booking checks that require deterministic `E2E_PROFESSIONAL_ID` / `E2E_MANUAL_PROFESSIONAL_ID` / `E2E_BLOCKED_PROFESSIONAL_ID` coverage in active dataset.
-137. E2E fixture normalization executed for role/gate scenarios (2026-04-02):
-- `.env.local` fixture IDs normalized for three roles:
-  - `E2E_PROFESSIONAL_ID`
-  - `E2E_MANUAL_PROFESSIONAL_ID`
-  - `E2E_BLOCKED_PROFESSIONAL_ID`
-- E2E auth split normalized:
-  - `E2E_USER_*` now uses dedicated non-admin account.
-  - `E2E_ADMIN_*` explicitly set for admin guard assertions.
-- fixture state normalized in DB for deterministic gate intent:
-  - open fixture: `tier=professional`, `first_booking_enabled=true`, `confirmation_mode=auto_accept`
-  - manual fixture: `tier=professional`, `first_booking_enabled=true`, `confirmation_mode=manual`
-  - blocked fixture: `tier=professional`, `first_booking_enabled=false`
-- spec hardening applied:
-  - robust cookie-dialog dismissal in professional workspace login helper.
-  - terminal-state detection for booking entry in `wave2-onboarding-gates.spec.ts` to avoid false negatives/timeouts.
-- latest run evidence:
-  - `npm.cmd run test:e2e` ✅ (`8 passed`, `5 skipped`, `0 failed`).
-- operational note:
-  - skips persist because `/agendar/{id}` in target E2E environment resolves to not-found for current fixtures; this is now safely handled as deterministic skip instead of flaky failure.

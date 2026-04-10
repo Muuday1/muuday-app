@@ -163,30 +163,23 @@ Items already fixed in code are documented in `project-status.md` item 71. The i
 - reference: `docs/engineering/runbooks/error-budget-and-alerting.md`.
 18. **Checkly synthetic monitoring**: baseline already active (API + browser journeys + email subscriptions). Keep checks green and aligned with domain/env changes.
 
-## Wave 2 closure checklist (authoritative current sequence)
+## Wave 2 closure checklist (closed 2026-04-10)
 
-1. Run manual acceptance for Wave 2 (must be green before closing wave):
-- recorrência/deadlines: dentro do prazo permitido; fora do prazo bloqueado com `reason_code`; release automático de slots reservados no deadline de 7 dias.
-- gates C1-C10: profissional incompleto fora da busca pública; gate de primeiro booking bloqueando ações críticas; desbloqueio automático após requisitos completos.
-- role split: `profissional -> /dashboard`; `usuario/admin -> /buscar`; guardas de workspace cruzado bloqueando acesso indevido.
-2. Inngest operational attachment (done via deterministic resync command):
-- app path atual `https://muuday-app.vercel.app/api/inngest`.
-- executar pós-deploy: `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
-3. Close remaining E2E skips for gate coverage:
-- current automated state: `11 passed`, `2 skipped` in `wave2-onboarding-gates.spec.ts`.
-- keep deterministic fixtures for both gate states (`E2E_PROFESSIONAL_ID` open, `E2E_BLOCKED_PROFESSIONAL_ID` blocked).
-4. Keep fixture integrity for e2e (open-gate + blocked-gate):
-- manter `E2E_PROFESSIONAL_ID` e `E2E_BLOCKED_PROFESSIONAL_ID` válidos.
-- manter script `npm run fixtures:ensure-public-ready` disponível para recuperação de fixture.
-5. Enforce runtime DB pooling config before Wave 2 close:
-- configure `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) for Supavisor `:6543`.
-- rerun `npm run db:validate-pooling` until green.
-6. Backfill JWT role claims to reduce middleware fallback:
-- current state from `npm run audit:auth-role-claims`: role claim coverage `0%`, fallback estimate `100%`.
-- update auth metadata role claim for `usuario/profissional/admin` accounts and rerun audit.
-7. Deploy Wave 2 close infrastructure hardening (items 1-8 above) before starting Wave 3.
-8. After Wave 2 manual sign-off + infrastructure hardening, start Wave 3 scope only:
-- Stripe real billing/payout + ledger interno, sem reabrir contratos de gate de Wave 2.
+1. ✅ T7 booking-flow closure audit completed:
+- `npm run audit:wave2:final` -> `11/11 pass`, `0 fail`, `0 critical`.
+- artifact: `artifacts/ops/wave2-final-readiness-audit-2026-04-10.json`.
+2. ✅ T9 video gate coverage completed:
+- `tests/e2e/video-session-gates.spec.ts` -> `2 passed`.
+3. ✅ T10 admin review cycle completed:
+- `tests/e2e/admin-review-audit.spec.ts` -> `1 passed`.
+4. ✅ T11 quality gate completed:
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+- `npm run test:state-machines`
+- `npm run test:e2e` -> `15 passed`, `1 skipped` (non-critical/intentional fixture path).
+5. ✅ T12 docs sign-off completed:
+- `project-status`, `current-state`, `next-steps`, `session-log`, and `roadmap` updated in the same batch.
 
 ## Priority 0 - Foundation lock (must finish first)
 
@@ -384,12 +377,12 @@ Dependencies:
 ## Priority 3 - Wave 3 delivery batch
 
 ### Pre-requisites (must complete before starting Wave 3 code)
-1. Stripe corridor validation for UK platform to Brazil payout confirmed with Stripe support.
+1. Payment rails architecture lock confirmed: entity-based dual rail (UK=Stripe, BR=Airwallex/dLocal).
 2. Wave 2 close infrastructure hardening deployed (items 1-8 in security hardening section).
 3. Install Stripe MCP server for Claude Code: `npm install @anthropic-ai/tool-use-package-stripe` or configure MCP in `.claude.json`.
 
-### Stripe integration — implementation sequence
-4. `npm install stripe` and configure Stripe Connect (Separate Charges and Transfers) per Part 3 spec.
+### Payments rails integration — implementation sequence
+4. Configure UK rail (`Stripe`) and BR rail (`Airwallex` or `dLocal`) using one entity-routing contract (`entity_of_record`).
 5. Create Supabase migration for payment tables:
    - `stripe_customers(id, user_id, stripe_customer_id, created_at)`
    - `stripe_connected_accounts(id, professional_id, stripe_account_id, onboarding_complete, created_at)`
@@ -399,21 +392,21 @@ Dependencies:
    - `internal_ledger(id, booking_id, entry_type, amount, currency, description, created_at)`
    - `admin_audit_log(id, admin_user_id, action, target_table, target_id, old_value, new_value, created_at)`
    - RLS policies for all new tables.
-6. Professional onboarding → Stripe Express connected account creation flow.
-7. Booking checkout → Stripe Payment Intent → `/api/webhooks/stripe` confirmation → booking status update.
-8. Replace legacy `provider: 'legacy'` + `status: 'captured'` with real Stripe charge flow.
-9. Implement payout eligibility and weekly payout batch via Inngest cron.
+6. Professional onboarding -> route account to correct rail by entity (UK rail vs BR rail).
+7. Booking checkout -> rail-specific payment intent/session -> webhook confirmation -> booking status update.
+8. Replace legacy `provider: 'legacy'` + `status: 'captured'` with real rail-specific charge flow.
+9. Implement payout eligibility and weekly payout batch via Inngest cron (rail-aware execution).
 10. Implement professional subscription billing (3-month free trial, then Stripe Billing) with grace/block logic.
 11. Implement internal ledger entries on every financial event (charge, refund, transfer, subscription).
-12. Wire Inngest for: webhook processing retry, failed payment retry, payout batch, subscription renewal checks.
+12. Wire Inngest for: webhook processing retry, failed payment retry, payout batch, subscription renewal checks (per rail).
 13. Supabase Vault for encrypted payout/bank details storage.
 14. Admin audit trail logging on all admin mutations.
-15. Rate limiting on: Stripe webhook endpoint, booking creation, signup/login.
+15. Rate limiting on: payment webhooks, booking creation, signup/login.
 16. CORS explicit policy on all API routes.
-17. Env vars to add to Vercel: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`.
+17. Env vars to add to Vercel: UK Stripe keys + BR rail keys (`Airwallex` or `dLocal`) per finalized provider.
 
 Dependencies:
-- Stripe corridor validation packet submitted and response path active.
+- Dual-rail architecture decision logged; BR provider final lock still pending.
 - Wave 2 close infrastructure hardening complete.
 
 ## Priority 4 - Wave 4 delivery batch
@@ -439,7 +432,7 @@ Dependencies:
 
 1. Implement provider-agnostic session execution abstraction.
 2. Freeze compliance disclaimer versioning and checkout acceptance snapshots.
-3. Close external validations (Stripe corridor final, legal, tax/accounting).
+3. Close external validations (BR provider final, legal, tax/accounting).
 
 ## Post-MVP — scale triggers (deploy only when threshold is met)
 
@@ -452,7 +445,7 @@ Dependencies:
 
 ## Do not do yet
 
-1. Do not freeze session provider until validation checklist in `docs/spec/consolidated/open-validations.md` is completed.
+1. Keep session provider as Agora unless a formal decision explicitly reopens provider selection.
 2. Do not treat legal/tax wording as final before explicit review.
 3. Do not mark waves done without acceptance criteria in `docs/spec/consolidated/execution-plan.md`.
 
@@ -566,62 +559,3 @@ Status: `Done` for automated gate + fixture setup. Keep this list as regression 
   - direct booking (`/agendar`)
   - request acceptance (`/solicitar`)
   and confirm no new `payment_capture_failed` cancellations are generated.
-24. Regularize E2E booking fixtures before Wave 2 sign-off:
-- update `.env.local` with deterministic IDs for:
-  - `E2E_PROFESSIONAL_ID` (bookable/open gate),
-  - `E2E_MANUAL_PROFESSIONAL_ID` (manual confirmation),
-  - `E2E_BLOCKED_PROFESSIONAL_ID` (blocked gate).
-- confirm each ID resolves in `/agendar/{id}` and `/solicitar/{id}`.
-- rerun `npm run test:e2e` and require zero not-found failures.
-25. Finish admin review cycle QA with credentials visibility:
-- queue card must show credential count (`Sem credenciais` or `N credencial(is)`).
-- review detail route `/admin/revisao/[professionalId]` must complete all three outcomes:
-  - `approved`,
-  - `needs_changes`,
-  - `rejected`.
-- verify professional receives corresponding status transition and audit log entry.
-26. Confirm public acquisition consistency after landing/plan updates:
-- validate `/registrar-profissional` copy against canonical model:
-  - video-only,
-  - no jurisdiction,
-  - C1-C9 onboarding path,
-  - tier preview and `/planos` CTA.
-- validate `/planos` checkout entrypoints for Professional/Premium with trial messaging intact.
-27. Apply migration `029-wave2-remove-jurisdiction-signup-pipeline.sql` in all environments (dev/staging/prod):
-- required to prevent `handle_new_user` from referencing dropped `professional_applications.jurisdiction`.
-- after apply, run smoke:
-  - professional signup (`/cadastro`) completes,
-  - row inserted/updated in `professional_applications`,
-  - no trigger errors in Supabase logs.
-28. After migration 029, execute P0 #2 remediation:
-- remove self-service toggles for `billing_card_on_file`, `payout_onboarding_started`, `payout_kyc_completed` from professional workspace.
-- keep C6/C7 readiness sourced from Stripe/webhook/admin-only paths.
-29. Close remaining Stripe webhook lifecycle coverage (Phase 12 hardening):
-- add explicit event handling in webhook processor for:
-  - `checkout.session.completed`
-  - `customer.subscription.created`
-  - `customer.subscription.trial_will_end`
-  - `invoice.finalized`
-- ensure idempotent mapping from event → domain state (`professional_settings`, subscription queue, billing status transitions).
-- add regression tests for duplicate event delivery and out-of-order delivery.
-- emit observability fields (`event_type`, `provider_event_id`, processing outcome) in job summary.
-30. Complete Wave 2 sign-off smoke with zero critical skips:
-- ensure deterministic fixture IDs exist for:
-  - `E2E_PROFESSIONAL_ID`
-  - `E2E_MANUAL_PROFESSIONAL_ID`
-  - `E2E_BLOCKED_PROFESSIONAL_ID`
-- rerun `npm run test:e2e` after fixture refresh and target `0 failed`, `0 unexpected skips`.
-- keep evidence in handover with exact run timestamp and command output summary.
-31. Finalizar fechamento de skips E2E por fixture determinística (sem mudança de produto):
-- garantir que os três IDs no ambiente apontem para perfis públicos válidos e estáveis:
-  - `E2E_PROFESSIONAL_ID`
-  - `E2E_MANUAL_PROFESSIONAL_ID`
-  - `E2E_BLOCKED_PROFESSIONAL_ID`
-- objetivo do próximo run: manter `0 failed` e reduzir skips esperados para apenas cenários explicitamente opcionais.
-- referência: último run após hardening dos specs (`booking-critical` + `wave2-onboarding-gates`) ficou em `8 passed`, `5 skipped`, `0 failed`.
-32. Reduce remaining E2E skips by fixing bookable fixture parity on `/agendar` in target environment:
-- current run is stable (`0 failed`) but still `5 skipped` due booking fixtures resolving to not-found in `/agendar/{id}`.
-- next action:
-  - validate RLS + server query path for `app/(app)/agendar/[id]/page.tsx` in target env,
-  - confirm fixture IDs are reachable by non-admin E2E user in server-rendered route,
-  - once reachable, rerun `npm.cmd run test:e2e` and target reduction from `5 skipped`.

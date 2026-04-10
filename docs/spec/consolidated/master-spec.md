@@ -131,13 +131,14 @@ This file consolidates the five source parts into one implementation-facing stru
 
 ## Provisional decisions (intentionally open)
 
-1. Video provider final lock
-- Preferred target: embedded provider model.
-- Fallback: external meeting-link model.
-- Build provider-agnostic abstraction first.
+1. Video provider
+- Decision locked: Agora for current roadmap execution.
+- Keep provider boundaries in booking core to avoid lock-in leaks.
 
-2. Stripe corridor final validation
-- UK platform and Brazil-heavy professional payout corridor must be validated directly with Stripe before architecture freeze.
+2. BR rail provider final selection
+- Payment architecture is locked as entity-based dual rail.
+- UK entity uses Stripe where supported.
+- BR entity provider decision (Airwallex vs dLocal) must be finalized before Wave 3 real-money rollout.
 
 3. Final legal/tax wording and structure
 - Product-level policy is defined.

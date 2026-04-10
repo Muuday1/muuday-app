@@ -1,38 +1,30 @@
 # Open Validations Before Architecture Freeze
 
-Last updated: 2026-03-29
+Last updated: 2026-04-10
 Source: Part 3 and Part 5
 
-## 1) Stripe corridor validation (critical)
+## 1) BR rail provider final selection (critical)
 
 Context:
-- Platform entity preference: UK.
-- Customer payments are global.
-- Professional base is mostly Brazil.
-- Target model uses Stripe Connect with delayed payout logic.
+- Payment architecture is locked as entity-based dual rail.
+- UK entity uses Stripe where supported.
+- BR entity must use a BR-compatible rail for BR professionals/payouts.
+- Final BR rail provider decision is pending (Airwallex vs dLocal).
 
 Validation questions:
-1. Is the intended UK-platform-to-Brazil payout corridor supported in the required structure?
-2. Is Separate Charges and Transfers the recommended model for this corridor?
-3. What constraints apply to payout currency, hold windows, connected account model, and transfer timing?
-4. What fallback architecture is recommended if current corridor assumptions are limited?
+1. Which provider (Airwallex or dLocal) best fits startup volume, compliance constraints, and rollout speed?
+2. What BR payout constraints apply to KYC fields, settlement timing, and payout methods?
+3. What intercompany settlement model is required between UK and BR entities?
+4. What operational fallback exists if BR rail onboarding is delayed?
 
 Blocking impact:
-- Payments architecture cannot be fully frozen until this is validated.
+- Wave 3 real-money BR payout rollout cannot be finalized until this is validated.
 
-## 2) Video provider final lock
+## 2) Video provider note (closed)
 
-Context:
-- Preferred direction: LiveKit embedded model.
-- Fallback: Google Meet link-based model.
-
-Validation questions:
-1. Does embedded provider complexity fit launch timeline and team capacity?
-2. Is provider-agnostic abstraction fully ready before lock?
-3. Does support telemetry/no-show evidence require embedded provider now?
-
-Blocking impact:
-- Session execution module should remain provider-agnostic until final lock.
+Status:
+- Provider decision is locked to Agora for current roadmap execution.
+- This item is no longer an open validation.
 
 ## 3) Legal/compliance text freeze
 

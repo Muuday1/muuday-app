@@ -1,10 +1,22 @@
-# Stripe Integration Plan
+﻿# Stripe Integration Plan
 
-Last updated: 2026-04-01
+Last updated: 2026-04-10
 
 Source: `docs/spec/source-of-truth/part3-payments-billing-revenue-engine.md`
 
-## Background Job Resilience Foundation — Implemented (code level)
+## Decision update (2026-04-10) - canonical payments routing
+
+This file applies to the **UK entity Stripe rail** only.
+
+Canonical routing rule:
+1. Entity decides rail, not professional country alone.
+2. UK entity uses Stripe end-to-end where supported.
+3. BR entity uses Airwallex or dLocal end-to-end for BR professionals/payout rails.
+4. US/EU professionals onboarded under UK entity remain Stripe end-to-end.
+
+Historical sections below that discuss a UK->BR Stripe-only corridor are superseded by the entity-based dual-rail routing rule and kept only as implementation history context.
+
+## Background Job Resilience Foundation â€” Implemented (code level)
 
 Delivered in repository (pending migration apply in production):
 
@@ -23,18 +35,18 @@ Delivered in repository (pending migration apply in production):
 
 Important boundary: this foundation is orchestration-only. It does not yet execute real payout transfers or full Stripe billing lifecycle mutations.
 
-## Stripe corridor validation — CONFIRMED (2026-04-01)
+## Legacy UK->BR Stripe-only note (historical, superseded by entity-based rail decision)
 
 All questions answered by Stripe. Summary:
 
 | Question | Answer |
 |----------|--------|
-| UK platform → BR Express accounts | **Supported** |
+| UK platform â†’ BR Express accounts | **Supported** |
 | Separate Charges and Transfers | **Supported** (UK + BR both listed) |
-| BR payout currency | **BRL** — charges settle in GBP on platform, transfers settle in BRL on connected account |
-| Payout timing for BR accounts | **Automatic daily only** — cannot be set to manual or weekly. Use Balance Settings API for minimum balances. |
+| BR payout currency | **BRL** â€” charges settle in GBP on platform, transfers settle in BRL on connected account |
+| Payout timing for BR accounts | **Automatic daily only** â€” cannot be set to manual or weekly. Use Balance Settings API for minimum balances. |
 | PayPal for UK platform | **Supported** |
-| Fallback needed? | **No** — corridor is fully supported |
+| Fallback needed? | **No** â€” corridor is fully supported |
 
 ### Critical constraint: BR daily automatic payouts
 
@@ -43,17 +55,17 @@ The Part 3 spec defines "weekly payout cycle" (Section 2.4, 11.1). **This confli
 **Adapted architecture:**
 - Platform still controls WHEN to create the Transfer (48h after session + eligibility check + BRL 100 minimum).
 - Once the Transfer is created to the connected account, Stripe pays out daily automatically.
-- The "weekly batch" becomes a "weekly transfer eligibility scan" — the app decides when to move money from platform to connected account, but once moved, Stripe pays out daily.
+- The "weekly batch" becomes a "weekly transfer eligibility scan" â€” the app decides when to move money from platform to connected account, but once moved, Stripe pays out daily.
 - This is functionally equivalent: professional doesn't get money until the app creates the Transfer. The daily payout just means the connected account balance drains daily instead of weekly.
-- **No product behavior change** — professional still sees "payout eligible after 48h" and money arrives after the weekly scan transfers it.
+- **No product behavior change** â€” professional still sees "payout eligible after 48h" and money arrives after the weekly scan transfers it.
 
 ### Currency flow (confirmed)
 
 ```
-Customer (any currency) → PaymentIntent → Platform account (settles GBP)
-                                              ↓
+Customer (any currency) â†’ PaymentIntent â†’ Platform account (settles GBP)
+                                              â†“
                                      Transfer (app-controlled timing)
-                                              ↓
+                                              â†“
                               Connected account (settles BRL, auto daily payout)
 ```
 
@@ -62,10 +74,10 @@ Customer (any currency) → PaymentIntent → Platform account (settles GBP)
 ## Rule-by-rule Stripe compatibility assessment
 
 Each rule from Part 3 is classified as:
-- **Works** — Stripe supports natively, standard implementation
-- **Works with config** — Stripe supports but needs specific setup/configuration
-- **Confirmed** — Previously "Needs Stripe validation", now confirmed working
-- **Needs alternative** — Stripe alone does not solve this; custom code or third-party required
+- **Works** â€” Stripe supports natively, standard implementation
+- **Works with config** â€” Stripe supports but needs specific setup/configuration
+- **Confirmed** â€” Previously "Needs Stripe validation", now confirmed working
+- **Needs alternative** â€” Stripe alone does not solve this; custom code or third-party required
 
 ---
 
@@ -73,16 +85,16 @@ Each rule from Part 3 is classified as:
 
 | # | Rule | Stripe status | Notes |
 |---|------|--------------|-------|
-| 2.1 | UK platform entity, Brazil professionals, global customers | **Needs Stripe validation** | Cross-border Connect UK→BR is not guaranteed self-serve. Must send validation packet to Stripe. |
+| 2.1 | UK platform entity, Brazil professionals, global customers | **Needs Stripe validation** | Cross-border Connect UKâ†’BR is not guaranteed self-serve. Must send validation packet to Stripe. |
 | 2.2 | Muuday charges customer, repasses to professional later | **Works** | Standard marketplace model with Separate Charges and Transfers. |
 | 2.3 | Charge at booking time (not auth/hold) | **Works** | `PaymentIntent` with `capture_method: 'automatic'` (default). |
 | 2.6 | Separate Charges and Transfers | **Works** | `stripe.paymentIntents.create()` on platform, then `stripe.transfers.create()` later. |
 | 2.7 | Express-style connected accounts | **Works with config** | Use `type: 'express'` in `stripe.accounts.create()`. Hosted onboarding via Account Links. |
 
 **Action items:**
-- [x] Send validation packet to Stripe — **CONFIRMED 2026-04-01**. Corridor supported. No fallback needed.
-- [x] UK platform → BR Express accounts — **Confirmed**
-- [x] BR payout currency BRL — **Confirmed**
+- [x] Send validation packet to Stripe â€” **CONFIRMED 2026-04-01**. Corridor supported. No fallback needed.
+- [x] UK platform â†’ BR Express accounts â€” **Confirmed**
+- [x] BR payout currency BRL â€” **Confirmed**
 - [x] No volume/corridor restrictions reported
 - [ ] Request appropriate capabilities for connected accounts during onboarding
 
@@ -101,7 +113,7 @@ Each rule from Part 3 is classified as:
 **Action items:**
 - [ ] Build `payout_eligibility` table: `(booking_id, session_end_utc, eligible_at_utc, amount, status)`
 - [ ] Build weekly Inngest cron: scan eligible payouts, accumulate per professional, create transfer if >= threshold
-- [ ] Listen to `payout.failed` webhook → trigger grace period logic
+- [ ] Listen to `payout.failed` webhook â†’ trigger grace period logic
 
 ---
 
@@ -110,7 +122,7 @@ Each rule from Part 3 is classified as:
 | # | Rule | Stripe status | Notes |
 |---|------|--------------|-------|
 | 2.9 | Customer fee: 8% + processing cost, shown as single total | **Works** | Calculate total server-side. Pass to `PaymentIntent.amount`. Customer never sees breakdown. |
-| 2.11 | Payment methods: Cards, Apple Pay, Google Pay, Link, PayPal | **Works with config** | Use Stripe Elements (Payment Element) — supports all these out of the box. PayPal requires Stripe PayPal integration (available in some regions). |
+| 2.11 | Payment methods: Cards, Apple Pay, Google Pay, Link, PayPal | **Works with config** | Use Stripe Elements (Payment Element) â€” supports all these out of the box. PayPal requires Stripe PayPal integration (available in some regions). |
 | 2.18 | Save payment method with opt-in | **Works** | `setup_future_usage: 'off_session'` on PaymentIntent when customer opts in. |
 | 2.18 | No surprise off-session charges in MVP | **Works** | Simply don't charge saved methods off-session. Only use for faster checkout. |
 | 6.1 | Customer sees only final total, no fee breakdown | **Works** | UI-only rule. Don't display breakdown. |
@@ -127,15 +139,15 @@ Each rule from Part 3 is classified as:
 
 | # | Rule | Stripe status | Notes |
 |---|------|--------------|-------|
-| 5.1 | One-off booking: charge upfront, transfer after 48h post-session | **Works** | Standard `PaymentIntent` → delayed `Transfer`. |
+| 5.1 | One-off booking: charge upfront, transfer after 48h post-session | **Works** | Standard `PaymentIntent` â†’ delayed `Transfer`. |
 | 5.2 | Manual-accept: charge upfront, refund if professional declines/expires | **Works** | Create `PaymentIntent`. If booking expires after 48h, create `Refund`. |
 | 5.3 | Request booking: payment link for specific proposal, expires in 24h | **Works with config** | Create `PaymentIntent` with `metadata.proposal_id`. Expire via app logic (cancel PI if unpaid after 24h). |
 | 5.4 | Monthly recurring: customer pays cycle upfront, payout per-session | **Needs custom code** | Stripe Billing can handle the recurring charge. But session-level payout release is 100% custom app logic. Stripe has no concept of "pay per session within a subscription cycle." |
 
 **Action items:**
-- [ ] One-off: `PaymentIntent` → webhook `payment_intent.succeeded` → confirm booking → schedule transfer after session+48h
-- [ ] Manual-accept timeout: Inngest job at 48h → if not accepted → `stripe.refunds.create()`
-- [ ] Request booking: `PaymentIntent` with 24h expiry → `payment_intent.canceled` if not paid
+- [ ] One-off: `PaymentIntent` â†’ webhook `payment_intent.succeeded` â†’ confirm booking â†’ schedule transfer after session+48h
+- [ ] Manual-accept timeout: Inngest job at 48h â†’ if not accepted â†’ `stripe.refunds.create()`
+- [ ] Request booking: `PaymentIntent` with 24h expiry â†’ `payment_intent.canceled` if not paid
 - [ ] Monthly: Use `Stripe Billing Subscription` for the customer-facing charge cycle. Build internal `session_payout_tracker` for per-session release logic.
 
 ---
@@ -148,13 +160,13 @@ Each rule from Part 3 is classified as:
 | 2.10 | Refunds go back to original payment method | **Works** | Default Stripe behavior. `stripe.refunds.create({ payment_intent })`. |
 | 2.10 | No platform wallet/credit in MVP | **Works** | Don't build wallet. Just use Stripe refunds. |
 | 2.17 | Only admin executes manual refunds/adjustments | **Works** | Restrict refund API calls to admin server actions. |
-| 9.3A | Cancellation before transfer: simple refund | **Works** | `stripe.refunds.create()` — no transfer reversal needed. |
+| 9.3A | Cancellation before transfer: simple refund | **Works** | `stripe.refunds.create()` â€” no transfer reversal needed. |
 | 9.3B | Cancellation after transfer: reverse transfer + refund | **Works with config** | `stripe.transfers.createReversal()` then `stripe.refunds.create()`. Must handle partial amounts. |
 | 9.5 | Monthly partial refund: admin-only, per unused session | **Needs custom code** | Calculate refund amount from session-level accounting. Stripe just processes the refund amount. |
 | 9.6 | Professional debt after refund: recover from future payouts, then card | **Needs custom code** | Track debt in ledger. Deduct from next transfer. If no payouts pending, charge card via `PaymentIntent` off-session (if card saved). |
 
 **Action items:**
-- [ ] Build cancellation fee calculator (policy rules → refund amount)
+- [ ] Build cancellation fee calculator (policy rules â†’ refund amount)
 - [ ] Build transfer reversal logic for post-transfer cancellations
 - [ ] Build professional debt tracker in internal ledger
 
@@ -166,7 +178,7 @@ Each rule from Part 3 is classified as:
 |---|------|--------------|-------|
 | 10.1 | Both customer and professional can open disputes, 48h window | **Needs custom code** | Stripe disputes are card-issuer disputes (chargebacks). In-app disputes are a separate system. Muuday's 48h dispute window is internal, not Stripe's. |
 | 10.2 | Evidence hierarchy for disputes | **Needs custom code** | For Stripe chargebacks: submit evidence via `stripe.disputes.update()`. For internal disputes: build case queue (Wave 4). |
-| 10.4 | Session data captured for disputes | **Needs custom code** | Join/presence logs, messages, timestamps — all app-side. Stripe only knows about the payment. |
+| 10.4 | Session data captured for disputes | **Needs custom code** | Join/presence logs, messages, timestamps â€” all app-side. Stripe only knows about the payment. |
 | 10.5 | Admin case/ticket system for disputes | **Needs custom code** | Build in Wave 4. Stripe has no built-in case queue. |
 
 **Important distinction:**
@@ -196,7 +208,7 @@ Each rule from Part 3 is classified as:
 **Action items:**
 - [ ] Create Stripe Products: `muuday-basic`, `muuday-professional`, `muuday-premium`
 - [ ] Create Prices: monthly + annual for each product (6 total)
-- [ ] Build subscription lifecycle: create → trial → active → past_due → canceled
+- [ ] Build subscription lifecycle: create â†’ trial â†’ active â†’ past_due â†’ canceled
 - [ ] Listen to webhooks: `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
 
 ---
@@ -284,7 +296,7 @@ Each rule from Part 3 is classified as:
 - 48h delayed payout (app schedules transfers)
 - Minimum BRL 100 payout threshold (app accumulates)
 - Weekly payout batch (Inngest cron)
-- Cancellation fee calculation (policy → amount)
+- Cancellation fee calculation (policy â†’ amount)
 - Professional debt recovery from payouts
 - Monthly per-session payout release
 - Currency conversion / FX management
@@ -296,10 +308,10 @@ Each rule from Part 3 is classified as:
 - Professional earnings dashboard
 - Financial data export
 
-### Stripe validation — ALL CONFIRMED (2026-04-01)
-1. ~~UK platform → Brazil professional payout corridor~~ — **Confirmed.** Express accounts in BR supported.
-2. ~~PayPal availability~~ — **Confirmed.** PayPal available for UK Stripe accounts.
-3. ~~Cross-border payout currency~~ — **Confirmed.** Transfers settle in BRL for BR connected accounts.
+### Stripe validation â€” ALL CONFIRMED (2026-04-01)
+1. ~~UK platform â†’ Brazil professional payout corridor~~ â€” **Confirmed.** Express accounts in BR supported.
+2. ~~PayPal availability~~ â€” **Confirmed.** PayPal available for UK Stripe accounts.
+3. ~~Cross-border payout currency~~ â€” **Confirmed.** Transfers settle in BRL for BR connected accounts.
 
 ### Adapted rules (1 constraint discovered)
 1. **BR accounts have mandatory daily automatic payouts.** Original spec said "weekly payout cycle". Adapted: app controls Transfer timing (weekly eligibility scan), Stripe handles daily payout from connected account balance. No product behavior change for professionals.
@@ -311,21 +323,21 @@ Each rule from Part 3 is classified as:
 
 ## Implementation sequence
 
-### Phase 1: Foundation (Track A — in progress)
-1. ~~Send Stripe validation packet~~ — **CONFIRMED 2026-04-01**
+### Phase 1: Foundation (Track A â€” in progress)
+1. ~~Send Stripe validation packet~~ â€” **CONFIRMED 2026-04-01**
 2. Install Stripe MCP server for Claude Code
-3. ~~`npm install stripe`~~ — **Done** (v21.0.1)
-4. ~~Create Stripe account~~ — **Done**. Enable Connect in Dashboard.
-5. Create Products/Prices for professional subscriptions (Basic/Professional/Premium × monthly/annual)
+3. ~~`npm install stripe`~~ â€” **Done** (v21.0.1)
+4. ~~Create Stripe account~~ â€” **Done**. Enable Connect in Dashboard.
+5. Create Products/Prices for professional subscriptions (Basic/Professional/Premium Ã— monthly/annual)
 6. Database migration: payment tables + internal ledger
 7. Webhook endpoint skeleton with signature verification
-8. ~~Add env vars to `.env.local`~~ — **Done** (test mode keys)
+8. ~~Add env vars to `.env.local`~~ â€” **Done** (test mode keys)
 
 ### Phase 2: One-off payments (Week 2-3)
 9. Payment Element checkout for one-off bookings
 10. Webhook endpoint with signature verification
-11. `payment_intent.succeeded` → confirm booking
-12. Manual-accept timeout → auto-refund
+11. `payment_intent.succeeded` â†’ confirm booking
+12. Manual-accept timeout â†’ auto-refund
 13. Request-booking payment link with 24h expiry
 14. Cancellation refund flow (pre-transfer)
 
@@ -341,7 +353,7 @@ Each rule from Part 3 is classified as:
 ### Phase 4: Professional subscriptions (Week 4-5)
 22. Subscription creation with 90-day trial
 23. Upgrade/downgrade flows
-24. Payment failure → grace → block logic
+24. Payment failure â†’ grace â†’ block logic
 25. Pause/cancel flows
 26. Professional billing dashboard
 
@@ -385,3 +397,4 @@ STRIPE_CONNECT_CLIENT_ID=ca_...
 | `customer.subscription.updated` | Sync plan state |
 | `customer.subscription.deleted` | Mark plan canceled, enforce block |
 | `account.updated` | Connected account onboarding status |
+

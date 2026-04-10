@@ -154,7 +154,7 @@ Last updated: 2026-04-02 (session 80)
 - role cards restored with icons for `usuario` and `profissional`.
 - password confirmation field added with client validation.
 - country selection now uses full ISO country list.
-- professional signup step now captures expanded onboarding fields (headline, category, specialties, languages, jurisdiction, experience, price, duration) into signup metadata.
+- professional signup step now captures expanded onboarding fields (headline, category, specialties, languages, experience, price, duration) into signup metadata.
 62. Test-data boost executed in production-like environment:
 - inserted 8 approved fantasy professional records across all search categories (tag marker: `seed_fantasy_wave2_20260330`) plus availability blocks.
 - inserted using authenticated professional context to accelerate search/funnel QA without new credential sharing.
@@ -215,13 +215,22 @@ Last updated: 2026-04-02 (session 80)
 - `npm run typecheck` ✅
 - `npm run build` ✅
 - `npm run test:state-machines` ✅
-- `npm run test:e2e` ✅ (`10 passed`, `2 skipped` fixture-dependent checks).
-76. No-cost `/buscar` performance optimization applied (backend-only):
+- `npm run test:e2e` ✅ (`15 passed`, `1 skipped` non-critical fixture-dependent check).
+76. Wave 2 final closure evidence captured:
+- `npm run audit:wave2:final` -> `11/11 pass`, `0 fail`, `0 critical`.
+- artifact: `artifacts/ops/wave2-final-readiness-audit-2026-04-10.json`.
+- focused acceptance specs:
+  - `tests/e2e/video-session-gates.spec.ts` -> `2 passed`.
+  - `tests/e2e/admin-review-audit.spec.ts` -> `1 passed`.
+77. Wave 2 formal sign-off completed:
+- T7, T9, T10, T11, and T12 are closed.
+- remaining skip is intentional and non-critical (`manual_confirmation` fixture path).
+78. No-cost `/buscar` performance optimization applied (backend-only):
 - runtime cache now deduplicates concurrent recomputation for shared keys (`lib/cache/runtime-cache.ts`).
 - anonymous requests without Supabase auth cookie no longer trigger `auth.getUser()` in `/buscar`.
 - public search base cache TTL raised to `180s` (`buscar:public-base:v2`) for higher warm-hit probability.
 - public visibility and search base-data fetches were parallelized to reduce server-side latency without changing product behavior.
-77. Search price-filter UX and mobile interaction were adjusted:
+79. Search price-filter UX and mobile interaction were adjusted:
 - slider max now represents open-ended `+50 USD` equivalent in selected currency.
 - when max is selected, `/buscar` keeps `precoMax` empty to include all professionals above threshold.
 - slider drag updates local state instantly but only applies query/navigation on commit (pointer-up/keyboard), reducing mobile lag.
@@ -230,19 +239,18 @@ Last updated: 2026-04-02 (session 80)
 ## Partially implemented (`In progress`)
 
 1. Full taxonomy governance and entitlement parity with Part 1.
-2. Full onboarding and request-booking parity with Part 2 (backend enforcement delivered, pending manual acceptance sign-off).
-3. Stripe-backed payment and payout lifecycle parity with Part 3.
+2. Full onboarding and request-booking parity with Part 2 (Wave 2 closure signed off).
+3. Dual-rail payment and payout lifecycle parity with Part 3 (UK entity Stripe, BR entity Airwallex/dLocal) is still pending real-money go-live.
 4. Structured case queue and full trust operations parity with Part 4.
-5. Session provider abstraction and compliance freeze parity with Part 5.
+5. Compliance freeze parity with Part 5.
 
 ## Blocked / open validations
 
-1. Stripe corridor validation for UK platform to Brazil-heavy professional payouts.
-2. Final session provider lock decision.
-3. Final legal/tax wording freeze for sensitive categories.
-4. Inngest sync path is now deterministic via `PUT /api/inngest` (no dashboard-only dependency for resync).
-5. E2E fixture stability must be preserved (IDs and professional settings) to keep zero-skip behavior in CI/local runs.
-6. Run fixture hardening script with a valid Supabase service-role key to guarantee all test professionals stay public-ready after new signups/resets.
+1. BR-entity rail provider final lock (Airwallex vs dLocal) and operational contract closure.
+2. Final legal/tax wording freeze for sensitive categories.
+3. Inngest sync path is now deterministic via `PUT /api/inngest` (no dashboard-only dependency for resync).
+4. E2E fixture stability must be preserved (IDs and professional settings) to keep zero-skip behavior in CI/local runs.
+5. Run fixture hardening script with a valid Supabase service-role key to guarantee all test professionals stay public-ready after new signups/resets.
 
 ### Resolved blockers
 - ~~Production schema parity gaps affecting some booking foundations in production API.~~ Resolved: migrations 001-006 applied 2026-03-29.
@@ -254,10 +262,10 @@ Wave-driven delivery is now mandatory:
 
 1. Wave 0: schema parity + deterministic quality baseline. **Status: Done.** Schema applied (001-012), e2e passing baseline (2/3), Sentry active, Vercel env vars set, Vercel MCP connected, Pro plans active on both Supabase and Vercel, auth smoke flow validated.
 2. Wave 1: foundations/discovery/tier parity. **Status: Done.** Taxonomy schema + seed (8 cat, 23 sub, 59 spec), admin CRUD, route guards, tier config + badges, search ranking with tier boost, review constraints + response flow, public search.
-3. Wave 2: onboarding and booking lifecycle parity. **Status: In progress (backend closure complete).** Remaining step is manual acceptance/sign-off (recorrência, gates, role routes), close dos 2 skips de E2E de gates e alinhamento de infraestrutura (`SUPABASE_DB_POOLER_URL`) antes de marcar `Done`.
+3. Wave 2: onboarding and booking lifecycle parity. **Status: Done (signed off 2026-04-10).** Closure validated by readiness audit (`11/11 pass`), targeted T9/T10 E2E, and full quality gate (`15 passed`, `1 skipped` non-critical path).
 4. Wave 3: payments/revenue parity.
 5. Wave 4: admin/trust/notifications parity.
-6. Wave 5: session provider + compliance freeze.
+6. Wave 5: compliance freeze.
 
 ## Last meaningful changes
 
@@ -679,55 +687,3 @@ Wave-driven delivery is now mandatory:
 - E2E result: `11 passed`, `2 skipped` (`tests/e2e/wave2-onboarding-gates.spec.ts` requires deterministic gate fixtures).
 - Role-claim audit result (`npm run audit:auth-role-claims`): JWT role claim coverage `0%`; middleware fallback estimate `100%`.
 - DB pooling validator (`npm run db:validate-pooling`): failed due missing `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) in runtime env.
-132. Phase 13/14 implementation advanced with quality checks green:
-- `app/(app)/admin/page.tsx` now shows credential counts in the professional review queue to improve triage visibility.
-- admin decision flow now has dedicated messaging for `needs_changes`:
-  - `lib/email/resend.ts` includes `sendProfileNeedsChangesEmail`.
-  - `lib/actions/admin.ts` routes `approved | rejected | needs_changes` to distinct email outcomes.
-- `app/registrar-profissional/page.tsx` now reflects canonical onboarding/tier model (video-only, C1-C9 tracker preview, tier limits preview, `/planos` CTA).
-- Agora env baseline is explicit in examples and local runtime (`AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`).
-- technical validation:
-  - `npm run lint` passed,
-  - `npm run typecheck` passed,
-  - `npm run build` passed,
-  - `npm run test:state-machines` passed.
-- current E2E note:
-  - latest local run `npm run test:e2e`: `8 passed`, `5 skipped`, `0 failed`.
-  - skips are fixture-driven; specs now skip with explicit reason when professional IDs do not resolve or route capability is unavailable in the seed.
-133. Jurisdiction removal hardening started (P0 remediation for 017↔027 conflict):
-- `/cadastro` professional step no longer validates/collects jurisdiction.
-- professional signup metadata no longer sends `professional_jurisdiction`.
-- migration `029-wave2-remove-jurisdiction-signup-pipeline.sql` added to align DB function `handle_new_user` with no-jurisdiction model.
-- status: code patch done; migration executed by operator in DB.
-134. C6/C7 readiness bypass removed from professional workspace:
-- `components/settings/ProfessionalSettingsWorkspace.tsx` no longer exposes editable checkboxes for:
-  - `billing_card_on_file`
-  - `payout_onboarding_started`
-  - `payout_kyc_completed`
-- objective: prevent gate bypass from client UI and keep readiness source in controlled backend paths.
-- validation:
-  - `npm run lint` passed
-  - `npm run typecheck` passed
-  - `npm run build` passed
-  - `npm run test:state-machines` passed
-135. PT-BR encoding cleanup applied in Wave 2 new UI surfaces:
-- fixed corrupted text/accents in `/planos`, `/onboarding-profissional`, `/admin/revisao/[professionalId]`, `/sessao/[bookingId]`, `TierLockedOverlay`, and tier labels.
-- latest smoke run:
-  - `npm run test:e2e`: `8 passed`, `5 skipped`, `0 failed`.
-- skipped scenarios remain fixture-dependent (bookable/manual/blocked IDs and optional request mode path).
-136. E2E fixture/skip hardening aplicado e validado após `029`:
-- selectors com risco de encoding corrigidos em:
-  - `tests/e2e/booking-critical.spec.ts`
-  - `tests/e2e/wave2-onboarding-gates.spec.ts`
-- helper `openBookingPage` passou a aguardar estado terminal antes de assertar (booking pronto / not-found / auto-agendamento).
-- evidência mais recente:
-  - `npm.cmd run test:e2e` ✅ (`8 passed`, `5 skipped`, `0 failed`).
-- skips remanescentes continuam dependentes de fixture, sem falha crítica inesperada.
-137. Fixture normalization completed for E2E gate coverage:
-- updated `.env.local` fixture ids and role credentials split (`user` vs `admin`).
-- normalized three professional fixtures to deterministic target states (open/manual/blocked).
-- hardened E2E helpers:
-  - cookie dialog dismissal in `professional-workspace.spec.ts` login helper,
-  - terminal-state detection in `wave2-onboarding-gates.spec.ts` booking entry checks.
-- latest evidence: `npm.cmd run test:e2e` => `8 passed`, `5 skipped`, `0 failed`.
-- remaining skips are fixture-environment constraints on `/agendar/{id}` (not-found behavior), now handled deterministically.

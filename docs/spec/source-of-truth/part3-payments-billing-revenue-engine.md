@@ -1605,11 +1605,11 @@ SECTION 23 — WHAT IS STILL NOT FULLY LOCKED / EXTERNAL VALIDATION REQUIRED
 
 These are not missing product decisions. They are implementation validations or later-phase precision items.
 
-23.1 Stripe corridor validation
+23.1 BR rail provider validation (entity-based dual-rail)
 Still required:
-- validate UK platform collecting globally and paying mostly Brazil-based professionals under desired Connect model
+- keep UK entity on Stripe where supported
 - confirm Stripe’s recommended structure
-- confirm constraints around connected accounts, payout currencies, and cross-border support
+- confirm constraints around payout currencies, KYC fields, settlement windows, and intercompany reconciliation
 
 23.2 Exact pricing localization mechanism
 Decision is made at product level:

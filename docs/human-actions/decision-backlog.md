@@ -27,25 +27,25 @@ Ordered by execution impact.
 
 | Decision | Owner | Must be decided by when | Why |
 | --- | --- | --- | --- |
-| Stripe corridor and legal entity confirmation | Founder/Ops/Finance/Legal | Before Wave 3 start gate | Blocks payment architecture freeze |
+| BR rail provider confirmation (Airwallex vs dLocal) + legal entity settlement model | Founder/Ops/Finance/Legal | Before Wave 3 start gate | Blocks BR payout architecture freeze |
 | Tax/accounting operating model | Finance/Accounting | Before Wave 3 exit gate | Blocks ledger reconciliation and finance ops hardening |
 | Payout-sensitive data storage model (Stripe-only vs local encrypted) | Founder + Engineering + Compliance | Before Wave 3 start gate | Required for Vault/encryption implementation scope and compliance boundaries |
 | Refund/dispute authority matrix | Operations lead | Before Wave 4 start gate | Needed for case queue and safe refund operations |
 | Monitoring and on-call ownership | Ops | Resolved (2026-03-30) | Baseline operational response policy active |
 | Secrets rotation periodic cadence (core + Stripe) | Ops/Security owner | Before Wave 3 start gate | Required before finance engine hardening and launch risk reduction |
-| Final session provider decision (LiveKit vs Google Meet) | Product + Engineering | Before Wave 5 start gate | Blocks session provider freeze |
+| Session provider re-open decision (Agora stays default unless reopened) | Product + Engineering | Only if scope changes | Blocks provider change rollout |
 | Legal/compliance text freeze | Legal/Compliance + Founder | Before Wave 5 exit gate | Blocks sensitive-category launch readiness |
 | Data retention/legal-hold final approval | Legal/Compliance + Ops | Before Wave 4 exit gate | Required before lifecycle automation rollout completion |
 | Domain cutover plan (`muuday-app.vercel.app` -> `muuday.com`) | Product + Ops | Before public launch checklist | Avoids go-live DNS and auth drift |
 
 ## P0 - Blocking architecture decisions
 
-1. Stripe corridor and legal entity confirmation
+1. BR rail provider confirmation and legal entity settlement model
 - Decide and validate UK platform -> Brazil-heavy payout corridor details with Stripe.
 - Owner: founder/ops/legal + finance.
 - Blocks: Wave 3 architecture freeze.
 
-2. Final session provider decision
+2. Session provider re-open decision (only if needed)
 - Choose embedded provider path vs external link fallback for launch.
 - Owner: product + engineering.
 - Blocks: Wave 5 freeze and session UX finalization.
