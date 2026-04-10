@@ -205,6 +205,41 @@ async function ensureProfessionalReadyForPublicSearch(
     })
     .eq('id', professionalId)
 
+  const defaultDisplayName = normalizeText(
+    profile?.full_name,
+    `Profissional ${String(professionalId).slice(0, 8)}`,
+  )
+  await supabase.from('professional_applications').upsert(
+    {
+      user_id: String(professional.user_id),
+      professional_id: professionalId,
+      display_name: defaultDisplayName,
+      headline: normalizeText(
+        professional.bio,
+        'Profissional validado para jornada publica de testes.',
+      ),
+      category: normalizedCategory,
+      specialty_name:
+        normalizedSubcategories.length > 0
+          ? String(normalizedSubcategories[0])
+          : 'Mentoria',
+      specialty_custom: false,
+      specialty_validation_message: null,
+      focus_areas: normalizedTags.length > 0 ? normalizedTags : ['Foco de atuacao'],
+      primary_language:
+        normalizedLanguages.length > 0 ? String(normalizedLanguages[0]) : 'Portugues',
+      secondary_languages:
+        normalizedLanguages.length > 1 ? normalizedLanguages.slice(1) : [],
+      years_experience: Math.max(Number(professional.years_experience || 0), 1),
+      session_price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
+      session_duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
+      qualification_file_names: [],
+      qualification_note: null,
+      status: 'approved',
+    },
+    { onConflict: 'user_id' },
+  )
+
   await supabase.from('professional_settings').upsert(
     {
       professional_id: professionalId,
@@ -220,6 +255,9 @@ async function ensureProfessionalReadyForPublicSearch(
       billing_card_on_file: true,
       payout_onboarding_started: true,
       payout_kyc_completed: true,
+      cancellation_policy_accepted: true,
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: 'wave2-e2e-fixture',
     },
     { onConflict: 'professional_id' },
   )
