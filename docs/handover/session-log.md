@@ -1303,3 +1303,24 @@ Use this for meaningful checkpoints only.
     - recriação da policy `System creates payments for booking owner` com vínculo estrito booking↔payment.
 - Resultado:
   - fluxo de booking voltou a funcionar após aplicação do patch no banco.
+
+### Entry 61 (2026-04-10) — PR-2 onboarding/gates e PR-3 hardening operacional
+- PR-2 (branch `codex/onboarding-gates-pr2`, PR `#14`):
+  - Basic passou a ser cobrado no checkout de planos (`monthly`/`annual`) com trial de 90 dias, removendo bloqueio legado de Basic gratuito.
+  - gate `display_name` passou a usar campo profissional dedicado (`professional_applications.display_name`) no snapshot.
+  - credibilidade não bloqueia mais por `0` anos de experiência.
+  - gate `payout_receipt` separado de `first_booking_acceptance` (sem depender de `first_booking_enabled`).
+  - estágios C8/C9 agora são montados de forma determinística (sem placeholder de completo antes da avaliação final).
+  - mensagens de blockers em PT-BR foram normalizadas para remover mojibake.
+- validação local PR-2:
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run build`
+  - `npm.cmd run test:state-machines`
+  - `npm.cmd run test:e2e` (`13 passed`)
+- PR-3 (branch `codex/hardening-ops-pr3`, em andamento):
+  - CI `main` agora exige `SUPABASE_DB_POOLER_URL` e valida pooler em modo produção.
+  - evidências operacionais executadas:
+    - `npm.cmd run db:validate-pooling` (local/dev informativo),
+    - `npm.cmd run audit:auth-role-claims` (`100%` válido, `0%` fallback),
+    - `npm.cmd run audit:rls:api` (PASS sem leak para bookings/payments/reviews/messages).

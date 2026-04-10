@@ -570,3 +570,15 @@ Status: `Done` for automated gate + fixture setup. Keep this list as regression 
   - direct booking (`/agendar`)
   - request acceptance (`/solicitar`)
   and confirm no new `payment_capture_failed` cancellations are generated.
+
+## Update 2026-04-10 (post hardening pass)
+
+Resolved:
+1. JWT role-claim audit is green (`100%` valid, `0%` fallback estimate).
+2. RLS API audit is green for critical sampled tables (bookings/payments/reviews/messages).
+3. Production DB pooling enforcement is now codified in CI main gate.
+
+Remaining before final Wave 2 sign-off:
+1. Merge PR stack in order (`#13`, `#14`, PR-3) and deploy from `main`.
+2. Run manual acceptance checklist (C1-C9, booking modes, role split, admin review outcomes) and attach evidence.
+3. Keep Wave 3 payment rail activation out of Wave 2 sign-off (Stripe UK + BR rail decision already documented, implementation stays gated).

@@ -26,6 +26,9 @@ Last updated: 2026-04-01
 - `E2E_PROFESSIONAL_ID`
 - `E2E_MANUAL_PROFESSIONAL_ID`
 - `E2E_BLOCKED_PROFESSIONAL_ID`
+3. CI also fails main pushes if DB pooling runtime secret is missing or invalid:
+- `SUPABASE_DB_POOLER_URL` must point to Supavisor transaction port `6543`.
+- workflow runs `npm run db:validate-pooling` in production mode (`REQUIRE_DB_POOLER=true`, `VERCEL_ENV=production`).
 3. Playwright report is uploaded as artifact in CI for failed E2E troubleshooting.
 
 ## Scheduled operations
