@@ -1,4 +1,4 @@
-import { isFeatureAvailable, isTierAtLeast, type ProfessionalTier } from '@/lib/tier-config'
+﻿import { isFeatureAvailable, isTierAtLeast, type ProfessionalTier } from '@/lib/tier-config'
 
 export type OnboardingStageId =
   | 'c1_account_creation'
@@ -87,6 +87,7 @@ export type ProfessionalOnboardingSnapshot = {
   }
   professional: {
     id: string
+    displayName?: string | null
     status?: string | null
     tier?: string | null
     firstBookingEnabled?: boolean | null
@@ -180,11 +181,15 @@ export function evaluateOnboardingGates(
   const hasSubcategory = uniqueTexts(snapshot.professional.subcategories).length > 0
   const hasSpecialty = snapshot.specialtyCount > 0 || hasSubcategory
   const hasProfileBio = hasText(snapshot.professional.bio)
-  const hasCredibilitySummary = Number(snapshot.professional.yearsExperience || 0) > 0
+  const hasCredibilitySummary = Number(snapshot.professional.yearsExperience ?? 0) >= 0
   const hasPlanSelection = ['basic', 'professional', 'premium'].includes(
     String(snapshot.professional.tier || '').toLowerCase(),
   )
-  const hasAcceptanceMode = ['auto_accept', 'manual'].includes(String(snapshot.settings.confirmationMode || ''))
+  const confirmationMode = String(
+    snapshot.settings.confirmationMode || (tier === 'basic' ? 'auto_accept' : ''),
+  )
+  const hasAcceptanceMode =
+    tier === 'basic' ? true : ['auto_accept', 'manual'].includes(confirmationMode)
   const hasMinimumNotice = Number(snapshot.settings.minimumNoticeHours || 0) > 0
   const hasMaxWindow = Number(snapshot.settings.maxBookingWindowDays || 0) > 0
   const hasAvailability = snapshot.availabilityCount > 0
@@ -203,7 +208,7 @@ export function evaluateOnboardingGates(
     country_of_residence: hasText(snapshot.account.country),
     timezone: hasText(snapshot.account.timezone),
     primary_language: hasPrimaryLanguage,
-    display_name: hasText(snapshot.account.fullName),
+    display_name: hasText(snapshot.professional.displayName),
     category_subcategory_specialty: hasText(snapshot.professional.category) && hasSpecialty,
     headline_short_bio: hasProfileBio,
     profile_photo: hasText(snapshot.account.avatarUrl),
@@ -463,8 +468,8 @@ export function evaluateOnboardingGates(
   if (!fieldState.country_of_residence || !fieldState.timezone) {
     accountBlockers.push({
       code: 'missing_country_or_timezone',
-      title: 'Pa�s ou fuso ausente',
-      description: 'Pa�s e fuso precisam estar preenchidos no perfil de conta.',
+      title: 'Pais ou fuso ausente',
+      description: 'Pais e fuso precisam estar preenchidos no perfil de conta.',
       stage: 'c1_account_creation',
       actionHref: '/perfil',
     })
@@ -484,7 +489,7 @@ export function evaluateOnboardingGates(
     identityBlockers.push({
       code: 'missing_display_name',
       title: 'Nome profissional ausente',
-      description: 'Defina um nome profissional vis�vel para os clientes.',
+      description: 'Defina um nome profissional visivel para os clientes.',
       stage: 'c2_basic_identity',
       actionHref: '/editar-perfil-profissional',
     })
@@ -521,8 +526,8 @@ export function evaluateOnboardingGates(
   if (!hasCredibilitySummary) {
     publicProfileBlockers.push({
       code: 'missing_credibility_summary',
-      title: 'Resumo de experi�ncia ausente',
-      description: 'Adicione anos de experi�ncia para o perfil p�blico.',
+      title: 'Resumo de experiencia ausente',
+      description: 'Adicione anos de experiencia para o perfil publico.',
       stage: 'c3_public_profile',
       actionHref: '/editar-perfil-profissional',
     })
@@ -531,7 +536,7 @@ export function evaluateOnboardingGates(
     publicProfileBlockers.push({
       code: 'missing_credentials',
       title: 'Credenciais pendentes',
-      description: 'Categorias sens�veis exigem upload de qualifica��o para revis�o.',
+      description: 'Categorias sensiveis exigem upload de qualificacao para revisao.',
       stage: 'c3_public_profile',
       actionHref: '/editar-perfil-profissional',
     })
@@ -541,16 +546,16 @@ export function evaluateOnboardingGates(
   if (!fieldState.at_least_one_service) {
     serviceBlockers.push({
       code: 'missing_service',
-      title: 'Servi�o n�o configurado',
-      description: 'Cadastre ao menos um servi�o para envio � revis�o.',
+      title: 'Servico nao configurado',
+      description: 'Cadastre ao menos um servico para envio a revisao.',
       stage: 'c4_service_setup',
       actionHref: '/completar-perfil',
     })
   } else if (!fieldState.service_price_and_duration) {
     serviceBlockers.push({
       code: 'missing_service_pricing_duration',
-      title: 'Servi�o sem pre�o ou dura��o',
-      description: 'Servi�o precisa de pre�o e dura��o para operar.',
+      title: 'Servico sem preco ou duracao',
+      description: 'Servico precisa de preco e duracao para operar.',
       stage: 'c4_service_setup',
       actionHref: '/editar-perfil-profissional',
     })
@@ -560,8 +565,8 @@ export function evaluateOnboardingGates(
   if (!fieldState.availability_baseline) {
     availabilityBlockers.push({
       code: 'missing_availability',
-      title: 'Disponibilidade n�o configurada',
-      description: 'Defina dias e hor�rios antes de enviar o perfil para revis�o.',
+      title: 'Disponibilidade nao configurada',
+      description: 'Defina dias e horarios antes de enviar o perfil para revisao.',
       stage: 'c5_availability_calendar',
       actionHref: '/disponibilidade',
     })
@@ -570,7 +575,7 @@ export function evaluateOnboardingGates(
     availabilityBlockers.push({
       code: 'missing_booking_rules',
       title: 'Regras de agendamento incompletas',
-      description: 'Configure modo de confirma��o, anteced�ncia m�nima e janela de agenda.',
+      description: 'Configure modo de confirmacao, antecedencia minima e janela de agenda.',
       stage: 'c5_availability_calendar',
       actionHref: '/configuracoes-agendamento',
     })
@@ -578,8 +583,8 @@ export function evaluateOnboardingGates(
   if (!fieldState.cancellation_policy_acceptance) {
     availabilityBlockers.push({
       code: 'missing_cancellation_policy',
-      title: 'Pol�tica de cancelamento pendente',
-      description: 'Voc� precisa aceitar a pol�tica de cancelamento padr�o da plataforma.',
+      title: 'Politica de cancelamento pendente',
+      description: 'Voce precisa aceitar a politica de cancelamento padrao da plataforma.',
       stage: 'c5_availability_calendar',
       actionHref: '/configuracoes-agendamento',
     })
@@ -589,7 +594,7 @@ export function evaluateOnboardingGates(
   if (!fieldState.professional_plan_selection) {
     billingBlockers.push({
       code: 'missing_plan_selection',
-      title: 'Plano profissional n�o definido',
+      title: 'Plano profissional nao definido',
       description: 'Selecione um plano em /planos para continuar.',
       stage: 'c6_plan_billing_setup',
       actionHref: '/planos',
@@ -607,35 +612,23 @@ export function evaluateOnboardingGates(
   if (!fieldState.billing_card_for_professional_plan) {
     billingBlockers.push({
       code: 'missing_billing_card',
-      title: 'Cart�o n�o configurado',
-      description: 'Adicione um cart�o para ativar trial e assinatura do plano selecionado.',
+      title: 'Cartao nao configurado',
+      description: 'Adicione um cartao para ativar trial e assinatura do plano selecionado.',
       stage: 'c6_plan_billing_setup',
       actionHref: '/planos',
     })
   }
 
-  const payoutBlockers: OnboardingBlocker[] = []
+  const payoutSetupBlockers: OnboardingBlocker[] = []
   if (!fieldState.payout_connected_account_minimum) {
-    payoutBlockers.push({
+    payoutSetupBlockers.push({
       code: 'missing_payout_onboarding',
       title: 'Onboarding de payout pendente',
-      description: 'Conclua a conex�o de recebimento (Stripe Connect) para revis�o final.',
+      description: 'Conclua a conexao de recebimento (Stripe Connect) para revisao final.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
     })
   }
-
-  const stages: OnboardingStageStatus[] = [
-    stage('c1_account_creation', 'C1 Conta', accountBlockers),
-    stage('c2_basic_identity', 'C2 Identidade profissional', identityBlockers),
-    stage('c3_public_profile', 'C3 Perfil p�blico', publicProfileBlockers),
-    stage('c4_service_setup', 'C4 Servi�o', serviceBlockers),
-    stage('c5_availability_calendar', 'C5 Disponibilidade e calend�rio', availabilityBlockers),
-    stage('c6_plan_billing_setup', 'C6 Plano, termos e cobran�a', billingBlockers),
-    stage('c7_payout_payments', 'C7 Payout Stripe', payoutBlockers),
-    stage('c8_submit_review', 'C8 Submit review', []),
-    stage('c9_go_live', 'C9 Go live', []),
-  ]
 
   const reviewSubmissionBlockers = [
     ...identityBlockers,
@@ -643,17 +636,28 @@ export function evaluateOnboardingGates(
     ...serviceBlockers,
     ...availabilityBlockers,
     ...billingBlockers,
-    ...payoutBlockers,
+    ...payoutSetupBlockers,
   ]
 
   const canSubmitForReview = reviewSubmissionBlockers.length === 0
+  const submitReviewBlockers: OnboardingBlocker[] = canSubmitForReview
+    ? []
+    : [
+        {
+          code: 'missing_review_requirements',
+          title: 'Envio para revisao bloqueado',
+          description: 'Complete os campos obrigatorios de C2 a C7.',
+          stage: 'c8_submit_review',
+          actionHref: '/onboarding-profissional',
+        },
+      ]
 
   const goLiveBlockers: OnboardingBlocker[] = []
   if (!canSubmitForReview) {
     goLiveBlockers.push({
       code: 'missing_review_requirements',
-      title: 'Requisitos de revis�o incompletos',
-      description: 'Complete C2-C7 antes de seguir para publica��o.',
+      title: 'Requisitos de revisao incompletos',
+      description: 'Complete C2-C7 antes de seguir para publicacao.',
       stage: 'c9_go_live',
       actionHref: '/onboarding-profissional',
     })
@@ -661,8 +665,8 @@ export function evaluateOnboardingGates(
   if (categorySensitive && !fieldState.credentials_upload) {
     goLiveBlockers.push({
       code: 'missing_credentials',
-      title: 'Credenciais obrigat�rias pendentes',
-      description: 'Para categorias sens�veis, o go-live exige credenciais anexadas.',
+      title: 'Credenciais obrigatorias pendentes',
+      description: 'Para categorias sensiveis, o go-live exige credenciais anexadas.',
       stage: 'c9_go_live',
       actionHref: '/editar-perfil-profissional',
     })
@@ -670,8 +674,8 @@ export function evaluateOnboardingGates(
   if (snapshot.professional.status !== 'approved') {
     goLiveBlockers.push({
       code: 'pending_admin_approval',
-      title: 'Aprova��o administrativa pendente',
-      description: 'Seu perfil precisa ser aprovado para ficar p�blico e ativo.',
+      title: 'Aprovacao administrativa pendente',
+      description: 'Seu perfil precisa ser aprovado para ficar publico e ativo.',
       stage: 'c9_go_live',
       actionHref: '/onboarding-profissional',
     })
@@ -684,7 +688,7 @@ export function evaluateOnboardingGates(
   if (!fieldState.payout_connected_account_minimum) {
     firstBookingBlockers.push({
       code: 'missing_payout_setup',
-      title: 'Payout n�o iniciado',
+      title: 'Payout nao iniciado',
       description: 'Inicie onboarding de payout para aceitar o primeiro booking.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
@@ -703,37 +707,52 @@ export function evaluateOnboardingGates(
     firstBookingBlockers.push({
       code: 'first_booking_gate_disabled',
       title: 'Gate operacional do primeiro booking bloqueado',
-      description: 'Primeiro booking depende de libera��o operacional/admin.',
+      description: 'Primeiro booking depende de liberacao operacional/admin.',
       stage: 'c9_go_live',
       actionHref: '/onboarding-profissional',
     })
   }
 
   const canAcceptFirstBooking = firstBookingBlockers.length === 0
-  const payoutBlockersGate = [...firstBookingBlockers]
-  const canReceivePayout = payoutBlockersGate.length === 0
 
-  stages[7] = stage(
-    'c8_submit_review',
-    'C8 Submit review',
-    canSubmitForReview
-      ? []
-      : [
-          {
-            code: 'missing_review_requirements',
-            title: 'Envio para revis�o bloqueado',
-            description: 'Complete os campos obrigat�rios de C2 a C7.',
-            stage: 'c8_submit_review',
-            actionHref: '/onboarding-profissional',
-          },
-        ],
-  )
-  stages[8] = stage('c9_go_live', 'C9 Go live', goLiveBlockers)
+  const payoutReceiptBlockers: OnboardingBlocker[] = []
+  if (!canGoLive) payoutReceiptBlockers.push(...goLiveBlockers)
+  if (!fieldState.payout_connected_account_minimum) {
+    payoutReceiptBlockers.push({
+      code: 'missing_payout_setup',
+      title: 'Payout nao iniciado',
+      description: 'Inicie onboarding de payout para liberar recebimentos.',
+      stage: 'c7_payout_payments',
+      actionHref: '/configuracoes',
+    })
+  }
+  if (!fieldState.payout_kyc_complete) {
+    payoutReceiptBlockers.push({
+      code: 'missing_payout_kyc',
+      title: 'KYC de payout incompleto',
+      description: 'Finalize KYC para liberar recebimentos.',
+      stage: 'c7_payout_payments',
+      actionHref: '/configuracoes',
+    })
+  }
+  const canReceivePayout = payoutReceiptBlockers.length === 0
+
+  const stages: OnboardingStageStatus[] = [
+    stage('c1_account_creation', 'C1 Conta', accountBlockers),
+    stage('c2_basic_identity', 'C2 Identidade profissional', identityBlockers),
+    stage('c3_public_profile', 'C3 Perfil publico', publicProfileBlockers),
+    stage('c4_service_setup', 'C4 Servico', serviceBlockers),
+    stage('c5_availability_calendar', 'C5 Disponibilidade e calendario', availabilityBlockers),
+    stage('c6_plan_billing_setup', 'C6 Plano, termos e cobranca', billingBlockers),
+    stage('c7_payout_payments', 'C7 Payout Stripe', payoutSetupBlockers),
+    stage('c8_submit_review', 'C8 Submit review', submitReviewBlockers),
+    stage('c9_go_live', 'C9 Go live', goLiveBlockers),
+  ]
 
   const gates: Record<OnboardingGateId, OnboardingGateStatus> = {
     review_submission: {
       id: 'review_submission',
-      title: 'Gate de envio para revis�o',
+      title: 'Gate de envio para revisao',
       passed: canSubmitForReview,
       blockers: reviewSubmissionBlockers,
     },
@@ -753,7 +772,7 @@ export function evaluateOnboardingGates(
       id: 'payout_receipt',
       title: 'Gate de recebimento',
       passed: canReceivePayout,
-      blockers: payoutBlockersGate,
+      blockers: payoutReceiptBlockers,
     },
   }
 
@@ -787,6 +806,10 @@ export function getPrimaryGateBlockerReasonCode(
 
 export function firstBookingGateErrorMessage(evaluation: ProfessionalOnboardingEvaluation) {
   const firstBlocker = evaluation.gates.first_booking_acceptance.blockers[0]
-  if (!firstBlocker) return 'Este profissional ainda n�o est� habilitado para aceitar o primeiro agendamento.'
+  if (!firstBlocker) return 'Este profissional ainda nao esta habilitado para aceitar o primeiro agendamento.'
   return `${firstBlocker.title}. ${firstBlocker.description}`
 }
+
+
+
+
