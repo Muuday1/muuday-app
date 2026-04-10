@@ -687,3 +687,10 @@ Wave-driven delivery is now mandatory:
 - E2E result: `11 passed`, `2 skipped` (`tests/e2e/wave2-onboarding-gates.spec.ts` requires deterministic gate fixtures).
 - Role-claim audit result (`npm run audit:auth-role-claims`): JWT role claim coverage `0%`; middleware fallback estimate `100%`.
 - DB pooling validator (`npm run db:validate-pooling`): failed due missing `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) in runtime env.
+132. Wave 2 hardening re-audit executed (2026-04-10):
+- `npm.cmd run audit:auth-role-claims` now reports `100%` valid claims and `0%` fallback estimate.
+- `npm.cmd run audit:rls:api` passes for all sampled critical tables (`bookings`, `payments`, `reviews`, `messages`), no cross-user leakage.
+- DB pooling production enforcement was moved to CI main gate:
+  - workflow now requires `SUPABASE_DB_POOLER_URL` on main push,
+  - workflow runs `npm run db:validate-pooling` with `REQUIRE_DB_POOLER=true` and `VERCEL_ENV=production`.
+- local/dev behavior remains non-breaking (informational only) when pooled URL is not configured.

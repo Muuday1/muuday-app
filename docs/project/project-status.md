@@ -588,42 +588,25 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
   - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
 - this closes the prior gap where stale unattached syncs required manual dashboard-only confirmation.
 
+132. Operational hardening evidence pass executed (2026-04-10):
+- local runtime checks:
+  - `npm.cmd run db:validate-pooling` -> INFO in local/dev (expected) because production-only enforcement is active.
+  - `npm.cmd run audit:auth-role-claims` -> `100%` valid role claims, `0%` fallback estimate.
+  - `npm.cmd run audit:rls:api` -> PASS for `bookings`, `payments`, `reviews`, `messages` (no cross-user leak).
+- CI hardening:
+  - `.github/workflows/ci.yml` now requires `SUPABASE_DB_POOLER_URL` on `main` push and runs `npm run db:validate-pooling` in production mode (`REQUIRE_DB_POOLER=true`, `VERCEL_ENV=production`).
+- Stripe resilience posture confirmed in codebase:
+  - webhook idempotency inbox (`stripe_webhook_events` with unique `provider_event_id`) and queue/job tables from migration `023`.
+  - webhook routes persist events before enqueueing Inngest, supporting safe retries.
+
 ## Immediate next actions
 
-1. Complete Wave 2 manual acceptance checklist (recurring deadlines, C1-C10 gates, role routes) and mark Wave 2 as `Done` only after manual sign-off.
-2. Run deterministic Inngest resync after each deploy:
+1. Merge PR stack in order: `#13` -> `#14` -> PR-3, then deploy from `main`.
+2. Complete Wave 2 manual acceptance checklist (C1-C9 gates + role split + booking modes) and mark Wave 2 as `Done` only after manual sign-off.
+3. Run deterministic Inngest resync after each deploy:
 - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`.
-- if dashboard still shows historical unattached records, treat them as stale history when latest resync succeeds.
-3. Close remaining Wave 2 gate E2E skips:
-- current run: `11 passed`, `2 skipped` (`wave2-onboarding-gates.spec.ts`).
-- maintain deterministic open-gate and blocked-gate fixtures and rerun `npm run test:e2e`.
-4. Enforce runtime DB pooling configuration:
-- set `SUPABASE_DB_POOLER_URL` (or `DATABASE_URL`) to Supavisor `:6543`.
-- current status: `npm run db:validate-pooling` failing due missing pooled runtime URL.
-5. Backfill JWT role claims and rerun coverage audit:
-- current status from `npm run audit:auth-role-claims`: `0%` valid claims, `100%` fallback estimate.
-6. Keep E2E fixtures stable and close skipped `wave2-onboarding-gates.spec.ts` scenarios by maintaining both open-gate and blocked-gate professional fixtures.
-7. After Wave 2 sign-off, open Wave 3 scope (Stripe real billing/payout/ledger) without changing current Wave 2 gate contracts.
-8. Run visual regression pass for compact auth modal:
-- desktop (`/buscar` and `/profissional/[id]`) must render full modal content without inner scrollbar.
-- mobile modal must remain centered and usable with fallback scroll only when viewport height is constrained.
-9. Run sticky rail QA on professional profile:
-- tablet + desktop: booking box must remain visible while scrolling profile sections.
-- mobile: booking box must remain in normal flow (not sticky) without overlap.
-10. Post-apply validation for `019`:
-- run `/buscar` smoke with and without filters to ensure RPC path and fallback path both behave correctly.
-- record p50/p95 before/after with same region and update this file.
-11. Post-apply validation for `020`:
-- run `db/sql/analysis/wave2-indexes-explain-analyze.sql`.
-- confirm index scans for critical paths listed in audit.
-12. Post-apply validation for `021`:
-- create two concurrent booking attempts for same professional/start time and confirm one succeeds while the other fails with deterministic conflict error.
-- verify no false-positive collisions for recurring parent wrapper rows.
-13. Validate rate-limit expansion in preview/production:
-- auth: repeated invalid login/signup attempts should return deterministic throttle message.
-- booking: burst attempts on `createBooking`/`createRequestBooking` should hit `bookingCreate` limiter.
-- webhook: `/api/webhooks/stripe` should return `429` when burst threshold is exceeded.
-- verify Sentry receives `rate_limit_fallback_memory_active` only when Upstash is unavailable.
+4. Keep E2E fixtures deterministic and rerun `npm run test:e2e` on preview after each merge.
+5. After Wave 2 sign-off, open Wave 3 real-money scope (Stripe UK + BR rail) without changing current Wave 2 gate contracts.
 
 ## Continuity rule
 

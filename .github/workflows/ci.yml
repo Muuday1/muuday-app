@@ -23,6 +23,7 @@ jobs:
       E2E_BLOCKED_PROFESSIONAL_ID: ${{ secrets.E2E_BLOCKED_PROFESSIONAL_ID }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || vars.NEXT_PUBLIC_SUPABASE_URL || '' }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || '' }}
+      SUPABASE_DB_POOLER_URL: ${{ secrets.SUPABASE_DB_POOLER_URL || vars.SUPABASE_DB_POOLER_URL || '' }}
 
     steps:
       - name: Checkout
@@ -51,6 +52,7 @@ jobs:
             E2E_BLOCKED_PROFESSIONAL_ID
             NEXT_PUBLIC_SUPABASE_URL
             SUPABASE_SERVICE_ROLE_KEY
+            SUPABASE_DB_POOLER_URL
           )
           for key in "${required_vars[@]}"; do
             if [ -z "${!key}" ]; then
@@ -71,6 +73,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Validate DB pooling in production mode
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          REQUIRE_DB_POOLER: 'true'
+          VERCEL_ENV: production
+        run: npm run db:validate-pooling
 
       - name: Unit tests
         run: npm run test:unit
