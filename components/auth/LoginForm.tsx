@@ -84,7 +84,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
     }
 
     const supabase = createClient()
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: signInData, error: loginError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (loginError) {
       captureEvent('auth_login_failed', { reason: 'invalid_credentials' })
@@ -103,14 +103,22 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
       return
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    let userId: string | null = signInData.user?.id ?? null
+    let userEmail = String(signInData.user?.email || email || '')
+
+    if (!userId) {
+      const { data } = await supabase.auth.getUser()
+      userId = data.user?.id ?? null
+      const refreshedEmail = data.user?.email
+      if (typeof refreshedEmail === 'string' && refreshedEmail.length > 0) {
+        userEmail = refreshedEmail
+      }
+    }
 
     let destination = '/buscar'
-    if (user) {
-      identifyEventUser(user.id, { email: user.email || email })
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (userId) {
+      identifyEventUser(userId, { email: userEmail || email })
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
       destination = resolvePostLoginDestination(profile?.role)
     }
 
