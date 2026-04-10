@@ -11,10 +11,26 @@ This file applies to the **UK entity Stripe rail** only.
 Canonical routing rule:
 1. Entity decides rail, not professional country alone.
 2. UK entity uses Stripe end-to-end where supported.
-3. BR entity uses Airwallex or dLocal end-to-end for BR professionals/payout rails.
-4. US/EU professionals onboarded under UK entity remain Stripe end-to-end.
+3. BR entity uses Airwallex end-to-end for BR professionals/payout rails.
+4. dLocal remains contingency only (not active in v1).
+5. US/EU professionals onboarded under UK entity remain Stripe end-to-end.
 
-Historical sections below that discuss a UK->BR Stripe-only corridor are superseded by the entity-based dual-rail routing rule and kept only as implementation history context.
+### Wave 3 implementation lock (operational)
+
+1. Do **not** implement UK->BR payout routing in Stripe for BR professionals.
+2. Stripe webhooks handled in UK rail:
+- `checkout.session.completed`
+- `invoice.paid`
+- `invoice.payment_failed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+3. Settlement ownership:
+- UK ledger reconciles only UK-entity Stripe flows.
+- BR ledger and payout lifecycle are reconciled in BR rail (Airwallex).
+4. Failover policy:
+- dLocal is fallback provider for BR rail incident/coverage gaps, not default path.
+
+Historical sections below that discuss UK->BR Stripe-only assumptions are kept only as implementation history context and are **not** canonical for Wave 3 execution.
 
 ## Background Job Resilience Foundation â€” Implemented (code level)
 

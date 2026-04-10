@@ -43,7 +43,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 | Professional onboarding | Multi-step with dual gate (go-live vs first booking eligibility) | Done (Wave 2) | Keep fixtures and smoke checks deterministic in CI |
 | Booking lifecycle | Explicit state machine + request booking + slot hold | Done (Wave 2) | Keep one manual-confirmation fixture path under periodic verification |
 | Recurring scheduling | Reserved cycles, release windows, pause/change deadlines | Done (Wave 2) | Monitor cron/Inngest release telemetry in operations |
-| Payments and revenue | Dual-rail payments by entity (UK=Stripe, BR=Airwallex/dLocal) + ledger | In progress | Real-money execution pending; BR-entity provider final lock still open |
+| Payments and revenue | Dual-rail payments by entity (UK=Stripe, BR=Airwallex) + ledger | In progress | Real-money execution pending; dLocal remains contingency fallback |
 | Admin trust operations | Structured case queue and audit-first moderation | In progress | Case queue and full audit workflows pending |
 | Notifications and inbox | Event-driven email + in-app inbox + reminders | In progress | Delivery observability and full event routing pending |
 | Session execution | Agora-based session execution with provider boundaries | In progress | Reliability and session-event/audit hardening pending |
@@ -52,7 +52,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 ## Critical blockers
 
 1. ~~Production schema parity for booking foundation tables.~~ **Resolved 2026-03-29**: migrations 001-006 applied.
-2. BR-entity payout provider final lock (Airwallex vs dLocal) and contract closure.
+2. BR-entity payout rail operationalization (Airwallex v1) with settlement/webhook runbook closure.
 3. Final legal/compliance wording freeze for sensitive categories.
 
 ## Recently completed
