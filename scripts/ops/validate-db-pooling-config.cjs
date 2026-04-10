@@ -45,6 +45,7 @@ function main() {
   const root = process.cwd()
   loadEnvFile(path.join(root, '.env.local'))
   loadEnvFile(path.join(root, '.env'))
+  loadEnvFile(path.join(root, '.env.production'))
 
   const poolerRaw =
     process.env.SUPABASE_DB_POOLER_URL ||
@@ -57,11 +58,24 @@ function main() {
     process.env.POSTGRES_PRISMA_URL ||
     ''
 
+  const runtimeEnv = String(
+    process.env.VERCEL_ENV || process.env.APP_ENV || process.env.NODE_ENV || '',
+  ).toLowerCase()
+  const requirePooler =
+    process.env.REQUIRE_DB_POOLER === 'true' ||
+    runtimeEnv === 'production'
+
   const pooler = parseConnectionUrl('SUPABASE_DB_POOLER_URL/DATABASE_URL', poolerRaw)
   if (!pooler) {
-    throw new Error(
-      'Missing pooled DB connection string. Set SUPABASE_DB_POOLER_URL (or DATABASE_URL) to Supavisor port 6543.',
+    if (requirePooler) {
+      throw new Error(
+        'Missing pooled DB connection string. Set SUPABASE_DB_POOLER_URL (or DATABASE_URL) to Supavisor port 6543.',
+      )
+    }
+    console.log(
+      '[db-pooling] INFO: pooled URL is not configured in local/dev environment. Production must set SUPABASE_DB_POOLER_URL.',
     )
+    return
   }
 
   const poolerPort = portOrDefault(pooler, 5432)

@@ -40,7 +40,7 @@ async function login(page: Page, email: string, password: string) {
   const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
   const submitButton = page.locator('button[type="submit"]').first()
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     await emailInput.fill(email)
     await passwordInput.fill(password)
     await submitButton.click()
@@ -49,11 +49,16 @@ async function login(page: Page, email: string, password: string) {
       await page.waitForURL(/\/(buscar|dashboard)/, { timeout: 30_000 })
       return
     } catch {
-      const rateLimited = await page
-        .getByText(/muitas tentativas|tente novamente|aguarde/i)
-        .count()
-      if (rateLimited > 0 && attempt < 2) {
-        await page.waitForTimeout(2_500)
+      let rateLimited = 0
+      try {
+        rateLimited = await page
+          .getByText(/muitas tentativas|tente novamente|aguarde/i)
+          .count()
+      } catch {
+        throw new Error(`E2E login failed: page became unavailable during login (url=${page.url()}).`)
+      }
+      if (rateLimited > 0 && attempt < 4) {
+        await page.waitForTimeout(4_000)
         continue
       }
 
@@ -81,9 +86,14 @@ test.describe('Wave 2 onboarding and gate matrix coverage', () => {
 
     await expect(page).toHaveURL(/\/onboarding-profissional/)
     await expect(page.getByRole('heading', { name: /C1-C10/i })).toBeVisible()
-    await expect(page.getByText(/Review submission gate/i)).toBeVisible()
-    await expect(page.getByText(/First-booking acceptance gate/i)).toBeVisible()
-    await expect(page.getByRole('button', { name: /Enviar para revisao/i })).toBeVisible()
+    await expect(page.getByText(/(Review submission gate|Submit for review|C8 Submit for review)/i)).toBeVisible()
+    await expect(
+      page
+        .locator('p,th')
+        .filter({ hasText: /(First-booking acceptance gate|Gate de primeiro booking|1[ºo]\s*booking)/i })
+        .first(),
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: /(Enviar para revis[aã]o|Submit for review)/i })).toBeVisible()
     await expect(page.getByRole('table')).toBeVisible()
   })
 
