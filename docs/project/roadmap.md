@@ -42,10 +42,16 @@ Source baseline: `docs/spec/source-of-truth/part1..part5`
 
 ### Wave 3 - Payments, billing, payouts, revenue engine
 
+Canonical lock (2026-04-10):
+1. Entity decides rail, not professional country.
+2. UK entity: Stripe end-to-end.
+3. BR entity: Airwallex end-to-end (v1 default).
+4. dLocal: contingency fallback only.
+
 Wave 3 has two parallel tracks: **journeys completion** (must finish before Stripe code) and **Stripe prep** (independent, can run in parallel).
 
 **Track A â€” Stripe prep (independent, start NOW in parallel with journeys)**:
-1. Send Stripe validation packet (UKâ†’BR corridor) â€” zero code, just email/chat with Stripe.
+1. Keep Stripe scope limited to UK rail (no BR payout routing under UK Stripe entity).
 2. Create Stripe Products/Prices for professional subscriptions in Stripe Dashboard (Basic/Professional/Premium Ã— monthly/annual).
 3. Install Stripe MCP server for Claude Code dev tooling.
 4. `npm install stripe` and add env vars (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`).
@@ -133,8 +139,8 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 1. Payment rails architecture lock: **Done (2026-04-10)**.
 - Entity decides rail (not professional country alone).
 - UK entity -> Stripe end-to-end where supported.
-- BR entity -> Airwallex or dLocal end-to-end for BR professionals/payout rails.
-2. BR-entity provider final selection (Airwallex vs dLocal) and contract closure.
+- BR entity -> Airwallex end-to-end for BR professionals/payout rails.
+2. BR-entity provider final selection: **Done (Airwallex for v1)**.
 3. Legal wording freeze for sensitive-category scope and disclaimers.
 4. Tax/accounting operational model confirmation (including UK <-> BR intercompany settlement design).
 

@@ -4,6 +4,17 @@ Last updated: 2026-04-02
 
 Execute in order. Build one batch at a time.
 
+## Wave 3 rail lock (canonical, execute as-is)
+
+1. Entity-based routing is mandatory:
+- UK entity -> Stripe end-to-end.
+- BR entity -> Airwallex end-to-end (v1).
+- dLocal -> fallback only.
+2. Stripe workstream in this repo covers UK rail lifecycle only:
+- checkout/session + subscription lifecycle + invoice paid/failed webhooks
+- UK ledger reconciliation and retry/idempotency jobs
+3. BR payout lifecycle and settlement must be tracked as separate rail operations (not forced into UK Stripe flow).
+
 ## Workspace best practices (must keep)
 
 1. Use only `C:\dev\muuday-app` for active development, commits, and deploy actions.
