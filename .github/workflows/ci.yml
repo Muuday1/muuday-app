@@ -85,7 +85,7 @@ jobs:
         run: npm run test:unit
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Auto-heal E2E professional fixtures
         id: auto_heal_fixtures
