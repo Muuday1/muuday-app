@@ -17,7 +17,7 @@ Last updated: 2026-03-29
 1. Keep provider integrations as adapters, not business source-of-truth.
 2. Keep internal ledger logic independent from raw processor object state.
 3. Keep case and audit models first-class for operational safety.
-4. Keep session execution provider-agnostic until provider lock is finalized.
+4. Keep session execution provider boundaries clean while using Agora as the active provider.
 
 ## Compliance constraints
 

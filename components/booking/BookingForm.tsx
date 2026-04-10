@@ -1234,7 +1234,7 @@ export default function BookingForm({
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center gap-2 text-xs text-neutral-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Sessão por vídeo (Google Meet)
+                Sessão por vídeo (Agora)
               </div>
               <div className="flex items-center gap-2 text-xs text-neutral-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />

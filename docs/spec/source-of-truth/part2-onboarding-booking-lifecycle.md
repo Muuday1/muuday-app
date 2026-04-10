@@ -1341,11 +1341,11 @@ Unified instructions for any AI coding/design/system assistant
 - Keep implementation modular and maintainable for lean operations.
 
 --------------------------------------------------------------------
-SECTION 14 â€” SESSION EXECUTION RULES AT A HIGH LEVEL (WITHOUT FINAL VIDEO PROVIDER LOCK-IN)
+SECTION 14 — SESSION EXECUTION RULES AT A HIGH LEVEL (AGORA LOCKED)
 --------------------------------------------------------------------
 
 Important note
-Final provider decision is intentionally deferred. LiveKit is the preferred target if it satisfies needs; Google Meet automatic links remain a fallback. Build later. This section captures only the booking-layer rules that need to exist regardless of provider.
+Provider decision is locked to Agora for the current roadmap. This section captures the booking-layer rules required regardless of future provider changes.
 
 14.1 Join timing rule
 Final decision:
@@ -1552,12 +1552,12 @@ SECTION 18 - AI-AGNOSTIC BUILD INSTRUCTIONS FOR THIS PART
 
 18.2 Session abstraction directives
 - Build a provider-agnostic session abstraction first.
-- Do not hardwire LiveKit event names or Google Meet assumptions into core booking logic.
+- Do not hardwire Agora event names directly into core booking logic.
 - Implement booking/session boundary as clean interfaces.
-- If provider decision remains open, scaffold:
+- Use provider-adapter boundaries and scaffold:
   - SessionProvider interface
-  - LiveKitProvider implementation stub
-  - GoogleMeetProvider implementation stub
+  - AgoraProvider implementation stub
+  - ProviderFallback implementation stub
 
 18.3 AI-assisted delivery checklist
 Use the AI assistant to support:

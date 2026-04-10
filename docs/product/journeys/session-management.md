@@ -40,7 +40,7 @@ Enable user and professional to manage post-booking lifecycle safely: confirmati
 
 1. Full structured dispute case lifecycle integration.
 2. Full provider-backed refund/payout interaction for all terminal states.
-3. Full session provider abstraction parity (provider lock still provisional).
+3. Full session provider abstraction parity (Agora active, adapter hardening still pending).
 
 ## Next steps
 

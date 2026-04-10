@@ -21,9 +21,9 @@ Source baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Now
 
-### Wave 2 close - Onboarding, booking lifecycle, and infrastructure hardening
+### Wave 2 close - Onboarding, booking lifecycle, and infrastructure hardening [Done]
 
-**Product scope** (backend complete, pending manual acceptance):
+**Product scope** (closed 2026-04-10):
 1. ~~Finalize dual onboarding gates (public listing vs first booking acceptance).~~ Done.
 2. ~~Finalize booking state machine, request booking, slot hold, and recurring scheduling rules.~~ Done.
 3. ~~Finalize timezone-safe booking views and timeline/event integrity.~~ Done.
@@ -117,9 +117,9 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 
 ### Wave 5 - Session provider and compliance freeze
 
-1. Final provider lock with provider-agnostic session abstraction.
+1. Keep Agora as active provider while preserving provider adapter boundaries in booking core.
 2. Sensitive-category disclaimer versioning and booking acceptance snapshots.
-3. External validations closure (Stripe corridor, legal, tax/accounting).
+3. External validations closure (BR rail provider final lock, legal, tax/accounting).
 
 ### Post-MVP - Scale triggers
 
@@ -130,10 +130,13 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 
 ## Open validations (must close before architecture freeze)
 
-1. ~~Stripe corridor validation for UK platform to Brazil-heavy professional payouts~~ â€” **CONFIRMED 2026-04-01**. UKâ†’BR Express corridor supported. Separate Charges and Transfers works. PayPal available. BR payouts in BRL, daily automatic. See `docs/engineering/stripe-integration-plan.md`.
-2. Final session provider lock decision â€” **must close before Wave 5 start**.
+1. Payment rails architecture lock: **Done (2026-04-10)**.
+- Entity decides rail (not professional country alone).
+- UK entity -> Stripe end-to-end where supported.
+- BR entity -> Airwallex or dLocal end-to-end for BR professionals/payout rails.
+2. BR-entity provider final selection (Airwallex vs dLocal) and contract closure.
 3. Legal wording freeze for sensitive-category scope and disclaimers.
-4. Tax/accounting operational model confirmation.
+4. Tax/accounting operational model confirmation (including UK <-> BR intercompany settlement design).
 
 ## Approved future stack additions
 
@@ -142,7 +145,7 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 | Database indexes + booking atomicity | Performance and data integrity | Planned | Wave 2 close |
 | GitHub Actions CI | Automated quality gate | Planned | Wave 2 close |
 | JWT custom claims | Middleware performance | Planned | Wave 2 close |
-| Stripe full integration | Marketplace charging, refunds, payouts, billing | Planned | Wave 3 |
+| Dual-rail payments integration (Stripe + BR rail) | Marketplace charging, refunds, payouts, billing by entity | Planned | Wave 3 |
 | Stripe MCP server | Dev tooling for Claude Code | Planned | Wave 3 |
 | Supabase Vault | Encrypted PII storage | Planned | Wave 3 |
 | Admin audit trail | Financial compliance | In progress (foundation delivered) | Wave 3 |
@@ -151,7 +154,7 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 | Admin case queue | Operational exception handling | Planned | Wave 4 |
 | Notification dispatcher | Reliable operational communication | In progress | Wave 4 |
 | Redis cache layer | Read performance at scale | Threshold-triggered | Wave 4+ |
-| Session provider abstraction | Video/session execution flexibility | Planned | Wave 5 |
+| Session provider hardening (Agora) | Video/session execution reliability and governance | In progress | Wave 2-5 |
 | Typesense/Meilisearch | Search at scale | Threshold-triggered | Post-MVP |
 | Cloudflare Images | Image optimization | Threshold-triggered | Post-MVP |
 
@@ -164,7 +167,7 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 2. Wave 1: âœ… Done
    - feature flag rollout baseline (PostHog Feature Flags)
 
-3. Wave 2 close: In progress
+3. Wave 2 close: [Done] signed off 2026-04-10
    - database indexes and booking atomicity
    - JWT custom claims for middleware performance
    - GitHub Actions CI pipeline
@@ -173,7 +176,8 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
    - Upstash rate limit monitoring
 
 4. Wave 3:
-   - Stripe full lifecycle (Connect + Billing + webhooks)
+   - UK-rail Stripe lifecycle (Connect + Billing + webhooks where supported)
+   - BR-rail provider integration (Airwallex or dLocal)
    - Stripe MCP server for dev tooling
    - internal financial ledger
    - Supabase Vault for PII
@@ -187,7 +191,7 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
    - Redis cache layer (if threshold met)
 
 6. Wave 5:
-   - session provider lock (LiveKit vs Google Meet) and compliance versioning hardening
+   - compliance versioning hardening and provider-agnostic safeguards (Agora remains active provider)
 
 7. Post-MVP:
    - Typesense/Meilisearch (if search scale threshold met)
@@ -196,7 +200,7 @@ Wave 3 has two parallel tracks: **journeys completion** (must finish before Stri
 
 ## Under evaluation
 
-1. Final video provider path for v1 launch.
+1. No open video provider decision for v1 (Agora locked); only reliability/compliance hardening remains.
 2. Deeper tax automation beyond MVP light model.
 3. Advanced trust automation beyond manual + rule-based controls.
 

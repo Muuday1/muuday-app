@@ -16,7 +16,7 @@ Status definitions:
 
 | Capability (Open) | Why it matters | Entry wave target | Option 1 | Option 2 | Option 3 | Recommendation for Muuday now |
 | --- | --- | --- | --- | --- | --- | --- |
-| Session provider runtime | Session reliability, no-show evidence, future in-call controls | Wave 5 | LiveKit (preferred target) | Google Meet (fallback) | Daily (alternative if needed) | Keep provider-agnostic abstraction and run LiveKit vs Google Meet validation from `docs/spec/consolidated/open-validations.md`. |
+| Session provider runtime | Session reliability, no-show evidence, future in-call controls | Wave 2/3 | Agora (locked) | Reopen only by explicit product decision | Daily (alternative if needed) | Keep provider adapter boundaries and avoid provider-specific leakage into booking core. |
 | Case queue subsystem | Disputes, no-shows, trust ops, exception handling | Wave 4 | In-app queue (Supabase + Next.js) | Linear (ops triage workflow) | Zendesk | Start with in-app queue as source of truth; mirror high-level ops tasks into Linear. |
 | Notification orchestration | Reliable reminders and event fan-out | Wave 4 | Inngest | Trigger.dev | Upstash QStash | **Decision: Inngest selected (2026-03-30).** Keep provider adapters for Resend/WhatsApp/SMS. |
 | Internal ledger implementation | Financial auditability and reconciliation | Wave 3 | Postgres double-entry (custom) | Medici (Node ledger library) | TigerBeetle | MVP: Postgres double-entry in existing DB for lowest complexity and full control. |

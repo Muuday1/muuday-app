@@ -70,7 +70,7 @@ Exit criteria:
 
 ## Wave 3 - Payments, billing, payouts, and revenue engine
 
-Goal: implement Part 3 with Stripe-backed lifecycle, internal ledger integrity, and admin safety.
+Goal: implement Part 3 with dual-rail lifecycle (UK Stripe + BR Airwallex/dLocal), internal ledger integrity, and admin safety.
 
 Tasks:
 1. Implement booking charge/capture/refund flows with idempotent webhooks.

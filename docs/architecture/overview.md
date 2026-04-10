@@ -1,6 +1,6 @@
 ﻿# Architecture Overview
 
-Last updated: 2026-03-29
+Last updated: 2026-04-10
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -37,7 +37,9 @@ Muuday is a marketplace platform with a multi-domain architecture:
 - Supabase Postgres + RLS + auth model.
 
 4. Financial engine (target parity with Part 3)
-- Stripe-backed charge/refund flow.
+- Dual-rail payments by entity:
+  - UK entity: Stripe end-to-end (where supported).
+  - BR entity: Airwallex or dLocal end-to-end for BR professionals/payout rails.
 - Professional subscription billing.
 - Payout eligibility and payout batching.
 - Internal financial ledger and snapshots.
@@ -53,7 +55,7 @@ Muuday is a marketplace platform with a multi-domain architecture:
 
 7. Session execution layer
 - Provider abstraction for session execution.
-- Provider implementation chosen later via explicit validation.
+- Active provider for current implementation: Agora.
 
 ## High-level data flow
 
@@ -65,8 +67,8 @@ Muuday is a marketplace platform with a multi-domain architecture:
 
 ## Risk and freeze points
 
-1. Stripe corridor validation remains open before full payment architecture freeze.
-2. Session provider final lock remains open by design.
+1. BR-entity rail provider final decision (Airwallex vs dLocal) remains open before Wave 3 real-money go-live.
+2. Session provider is locked to Agora for current roadmap execution.
 3. Compliance/legal wording finalization remains open.
 
 ## Related docs

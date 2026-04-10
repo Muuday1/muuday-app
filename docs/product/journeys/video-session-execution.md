@@ -33,19 +33,19 @@ Deliver reliable session join and evidence lifecycle with provider-agnostic arch
 
 `Planned`
 
-- Provider lock intentionally deferred.
+- Provider locked to Agora for current roadmap execution.
 - Session-provider abstraction still pending full implementation.
 
 ## Gaps
 
-1. Final provider lock decision.
-2. Provider adapter implementation and event mapping.
-3. Session-state to case/timeline integration parity.
+1. Agora adapter hardening and event mapping coverage.
+2. Session-state to case/timeline integration parity.
+3. Provider abstraction fallback hooks (only if provider decision is reopened).
 
 ## Next steps
 
 1. Build provider-agnostic session abstraction contract.
-2. Implement first provider adapter according to open validation outcomes.
+2. Consolidate Agora provider adapter and observability outcomes.
 3. Integrate session event logs into booking timeline and dispute evidence flows.
 
 ## Related docs

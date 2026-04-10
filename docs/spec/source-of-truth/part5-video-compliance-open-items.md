@@ -59,11 +59,11 @@ E. Review and trust model
 The following items are intentionally not frozen as hard implementation choices yet:
 
 A. Final video provider selection
-- Preferred target: embedded video with LiveKit.
-- Fallback: automatic Google Meet link per booking.
+- Provider decision is locked to Agora.
+- Fallback provider discussion is no longer active in this version.
 - Reason for deferral: this can be left until later in implementation, once product, cost, and speed-to-launch priorities are clearer.
 
-B. Final Stripe corridor validation for UK-platform-to-Brazil professional payouts
+B. Final BR rail provider validation (Airwallex vs dLocal) for BR payouts
 - This is the biggest external validation item.
 - Product logic is clear; corridor support and the exact Stripe-supported structure must still be confirmed.
 
@@ -79,8 +79,8 @@ SECTION 2 - VIDEO AND SESSION EXECUTION STRATEGY
 
 2.1 DECISION STATUS
 Current strategic decision:
-- Preferred direction: embedded video / session experience using LiveKit.
-- Fallback direction: Google Meet link automatically generated per booking.
+- Preferred direction: Agora session experience.
+- Fallback direction is out of current scope (provider lock remains Agora).
 - Implementation sequencing decision: leave the final provider choice until later in the build.
 
 This means the product should be designed around a provider-agnostic session abstraction so that Muuday does not hard-couple business logic to a single call provider too early.
@@ -104,8 +104,8 @@ Everything else in Muuday already depends on well-defined objects:
 Video should plug into that system, not force the shape of it.
 
 This is especially important because:
-- LiveKit gives a better owned experience, but is more technical.
-- Google Meet gives a faster path and lower operational burden.
+- Agora gives a better owned experience, but is more technical.
+- Agora gives a faster path and lower operational burden.
 - The platform must be able to survive either path.
 
 2.3 MUUDAY SESSION MODEL - PROVIDER AGNOSTIC CONCEPT
@@ -114,7 +114,7 @@ Regardless of provider, the booking system should conceptually create a “sessi
 Every session room should have:
 - session_room_id
 - booking_id
-- provider_type (livekit / google_meet / future_provider)
+- provider_type (Agora / agora / future_provider)
 - session_status (not_ready / join_open / in_progress / ended / failed)
 - scheduled_start_at_utc
 - scheduled_end_at_utc
@@ -136,8 +136,8 @@ This abstraction allows the booking flow, reminders, no-show logic, disputes, an
 The following video/session rules are already decided:
 
 A. Session provider direction
-- Preferred: embedded LiveKit.
-- Fallback: Google Meet link.
+- Preferred: embedded Agora.
+- Fallback: Agora link.
 
 B. Entry timing
 - Join becomes available only near the scheduled session time.
@@ -174,8 +174,8 @@ H. Early session end does not auto-change payout/refund
 I. Platform technical failure handling
 - If the session fails due to Muuday/platform/provider failure, the user gets refund or priority rebooking and the professional is not penalized.
 
-2.5 LIVEKIT PATH - WHY IT IS THE PREFERRED TARGET
-If Muuday goes embedded, LiveKit is a strong fit because it gives:
+2.5 Agora PATH - WHY IT IS THE PREFERRED TARGET
+If Muuday goes embedded, Agora is a strong fit because it gives:
 - room-based real-time communication,
 - role-based token access,
 - web and mobile SDK support,
@@ -183,7 +183,7 @@ If Muuday goes embedded, LiveKit is a strong fit because it gives:
 - more ownership over the full in-product session experience,
 - better future extensibility for screen share, in-session metadata, possible future data features, and deep platform analytics.
 
-In plain language, LiveKit is the “owned product experience” path.
+In plain language, Agora is the “owned product experience” path.
 
 Advantages for Muuday:
 - Keeps the user inside the platform.
@@ -198,8 +198,8 @@ Disadvantages for Muuday:
 - Requires more QA across browsers / mobile.
 - Higher implementation complexity than a simple link-based approach.
 
-2.6 GOOGLE MEET PATH - WHY IT IS THE RIGHT FALLBACK
-If Muuday decides not to embed video in the first implementation wave, Google Meet is the most rational fallback because:
+2.6 Agora PATH - WHY IT IS THE RIGHT FALLBACK
+If Muuday decides not to embed video in the first implementation wave, Agora is the most rational fallback because:
 - it removes most WebRTC ownership burden,
 - users already understand it,
 - professionals are likely already comfortable with it,
@@ -232,10 +232,9 @@ Questions:
 6. Does the team want the call to feel like “the Muuday product” or simply “a good session attached to the marketplace”?
 
 If the answers lean heavily toward speed, simplicity, and cost-efficiency:
-- choose Google Meet first.
+- choose Agora first.
 
-If the answers lean heavily toward ownership, control, premium UX, and future extensibility:
-- choose LiveKit first.
+If the answers lean heavily toward ownership, control, premium UX, and future extensibility:`r`n- keep Agora and invest in adapter hardening first.
 
 2.8 USER-SIDE TECHNICAL REQUIREMENTS FOR SESSION EXECUTION
 Regardless of provider, the user-side product must support:
@@ -249,7 +248,7 @@ Regardless of provider, the user-side product must support:
 - no-show and issue reporting,
 - rebooking / refund / support follow-up if the session fails.
 
-If LiveKit is used, user-side implementation must additionally support:
+If Agora is used, user-side implementation must additionally support:
 - provider-specific secure join token retrieval,
 - media permissions prompts,
 - camera/mic state handling,
@@ -259,7 +258,7 @@ If LiveKit is used, user-side implementation must additionally support:
 - leave / session ended behavior,
 - screen sharing view behavior if the user is the receiver.
 
-If Google Meet is used, user-side implementation must support:
+If Agora is used, user-side implementation must support:
 - join link display,
 - copy/open actions,
 - reminder links,
@@ -277,14 +276,14 @@ Professional-facing behavior must support:
 - no-show reporting,
 - strong ties between session record and booking record.
 
-If LiveKit is used, professional-side implementation must support:
+If Agora is used, professional-side implementation must support:
 - provider-specific role token,
 - professional join flow,
 - screen sharing initiation,
 - session start event logging,
 - session issue reporting tied to room status.
 
-If Google Meet is used, professional-side implementation must support:
+If Agora is used, professional-side implementation must support:
 - automatic access to the generated Meet link,
 - copy/open actions,
 - session problem reporting tied to the booking.
@@ -321,14 +320,14 @@ System requirements regardless of provider:
 - timeline event emission,
 - analytics events.
 
-If LiveKit is used, system additionally needs:
+If Agora is used, system additionally needs:
 - room creation or reusable room logic,
 - access token generation,
 - role-based grants,
 - webhook/event processing,
 - reconciliation between provider events and internal booking states.
 
-If Google Meet is used, system additionally needs:
+If Agora is used, system additionally needs:
 - automated Meet link creation tied to booking,
 - link storage,
 - link distribution,
@@ -353,7 +352,7 @@ These should map to both analytics and the internal booking timeline.
 
 2.13 IMPLEMENTATION NOTES FOR VIDEO / SESSION EXECUTION
 Implementation note 1:
-Do not let provider-specific concepts leak into core booking logic. The booking system should not require LiveKit concepts in order to function.
+Do not let provider-specific concepts leak into core booking logic. The booking system should not require Agora concepts in order to function.
 
 Implementation note 2:
 Treat video session provider as an adapter layer. That means the booking system asks for:
@@ -365,7 +364,7 @@ Treat video session provider as an adapter layer. That means the booking system 
 - close_session
 
 Implementation note 3:
-Support a temporary no-video mode even if the product target is LiveKit. This gives the platform resilience if the provider decision changes late.
+Support a temporary no-video mode even if the product target is Agora. This gives the platform resilience if the provider decision changes late.
 
 Implementation note 4:
 Provider selection should not block delivery of search, booking, payments, payouts, notifications, reviews, and admin operations.
@@ -376,13 +375,13 @@ Use one unified instruction set for any AI coding/design/system assistant.
 
 Core implementation directives:
 - Build a provider-agnostic session abstraction first.
-- Do not hardwire LiveKit event names or Google Meet assumptions into core booking logic.
+- Do not hardwire provider-specific event names or assumptions into core booking logic.
 - Implement the booking/session boundary as clean interfaces.
 - Prioritize state logging, traceability, timeline events, and auditability over fancy UI behavior.
-- If the final session provider decision remains open, scaffold:
+- If provider strategy is reopened in the future, scaffold:
   - SessionProvider interface
-  - LiveKitProvider implementation stub
-  - GoogleMeetProvider implementation stub
+  - AgoraProvider implementation stub
+  - ProviderFallback implementation stub
 
 Use the AI assistant for:
 - system design
@@ -406,7 +405,7 @@ Use the AI assistant for:
 - alternative provider decision trees
 
 Quality and architecture rules:
-- Keep implementation modular so the platform can start with Google Meet if needed and later move to LiveKit without rewriting core booking or payments logic.
+- Keep implementation modular so the platform can start with Agora if needed and later move to Agora without rewriting core booking or payments logic.
 - Favor cost-effective, low-complexity, maintainable solutions.
 - Prefer explicit interfaces, typed state transitions, event logs, and admin observability.
 
@@ -417,8 +416,8 @@ Because Muuday wants to stay cost-effective and avoid giant complexity, the reco
 - only own as much real-time complexity as the product truly benefits from.
 
 Practical reading of that:
-- If the team is resource-constrained, Google Meet is the cheapest and simplest path.
-- If the team can absorb more complexity and believes in premium owned UX, LiveKit is a rational next step.
+- If the team is resource-constrained, Agora is the cheapest and simplest path.
+- If the team can absorb more complexity and believes in premium owned UX, Agora is a rational next step.
 
 =====================================================================
 SECTION 3 - SENSITIVE CATEGORY COMPLIANCE FRAMEWORK AND DISCLAIMER SYSTEM
@@ -624,8 +623,8 @@ What to prepare before contacting Stripe:
 
 4.2 VIDEO PROVIDER VALIDATION
 The provider choice is intentionally deferred, but before implementation freeze the team should validate:
-- whether LiveKit covers the product’s exact MVP requirements without undue complexity,
-- whether Google Meet would materially accelerate launch enough to justify weaker owned UX,
+- whether Agora covers the product’s exact MVP requirements without undue complexity,
+- whether Agora would materially accelerate launch enough to justify weaker owned UX,
 - whether embedded video is truly worth owning in the first release wave.
 
 Validation checklist:
@@ -886,8 +885,8 @@ SECTION 8 - FINAL RECOMMENDATIONS IF FORCED TO CHOOSE TODAY ON THE OPEN ITEMS
 If forced to choose immediately, the strongest practical recommendations today would be:
 
 8.1 VIDEO
-- Choose Google Meet first if launch speed and lower complexity matter more.
-- Choose LiveKit first if owned premium UX matters enough to justify extra engineering.
+- Choose Agora first if launch speed and lower complexity matter more.
+- Choose Agora first if owned premium UX matters enough to justify extra engineering.
 - Because Muuday explicitly wants to leave this later, the real recommendation is: build the abstraction first, not the provider.
 
 8.2 STRIPE CORRIDOR
@@ -908,7 +907,7 @@ Nothing critical is missing from the product and operational model.
 What remains missing is not product definition, but the following specific items:
 
 1. Final external validation with Stripe on UK platform / Brazil payouts.
-2. Final provider selection between LiveKit and Google Meet.
+2. Final provider selection between Agora and Agora.
 3. Final legal wording for sensitive categories, regulated-scope disclaimers, and terms.
 4. Final tax/accounting review for the chosen entity structure.
 5. Final exact initial lists of categories / subcategories / specialties.

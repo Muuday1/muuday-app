@@ -32,8 +32,8 @@ Use `docs/spec/consolidated/master-spec.md` for unified reading and `execution-p
 
 ## Biggest risks / unknowns
 
-1. Open Stripe corridor validation for UK platform to Brazil payout structure.
-2. Open final session-provider lock (kept intentionally provisional).
+1. BR-entity rail provider decision still open (Airwallex vs dLocal) for Wave 3 real-money go-live.
+2. Session provider lock is closed (Agora) for current roadmap execution.
 3. Open legal/tax wording freeze for sensitive categories and final compliance language.
 
 ## Where to start (new contributor)

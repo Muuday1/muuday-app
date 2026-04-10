@@ -49,7 +49,9 @@ Provide reliable money movement across booking charges, refunds, disputes, payou
 
 ## Next steps
 
-1. Implement Stripe-backed charge/refund/payout flow.
+1. Implement dual-rail charge/refund/payout flow:
+- UK entity: Stripe end-to-end (where supported).
+- BR entity: Airwallex or dLocal end-to-end for BR professionals/payout rails.
 2. Build internal ledger model and payout eligibility service.
 3. Build professional plan billing flow with trial/grace/lock behavior.
 4. Add finance-case operations and auditability.
