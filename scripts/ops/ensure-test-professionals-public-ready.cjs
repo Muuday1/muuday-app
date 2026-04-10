@@ -76,6 +76,13 @@ function exportCiVariable(name, value) {
   }
 }
 
+function assertNoSupabaseError(result, context) {
+  if (result?.error) {
+    throw new Error(`[${context}] ${result.error.message}`)
+  }
+  return result
+}
+
 async function resolveProfessionalIdByEmail(supabase, email) {
   const normalizedEmail = normalizeText(email).toLowerCase()
   if (!normalizedEmail) return null
@@ -167,14 +174,17 @@ async function ensureProfessionalReadyForPublicSearch(
     normalizeText(profile?.full_name, professionalId),
   )}`
 
-  await supabase
+  assertNoSupabaseError(
+    await supabase
     .from('profiles')
     .update({
       avatar_url: normalizeText(profile?.avatar_url, fallbackAvatar),
       country: normalizeText(profile?.country, 'BR'),
       timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
     })
-    .eq('id', String(professional.user_id))
+    .eq('id', String(professional.user_id)),
+    `profiles.update:${professional.user_id}`,
+  )
 
   const normalizedCategory = normalizeText(
     professional.category,
@@ -188,7 +198,8 @@ async function ensureProfessionalReadyForPublicSearch(
     : []
   const normalizedTags = Array.isArray(professional.tags) ? professional.tags.filter(Boolean) : []
 
-  await supabase
+  assertNoSupabaseError(
+    await supabase
     .from('professionals')
     .update({
       status: 'approved',
@@ -203,14 +214,17 @@ async function ensureProfessionalReadyForPublicSearch(
       session_price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
       session_duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
     })
-    .eq('id', professionalId)
+    .eq('id', professionalId),
+    `professionals.update:${professionalId}`,
+  )
 
   const defaultDisplayName = normalizeText(
     profile?.full_name,
     `Profissional ${String(professionalId).slice(0, 8)}`,
   )
-  await supabase.from('professional_applications').upsert(
-    {
+  assertNoSupabaseError(
+    await supabase.from('professional_applications').upsert(
+      {
       user_id: String(professional.user_id),
       professional_id: professionalId,
       display_name: defaultDisplayName,
@@ -236,12 +250,15 @@ async function ensureProfessionalReadyForPublicSearch(
       qualification_file_names: [],
       qualification_note: null,
       status: 'approved',
-    },
-    { onConflict: 'user_id' },
+      },
+      { onConflict: 'user_id' },
+    ),
+    `professional_applications.upsert:${professional.user_id}`,
   )
 
-  await supabase.from('professional_settings').upsert(
-    {
+  assertNoSupabaseError(
+    await supabase.from('professional_settings').upsert(
+      {
       professional_id: professionalId,
       timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
       session_duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
@@ -258,62 +275,107 @@ async function ensureProfessionalReadyForPublicSearch(
       cancellation_policy_accepted: true,
       terms_accepted_at: new Date().toISOString(),
       terms_version: 'wave2-e2e-fixture',
-    },
-    { onConflict: 'professional_id' },
+      },
+      { onConflict: 'professional_id' },
+    ),
+    `professional_settings.upsert:${professionalId}`,
   )
 
-  const { count: serviceCount } = await supabase
+  const serviceCountResponse = await supabase
     .from('professional_services')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+  assertNoSupabaseError(serviceCountResponse, `professional_services.count:${professionalId}`)
+  const serviceCount = serviceCountResponse.count
 
   if ((serviceCount || 0) === 0) {
-    await supabase.from('professional_services').insert({
-      professional_id: professionalId,
-      name: 'Sessao de teste validada',
-      service_type: 'one_off',
-      description: 'Servico de teste para validacao da jornada publica.',
-      duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
-      price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
-      enable_recurring: false,
-      enable_monthly: false,
-      is_active: true,
-      is_draft: false,
-    })
+    assertNoSupabaseError(
+      await supabase.from('professional_services').insert({
+        professional_id: professionalId,
+        name: 'Sessao de teste validada',
+        service_type: 'one_off',
+        description: 'Servico de teste para validacao da jornada publica.',
+        duration_minutes: Math.max(Number(professional.session_duration_minutes || 0), 60),
+        price_brl: Math.max(Number(professional.session_price_brl || 0), 120),
+        enable_recurring: false,
+        enable_monthly: false,
+        is_active: true,
+        is_draft: false,
+      }),
+      `professional_services.insert:${professionalId}`,
+    )
   }
 
-  const { count: availabilityRuleCount } = await supabase
+  const availabilityRuleCountResponse = await supabase
     .from('availability_rules')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+  assertNoSupabaseError(
+    availabilityRuleCountResponse,
+    `availability_rules.count:${professionalId}`,
+  )
+  const availabilityRuleCount = availabilityRuleCountResponse.count
 
   if ((availabilityRuleCount || 0) === 0) {
-    await supabase.from('availability_rules').insert({
-      professional_id: professionalId,
-      weekday: 1,
-      start_time_local: '09:00',
-      end_time_local: '17:00',
-      timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
-      is_active: true,
-    })
+    assertNoSupabaseError(
+      await supabase.from('availability_rules').insert({
+        professional_id: professionalId,
+        weekday: 1,
+        start_time_local: '09:00',
+        end_time_local: '17:00',
+        timezone: normalizeText(profile?.timezone, 'America/Sao_Paulo'),
+        is_active: true,
+      }),
+      `availability_rules.insert:${professionalId}`,
+    )
   }
 
-  const { count: availabilityLegacyCount } = await supabase
+  const availabilityLegacyCountResponse = await supabase
     .from('availability')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+  assertNoSupabaseError(
+    availabilityLegacyCountResponse,
+    `availability_legacy.count:${professionalId}`,
+  )
+  const availabilityLegacyCount = availabilityLegacyCountResponse.count
 
   if ((availabilityLegacyCount || 0) === 0) {
-    await supabase.from('availability').insert({
-      professional_id: professionalId,
-      day_of_week: 1,
-      start_time: '09:00',
-      end_time: '17:00',
-      is_active: true,
-    })
+    assertNoSupabaseError(
+      await supabase.from('availability').insert({
+        professional_id: professionalId,
+        day_of_week: 1,
+        start_time: '09:00',
+        end_time: '17:00',
+        is_active: true,
+      }),
+      `availability_legacy.insert:${professionalId}`,
+    )
+  }
+
+  const verification = await supabase
+    .from('professional_settings')
+    .select(
+      'confirmation_mode,billing_card_on_file,payout_onboarding_started,payout_kyc_completed,cancellation_policy_accepted,terms_accepted_at',
+    )
+    .eq('professional_id', professionalId)
+    .maybeSingle()
+  assertNoSupabaseError(verification, `professional_settings.verify:${professionalId}`)
+  const settings = verification.data || {}
+
+  if (String(settings.confirmation_mode || '') !== confirmationMode) {
+    throw new Error(
+      `[professional_settings.verify:${professionalId}] confirmation_mode expected ${confirmationMode} but found ${String(settings.confirmation_mode || '')}`,
+    )
+  }
+  if (!settings.billing_card_on_file || !settings.payout_onboarding_started || !settings.payout_kyc_completed) {
+    throw new Error(`[professional_settings.verify:${professionalId}] payout/billing flags were not persisted.`)
+  }
+  if (!settings.cancellation_policy_accepted || !String(settings.terms_accepted_at || '').trim()) {
+    throw new Error(`[professional_settings.verify:${professionalId}] cancellation policy/terms were not persisted.`)
   }
 
   return { professionalId, updated: true, reason: 'ready', confirmationMode, firstBookingEnabled }
