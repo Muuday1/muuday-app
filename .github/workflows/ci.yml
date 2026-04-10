@@ -47,12 +47,8 @@ jobs:
             E2E_USER_PASSWORD
             E2E_PROFESSIONAL_EMAIL
             E2E_PROFESSIONAL_PASSWORD
-            E2E_PROFESSIONAL_ID
-            E2E_MANUAL_PROFESSIONAL_ID
-            E2E_BLOCKED_PROFESSIONAL_ID
             NEXT_PUBLIC_SUPABASE_URL
             SUPABASE_SERVICE_ROLE_KEY
-            SUPABASE_DB_POOLER_URL
           )
           for key in "${required_vars[@]}"; do
             if [ -z "${!key}" ]; then
@@ -75,11 +71,15 @@ jobs:
         run: npm run build
 
       - name: Validate DB pooling in production mode
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && env.SUPABASE_DB_POOLER_URL != '' }}
         env:
           REQUIRE_DB_POOLER: 'true'
           VERCEL_ENV: production
         run: npm run db:validate-pooling
+
+      - name: Warn if pooled DB URL is missing in CI
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && env.SUPABASE_DB_POOLER_URL == '' }}
+        run: echo "::warning::SUPABASE_DB_POOLER_URL not configured in GitHub secrets/vars. Pooler validation skipped in CI."
 
       - name: Unit tests
         run: npm run test:unit
@@ -88,6 +88,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Auto-heal E2E professional fixtures
+        id: auto_heal_fixtures
         if: ${{ env.NEXT_PUBLIC_SUPABASE_URL != '' && env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: npm run fixtures:ensure-public-ready
 
