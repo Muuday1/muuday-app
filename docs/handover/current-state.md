@@ -1,12 +1,22 @@
 ﻿# Current State
 
-Last updated: 2026-04-02 (session 80)
+Last updated: 2026-04-11 (session 83)
 
 ## Canonical baseline status
 
 1. 5-part source-of-truth specification imported into `docs/spec/source-of-truth/`.
 2. Consolidated execution artifacts created (`master-spec`, `execution-plan`, `open-validations`, `journey-coverage-matrix`, unified AI protocol).
 3. Existing docs realigned to this baseline.
+
+## 2026-04-11 operational decisions (authoritative)
+
+1. PR `#21` merged and deployed to production; `main` checks green.
+2. Supabase Pro extensions enabled: `pg_cron`, `pg_net`, `pgsodium`.
+3. SQL 033 operational template applied (jobs + payments webhook trigger).
+4. Payments DB trigger path validated via `net._http_response` with `202` responses.
+5. Vercel `Skew Protection` is enabled (max age 12h).
+6. PITR is intentionally deferred until pre-launch/payment cutover due cost tradeoff.
+7. Supabase branching policy is now `always branch per PR` (emergency-hotfix exception only, followed by backfill PR).
 
 ## Implemented today (`Done`)
 

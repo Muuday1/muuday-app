@@ -21,6 +21,28 @@ Use this for meaningful checkpoints only.
   - remaining E2E skip is non-critical/intentional (manual-confirmation fixture path), documented and accepted for Wave 2 closure.
   - real-money payments lifecycle remains out of Wave 2 scope and stays in Wave 3.
 
+## 2026-04-11
+
+### Entry 83 (2026-04-11) — Post-Wave2 operational closure
+- Repository hygiene and delivery:
+  - PR `#21` (`perf(search): precompute visibility + split public/auth buscar`) rebased, validated, merged, and deployed to production.
+  - Main branch checks green after merge (`CI`, `Checkly Validate`, `Vercel`).
+  - Local stale branches cleaned; no open PRs remained after merge.
+- Supabase Pro capabilities:
+  - Extensions enabled in project: `pg_cron`, `pg_net`, `pgsodium`.
+  - SQL 033 jobs/templates applied with active cron jobs:
+    - `cleanup-expired-slot-locks`
+    - `clear-expired-slot-locks-fast`
+    - `cancel-stale-pending-bookings`
+    - `http-public-visibility-sync`
+- Webhook bridge validation:
+  - Payments trigger route finalized to call `https://muuday-app.vercel.app/api/webhooks/supabase-db`.
+  - `net._http_response` validated with `202` responses (ids 15/16), confirming DB -> webhook bridge -> Inngest enqueue path.
+- Platform decisions (recorded):
+  - Vercel `Skew Protection`: enabled (max age 12h).
+  - Supabase `PITR`: deferred for pre-launch/payments cutover due current cost tradeoff; compensating controls required.
+  - Supabase branching policy adopted: `always branch per PR` (exception only for emergency hotfix with mandatory backfill PR).
+
 ## 2026-04-02
 
 ### Entry 80
