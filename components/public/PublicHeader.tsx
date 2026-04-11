@@ -124,6 +124,13 @@ export function PublicHeader({
     } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30`
   }
 
+  const resolvedNavItems = NAV_ITEMS.map(item => {
+    if (item.href === '/buscar' && isLoggedInClient) {
+      return { ...item, href: '/buscar-auth' }
+    }
+    return item
+  })
+
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-[#f6f4ef]/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 md:px-8">
@@ -139,7 +146,7 @@ export function PublicHeader({
           </Link>
 
           <nav className="hidden flex-1 items-center gap-2 overflow-x-auto md:flex">
-            {NAV_ITEMS.map(item => (
+            {resolvedNavItems.map(item => (
               <Link key={item.href} href={item.href} className={navItemClass(item.href)}>
                 {item.label}
               </Link>
@@ -248,7 +255,7 @@ export function PublicHeader({
       {menuOpen && (
         <div id="public-nav-panel" className="border-t border-neutral-200 bg-white md:hidden">
           <nav className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-3">
-            {NAV_ITEMS.map(item => (
+            {resolvedNavItems.map(item => (
               <Link
                 key={item.href}
                 href={item.href}

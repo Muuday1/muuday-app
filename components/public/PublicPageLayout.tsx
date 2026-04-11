@@ -8,24 +8,23 @@ import { PublicFooter } from '@/components/public/PublicFooter'
 import { PublicHeader } from '@/components/public/PublicHeader'
 
 export async function PublicPageLayout({ children }: { children: React.ReactNode }) {
-  // Public layout intentionally does not perform auth/profile fetches during SSR.
-  // This keeps public pages resilient when auth infra is transiently unavailable.
-  const user = null
-
   const acceptLanguage = headers().get('accept-language')
   const cookieStore = cookies()
+  const hasAuthCookie = cookieStore
+    .getAll()
+    .some(cookie => cookie.name.includes('auth-token') || cookie.name.includes('access-token'))
 
   const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
 
   const initialCurrency =
     cookieCurrency || resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
 
-  const loggedInHref = '/buscar'
+  const loggedInHref = hasAuthCookie ? '/buscar-auth' : '/buscar'
 
   return (
     <div className="min-h-screen bg-[#f6f4ef] text-neutral-900 flex flex-col">
       <PublicHeader
-        isLoggedIn={Boolean(user)}
+        isLoggedIn={hasAuthCookie}
         loggedInHref={loggedInHref}
         initialCurrency={initialCurrency}
       />
