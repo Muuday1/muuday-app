@@ -5,6 +5,7 @@ import { BuscarPageContent } from '@/app/buscar/page'
 type BuscarSearchParams = {
   q?: string
   categoria?: string
+  subcategoria?: string
   especialidade?: string
   precoMin?: string
   precoMax?: string

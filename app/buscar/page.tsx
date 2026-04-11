@@ -14,6 +14,8 @@ import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoA
 import { SearchQueryBar } from '@/components/search/SearchQueryBar'
 import { ExpandableTags } from '@/components/search/ExpandableTags'
 import {
+  buildSubcategoryOptionsByCategorySlug,
+  buildSpecialtyOptionsBySubcategorySlug,
   buildSpecialtyOptionsByCategorySlug,
   loadActiveTaxonomyCatalog,
   loadProfessionalSpecialtyContext,
@@ -34,6 +36,7 @@ import { filterPubliclyVisibleProfessionals } from '@/lib/professional/public-vi
 type BuscarSearchParams = {
   q?: string
   categoria?: string
+  subcategoria?: string
   especialidade?: string
   precoMin?: string
   precoMax?: string
@@ -55,6 +58,7 @@ type AvailabilityRow = {
 type SearchQueryState = {
   q: string
   categoria: string
+  subcategoria: string
   especialidade: string
   precoMin: string
   precoMax: string
@@ -105,6 +109,8 @@ const EMPTY_SPECIALTY_CONTEXT: SpecialtyContext = {
   byProfessionalId: new Map<string, string[]>(),
   primaryByProfessionalId: new Map<string, string>(),
   categorySlugsByProfessionalId: new Map<string, string[]>(),
+  subcategoryNamesByProfessionalId: new Map<string, string[]>(),
+  subcategorySlugsByProfessionalId: new Map<string, string[]>(),
 }
 
 
@@ -129,6 +135,7 @@ function buildSearchQueryState(input: SearchQueryState): SearchQueryState {
     ...input,
     q: input.q || '',
     categoria: input.categoria || '',
+    subcategoria: input.subcategoria || '',
     especialidade: input.especialidade || '',
     precoMin: input.precoMin || '',
     precoMax: input.precoMax || '',
@@ -401,7 +408,9 @@ export async function BuscarPageContent({
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
-  const selectedSpecialty = selectedCategory ? searchParams.especialidade || '' : ''
+  const selectedSubcategory = selectedCategory ? searchParams.subcategoria || '' : ''
+  const selectedSpecialty =
+    selectedCategory && selectedSubcategory ? searchParams.especialidade || '' : ''
   const selectedAvailability = searchParams.horario || 'qualquer'
   const rawSelectedLocation = (searchParams.localizacao || '').trim()
   const selectedLocation = rawSelectedLocation ? getCountryDisplayName(rawSelectedLocation) : ''
@@ -421,6 +430,7 @@ export async function BuscarPageContent({
   const queryState = buildSearchQueryState({
     q: queryText,
     categoria: selectedCategory,
+    subcategoria: selectedSubcategory,
     especialidade: selectedSpecialty,
     precoMin: searchParams.precoMin || '',
     precoMax: searchParams.precoMax || '',
@@ -484,12 +494,18 @@ export async function BuscarPageContent({
   const specialtiesByProfessionalId = specialtyContext.byProfessionalId
   const primarySpecialtyByProfessionalId = specialtyContext.primaryByProfessionalId
   const categorySlugsByProfessionalId = specialtyContext.categorySlugsByProfessionalId
+  const subcategoryNamesByProfessionalId = specialtyContext.subcategoryNamesByProfessionalId
+  const subcategorySlugsByProfessionalId = specialtyContext.subcategorySlugsByProfessionalId
+  let taxonomySubcategoriesByCategory = new Map<string, Array<{ slug: string; name: string }>>()
   let taxonomySpecialtiesByCategory = new Map<string, string[]>()
+  let taxonomySpecialtiesBySubcategory = new Map<string, string[]>()
 
   if (readClient) {
     const taxonomyCatalog = await loadActiveTaxonomyCatalog(readClient as any)
     if (taxonomyCatalog) {
+      taxonomySubcategoriesByCategory = buildSubcategoryOptionsByCategorySlug(taxonomyCatalog)
       taxonomySpecialtiesByCategory = buildSpecialtyOptionsByCategorySlug(taxonomyCatalog)
+      taxonomySpecialtiesBySubcategory = buildSpecialtyOptionsBySubcategorySlug(taxonomyCatalog)
     }
   }
 
@@ -516,12 +532,65 @@ export async function BuscarPageContent({
     return categorySlugs.includes(selectedCategory)
   }
 
+  const selectedSubcategoryName = selectedCategory
+    ? taxonomySubcategoriesByCategory
+        .get(selectedCategory)
+        ?.find(subcategory => subcategory.slug === selectedSubcategory)?.name || ''
+    : ''
+
+  const professionalMatchesSelectedSubcategory = (professional: any) => {
+    if (!selectedSubcategory) return true
+
+    const subcategorySlugs = subcategorySlugsByProfessionalId.get(String(professional.id)) || []
+    if (subcategorySlugs.includes(selectedSubcategory)) return true
+
+    const acceptedSubcategoryNames = [selectedSubcategoryName, selectedSubcategory]
+      .map(value => normalizeText(value))
+      .filter(Boolean)
+    const subcategoryNames = [
+      ...(subcategoryNamesByProfessionalId.get(String(professional.id)) || []),
+      ...((professional.subcategories || []) as string[]),
+    ]
+
+    return subcategoryNames.some(subcategory =>
+      acceptedSubcategoryNames.includes(normalizeText(subcategory)),
+    )
+  }
+
   const optionBaseProfessionals = selectedCategory
     ? professionals.filter((professional: any) => professionalMatchesSelectedCategory(professional))
     : professionals
 
-  const availableCanonicalSpecialties = new Set<string>()
+  const subcategoryOptionBaseProfessionals = selectedSubcategory
+    ? optionBaseProfessionals.filter((professional: any) =>
+        professionalMatchesSelectedSubcategory(professional),
+      )
+    : optionBaseProfessionals
+
+  const availableSubcategorySlugs = new Set<string>()
   optionBaseProfessionals.forEach((professional: any) => {
+    const subcategorySlugs = subcategorySlugsByProfessionalId.get(String(professional.id)) || []
+    subcategorySlugs.forEach(slug => {
+      const normalized = normalizeText(slug)
+      if (normalized) availableSubcategorySlugs.add(normalized)
+    })
+  })
+
+  const subcategoriesForSelectedCategory =
+    (selectedCategory && taxonomySubcategoriesByCategory.get(selectedCategory)) || []
+  const subcategoriesFilteredByAvailability = subcategoriesForSelectedCategory.filter(subcategory =>
+    availableSubcategorySlugs.has(normalizeText(subcategory.slug)),
+  )
+  const subcategoryOptions = selectedCategory
+    ? (
+        subcategoriesFilteredByAvailability.length > 0
+          ? subcategoriesFilteredByAvailability
+          : subcategoriesForSelectedCategory
+      )
+    : []
+
+  const availableCanonicalSpecialties = new Set<string>()
+  subcategoryOptionBaseProfessionals.forEach((professional: any) => {
     const canonicalSpecialties = specialtiesByProfessionalId.get(String(professional.id)) || []
     canonicalSpecialties.forEach((specialty: string) => {
       const normalized = normalizeText(specialty)
@@ -529,19 +598,20 @@ export async function BuscarPageContent({
     })
   })
 
-  const fallbackCategorySpecialties = selectedCategory
-    ? SEARCH_CATEGORIES.find(category => category.slug === selectedCategory)?.specialties || []
+  const fallbackCategorySpecialties = selectedSubcategory
+    ? taxonomySpecialtiesByCategory.get(selectedCategory) || []
     : []
-  const specialtiesForSelectedCategory =
-    (selectedCategory && taxonomySpecialtiesByCategory.get(selectedCategory)) || fallbackCategorySpecialties
-  const categorySpecialtiesFilteredByAvailability = specialtiesForSelectedCategory.filter(specialty =>
+  const specialtiesForSelectedSubcategory =
+    (selectedSubcategory && taxonomySpecialtiesBySubcategory.get(selectedSubcategory)) ||
+    fallbackCategorySpecialties
+  const categorySpecialtiesFilteredByAvailability = specialtiesForSelectedSubcategory.filter(specialty =>
     availableCanonicalSpecialties.has(normalizeText(specialty)),
   )
-  const specialtyOptions = selectedCategory
+  const specialtyOptions = selectedSubcategory
     ? (
         categorySpecialtiesFilteredByAvailability.length > 0
           ? categorySpecialtiesFilteredByAvailability
-          : specialtiesForSelectedCategory
+          : specialtiesForSelectedSubcategory
       )
     : []
 
@@ -560,6 +630,7 @@ export async function BuscarPageContent({
 
   let filteredProfessionals = professionals.filter((pro: any) => {
     if (selectedCategory && !professionalMatchesSelectedCategory(pro)) return false
+    if (selectedSubcategory && !professionalMatchesSelectedSubcategory(pro)) return false
     if (minPriceBrl !== null && Number(pro.session_price_brl) < minPriceBrl) return false
     if (maxPriceBrl !== null && Number(pro.session_price_brl) > maxPriceBrl) return false
 
@@ -635,6 +706,7 @@ export async function BuscarPageContent({
   const hasActiveFilters = Boolean(
     queryText ||
       selectedCategory ||
+      selectedSubcategory ||
       selectedSpecialty ||
       minPrice !== null ||
       maxPrice !== null ||
@@ -688,6 +760,7 @@ export async function BuscarPageContent({
   const selectedCategoryLabel = selectedCategory
     ? categoryOptions.find(category => category.slug === selectedCategory)?.name || null
     : null
+  const selectedSubcategoryLabel = selectedSubcategoryName || null
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
@@ -707,6 +780,7 @@ export async function BuscarPageContent({
             selectedCurrencyLabel={selectedCurrencyLabel}
             priceMax={priceSliderMax}
             categoryOptions={categoryOptions.map(category => ({ slug: category.slug, name: category.name }))}
+            subcategoryOptions={subcategoryOptions}
             specialtyOptions={specialtyOptions}
             languageOptions={languageOptions}
           />
@@ -718,6 +792,7 @@ export async function BuscarPageContent({
           selectedCurrencyLabel={selectedCurrencyLabel}
           priceMax={priceSliderMax}
           categoryOptions={categoryOptions.map(category => ({ slug: category.slug, name: category.name }))}
+          subcategoryOptions={subcategoryOptions}
           specialtyOptions={specialtyOptions}
           languageOptions={languageOptions}
         />
@@ -730,10 +805,12 @@ export async function BuscarPageContent({
               ? `${totalResults} profissionais disponíveis para os filtros selecionados`
               : `${totalResults} profissionais disponíveis`}
           </p>
-          {selectedCategoryLabel || selectedSpecialty ? (
+          {selectedCategoryLabel || selectedSubcategoryLabel || selectedSpecialty ? (
             <p className="text-xs text-neutral-500 mt-0.5">
               {selectedCategoryLabel ? `Categoria: ${selectedCategoryLabel}` : null}
-              {selectedCategoryLabel && selectedSpecialty ? ' • ' : null}
+              {selectedCategoryLabel && (selectedSubcategoryLabel || selectedSpecialty) ? ' • ' : null}
+              {selectedSubcategoryLabel ? `Subcategoria: ${selectedSubcategoryLabel}` : null}
+              {selectedSubcategoryLabel && selectedSpecialty ? ' • ' : null}
               {selectedSpecialty ? `Especialidade: ${selectedSpecialty}` : null}
             </p>
           ) : (

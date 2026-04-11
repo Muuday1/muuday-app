@@ -42,12 +42,16 @@ export type ProfessionalSpecialtyContext = {
   byProfessionalId: Map<string, string[]>
   primaryByProfessionalId: Map<string, string>
   categorySlugsByProfessionalId: Map<string, string[]>
+  subcategoryNamesByProfessionalId: Map<string, string[]>
+  subcategorySlugsByProfessionalId: Map<string, string[]>
 }
 
 const EMPTY_CONTEXT: ProfessionalSpecialtyContext = {
   byProfessionalId: new Map(),
   primaryByProfessionalId: new Map(),
   categorySlugsByProfessionalId: new Map(),
+  subcategoryNamesByProfessionalId: new Map(),
+  subcategorySlugsByProfessionalId: new Map(),
 }
 
 const TAXONOMY_ACTIVE_CATALOG_CACHE_KEY = 'taxonomy:active-catalog:v1'
@@ -109,6 +113,67 @@ export function buildSpecialtyOptionsByCategorySlug(catalog: TaxonomyCatalog) {
     if (!category) continue
 
     const key = category.slug
+    const current = map.get(key) || []
+    current.push(specialty.name_pt)
+    map.set(key, current)
+  }
+
+  map.forEach((values, key) => {
+    const normalized = Array.from(
+      new Set(values.map(value => normalizeName(value)).filter((value): value is string => Boolean(value))),
+    )
+    normalized.sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+    map.set(key, normalized)
+  })
+
+  return map
+}
+
+export function buildSubcategoryOptionsByCategorySlug(catalog: TaxonomyCatalog) {
+  const categoryById = new Map(catalog.categories.map(category => [category.id, category]))
+  const map = new Map<string, Array<{ slug: string; name: string }>>()
+
+  for (const subcategory of catalog.subcategories) {
+    const category = categoryById.get(subcategory.category_id)
+    if (!category) continue
+
+    const key = category.slug
+    const current = map.get(key) || []
+    current.push({
+      slug: subcategory.slug,
+      name: subcategory.name_pt,
+    })
+    map.set(key, current)
+  }
+
+  map.forEach((values, key) => {
+    const normalized = Array.from(
+      new Map(
+        values
+          .map(value => ({
+            slug: normalizeName(value.slug),
+            name: normalizeName(value.name),
+          }))
+          .filter(value => value.slug && value.name)
+          .map(value => [value.slug, value]),
+      ).values(),
+    )
+    normalized.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+    map.set(key, normalized)
+  })
+
+  return map
+}
+
+export function buildSpecialtyOptionsBySubcategorySlug(catalog: TaxonomyCatalog) {
+  const subcategoryById = new Map(catalog.subcategories.map(subcategory => [subcategory.id, subcategory]))
+  const map = new Map<string, string[]>()
+
+  for (const specialty of catalog.specialties) {
+    const subcategory = subcategoryById.get(specialty.subcategory_id)
+    if (!subcategory) continue
+
+    const key = subcategory.slug
     const current = map.get(key) || []
     current.push(specialty.name_pt)
     map.set(key, current)
@@ -202,6 +267,8 @@ export async function loadProfessionalSpecialtyContext(
   const byProfessionalId = new Map<string, string[]>()
   const primaryByProfessionalId = new Map<string, string>()
   const categorySlugsByProfessionalId = new Map<string, string[]>()
+  const subcategoryNamesByProfessionalId = new Map<string, string[]>()
+  const subcategorySlugsByProfessionalId = new Map<string, string[]>()
 
   grouped.forEach((entries, professionalId) => {
     entries.sort((a, b) => {
@@ -236,11 +303,31 @@ export async function loadProfessionalSpecialtyContext(
     if (categorySlugs.length > 0) {
       categorySlugsByProfessionalId.set(professionalId, categorySlugs)
     }
+
+    const subcategoryNames = Array.from(
+      new Set(
+        entries
+          .map(entry => normalizeName(entry.subcategory.name_pt))
+          .filter((value): value is string => Boolean(value)),
+      ),
+    )
+    if (subcategoryNames.length > 0) {
+      subcategoryNamesByProfessionalId.set(professionalId, subcategoryNames)
+    }
+
+    const subcategorySlugs = Array.from(
+      new Set(entries.map(entry => normalizeName(entry.subcategory.slug)).filter(Boolean)),
+    )
+    if (subcategorySlugs.length > 0) {
+      subcategorySlugsByProfessionalId.set(professionalId, subcategorySlugs)
+    }
   })
 
   return {
     byProfessionalId,
     primaryByProfessionalId,
     categorySlugsByProfessionalId,
+    subcategoryNamesByProfessionalId,
+    subcategorySlugsByProfessionalId,
   }
 }

@@ -9,6 +9,7 @@ import { PriceRangeSlider } from '@/components/search/PriceRangeSlider'
 type SearchQueryState = {
   q: string
   categoria: string
+  subcategoria: string
   especialidade: string
   precoMin: string
   precoMax: string
@@ -25,6 +26,7 @@ type DesktopFiltersAutoApplyProps = {
   selectedCurrencyLabel: string
   priceMax: number
   categoryOptions: Array<{ slug: string; name: string }>
+  subcategoryOptions: Array<{ slug: string; name: string }>
   specialtyOptions: string[]
   languageOptions: string[]
 }
@@ -34,6 +36,7 @@ function buildBuscarHref(pathname: string, state: SearchQueryState) {
   const orderedEntries: Array<[keyof SearchQueryState, string]> = [
     ['q', state.q],
     ['categoria', state.categoria],
+    ['subcategoria', state.subcategoria],
     ['especialidade', state.especialidade],
     ['precoMin', state.precoMin],
     ['precoMax', state.precoMax],
@@ -73,7 +76,8 @@ function normalizeForApply(state: SearchQueryState, priceMax: number): SearchQue
     ...state,
     q: state.q.trim(),
     categoria: state.categoria || '',
-    especialidade: state.categoria ? state.especialidade || '' : '',
+    subcategoria: state.categoria ? state.subcategoria || '' : '',
+    especialidade: state.categoria && state.subcategoria ? state.especialidade || '' : '',
     precoMin: normalizedMin <= 0 ? '' : String(normalizedMin),
     precoMax: normalizedMax >= cleanMax ? '' : String(normalizedMax),
     horario: state.horario || 'qualquer',
@@ -88,6 +92,7 @@ export function DesktopFiltersAutoApply({
   selectedCurrencyLabel,
   priceMax,
   categoryOptions,
+  subcategoryOptions,
   specialtyOptions,
   languageOptions,
 }: DesktopFiltersAutoApplyProps) {
@@ -128,7 +133,7 @@ export function DesktopFiltersAutoApply({
 
   return (
     <div className="hidden md:block p-3 md:p-4">
-      <div className="grid grid-cols-2 lg:grid-cols-5 xl:grid-cols-10 gap-2.5 items-end">
+      <div className="grid grid-cols-2 lg:grid-cols-6 xl:grid-cols-12 gap-2.5 items-end">
         <div className="lg:col-span-2 xl:col-span-2">
           <label className="block text-[11px] font-medium text-neutral-500 mb-1">Categoria</label>
           <select
@@ -137,6 +142,7 @@ export function DesktopFiltersAutoApply({
               applyState({
                 ...state,
                 categoria: event.target.value,
+                subcategoria: '',
                 especialidade: '',
               })
             }
@@ -152,15 +158,40 @@ export function DesktopFiltersAutoApply({
         </div>
 
         <div className="lg:col-span-2 xl:col-span-2">
+          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Subcategoria</label>
+          <select
+            value={state.subcategoria}
+            disabled={!state.categoria}
+            onChange={event =>
+              applyState({
+                ...state,
+                subcategoria: event.target.value,
+                especialidade: '',
+              })
+            }
+            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+          >
+            <option value="">
+              {state.categoria ? 'Todas as subcategorias' : 'Selecione uma categoria'}
+            </option>
+            {subcategoryOptions.map(subcategory => (
+              <option key={subcategory.slug} value={subcategory.slug}>
+                {subcategory.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="lg:col-span-2 xl:col-span-2">
           <label className="block text-[11px] font-medium text-neutral-500 mb-1">Especialidade</label>
           <select
             value={state.especialidade}
-            disabled={!state.categoria}
+            disabled={!state.subcategoria}
             onChange={event => applyState({ ...state, especialidade: event.target.value })}
             className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
           >
             <option value="">
-              {state.categoria ? 'Todas as especialidades' : 'Selecione uma categoria'}
+              {state.subcategoria ? 'Todas as especialidades' : 'Selecione uma subcategoria'}
             </option>
             {specialtyOptions.map(specialty => (
               <option key={specialty} value={specialty}>

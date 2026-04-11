@@ -10,6 +10,7 @@ import { PriceRangeSlider } from '@/components/search/PriceRangeSlider'
 type SearchQueryState = {
   q: string
   categoria: string
+  subcategoria: string
   especialidade: string
   precoMin: string
   precoMax: string
@@ -27,6 +28,7 @@ type MobileFiltersDrawerProps = {
   selectedCurrencyLabel: string
   priceMax: number
   categoryOptions: Array<{ slug: string; name: string }>
+  subcategoryOptions: Array<{ slug: string; name: string }>
   specialtyOptions: string[]
   languageOptions: string[]
 }
@@ -47,7 +49,8 @@ function normalizeForApply(state: SearchQueryState, priceMax: number): SearchQue
     ...state,
     q: state.q.trim(),
     categoria: state.categoria || '',
-    especialidade: state.categoria ? state.especialidade || '' : '',
+    subcategoria: state.categoria ? state.subcategoria || '' : '',
+    especialidade: state.categoria && state.subcategoria ? state.especialidade || '' : '',
     precoMin: normalizedMin <= 0 ? '' : String(normalizedMin),
     precoMax: normalizedMax >= cleanMax ? '' : String(normalizedMax),
     horario: state.horario || 'qualquer',
@@ -62,6 +65,7 @@ function buildBuscarHref(pathname: string, state: SearchQueryState) {
   const orderedEntries: Array<[keyof SearchQueryState, string]> = [
     ['q', state.q],
     ['categoria', state.categoria],
+    ['subcategoria', state.subcategoria],
     ['especialidade', state.especialidade],
     ['precoMin', state.precoMin],
     ['precoMax', state.precoMax],
@@ -91,6 +95,7 @@ export function MobileFiltersDrawer({
   selectedCurrencyLabel,
   priceMax,
   categoryOptions,
+  subcategoryOptions,
   specialtyOptions,
   languageOptions,
 }: MobileFiltersDrawerProps) {
@@ -198,6 +203,7 @@ export function MobileFiltersDrawer({
                     applyState({
                       ...state,
                       categoria: event.target.value,
+                      subcategoria: '',
                       especialidade: '',
                     })
                   }
@@ -213,15 +219,40 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
+                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Subcategoria</label>
+                <select
+                  value={state.subcategoria}
+                  disabled={!state.categoria}
+                  onChange={event =>
+                    applyState({
+                      ...state,
+                      subcategoria: event.target.value,
+                      especialidade: '',
+                    })
+                  }
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                >
+                  <option value="">
+                    {state.categoria ? 'Todas as subcategorias' : 'Selecione uma categoria'}
+                  </option>
+                  {subcategoryOptions.map(subcategory => (
+                    <option key={subcategory.slug} value={subcategory.slug}>
+                      {subcategory.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
                 <select
                   value={state.especialidade}
-                  disabled={!state.categoria}
+                  disabled={!state.subcategoria}
                   onChange={event => applyState({ ...state, especialidade: event.target.value })}
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
                   <option value="">
-                    {state.categoria ? 'Todas as especialidades' : 'Selecione uma categoria'}
+                    {state.subcategoria ? 'Todas as especialidades' : 'Selecione uma subcategoria'}
                   </option>
                   {specialtyOptions.map(specialty => (
                     <option key={specialty} value={specialty}>

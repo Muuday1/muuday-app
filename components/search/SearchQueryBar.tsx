@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react'
 type SearchQueryState = {
   q: string
   categoria: string
+  subcategoria: string
   especialidade: string
   precoMin: string
   precoMax: string
@@ -27,6 +28,7 @@ function buildBuscarHref(pathname: string, state: SearchQueryState) {
   const orderedEntries: Array<[keyof SearchQueryState, string]> = [
     ['q', state.q],
     ['categoria', state.categoria],
+    ['subcategoria', state.subcategoria],
     ['especialidade', state.especialidade],
     ['precoMin', state.precoMin],
     ['precoMax', state.precoMax],
