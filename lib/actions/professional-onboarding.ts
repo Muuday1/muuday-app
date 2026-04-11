@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 
 const submitProfessionalForReviewInputSchema = z.object({})
 
@@ -61,5 +62,6 @@ export async function submitProfessionalForReviewAction() {
     redirect('/onboarding-profissional?result=error')
   }
 
+  await recomputeProfessionalVisibility(supabase, professional.id)
   redirect('/onboarding-profissional?result=submitted')
 }

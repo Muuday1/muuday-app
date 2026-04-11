@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { runBookingReminderSync } from '@/lib/ops/booking-reminders'
+import { runPublicVisibilitySync } from '@/lib/ops/public-visibility-sync'
 import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
 import {
   processStripeWebhookInbox,
@@ -169,6 +170,30 @@ export const releaseRecurringReservedSlots = inngest.createFunction(
     })
 
     return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncPublicVisibilityFlags = inngest.createFunction(
+  {
+    id: 'sync-public-visibility-flags',
+    name: 'Sync public visibility flags',
+    triggers: [{ cron: '*/15 * * * *' }, { event: 'ops/public-visibility.sync.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('run-public-visibility-sync', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for public visibility sync.')
+      }
+      return runPublicVisibilitySync(admin, { batchSize: 250, maxBatches: 20 })
+    })
+
+    logger.info('Public visibility flags synchronized.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { source: 'inngest', ...result }
   },
 )
 

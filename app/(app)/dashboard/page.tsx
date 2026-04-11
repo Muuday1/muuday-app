@@ -116,104 +116,107 @@ export default async function DashboardPage() {
   const nowIso = now.toISOString()
   const sevenDaysAgoIso = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const thirtyDaysAgoIso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const todayLocalDate = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd')
 
-  const { data: professionalSettings } = await supabase
-    .from('professional_settings')
-    .select('timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring')
-    .eq('professional_id', professionalId)
-    .maybeSingle()
+  const [
+    { data: professionalSettings },
+    { data: upcomingBookings },
+    { count: pendingConfirmationCountRaw },
+    { count: openRequestCountRaw },
+    { count: completedLast30Count },
+    { count: cancelledLast30Count },
+    { count: favoritesCount },
+    { count: activeAvailabilityCount },
+    { count: availabilityExceptionsCount },
+    { data: calendarIntegration },
+    { count: acceptedBookingsCount },
+    { data: paymentsMonthRows },
+    onboardingState,
+  ] = await Promise.all([
+    supabase
+      .from('professional_settings')
+      .select('timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring')
+      .eq('professional_id', professionalId)
+      .maybeSingle(),
+    supabase
+      .from('bookings')
+      .select(
+        'id, user_id, scheduled_at, duration_minutes, status, timezone_user, profiles!bookings_user_id_fkey(full_name)',
+      )
+      .eq('professional_id', professionalId)
+      .in('status', ['pending', 'pending_confirmation', 'confirmed'])
+      .gte('scheduled_at', nowIso)
+      .order('scheduled_at', { ascending: true })
+      .limit(8),
+    supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('status', 'pending_confirmation')
+      .gte('scheduled_at', nowIso),
+    supabase
+      .from('request_bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .in('status', ['open', 'offered']),
+    supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('status', 'completed')
+      .gte('scheduled_at', thirtyDaysAgoIso),
+    supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('status', 'cancelled')
+      .gte('scheduled_at', thirtyDaysAgoIso),
+    supabase
+      .from('favorites')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId),
+    supabase
+      .from('availability')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('is_active', true),
+    supabase
+      .from('availability_exceptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .gte('date_local', todayLocalDate),
+    supabase
+      .from('calendar_integrations')
+      .select('provider, provider_account_email, sync_enabled, last_sync_at')
+      .eq('professional_id', professionalId)
+      .maybeSingle(),
+    supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .in('status', FIRST_BOOKING_RELEVANT_STATUSES),
+    supabase
+      .from('payments')
+      .select('amount_total, created_at')
+      .eq('professional_id', professionalId)
+      .eq('status', 'captured')
+      .gte('created_at', thirtyDaysAgoIso),
+    loadProfessionalOnboardingState(supabase, professionalId),
+  ])
 
-  const { data: upcomingBookings } = await supabase
-    .from('bookings')
-    .select('id, user_id, scheduled_at, duration_minutes, status, timezone_user, profiles!bookings_user_id_fkey(full_name)')
-    .eq('professional_id', professionalId)
-    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-    .gte('scheduled_at', nowIso)
-    .order('scheduled_at', { ascending: true })
-    .limit(8)
-
-  const { data: pendingConfirmations } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact' })
-    .eq('professional_id', professionalId)
-    .eq('status', 'pending_confirmation')
-    .gte('scheduled_at', nowIso)
-
-  const pendingConfirmationCount = pendingConfirmations?.length || 0
-
-  const { data: openRequests } = await supabase
-    .from('request_bookings')
-    .select('id', { count: 'exact' })
-    .eq('professional_id', professionalId)
-    .in('status', ['open', 'offered'])
-
-  const openRequestCount = openRequests?.length || 0
-
-  const { count: completedLast30Count } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professionalId)
-    .eq('status', 'completed')
-    .gte('scheduled_at', thirtyDaysAgoIso)
-
-  const { count: cancelledLast30Count } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professionalId)
-    .eq('status', 'cancelled')
-    .gte('scheduled_at', thirtyDaysAgoIso)
-
-  const { count: favoritesCount } = await supabase
-    .from('favorites')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professionalId)
-
-  const { count: activeAvailabilityCount } = await supabase
-    .from('availability')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professionalId)
-    .eq('is_active', true)
-
-  const { count: availabilityExceptionsCount } = await supabase
-    .from('availability_exceptions')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professionalId)
-    .gte('date_local', formatInTimeZone(now, userTimezone, 'yyyy-MM-dd'))
-
-  const { data: calendarIntegration } = await supabase
-    .from('calendar_integrations')
-    .select('provider, provider_account_email, sync_enabled, last_sync_at')
-    .eq('professional_id', professionalId)
-    .maybeSingle()
-
-  const { count: acceptedBookingsCount } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professionalId)
-    .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
-
-  const { data: paymentsWeek } = await supabase
-    .from('payments')
-    .select('amount_total')
-    .eq('professional_id', professionalId)
-    .eq('status', 'captured')
-    .gte('created_at', sevenDaysAgoIso)
-
-  const { data: paymentsMonth } = await supabase
-    .from('payments')
-    .select('amount_total')
-    .eq('professional_id', professionalId)
-    .eq('status', 'captured')
-    .gte('created_at', thirtyDaysAgoIso)
-
-  const earningsWeek = (paymentsWeek || []).reduce(
+  const pendingConfirmationCount = pendingConfirmationCountRaw || 0
+  const openRequestCount = openRequestCountRaw || 0
+  const paymentsMonth = paymentsMonthRows || []
+  const sevenDaysAgoMs = new Date(sevenDaysAgoIso).getTime()
+  const earningsMonth = paymentsMonth.reduce(
     (sum: number, payment: Record<string, unknown>) => sum + Number(payment.amount_total || 0),
     0,
   )
-  const earningsMonth = (paymentsMonth || []).reduce(
-    (sum: number, payment: Record<string, unknown>) => sum + Number(payment.amount_total || 0),
-    0,
-  )
+  const earningsWeek = paymentsMonth.reduce((sum: number, payment: Record<string, unknown>) => {
+    const createdAt = new Date(String(payment.created_at || '')).getTime()
+    if (Number.isNaN(createdAt) || createdAt < sevenDaysAgoMs) return sum
+    return sum + Number(payment.amount_total || 0)
+  }, 0)
 
   const alerts = buildProfessionalWorkspaceAlerts({
     professional,
@@ -227,7 +230,6 @@ export default async function DashboardPage() {
 
   const nextBooking = upcomingBookings?.[0]
   const currency = profile.currency || 'BRL'
-  const onboardingState = await loadProfessionalOnboardingState(supabase, professionalId)
   const onboardingEvaluation = onboardingState?.evaluation || null
   const onboardingIncomplete = Boolean(onboardingEvaluation && !onboardingEvaluation.summary.canGoLive)
 

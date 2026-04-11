@@ -1,4 +1,4 @@
-name: Checkly Validate
+﻿name: Checkly Validate
 
 on:
   push:
@@ -114,3 +114,4 @@ jobs:
 
       - name: Deploy Checkly checks
         run: npm run checkly:deploy
+

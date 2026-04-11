@@ -6,13 +6,8 @@ import { revalidateTag } from 'next/cache'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { z } from 'zod'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
-import { getSocialLinksLimit, isFeatureAvailable } from '@/lib/tier-config'
-import {
-  sanitizeHttpUrl,
-  sanitizeMultilineText,
-  sanitizePhoneNumber,
-  sanitizePlainText,
-} from '@/lib/security/sanitize-input'
+import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
+import { getSocialLinksLimit, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
 
 const VALID_CATEGORIES = [
   'saude-mental-bem-estar', 'saude-corpo-movimento', 'educacao-desenvolvimento',
@@ -36,10 +31,6 @@ const professionalSchema = z.object({
   session_price_brl: z.coerce.number().min(0).max(50000),
   session_duration_minutes: z.coerce.number().int().min(15).max(480),
 })
-
-function sanitizeStringList(values: string[]) {
-  return values.map(value => sanitizePlainText(value, 50)).filter(Boolean)
-}
 
 async function upsertPrimaryService(args: {
   professionalId: string
@@ -90,10 +81,10 @@ export async function createProfessionalProfile(formData: FormData) {
   if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const raw = {
-    bio: sanitizeMultilineText((formData.get('bio') as string) || '', 2000),
+    bio: formData.get('bio') as string || '',
     category: formData.get('category') as string || '',
-    tags: sanitizePlainText((formData.get('tags') as string) || '', 1024),
-    languages: sanitizePlainText((formData.get('languages') as string) || '', 1024),
+    tags: formData.get('tags') as string || '',
+    languages: formData.get('languages') as string || '',
     years_experience: formData.get('years_experience') as string || '0',
     session_price_brl: formData.get('session_price_brl') as string || '0',
     session_duration_minutes: formData.get('session_duration_minutes') as string || '60',
@@ -108,7 +99,13 @@ export async function createProfessionalProfile(formData: FormData) {
   const { bio, category, tags, languages, years_experience: yearsExperience, session_price_brl: sessionPriceBrl, session_duration_minutes: sessionDurationMinutes } = parsed.data
 
   // Check if professional profile already exists
-  const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id, tier')
+
+  const tierForValidation = String(existing?.tier || 'basic').toLowerCase()
+  const tierLimits = getTierLimits(tierForValidation)
+  if (tags.length > tierLimits.tags) {
+    return { error: `Seu plano permite até ${tierLimits.tags} tags.` }
+  }
 
   let professionalId = existing?.id || ''
 
@@ -161,6 +158,7 @@ export async function createProfessionalProfile(formData: FormData) {
       durationMinutes: sessionDurationMinutes,
       priceBrl: sessionPriceBrl,
     })
+    await recomputeProfessionalVisibility(supabase, professionalId)
     revalidateTag('public-profiles')
   }
 
@@ -228,6 +226,7 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
     if (error) return { error: error.message }
   }
 
+  await recomputeProfessionalVisibility(supabase, professional.id)
   revalidateTag('public-profiles')
   return { success: true }
 }
@@ -259,17 +258,17 @@ export async function saveProfessionalProfileDraft(input: {
   const parsed = professionalDraftSchema.safeParse({
     professionalId: input.professionalId,
     category: input.category,
-    bio: sanitizeMultilineText(input.bio || '', 5000),
-    tags: sanitizeStringList((input.tags || []).filter(Boolean)),
-    languages: sanitizeStringList((input.languages || []).filter(Boolean)),
+    bio: input.bio,
+    tags: (input.tags || []).filter(Boolean),
+    languages: (input.languages || []).filter(Boolean),
     yearsExperience: Number(input.yearsExperience || 0),
     sessionPriceBrl: Number(input.sessionPriceBrl || 0),
     sessionDurationMinutes: Number(input.sessionDurationMinutes || 60),
-    whatsappNumber: sanitizePhoneNumber(input.whatsappNumber || '', 32),
-    coverPhotoUrl: sanitizeHttpUrl(input.coverPhotoUrl || ''),
-    videoIntroUrl: sanitizeHttpUrl(input.videoIntroUrl || ''),
-    socialLinks: (input.socialLinks || []).map(url => sanitizeHttpUrl(url)).filter(Boolean),
-    credentialUrls: (input.credentialUrls || []).map(url => sanitizeHttpUrl(url)).filter(Boolean),
+    whatsappNumber: input.whatsappNumber || '',
+    coverPhotoUrl: input.coverPhotoUrl || '',
+    videoIntroUrl: input.videoIntroUrl || '',
+    socialLinks: (input.socialLinks || []).filter(Boolean),
+    credentialUrls: (input.credentialUrls || []).filter(Boolean),
   })
 
   if (!parsed.success) {
@@ -286,7 +285,11 @@ export async function saveProfessionalProfileDraft(input: {
   }
 
   const tier = String(professional.tier || 'basic').toLowerCase()
+  const tierLimits = getTierLimits(tier)
   const socialLinksLimit = getSocialLinksLimit(tier)
+  if (parsed.data.tags.length > tierLimits.tags) {
+    return { error: `Seu plano permite até ${tierLimits.tags} tags.` }
+  }
   if (parsed.data.socialLinks.length > socialLinksLimit) {
     return {
       error:
@@ -353,6 +356,7 @@ export async function saveProfessionalProfileDraft(input: {
     if (credentialsError) return { error: credentialsError.message }
   }
 
+  await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
   revalidateTag('public-profiles')
   return { success: true as const }
 }

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { writeAdminAuditLog } from '@/lib/admin/audit-log'
+import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 import {
   sendProfileApprovedEmail,
   sendProfileNeedsChangesEmail,
@@ -130,6 +131,7 @@ export async function adminUpdateProfessionalStatus(
       return { success: false, error: auditResult.error }
     }
 
+    await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
     revalidateTag('public-profiles')
     return { success: true }
@@ -204,6 +206,7 @@ export async function adminUpdateFirstBookingGate(
       return { success: false, error: auditResult.error }
     }
 
+    await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
     revalidateTag('public-profiles')
     return { success: true }
@@ -424,6 +427,7 @@ export async function adminReviewProfessionalDecision(
       return { success: false, error: auditResult.error }
     }
 
+    await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
     revalidatePath(`/admin/revisao/${parsed.data.professionalId}`)
     revalidateTag('public-profiles')

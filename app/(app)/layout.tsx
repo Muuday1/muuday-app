@@ -1,30 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { LogOut } from 'lucide-react'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
+import { getLayoutSession } from '@/lib/auth/layout-session'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  let user: any = null
-  let profile: any = null
-
-  if (supabaseUrl && supabaseAnonKey) {
-    try {
-      const supabase = createClient()
-      user = (await supabase.auth.getUser()).data.user
-
-      if (user) {
-        profile = (await supabase.from('profiles').select('*').eq('id', user.id).single()).data
-      }
-    } catch {
-      user = null
-      profile = null
-    }
-  }
+  const { user, profile } = await getLayoutSession()
 
   const isProfissional = profile?.role === 'profissional'
   const isAdmin = profile?.role === 'admin'
@@ -37,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const navItems = (() => {
     if (isAdmin) {
       return [
-        { href: '/buscar', icon: 'Search', label: 'Buscar' },
+        { href: '/buscar-auth', icon: 'Search', label: 'Buscar' },
         { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
         { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
         { href: '/perfil', icon: 'User', label: 'Perfil' },
@@ -53,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ]
     }
     return [
-      { href: '/buscar', icon: 'Search', label: 'Buscar' },
+      { href: '/buscar-auth', icon: 'Search', label: 'Buscar' },
       { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
       { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
       { href: '/perfil', icon: 'User', label: 'Perfil' },

@@ -210,6 +210,11 @@ export default function DisponibilidadePage() {
       return
     }
 
+    await fetch('/api/professional/recompute-visibility', {
+      method: 'POST',
+      credentials: 'include',
+    })
+
     setSaveStatus('success')
     setTimeout(() => setSaveStatus('idle'), 3000)
   }

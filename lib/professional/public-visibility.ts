@@ -4,6 +4,7 @@ import {
   type ProfessionalOnboardingEvaluation,
   type ProfessionalOnboardingSnapshot,
 } from '@/lib/professional/onboarding-gates'
+import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 
 type ProfessionalSearchProfile = {
   full_name?: string | null
@@ -328,4 +329,115 @@ export async function filterPubliclyVisibleProfessionals(
   return professionals.filter(professional =>
     visibilityByProfessionalId.get(asId(professional.id))?.canGoLive,
   )
+}
+
+export async function recomputeProfessionalVisibility(
+  supabase: SupabaseClient,
+  professionalId: string,
+) {
+  const normalizedProfessionalId = asId(professionalId)
+  if (!normalizedProfessionalId) {
+    return {
+      ok: false as const,
+      professionalId: normalizedProfessionalId,
+      isPubliclyVisible: false,
+      reason: 'invalid_professional_id',
+    }
+  }
+
+  const onboardingState = await loadProfessionalOnboardingState(supabase, normalizedProfessionalId)
+  const isPubliclyVisible = Boolean(onboardingState?.evaluation.summary.canGoLive)
+  const visibilityCheckedAt = new Date().toISOString()
+
+  const { error } = await supabase
+    .from('professionals')
+    .update({
+      is_publicly_visible: isPubliclyVisible,
+      visibility_checked_at: visibilityCheckedAt,
+    })
+    .eq('id', normalizedProfessionalId)
+
+  if (error) {
+    return {
+      ok: false as const,
+      professionalId: normalizedProfessionalId,
+      isPubliclyVisible,
+      reason: error.message || 'update_failed',
+    }
+  }
+
+  return {
+    ok: true as const,
+    professionalId: normalizedProfessionalId,
+    isPubliclyVisible,
+    visibilityCheckedAt,
+  }
+}
+
+export async function recomputeApprovedProfessionalsVisibility(
+  supabase: SupabaseClient,
+  options?: {
+    limit?: number
+    offset?: number
+  },
+) {
+  const limit = Math.max(1, Math.min(options?.limit || 500, 5000))
+  const offset = Math.max(0, options?.offset || 0)
+
+  const { data: rows, error } = await supabase
+    .from('professionals')
+    .select(
+      'id,status,tier,first_booking_enabled,bio,category,subcategories,languages,years_experience,session_price_brl,session_duration_minutes,whatsapp_number,cover_photo_url,video_intro_url,social_links,profiles!professionals_user_id_fkey(full_name,country,avatar_url)',
+    )
+    .eq('status', 'approved')
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (error) {
+    return {
+      ok: false as const,
+      total: 0,
+      updated: 0,
+      failed: 0,
+      failures: [error.message || 'load_professionals_failed'],
+    }
+  }
+
+  const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(
+    supabase,
+    (rows || []) as ProfessionalSearchRecord[],
+  )
+
+  let updated = 0
+  let failed = 0
+  const failures: string[] = []
+  const visibilityCheckedAt = new Date().toISOString()
+
+  for (const row of rows || []) {
+    const professionalId = asId(row.id)
+    const isPubliclyVisible = Boolean(visibilityByProfessionalId.get(professionalId)?.canGoLive)
+    const { error: updateError } = await supabase
+      .from('professionals')
+      .update({
+        is_publicly_visible: isPubliclyVisible,
+        visibility_checked_at: visibilityCheckedAt,
+      })
+      .eq('id', professionalId)
+
+    if (updateError) {
+      failed += 1
+      failures.push(`${professionalId}:${updateError.message || 'update_failed'}`)
+      continue
+    }
+
+    updated += 1
+  }
+
+  return {
+    ok: failed === 0,
+    total: rows?.length || 0,
+    updated,
+    failed,
+    failures,
+  }
 }

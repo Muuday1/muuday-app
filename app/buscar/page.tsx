@@ -1,12 +1,11 @@
 ﻿export const metadata = { title: 'Buscar Profissionais | Muuday' }
+export const revalidate = 60
+export const dynamic = 'force-static'
 
-export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import Image from 'next/image'
-import { cookies, headers } from 'next/headers'
 import { Star, MapPin, PlayCircle, MessageCircle } from 'lucide-react'
 import { MobileFiltersDrawer } from '@/components/search/MobileFiltersDrawer'
 import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
@@ -20,11 +19,7 @@ import {
 } from '@/lib/taxonomy/professional-specialties'
 import { getCachedRuntimeValue } from '@/lib/cache/runtime-cache'
 import { getExchangeRates } from '@/lib/exchange-rates'
-import {
-  normalizeCurrency,
-  PUBLIC_CURRENCY_COOKIE,
-  resolveDefaultCurrencyFromAcceptLanguage,
-} from '@/lib/public-preferences'
+import { normalizeCurrency } from '@/lib/public-preferences'
 import {
   SEARCH_CATEGORIES,
   getSearchCategoryLabel,
@@ -111,13 +106,6 @@ const EMPTY_SPECIALTY_CONTEXT: SpecialtyContext = {
   categorySlugsByProfessionalId: new Map<string, string[]>(),
 }
 
-function hasSupabaseSessionCookie(
-  cookieStore: ReturnType<typeof cookies>,
-) {
-  return cookieStore
-    .getAll()
-    .some(cookie => cookie.name.startsWith('sb-') && cookie.name.includes('-auth-token'))
-}
 
 function normalizeText(value?: string | null) {
   return (value || '').toLowerCase().trim()
@@ -261,6 +249,27 @@ function buildHref(basePath: string, state: SearchQueryState, overrides: Partial
   return query ? `${basePath}?${query}` : basePath
 }
 
+function buildPublicSearchVariantCacheKey(args: {
+  queryText: string
+  selectedCategory: string
+  selectedSpecialty: string
+  selectedLanguage: string
+  selectedLocation: string
+  minPriceBrl: number | null
+  maxPriceBrl: number | null
+}) {
+  const parts = [
+    args.queryText,
+    args.selectedCategory,
+    args.selectedSpecialty,
+    args.selectedLanguage,
+    args.selectedLocation,
+    args.minPriceBrl === null ? '' : String(args.minPriceBrl),
+    args.maxPriceBrl === null ? '' : String(args.maxPriceBrl),
+  ]
+  return `buscar:public-variant:v2:${parts.map(value => normalizeText(value)).join('|')}`
+}
+
 async function loadPublicSearchBaseData(readClient: any): Promise<PublicSearchBaseData> {
   return loadPublicSearchBaseDataByIds(readClient, null)
 }
@@ -277,23 +286,36 @@ async function loadPublicSearchBaseDataByIds(
     }
   }
 
-  let query = readClient
-    .from('professionals')
-    .select('*,profiles!inner(full_name,country,avatar_url,role)')
-    .eq('status', 'approved')
-    .eq('profiles.role', 'profissional')
+  const buildQuery = (useVisibilityColumn: boolean) => {
+    let query = readClient
+      .from('professionals')
+      .select(
+        'id,user_id,public_code,status,bio,category,subcategories,tags,languages,years_experience,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,tier,first_booking_enabled,cover_photo_url,video_intro_url,whatsapp_number,social_links,profiles!inner(full_name,country,avatar_url,role)',
+      )
+      .eq('status', 'approved')
+      .eq('profiles.role', 'profissional')
 
-  if (candidateIds && candidateIds.length > 0) {
-    query = query.in('id', candidateIds)
-  } else {
-    query = query.order('rating', { ascending: false }).limit(250)
+    if (useVisibilityColumn) {
+      query = query.eq('is_publicly_visible', true)
+    }
+
+    if (candidateIds && candidateIds.length > 0) {
+      query = query.in('id', candidateIds)
+    } else {
+      query = query.order('rating', { ascending: false }).limit(250)
+    }
+
+    return query
   }
 
-  const { data: professionalsRaw } = await query
-
+  let { data: professionalsRaw, error: professionalsError } = await buildQuery(true)
   let professionals = professionalsRaw || []
-  if (professionals.length > 0) {
-    professionals = await filterPubliclyVisibleProfessionals(readClient as any, professionals)
+  if (professionalsError?.message?.includes('is_publicly_visible')) {
+    const fallbackResult = await buildQuery(false)
+    professionals = fallbackResult.data || []
+    if (professionals.length > 0) {
+      professionals = await filterPubliclyVisibleProfessionals(readClient as any, professionals)
+    }
   }
 
   const professionalIds = professionals.map((professional: any) => String(professional.id))
@@ -365,31 +387,7 @@ async function fetchSearchCandidateIdsPgTrgm(
 }
 
 export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
-  const cookieStore = cookies()
-  const acceptLanguage = headers().get('accept-language')
-  const hasAuthCookie = hasSupabaseSessionCookie(cookieStore)
-
-  let supabase: any = null
-  let user: any = null
-  let isLoggedIn = false
-  try {
-    if (
-      hasAuthCookie &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ) {
-      supabase = createClient()
-      user = (await supabase.auth.getUser()).data.user
-      isLoggedIn = Boolean(user)
-    }
-  } catch {
-    supabase = null
-    user = null
-    isLoggedIn = false
-  }
-
-  const adminSupabase = !user ? createAdminClient() : null
-  const readClient = adminSupabase || supabase
+  const readClient = createAdminClient()
   const exchangeRates = await getExchangeRates((readClient as any) || undefined)
 
   const queryText = (searchParams.q || '').trim()
@@ -405,26 +403,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
   const minPrice = parseOptionalNumber(searchParams.precoMin)
   const maxPrice = parseOptionalNumber(searchParams.precoMax)
 
-  let selectedCurrency = 'BRL'
-  if (user && supabase) {
-    try {
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('currency')
-        .eq('id', user.id)
-        .single()
-      selectedCurrency = (userProfile?.currency || 'BRL').toUpperCase()
-    } catch {
-      selectedCurrency = 'BRL'
-    }
-  } else {
-    const queryCurrency = normalizeCurrency(requestedCurrency)
-    const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
-    selectedCurrency =
-      queryCurrency ||
-      cookieCurrency ||
-      resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
-  }
+  const selectedCurrency = normalizeCurrency(requestedCurrency) || 'BRL'
   const selectedCurrencyRate = exchangeRates[selectedCurrency] || 1
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
   const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
@@ -441,8 +420,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     idioma: selectedLanguage,
     ordenar: selectedSort,
     pagina: selectedPage,
-    moeda: user ? '' : selectedCurrency,
+    moeda: selectedCurrency,
   })
+  const isLoggedIn = false
 
   let professionals: any[] = []
   let specialtyContext: SpecialtyContext = EMPTY_SPECIALTY_CONTEXT
@@ -458,8 +438,17 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         minPriceBrl,
         maxPriceBrl,
       })
+      const variantCacheKey = buildPublicSearchVariantCacheKey({
+        queryText,
+        selectedCategory,
+        selectedSpecialty,
+        selectedLanguage,
+        selectedLocation: rawSelectedLocation,
+        minPriceBrl,
+        maxPriceBrl,
+      })
 
-      if (!isLoggedIn && adminSupabase && candidateIds === null) {
+      if (candidateIds === null) {
         const cached = await getCachedRuntimeValue(
           PUBLIC_SEARCH_BASE_CACHE_KEY,
           PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
@@ -469,10 +458,14 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         specialtyContext = cached.specialtyContext
         cachedAvailabilityRows = cached.availabilityRows
       } else {
-        const uncached = await loadPublicSearchBaseDataByIds(readClient, candidateIds)
-        professionals = uncached.professionals
-        specialtyContext = uncached.specialtyContext
-        cachedAvailabilityRows = uncached.availabilityRows
+        const cached = await getCachedRuntimeValue(
+          variantCacheKey,
+          PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
+          () => loadPublicSearchBaseDataByIds(readClient, candidateIds),
+        )
+        professionals = cached.professionals
+        specialtyContext = cached.specialtyContext
+        cachedAvailabilityRows = cached.availabilityRows
       }
     } catch {
       professionals = []
@@ -943,3 +936,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     </div>
   )
 }
+
+
+
+
