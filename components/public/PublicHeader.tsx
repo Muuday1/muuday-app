@@ -159,17 +159,22 @@ export function PublicHeader({
   })
 
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-200 bg-[#f6f4ef]/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-[#d8e4f0] bg-[rgba(247,251,255,0.92)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 md:px-8">
         <div className="flex items-center justify-between gap-4 md:gap-6">
           <Link
             href="/"
             className="flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,#0f4fa8,#1f6ad1)] shadow-[0_10px_24px_rgba(15,79,168,0.22)]">
               <span className="font-display text-sm font-bold text-white">M</span>
             </div>
-            <span className="font-display text-xl font-bold tracking-tight text-neutral-900">muuday</span>
+            <div className="flex flex-col">
+              <span className="font-display text-xl font-bold tracking-tight text-neutral-900">muuday</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f4fa8]/70">
+                vídeo-first
+              </span>
+            </div>
           </Link>
 
           <nav className="hidden flex-1 items-center gap-2 overflow-x-auto md:flex">
@@ -213,7 +218,7 @@ export function PublicHeader({
             {isLoggedInClient ? (
               <Link
                 href={loggedInHrefClient}
-                className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="rounded-full bg-[#0f4fa8] px-4 py-2 text-xs font-semibold text-white shadow-[0_12px_28px_rgba(15,79,168,0.2)] transition hover:bg-[#0b3f88] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Minha área
               </Link>
@@ -229,7 +234,7 @@ export function PublicHeader({
                 </button>
                 <Link
                   href="/cadastro"
-                  className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className="rounded-full bg-[#0f4fa8] px-4 py-2 text-xs font-semibold text-white shadow-[0_12px_28px_rgba(15,79,168,0.2)] transition hover:bg-[#0b3f88] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
                   Criar conta
                 </Link>
