@@ -1,6 +1,6 @@
 ﻿# Deployment and Operations
 
-Last updated: 2026-04-01
+Last updated: 2026-04-11
 
 ## Deployment platform
 
@@ -72,6 +72,36 @@ npm run db:validate-pooling
 - `/api/cron/booking-reminders`
 - `/api/cron/booking-timeouts`
 - `/api/webhooks/stripe`
+- `/api/webhooks/stripe-br`
+- `/api/webhooks/supabase-db`
+
+## Supabase Database Webhooks -> Inngest bridge
+
+Use Supabase DB Webhooks to reduce polling delay and enqueue business workflows as events.
+
+Route:
+- `POST /api/webhooks/supabase-db`
+
+Required secret:
+- `SUPABASE_DB_WEBHOOK_SECRET`
+- Send as one of:
+  - `Authorization: Bearer <secret>`
+  - `x-webhook-secret: <secret>`
+  - `x-supabase-webhook-secret: <secret>`
+
+Current event mapping:
+1. Every DB webhook payload enqueues `supabase/db.change.received`.
+2. `payments` table `INSERT`/`UPDATE` also enqueues `supabase/payments.changed`.
+3. Inngest function `process-supabase-payments-change` processes `supabase/payments.changed` and:
+- updates booking status when payment becomes `captured` or `failed`,
+- writes idempotent notifications for user/professional.
+
+Supabase Dashboard configuration (recommended):
+1. Table: `public.payments`
+2. Events: `INSERT`, `UPDATE`
+3. Method: `POST`
+4. URL: `https://<your-domain>/api/webhooks/supabase-db`
+5. Headers: `x-supabase-webhook-secret: <SUPABASE_DB_WEBHOOK_SECRET>`
 
 ## Secrets rotation operations
 
