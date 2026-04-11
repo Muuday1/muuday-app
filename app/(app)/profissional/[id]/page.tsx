@@ -157,28 +157,41 @@ async function loadPublicProfessionalByParam(
 ) {
   const adminClient = createAdminClient()
   if (!adminClient) return null
-  let professionalQuery = adminClient
-    .from('professionals')
-    .select('*, profiles!inner(*), first_booking_enabled')
-    .eq('status', 'approved')
-    .eq('profiles.role', 'profissional')
+  const buildQuery = (useVisibilityColumn: boolean) => {
+    let professionalQuery = adminClient
+      .from('professionals')
+      .select('*, profiles!inner(*), first_booking_enabled, is_publicly_visible')
+      .eq('status', 'approved')
+      .eq('profiles.role', 'profissional')
 
-  if (parsedParam.kind === 'uuid') {
-    professionalQuery = professionalQuery.eq('id', parsedParam.id)
+    if (useVisibilityColumn) {
+      professionalQuery = professionalQuery.eq('is_publicly_visible', true)
+    }
+
+    if (parsedParam.kind === 'uuid') {
+      professionalQuery = professionalQuery.eq('id', parsedParam.id)
+    }
+
+    if (parsedParam.kind === 'publicCode') {
+      professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+    }
+
+    return professionalQuery
   }
 
-  if (parsedParam.kind === 'publicCode') {
-    professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+  let { data: professional, error } = await buildQuery(true).maybeSingle()
+  if (error?.message?.includes('is_publicly_visible')) {
+    const fallback = await buildQuery(false).maybeSingle()
+    professional = fallback.data
+    if (professional) {
+      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient as any, [
+        professional,
+      ])
+      const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
+      if (!canGoLive) return null
+    }
   }
-
-  const { data: professional } = await professionalQuery.maybeSingle()
   if (!professional) return null
-
-  const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient as any, [
-    professional,
-  ])
-  const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
-  if (!canGoLive) return null
 
   return professional
 }
@@ -238,34 +251,56 @@ export default async function ProfissionalPage({
 
   let professional: any = null
   if (user) {
-    let professionalQuery = readClient
-      .from('professionals')
-      .select('*, profiles!inner(*), first_booking_enabled')
-      .eq('profiles.role', 'profissional')
+    const buildProfessionalQuery = (withVisibilityColumn: boolean) => {
+      let professionalQuery = readClient
+        .from('professionals')
+        .select(
+          withVisibilityColumn
+            ? '*, profiles!inner(*), first_booking_enabled, is_publicly_visible'
+            : '*, profiles!inner(*), first_booking_enabled',
+        )
+        .eq('profiles.role', 'profissional')
 
-    if (parsedParam.kind === 'uuid') {
-      professionalQuery = professionalQuery.eq('id', parsedParam.id)
+      if (parsedParam.kind === 'uuid') {
+        professionalQuery = professionalQuery.eq('id', parsedParam.id)
+      }
+
+      if (parsedParam.kind === 'publicCode') {
+        professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+      }
+
+      return professionalQuery
     }
 
-    if (parsedParam.kind === 'publicCode') {
-      professionalQuery = professionalQuery.eq('public_code', parsedParam.code)
+    let professionalResult = await buildProfessionalQuery(true).maybeSingle()
+    if (professionalResult.error?.message?.includes('is_publicly_visible')) {
+      professionalResult = await buildProfessionalQuery(false).maybeSingle()
     }
 
-    const { data } = await professionalQuery.maybeSingle()
-    professional = data
+    professional = professionalResult.data
   } else {
     professional = await loadCachedPublicProfessionalByParam(parsedParam)
   }
 
-  if (!professional || (user && professional.status !== 'approved' && professional.user_id !== user?.id)) {
+  if (!professional) {
     notFound()
   }
 
   const isOwnProfessional = user ? professional.user_id === user.id : false
-  if (user && !isOwnProfessional) {
-    const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient as any, [professional])
-    const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
-    if (!canGoLive) notFound()
+  if (!isOwnProfessional) {
+    let isPubliclyVisible: boolean | null =
+      typeof professional.is_publicly_visible === 'boolean' ? professional.is_publicly_visible : null
+
+    if (isPubliclyVisible === null) {
+      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient as any, [
+        professional,
+      ])
+      isPubliclyVisible = Boolean(visibilityByProfessionalId.get(String(professional.id))?.canGoLive)
+    }
+
+    if (!isPubliclyVisible || professional.status !== 'approved') {
+      notFound()
+    }
   }
 
   const { data: availability } = await readClient
@@ -343,22 +378,34 @@ export default async function ProfissionalPage({
   const firstBookingBlocked =
     !professional.first_booking_enabled && (existingAcceptedBookingsCount || 0) === 0
 
-  const { data: recommendationCandidatesRaw } = await readClient
+  const { data: recommendationCandidatesRaw, error: recommendationCandidatesError } = await readClient
     .from('professionals')
     .select(
       'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!inner(full_name,country,avatar_url,role),category,subcategories',
     )
     .eq('status', 'approved')
+    .eq('is_publicly_visible', true)
     .eq('profiles.role', 'profissional')
     .neq('id', professional.id)
     .order('rating', { ascending: false })
     .limit(24)
 
   let recommendationCandidates: any[] = (recommendationCandidatesRaw || []) as any[]
-  if (recommendationCandidates.length > 0) {
+  if (recommendationCandidatesError?.message?.includes('is_publicly_visible')) {
+    const fallbackCandidatesResult = await readClient
+      .from('professionals')
+      .select(
+        'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!inner(full_name,country,avatar_url,role),category,subcategories',
+      )
+      .eq('status', 'approved')
+      .eq('profiles.role', 'profissional')
+      .neq('id', professional.id)
+      .order('rating', { ascending: false })
+      .limit(24)
+
     recommendationCandidates = (await filterPubliclyVisibleProfessionals(
       readClient as any,
-      recommendationCandidates as any,
+      (fallbackCandidatesResult.data || []) as any,
     )) as any[]
   }
 

@@ -130,6 +130,10 @@ export default function CompletarPerfilPage() {
         duration,
         parseFloat(priceBrl) || 0,
       )
+      await fetch('/api/professional/recompute-visibility', {
+        method: 'POST',
+        credentials: 'include',
+      })
     }
 
     router.push('/perfil')

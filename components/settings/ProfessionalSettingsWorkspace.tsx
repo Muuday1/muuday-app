@@ -132,8 +132,6 @@ export default function ProfessionalSettingsWorkspace() {
   const [loading, setLoading] = useState(true)
   const [professionalSummary, setProfessionalSummary] = useState<ProfessionalWorkspaceSummary | null>(null)
   const [onboardingEvaluation, setOnboardingEvaluation] = useState<ProfessionalOnboardingEvaluation | null>(null)
-  const [onboardingFlagsAvailable, setOnboardingFlagsAvailable] = useState(true)
-  const [operationalSaving, setOperationalSaving] = useState(false)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -215,18 +213,15 @@ export default function ProfessionalSettingsWorkspace() {
             .eq('professional_id', professional.id)
             .maybeSingle()
 
-          const readinessFlagsAvailable = !Boolean(readinessError)
-          setOnboardingFlagsAvailable(readinessFlagsAvailable)
-
-          const billingCardOnFile = readinessFlagsAvailable
-            ? Boolean(readinessSettings?.billing_card_on_file)
-            : Boolean(professional.first_booking_enabled)
-          const payoutOnboardingStarted = readinessFlagsAvailable
-            ? Boolean(readinessSettings?.payout_onboarding_started)
-            : Boolean(professional.first_booking_enabled)
-          const payoutKycCompleted = readinessFlagsAvailable
-            ? Boolean(readinessSettings?.payout_kyc_completed)
-            : Boolean(professional.first_booking_enabled)
+          const billingCardOnFile = readinessError
+            ? Boolean(professional.first_booking_enabled)
+            : Boolean(readinessSettings?.billing_card_on_file)
+          const payoutOnboardingStarted = readinessError
+            ? Boolean(professional.first_booking_enabled)
+            : Boolean(readinessSettings?.payout_onboarding_started)
+          const payoutKycCompleted = readinessError
+            ? Boolean(professional.first_booking_enabled)
+            : Boolean(readinessSettings?.payout_kyc_completed)
 
           const { count: serviceCount, error: serviceCountError } = await supabase
             .from('professional_services')
@@ -345,36 +340,6 @@ export default function ProfessionalSettingsWorkspace() {
     await saveField('notification_preferences', updated)
   }
 
-  async function saveOperationalReadinessFlags(updates: {
-    billingCardOnFile?: boolean
-    payoutOnboardingStarted?: boolean
-    payoutKycCompleted?: boolean
-  }) {
-    if (!professionalSummary?.id) return
-    if (!onboardingFlagsAvailable) return
-
-    setOperationalSaving(true)
-    const payload: Record<string, unknown> = {
-      professional_id: professionalSummary.id,
-      updated_at: new Date().toISOString(),
-    }
-
-    if (typeof updates.billingCardOnFile === 'boolean') {
-      payload.billing_card_on_file = updates.billingCardOnFile
-    }
-    if (typeof updates.payoutOnboardingStarted === 'boolean') {
-      payload.payout_onboarding_started = updates.payoutOnboardingStarted
-    }
-    if (typeof updates.payoutKycCompleted === 'boolean') {
-      payload.payout_kyc_completed = updates.payoutKycCompleted
-    }
-
-    await supabase.from('professional_settings').upsert(payload, { onConflict: 'professional_id' })
-
-    setOperationalSaving(false)
-    window.location.reload()
-  }
-
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl p-6 md:p-8">
@@ -419,9 +384,9 @@ export default function ProfessionalSettingsWorkspace() {
                   <p>Pendências de confirmação: {professionalSummary.pendingConfirmations}</p>
                 <p>Requests abertos: {professionalSummary.openRequests}</p>
                 <p>Disponibilidade ativa: {professionalSummary.availabilityCount}</p>
-                <p>Confirma??o: {professionalSummary.confirmationMode}</p>
+                <p>Confirmação: {professionalSummary.confirmationMode}</p>
                   <p>Antecedência mínima: {professionalSummary.minNoticeHours}h</p>
-                <p>Janela maxima: {professionalSummary.maxWindowDays} dias</p>
+                <p>Janela máxima: {professionalSummary.maxWindowDays} dias</p>
               </div>
             </div>
           )}
@@ -464,69 +429,10 @@ export default function ProfessionalSettingsWorkspace() {
                     >
                       {gate.passed
                         ? 'OK'
-                        : gate.blockers[0]?.description || 'Bloqueado por pendencias'}
+                        : gate.blockers[0]?.description || 'Bloqueado por pendências'}
                     </p>
                   </div>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {professionalSummary && (
-            <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
-              <h2 className="mb-1 font-display text-lg font-semibold text-neutral-900">
-                Readiness operacional (C6/C7)
-              </h2>
-              <p className="mb-4 text-xs text-neutral-500">
-                Flags operacionais da Wave 2 para gate de primeiro booking e payout.
-              </p>
-
-              {!onboardingFlagsAvailable && (
-                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Colunas de readiness não encontradas. Rode a migração 015 para ativar estes controles.
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <label className="flex items-center justify-between rounded-xl border border-neutral-200 px-3 py-2 text-sm">
-                  <span>Cartao para billing profissional em arquivo</span>
-                  <input
-                    type="checkbox"
-                    checked={professionalSummary.billingCardOnFile}
-                    disabled={!onboardingFlagsAvailable || operationalSaving}
-                    onChange={event =>
-                      saveOperationalReadinessFlags({
-                        billingCardOnFile: event.target.checked,
-                      })
-                    }
-                  />
-                </label>
-                <label className="flex items-center justify-between rounded-xl border border-neutral-200 px-3 py-2 text-sm">
-                  <span>Onboarding de payout iniciado</span>
-                  <input
-                    type="checkbox"
-                    checked={professionalSummary.payoutOnboardingStarted}
-                    disabled={!onboardingFlagsAvailable || operationalSaving}
-                    onChange={event =>
-                      saveOperationalReadinessFlags({
-                        payoutOnboardingStarted: event.target.checked,
-                      })
-                    }
-                  />
-                </label>
-                <label className="flex items-center justify-between rounded-xl border border-neutral-200 px-3 py-2 text-sm">
-                  <span>KYC de payout completo</span>
-                  <input
-                    type="checkbox"
-                    checked={professionalSummary.payoutKycCompleted}
-                    disabled={!onboardingFlagsAvailable || operationalSaving}
-                    onChange={event =>
-                      saveOperationalReadinessFlags({
-                        payoutKycCompleted: event.target.checked,
-                      })
-                    }
-                  />
-                </label>
               </div>
             </div>
           )}
@@ -686,7 +592,7 @@ export default function ProfessionalSettingsWorkspace() {
           <div className="flex items-center justify-between border-b border-neutral-50 px-6 py-4">
             <div className="flex items-center gap-3">
               <Bell className="h-4 w-4 text-brand-500" />
-              <h2 className="font-display font-bold text-neutral-900">Notificacoes</h2>
+              <h2 className="font-display font-bold text-neutral-900">Notificações</h2>
             </div>
             {savedField === 'notification_preferences' && (
               <span className="flex items-center gap-1 text-xs font-medium text-green-600">
@@ -730,7 +636,7 @@ export default function ProfessionalSettingsWorkspace() {
         <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
           <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
             <Lock className="h-4 w-4 text-brand-500" />
-            <h2 className="font-display font-bold text-neutral-900">Seguranca</h2>
+            <h2 className="font-display font-bold text-neutral-900">Segurança</h2>
           </div>
           <div className="divide-y divide-neutral-50">
             <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">

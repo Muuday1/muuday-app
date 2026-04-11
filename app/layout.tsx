@@ -1,9 +1,10 @@
-import type { Metadata, Viewport } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, Bricolage_Grotesque } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import { CookieConsentRoot } from '@/components/cookies/CookieConsentRoot'
-import { cookies, headers } from 'next/headers'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -24,32 +25,22 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Muuday — Especialistas brasileiros, onde você estiver',
+  title: 'Muuday â€” Especialistas brasileiros, onde vocÃª estiver',
   description: 'Conectamos brasileiros no exterior aos melhores profissionais do Brasil.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  let country = 'BR'
-  try {
-    const cookieStore = cookies()
-    const countryFromCookie = cookieStore.get('muuday_country')?.value
-    const countryFromHeader =
-      headers().get('x-vercel-ip-country') ||
-      headers().get('cf-ipcountry') ||
-      headers().get('x-country-code')
-    country = (countryFromCookie || countryFromHeader || 'BR').toUpperCase()
-  } catch {
-    country = 'BR'
-  }
-
   return (
     <html lang="pt-BR">
       <body
         className={`${jakarta.variable} ${bricolage.variable} min-h-screen font-sans antialiased bg-[#f6f4ef] flex flex-col`}
       >
-        <CookieConsentRoot country={country} />
+        <CookieConsentRoot country="BR" />
         <PostHogProvider>{children}</PostHogProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
 }
+
