@@ -1,42 +1,43 @@
-﻿# Roadmap
+# Roadmap
 
-Last updated: 2026-04-01
+Last updated: 2026-04-11
 
 Source baseline: `docs/spec/source-of-truth/part1..part5`
+Canonical status docs: `docs/project/roadmap.md` + `docs/spec/consolidated/master-spec.md`
 
 ## Done
 
-### Wave 0 - Baseline alignment and schema parity âœ…
+### Wave 0 - Baseline alignment and schema parity [Done]
 
-1. ~~Resolve production schema drift for booking foundation tables and API exposure.~~ Done.
-2. ~~Stabilize deterministic e2e critical journeys with dedicated fixtures.~~ Done.
-3. ~~Keep monitoring and observability activation running in production.~~ Done.
-4. ~~Keep handover/docs aligned with wave progress.~~ Done.
+1. Resolve production schema drift for booking foundation tables and API exposure.
+2. Stabilize deterministic e2e critical journeys with dedicated fixtures.
+3. Keep monitoring and observability activation running in production.
+4. Keep handover/docs aligned with wave progress.
 
-### Wave 1 - Foundations and discovery parity âœ…
+### Wave 1 - Foundations and discovery parity [Done]
 
-1. ~~Enforce taxonomy governance and moderation model.~~ Done.
-2. ~~Enforce tier limits/entitlements and discovery influence rules.~~ Done.
-3. ~~Align search, filter, rank, cards, trust signals, and favorites/rebooking behavior.~~ Done.
+1. Enforce taxonomy governance and moderation model.
+2. Enforce tier limits/entitlements and discovery influence rules.
+3. Align search, filter, rank, cards, trust signals, and favorites/rebooking behavior.
 
 ## Now
 
 ### Wave 2 close - Onboarding, booking lifecycle, and infrastructure hardening [Done]
 
-**Product scope** (closed 2026-04-10):
-1. ~~Finalize dual onboarding gates (public listing vs first booking acceptance).~~ Done.
-2. ~~Finalize booking state machine, request booking, slot hold, and recurring scheduling rules.~~ Done.
-3. ~~Finalize timezone-safe booking views and timeline/event integrity.~~ Done.
+Product scope (closed 2026-04-10):
+1. Finalize dual onboarding gates (public listing vs first booking acceptance).
+2. Finalize booking state machine, request booking, slot hold, and recurring scheduling rules.
+3. Finalize timezone-safe booking views and timeline/event integrity.
 
-**Infrastructure hardening** (must deploy before starting Wave 3):
-4. Database composite indexes â€” In progress (migration `020` criada): aplicar em produÃ§Ã£o e validar com `EXPLAIN ANALYZE` para `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
-5. Booking race condition â€” wrap conflict check + insert in Postgres RPC transaction or add `UNIQUE(professional_id, start_time_utc)` constraint.
-6. JWT custom claims â€” encode user role in `raw_app_meta_data` to eliminate per-request DB query in middleware.
-7. Zod validation â€” audit and add schema validation to ALL server actions that accept user input.
-8. GitHub Actions CI â€” create workflow: `lint â†’ typecheck â†’ build â†’ test:state-machines â†’ test:e2e`. Block Vercel deploy on failure.
-9. Upstash monitoring â€” add alert/log when rate limiter falls back to in-memory mode.
-10. Dynamic exchange rates â€” create `exchange_rates` Supabase table, cron job to refresh from API, 24h staleness check on booking creation.
-11. pg_trgm + GIN indexes â€” In progress (migration `019` criada): validar em produÃ§Ã£o para substituir filtragem client-side pesada em `/buscar`.
+Infrastructure hardening carryover (pre-Wave 3 closure tasks):
+1. Database composite indexes: validate production query plans for `bookings(professional_id, status)`, `bookings(user_id, status)`, `availability_rules(professional_id, is_active)`, `payments(booking_id, status)`, `slot_locks(professional_id, start_time_utc)`.
+2. Booking race condition: keep conflict check + insert atomic (RPC/constraint path validated).
+3. JWT custom claims: keep role in token, DB fallback monitored.
+4. Zod validation: keep server-side schema validation on all write paths.
+5. GitHub Actions CI: lint -> typecheck -> build -> test:state-machines -> test:e2e.
+6. Upstash monitoring: keep alert/log for in-memory rate-limit fallback.
+7. Dynamic exchange rates: table + cron + stale guard.
+8. `pg_trgm` + GIN search indexes: validated in production.
 
 ## Next
 
@@ -48,165 +49,61 @@ Canonical lock (2026-04-10):
 3. BR entity: Airwallex end-to-end (v1 default).
 4. dLocal: contingency fallback only.
 
-Wave 3 has two parallel tracks: **journeys completion** (must finish before Stripe code) and **Stripe prep** (independent, can run in parallel).
+Track A - Payment rail prep (can run in parallel):
+1. Keep Stripe scope limited to UK rail.
+2. Keep Stripe products/prices for professional subscriptions (Basic/Professional/Premium x monthly/annual).
+3. Keep webhook skeleton + signature verification + event logging/idempotency.
+4. Keep payment schema and operational tables aligned with migration set.
 
-**Track A â€” Stripe prep (independent, start NOW in parallel with journeys)**:
-1. Keep Stripe scope limited to UK rail (no BR payout routing under UK Stripe entity).
-2. Create Stripe Products/Prices for professional subscriptions in Stripe Dashboard (Basic/Professional/Premium Ã— monthly/annual).
-3. Install Stripe MCP server for Claude Code dev tooling.
-4. `npm install stripe` and add env vars (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`).
-5. Database migration: payment tables schema only (no app code yet) â€” `stripe_customers`, `stripe_connected_accounts`, `payment_intents`, `transfers`, `subscriptions`, `internal_ledger`, `admin_audit_log`.
-6. Webhook endpoint skeleton (`/api/webhooks/stripe`) with signature verification + logging (no business logic yet).
-7. Exchange rates table + cron (already in Wave 2 close).
-8. GitHub Actions CI pipeline (already in Wave 2 close).
+Track B - Product journey completion (must stay green):
+1. Finish remaining professional onboarding gates and UX consistency.
+2. Keep booking journeys stable (one-off, request-booking, recurring, multiple-dates).
+3. Keep `/financeiro` and billing settings consistent with tier/gate rules.
 
-**Track B â€” Journey completion (must finish before Stripe code)**:
-9. Professional onboarding screens finalized (all steps, review flow, approval).
-10. Booking one-off journey complete (agendar â†’ confirmar â†’ cancelar).
-11. Request booking journey complete (solicitar â†’ proposta â†’ aceitar/expirar).
-12. Recurring booking journey complete (ciclo â†’ renovaÃ§Ã£o â†’ pausa).
-13. Cancellation policy rules implemented and testable.
-14. `/financeiro` professional page with mock data (earnings, payouts, breakdown).
-15. Professional settings billing area UI (tier, card placeholder, subscription status).
+Track C - Real-money implementation:
+1. Stripe customer/account/subscription lifecycle for UK rail.
+2. BR rail integration lifecycle using Airwallex.
+3. Reconciliation, settlement, and operational alerting.
 
-**Track C â€” Stripe code (after Track B is done)**:
-16. Stripe customer creation on user signup.
-17. Stripe Express connected account in professional onboarding.
-18. Payment Element checkout for one-off bookings.
-19. Webhook business logic: `payment_intent.succeeded` â†’ confirm booking.
-20. Manual-accept timeout â†’ auto-refund via Inngest.
-21. Request-booking payment link with 24h expiry.
-22. Cancellation refund flow (pre-transfer and post-transfer).
-23. Inngest weekly payout cron (48h eligibility, BRL 100 minimum, accumulation).
-24. Professional subscription billing (90-day trial, grace, block).
-25. Recurring client billing (Stripe Subscription + per-session payout tracker).
-26. Professional earnings dashboard with real Stripe data.
-27. Admin financial dashboard.
-
-**Security and compliance for payments**:
-28. Supabase Vault for encrypted payout/bank details.
-29. Admin audit trail on all admin mutations (foundation delivered via migration `022`; expand to finance/manual flows).
-30. RLS audit on all payment/financial tables.
-31. Rate limiting on webhook, booking creation, signup/login.
-32. CORS explicit policy on all API routes.
-
-**Database schema additions for Wave 3**:
-- `stripe_customers(id, user_id, stripe_customer_id, created_at)`
-- `stripe_connected_accounts(id, professional_id, stripe_account_id, onboarding_complete, created_at)`
-- `payment_intents(id, booking_id, stripe_payment_intent_id, amount, currency, status, created_at)`
-- `transfers(id, payment_intent_id, stripe_transfer_id, amount, currency, status, created_at)`
-- `subscriptions(id, professional_id, stripe_subscription_id, plan, status, current_period_end, created_at)`
-- `exchange_rates(currency_pair, rate, source, updated_at)` (may be created in Wave 2 close)
-- `admin_audit_log(id, admin_user_id, action, target_table, target_id, old_value, new_value, created_at)`
-- `internal_ledger(id, booking_id, entry_type, amount, currency, description, created_at)`
+Security/compliance for payments:
+1. Supabase Vault for sensitive payout/bank metadata.
+2. Admin audit trail on financial/admin mutations.
+3. RLS audit on all payment tables.
+4. Rate limit + CORS hardening on payment/webhook paths.
 
 ## Later
 
 ### Wave 4 - Admin trust operations, monitoring, and notifications
 
-**Operations**:
 1. Structured case queue for disputes/refunds/payout failures/moderation.
 2. Review moderation and trust-flag governance.
-
-**Monitoring and alerting**:
-3. Sentry alert rules — configure dashboard alerts from runbook for: error rate spike, payment failures, auth failures, webhook processing delays.
-4. Checkly synthetic monitoring — keep uptime and critical-path journey checks active and green.
-5. PostHog alerts — configure signup drop-off and booking conversion drop alerts.
-
-**Notifications**:
-6. Notification dispatcher + in-app inbox + reminder reliability via Inngest.
-7. Multi-channel routing (email + in-app + future push).
-
-**Scale (deploy when threshold met)**:
-8. Redis cache layer (Upstash) for public profiles (5min TTL), taxonomy (1h), exchange rates (1h) â€” trigger: DB read IOPS > 80% of plan limit.
-9. Next.js ISR with `revalidateTag` for public profile pages â€” trigger: > 5k daily profile views.
+3. Sentry alert rules (error spikes, payment failures, auth failures, webhook delays).
+4. Checkly uptime and critical journey checks.
+5. PostHog alerts (signup drop-off, booking conversion drop).
+6. Notification dispatcher + in-app inbox reliability.
+7. Redis cache layer when threshold triggers are met.
 
 ### Wave 5 - Session provider and compliance freeze
 
-1. Keep Agora as active provider while preserving provider adapter boundaries in booking core.
-2. Sensitive-category disclaimer versioning and booking acceptance snapshots.
-3. External validations closure (BR rail provider final lock, legal, tax/accounting).
+1. Keep Agora as active provider while preserving adapter boundaries.
+2. Sensitive-category disclaimer versioning and acceptance snapshots.
+3. External validations closure (legal/tax/accounting + rail operations).
 
-### Post-MVP - Scale triggers
+### Post-MVP triggers
 
-1. Typesense or Meilisearch for dedicated search â€” trigger: > 2k active professionals (or latency > 500ms p95 after pg_trgm tuning).
-2. Cloudflare Images or imgproxy for image optimization â€” trigger: > 1k uploaded avatars or LCP > 2.5s.
-3. Deep tax automation â€” trigger: new jurisdictions or regulatory complexity beyond light model.
-4. Advanced trust automation beyond manual + rule-based controls.
+1. Typesense/Meilisearch if scale/latency thresholds are exceeded.
+2. Cloudflare Images/imgproxy if image scale or LCP thresholds are exceeded.
+3. Deep tax automation when jurisdiction/compliance complexity demands it.
 
-## Open validations (must close before architecture freeze)
+## Open validations
 
-1. Payment rails architecture lock: **Done (2026-04-10)**.
-- Entity decides rail (not professional country alone).
-- UK entity -> Stripe end-to-end where supported.
-- BR entity -> Airwallex end-to-end for BR professionals/payout rails.
-2. BR-entity provider final selection: **Done (Airwallex for v1)**.
-3. Legal wording freeze for sensitive-category scope and disclaimers.
-4. Tax/accounting operational model confirmation (including UK <-> BR intercompany settlement design).
-
-## Approved future stack additions
-
-| Component | Purpose | Status | Entry wave |
-| --- | --- | --- | --- |
-| Database indexes + booking atomicity | Performance and data integrity | Planned | Wave 2 close |
-| GitHub Actions CI | Automated quality gate | Planned | Wave 2 close |
-| JWT custom claims | Middleware performance | Planned | Wave 2 close |
-| Dual-rail payments integration (Stripe + BR rail) | Marketplace charging, refunds, payouts, billing by entity | Planned | Wave 3 |
-| Stripe MCP server | Dev tooling for Claude Code | Planned | Wave 3 |
-| Supabase Vault | Encrypted PII storage | Planned | Wave 3 |
-| Admin audit trail | Financial compliance | In progress (foundation delivered) | Wave 3 |
-| Sentry alert rules | Production incident detection | In progress | Wave 4 |
-| Checkly monitoring | Uptime and journey checks | In progress | Wave 4 |
-| Admin case queue | Operational exception handling | Planned | Wave 4 |
-| Notification dispatcher | Reliable operational communication | In progress | Wave 4 |
-| Redis cache layer | Read performance at scale | Threshold-triggered | Wave 4+ |
-| Session provider hardening (Agora) | Video/session execution reliability and governance | In progress | Wave 2-5 |
-| Typesense/Meilisearch | Search at scale | Threshold-triggered | Post-MVP |
-| Cloudflare Images | Image optimization | Threshold-triggered | Post-MVP |
-
-## Stack adoption by wave (mandatory tracking)
-
-1. Wave 0: âœ… Done
-   - observability/testing baseline (Checkly, Sentry, Playwright, PostHog, Zod hardening)
-   - on-call ownership and SLA baseline active (solo model)
-
-2. Wave 1: âœ… Done
-   - feature flag rollout baseline (PostHog Feature Flags)
-
-3. Wave 2 close: [Done] signed off 2026-04-10
-   - database indexes and booking atomicity
-   - JWT custom claims for middleware performance
-   - GitHub Actions CI pipeline
-   - dynamic exchange rates
-   - pg_trgm search indexes
-   - Upstash rate limit monitoring
-
-4. Wave 3:
-   - UK-rail Stripe lifecycle (Connect + Billing + webhooks where supported)
-   - BR-rail provider integration (Airwallex or dLocal)
-   - Stripe MCP server for dev tooling
-   - internal financial ledger
-   - Supabase Vault for PII
-   - admin audit trail
-   - recurring booking transaction atomicity
-
-5. Wave 4:
-   - finalize Sentry dashboard alert-rule rollout
-   - keep Checkly synthetic monitoring stable and tuned
-   - case queue and Inngest-backed event/job orchestration for notification reliability
-   - Redis cache layer (if threshold met)
-
-6. Wave 5:
-   - compliance versioning hardening and provider-agnostic safeguards (Agora remains active provider)
-
-7. Post-MVP:
-   - Typesense/Meilisearch (if search scale threshold met)
-   - Cloudflare Images (if image scale threshold met)
-   - tax automation expansion
+1. Payment rails architecture lock: Done.
+2. BR provider selection: Done (Airwallex v1).
+3. Legal wording freeze for sensitive-category scope/disclaimers.
+4. Tax/accounting model confirmation (including UK <-> BR intercompany settlement design).
 
 ## Under evaluation
 
-1. No open video provider decision for v1 (Agora locked); only reliability/compliance hardening remains.
+1. No open video provider decision for v1 (Agora locked).
 2. Deeper tax automation beyond MVP light model.
 3. Advanced trust automation beyond manual + rule-based controls.
-

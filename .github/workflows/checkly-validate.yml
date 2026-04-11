@@ -21,19 +21,16 @@ on:
   schedule:
     - cron: "0 */6 * * *"
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 jobs:
   validate-checkly-project:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -80,10 +77,10 @@ jobs:
       E2E_MANUAL_PROFESSIONAL_ID: ${{ secrets.E2E_MANUAL_PROFESSIONAL_ID }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -104,10 +101,10 @@ jobs:
       CHECKLY_BASE_URL: ${{ vars.CHECKLY_BASE_URL || 'https://muuday-app.vercel.app' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm

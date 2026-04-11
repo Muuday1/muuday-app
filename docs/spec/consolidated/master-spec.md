@@ -1,6 +1,6 @@
 # Muuday Unified Master Spec
 
-Last updated: 2026-03-29
+Last updated: 2026-04-11
 Source baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Scope
@@ -24,16 +24,21 @@ This file consolidates the five source parts into one implementation-facing stru
 - Tiers: Basic, Professional, Premium.
 - Tier impacts limits, visibility, and operational/commercial capabilities.
 - Signup incentive: 3-month free period.
-- Annual option with discount exists.
+- Annual billing is fixed at 10x monthly price.
+- Billing card is required at C6 (review submission) for all tiers, and revalidated for first booking acceptance.
 
-4. Auth and role model
+4. Delivery model and coverage
+- Product is video-only for now (Agora provider boundary preserved).
+- Service jurisdiction is removed; professionals serve globally.
+
+5. Auth and role model
 - User/customer and professional are separate account types.
 - Professional login cannot be used as user account.
 - User login cannot be used as professional account.
 - Dual-role shared account is out of scope for now.
 - Route guards are explicit by role (public, user, professional, admin).
 
-5. Screen architecture and navigation baseline
+6. Screen architecture and navigation baseline
 - Logged-out nav baseline:
   - Home
   - Buscar profissionais
@@ -65,52 +70,52 @@ This file consolidates the five source parts into one implementation-facing stru
   - Growth
   - Settings
 
-6. Booking lifecycle
+7. Booking lifecycle
 - Booking flow is service-first then slot selection then review then payment.
 - Acceptance modes: auto-accept or manual-accept.
 - Manual acceptance has explicit deadline behavior.
 - Slot hold before payment is required.
 - Internal booking state machine is explicit; UI statuses are simplified.
 
-7. Availability and timezone
+8. Availability and timezone
 - UTC is canonical persistence format.
 - User/professional/admin views must be timezone-safe and explicit.
 - Minimum notice, booking window, and buffer rules are first-class constraints.
 
-8. Recurring behavior
+9. Recurring behavior
 - Recurring is supported with fixed default schedule templates.
 - Future-cycle slot reservation and release rules are explicit.
 - Pause/change windows are deadline-based.
 
-9. Payments and revenue
+10. Payments and revenue
 - Muuday charges the customer and pays professionals later.
 - Preferred Stripe model: Separate Charges and Transfers.
 - Payout eligibility is delayed after session completion and dispute window.
 - Weekly payout cadence and payout minimum threshold are defined.
 - Refunds return to original payment method in MVP.
 
-10. Professional billing
+11. Professional billing
 - Professional subscription billing exists after free period.
 - Billing failure has grace window and booking-block consequences.
 
-11. Trust, moderation, and admin operations
+12. Trust, moderation, and admin operations
 - First go-live requires light admin review.
 - Reviews are one-per-user-professional with edit/update model.
 - Professional response to review is controlled.
 - Structured case queue is required for disputes and exceptions.
 - Auditability is mandatory for sensitive admin actions.
 
-12. Notifications and inbox
+13. Notifications and inbox
 - Email + in-app notifications are MVP baseline.
 - In-app inbox is separate from chat.
 - Reminder cadence is defined and timezone-safe.
 
-13. Compliance and sensitive categories
+14. Compliance and sensitive categories
 - Sensitive categories require stricter wording and disclaimer controls.
 - Profile + checkout disclaimer layers are required.
 - Verification and claim governance must be category-aware.
 
-14. Professional onboarding and gating matrix
+15. Professional onboarding and gating matrix
 - Stage model is explicit and execution-ready:
   - account creation
   - identity positioning

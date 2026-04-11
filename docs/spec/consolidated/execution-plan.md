@@ -1,7 +1,9 @@
 # Muuday Execution Plan
 
-Last updated: 2026-03-29
+Last updated: 2026-04-11
 Planning baseline: Part 1 to Part 5 source files
+Plan status: Derived operational plan aligned to `docs/project/roadmap.md` and `docs/spec/consolidated/master-spec.md`.
+Version tag: `wave2-close-pre-wave3-hardening`
 
 ## Execution mode
 
@@ -9,6 +11,7 @@ Planning baseline: Part 1 to Part 5 source files
 2. Each wave has clear exit criteria.
 3. Do not start next wave before core acceptance criteria are met.
 4. Keep implementation and docs synchronized at every checkpoint.
+5. If there is any conflict, roadmap and master spec are canonical.
 
 ## Wave 0 - Baseline alignment and schema parity
 

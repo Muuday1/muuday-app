@@ -584,7 +584,7 @@ Minimum matrix:
 - primary_language: account_creation
 - display_name: valid_profile_draft
 - category/subcategory/specialty: valid_profile_draft + review_submission
-- (service_jurisdiction removed — professionals serve globally)
+- (service_jurisdiction removed - professionals serve globally)
 - headline + short_bio: valid_profile_draft + review_submission
 - profile_photo: review_submission + go_live
 - at_least_one_service: review_submission + go_live
@@ -594,19 +594,19 @@ Minimum matrix:
 - cancellation_policy_accepted: review_submission (platform default policy, not customizable in MVP)
 - terms_accepted (termsAcceptedAt + termsVersion): review_submission
 - professional_plan_selection: review_submission
-- billing_card_for_professional_plan: first_booking_acceptance
+- billing_card_for_professional_plan: review_submission + first_booking_acceptance
 - payout_connected_account_minimum: first_booking_acceptance
 - payout_kyc_complete: payout
 - sensitive_category_disclaimer_fields: review_submission + go_live (where applicable)
 - sensitive_category_credentials: go_live or first_booking_acceptance based on category risk policy
-- credential_upload: go_live (for sensitive categories only — saude, juridico, medico)
+- credential_upload: go_live (for sensitive categories only - saude, juridico, medico)
 Optional but tracked:
 - cover_photo: optional (all tiers)
 - whatsapp_number: optional (visible on profile for Professional/Premium only)
 - video_intro_url: optional (Professional/Premium only)
 - social_links: optional (Professional up to 2, Premium up to 5)
-- calendar_sync_provider: optional but strongly recommended — persistent banner if not connected post go-live
-- notification_preferences: optional — defaults to all enabled
+- calendar_sync_provider: optional but strongly recommended - persistent banner if not connected post go-live
+- notification_preferences: optional - defaults to all enabled
 
 1.13 Gating summary (explicit)
 - Minimum required to create account: Stage 1 required fields only.
@@ -619,7 +619,7 @@ Optional but tracked:
 - Every onboarding field must have explicit state and gate mapping.
 - Every gate decision must be machine-checkable and audit-friendly.
 - Do not hide blockers; present them as clear checklist items.
-SECTION 2 — MINIMUM REQUIRED TO GO LIVE VS MINIMUM REQUIRED TO ACCEPT BOOKINGS
+SECTION 2 - MINIMUM REQUIRED TO GO LIVE VS MINIMUM REQUIRED TO ACCEPT BOOKINGS
 --------------------------------------------------------------------
 
 2.1 Minimum required to create account
@@ -661,7 +661,7 @@ If Muuday requires nothing before first booking, the platform will break operati
 The chosen model keeps supply growth while protecting the first actual transaction.
 
 --------------------------------------------------------------------
-SECTION 3 — SERVICE SETUP RULES RELEVANT TO BOOKING
+SECTION 3 - SERVICE SETUP RULES RELEVANT TO BOOKING
 --------------------------------------------------------------------
 
 3.1 Service models supported in the booking layer
@@ -676,9 +676,9 @@ This is important because booking behavior changes by service type even before f
 These were already decided in Part 1 and must be enforced here operationally.
 
 Service count limit:
-- Basic: 3 services
-- Professional: 10 services
-- Premium: 20 services
+- Basic: 1 service
+- Professional: 5 services
+- Premium: 10 services
 
 Option/duration count per service:
 - Basic: 3 options
@@ -686,9 +686,9 @@ Option/duration count per service:
 - Premium: 10 options
 
 Specialty limit:
-- Basic: 2
+- Basic: 1
 - Professional: 3
-- Premium: 5
+- Premium: 3
 
 Tag limit:
 - Basic: 3
@@ -1341,7 +1341,7 @@ Unified instructions for any AI coding/design/system assistant
 - Keep implementation modular and maintainable for lean operations.
 
 --------------------------------------------------------------------
-SECTION 14 � SESSION EXECUTION RULES AT A HIGH LEVEL (AGORA LOCKED)
+SECTION 14 - SESSION EXECUTION RULES AT A HIGH LEVEL (AGORA LOCKED)
 --------------------------------------------------------------------
 
 Important note
@@ -1615,4 +1615,6 @@ These are not MVP instructions. They are later-phase ideas that should be recons
 - additional automation around suggested alternatives when slots are unavailable
 
 End of Part 2.
+
+
 
