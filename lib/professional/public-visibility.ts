@@ -119,13 +119,6 @@ function buildSnapshot(
       subcategories: asStringArray(professional.subcategories),
       languages: asStringArray(professional.languages),
       yearsExperience: Number(professional.years_experience || 0),
-      whatsappNumber: asText(professional.whatsapp_number),
-      coverPhotoUrl: asText(professional.cover_photo_url),
-      videoIntroUrl: asText(professional.video_intro_url),
-      socialLinks:
-        professional.social_links && typeof professional.social_links === 'object'
-          ? professional.social_links
-          : null,
     },
     settings: {
       confirmationMode: asText(settings?.confirmation_mode),
