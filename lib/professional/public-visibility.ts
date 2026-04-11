@@ -136,20 +136,6 @@ function buildSnapshot(
         settings?.payout_kyc_completed === null || settings?.payout_kyc_completed === undefined
           ? false
           : Boolean(settings.payout_kyc_completed),
-      calendarSyncProvider: asText(settings?.calendar_sync_provider),
-      cancellationPolicyAccepted:
-        settings?.cancellation_policy_accepted === null ||
-        settings?.cancellation_policy_accepted === undefined
-          ? false
-          : Boolean(settings.cancellation_policy_accepted),
-      termsAcceptedAt: asText(settings?.terms_accepted_at),
-      termsVersion: asText(settings?.terms_version),
-      bufferTimeMinutes: Number(settings?.buffer_time_minutes || 0),
-      notificationPreferences: {
-        email: Boolean(settings?.notification_email),
-        push: Boolean(settings?.notification_push),
-        whatsapp: Boolean(settings?.notification_whatsapp),
-      },
     },
     serviceCount,
     hasServicePricingAndDuration:
