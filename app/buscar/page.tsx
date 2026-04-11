@@ -4,6 +4,7 @@ export const dynamic = 'force-static'
 
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Star, MapPin, PlayCircle, MessageCircle } from 'lucide-react'
@@ -386,7 +387,15 @@ async function fetchSearchCandidateIdsPgTrgm(
   }
 }
 
-export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
+export async function BuscarPageContent({
+  searchParams,
+  isLoggedIn = false,
+  basePath = '/buscar',
+}: {
+  searchParams: BuscarSearchParams
+  isLoggedIn?: boolean
+  basePath?: string
+}) {
   const readClient = createAdminClient()
   const exchangeRates = await getExchangeRates((readClient as any) || undefined)
 
@@ -422,8 +431,6 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     pagina: selectedPage,
     moeda: selectedCurrency,
   })
-  const isLoggedIn = false
-
   let professionals: any[] = []
   let specialtyContext: SpecialtyContext = EMPTY_SPECIALTY_CONTEXT
   let cachedAvailabilityRows: AvailabilityRow[] = []
@@ -745,7 +752,11 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             {hasActiveFilters ? (
               <div className="mt-5 flex items-center justify-center gap-2">
                 <Link
-                  href={queryState.moeda ? `/buscar?moeda=${encodeURIComponent(queryState.moeda)}` : '/buscar'}
+                  href={
+                    queryState.moeda
+                      ? `${basePath}?moeda=${encodeURIComponent(queryState.moeda)}`
+                      : basePath
+                  }
                   className="rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
                   Limpar filtros
@@ -894,7 +905,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
             {totalPages > 1 ? (
               <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
                 <Link
-                  href={buildHref('/buscar', queryState, { pagina: String(Math.max(1, currentPage - 1)) })}
+                  href={buildHref(basePath, queryState, { pagina: String(Math.max(1, currentPage - 1)) })}
                   className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
                     currentPage === 1
                       ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
@@ -907,7 +918,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                 {pageNumbers.map(pageNumber => (
                   <Link
                     key={pageNumber}
-                    href={buildHref('/buscar', queryState, { pagina: String(pageNumber) })}
+                    href={buildHref(basePath, queryState, { pagina: String(pageNumber) })}
                     className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-all ${
                       pageNumber === currentPage
                         ? 'bg-brand-500 border-brand-500 text-white'
@@ -919,7 +930,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
                 ))}
 
                 <Link
-                  href={buildHref('/buscar', queryState, { pagina: String(Math.min(totalPages, currentPage + 1)) })}
+                  href={buildHref(basePath, queryState, { pagina: String(Math.min(totalPages, currentPage + 1)) })}
                   className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
                     currentPage === totalPages
                       ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
@@ -934,6 +945,14 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
         )}
       </section>
     </div>
+  )
+}
+
+export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
+  return (
+    <PublicPageLayout>
+      {await BuscarPageContent({ searchParams, isLoggedIn: false, basePath: '/buscar' })}
+    </PublicPageLayout>
   )
 }
 

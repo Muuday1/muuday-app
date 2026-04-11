@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { BuscarPageContent } from '@/app/buscar/page'
 
 type BuscarSearchParams = {
   q?: string
@@ -40,15 +41,14 @@ export default async function BuscarAuthPage({
     .eq('id', user.id)
     .maybeSingle()
 
-  const params = new URLSearchParams(
-    Object.entries(searchParams).filter(([, value]) => Boolean(value)) as [string, string][],
-  )
-
-  if (!params.get('moeda') && profile?.currency) {
-    params.set('moeda', String(profile.currency).toUpperCase())
+  const effectiveParams: BuscarSearchParams = { ...searchParams }
+  if (!effectiveParams.moeda && profile?.currency) {
+    effectiveParams.moeda = String(profile.currency).toUpperCase()
   }
 
-  const query = params.toString()
-  redirect(query ? `/buscar?${query}` : '/buscar')
+  return await BuscarPageContent({
+    searchParams: effectiveParams,
+    isLoggedIn: true,
+    basePath: '/buscar-auth',
+  })
 }
-
