@@ -1,6 +1,6 @@
 ﻿# Setup and Environments
 
-Last updated: 2026-04-01
+Last updated: 2026-04-11
 
 ## Local setup
 
@@ -25,6 +25,7 @@ cp .env.local.example .env.local
 - `NEXT_PUBLIC_APP_URL`
 - `APP_PRIMARY_DOMAIN`
 - `CRON_SECRET`
+- `SUPABASE_DB_WEBHOOK_SECRET` (if using Supabase Database Webhooks bridge)
 
 Optional but recommended:
 
