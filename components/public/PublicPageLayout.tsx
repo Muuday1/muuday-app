@@ -6,25 +6,42 @@ import {
 } from '@/lib/public-preferences'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { PublicHeader } from '@/components/public/PublicHeader'
+import { createClient } from '@/lib/supabase/server'
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 export async function PublicPageLayout({ children }: { children: React.ReactNode }) {
   const acceptLanguage = headers().get('accept-language')
   const cookieStore = cookies()
-  const hasAuthCookie = cookieStore
-    .getAll()
-    .some(cookie => cookie.name.includes('auth-token') || cookie.name.includes('access-token'))
 
   const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
 
   const initialCurrency =
     cookieCurrency || resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
 
-  const loggedInHref = hasAuthCookie ? '/buscar-auth' : '/buscar'
+  let isLoggedIn = false
+  let loggedInHref = '/buscar'
+  try {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      isLoggedIn = true
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      loggedInHref = resolvePostLoginDestination(profile?.role)
+    }
+  } catch {
+    // Keep public pages resilient if auth backend is transiently unavailable.
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f4ef] text-neutral-900 flex flex-col">
       <PublicHeader
-        isLoggedIn={hasAuthCookie}
+        isLoggedIn={isLoggedIn}
         loggedInHref={loggedInHref}
         initialCurrency={initialCurrency}
       />
