@@ -1,35 +1,25 @@
 # Control Snapshot — 2026-04-11
 
 ## Feito
-- Navegação autenticada corrigida no fluxo público:
-  - `Minha área` mantém usuário autenticado no fluxo logado.
-  - `Buscar profissionais` em sessão autenticada resolve para `/buscar-auth`.
-  - Middleware força redirect de usuário autenticado em `/buscar` para `/buscar-auth`.
-- Smoke test dirigido executado com Playwright em **produção** e **preview** (desktop + mobile):
-  - Fluxo validado: `login -> landing -> logo -> Minha área -> Buscar profissionais`.
-  - Resultado final: **4/4 pass**.
-  - URLs validadas:
-    - Produção: `https://muuday-i7a8ixq4o-muuday1s-projects.vercel.app`
-    - Preview: `https://muuday-k4h10h0ga-muuday1s-projects.vercel.app`
-- Pooling local fechado para validação:
-  - `SUPABASE_DB_POOLER_URL` adicionado ao `.env.local`.
-  - `npm run db:validate-pooling` retornando `OK`.
-- Evidência operacional já coletada:
-  - DB webhook trigger `payments -> /api/webhooks/supabase-db` retornando **2xx** (`net._http_response` com `status_code=202`).
-  - Skew Protection no Vercel: **habilitado** (max age 12h, conforme validação operacional).
+- Wave 2 foi encerrada e assinada como concluída.
+- `main` está operacionalmente estável após os últimos patches de navegação pública/logada.
+- SQL 033 foi aplicada no projeto Supabase com os jobs e o gatilho operacional previstos.
+- O gatilho `payments -> /api/webhooks/supabase-db` foi validado com retorno `202` em `net._http_response`.
+- `Skew Protection` está habilitado no Vercel (`max age: 12h`).
+- A policy de Supabase branching foi travada como `branch por PR`, com exceção apenas para hotfix emergencial seguido de backfill.
+- O workspace canônico continua sendo `C:\dev\muuday-app`.
 
 ## Pendente
-- CI do `main` precisa ficar totalmente verde após os últimos patches (acompanhar execução do workflow `CI`).
-- Confirmar e registrar formalmente em docs de operações:
-  - PITR adiado para perto do lançamento (com custo/benefício).
-  - Política de Supabase Branching (quando usar branch por PR vs apenas mudanças críticas).
+- Integrar imagens reais nas páginas públicas quando os assets forem entregues.
+- Fechar o próximo bloco de polish visual nas páginas públicas e de entrada do onboarding profissional.
+- Revalidar smoke visual pós-polish em laptop, mobile e fluxo autenticado/deslogado.
 
 ## Bloqueio
-- PITR: decisão de custo adia habilitação para fase pré-lançamento de pagamentos reais.
-- Sem bloqueios técnicos imediatos para navegação/auth no estado atual.
+- PITR permanece adiado por custo até o período imediatamente anterior ao lançamento de pagamentos reais.
+- Não há bloqueio técnico imediato para o shell público, busca ou onboarding-entry neste momento.
 
 ## Próximo
-1. Acompanhar último `CI` no GitHub e confirmar `main` 100% verde.
-2. Atualizar `docs/handover/current-state.md` e `docs/project/project-status.md` com este snapshot resumido.
-3. Fechar policy explícita de branching Supabase no runbook operacional.
-4. Manter Wave 3 (pagamentos reais) separado deste bloco de estabilização.
+1. Refinar landing e `registrar-profissional` para uma composição mais limpa em notebook/laptop.
+2. Preparar os hero blocks para swap direto de imagens reais sem reestruturação.
+3. Revisar a busca pública/autenticada para manter taxonomia e navegação coerentes.
+4. Rodar gate final de qualidade e atualizar o handover curto ao fim do bloco.
