@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AuthOverlay } from '@/components/auth/AuthOverlay'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { createClient } from '@/lib/supabase/client'
@@ -43,7 +43,6 @@ export function PublicHeader({
   loggedInHref,
   initialCurrency,
 }: PublicHeaderProps) {
-  const supabase = useMemo(() => createClient(), [])
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -64,6 +63,17 @@ export function PublicHeader({
   }, [pathname])
 
   useEffect(() => {
+    const hasSupabasePublicEnv =
+      Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+    if (!hasSupabasePublicEnv) {
+      setIsLoggedInClient(isLoggedIn)
+      setLoggedInHrefClient(loggedInHref)
+      return
+    }
+
+    const supabase = createClient()
     let active = true
 
     async function syncSessionState() {
@@ -115,7 +125,7 @@ export function PublicHeader({
       active = false
       authListener.subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [isLoggedIn, loggedInHref])
 
   function handleLanguageChange(language: string) {
     setCookie(PUBLIC_LANGUAGE_COOKIE, language)
