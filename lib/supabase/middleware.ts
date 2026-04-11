@@ -186,7 +186,15 @@ export async function updateSession(request: NextRequest) {
   if (user && ['/login', '/cadastro'].includes(pathname)) {
     const role = await getProfileRole()
     const url = request.nextUrl.clone()
-    url.pathname = role === 'profissional' ? '/dashboard' : '/buscar'
+    url.pathname = role === 'profissional' ? '/dashboard' : '/buscar-auth'
+    return applyPendingCookies(NextResponse.redirect(url))
+  }
+
+  if (user && pathname === '/buscar') {
+    const url = request.nextUrl.clone()
+    const query = request.nextUrl.search
+    url.pathname = '/buscar-auth'
+    url.search = query
     return applyPendingCookies(NextResponse.redirect(url))
   }
 
