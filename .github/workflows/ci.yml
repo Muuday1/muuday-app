@@ -49,6 +49,7 @@ jobs:
             E2E_PROFESSIONAL_PASSWORD
             NEXT_PUBLIC_SUPABASE_URL
             SUPABASE_SERVICE_ROLE_KEY
+            SUPABASE_DB_POOLER_URL
           )
           for key in "${required_vars[@]}"; do
             if [ -z "${!key}" ]; then
@@ -71,15 +72,11 @@ jobs:
         run: npm run build
 
       - name: Validate DB pooling in production mode
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && env.SUPABASE_DB_POOLER_URL != '' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         env:
           REQUIRE_DB_POOLER: 'true'
           VERCEL_ENV: production
         run: npm run db:validate-pooling
-
-      - name: Warn if pooled DB URL is missing in CI
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && env.SUPABASE_DB_POOLER_URL == '' }}
-        run: echo "::warning::SUPABASE_DB_POOLER_URL not configured in GitHub secrets/vars. Pooler validation skipped in CI."
 
       - name: Unit tests
         run: npm run test:unit
