@@ -77,6 +77,17 @@ export function PublicHeader({
         return
       }
 
+      const metadataRole =
+        typeof user.app_metadata?.role === 'string'
+          ? String(user.app_metadata.role).toLowerCase()
+          : null
+
+      if (metadataRole === 'profissional') {
+        setIsLoggedInClient(true)
+        setLoggedInHrefClient('/dashboard')
+        return
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -85,7 +96,13 @@ export function PublicHeader({
 
       if (!active) return
       setIsLoggedInClient(true)
-      setLoggedInHrefClient(resolvePostLoginDestination(profile?.role))
+      if (profile?.role) {
+        setLoggedInHrefClient(resolvePostLoginDestination(profile.role))
+        return
+      }
+
+      // Safe authenticated fallback: never send logged users to public search.
+      setLoggedInHrefClient('/buscar-auth')
     }
 
     void syncSessionState()
