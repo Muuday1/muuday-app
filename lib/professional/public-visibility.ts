@@ -147,7 +147,7 @@ function buildSnapshot(
     specialtyCount: specialtyCounts.get(professionalId) || 0,
     sensitiveCategory: false,
     credentialUploadCount: credentialCounts.get(professionalId) || 0,
-  }
+  } as unknown as ProfessionalOnboardingSnapshot
 }
 
 export async function getPublicVisibilityByProfessionalId(
