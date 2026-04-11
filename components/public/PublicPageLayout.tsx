@@ -19,7 +19,7 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
     cookieCurrency || resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage)
 
   let isLoggedIn = false
-  let loggedInHref = '/buscar'
+  let loggedInHref = '/buscar-auth'
   try {
     const supabase = createClient()
     const {
@@ -39,7 +39,7 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f4ef] text-neutral-900 flex flex-col">
+    <div className="flex min-h-screen flex-col bg-[#f6f8fb] text-neutral-900">
       <PublicHeader
         isLoggedIn={isLoggedIn}
         loggedInHref={loggedInHref}

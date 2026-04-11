@@ -285,7 +285,7 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horário disponível</label>
+                <label className="block text-xs font-medium text-neutral-500 mb-1.5">HorÃ¡rio disponÃ­vel</label>
                 <select
                   value={state.horario}
                   onChange={event => applyState({ ...state, horario: event.target.value })}
@@ -302,7 +302,7 @@ export function MobileFiltersDrawer({
               <div>
                 <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
                   <Languages className="w-3.5 h-3.5" />
-                  Idioma secundário
+                  Idioma
                 </label>
                 <select
                   value={state.idioma}
@@ -325,11 +325,11 @@ export function MobileFiltersDrawer({
                   onChange={event => applyState({ ...state, ordenar: event.target.value })}
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
                 >
-                  <option value="relevancia">Relevância</option>
-                  <option value="melhor-avaliacao">Melhor avaliação</option>
+                  <option value="relevancia">RelevÃ¢ncia</option>
+                  <option value="melhor-avaliacao">Melhor avaliaÃ§Ã£o</option>
                   <option value="mais-agendados">Mais agendados</option>
-                  <option value="preco-menor">Menor preço</option>
-                  <option value="preco-maior">Maior preço</option>
+                  <option value="preco-menor">Menor preÃ§o</option>
+                  <option value="preco-maior">Maior preÃ§o</option>
                 </select>
               </div>
 
@@ -341,7 +341,7 @@ export function MobileFiltersDrawer({
                   Limpar filtros
                 </Link>
                 <span className="text-xs text-neutral-400" aria-live="polite">
-                  {isPending ? 'Atualizando...' : 'Atualização automática'}
+                  {isPending ? 'Atualizando...' : 'AtualizaÃƒÂ§ÃƒÂ£o automÃƒÂ¡tica'}
                 </span>
               </div>
             </div>
