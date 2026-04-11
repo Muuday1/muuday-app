@@ -116,8 +116,8 @@ test.describe('Role guard integrity', () => {
   test('redirects user role away from professional dashboard', async ({ page }) => {
     await login(page, userEmail as string, userPassword as string)
     await page.goto('/dashboard')
-    await page.waitForURL('**/buscar')
-    await expect(page).toHaveURL(/\/buscar/)
+    await page.waitForURL('**/buscar-auth')
+    await expect(page).toHaveURL(/\/buscar-auth/)
   })
 
   test('redirects professional away from user-only favorites', async ({ page }) => {
@@ -151,10 +151,10 @@ test.describe('Role guard integrity', () => {
   test('keeps admin in search area and blocks professional dashboard', async ({ page }) => {
     test.skip(!hasAdminConfig, 'Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run admin guard tests.')
     await login(page, adminEmail as string, adminPassword as string)
-    await expect(page).toHaveURL(/\/buscar/)
+    await expect(page).toHaveURL(/\/buscar-auth/)
 
     await page.goto('/dashboard')
-    await page.waitForURL('**/buscar')
-    await expect(page).toHaveURL(/\/buscar/)
+    await page.waitForURL('**/buscar-auth')
+    await expect(page).toHaveURL(/\/buscar-auth/)
   })
 })
