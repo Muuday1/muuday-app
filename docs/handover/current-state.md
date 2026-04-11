@@ -1,4 +1,4 @@
-﻿# Current State
+# Current State
 
 Last updated: 2026-04-11 (session 83)
 
@@ -17,6 +17,8 @@ Last updated: 2026-04-11 (session 83)
 5. Vercel `Skew Protection` is enabled (max age 12h).
 6. PITR is intentionally deferred until pre-launch/payment cutover due cost tradeoff.
 7. Supabase branching policy is now `always branch per PR` (emergency-hotfix exception only, followed by backfill PR).
+8. Public marketing shell batch deployed: landing and `registrar-profissional` were tightened for laptop density, footer/header were kept aligned, and public-shell fallback remains safe for authenticated users.
+9. Latest validation after this batch: `lint`, `typecheck`, `build`, `test:state-machines`, `test:e2e` = `12 passed / 1 skipped`.
 
 ## Implemented today (`Done`)
 
