@@ -67,10 +67,10 @@ type QualificationDraft = {
   name: string
   isCustom: boolean
   suggestionReason: string
+  courseName: string
   registrationNumber: string
   issuer: string
   country: string
-  noRegistration: boolean
   evidenceFiles: File[]
 }
 
@@ -82,16 +82,13 @@ function normalizeOption(value: string) {
     .trim()
 }
 
-function parseCommaValues(value: string) {
-  return value
-    .split(',')
-    .map(item => item.trim())
-    .filter(Boolean)
-}
-
 function includesNormalizedOption(options: string[], value: string) {
   const normalizedValue = normalizeOption(value)
   return options.some(option => normalizeOption(option) === normalizedValue)
+}
+
+function isRegistrationQualification(name: string) {
+  return normalizeOption(name) === normalizeOption('Registro profissional')
 }
 
 function sanitizeRedirectPath(value: string | null) {
@@ -158,7 +155,6 @@ export default function CadastroPage() {
   const [requestedRole, setRequestedRole] = useState('')
   const [redirectPath, setRedirectPath] = useState('')
 
-  const [professionalDisplayName, setProfessionalDisplayName] = useState('')
   const [professionalHeadline, setProfessionalHeadline] = useState('')
   const [professionalHeadlineIsCustom, setProfessionalHeadlineIsCustom] = useState(false)
   const [professionalHeadlineValidationMessage, setProfessionalHeadlineValidationMessage] = useState('')
@@ -332,7 +328,7 @@ export default function CadastroPage() {
         return {
           slug: category.slug,
           name: category.name_pt || fallbackCategory?.name || category.slug,
-          icon: fallbackCategory?.icon || 'ðŸ§©',
+          icon: fallbackCategory?.icon || '🧩',
         }
       })
 
@@ -454,9 +450,18 @@ export default function CadastroPage() {
       .filter(Boolean)
   }
 
-  function handleSecondaryLanguagesSelection(selected: string[]) {
-    const deduped = Array.from(new Set(selected.filter(item => item && item !== professionalPrimaryLanguage)))
-    setProfessionalSecondaryLanguages(deduped)
+  function toggleTargetAudience(audience: string) {
+    setProfessionalTargetAudiences(prev =>
+      prev.includes(audience) ? prev.filter(item => item !== audience) : [...prev, audience],
+    )
+  }
+
+  function toggleSecondaryLanguage(language: string) {
+    if (language === professionalPrimaryLanguage) return
+    setProfessionalSecondaryLanguages(prev => {
+      if (prev.includes(language)) return prev.filter(item => item !== language)
+      return [...prev, language]
+    })
     clearFieldError('professionalSecondaryLanguages')
   }
 
@@ -482,10 +487,10 @@ export default function CadastroPage() {
       name,
       isCustom,
       suggestionReason: professionalQualificationDraftSuggestionReason.trim(),
+      courseName: '',
       registrationNumber: '',
       issuer: '',
       country: '',
-      noRegistration: false,
       evidenceFiles: [],
     }
 
@@ -551,7 +556,6 @@ export default function CadastroPage() {
   function validateProfessionalStep(): FieldErrors {
     const nextErrors: FieldErrors = {}
 
-    if (!professionalDisplayName.trim()) nextErrors.professionalDisplayName = 'Informe o nome público.'
     if (!professionalHeadline.trim()) nextErrors.professionalHeadline = 'Informe a área de atuação específica.'
     if (!matchedSubcategory && !professionalHeadlineIsCustom) {
       nextErrors.professionalHeadline = 'Selecione uma área da lista aprovada ou sugira uma nova.'
@@ -571,9 +575,6 @@ export default function CadastroPage() {
       nextErrors.professionalSpecialtyValidationMessage = 'Explique por que essa especialidade precisa ser validada.'
     }
 
-    if (professionalFocusTags.length === 0) {
-      nextErrors.professionalFocusAreas = 'Informe ao menos um foco de atuação.'
-    }
     if (professionalFocusTags.length > basicTagsLimit) {
       nextErrors.professionalFocusAreas = `Plano Básico permite até ${basicTagsLimit} tags nesta etapa.`
     }
@@ -593,6 +594,20 @@ export default function CadastroPage() {
     }
     if (professionalQualifications.some(item => item.evidenceFiles.length === 0)) {
       nextErrors.professionalQualifications = 'Envie ao menos um arquivo (PDF/JPG/PNG) para cada qualificação.'
+    }
+    for (const item of professionalQualifications) {
+      const requiresRegistrationData = isRegistrationQualification(item.name)
+      if (requiresRegistrationData) {
+        if (!item.registrationNumber.trim() || !item.issuer.trim() || !item.country.trim()) {
+          nextErrors.professionalQualifications =
+            'Registro profissional exige número, órgão emissor e país do registro.'
+          break
+        }
+      } else if (!item.courseName.trim()) {
+        nextErrors.professionalQualifications =
+          'Para certificados e cursos, informe o nome do curso/formação.'
+        break
+      }
     }
 
     const years = Number(professionalYearsExperience)
@@ -655,10 +670,11 @@ export default function CadastroPage() {
       name: item.name,
       is_custom: item.isCustom,
       suggestion_reason: item.suggestionReason,
-      registration_number: item.noRegistration ? null : item.registrationNumber || null,
-      issuer: item.noRegistration ? null : item.issuer || null,
-      country: item.noRegistration ? null : item.country || null,
-      no_registration: item.noRegistration,
+      requires_registration: isRegistrationQualification(item.name),
+      course_name: item.courseName || null,
+      registration_number: item.registrationNumber || null,
+      issuer: item.issuer || null,
+      country: item.country || null,
       evidence_file_names: item.evidenceFiles.map(file => file.name),
     }))
 
@@ -683,7 +699,7 @@ export default function CadastroPage() {
 
     if (role === 'profissional') {
       signupMetadata.professional_title = professionalTitle
-      signupMetadata.professional_display_name = professionalDisplayName
+      signupMetadata.professional_display_name = fullName.trim()
       signupMetadata.professional_headline = professionalHeadline
       signupMetadata.professional_category = professionalCategory || 'outro'
       signupMetadata.professional_subcategory = selectedSubcategorySlug
@@ -1174,26 +1190,6 @@ export default function CadastroPage() {
       {step === 3 && role === 'profissional' && (
         <form onSubmit={handleSignUp} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="professional-display-name" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Nome público profissional
-            </label>
-            <input
-              id="professional-display-name"
-              type="text"
-              value={professionalDisplayName}
-              onChange={event => {
-                setProfessionalDisplayName(event.target.value)
-                clearFieldError('professionalDisplayName')
-              }}
-              required
-              placeholder="Ex.: Dra. Ana Silva"
-              className={inputClass(Boolean(fieldErrors.professionalDisplayName))}
-              aria-invalid={Boolean(fieldErrors.professionalDisplayName)}
-            />
-            {fieldErrors.professionalDisplayName && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalDisplayName}</p>}
-          </div>
-
-          <div>
             <label htmlFor="professional-headline" className="mb-1.5 block text-sm font-medium text-neutral-700">
               Área de atuação específica
             </label>
@@ -1351,7 +1347,7 @@ export default function CadastroPage() {
 
           <div>
             <label htmlFor="professional-focus-areas" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Foco de atuação
+              Foco de atuação <span className="text-neutral-400">(opcional)</span>
             </label>
             <input
               id="professional-focus-areas"
@@ -1401,22 +1397,26 @@ export default function CadastroPage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-neutral-700">Público atendido</label>
-            <select
-              multiple
-              value={professionalTargetAudiences}
-              onChange={event => {
-                const selected = Array.from(event.currentTarget.selectedOptions).map(option => option.value)
-                setProfessionalTargetAudiences(selected)
-              }}
-              className={inputClass(false)}
-            >
-              {TARGET_AUDIENCE_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-neutral-500">Você pode selecionar mais de uma opção.</p>
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-neutral-200 bg-white p-3 md:grid-cols-3">
+              {TARGET_AUDIENCE_OPTIONS.map(option => {
+                const selected = professionalTargetAudiences.includes(option)
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => toggleTargetAudience(option)}
+                    className={`rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
+                      selected
+                        ? 'border border-brand-200 bg-brand-50 text-brand-700'
+                        : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-1 text-xs text-neutral-500">Toque em cada opção para marcar/desmarcar.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1447,27 +1447,44 @@ export default function CadastroPage() {
             </div>
 
             <div>
-              <label htmlFor="professional-secondary-languages" className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Idiomas secundários
-              </label>
-              <select
+              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Idiomas secundários</label>
+              <div
                 id="professional-secondary-languages"
-                multiple
-                value={professionalSecondaryLanguages}
-                onChange={event => {
-                  const selected = Array.from(event.currentTarget.selectedOptions).map(option => option.value)
-                  handleSecondaryLanguagesSelection(selected)
-                }}
-                className={inputClass(Boolean(fieldErrors.professionalSecondaryLanguages))}
-                aria-invalid={Boolean(fieldErrors.professionalSecondaryLanguages)}
+                className={`grid grid-cols-2 gap-2 rounded-xl border p-3 md:grid-cols-3 ${
+                  fieldErrors.professionalSecondaryLanguages
+                    ? 'border-red-300 bg-red-50/40'
+                    : 'border-neutral-200 bg-white'
+                }`}
               >
-                {PROFESSIONAL_LANGUAGE_OPTIONS.filter(option => option !== professionalPrimaryLanguage).map(option => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-                <option value={OTHER_LANGUAGE_OPTION}>{OTHER_LANGUAGE_OPTION}</option>
-              </select>
+                {PROFESSIONAL_LANGUAGE_OPTIONS.filter(option => option !== professionalPrimaryLanguage).map(option => {
+                  const selected = professionalSecondaryLanguages.includes(option)
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => toggleSecondaryLanguage(option)}
+                      className={`rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
+                        selected
+                          ? 'border border-brand-200 bg-brand-50 text-brand-700'
+                          : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={() => toggleSecondaryLanguage(OTHER_LANGUAGE_OPTION)}
+                  className={`rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
+                    professionalSecondaryLanguages.includes(OTHER_LANGUAGE_OPTION)
+                      ? 'border border-brand-200 bg-brand-50 text-brand-700'
+                      : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                  }`}
+                >
+                  {OTHER_LANGUAGE_OPTION}
+                </button>
+              </div>
               {fieldErrors.professionalSecondaryLanguages && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSecondaryLanguages}</p>
               )}
@@ -1590,62 +1607,61 @@ export default function CadastroPage() {
                       <p className="mt-1 text-xs text-amber-700">Sugestão enviada: {item.suggestionReason}</p>
                     ) : null}
 
-                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <input
-                        type="text"
-                        value={item.registrationNumber}
-                        onChange={event =>
-                          updateQualificationDraft(item.id, current => ({
-                            ...current,
-                            registrationNumber: event.target.value,
-                          }))
-                        }
-                        disabled={item.noRegistration}
-                        placeholder="Número de registro"
-                        className={inputClass(false)}
-                      />
-                      <input
-                        type="text"
-                        value={item.issuer}
-                        onChange={event =>
-                          updateQualificationDraft(item.id, current => ({
-                            ...current,
-                            issuer: event.target.value,
-                          }))
-                        }
-                        disabled={item.noRegistration}
-                        placeholder="Órgão emissor"
-                        className={inputClass(false)}
-                      />
-                      <input
-                        type="text"
-                        value={item.country}
-                        onChange={event =>
-                          updateQualificationDraft(item.id, current => ({
-                            ...current,
-                            country: event.target.value,
-                          }))
-                        }
-                        disabled={item.noRegistration}
-                        placeholder="País do registro"
-                        className={inputClass(false)}
-                      />
-                    </div>
-
-                    <label className="mt-3 inline-flex items-center gap-2 text-xs text-neutral-700">
-                      <input
-                        type="checkbox"
-                        checked={item.noRegistration}
-                        onChange={event =>
-                          updateQualificationDraft(item.id, current => ({
-                            ...current,
-                            noRegistration: event.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
-                      />
-                      Não possui registro
-                    </label>
+                    {isRegistrationQualification(item.name) ? (
+                      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <input
+                          type="text"
+                          value={item.registrationNumber}
+                          onChange={event =>
+                            updateQualificationDraft(item.id, current => ({
+                              ...current,
+                              registrationNumber: event.target.value,
+                            }))
+                          }
+                          placeholder="Número de registro"
+                          className={inputClass(false)}
+                        />
+                        <input
+                          type="text"
+                          value={item.issuer}
+                          onChange={event =>
+                            updateQualificationDraft(item.id, current => ({
+                              ...current,
+                              issuer: event.target.value,
+                            }))
+                          }
+                          placeholder="Órgão emissor"
+                          className={inputClass(false)}
+                        />
+                        <input
+                          type="text"
+                          value={item.country}
+                          onChange={event =>
+                            updateQualificationDraft(item.id, current => ({
+                              ...current,
+                              country: event.target.value,
+                            }))
+                          }
+                          placeholder="País do registro"
+                          className={inputClass(false)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <input
+                          type="text"
+                          value={item.courseName}
+                          onChange={event =>
+                            updateQualificationDraft(item.id, current => ({
+                              ...current,
+                              courseName: event.target.value,
+                            }))
+                          }
+                          placeholder="Nome do curso/formação (ex.: Enfermagem)"
+                          className={inputClass(false)}
+                        />
+                      </div>
+                    )}
 
                     <div className="mt-3 flex items-center gap-2">
                       <label
