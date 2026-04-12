@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Briefcase, Eye, EyeOff, Loader2, User } from 'lucide-react'
+import { ArrowLeft, Briefcase, Eye, EyeOff, Loader2, User, X } from 'lucide-react'
 import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
@@ -11,7 +11,7 @@ import { sendWelcomeEmailAction } from '@/lib/actions/email'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
 import { COUNTRIES } from '@/lib/utils'
 import { ALL_TIMEZONES, STRIPE_CURRENCIES } from '@/lib/constants'
-import { LANGUAGE_OPTIONS, SEARCH_CATEGORIES } from '@/lib/search-config'
+import { SEARCH_CATEGORIES } from '@/lib/search-config'
 import { guardAuthAttempt } from '@/lib/auth/attempt-guard-client'
 import {
   AUTH_MESSAGES,
@@ -20,14 +20,59 @@ import {
 } from '@/lib/auth/messages'
 import {
   buildSpecialtyOptionsByCategorySlug,
+  buildSpecialtyOptionsBySubcategorySlug,
+  buildSubcategoryOptionsByCategorySlug,
   loadActiveTaxonomyCatalog,
 } from '@/lib/taxonomy/professional-specialties'
+import { getTierLimits } from '@/lib/tier-config'
 
 type Role = 'usuario' | 'profissional'
 
 type FieldErrors = Record<string, string>
 
 const PROFESSIONAL_TITLES = ['Sr.', 'Sra.', 'Srta.', 'Dr.', 'Dra.', 'Prof.', 'Profa.', 'Prefiro não informar']
+const TARGET_AUDIENCE_OPTIONS = ['Adultos', 'Crianças', 'Casais', 'Empresas', 'Estudantes', 'Imigrantes']
+const PROFESSIONAL_LANGUAGE_OPTIONS = [
+  'Português',
+  'Inglês',
+  'Espanhol',
+  'Francês',
+  'Italiano',
+  'Alemão',
+  'Holandês',
+  'Árabe',
+  'Mandarim',
+  'Japonês',
+  'Coreano',
+  'Hindi',
+  'Russo',
+  'Ucraniano',
+  'Hebraico',
+]
+const OTHER_LANGUAGE_OPTION = 'Outros'
+const QUALIFICATION_APPROVED_OPTIONS = [
+  'Diploma de graduação',
+  'Registro profissional',
+  'Certificação técnica',
+  'Especialização',
+  'Mestrado',
+  'Doutorado',
+]
+const QUALIFICATION_FILE_MAX_SIZE_BYTES = 2 * 1024 * 1024
+const QUALIFICATION_FILE_MAX_COUNT = 5
+const QUALIFICATION_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
+
+type QualificationDraft = {
+  id: string
+  name: string
+  isCustom: boolean
+  suggestionReason: string
+  registrationNumber: string
+  issuer: string
+  country: string
+  noRegistration: boolean
+  evidenceFiles: File[]
+}
 
 function normalizeOption(value: string) {
   return value
@@ -115,16 +160,33 @@ export default function CadastroPage() {
 
   const [professionalDisplayName, setProfessionalDisplayName] = useState('')
   const [professionalHeadline, setProfessionalHeadline] = useState('')
+  const [professionalHeadlineIsCustom, setProfessionalHeadlineIsCustom] = useState(false)
+  const [professionalHeadlineValidationMessage, setProfessionalHeadlineValidationMessage] = useState('')
+  const [selectedSubcategorySlug, setSelectedSubcategorySlug] = useState('')
   const [professionalCategory, setProfessionalCategory] = useState('')
   const [professionalSpecialtyName, setProfessionalSpecialtyName] = useState('')
   const [professionalSpecialtyIsCustom, setProfessionalSpecialtyIsCustom] = useState(false)
   const [professionalSpecialtyValidationMessage, setProfessionalSpecialtyValidationMessage] = useState('')
-  const [professionalFocusAreas, setProfessionalFocusAreas] = useState('')
-  const [professionalPrimaryLanguage, setProfessionalPrimaryLanguage] = useState(LANGUAGE_OPTIONS[0] || 'Portugues')
+  const [professionalFocusTags, setProfessionalFocusTags] = useState<string[]>([])
+  const [professionalFocusTagInput, setProfessionalFocusTagInput] = useState('')
+  const [professionalPrimaryLanguage, setProfessionalPrimaryLanguage] = useState(
+    PROFESSIONAL_LANGUAGE_OPTIONS[0] || 'Português',
+  )
   const [professionalSecondaryLanguages, setProfessionalSecondaryLanguages] = useState<string[]>([])
+  const [professionalOtherLanguagesInput, setProfessionalOtherLanguagesInput] = useState('')
+  const [professionalTargetAudiences, setProfessionalTargetAudiences] = useState<string[]>([])
   const [approvedSpecialtiesByCategory, setApprovedSpecialtiesByCategory] = useState<
     Record<string, string[]>
   >({})
+  const [approvedSubcategoriesByCategory, setApprovedSubcategoriesByCategory] = useState<
+    Record<string, Array<{ slug: string; name: string }>>
+  >({})
+  const [approvedSpecialtiesBySubcategory, setApprovedSpecialtiesBySubcategory] = useState<
+    Record<string, string[]>
+  >({})
+  const [subcategoryDirectory, setSubcategoryDirectory] = useState<
+    Array<{ slug: string; name: string; categorySlug: string; categoryName: string }>
+  >([])
   const [professionalCategoryOptions, setProfessionalCategoryOptions] = useState<
     Array<{ slug: string; name: string; icon: string }>
   >(
@@ -134,12 +196,12 @@ export default function CadastroPage() {
       icon: category.icon,
     })),
   )
-  const [professionalQualificationFiles, setProfessionalQualificationFiles] = useState<File[]>([])
-  const [professionalQualificationNote, setProfessionalQualificationNote] = useState('')
+  const [professionalQualifications, setProfessionalQualifications] = useState<QualificationDraft[]>([])
+  const [professionalQualificationDraftName, setProfessionalQualificationDraftName] = useState('')
+  const [professionalQualificationDraftIsCustom, setProfessionalQualificationDraftIsCustom] = useState(false)
+  const [professionalQualificationDraftSuggestionReason, setProfessionalQualificationDraftSuggestionReason] =
+    useState('')
   const [professionalYearsExperience, setProfessionalYearsExperience] = useState('')
-  const [professionalSessionPrice, setProfessionalSessionPrice] = useState('')
-  const [professionalSessionDuration, setProfessionalSessionDuration] = useState('60')
-
   const fallbackSpecialtiesByCategory = useMemo(() => {
     const map = new Map<string, string[]>()
     SEARCH_CATEGORIES.forEach(category => {
@@ -153,7 +215,26 @@ export default function CadastroPage() {
     return map
   }, [])
 
+  const selectedSubcategory = useMemo(() => {
+    if (!selectedSubcategorySlug) return null
+    return (
+      subcategoryDirectory.find(item => item.slug === selectedSubcategorySlug) ||
+      null
+    )
+  }, [selectedSubcategorySlug, subcategoryDirectory])
+
+  const approvedSubcategoryOptions = useMemo(() => {
+    const all = subcategoryDirectory.map(item => ({ slug: item.slug, name: item.name }))
+    return Array.from(new Map(all.map(item => [item.slug, item])).values()).sort((a, b) =>
+      a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }),
+    )
+  }, [subcategoryDirectory])
+
   const approvedSpecialtyOptions = useMemo(() => {
+    if (selectedSubcategorySlug) {
+      return approvedSpecialtiesBySubcategory[selectedSubcategorySlug] || []
+    }
+
     const categoryKey = professionalCategory || ''
     if (categoryKey) {
       const dbOptions = approvedSpecialtiesByCategory[categoryKey] || []
@@ -172,15 +253,34 @@ export default function CadastroPage() {
     return Array.from(new Set(fallbackAll)).sort((a, b) =>
       a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
     )
-  }, [approvedSpecialtiesByCategory, fallbackSpecialtiesByCategory, professionalCategory])
+  }, [
+    selectedSubcategorySlug,
+    approvedSpecialtiesBySubcategory,
+    professionalCategory,
+    approvedSpecialtiesByCategory,
+    fallbackSpecialtiesByCategory,
+  ])
 
   const isSpecialtyApproved = useMemo(
     () => includesNormalizedOption(approvedSpecialtyOptions, professionalSpecialtyName),
     [approvedSpecialtyOptions, professionalSpecialtyName],
   )
 
+  const matchedSubcategory = useMemo(
+    () =>
+      approvedSubcategoryOptions.find(option =>
+        normalizeOption(option.name) === normalizeOption(professionalHeadline),
+      ) || null,
+    [approvedSubcategoryOptions, professionalHeadline],
+  )
+
+  const shouldShowCustomSubcategoryPrompt =
+    professionalHeadline.trim().length > 1 && !matchedSubcategory && !professionalHeadlineIsCustom
+
   const shouldShowCustomSpecialtyPrompt =
     professionalSpecialtyName.trim().length > 1 && !isSpecialtyApproved && !professionalSpecialtyIsCustom
+
+  const basicTagsLimit = useMemo(() => getTierLimits('basic').tags, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -211,6 +311,9 @@ export default function CadastroPage() {
 
       if (cancelled || !catalog) {
         setApprovedSpecialtiesByCategory({})
+        setApprovedSubcategoriesByCategory({})
+        setApprovedSpecialtiesBySubcategory({})
+        setSubcategoryDirectory([])
         setProfessionalCategoryOptions(
           SEARCH_CATEGORIES.map(category => ({
             slug: category.slug,
@@ -222,16 +325,36 @@ export default function CadastroPage() {
       }
 
       const specialtyMap = buildSpecialtyOptionsByCategorySlug(catalog)
+      const subcategoryMap = buildSubcategoryOptionsByCategorySlug(catalog)
+      const specialtyBySubcategoryMap = buildSpecialtyOptionsBySubcategorySlug(catalog)
       const mappedCategories = catalog.categories.map(category => {
         const fallbackCategory = SEARCH_CATEGORIES.find(item => item.slug === category.slug)
         return {
           slug: category.slug,
           name: category.name_pt || fallbackCategory?.name || category.slug,
-          icon: fallbackCategory?.icon || '🧩',
+          icon: fallbackCategory?.icon || 'ðŸ§©',
         }
       })
 
       setApprovedSpecialtiesByCategory(Object.fromEntries(specialtyMap.entries()))
+      setApprovedSubcategoriesByCategory(Object.fromEntries(subcategoryMap.entries()))
+      setApprovedSpecialtiesBySubcategory(Object.fromEntries(specialtyBySubcategoryMap.entries()))
+      setSubcategoryDirectory(
+        catalog.subcategories
+          .map(subcategory => {
+            const category = catalog.categories.find(item => item.id === subcategory.category_id)
+            if (!category) return null
+            return {
+              slug: subcategory.slug,
+              name: subcategory.name_pt,
+              categorySlug: category.slug,
+              categoryName: category.name_pt,
+            }
+          })
+          .filter((item): item is { slug: string; name: string; categorySlug: string; categoryName: string } =>
+            Boolean(item),
+          ),
+      )
       setProfessionalCategoryOptions(
         mappedCategories.length > 0
           ? mappedCategories
@@ -260,6 +383,31 @@ export default function CadastroPage() {
   }, [approvedSpecialtyOptions, professionalCategory, professionalSpecialtyIsCustom, professionalSpecialtyName])
 
   useEffect(() => {
+    if (!professionalHeadline.trim()) {
+      setSelectedSubcategorySlug('')
+      if (!professionalHeadlineIsCustom) setProfessionalCategory('')
+      return
+    }
+
+    if (matchedSubcategory) {
+      setSelectedSubcategorySlug(matchedSubcategory.slug)
+      setProfessionalCategory(
+        subcategoryDirectory.find(item => item.slug === matchedSubcategory.slug)?.categorySlug || '',
+      )
+      setProfessionalHeadlineIsCustom(false)
+      setProfessionalHeadlineValidationMessage('')
+      return
+    }
+
+    setSelectedSubcategorySlug('')
+    if (!professionalHeadlineIsCustom) {
+      setProfessionalCategory('')
+    } else {
+      setProfessionalCategory('outro')
+    }
+  }, [matchedSubcategory, professionalHeadline, professionalHeadlineIsCustom, subcategoryDirectory])
+
+  useEffect(() => {
     if (!professionalPrimaryLanguage) return
     setProfessionalSecondaryLanguages(prev => prev.filter(language => language !== professionalPrimaryLanguage))
   }, [professionalPrimaryLanguage])
@@ -279,13 +427,104 @@ export default function CadastroPage() {
       return next
     })
   }
+  function addFocusTag(rawValue: string) {
+    const value = rawValue.trim()
+    if (!value) return
+    if (professionalFocusTags.some(tag => normalizeOption(tag) === normalizeOption(value))) return
+    if (professionalFocusTags.length >= basicTagsLimit) {
+      setFieldErrors(prev => ({
+        ...prev,
+        professionalFocusAreas: `Plano Básico permite até ${basicTagsLimit} tags nesta etapa.`,
+      }))
+      return
+    }
+    setProfessionalFocusTags(prev => [...prev, value])
+    clearFieldError('professionalFocusAreas')
+  }
 
-  function toggleSecondaryLanguage(language: string) {
-    setProfessionalSecondaryLanguages(prev => {
-      if (prev.includes(language)) return prev.filter(item => item !== language)
-      return [...prev, language]
-    })
+  function removeFocusTag(tagValue: string) {
+    setProfessionalFocusTags(prev => prev.filter(tag => tag !== tagValue))
+    clearFieldError('professionalFocusAreas')
+  }
+
+  function parseOtherLanguagesInput(value: string) {
+    return value
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
+  }
+
+  function handleSecondaryLanguagesSelection(selected: string[]) {
+    const deduped = Array.from(new Set(selected.filter(item => item && item !== professionalPrimaryLanguage)))
+    setProfessionalSecondaryLanguages(deduped)
     clearFieldError('professionalSecondaryLanguages')
+  }
+
+  function addQualificationDraft() {
+    const name = professionalQualificationDraftName.trim()
+    if (!name) return
+
+    const approved = QUALIFICATION_APPROVED_OPTIONS.some(
+      option => normalizeOption(option) === normalizeOption(name),
+    )
+    const isCustom = !approved || professionalQualificationDraftIsCustom
+
+    if (isCustom && !professionalQualificationDraftSuggestionReason.trim()) {
+      setFieldErrors(prev => ({
+        ...prev,
+        professionalQualifications: 'Explique por que a qualificação não está na lista aprovada.',
+      }))
+      return
+    }
+
+    const entry: QualificationDraft = {
+      id: crypto.randomUUID(),
+      name,
+      isCustom,
+      suggestionReason: professionalQualificationDraftSuggestionReason.trim(),
+      registrationNumber: '',
+      issuer: '',
+      country: '',
+      noRegistration: false,
+      evidenceFiles: [],
+    }
+
+    setProfessionalQualifications(prev => [...prev, entry])
+    setProfessionalQualificationDraftName('')
+    setProfessionalQualificationDraftIsCustom(false)
+    setProfessionalQualificationDraftSuggestionReason('')
+    clearFieldError('professionalQualifications')
+  }
+
+  function removeQualificationDraft(id: string) {
+    setProfessionalQualifications(prev => prev.filter(item => item.id !== id))
+  }
+
+  function updateQualificationDraft(id: string, updater: (item: QualificationDraft) => QualificationDraft) {
+    setProfessionalQualifications(prev => prev.map(item => (item.id === id ? updater(item) : item)))
+  }
+
+  function addQualificationEvidenceFile(id: string, selectedFile: File | null) {
+    if (!selectedFile) return
+    if (!QUALIFICATION_ALLOWED_TYPES.includes(selectedFile.type)) {
+      setFieldErrors(prev => ({
+        ...prev,
+        professionalQualifications: 'Arquivo inválido. Envie apenas PDF, JPG ou PNG.',
+      }))
+      return
+    }
+    if (selectedFile.size > QUALIFICATION_FILE_MAX_SIZE_BYTES) {
+      setFieldErrors(prev => ({
+        ...prev,
+        professionalQualifications: 'Arquivo excede 2MB. Reduza o tamanho antes de enviar.',
+      }))
+      return
+    }
+    updateQualificationDraft(id, item => {
+      if (item.evidenceFiles.length >= QUALIFICATION_FILE_MAX_COUNT) return item
+      return { ...item, evidenceFiles: [...item.evidenceFiles, selectedFile] }
+    })
+    clearFieldError('professionalQualifications')
   }
 
   function validateStep2(): FieldErrors {
@@ -313,7 +552,13 @@ export default function CadastroPage() {
     const nextErrors: FieldErrors = {}
 
     if (!professionalDisplayName.trim()) nextErrors.professionalDisplayName = 'Informe o nome público.'
-    if (!professionalHeadline.trim()) nextErrors.professionalHeadline = 'Informe o título profissional.'
+    if (!professionalHeadline.trim()) nextErrors.professionalHeadline = 'Informe a área de atuação específica.'
+    if (!matchedSubcategory && !professionalHeadlineIsCustom) {
+      nextErrors.professionalHeadline = 'Selecione uma área da lista aprovada ou sugira uma nova.'
+    }
+    if (professionalHeadlineIsCustom && !professionalHeadlineValidationMessage.trim()) {
+      nextErrors.professionalHeadlineValidationMessage = 'Explique por que essa área precisa ser validada.'
+    }
     if (!professionalCategory) nextErrors.professionalCategory = 'Selecione uma categoria.'
 
     if (!professionalSpecialtyName.trim()) {
@@ -326,28 +571,33 @@ export default function CadastroPage() {
       nextErrors.professionalSpecialtyValidationMessage = 'Explique por que essa especialidade precisa ser validada.'
     }
 
-    const focusAreas = parseCommaValues(professionalFocusAreas)
-    if (focusAreas.length === 0) {
+    if (professionalFocusTags.length === 0) {
       nextErrors.professionalFocusAreas = 'Informe ao menos um foco de atuação.'
+    }
+    if (professionalFocusTags.length > basicTagsLimit) {
+      nextErrors.professionalFocusAreas = `Plano Básico permite até ${basicTagsLimit} tags nesta etapa.`
     }
 
     if (!professionalPrimaryLanguage) {
       nextErrors.professionalPrimaryLanguage = 'Selecione o idioma principal de atendimento.'
     }
+    if (
+      professionalSecondaryLanguages.includes(OTHER_LANGUAGE_OPTION) &&
+      parseOtherLanguagesInput(professionalOtherLanguagesInput).length === 0
+    ) {
+      nextErrors.professionalSecondaryLanguages = 'Preencha o campo de idiomas em "Outros".'
+    }
+
+    if (professionalQualifications.length === 0) {
+      nextErrors.professionalQualifications = 'Adicione ao menos uma qualificação/certificado.'
+    }
+    if (professionalQualifications.some(item => item.evidenceFiles.length === 0)) {
+      nextErrors.professionalQualifications = 'Envie ao menos um arquivo (PDF/JPG/PNG) para cada qualificação.'
+    }
 
     const years = Number(professionalYearsExperience)
     if (!professionalYearsExperience || Number.isNaN(years) || years < 0 || years > 60) {
       nextErrors.professionalYearsExperience = 'Informe anos de experiência entre 0 e 60.'
-    }
-
-    const price = Number(professionalSessionPrice)
-    if (!professionalSessionPrice || Number.isNaN(price) || price < 1) {
-      nextErrors.professionalSessionPrice = 'Informe um preço válido maior que zero.'
-    }
-
-    const duration = Number(professionalSessionDuration)
-    if (![30, 45, 60, 90].includes(duration)) {
-      nextErrors.professionalSessionDuration = 'Selecione uma duração válida.'
     }
 
     return nextErrors
@@ -377,9 +627,40 @@ export default function CadastroPage() {
       return
     }
 
-    const focusAreas = parseCommaValues(professionalFocusAreas)
-    const qualificationFileNames = professionalQualificationFiles.map(file => file.name)
-    const allLanguages = [professionalPrimaryLanguage, ...professionalSecondaryLanguages].filter(Boolean)
+    const focusAreas = professionalFocusTags
+    const otherLanguages = parseOtherLanguagesInput(professionalOtherLanguagesInput)
+    const secondaryLanguages = professionalSecondaryLanguages
+      .filter(language => language !== OTHER_LANGUAGE_OPTION)
+      .concat(otherLanguages)
+      .filter(language => language !== professionalPrimaryLanguage)
+    const allLanguages = Array.from(new Set([professionalPrimaryLanguage, ...secondaryLanguages].filter(Boolean)))
+    const qualificationFileNames = professionalQualifications.flatMap(item =>
+      item.evidenceFiles.map(file => file.name),
+    )
+    const taxonomySuggestionsPayload = {
+      subcategory: professionalHeadlineIsCustom
+        ? {
+            name: professionalHeadline.trim(),
+            reason: professionalHeadlineValidationMessage.trim(),
+          }
+        : null,
+      specialty: professionalSpecialtyIsCustom
+        ? {
+            name: professionalSpecialtyName.trim(),
+            reason: professionalSpecialtyValidationMessage.trim(),
+          }
+        : null,
+    }
+    const qualificationsStructuredPayload = professionalQualifications.map(item => ({
+      name: item.name,
+      is_custom: item.isCustom,
+      suggestion_reason: item.suggestionReason,
+      registration_number: item.noRegistration ? null : item.registrationNumber || null,
+      issuer: item.noRegistration ? null : item.issuer || null,
+      country: item.noRegistration ? null : item.country || null,
+      no_registration: item.noRegistration,
+      evidence_file_names: item.evidenceFiles.map(file => file.name),
+    }))
 
     const supabase = createClient()
     captureEvent('auth_signup_started', { role, country, timezone, currency })
@@ -404,19 +685,23 @@ export default function CadastroPage() {
       signupMetadata.professional_title = professionalTitle
       signupMetadata.professional_display_name = professionalDisplayName
       signupMetadata.professional_headline = professionalHeadline
-      signupMetadata.professional_category = professionalCategory
+      signupMetadata.professional_category = professionalCategory || 'outro'
+      signupMetadata.professional_subcategory = selectedSubcategorySlug
       signupMetadata.professional_specialty_name = professionalSpecialtyName.trim()
       signupMetadata.professional_specialty_is_custom = professionalSpecialtyIsCustom
       signupMetadata.professional_specialty_validation_message = professionalSpecialtyValidationMessage.trim()
       signupMetadata.professional_focus_areas = focusAreas
       signupMetadata.professional_primary_language = professionalPrimaryLanguage
-      signupMetadata.professional_secondary_languages = professionalSecondaryLanguages
+      signupMetadata.professional_secondary_languages = secondaryLanguages
       signupMetadata.professional_languages = allLanguages
+      signupMetadata.professional_other_languages = otherLanguages
+      signupMetadata.professional_target_audiences = professionalTargetAudiences
       signupMetadata.professional_years_experience = Number(professionalYearsExperience || 0)
-      signupMetadata.professional_session_price = Number(professionalSessionPrice || 0)
-      signupMetadata.professional_session_duration_minutes = Number(professionalSessionDuration || 60)
+      signupMetadata.professional_session_price = 0
+      signupMetadata.professional_session_duration_minutes = 60
       signupMetadata.professional_qualification_files = qualificationFileNames
-      signupMetadata.professional_qualification_note = professionalQualificationNote.trim()
+      signupMetadata.professional_taxonomy_suggestions = JSON.stringify(taxonomySuggestionsPayload)
+      signupMetadata.professional_qualifications_structured = JSON.stringify(qualificationsStructuredPayload)
       signupMetadata.professional_specialties = professionalSpecialtyName.trim()
     }
 
@@ -909,9 +1194,12 @@ export default function CadastroPage() {
           </div>
 
           <div>
-            <label htmlFor="professional-headline" className="mb-1.5 block text-sm font-medium text-neutral-700">Título profissional</label>
+            <label htmlFor="professional-headline" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Área de atuação específica
+            </label>
             <input
               id="professional-headline"
+              list="professional-subcategories-list"
               type="text"
               value={professionalHeadline}
               onChange={event => {
@@ -919,33 +1207,76 @@ export default function CadastroPage() {
                 clearFieldError('professionalHeadline')
               }}
               required
-              placeholder="Ex.: Psicóloga clínica para brasileiros no exterior"
+              placeholder="Digite para buscar subcategoria"
               className={inputClass(Boolean(fieldErrors.professionalHeadline))}
               aria-invalid={Boolean(fieldErrors.professionalHeadline)}
             />
+            <datalist id="professional-subcategories-list">
+              {approvedSubcategoryOptions.map(option => (
+                <option key={option.slug} value={option.name} />
+              ))}
+            </datalist>
             {fieldErrors.professionalHeadline && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalHeadline}</p>}
+            {shouldShowCustomSubcategoryPrompt && (
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Não encontrou na lista aprovada?
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfessionalHeadlineIsCustom(true)
+                    clearFieldError('professionalHeadlineValidationMessage')
+                  }}
+                  className="ml-1 font-semibold underline"
+                >
+                  Sugerir nova área
+                </button>
+              </div>
+            )}
           </div>
 
+          {professionalHeadlineIsCustom && (
+            <div>
+              <label
+                htmlFor="professional-headline-validation-message"
+                className="mb-1.5 block text-sm font-medium text-neutral-700"
+              >
+                Mensagem para validação da área
+              </label>
+              <textarea
+                id="professional-headline-validation-message"
+                value={professionalHeadlineValidationMessage}
+                onChange={event => {
+                  setProfessionalHeadlineValidationMessage(event.target.value)
+                  clearFieldError('professionalHeadlineValidationMessage')
+                }}
+                rows={3}
+                placeholder="Explique por que essa área precisa ser validada pelo admin."
+                className={inputClass(Boolean(fieldErrors.professionalHeadlineValidationMessage))}
+                aria-invalid={Boolean(fieldErrors.professionalHeadlineValidationMessage)}
+              />
+              {fieldErrors.professionalHeadlineValidationMessage && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalHeadlineValidationMessage}</p>
+              )}
+            </div>
+          )}
+
           <div>
-            <label htmlFor="professional-category" className="mb-1.5 block text-sm font-medium text-neutral-700">Categoria principal</label>
-            <select
+            <label htmlFor="professional-category" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Categoria principal
+            </label>
+            <input
               id="professional-category"
-              value={professionalCategory}
-              onChange={event => {
-                setProfessionalCategory(event.target.value)
-                clearFieldError('professionalCategory')
-              }}
-              required
+              type="text"
+              value={
+                professionalCategoryOptions.find(item => item.slug === professionalCategory)?.name ||
+                selectedSubcategory?.categoryName ||
+                ''
+              }
+              readOnly
+              placeholder="Selecionada automaticamente pela área"
               className={inputClass(Boolean(fieldErrors.professionalCategory))}
               aria-invalid={Boolean(fieldErrors.professionalCategory)}
-            >
-              <option value="">Selecione uma categoria</option>
-              {professionalCategoryOptions.map(cat => (
-                <option key={cat.slug} value={cat.slug}>
-                  {cat.icon} {cat.name}
-                </option>
-              ))}
-            </select>
+            />
             {fieldErrors.professionalCategory && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalCategory}</p>}
           </div>
 
@@ -1025,18 +1356,67 @@ export default function CadastroPage() {
             <input
               id="professional-focus-areas"
               type="text"
-              value={professionalFocusAreas}
+              value={professionalFocusTagInput}
               onChange={event => {
-                setProfessionalFocusAreas(event.target.value)
+                setProfessionalFocusTagInput(event.target.value)
                 clearFieldError('professionalFocusAreas')
               }}
-              required
-              placeholder="Ex.: ansiedade, expatriados, terapia online"
+              onKeyDown={event => {
+                if (event.key === ',' || event.key === 'Enter') {
+                  event.preventDefault()
+                  addFocusTag(professionalFocusTagInput.replace(',', ''))
+                  setProfessionalFocusTagInput('')
+                }
+                if (event.key === 'Backspace' && !professionalFocusTagInput && professionalFocusTags.length > 0) {
+                  removeFocusTag(professionalFocusTags[professionalFocusTags.length - 1] || '')
+                }
+              }}
+              placeholder="Digite e pressione vírgula ou Enter"
               className={inputClass(Boolean(fieldErrors.professionalFocusAreas))}
               aria-invalid={Boolean(fieldErrors.professionalFocusAreas)}
             />
-            <p className="mt-1 text-xs text-neutral-500">Separe os focos por vírgula.</p>
-            {fieldErrors.professionalFocusAreas && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalFocusAreas}</p>}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {professionalFocusTags.map(tag => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeFocusTag(tag)}
+                    className="rounded-full p-0.5 hover:bg-brand-100"
+                    aria-label={`Remover tag ${tag}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-neutral-500">Plano Básico permite até {basicTagsLimit} tags nesta etapa.</p>
+            {fieldErrors.professionalFocusAreas && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalFocusAreas}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-neutral-700">Público atendido</label>
+            <select
+              multiple
+              value={professionalTargetAudiences}
+              onChange={event => {
+                const selected = Array.from(event.currentTarget.selectedOptions).map(option => option.value)
+                setProfessionalTargetAudiences(selected)
+              }}
+              className={inputClass(false)}
+            >
+              {TARGET_AUDIENCE_OPTIONS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-neutral-500">Você pode selecionar mais de uma opção.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1055,7 +1435,7 @@ export default function CadastroPage() {
                 className={inputClass(Boolean(fieldErrors.professionalPrimaryLanguage))}
                 aria-invalid={Boolean(fieldErrors.professionalPrimaryLanguage)}
               >
-                {LANGUAGE_OPTIONS.map(option => (
+                {PROFESSIONAL_LANGUAGE_OPTIONS.map(option => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -1067,28 +1447,58 @@ export default function CadastroPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Idiomas secundários</label>
-              <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                <div className="grid grid-cols-2 gap-2 text-sm text-neutral-700">
-                  {LANGUAGE_OPTIONS.filter(option => option !== professionalPrimaryLanguage).map(option => (
-                    <label key={option} className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={professionalSecondaryLanguages.includes(option)}
-                        onChange={() => toggleSecondaryLanguage(option)}
-                        className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <label htmlFor="professional-secondary-languages" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Idiomas secundários
+              </label>
+              <select
+                id="professional-secondary-languages"
+                multiple
+                value={professionalSecondaryLanguages}
+                onChange={event => {
+                  const selected = Array.from(event.currentTarget.selectedOptions).map(option => option.value)
+                  handleSecondaryLanguagesSelection(selected)
+                }}
+                className={inputClass(Boolean(fieldErrors.professionalSecondaryLanguages))}
+                aria-invalid={Boolean(fieldErrors.professionalSecondaryLanguages)}
+              >
+                {PROFESSIONAL_LANGUAGE_OPTIONS.filter(option => option !== professionalPrimaryLanguage).map(option => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value={OTHER_LANGUAGE_OPTION}>{OTHER_LANGUAGE_OPTION}</option>
+              </select>
+              {fieldErrors.professionalSecondaryLanguages && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSecondaryLanguages}</p>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {professionalSecondaryLanguages.includes(OTHER_LANGUAGE_OPTION) && (
             <div>
-              <label htmlFor="professional-years" className="mb-1.5 block text-sm font-medium text-neutral-700">Anos de experiência</label>
+              <label htmlFor="professional-other-languages" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Outros idiomas
+              </label>
+              <input
+                id="professional-other-languages"
+                type="text"
+                value={professionalOtherLanguagesInput}
+                onChange={event => {
+                  setProfessionalOtherLanguagesInput(event.target.value)
+                  clearFieldError('professionalSecondaryLanguages')
+                }}
+                placeholder="Ex.: Sueco, Dinamarquês"
+                className={inputClass(Boolean(fieldErrors.professionalSecondaryLanguages))}
+              />
+              <p className="mt-1 text-xs text-neutral-500">Separe por vírgula.</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="professional-years" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Anos de experiência
+              </label>
               <input
                 id="professional-years"
                 type="number"
@@ -1103,81 +1513,173 @@ export default function CadastroPage() {
                 className={inputClass(Boolean(fieldErrors.professionalYearsExperience))}
                 aria-invalid={Boolean(fieldErrors.professionalYearsExperience)}
               />
-              {fieldErrors.professionalYearsExperience && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalYearsExperience}</p>}
+              {fieldErrors.professionalYearsExperience && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalYearsExperience}</p>
+              )}
             </div>
-            <div>
-              <label htmlFor="professional-price" className="mb-1.5 block text-sm font-medium text-neutral-700">Preço por sessão (BRL)</label>
+          </div>
+
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <h3 className="text-sm font-semibold text-neutral-900">Qualificações e certificados</h3>
+            <p className="mt-1 text-xs text-neutral-500">
+              Se não encontrar na lista aprovada, adicione como sugestão para validação do admin.
+            </p>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <input
-                id="professional-price"
-                type="number"
-                min={1}
-                value={professionalSessionPrice}
+                list="qualification-approved-list"
+                type="text"
+                value={professionalQualificationDraftName}
                 onChange={event => {
-                  setProfessionalSessionPrice(event.target.value)
-                  clearFieldError('professionalSessionPrice')
+                  setProfessionalQualificationDraftName(event.target.value)
+                  setProfessionalQualificationDraftIsCustom(false)
+                  clearFieldError('professionalQualifications')
                 }}
-                required
-                className={inputClass(Boolean(fieldErrors.professionalSessionPrice))}
-                aria-invalid={Boolean(fieldErrors.professionalSessionPrice)}
+                placeholder="Digite a qualificação"
+                className={inputClass(Boolean(fieldErrors.professionalQualifications))}
               />
-              {fieldErrors.professionalSessionPrice && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSessionPrice}</p>}
-            </div>
-            <div>
-              <label htmlFor="professional-duration" className="mb-1.5 block text-sm font-medium text-neutral-700">Duração da sessão</label>
-              <select
-                id="professional-duration"
-                value={professionalSessionDuration}
-                onChange={event => {
-                  setProfessionalSessionDuration(event.target.value)
-                  clearFieldError('professionalSessionDuration')
-                }}
-                required
-                className={inputClass(Boolean(fieldErrors.professionalSessionDuration))}
-                aria-invalid={Boolean(fieldErrors.professionalSessionDuration)}
+              <button
+                type="button"
+                onClick={addQualificationDraft}
+                className="rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-600"
               >
-                <option value="30">30 min</option>
-                <option value="45">45 min</option>
-                <option value="60">60 min</option>
-                <option value="90">90 min</option>
-              </select>
-              {fieldErrors.professionalSessionDuration && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSessionDuration}</p>}
+                Adicionar qualificação
+              </button>
             </div>
-          </div>
+            <datalist id="qualification-approved-list">
+              {QUALIFICATION_APPROVED_OPTIONS.map(option => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
 
-          <div>
-            <label htmlFor="professional-qualification-files" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Qualificações e certificados
-            </label>
-            <input
-              id="professional-qualification-files"
-              type="file"
-              multiple
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              onChange={event => {
-                setProfessionalQualificationFiles(Array.from(event.target.files || []))
-              }}
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm text-neutral-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-brand-700"
-            />
-            {professionalQualificationFiles.length > 0 && (
-              <p className="mt-1 text-xs text-neutral-500">
-                {professionalQualificationFiles.length} arquivo(s):{' '}
-                {professionalQualificationFiles.map(file => file.name).join(', ')}
-              </p>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setProfessionalQualificationDraftIsCustom(true)}
+                className="text-xs font-semibold text-amber-700 underline"
+              >
+                Não encontrei na lista
+              </button>
+            </div>
+
+            {professionalQualificationDraftIsCustom && (
+              <textarea
+                value={professionalQualificationDraftSuggestionReason}
+                onChange={event => setProfessionalQualificationDraftSuggestionReason(event.target.value)}
+                rows={2}
+                placeholder="Explique por que essa qualificação precisa ser validada."
+                className={`${inputClass(Boolean(fieldErrors.professionalQualifications))} mt-2`}
+              />
             )}
-          </div>
 
-          <div>
-            <label htmlFor="professional-qualification-note" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Observações sobre qualificações (opcional)
-            </label>
-            <textarea
-              id="professional-qualification-note"
-              value={professionalQualificationNote}
-              onChange={event => setProfessionalQualificationNote(event.target.value)}
-              rows={3}
-              placeholder="Ex.: CRP, certificações internacionais, formação complementar."
-              className={inputClass(false)}
-            />
+            {professionalQualifications.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {professionalQualifications.map(item => (
+                  <div key={item.id} className="rounded-xl border border-neutral-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-neutral-900">{item.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeQualificationDraft(item.id)}
+                        className="text-xs font-medium text-red-600"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    {item.isCustom && item.suggestionReason ? (
+                      <p className="mt-1 text-xs text-amber-700">Sugestão enviada: {item.suggestionReason}</p>
+                    ) : null}
+
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <input
+                        type="text"
+                        value={item.registrationNumber}
+                        onChange={event =>
+                          updateQualificationDraft(item.id, current => ({
+                            ...current,
+                            registrationNumber: event.target.value,
+                          }))
+                        }
+                        disabled={item.noRegistration}
+                        placeholder="Número de registro"
+                        className={inputClass(false)}
+                      />
+                      <input
+                        type="text"
+                        value={item.issuer}
+                        onChange={event =>
+                          updateQualificationDraft(item.id, current => ({
+                            ...current,
+                            issuer: event.target.value,
+                          }))
+                        }
+                        disabled={item.noRegistration}
+                        placeholder="Órgão emissor"
+                        className={inputClass(false)}
+                      />
+                      <input
+                        type="text"
+                        value={item.country}
+                        onChange={event =>
+                          updateQualificationDraft(item.id, current => ({
+                            ...current,
+                            country: event.target.value,
+                          }))
+                        }
+                        disabled={item.noRegistration}
+                        placeholder="País do registro"
+                        className={inputClass(false)}
+                      />
+                    </div>
+
+                    <label className="mt-3 inline-flex items-center gap-2 text-xs text-neutral-700">
+                      <input
+                        type="checkbox"
+                        checked={item.noRegistration}
+                        onChange={event =>
+                          updateQualificationDraft(item.id, current => ({
+                            ...current,
+                            noRegistration: event.target.checked,
+                          }))
+                        }
+                        className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
+                      />
+                      Não possui registro
+                    </label>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <label
+                        htmlFor={`qualification-file-${item.id}`}
+                        className="cursor-pointer rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700"
+                      >
+                        Upload
+                      </label>
+                      <input
+                        id={`qualification-file-${item.id}`}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={event => {
+                          addQualificationEvidenceFile(item.id, event.target.files?.[0] || null)
+                          event.currentTarget.value = ''
+                        }}
+                      />
+                      <span className="text-xs text-neutral-500">PDF/JPG/PNG até 2MB (máx. 5 arquivos)</span>
+                    </div>
+
+                    {item.evidenceFiles.length > 0 && (
+                      <p className="mt-2 text-xs text-neutral-500">
+                        Arquivos: {item.evidenceFiles.map(file => file.name).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {fieldErrors.professionalQualifications && (
+              <p className="mt-2 text-xs text-red-600">{fieldErrors.professionalQualifications}</p>
+            )}
           </div>
 
           {error && (
@@ -1232,7 +1734,6 @@ export default function CadastroPage() {
           </div>
         </form>
       )}
-
       <p className="mt-6 text-center text-sm text-neutral-500">
         Já tem uma conta?{' '}
         <Link

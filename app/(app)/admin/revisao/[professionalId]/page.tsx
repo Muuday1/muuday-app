@@ -64,9 +64,17 @@ export default async function AdminReviewProfessionalPage({
     .eq('professional_id', professional.id)
     .order('created_at', { ascending: true })
 
+  const { data: application } = await supabase
+    .from('professional_applications')
+    .select(
+      'headline,category,specialty_name,specialty_custom,specialty_validation_message,focus_areas,primary_language,secondary_languages,target_audiences,taxonomy_suggestions,qualifications_structured,other_languages',
+    )
+    .eq('professional_id', professional.id)
+    .maybeSingle()
+
   const { data: credentials } = await supabase
     .from('professional_credentials')
-    .select('id,file_url,file_name,credential_type,verified,uploaded_at')
+    .select('id,file_url,file_name,credential_type,verified,uploaded_at,scan_status,scan_checked_at')
     .eq('professional_id', professional.id)
     .order('uploaded_at', { ascending: false })
 
@@ -133,6 +141,36 @@ export default async function AdminReviewProfessionalPage({
             </div>
           </div>
 
+          {application ? (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+              <h2 className="mb-3 font-semibold text-neutral-900">Dados estruturados do cadastro</h2>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <p className="text-xs text-neutral-600">Headline: {application.headline || '-'}</p>
+                <p className="text-xs text-neutral-600">Categoria: {application.category || '-'}</p>
+                <p className="text-xs text-neutral-600">Especialidade: {application.specialty_name || '-'}</p>
+                <p className="text-xs text-neutral-600">Idioma principal: {application.primary_language || '-'}</p>
+              </div>
+              <p className="mt-2 text-xs text-neutral-600">
+                Público atendido:{' '}
+                {Array.isArray(application.target_audiences) && application.target_audiences.length > 0
+                  ? application.target_audiences.join(', ')
+                  : '-'}
+              </p>
+              <p className="mt-1 text-xs text-neutral-600">
+                Idiomas secundários:{' '}
+                {Array.isArray(application.secondary_languages) && application.secondary_languages.length > 0
+                  ? application.secondary_languages.join(', ')
+                  : '-'}
+              </p>
+              <p className="mt-1 text-xs text-neutral-600">
+                Outros idiomas:{' '}
+                {Array.isArray(application.other_languages) && application.other_languages.length > 0
+                  ? application.other_languages.join(', ')
+                  : '-'}
+              </p>
+            </div>
+          ) : null}
+
           <div className="rounded-2xl border border-neutral-200 bg-white p-5">
             <h2 className="mb-3 font-semibold text-neutral-900">Serviços</h2>
             {!services || services.length === 0 ? (
@@ -168,17 +206,35 @@ export default async function AdminReviewProfessionalPage({
                       <p className="text-sm font-medium text-neutral-800">
                         {item.file_name || item.credential_type || 'Documento'}
                       </p>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          item.verified ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {item.verified ? 'Verificado' : 'Pendente'}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            item.verified ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {item.verified ? 'Verificado' : 'Pendente'}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            item.scan_status === 'clean'
+                              ? 'bg-green-50 text-green-700'
+                              : item.scan_status === 'rejected'
+                                ? 'bg-red-50 text-red-700'
+                                : 'bg-neutral-100 text-neutral-700'
+                          }`}
+                        >
+                          {item.scan_status || 'pending_scan'}
+                        </span>
+                      </div>
                     </div>
                     <p className="mt-1 text-xs text-neutral-500">
                       Enviado em {new Date(item.uploaded_at || professional.created_at).toLocaleString('pt-BR')}
                     </p>
+                    {item.scan_checked_at ? (
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Scan em {new Date(item.scan_checked_at).toLocaleString('pt-BR')}
+                      </p>
+                    ) : null}
                     <a
                       href={item.file_url}
                       target="_blank"
