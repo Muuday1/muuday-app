@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2, Check, Clock, AlertCircle, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
 
 // day_of_week: 0=Sunday, 1=Monday, ..., 6=Saturday
 // We display Mon-Sun (1-6, 0) but store as 0-6
@@ -63,6 +64,10 @@ export default function DisponibilidadePage() {
   const [bufferMinutes, setBufferMinutes] = useState(15)
   const [maxWindowDays, setMaxWindowDays] = useState(60)
   const [calendarConnected, setCalendarConnected] = useState(false)
+  const [calendarTimezone, setCalendarTimezone] = useState('America/Sao_Paulo')
+  const [upcomingBookings, setUpcomingBookings] = useState<
+    Array<{ id: string; start_utc: string; end_utc: string; status: string }>
+  >([])
 
   const loadAvailability = useCallback(async () => {
     setLoading(true)
@@ -99,10 +104,10 @@ export default function DisponibilidadePage() {
 
     setProfessionalId(professional.id)
 
-    const [{ data: settingsRow }, { data: calendarRow }] = await Promise.all([
+    const [{ data: settingsRow }, { data: calendarRow }, { data: bookingRows }] = await Promise.all([
       supabase
         .from('professional_settings')
-        .select('buffer_minutes, buffer_time_minutes, max_booking_window_days')
+        .select('timezone, buffer_minutes, buffer_time_minutes, max_booking_window_days')
         .eq('professional_id', professional.id)
         .maybeSingle(),
       supabase
@@ -110,13 +115,40 @@ export default function DisponibilidadePage() {
         .select('sync_enabled')
         .eq('professional_id', professional.id)
         .maybeSingle(),
+      supabase
+        .from('bookings')
+        .select('id,start_time_utc,end_time_utc,scheduled_at,duration_minutes,status')
+        .eq('professional_id', professional.id)
+        .in('status', ['pending', 'pending_confirmation', 'confirmed'])
+        .gte('scheduled_at', new Date().toISOString())
+        .order('scheduled_at', { ascending: true })
+        .limit(300),
     ])
 
     setBufferMinutes(
       Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15),
     )
+    setCalendarTimezone(String(settingsRow?.timezone || 'America/Sao_Paulo'))
     setMaxWindowDays(Number(settingsRow?.max_booking_window_days || 60))
     setCalendarConnected(Boolean(calendarRow?.sync_enabled))
+    setUpcomingBookings(
+      (bookingRows || []).map((row: Record<string, unknown>) => {
+        const scheduledAt = new Date(String(row.scheduled_at || ''))
+        const durationMinutes = Number(row.duration_minutes || 60)
+        const startUtcIso = String(row.start_time_utc || row.scheduled_at || '')
+        const endUtcIso =
+          String(row.end_time_utc || '') ||
+          (Number.isNaN(scheduledAt.getTime())
+            ? ''
+            : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
+        return {
+          id: String(row.id || ''),
+          start_utc: startUtcIso,
+          end_utc: endUtcIso,
+          status: String(row.status || 'pending'),
+        }
+      }),
+    )
 
     // Load existing availability
     const { data: rows } = await supabase
@@ -417,6 +449,19 @@ export default function DisponibilidadePage() {
             </div>
           )
         })}
+      </div>
+
+      <div className="mb-6">
+        <ProfessionalAvailabilityCalendar
+          timezone={calendarTimezone}
+          availabilityRules={DAYS_OF_WEEK.map(day => ({
+            day_of_week: day.value,
+            start_time: availability[day.value].start_time,
+            end_time: availability[day.value].end_time,
+            is_active: availability[day.value].is_available,
+          }))}
+          bookings={upcomingBookings}
+        />
       </div>
 
       {/* Quick select shortcuts */}
