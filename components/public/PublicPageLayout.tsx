@@ -1,4 +1,4 @@
-import { cookies, headers } from 'next/headers'
+﻿import { cookies, headers } from 'next/headers'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,
@@ -39,7 +39,7 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f6f8fb] text-neutral-900">
+    <div className="flex min-h-screen flex-col bg-[var(--mu-page-bg)] text-[var(--mu-text)]">
       <PublicHeader
         isLoggedIn={isLoggedIn}
         loggedInHref={loggedInHref}
@@ -50,3 +50,4 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
     </div>
   )
 }
+
