@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, Camera, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
-import { getTierLimits } from '@/lib/tier-config'
+import { getBufferConfig, getMinNoticeRange, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 
@@ -27,12 +27,21 @@ type OnboardingEvaluation = {
 }
 
 type QualificationStructured = {
+  id: string
   name: string
   requires_registration: boolean
   course_name: string
   registration_number: string
   issuer: string
   country: string
+  evidence_files: Array<{
+    id: string
+    file_name: string
+    file_url: string
+    scan_status: string
+    verified: boolean
+    credential_type: string | null
+  }>
 }
 
 type AvailabilityDayState = {
@@ -81,15 +90,27 @@ const BUSINESS_STAGE_ORDER = [
 ] as const
 
 const BUSINESS_STAGE_LABELS: Record<string, string> = {
-  c1_create_account: '1. Criacao da conta',
+  c1_create_account: '1. Criação da conta',
   c2_professional_identity: '2. Identidade profissional',
-  c3_public_profile: '3. Perfil publico',
-  c4_services: '4. Servicos',
-  c5_availability_calendar: '5. Disponibilidade e calendario',
-  c6_plan_billing_setup_post: '6. Plano, termos e cobranca',
+  c3_public_profile: '3. Perfil público',
+  c4_services: '4. Serviços',
+  c5_availability_calendar: '5. Disponibilidade e calendário',
+  c6_plan_billing_setup_post: '6. Plano, termos e cobrança',
   c7_payout_receipt: '7. Payout e recebimentos',
-  c8_submit_review: '8. Envio para analise',
+  c8_submit_review: '8. Envio para análise',
   c9_go_live: '9. Go-live',
+}
+
+const PLAN_STAGE_GUIDANCE: Record<string, string[]> = {
+  c1_create_account: ['Criação de conta', 'Acesso básico à plataforma'],
+  c2_professional_identity: ['Qualificações', 'Idiomas e público atendido'],
+  c3_public_profile: ['Perfil público', 'Foto de perfil e bio'],
+  c4_services: ['Serviços ativos', 'Limites por plano'],
+  c5_availability_calendar: ['Janela de agenda', 'Confirmação manual (planos superiores)', 'Integrações de calendário'],
+  c6_plan_billing_setup_post: ['Cobrança mensal ou anual', 'Upgrade imediato'],
+  c7_payout_receipt: ['Recebimento', 'Conciliação financeira'],
+  c8_submit_review: ['Revisão administrativa', 'Go-live'],
+  c9_go_live: ['Perfil publicado', 'Aceite de novos agendamentos'],
 }
 
 function normalizeStageIdForLookup(id: string) {
@@ -129,12 +150,65 @@ const LANGUAGE_OPTIONS = [
 
 const PROFESSIONAL_TITLES = ['Sr.', 'Sra.', 'Srta.', 'Dr.', 'Dra.', 'Prof.', 'Profa.', 'Prefiro nao informar']
 const TARGET_AUDIENCE_OPTIONS = ['Adultos', 'Criancas', 'Casais', 'Empresas', 'Estudantes', 'Imigrantes']
+const QUALIFICATION_APPROVED_OPTIONS = [
+  'Diploma de graduação',
+  'Registro profissional',
+  'Certificação técnica',
+  'Especialização',
+  'Mestrado',
+  'Doutorado',
+]
+const QUALIFICATION_FILE_MAX_SIZE_BYTES = 2 * 1024 * 1024
+const QUALIFICATION_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
+
+function normalizeOption(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function isRegistrationQualification(name: string) {
+  return normalizeOption(name) === normalizeOption('Registro profissional')
+}
+
+function inferCredentialType(name: string): 'diploma' | 'license' | 'certification' | 'other' {
+  const normalized = normalizeOption(name)
+  if (normalized.includes('registro')) return 'license'
+  if (normalized.includes('diploma')) return 'diploma'
+  if (
+    normalized.includes('certificacao') ||
+    normalized.includes('especializacao') ||
+    normalized.includes('mestrado') ||
+    normalized.includes('doutorado')
+  ) {
+    return 'certification'
+  }
+  return 'other'
+}
 
 function toKeywords(value: string) {
   return value
     .split(',')
     .map(item => item.trim())
     .filter(Boolean)
+}
+
+function formatCurrencyFromBrl(amountBrl: number, currency: string, rates: ExchangeRateMap) {
+  const safeCurrency = String(currency || 'BRL').toUpperCase()
+  const rate = rates[safeCurrency] || 1
+  const converted = safeCurrency === 'BRL' ? amountBrl : amountBrl * rate
+  try {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: safeCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(converted)
+  } catch {
+    return `${safeCurrency} ${converted.toFixed(2)}`
+  }
 }
 
 function buildDefaultAvailabilityMap() {
@@ -167,7 +241,11 @@ export function OnboardingTrackerModal({
   const [identitySecondaryLanguages, setIdentitySecondaryLanguages] = useState<string[]>([])
   const [identityTargetAudiences, setIdentityTargetAudiences] = useState<string[]>([])
   const [identityQualifications, setIdentityQualifications] = useState<QualificationStructured[]>([])
-  const [identityQualificationInput, setIdentityQualificationInput] = useState('')
+  const [identityQualificationSelection, setIdentityQualificationSelection] = useState(
+    QUALIFICATION_APPROVED_OPTIONS[0],
+  )
+  const [identityQualificationCustomName, setIdentityQualificationCustomName] = useState('')
+  const [identityQualificationCustomEnabled, setIdentityQualificationCustomEnabled] = useState(false)
   const [identitySaveState, setIdentitySaveState] = useState<SaveState>('idle')
   const [identityError, setIdentityError] = useState('')
   const [professionalUserId, setProfessionalUserId] = useState('')
@@ -195,7 +273,7 @@ export function OnboardingTrackerModal({
   )
   const [availabilitySaveState, setAvailabilitySaveState] = useState<SaveState>('idle')
   const [availabilityError, setAvailabilityError] = useState('')
-  const [calendarTimezone, setCalendarTimezone] = useState('America/Sao_Paulo')
+  const [profileTimezone, setProfileTimezone] = useState('America/Sao_Paulo')
   const [minimumNoticeHours, setMinimumNoticeHours] = useState(24)
   const [maxBookingWindowDays, setMaxBookingWindowDays] = useState(30)
   const [bufferMinutes, setBufferMinutes] = useState(15)
@@ -204,6 +282,9 @@ export function OnboardingTrackerModal({
   const [allowMultiSession, setAllowMultiSession] = useState(false)
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [calendarSyncProvider, setCalendarSyncProvider] = useState<'google' | 'outlook' | 'apple'>('google')
+  const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(false)
+  const [calendarProviderAccountEmail, setCalendarProviderAccountEmail] = useState('')
+  const [calendarSyncState, setCalendarSyncState] = useState<SaveState>('idle')
   const [calendarBookings, setCalendarBookings] = useState<
     Array<{ id: string; start_utc: string; end_utc: string; status: string }>
   >([])
@@ -215,14 +296,20 @@ export function OnboardingTrackerModal({
   }, [onboardingEvaluation.stages])
 
   const firstPendingStageId = useMemo(() => {
-    const firstPending = BUSINESS_STAGE_ORDER.find(id => {
+    const firstPending = BUSINESS_STAGE_ORDER.filter(id => id !== 'c1_create_account').find(id => {
       const stage = stagesById.get(normalizeStageIdForLookup(id))
       return stage ? !stage.complete : false
     })
-    return firstPending || 'c1_create_account'
+    return firstPending || 'c2_professional_identity'
   }, [stagesById])
 
   const tierLimits = useMemo(() => getTierLimits(String(tier || 'basic').toLowerCase()), [tier])
+  const minNoticeRange = useMemo(() => getMinNoticeRange(String(tier || 'basic').toLowerCase()), [tier])
+  const bufferConfig = useMemo(() => getBufferConfig(String(tier || 'basic').toLowerCase()), [tier])
+  const canUseManualConfirmation = useMemo(
+    () => isFeatureAvailable(String(tier || 'basic').toLowerCase(), 'manual_accept'),
+    [tier],
+  )
 
   useEffect(() => {
     if (!open) return
@@ -245,7 +332,17 @@ export function OnboardingTrackerModal({
     async function loadModalContext() {
       setLoadingContext(true)
 
-      const [{ data: professional }, { data: existingServices }, { data: settingsRow }, { data: availabilityRows }, { data: bookingRows }, { data: appRow }, { data: ratesRows }] = await Promise.all([
+      const [
+        { data: professional },
+        { data: existingServices },
+        { data: settingsRow },
+        { data: availabilityRows },
+        { data: bookingRows },
+        { data: appRow },
+        { data: ratesRows },
+        { data: calendarIntegrationRow },
+        { data: credentialRows },
+      ] = await Promise.all([
         supabase
           .from('professionals')
           .select('user_id,subcategories,years_experience')
@@ -259,7 +356,9 @@ export function OnboardingTrackerModal({
           .order('created_at', { ascending: true }),
         supabase
           .from('professional_settings')
-          .select('timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider')
+          .select(
+            'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider',
+          )
           .eq('professional_id', professionalId)
           .maybeSingle(),
         supabase
@@ -276,7 +375,9 @@ export function OnboardingTrackerModal({
           .limit(200),
         supabase
           .from('professional_applications')
-          .select('title,display_name,primary_language,secondary_languages,target_audiences,qualifications_structured')
+          .select(
+            'title,display_name,primary_language,secondary_languages,target_audiences,qualifications_structured',
+          )
           .eq('professional_id', professionalId)
           .order('updated_at', { ascending: false })
           .limit(1)
@@ -285,6 +386,16 @@ export function OnboardingTrackerModal({
           .from('exchange_rates')
           .select('code,rate_to_brl')
           .eq('is_active', true),
+        supabase
+          .from('calendar_integrations')
+          .select('provider,sync_enabled,provider_account_email')
+          .eq('professional_id', professionalId)
+          .maybeSingle(),
+        supabase
+          .from('professional_credentials')
+          .select('id,file_name,file_url,scan_status,verified,credential_type')
+          .eq('professional_id', professionalId)
+          .order('uploaded_at', { ascending: false }),
       ])
 
       if (mounted) {
@@ -302,7 +413,6 @@ export function OnboardingTrackerModal({
           }
         }
         setAvailabilityMap(defaults)
-        setCalendarTimezone(String(settingsRow?.timezone || 'America/Sao_Paulo'))
         setMinimumNoticeHours(Number(settingsRow?.minimum_notice_hours || 24))
         setMaxBookingWindowDays(Number(settingsRow?.max_booking_window_days || 30))
         setBufferMinutes(Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15))
@@ -314,6 +424,8 @@ export function OnboardingTrackerModal({
         setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
         const provider = String(settingsRow?.calendar_sync_provider || 'google')
         setCalendarSyncProvider(provider === 'outlook' || provider === 'apple' ? provider : 'google')
+        setCalendarSyncEnabled(Boolean(calendarIntegrationRow?.sync_enabled))
+        setCalendarProviderAccountEmail(String(calendarIntegrationRow?.provider_account_email || ''))
 
         setCalendarBookings(
           ((bookingRows || []) as Array<Record<string, unknown>>).map(row => {
@@ -345,12 +457,16 @@ export function OnboardingTrackerModal({
 
         const profileCurrency = await supabase
           .from('profiles')
-          .select('currency,full_name')
+          .select('currency,full_name,timezone')
           .eq('id', String(professional?.user_id || ''))
           .maybeSingle()
 
         const resolvedCurrency = String(profileCurrency.data?.currency || 'BRL').toUpperCase()
+        const resolvedTimezone = String(
+          profileCurrency.data?.timezone || settingsRow?.timezone || 'America/Sao_Paulo',
+        )
         setServiceCurrency(resolvedCurrency)
+        setProfileTimezone(resolvedTimezone)
         setIdentityDisplayName(String(appRow?.display_name || profileCurrency.data?.full_name || ''))
         setIdentityTitle(String(appRow?.title || ''))
         setIdentityYearsExperience(String(professional?.years_experience ?? 0))
@@ -359,15 +475,51 @@ export function OnboardingTrackerModal({
         setIdentityTargetAudiences(Array.isArray(appRow?.target_audiences) ? appRow.target_audiences.map(item => String(item)) : [])
         const parsedQualifications = Array.isArray(appRow?.qualifications_structured)
           ? appRow.qualifications_structured.map((item: any) => ({
+              id: String(item?.id || crypto.randomUUID()),
               name: String(item?.name || ''),
               requires_registration: Boolean(item?.requires_registration),
               course_name: String(item?.course_name || ''),
               registration_number: String(item?.registration_number || ''),
               issuer: String(item?.issuer || ''),
               country: String(item?.country || ''),
+              evidence_files: [],
             }))
           : []
-        setIdentityQualifications(parsedQualifications)
+
+        const qualificationMap = new Map<string, QualificationStructured>()
+        for (const item of parsedQualifications) {
+          qualificationMap.set(normalizeOption(item.name), item)
+        }
+
+        for (const row of (credentialRows || []) as Array<Record<string, unknown>>) {
+          const rawFileName = String(row.file_name || '')
+          const [label, fileName] = rawFileName.includes('::')
+            ? rawFileName.split('::', 2)
+            : ['Comprovante adicional', rawFileName]
+          const normalizedLabel = normalizeOption(label)
+          if (!qualificationMap.has(normalizedLabel)) {
+            qualificationMap.set(normalizedLabel, {
+              id: crypto.randomUUID(),
+              name: label,
+              requires_registration: isRegistrationQualification(label),
+              course_name: '',
+              registration_number: '',
+              issuer: '',
+              country: '',
+              evidence_files: [],
+            })
+          }
+          qualificationMap.get(normalizedLabel)?.evidence_files.push({
+            id: String(row.id || ''),
+            file_name: fileName || rawFileName,
+            file_url: String(row.file_url || ''),
+            scan_status: String(row.scan_status || 'pending_scan'),
+            verified: Boolean(row.verified),
+            credential_type: row.credential_type ? String(row.credential_type) : null,
+          })
+        }
+
+        setIdentityQualifications(Array.from(qualificationMap.values()))
       }
 
       const pricingResponse = await fetch('/api/professional/plan-pricing', {
@@ -387,7 +539,7 @@ export function OnboardingTrackerModal({
         } else {
           const errorBody = await pricingResponse.json().catch(() => ({}))
           setPlanPricing(null)
-          setPricingError(String(errorBody?.error || 'NÃ£o foi possÃ­vel carregar preÃ§os agora.'))
+          setPricingError(String(errorBody?.error || 'Não foi possível carregar preços agora.'))
         }
       }
 
@@ -406,10 +558,11 @@ export function OnboardingTrackerModal({
   const stageItems = useMemo(() => {
     return BUSINESS_STAGE_ORDER.map(id => {
       const stage = stagesById.get(normalizeStageIdForLookup(id))
+      const forceComplete = id === 'c1_create_account'
       return {
         id,
         label: BUSINESS_STAGE_LABELS[id],
-        complete: Boolean(stage?.complete),
+        complete: forceComplete ? true : Boolean(stage?.complete),
         blocker: stage?.blockers[0] || null,
       }
     })
@@ -440,43 +593,138 @@ export function OnboardingTrackerModal({
 
     setPhotoUploadState('saving')
     setPhotoUploadError('')
-    const extension = (file.name.split('.').pop() || 'jpg').toLowerCase()
-    const filePath = `${professionalId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
-    const { error: uploadError } = await supabase.storage
-      .from('professional-profile-media')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: file.type,
-      })
 
-    if (uploadError) {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch('/api/professional/profile-media/upload', {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}))
       setPhotoUploadState('error')
-      setPhotoUploadError('Falha no upload da foto. Tente novamente.')
+      setPhotoUploadError(String(errorBody?.error || 'Falha no upload da foto. Tente novamente.'))
       return
     }
 
-    const { data } = supabase.storage.from('professional-profile-media').getPublicUrl(filePath)
-    setCoverPhotoUrl(String(data.publicUrl || ''))
+    const payload = (await response.json()) as { publicUrl?: string }
+    setCoverPhotoUrl(String(payload.publicUrl || ''))
     setPhotoUploadState('saved')
     setTimeout(() => setPhotoUploadState('idle'), 2500)
   }
 
   function addIdentityQualification() {
-    const name = identityQualificationInput.trim()
+    const name = identityQualificationCustomEnabled
+      ? identityQualificationCustomName.trim()
+      : identityQualificationSelection.trim()
     if (!name) return
+
+    if (identityQualifications.some(item => normalizeOption(item.name) === normalizeOption(name))) {
+      setIdentityError('Esta qualificação já foi adicionada.')
+      return
+    }
+
     setIdentityQualifications(prev => [
       ...prev,
       {
+        id: crypto.randomUUID(),
         name,
-        requires_registration: false,
+        requires_registration: isRegistrationQualification(name),
         course_name: '',
         registration_number: '',
         issuer: '',
         country: '',
+        evidence_files: [],
       },
     ])
-    setIdentityQualificationInput('')
+    setIdentityQualificationCustomName('')
+    setIdentityError('')
+  }
+
+  async function uploadQualificationDocument(qualificationId: string, file: File | null) {
+    if (!file) return
+    if (!QUALIFICATION_ALLOWED_TYPES.includes(file.type)) {
+      setIdentityError('Arquivo inválido. Envie apenas PDF, JPG ou PNG.')
+      return
+    }
+    if (file.size > QUALIFICATION_FILE_MAX_SIZE_BYTES) {
+      setIdentityError('Arquivo excede 2MB. Reduza o tamanho antes de enviar.')
+      return
+    }
+
+    const qualification = identityQualifications.find(item => item.id === qualificationId)
+    if (!qualification) return
+
+    const form = new FormData()
+    form.append('file', file)
+    form.append('qualificationName', qualification.name)
+    form.append('credentialType', inferCredentialType(qualification.name))
+
+    const response = await fetch('/api/professional/credentials/upload', {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}))
+      setIdentityError(String(errorBody?.error || 'Falha ao enviar comprovante.'))
+      return
+    }
+
+    const payload = (await response.json()) as {
+      credential?: {
+        id: string
+        file_name: string
+        file_url: string
+        scan_status: string
+        verified: boolean
+        credential_type: string | null
+      }
+    }
+
+    if (!payload.credential) return
+
+    setIdentityQualifications(prev =>
+      prev.map(item =>
+        item.id === qualificationId
+          ? {
+              ...item,
+              evidence_files: [...item.evidence_files, payload.credential!],
+            }
+          : item,
+      ),
+    )
+    setIdentityError('')
+  }
+
+  async function removeQualificationDocument(qualificationId: string, documentId: string) {
+    const response = await fetch('/api/professional/credentials/upload', {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credentialId: documentId }),
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}))
+      setIdentityError(String(errorBody?.error || 'Falha ao remover comprovante.'))
+      return
+    }
+
+    setIdentityQualifications(prev =>
+      prev.map(item =>
+        item.id === qualificationId
+          ? {
+              ...item,
+              evidence_files: item.evidence_files.filter(file => file.id !== documentId),
+            }
+          : item,
+      ),
+    )
+    setIdentityError('')
   }
 
   async function saveIdentity() {
@@ -485,7 +733,7 @@ export function OnboardingTrackerModal({
     const years = Number(identityYearsExperience || 0)
     if (!Number.isFinite(years) || years < 0 || years > 60) {
       setIdentitySaveState('error')
-      setIdentityError('Anos de experiencia deve estar entre 0 e 60.')
+      setIdentityError('Anos de experiência devem estar entre 0 e 60.')
       return
     }
 
@@ -494,11 +742,12 @@ export function OnboardingTrackerModal({
         !item.name.trim() ||
         (item.requires_registration &&
           (!item.registration_number.trim() || !item.issuer.trim() || !item.country.trim())) ||
-        (!item.requires_registration && !item.course_name.trim()),
+        (!item.requires_registration && !item.course_name.trim()) ||
+        item.evidence_files.length === 0,
     )
     if (invalidQualification) {
       setIdentitySaveState('error')
-      setIdentityError('Complete os campos obrigatorios das qualificacoes antes de salvar.')
+      setIdentityError('Complete os campos obrigatórios das qualificações antes de salvar.')
       return
     }
 
@@ -513,7 +762,7 @@ export function OnboardingTrackerModal({
 
     if (professionalError) {
       setIdentitySaveState('error')
-      setIdentityError('Nao foi possivel salvar dados profissionais.')
+      setIdentityError('Não foi possível salvar dados profissionais.')
       return
     }
 
@@ -525,7 +774,16 @@ export function OnboardingTrackerModal({
       primary_language: identityPrimaryLanguage || null,
       secondary_languages: identitySecondaryLanguages,
       target_audiences: identityTargetAudiences,
-      qualifications_structured: identityQualifications,
+      qualifications_structured: identityQualifications.map(item => ({
+        id: item.id,
+        name: item.name,
+        requires_registration: item.requires_registration,
+        course_name: item.course_name,
+        registration_number: item.registration_number,
+        issuer: item.issuer,
+        country: item.country,
+        evidence_file_names: item.evidence_files.map(file => file.file_name),
+      })),
       updated_at: new Date().toISOString(),
     }
 
@@ -545,7 +803,7 @@ export function OnboardingTrackerModal({
 
     if (appError) {
       setIdentitySaveState('error')
-      setIdentityError('Nao foi possivel salvar identidade profissional.')
+      setIdentityError('Não foi possível salvar identidade profissional.')
       return
     }
 
@@ -560,17 +818,17 @@ export function OnboardingTrackerModal({
 
   async function savePublicProfile() {
     if (bio.trim().length === 0) {
-      setBioError('O campo "Sobre vocÃª" nÃ£o pode ficar vazio.')
+      setBioError('O campo "Sobre você" não pode ficar vazio.')
       setBioSaveState('error')
       return
     }
     if (bio.length > 500) {
-      setBioError('O campo "Sobre vocÃª" deve ter no mÃ¡ximo 500 caracteres.')
+      setBioError('O campo "Sobre você" deve ter no máximo 500 caracteres.')
       setBioSaveState('error')
       return
     }
     if (!isValidCoverPhotoUrl(coverPhotoUrl.trim())) {
-      setBioError('A URL da foto de capa Ã© invÃ¡lida.')
+      setBioError('A URL da foto de capa é inválida.')
       setBioSaveState('error')
       return
     }
@@ -588,7 +846,7 @@ export function OnboardingTrackerModal({
 
     if (error) {
       setBioSaveState('error')
-      setBioError('NÃ£o foi possÃ­vel salvar o perfil pÃºblico.')
+      setBioError('Não foi possível salvar o perfil público.')
       return
     }
 
@@ -605,41 +863,45 @@ export function OnboardingTrackerModal({
     const maxServices = tierLimits.services
     if (services.length >= maxServices) {
       setServiceSaveState('error')
-      setServiceError(`Seu plano permite atÃ© ${maxServices} serviÃ§o(s) ativo(s).`)
+      setServiceError(`Seu plano permite até ${maxServices} serviço(s) ativo(s).`)
       return
     }
     if (!serviceName.trim()) {
       setServiceSaveState('error')
-      setServiceError('Informe um tÃ­tulo para o serviÃ§o.')
+      setServiceError('Informe um título para o serviço.')
       return
     }
-    if (serviceName.trim().length > 20) {
+    if (serviceName.trim().length > 30) {
       setServiceSaveState('error')
-      setServiceError('Titulo do servico deve ter no maximo 20 caracteres.')
+      setServiceError('Título do serviço deve ter no máximo 30 caracteres.')
       return
     }
     if (!serviceDescription.trim()) {
       setServiceSaveState('error')
-      setServiceError('Informe uma descriÃ§Ã£o para o serviÃ§o.')
+      setServiceError('Informe uma descrição para o serviço.')
+      return
+    }
+    if (serviceDescription.trim().length > 120) {
+      setServiceSaveState('error')
+      setServiceError('Descrição deve ter no máximo 120 caracteres.')
       return
     }
     const price = Number(servicePrice)
     const duration = Number(serviceDuration)
     if (!Number.isFinite(price) || price <= 0) {
       setServiceSaveState('error')
-      setServiceError('Informe um preco valido.')
+      setServiceError('Informe um preço válido.')
       return
     }
     if (!Number.isFinite(duration) || duration < 15 || duration > 240) {
       setServiceSaveState('error')
-      setServiceError('DuraÃ§Ã£o invÃ¡lida. Use entre 15 e 240 minutos.')
+      setServiceError('Duração inválida. Use entre 15 e 240 minutos.')
       return
     }
 
     setServiceSaveState('saving')
     setServiceError('')
 
-    const keywords = toKeywords(serviceDescription)
     const selectedCurrency = serviceCurrency || 'BRL'
     const selectedRate = exchangeRates[selectedCurrency] || 1
     const priceBrl = selectedCurrency === 'BRL' ? price : price / selectedRate
@@ -655,8 +917,6 @@ export function OnboardingTrackerModal({
       enable_monthly: false,
       is_active: true,
       is_draft: false,
-      category: null,
-      tags: keywords.slice(0, tierLimits.serviceOptionsPerService),
       updated_at: new Date().toISOString(),
     }
 
@@ -668,7 +928,7 @@ export function OnboardingTrackerModal({
 
     if (error) {
       setServiceSaveState('error')
-      setServiceError('NÃ£o foi possÃ­vel criar o serviÃ§o.')
+      setServiceError(`Não foi possível criar o serviço: ${error.message}`)
       return
     }
 
@@ -689,7 +949,7 @@ export function OnboardingTrackerModal({
   async function saveAvailabilityCalendar() {
     if (Object.values(availabilityMap).some(day => day.is_available && day.start_time >= day.end_time)) {
       setAvailabilitySaveState('error')
-      setAvailabilityError('Horarios invalidos: inicio deve ser menor que fim.')
+      setAvailabilityError('Horários inválidos: início deve ser menor que fim.')
       return
     }
 
@@ -699,6 +959,14 @@ export function OnboardingTrackerModal({
     const nowIso = new Date().toISOString()
     const maxBufferForTier = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
     const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, bufferMinutes))
+    const safeNoticeHours = Math.min(
+      Number(minNoticeRange.max),
+      Math.max(Number(minNoticeRange.min), Number(minimumNoticeHours || minNoticeRange.min)),
+    )
+    const safeBookingWindow = Math.min(
+      Number(tierLimits.bookingWindowDays),
+      Math.max(1, Number(maxBookingWindowDays || 1)),
+    )
     const rows = WEEK_DAYS.map(day => ({
       professional_id: professionalId,
       day_of_week: day.value,
@@ -714,14 +982,14 @@ export function OnboardingTrackerModal({
 
     if (deleteError) {
       setAvailabilitySaveState('error')
-      setAvailabilityError('Nao foi possivel atualizar disponibilidade.')
+      setAvailabilityError('Não foi possível atualizar disponibilidade.')
       return
     }
 
     const { error: insertError } = await supabase.from('availability').insert(rows)
     if (insertError) {
       setAvailabilitySaveState('error')
-      setAvailabilityError('Nao foi possivel salvar horarios.')
+      setAvailabilityError('Não foi possível salvar horários.')
       return
     }
 
@@ -730,12 +998,12 @@ export function OnboardingTrackerModal({
       .upsert(
         {
           professional_id: professionalId,
-          timezone: calendarTimezone,
-          minimum_notice_hours: minimumNoticeHours,
-          max_booking_window_days: maxBookingWindowDays,
+          timezone: profileTimezone,
+          minimum_notice_hours: safeNoticeHours,
+          max_booking_window_days: safeBookingWindow,
           buffer_minutes: safeBufferMinutes,
           buffer_time_minutes: safeBufferMinutes,
-          confirmation_mode: String(tier || '').toLowerCase() === 'basic' ? 'auto_accept' : confirmationMode,
+          confirmation_mode: canUseManualConfirmation ? confirmationMode : 'auto_accept',
           enable_recurring: enableRecurring,
           allow_multi_session: allowMultiSession,
           require_session_purpose: requireSessionPurpose,
@@ -760,12 +1028,43 @@ export function OnboardingTrackerModal({
     setTimeout(() => setAvailabilitySaveState('idle'), 2000)
   }
 
+  async function toggleCalendarSync(enabled: boolean) {
+    setCalendarSyncState('saving')
+    const nowIso = new Date().toISOString()
+    const { error } = await supabase.from('calendar_integrations').upsert(
+      {
+        professional_id: professionalId,
+        provider: calendarSyncProvider,
+        sync_enabled: enabled,
+        provider_account_email: calendarProviderAccountEmail || null,
+        updated_at: nowIso,
+      },
+      { onConflict: 'professional_id' },
+    )
+
+    if (error) {
+      setCalendarSyncState('error')
+      if (String(error.message || '').toLowerCase().includes('provider')) {
+        setAvailabilityError(
+          'Provider de calendario nao habilitado no banco. Rode a migration de providers (google/outlook/apple) e tente novamente.',
+        )
+      } else {
+        setAvailabilityError(`Nao foi possivel atualizar integracao: ${error.message}`)
+      }
+      return
+    }
+
+    setCalendarSyncEnabled(enabled)
+    setCalendarSyncState('saved')
+    setTimeout(() => setCalendarSyncState('idle'), 1500)
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800"
+        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800"
       >
         Abrir tracker de onboarding
         <ArrowRight className="h-4 w-4" />
@@ -773,15 +1072,15 @@ export function OnboardingTrackerModal({
 
       {open ? (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-neutral-900/55 px-3 py-4"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-neutral-900/45 px-2 py-3 sm:px-4 sm:py-5"
           role="dialog"
           aria-modal="true"
           aria-label="Tracker de onboarding profissional"
         >
-          <div className="grid h-[92vh] w-full max-w-7xl grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white md:grid-cols-[260px_1fr]">
-            <aside className="border-b border-neutral-100 bg-neutral-50 p-3 md:border-b-0 md:border-r">
+          <div className="grid h-[94vh] max-h-[940px] w-full max-w-[1280px] grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white md:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px]">
+            <aside className="border-b border-neutral-100 bg-neutral-50 p-3.5 md:border-b-0 md:border-r">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-neutral-900">Tracker de onboarding</h3>
+                <h3 className="text-[13px] font-semibold tracking-tight text-neutral-900">Tracker de onboarding</h3>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -790,7 +1089,7 @@ export function OnboardingTrackerModal({
                   Fechar
                 </button>
               </div>
-              <nav className="space-y-1">
+              <nav className="space-y-1.5">
                 {stageItems.map(item => {
                   const isActive = item.id === activeStageId
                   const isLockedCompleted = item.complete && item.id === 'c1_create_account'
@@ -798,25 +1097,39 @@ export function OnboardingTrackerModal({
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setActiveStageId(item.id)}
+                      onClick={() => {
+                        if (isLockedCompleted) return
+                        setActiveStageId(item.id)
+                      }}
                       disabled={isLockedCompleted}
-                      className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition ${
+                      aria-disabled={isLockedCompleted}
+                      className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
                         isActive
-                          ? 'border-brand-300 bg-brand-50 text-brand-800'
+                          ? 'border-brand-300 bg-brand-50 text-brand-800 shadow-sm'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
-                            : 'border-amber-200 bg-amber-50 text-amber-900'
+                            : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100/60'
                       } ${isLockedCompleted ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                       <div className="flex items-center gap-2">
-                        {item.complete ? (
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        ) : item.blocker ? (
-                          <XCircle className="h-3.5 w-3.5" />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5" />
-                        )}
-                        <span className="font-semibold">{item.label}</span>
+                        <span
+                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                            item.complete
+                              ? 'border-green-400 bg-green-100 text-green-700'
+                              : item.blocker
+                                ? 'border-amber-300 bg-amber-100 text-amber-700'
+                                : 'border-neutral-300 bg-white text-neutral-500'
+                          }`}
+                        >
+                          {item.complete ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : item.blocker ? (
+                            <XCircle className="h-3.5 w-3.5" />
+                          ) : (
+                            <Circle className="h-3.5 w-3.5" />
+                          )}
+                        </span>
+                        <span className="line-clamp-2 text-[12px] font-semibold leading-4">{item.label}</span>
                       </div>
                     </button>
                   )
@@ -824,16 +1137,16 @@ export function OnboardingTrackerModal({
               </nav>
             </aside>
 
-            <section className="overflow-y-auto p-4 md:p-6">
-              <div className="mb-4">
-                <h2 className="font-display text-xl font-bold text-neutral-900">
+            <section className="overflow-y-auto p-4 md:p-5">
+              <div className="mb-4 border-b border-neutral-100 pb-3">
+                <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
                   {BUSINESS_STAGE_LABELS[activeStageId]}
                 </h2>
                 {activeStage?.complete ? (
-                  <p className="mt-1 text-sm text-green-700">Etapa concluÃ­da.</p>
+                  <p className="mt-1 text-sm text-green-700">Etapa concluída.</p>
                 ) : (
                   <p className="mt-1 text-sm text-amber-700">
-                    {activeStage?.blockers[0]?.description || 'Existem pendÃªncias nesta etapa.'}
+                    {activeStage?.blockers[0]?.description || 'Existem pendências nesta etapa.'}
                   </p>
                 )}
               </div>
@@ -847,11 +1160,50 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
 
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 xl:hidden">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Plano desta etapa</p>
+                <ul className="mt-1.5 space-y-1">
+                  {(PLAN_STAGE_GUIDANCE[activeStageId] || []).map(item => (
+                    <li key={item} className="text-xs text-neutral-700">
+                      • {item}
+                    </li>
+                  ))}
+                </ul>
+                {planPricing ? (
+                  <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-2 text-xs text-neutral-700">
+                    <p>
+                      Mensal:{' '}
+                      <strong>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
+                          planPricing.monthlyAmount / 100,
+                        )}
+                      </strong>
+                    </p>
+                    <p>
+                      Anual (10x):{' '}
+                      <strong>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
+                          planPricing.annualAmount / 100,
+                        )}
+                      </strong>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-amber-700">{pricingError || 'Preco indisponivel no momento.'}</p>
+                )}
+                <Link
+                  href="/planos"
+                  className="mt-2 inline-flex rounded-md bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                >
+                  Alterar plano
+                </Link>
+              </div>
+
               {(activeStageId === 'c2_professional_identity') && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 md:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Titulo</label>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
                       <select
                         value={identityTitle}
                         onChange={event => setIdentityTitle(event.target.value)}
@@ -866,7 +1218,7 @@ export function OnboardingTrackerModal({
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Nome publico profissional</label>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Nome público profissional</label>
                       <input
                         type="text"
                         value={identityDisplayName}
@@ -875,7 +1227,7 @@ export function OnboardingTrackerModal({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiencia</label>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiência</label>
                       <input
                         type="number"
                         min={0}
@@ -901,8 +1253,8 @@ export function OnboardingTrackerModal({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundarios (clique para selecionar)</p>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundários (clique para selecionar)</p>
                     <div className="flex flex-wrap gap-2">
                       {LANGUAGE_OPTIONS.filter(item => item !== identityPrimaryLanguage).map(option => (
                         <button
@@ -921,8 +1273,8 @@ export function OnboardingTrackerModal({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <p className="mb-2 text-xs font-semibold text-neutral-700">Publico atendido</p>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <p className="mb-2 text-xs font-semibold text-neutral-700">Público atendido</p>
                     <div className="flex flex-wrap gap-2">
                       {TARGET_AUDIENCE_OPTIONS.map(option => (
                         <button
@@ -941,16 +1293,29 @@ export function OnboardingTrackerModal({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <h3 className="mb-3 text-sm font-semibold text-neutral-900">Cursos e credenciamentos</h3>
-                    <div className="flex flex-wrap gap-2">
-                      <input
-                        type="text"
-                        value={identityQualificationInput}
-                        onChange={event => setIdentityQualificationInput(event.target.value)}
-                        className="min-w-[240px] flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                        placeholder="Adicionar curso, certificado ou registro"
-                      />
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
+                      <select
+                        value={identityQualificationSelection}
+                        onChange={event => setIdentityQualificationSelection(event.target.value)}
+                        className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      >
+                        {QUALIFICATION_APPROVED_OPTIONS.map(option => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <label className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700">
+                        <input
+                          type="checkbox"
+                          checked={identityQualificationCustomEnabled}
+                          onChange={event => setIdentityQualificationCustomEnabled(event.target.checked)}
+                          className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                        />
+                        Informar qualificação fora da lista
+                      </label>
                       <button
                         type="button"
                         onClick={addIdentityQualification}
@@ -959,14 +1324,23 @@ export function OnboardingTrackerModal({
                         Adicionar
                       </button>
                     </div>
+                    {identityQualificationCustomEnabled ? (
+                      <input
+                        type="text"
+                        value={identityQualificationCustomName}
+                        onChange={event => setIdentityQualificationCustomName(event.target.value)}
+                        className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                        placeholder="Digite o nome da qualificação"
+                      />
+                    ) : null}
                     <div className="mt-3 space-y-3">
                       {identityQualifications.map((item, index) => (
-                        <div key={`${item.name}-${index}`} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                        <div key={item.id} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold text-neutral-900">{item.name}</p>
                             <button
                               type="button"
-                              onClick={() => setIdentityQualifications(prev => prev.filter((_, i) => i !== index))}
+                              onClick={() => setIdentityQualifications(prev => prev.filter(current => current.id !== item.id))}
                               className="text-xs font-semibold text-red-600"
                             >
                               Remover
@@ -987,7 +1361,7 @@ export function OnboardingTrackerModal({
                               }
                               className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                             />
-                            Exige numero de registro profissional
+                            Exige número de registro profissional
                           </label>
                           {item.requires_registration ? (
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1002,7 +1376,7 @@ export function OnboardingTrackerModal({
                                   )
                                 }
                                 className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                                placeholder="Numero registro"
+                                placeholder="Número do registro"
                               />
                               <input
                                 type="text"
@@ -1015,7 +1389,7 @@ export function OnboardingTrackerModal({
                                   )
                                 }
                                 className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                                placeholder="Orgao emissor"
+                                placeholder="Órgão emissor"
                               />
                               <input
                                 type="text"
@@ -1028,7 +1402,7 @@ export function OnboardingTrackerModal({
                                   )
                                 }
                                 className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                                placeholder="Pais do registro"
+                                placeholder="País do registro"
                               />
                             </div>
                           ) : (
@@ -1043,9 +1417,69 @@ export function OnboardingTrackerModal({
                                 )
                               }
                               className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                              placeholder="Nome do curso/formacao"
+                              placeholder="Nome do curso/formação"
                             />
                           )}
+
+                          <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-2.5">
+                            <p className="text-[11px] text-neutral-600">
+                              Envie comprovantes (PDF/JPG/PNG até 2MB por arquivo).
+                            </p>
+                            <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-neutral-200 px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+                              <Upload className="h-3.5 w-3.5" />
+                              Upload comprovante
+                              <input
+                                type="file"
+                                accept="application/pdf,image/jpeg,image/png"
+                                className="hidden"
+                                onChange={event => {
+                                  const file = event.target.files?.[0] || null
+                                  void uploadQualificationDocument(item.id, file)
+                                  event.currentTarget.value = ''
+                                }}
+                              />
+                            </label>
+
+                            {item.evidence_files.length > 0 ? (
+                              <div className="mt-2 space-y-1.5">
+                                {item.evidence_files.map(document => (
+                                  <div
+                                    key={document.id}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5"
+                                  >
+                                    <a
+                                      href={document.file_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="truncate text-xs font-medium text-brand-700 hover:text-brand-800"
+                                    >
+                                      {document.file_name}
+                                    </a>
+                                    <div className="flex items-center gap-2">
+                                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
+                                        {document.scan_status === 'clean'
+                                          ? 'limpo'
+                                          : document.scan_status === 'rejected'
+                                            ? 'rejeitado'
+                                            : 'pendente'}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => void removeQualificationDocument(item.id, document.id)}
+                                        className="text-[11px] font-semibold text-red-600"
+                                      >
+                                        Remover
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-[11px] text-amber-700">
+                                Envie ao menos um arquivo para esta qualificação.
+                              </p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1069,9 +1503,9 @@ export function OnboardingTrackerModal({
 
               {(activeStageId === 'c3_public_profile') && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <div className="mb-2 flex items-center justify-between">
-                      <label className="text-sm font-semibold text-neutral-900">Sobre vocÃª</label>
+                      <label className="text-sm font-semibold text-neutral-900">Sobre você</label>
                       <span className="text-xs text-neutral-500">{bio.length}/500</span>
                     </div>
                     <textarea
@@ -1079,11 +1513,11 @@ export function OnboardingTrackerModal({
                       onChange={event => setBio(event.target.value.slice(0, 500))}
                       rows={6}
                       className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                      placeholder="Descreva sua atuaÃ§Ã£o profissional em linguagem clara e objetiva."
+                      placeholder="Descreva sua atuação profissional em linguagem clara e objetiva."
                     />
                   </div>
 
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil/capa</label>
                     <div className="flex flex-wrap gap-2">
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
@@ -1095,7 +1529,12 @@ export function OnboardingTrackerModal({
                           className="hidden"
                           onChange={event => {
                             const file = event.target.files?.[0]
-                            if (file) void uploadProfessionalPhoto(file)
+                            if (file) {
+                              void uploadProfessionalPhoto(file)
+                            } else {
+                              setPhotoUploadState('error')
+                              setPhotoUploadError('Não foi possível abrir a câmera neste dispositivo. Use "Upload".')
+                            }
                           }}
                         />
                       </label>
@@ -1123,6 +1562,9 @@ export function OnboardingTrackerModal({
                     <p className="mt-2 text-xs text-neutral-500">
                       Regras: JPG/PNG/WEBP, maximo de 3MB, enquadramento retangular limpo.
                     </p>
+                    {photoUploadState === 'saving' ? (
+                      <p className="mt-2 text-xs text-brand-700">Enviando foto...</p>
+                    ) : null}
                     {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
                   </div>
 
@@ -1136,49 +1578,54 @@ export function OnboardingTrackerModal({
                     disabled={bioSaveState === 'saving'}
                     className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
                   >
-                    {bioSaveState === 'saving' ? 'Salvando...' : bioSaveState === 'saved' ? 'Salvo' : 'Salvar perfil pÃºblico'}
+                    {bioSaveState === 'saving' ? 'Salvando...' : bioSaveState === 'saved' ? 'Salvo' : 'Salvar perfil público'}
                   </button>
                 </div>
               )}
 
               {(activeStageId === 'c4_services') && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
                     <p className="text-sm text-neutral-700">
-                      Limite do plano atual: <strong>{tierLimits.services} serviÃ§o(s)</strong> ativo(s).
+                      Limite do plano atual: <strong>{tierLimits.services} serviço(s)</strong> ativo(s).
                     </p>
                     <p className="mt-1 text-xs text-neutral-500">
-                      ServiÃ§os cadastrados: {services.length}/{tierLimits.services}
+                      Serviços cadastrados: {services.length}/{tierLimits.services}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Valores exibidos em {serviceCurrency}; armazenamento interno em BRL.
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Adicionar serviÃ§o</h3>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Adicionar serviço</h3>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div className="md:col-span-2">
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">TÃ­tulo</label>
+                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
                         <input
                           type="text"
                           value={serviceName}
                           onChange={event => setServiceName(event.target.value)}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                          maxLength={20}
+                          maxLength={30}
                           placeholder="Ex.: Consultoria fiscal"
                         />
-                        <p className="mt-1 text-[11px] text-neutral-500">{serviceName.length}/20</p>
+                        <p className="mt-1 text-[11px] text-neutral-500">{serviceName.length}/30</p>
                       </div>
                       <div className="md:col-span-2">
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">DescriÃ§Ã£o</label>
+                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Descrição</label>
                         <textarea
                           rows={4}
                           value={serviceDescription}
                           onChange={event => setServiceDescription(event.target.value)}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                          placeholder="Explique o objetivo, formato e resultado esperado do serviÃ§o."
+                          maxLength={120}
+                          placeholder="Explique o objetivo, formato e resultado esperado do serviço."
                         />
+                        <p className="mt-1 text-[11px] text-neutral-500">{serviceDescription.length}/120</p>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Preco por sessao ({serviceCurrency})</label>
+                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Preço por sessão ({serviceCurrency})</label>
                         <input
                           type="number"
                           min={0}
@@ -1189,7 +1636,7 @@ export function OnboardingTrackerModal({
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">DuraÃ§Ã£o (minutos)</label>
+                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Duração (minutos)</label>
                         <select
                           value={serviceDuration}
                           onChange={event => setServiceDuration(event.target.value)}
@@ -1212,22 +1659,23 @@ export function OnboardingTrackerModal({
                       disabled={serviceSaveState === 'saving'}
                       className="mt-4 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
                     >
-                      {serviceSaveState === 'saving' ? 'Salvando...' : serviceSaveState === 'saved' ? 'Salvo' : 'Adicionar serviÃ§o'}
+                      {serviceSaveState === 'saving' ? 'Salvando...' : serviceSaveState === 'saved' ? 'Salvo' : 'Adicionar serviço'}
                     </button>
                   </div>
 
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">ServiÃ§os ativos</h3>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Serviços ativos</h3>
                     {services.length === 0 ? (
-                      <p className="text-sm text-neutral-500">Nenhum serviÃ§o ativo ainda.</p>
+                      <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
                     ) : (
                       <div className="space-y-2">
                         {services.map(service => (
                           <div key={service.id} className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
                             <p className="text-sm font-semibold text-neutral-900">{service.name}</p>
-                            <p className="text-xs text-neutral-600">{service.description || 'Sem descriÃ§Ã£o'}</p>
+                            <p className="text-xs text-neutral-600">{service.description || 'Sem descrição'}</p>
                             <p className="mt-1 text-xs text-neutral-700">
-                              R$ {Number(service.price_brl || 0).toFixed(2)} Â· {service.duration_minutes} min
+                              {formatCurrencyFromBrl(Number(service.price_brl || 0), serviceCurrency, exchangeRates)} ·{' '}
+                              {service.duration_minutes} min
                             </p>
                           </div>
                         ))}
@@ -1240,205 +1688,292 @@ export function OnboardingTrackerModal({
                             
               {(activeStageId === 'c5_availability_calendar') && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900">Agenda semanal</h3>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Ative os dias e ajuste os horarios base. Os blocos ocupados aparecem no calendario abaixo.
-                    </p>
-                    <div className="mt-4 space-y-3">
-                      {WEEK_DAYS.map(day => {
-                        const dayState = availabilityMap[day.value]
-                        const isActive = dayState?.is_available
-                        return (
-                          <div
-                            key={day.value}
-                            className={`rounded-xl border px-3 py-2 ${
-                              isActive ? 'border-brand-200 bg-brand-50/30' : 'border-neutral-200 bg-neutral-50'
-                            }`}
-                          >
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[120px_1fr_1fr_1fr] sm:items-center">
-                              <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(isActive)}
-                                  onChange={event =>
-                                    setAvailabilityMap(prev => ({
-                                      ...prev,
-                                      [day.value]: {
-                                        ...prev[day.value],
-                                        is_available: event.target.checked,
-                                      },
-                                    }))
-                                  }
-                                  className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                                />
-                                {day.label}
-                              </label>
-                              <select
-                                value={dayState?.start_time || '09:00'}
-                                disabled={!isActive}
-                                onChange={event =>
-                                  setAvailabilityMap(prev => ({
-                                    ...prev,
-                                    [day.value]: {
-                                      ...prev[day.value],
-                                      start_time: event.target.value,
-                                    },
-                                  }))
-                                }
-                                className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {TIME_OPTIONS.map(option => (
-                                  <option key={`start-${day.value}-${option}`} value={option}>
-                                    Inicio {option}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                value={dayState?.end_time || '18:00'}
-                                disabled={!isActive}
-                                onChange={event =>
-                                  setAvailabilityMap(prev => ({
-                                    ...prev,
-                                    [day.value]: {
-                                      ...prev[day.value],
-                                      end_time: event.target.value,
-                                    },
-                                  }))
-                                }
-                                className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {TIME_OPTIONS.map(option => (
-                                  <option key={`end-${day.value}-${option}`} value={option}>
-                                    Fim {option}
-                                  </option>
-                                ))}
-                              </select>
-                              <p className="text-xs text-neutral-500">
-                                {isActive ? 'Dia ativo' : 'Indisponivel'}
-                              </p>
-                            </div>
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <h3 className="text-sm font-semibold text-neutral-900">Calendario de disponibilidade</h3>
+                            <p className="mt-1 text-xs text-neutral-500">
+                              O fuso horario segue o perfil profissional e atualiza automaticamente com horario de verao/inverno.
+                            </p>
                           </div>
-                        )
-                      })}
+                          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-xs text-neutral-700">
+                            Fuso: <strong>{profileTimezone}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <ProfessionalAvailabilityCalendar
+                        timezone={profileTimezone}
+                        availabilityRules={WEEK_DAYS.map(day => ({
+                          day_of_week: day.value,
+                          start_time: `${availabilityMap[day.value].start_time}:00`,
+                          end_time: `${availabilityMap[day.value].end_time}:00`,
+                          is_active: availabilityMap[day.value].is_available,
+                        }))}
+                        bookings={calendarBookings}
+                      />
+                    </div>
+
+                    <div className="max-h-[68vh] space-y-3 overflow-y-auto pr-1">
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                        <h4 className="text-sm font-semibold text-neutral-900">Agenda semanal</h4>
+                        <p className="mt-1 text-xs text-neutral-500">Ative dias e ajuste os blocos de horario.</p>
+                        <div className="mt-3 space-y-2.5">
+                          {WEEK_DAYS.map(day => {
+                            const dayState = availabilityMap[day.value]
+                            const isActive = dayState?.is_available
+                            return (
+                              <div
+                                key={day.value}
+                                className={`rounded-xl border px-3 py-2 ${
+                                  isActive ? 'border-brand-200 bg-brand-50/30' : 'border-neutral-200 bg-neutral-50'
+                                }`}
+                              >
+                                <div className="grid grid-cols-1 gap-2">
+                                  <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(isActive)}
+                                      onChange={event =>
+                                        setAvailabilityMap(prev => ({
+                                          ...prev,
+                                          [day.value]: {
+                                            ...prev[day.value],
+                                            is_available: event.target.checked,
+                                          },
+                                        }))
+                                      }
+                                      className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                                    />
+                                    {day.label}
+                                  </label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <select
+                                      value={dayState?.start_time || '09:00'}
+                                      disabled={!isActive}
+                                      onChange={event =>
+                                        setAvailabilityMap(prev => ({
+                                          ...prev,
+                                          [day.value]: {
+                                            ...prev[day.value],
+                                            start_time: event.target.value,
+                                          },
+                                        }))
+                                      }
+                                      className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                      {TIME_OPTIONS.map(option => (
+                                        <option key={`start-${day.value}-${option}`} value={option}>
+                                          Inicio {option}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      value={dayState?.end_time || '18:00'}
+                                      disabled={!isActive}
+                                      onChange={event =>
+                                        setAvailabilityMap(prev => ({
+                                          ...prev,
+                                          [day.value]: {
+                                            ...prev[day.value],
+                                            end_time: event.target.value,
+                                          },
+                                        }))
+                                      }
+                                      className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                      {TIME_OPTIONS.map(option => (
+                                        <option key={`end-${day.value}-${option}`} value={option}>
+                                          Fim {option}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                        <h4 className="text-sm font-semibold text-neutral-900">Regras de agendamento</h4>
+                        <div className="mt-3 space-y-3">
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedencia minima (horas)</label>
+                            <input
+                              type="number"
+                              min={Number(minNoticeRange.min)}
+                              max={Number(minNoticeRange.max)}
+                              value={minimumNoticeHours}
+                              onChange={event =>
+                                setMinimumNoticeHours(
+                                  Math.min(
+                                    Number(minNoticeRange.max),
+                                    Math.max(Number(minNoticeRange.min), Number(event.target.value || minNoticeRange.min)),
+                                  ),
+                                )
+                              }
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                            />
+                            <p className="mt-1 text-[11px] text-neutral-500">
+                              Faixa do seu plano: {minNoticeRange.min}h a {minNoticeRange.max}h.
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Janela maxima (dias)</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={Number(tierLimits.bookingWindowDays)}
+                              value={maxBookingWindowDays}
+                              onChange={event =>
+                                setMaxBookingWindowDays(
+                                  Math.min(Number(tierLimits.bookingWindowDays), Math.max(1, Number(event.target.value || 1))),
+                                )
+                              }
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                            />
+                            <p className="mt-1 text-[11px] text-neutral-500">
+                              Limite do plano atual: ate {tierLimits.bookingWindowDays} dias.
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Buffer entre sessoes (min)</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={String(tier || '').toLowerCase() === 'basic' ? 15 : 180}
+                              value={bufferMinutes}
+                              disabled={!bufferConfig.configurable}
+                              onChange={event => {
+                                const next = Math.max(0, Number(event.target.value || 0))
+                                const maxBuffer = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
+                                setBufferMinutes(Math.min(maxBuffer, next))
+                              }}
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+                            />
+                            {!bufferConfig.configurable ? (
+                              <p className="mt-1 text-[11px] text-amber-700">
+                                No plano basico, buffer fixo em {bufferConfig.defaultMinutes} min.
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmacao</label>
+                            <select
+                              value={canUseManualConfirmation ? confirmationMode : 'auto_accept'}
+                              disabled={!canUseManualConfirmation}
+                              onChange={event => setConfirmationMode(event.target.value === 'manual' ? 'manual' : 'auto_accept')}
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+                            >
+                              <option value="auto_accept">Auto-aceite</option>
+                              <option value="manual">Confirmacao manual</option>
+                            </select>
+                            {!canUseManualConfirmation ? (
+                              <p className="mt-1 text-[11px] text-amber-700">
+                                Confirmacao manual disponivel a partir do plano Profissional.
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
+                            <input
+                              type="checkbox"
+                              checked={enableRecurring}
+                              onChange={event => setEnableRecurring(event.target.checked)}
+                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                            />
+                            Permitir recorrencia
+                          </label>
+                          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
+                            <input
+                              type="checkbox"
+                              checked={allowMultiSession}
+                              onChange={event => setAllowMultiSession(event.target.checked)}
+                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                            />
+                            Permitir multiplas sessoes
+                          </label>
+                          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
+                            <input
+                              type="checkbox"
+                              checked={requireSessionPurpose}
+                              onChange={event => setRequireSessionPurpose(event.target.checked)}
+                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                            />
+                            Exigir objetivo da sessao
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                        <h4 className="text-sm font-semibold text-neutral-900">Sync de calendario</h4>
+                        <p className="mt-1 text-xs text-neutral-500">
+                          Selecione o provider e conecte/desconecte por aqui.
+                        </p>
+                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          {(['google', 'outlook', 'apple'] as const).map(provider => {
+                            const isPremiumProvider = provider !== 'google'
+                            const locked = isPremiumProvider && !isFeatureAvailable(String(tier || '').toLowerCase(), 'outlook_sync')
+                            const selected = calendarSyncProvider === provider
+                            return (
+                              <button
+                                key={provider}
+                                type="button"
+                                disabled={locked}
+                                onClick={() => {
+                                  if (locked) return
+                                  setCalendarSyncProvider(provider)
+                                }}
+                                className={`rounded-lg border px-2 py-2 text-xs font-semibold ${
+                                  selected
+                                    ? 'border-brand-500 bg-brand-500 text-white'
+                                    : 'border-neutral-200 bg-white text-neutral-700'
+                                } ${locked ? 'cursor-not-allowed opacity-50' : ''}`}
+                              >
+                                {provider === 'google' ? 'Google' : provider === 'outlook' ? 'Outlook' : 'Apple'}
+                                {locked ? ' (plano superior)' : ''}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <input
+                          type="email"
+                          value={calendarProviderAccountEmail}
+                          onChange={event => setCalendarProviderAccountEmail(event.target.value)}
+                          placeholder="Email da conta conectada (opcional)"
+                          className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                        />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void toggleCalendarSync(true)}
+                            disabled={calendarSyncState === 'saving'}
+                            className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+                          >
+                            {calendarSyncState === 'saving' ? 'Conectando...' : 'Conectar'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void toggleCalendarSync(false)}
+                            disabled={calendarSyncState === 'saving'}
+                            className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+                          >
+                            Desconectar
+                          </button>
+                          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-700">
+                            {calendarSyncEnabled ? 'Conectado' : 'Nao conectado'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-4 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Fuso horario</label>
-                      <input
-                        type="text"
-                        value={calendarTimezone}
-                        onChange={event => setCalendarTimezone(event.target.value)}
-                        placeholder="Ex.: America/Sao_Paulo"
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Sync de calendario</label>
-                      <select
-                        value={calendarSyncProvider}
-                        onChange={event =>
-                          setCalendarSyncProvider(
-                            event.target.value === 'outlook' || event.target.value === 'apple' ? event.target.value : 'google',
-                          )
-                        }
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      >
-                        <option value="google">Google</option>
-                        <option value="outlook">Outlook</option>
-                        <option value="apple">Apple</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedencia minima (horas)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={720}
-                        value={minimumNoticeHours}
-                        onChange={event => setMinimumNoticeHours(Math.max(1, Number(event.target.value || 1)))}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Janela maxima (dias)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={maxBookingWindowDays}
-                        onChange={event => setMaxBookingWindowDays(Math.max(1, Number(event.target.value || 1)))}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Buffer entre sessoes (min)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={String(tier || '').toLowerCase() === 'basic' ? 15 : 180}
-                        value={bufferMinutes}
-                        onChange={event => {
-                          const next = Math.max(0, Number(event.target.value || 0))
-                          const maxBuffer = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
-                          setBufferMinutes(Math.min(maxBuffer, next))
-                        }}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmacao</label>
-                      <select
-                        value={String(tier || '').toLowerCase() === 'basic' ? 'auto_accept' : confirmationMode}
-                        disabled={String(tier || '').toLowerCase() === 'basic'}
-                        onChange={event => setConfirmationMode(event.target.value === 'manual' ? 'manual' : 'auto_accept')}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <option value="auto_accept">Auto-aceite</option>
-                        <option value="manual">Confirmacao manual</option>
-                      </select>
-                    </div>
-                    <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                      <input
-                        type="checkbox"
-                        checked={enableRecurring}
-                        onChange={event => setEnableRecurring(event.target.checked)}
-                        className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                      />
-                      Permitir recorrencia
-                    </label>
-                    <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                      <input
-                        type="checkbox"
-                        checked={allowMultiSession}
-                        onChange={event => setAllowMultiSession(event.target.checked)}
-                        className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                      />
-                      Permitir multiplas sessoes
-                    </label>
-                    <label className="inline-flex items-center gap-2 text-sm text-neutral-700 md:col-span-2">
-                      <input
-                        type="checkbox"
-                        checked={requireSessionPurpose}
-                        onChange={event => setRequireSessionPurpose(event.target.checked)}
-                        className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                      />
-                      Exigir objetivo da sessao no agendamento
-                    </label>
-                  </div>
-
-                  <ProfessionalAvailabilityCalendar
-                    timezone={calendarTimezone}
-                    availabilityRules={WEEK_DAYS.map(day => ({
-                      day_of_week: day.value,
-                      start_time: `${availabilityMap[day.value].start_time}:00`,
-                      end_time: `${availabilityMap[day.value].end_time}:00`,
-                      is_active: availabilityMap[day.value].is_available,
-                    }))}
-                    bookings={calendarBookings}
-                  />
 
                   {availabilityError ? <p className="text-sm font-medium text-red-700">{availabilityError}</p> : null}
 
@@ -1457,37 +1992,10 @@ export function OnboardingTrackerModal({
                 </div>
               )}
 
-              {(activeStageId === 'c6_plan_billing_setup_post') && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <h3 className="text-sm font-semibold text-neutral-900">Plano e cobranÃ§a</h3>
-                    {planPricing ? (
-                      <div className="mt-2 space-y-1 text-sm text-neutral-700">
-                        <p>
-                          Mensal: <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(planPricing.monthlyAmount / 100)}</strong>
-                        </p>
-                        <p>
-                          Anual (10x): <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(planPricing.annualAmount / 100)}</strong>
-                        </p>
-                        <p className="text-xs text-neutral-500">Fonte de preÃ§o: {planPricing.provider}</p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-neutral-600">{pricingError || 'PreÃ§o nÃ£o disponÃ­vel no momento.'}</p>
-                    )}
-                    <p className="mt-2 text-xs text-neutral-500">
-                      Profissional nÃ£o possui plano grÃ¡tis. O trial e a assinatura dependem de cartÃ£o vÃ¡lido.
-                    </p>
-                    <Link href="/planos" className="mt-3 inline-flex rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600">
-                      Abrir planos e cobranÃ§a
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {!['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar', 'c6_plan_billing_setup_post'].includes(activeStageId) ? (
+              {!['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'].includes(activeStageId) ? (
                 <div className="rounded-xl border border-neutral-200 bg-white p-4">
                   <p className="text-sm text-neutral-700">
-                    Esta etapa usa os mesmos gates do backend. VocÃª pode corrigir pendÃªncias pelos links abaixo.
+                    Esta etapa usa os mesmos gates do backend. Você pode corrigir pendências pelos links abaixo.
                   </p>
                   <ul className="mt-3 space-y-2">
                     {(activeStage?.blockers || []).map(blocker => (
@@ -1506,6 +2014,80 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
             </section>
+
+            <aside className="hidden border-l border-neutral-100 bg-neutral-50 p-4 xl:block">
+              <div className="sticky top-0 space-y-4">
+                <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    Planos e evolução
+                  </p>
+                  <h3 className="mt-1 text-sm font-semibold text-neutral-900">
+                    Recursos desta etapa
+                  </h3>
+                  <ul className="mt-2 space-y-1">
+                    {(PLAN_STAGE_GUIDANCE[activeStageId] || []).map(item => (
+                      <li key={item} className="text-xs text-neutral-700">
+                        • {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-2.5 text-xs text-neutral-700">
+                    {planPricing ? (
+                      <>
+                        <p>
+                          Mensal:{' '}
+                          <strong>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
+                              planPricing.monthlyAmount / 100,
+                            )}
+                          </strong>
+                        </p>
+                        <p>
+                          Anual (10x):{' '}
+                          <strong>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
+                              planPricing.annualAmount / 100,
+                            )}
+                          </strong>
+                        </p>
+                        <p className="mt-1 text-[11px] text-neutral-500">Fonte: {planPricing.provider}</p>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-amber-700">{pricingError || 'Preco indisponivel no momento.'}</p>
+                    )}
+                    <p className="mt-1 text-[11px] text-neutral-500">Plano profissional nao e gratuito.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="rounded-xl border border-brand-200 bg-brand-50 p-3">
+                    <p className="text-xs font-semibold text-brand-800">Básico</p>
+                    <p className="mt-1 text-xs text-brand-700">
+                      Até {getTierLimits('basic').services} serviço, até {getTierLimits('basic').bookingWindowDays} dias de janela.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                    <p className="text-xs font-semibold text-neutral-900">Profissional</p>
+                    <p className="mt-1 text-xs text-neutral-700">
+                      Confirmação manual, mais serviços e janela de agenda ampliada.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                    <p className="text-xs font-semibold text-neutral-900">Premium</p>
+                    <p className="mt-1 text-xs text-neutral-700">
+                      Capacidade máxima e recursos avançados de operação.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/planos"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600"
+                >
+                  Alterar plano
+                </Link>
+              </div>
+            </aside>
           </div>
         </div>
       ) : null}

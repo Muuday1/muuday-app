@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState } from 'react'
 import {
@@ -7,6 +7,7 @@ import {
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
+  format,
   isSameDay,
   startOfMonth,
   startOfWeek,
@@ -14,6 +15,7 @@ import {
 } from 'date-fns'
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ptBR } from 'date-fns/locale'
 
 type AvailabilityRule = {
   day_of_week: number
@@ -109,7 +111,9 @@ export function ProfessionalAvailabilityCalendar({
     return eachDayOfInterval({ start, end })
   }, [cursorDate])
 
-  const dayList = view === 'day' ? [cursorDate] : view === 'week' ? weekDays : monthDays
+  const visibleDayColumns = view === 'day' ? [cursorDate] : weekDays
+  const dayList = view === 'month' ? monthDays : visibleDayColumns
+
   const timeSlots = useMemo(() => {
     const slots: string[] = []
     for (let hour = HOURS_START; hour <= HOURS_END; hour += 1) {
@@ -117,6 +121,20 @@ export function ProfessionalAvailabilityCalendar({
     }
     return slots
   }, [])
+
+  const periodLabel = useMemo(() => {
+    const zonedCursor = toZonedTime(cursorDate, timezone)
+    if (view === 'month') {
+      const label = format(zonedCursor, 'MMMM yyyy', { locale: ptBR })
+      return label.charAt(0).toUpperCase() + label.slice(1)
+    }
+    if (view === 'week') {
+      const start = startOfWeek(zonedCursor, { weekStartsOn: 1 })
+      const end = addDays(start, 6)
+      return `${format(start, 'dd/MM', { locale: ptBR })} - ${format(end, 'dd/MM', { locale: ptBR })}`
+    }
+    return format(zonedCursor, "EEEE, dd 'de' MMMM", { locale: ptBR })
+  }, [cursorDate, timezone, view])
 
   function goPrev() {
     if (view === 'month') {
@@ -158,7 +176,7 @@ export function ProfessionalAvailabilityCalendar({
       return (
         <div
           key={`${getDateKey(date, timezone)}-avail-${index}`}
-          className="absolute left-1 right-1 rounded-md bg-brand-100/80 border border-brand-200"
+          className="absolute left-1 right-1 rounded-md border border-brand-200 bg-brand-100/80"
           style={{ top: `${Math.max(0, top)}px`, height: `${Math.max(18, height)}px` }}
           title={`Disponível ${rule.start_time.slice(0, 5)}-${rule.end_time.slice(0, 5)}`}
         />
@@ -176,7 +194,7 @@ export function ProfessionalAvailabilityCalendar({
       return (
         <div
           key={`booking-${booking.id}`}
-          className="absolute left-2 right-2 rounded-md bg-amber-200/85 border border-amber-300"
+          className="absolute left-2 right-2 rounded-md border border-amber-300 bg-amber-200/85"
           style={{ top: `${Math.max(0, top)}px`, height: `${Math.max(18, height)}px` }}
           title={`Ocupado (${booking.status})`}
         />
@@ -186,12 +204,14 @@ export function ProfessionalAvailabilityCalendar({
 
   return (
     <div className={`rounded-2xl border border-neutral-200 bg-white ${className}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2.5 md:px-4 md:py-3">
         <div className="inline-flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-brand-600" />
           <p className="text-sm font-semibold text-neutral-900">Calendário</p>
           <p className="text-xs text-neutral-500">{timezone}</p>
         </div>
+
+        <p className="text-xs font-semibold text-neutral-700 md:text-sm">{periodLabel}</p>
 
         <div className="inline-flex items-center gap-1">
           <button type="button" onClick={goPrev} className="rounded-md border border-neutral-200 px-2 py-1 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
@@ -219,10 +239,19 @@ export function ProfessionalAvailabilityCalendar({
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 border-b border-neutral-100 px-3 py-2 text-[11px] text-neutral-600 md:px-4">
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-brand-500" /> Disponível
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> Ocupado
+        </span>
+      </div>
+
       {view === 'month' ? (
-        <div className="p-3">
+        <div className="p-3 md:p-4">
           <div className="grid grid-cols-7 gap-1 text-xs font-semibold text-neutral-500">
-            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(label => (
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map(label => (
               <div key={label} className="px-2 py-1">{label}</div>
             ))}
           </div>
@@ -241,12 +270,14 @@ export function ProfessionalAvailabilityCalendar({
                     setCursorDate(day)
                     setView('day')
                   }}
-                  className={`min-h-[78px] rounded-lg border p-2 text-left ${
+                  className={`min-h-[74px] rounded-lg border p-2 text-left ${
                     isToday ? 'border-brand-300 bg-brand-50' : 'border-neutral-100 bg-neutral-50/40 hover:bg-neutral-100'
                   }`}
                 >
                   <p className="text-xs font-semibold text-neutral-800">{formatInTimeZone(day, timezone, 'd')}</p>
-                  <p className="mt-1 text-[11px] text-brand-700">{availabilityCount > 0 ? `${availabilityCount} bloco(s)` : 'Sem disponibilidade'}</p>
+                  <p className="mt-1 text-[11px] text-brand-700">
+                    {availabilityCount > 0 ? `${availabilityCount} bloco(s)` : 'Sem disponibilidade'}
+                  </p>
                   <p className="text-[11px] text-amber-700">{bookedCount > 0 ? `${bookedCount} ocupado(s)` : 'Livre'}</p>
                 </button>
               )
@@ -254,10 +285,13 @@ export function ProfessionalAvailabilityCalendar({
           </div>
         </div>
       ) : (
-        <div className="overflow-auto p-3">
-          <div className="grid min-w-[760px] grid-cols-[64px_repeat(7,minmax(0,1fr))] border border-neutral-100">
+        <div className="overflow-auto p-3 md:p-4">
+          <div
+            className="grid min-w-[760px] border border-neutral-100"
+            style={{ gridTemplateColumns: `64px repeat(${visibleDayColumns.length}, minmax(0, 1fr))` }}
+          >
             <div className="border-r border-neutral-100 bg-neutral-50" />
-            {(view === 'day' ? [cursorDate] : weekDays).map(day => (
+            {visibleDayColumns.map(day => (
               <div key={getDateKey(day, timezone)} className="border-r border-neutral-100 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700 last:border-r-0">
                 {formatInTimeZone(day, timezone, 'EEE d')}
               </div>
@@ -271,7 +305,7 @@ export function ProfessionalAvailabilityCalendar({
               ))}
             </div>
 
-            {(view === 'day' ? [cursorDate] : weekDays).map(day => (
+            {visibleDayColumns.map(day => (
               <div
                 key={`${getDateKey(day, timezone)}-column`}
                 className="relative border-r border-neutral-100 bg-white last:border-r-0"
