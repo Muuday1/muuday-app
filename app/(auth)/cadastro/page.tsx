@@ -25,10 +25,16 @@ import {
   loadActiveTaxonomyCatalog,
 } from '@/lib/taxonomy/professional-specialties'
 import { getTierLimits } from '@/lib/tier-config'
+import {
+  PROFESSIONAL_TERMS,
+  PROFESSIONAL_TERMS_VERSION,
+  type ProfessionalTermKey,
+} from '@/lib/legal/professional-terms'
 
 type Role = 'usuario' | 'profissional'
 
 type FieldErrors = Record<string, string>
+type ProfessionalTermsAccepted = Record<ProfessionalTermKey, boolean>
 
 const PROFESSIONAL_TITLES = ['Sr.', 'Sra.', 'Srta.', 'Dr.', 'Dra.', 'Prof.', 'Profa.', 'Prefiro não informar']
 const TARGET_AUDIENCE_OPTIONS = ['Adultos', 'Crianças', 'Casais', 'Empresas', 'Estudantes', 'Imigrantes']
@@ -61,6 +67,15 @@ const QUALIFICATION_APPROVED_OPTIONS = [
 const QUALIFICATION_FILE_MAX_SIZE_BYTES = 2 * 1024 * 1024
 const QUALIFICATION_FILE_MAX_COUNT = 5
 const QUALIFICATION_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
+const PROFESSIONAL_TERM_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as ProfessionalTermKey[]
+
+function buildInitialTermsState(): ProfessionalTermsAccepted {
+  return {
+    platform_terms: false,
+    privacy_terms: false,
+    regulated_scope_terms: false,
+  }
+}
 
 type QualificationDraft = {
   id: string
@@ -198,6 +213,10 @@ export default function CadastroPage() {
   const [professionalQualificationDraftSuggestionReason, setProfessionalQualificationDraftSuggestionReason] =
     useState('')
   const [professionalYearsExperience, setProfessionalYearsExperience] = useState('')
+  const [professionalTermsAccepted, setProfessionalTermsAccepted] =
+    useState<ProfessionalTermsAccepted>(buildInitialTermsState())
+  const [activeTermsModalKey, setActiveTermsModalKey] = useState<ProfessionalTermKey | null>(null)
+  const [termsModalScrolledToEnd, setTermsModalScrolledToEnd] = useState(false)
   const fallbackSpecialtiesByCategory = useMemo(() => {
     const map = new Map<string, string[]>()
     SEARCH_CATEGORIES.forEach(category => {
@@ -296,6 +315,13 @@ export default function CadastroPage() {
     if (requestedRole === 'profissional') setRole('profissional')
     if (requestedRole === 'usuario') setRole('usuario')
   }, [requestedRole])
+
+  useEffect(() => {
+    if (role === 'profissional') return
+    setProfessionalTermsAccepted(buildInitialTermsState())
+    setActiveTermsModalKey(null)
+    setTermsModalScrolledToEnd(false)
+  }, [role])
 
   useEffect(() => {
     if (role !== 'profissional') return
@@ -465,6 +491,34 @@ export default function CadastroPage() {
     clearFieldError('professionalSecondaryLanguages')
   }
 
+  function openTermsModal(key: ProfessionalTermKey) {
+    setActiveTermsModalKey(key)
+    setTermsModalScrolledToEnd(false)
+  }
+
+  function acceptTermsFromModal() {
+    if (!activeTermsModalKey || !termsModalScrolledToEnd) return
+    setProfessionalTermsAccepted(prev => ({
+      ...prev,
+      [activeTermsModalKey]: true,
+    }))
+    clearFieldError('professionalTerms')
+    setActiveTermsModalKey(null)
+    setTermsModalScrolledToEnd(false)
+  }
+
+  function toggleTermsCheckbox(key: ProfessionalTermKey) {
+    const isAccepted = professionalTermsAccepted[key]
+    if (!isAccepted) {
+      openTermsModal(key)
+      return
+    }
+    setProfessionalTermsAccepted(prev => ({
+      ...prev,
+      [key]: false,
+    }))
+  }
+
   function addQualificationDraft() {
     const name = professionalQualificationDraftName.trim()
     if (!name) return
@@ -612,7 +666,13 @@ export default function CadastroPage() {
 
     const years = Number(professionalYearsExperience)
     if (!professionalYearsExperience || Number.isNaN(years) || years < 0 || years > 60) {
-      nextErrors.professionalYearsExperience = 'Informe anos de experiência entre 0 e 60.'
+      nextErrors.professionalYearsExperience = 'Informe anos de experiencia entre 0 e 60.'
+    }
+
+    const allTermsAccepted = PROFESSIONAL_TERM_KEYS.every(key => professionalTermsAccepted[key])
+    if (!allTermsAccepted) {
+      nextErrors.professionalTerms =
+        'Para enviar para analise, abra, leia ate o fim e aceite todos os termos obrigatorios.'
     }
 
     return nextErrors
@@ -665,6 +725,13 @@ export default function CadastroPage() {
             reason: professionalSpecialtyValidationMessage.trim(),
           }
         : null,
+      terms_acceptance: {
+        platform_terms: professionalTermsAccepted.platform_terms,
+        privacy_terms: professionalTermsAccepted.privacy_terms,
+        regulated_scope_terms: professionalTermsAccepted.regulated_scope_terms,
+        terms_version: PROFESSIONAL_TERMS_VERSION,
+        accepted_at: new Date().toISOString(),
+      },
     }
     const qualificationsStructuredPayload = professionalQualifications.map(item => ({
       name: item.name,
@@ -819,6 +886,10 @@ export default function CadastroPage() {
     return unique
   }, [fieldErrors])
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
+  const activeTerm = useMemo(
+    () => PROFESSIONAL_TERMS.find(item => item.key === activeTermsModalKey) || null,
+    [activeTermsModalKey],
+  )
 
   function inputClass(hasError: boolean) {
     if (hasError) {
@@ -1698,6 +1769,43 @@ export default function CadastroPage() {
             )}
           </div>
 
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <h3 className="text-sm font-semibold text-neutral-900">Termos obrigatorios antes do envio</h3>
+            <p className="mt-1 text-xs text-neutral-600">
+              Para enviar o cadastro, abra cada termo, leia ate o fim e clique em aceitar.
+            </p>
+            <div className="mt-3 space-y-2">
+              {PROFESSIONAL_TERMS.map(term => {
+                const accepted = professionalTermsAccepted[term.key]
+                return (
+                  <div key={term.key} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <label className="inline-flex items-start gap-2 text-sm text-neutral-700">
+                        <input
+                          type="checkbox"
+                          checked={accepted}
+                          onChange={() => toggleTermsCheckbox(term.key)}
+                          className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
+                        />
+                        <span>{term.shortLabel}</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openTermsModal(term.key)}
+                        className="text-xs font-semibold text-brand-700 underline"
+                      >
+                        Abrir termo
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {fieldErrors.professionalTerms && (
+              <p className="mt-2 text-xs text-red-600">{fieldErrors.professionalTerms}</p>
+            )}
+          </div>
+
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
               <p className="font-semibold">{error}</p>
@@ -1760,6 +1868,55 @@ export default function CadastroPage() {
         </Link>
       </p>
 
+      {activeTerm ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/55 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Leitura de termo"
+        >
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
+            <div className="border-b border-neutral-200 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{activeTerm.version}</p>
+              <h3 className="mt-1 text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
+            </div>
+            <div
+              className="max-h-[55vh] overflow-y-auto px-5 py-4"
+              onScroll={event => {
+                const el = event.currentTarget
+                if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) {
+                  setTermsModalScrolledToEnd(true)
+                }
+              }}
+            >
+              {activeTerm.sections.map(section => (
+                <section key={section.heading} className="mb-4">
+                  <h4 className="text-sm font-semibold text-neutral-800">{section.heading}</h4>
+                  <p className="mt-1 text-sm leading-6 text-neutral-700">{section.body}</p>
+                </section>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2 border-t border-neutral-200 px-5 py-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveTermsModalKey(null)}
+                className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                disabled={!termsModalScrolledToEnd}
+                onClick={acceptTermsFromModal}
+                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:bg-brand-600"
+              >
+                Li ate o fim e aceito
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showSignupSuccessModal ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45 p-4"
@@ -1768,15 +1925,33 @@ export default function CadastroPage() {
           aria-label="Confirmação de cadastro"
         >
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="font-display text-xl font-bold text-neutral-900">{AUTH_MESSAGES.signup.successTitle}</h2>
-            <p className="mt-2 text-sm text-neutral-600">
-              Enviamos um e-mail para{' '}
-              <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span>.
-              {` ${AUTH_MESSAGES.signup.successDescription}`}
-            </p>
-            <p className="mt-2 text-xs text-neutral-500">
-              Se não encontrar, confira também a pasta de spam/lixo eletrônico.
-            </p>
+            {role === 'profissional' ? (
+              <>
+                <h2 className="font-display text-xl font-bold text-neutral-900">Cadastro enviado para analise</h2>
+                <p className="mt-2 text-sm text-neutral-600">
+                  Recebemos seus dados profissionais. Nossa equipe vai revisar as informacoes e validar sua especialidade.
+                </p>
+                <p className="mt-2 text-sm text-neutral-600">
+                  Voce recebera um e-mail em{' '}
+                  <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span> quando for aprovado para completar as demais informacoes e finalizar a ativacao da conta profissional.
+                </p>
+                <p className="mt-2 text-xs text-neutral-500">
+                  Dica: verifique tambem sua caixa de spam e promocoes para nao perder o e-mail de aprovacao.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="font-display text-xl font-bold text-neutral-900">{AUTH_MESSAGES.signup.successTitle}</h2>
+                <p className="mt-2 text-sm text-neutral-600">
+                  Enviamos um e-mail para{' '}
+                  <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span>.
+                  {` ${AUTH_MESSAGES.signup.successDescription}`}
+                </p>
+                <p className="mt-2 text-xs text-neutral-500">
+                  Se nao encontrar, confira tambem a pasta de spam/lixo eletronico.
+                </p>
+              </>
+            )}
             <button
               type="button"
               onClick={handleSignupSuccessConfirm}

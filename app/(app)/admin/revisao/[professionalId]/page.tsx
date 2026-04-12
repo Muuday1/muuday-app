@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { CheckCircle2, CircleAlert, Clock3, FileText, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { adminReviewProfessionalDecision } from '@/lib/actions/admin'
+import { buildProfessionalCredentialFlags } from '@/lib/admin/professional-credential-checks'
 
 async function submitReviewDecision(formData: FormData) {
   'use server'
@@ -80,6 +81,7 @@ export default async function AdminReviewProfessionalPage({
 
   const result = parseResultMessage(searchParams?.result)
   const owner = Array.isArray(professional.profiles) ? professional.profiles[0] : professional.profiles
+  const semiAuto = buildProfessionalCredentialFlags({ application, credentials })
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
@@ -243,6 +245,42 @@ export default async function AdminReviewProfessionalPage({
                     >
                       Abrir arquivo
                     </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <CircleAlert className="h-4 w-4 text-brand-500" />
+              <h2 className="font-semibold text-neutral-900">Analise semi-automatica (flags)</h2>
+            </div>
+            <p className="text-xs text-neutral-500">
+              Esta analise gera alertas para suporte da decisao do admin. Nao reprova automaticamente.
+            </p>
+            <p className="mt-2 text-xs text-neutral-600">
+              Total: <strong>{semiAuto.summary.total}</strong> • Alto: <strong>{semiAuto.summary.high}</strong> • Medio:{' '}
+              <strong>{semiAuto.summary.medium}</strong> • Baixo: <strong>{semiAuto.summary.low}</strong>
+            </p>
+            {semiAuto.flags.length === 0 ? (
+              <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+                Nenhuma inconsistencia automatica encontrada nesta revisao.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {semiAuto.flags.map(flag => (
+                  <li
+                    key={flag.code}
+                    className={`rounded-xl border px-3 py-2 text-xs ${
+                      flag.severity === 'high'
+                        ? 'border-red-200 bg-red-50 text-red-700'
+                        : flag.severity === 'medium'
+                          ? 'border-amber-200 bg-amber-50 text-amber-700'
+                          : 'border-neutral-200 bg-neutral-50 text-neutral-700'
+                    }`}
+                  >
+                    <span className="font-semibold uppercase">{flag.severity}</span> • {flag.message}
                   </li>
                 ))}
               </ul>
