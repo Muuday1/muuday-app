@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Briefcase, Loader2, User } from 'lucide-react'
+import { ArrowLeft, Briefcase, Eye, EyeOff, Loader2, User } from 'lucide-react'
 import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
@@ -27,7 +27,7 @@ type Role = 'usuario' | 'profissional'
 
 type FieldErrors = Record<string, string>
 
-const PROFESSIONAL_TITLES = ['Dr.', 'Dra.', 'Prof.', 'Profa.', 'Sr.', 'Sra.', 'Psicólogo(a)', 'Terapeuta', 'Consultor(a)', 'Outro']
+const PROFESSIONAL_TITLES = ['Sr.', 'Sra.', 'Srta.', 'Dr.', 'Dra.', 'Prof.', 'Profa.', 'Prefiro não informar']
 
 function normalizeOption(value: string) {
   return value
@@ -64,6 +64,31 @@ function getRedirectHint(path: string) {
   return 'Após criar sua conta, você volta para a página anterior.'
 }
 
+function getPasswordPolicyStatus(password: string) {
+  const hasMinLength = password.length >= 7
+  const hasNumber = /\d/.test(password)
+  const hasSymbol = /[^A-Za-z0-9]/.test(password)
+  const passedCount = [hasMinLength, hasNumber, hasSymbol].filter(Boolean).length
+  const isValid = hasMinLength && hasNumber && hasSymbol
+
+  return { hasMinLength, hasNumber, hasSymbol, passedCount, isValid }
+}
+
+function getPasswordStrength(password: string) {
+  const policy = getPasswordPolicyStatus(password)
+
+  if (!password) {
+    return { label: 'Fraca', barClass: 'bg-neutral-200', barWidth: '0%' }
+  }
+  if (policy.passedCount <= 1) {
+    return { label: 'Fraca', barClass: 'bg-red-500', barWidth: '33%' }
+  }
+  if (policy.passedCount === 2) {
+    return { label: 'Média', barClass: 'bg-amber-500', barWidth: '66%' }
+  }
+  return { label: 'Forte', barClass: 'bg-emerald-500', barWidth: '100%' }
+}
+
 export default function CadastroPage() {
   const router = useRouter()
 
@@ -74,6 +99,8 @@ export default function CadastroPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [country, setCountry] = useState('')
   const [timezone, setTimezone] = useState('Europe/London')
   const [currency, setCurrency] = useState('GBP')
@@ -271,8 +298,8 @@ export default function CadastroPage() {
     if (!currency) nextErrors.currency = 'Selecione a moeda preferida.'
     if (!email.trim()) nextErrors.email = 'Informe seu e-mail.'
     if (!password) nextErrors.password = 'Informe uma senha.'
-    if (password.length > 0 && password.length < 8) {
-      nextErrors.password = 'A senha deve ter pelo menos 8 caracteres.'
+    if (password.length > 0 && !getPasswordPolicyStatus(password).isValid) {
+      nextErrors.password = 'A senha deve ter no mínimo 7 caracteres, incluindo número e símbolo.'
     }
     if (!confirmPassword) nextErrors.confirmPassword = 'Confirme a senha.'
     if (password && confirmPassword && password !== confirmPassword) {
@@ -490,6 +517,7 @@ export default function CadastroPage() {
     const unique = Array.from(new Set(Object.values(fieldErrors)))
     return unique
   }, [fieldErrors])
+  const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
 
   function inputClass(hasError: boolean) {
     if (hasError) {
@@ -507,7 +535,7 @@ export default function CadastroPage() {
   return (
     <div>
       <h1 className="mb-2 font-display text-3xl font-bold text-neutral-900">Criar conta</h1>
-      <p className="mb-6 text-neutral-500">Junte-se à Muuday — é grátis</p>
+      <p className="mb-6 text-neutral-500">Junte-se à Muuday</p>
 
       {redirectPath && role === 'usuario' && (
         <div className="mb-5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700" role="status">
@@ -732,40 +760,74 @@ export default function CadastroPage() {
 
           <div>
             <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-neutral-700">Senha</label>
-            <input
-              id="signup-password"
-              type="password"
-              value={password}
-              onChange={event => {
-                setPassword(event.target.value)
-                clearFieldError('password')
-                clearFieldError('confirmPassword')
-              }}
-              required
-              minLength={8}
-              placeholder="Mínimo 8 caracteres"
-              className={inputClass(Boolean(fieldErrors.password))}
-              aria-invalid={Boolean(fieldErrors.password)}
-            />
+            <div className="relative">
+              <input
+                id="signup-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={event => {
+                  setPassword(event.target.value)
+                  clearFieldError('password')
+                  clearFieldError('confirmPassword')
+                }}
+                required
+                minLength={7}
+                placeholder="Mínimo 7 caracteres, com número e símbolo"
+                className={`${inputClass(Boolean(fieldErrors.password))} pr-12`}
+                aria-invalid={Boolean(fieldErrors.password)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(prev => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 transition-colors hover:text-neutral-700"
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="mt-2">
+              <div className="h-1.5 w-full rounded-full bg-neutral-200">
+                <div
+                  className={`h-1.5 rounded-full transition-all ${passwordStrength.barClass}`}
+                  style={{ width: passwordStrength.barWidth }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-neutral-500">
+                Força da senha: <span className="font-semibold">{passwordStrength.label}</span>
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Requisitos: 7+ caracteres, número e símbolo.
+              </p>
+            </div>
             {fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
           </div>
 
           <div>
             <label htmlFor="signup-confirm-password" className="mb-1.5 block text-sm font-medium text-neutral-700">Confirmar senha</label>
-            <input
-              id="signup-confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={event => {
-                setConfirmPassword(event.target.value)
-                clearFieldError('confirmPassword')
-              }}
-              required
-              minLength={8}
-              placeholder="Repita sua senha"
-              className={inputClass(Boolean(fieldErrors.confirmPassword))}
-              aria-invalid={Boolean(fieldErrors.confirmPassword)}
-            />
+            <div className="relative">
+              <input
+                id="signup-confirm-password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={event => {
+                  setConfirmPassword(event.target.value)
+                  clearFieldError('confirmPassword')
+                }}
+                required
+                minLength={7}
+                placeholder="Repita sua senha"
+                className={`${inputClass(Boolean(fieldErrors.confirmPassword))} pr-12`}
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(prev => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 transition-colors hover:text-neutral-700"
+                aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {fieldErrors.confirmPassword && <p className="mt-1 text-xs text-red-600">{fieldErrors.confirmPassword}</p>}
           </div>
 
