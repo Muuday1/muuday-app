@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowRight, CheckCircle2, Circle, Loader2, Sparkles, XCircle } from 'lucide-react'
+import { ArrowRight, Camera, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
 import { getTierLimits } from '@/lib/tier-config'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
+import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 
 type Blocker = {
   code: string
@@ -25,10 +26,13 @@ type OnboardingEvaluation = {
   stages: Stage[]
 }
 
-type ServiceOption = {
-  id: string
-  slug: string
-  name_pt: string
+type QualificationStructured = {
+  name: string
+  requires_registration: boolean
+  course_name: string
+  registration_number: string
+  issuer: string
+  country: string
 }
 
 type AvailabilityDayState = {
@@ -67,7 +71,6 @@ for (let h = 6; h <= 23; h += 1) {
 const BUSINESS_STAGE_ORDER = [
   'c1_create_account',
   'c2_professional_identity',
-  'c6_plan_billing_setup_pre',
   'c3_public_profile',
   'c4_services',
   'c5_availability_calendar',
@@ -78,15 +81,14 @@ const BUSINESS_STAGE_ORDER = [
 ] as const
 
 const BUSINESS_STAGE_LABELS: Record<string, string> = {
-  c1_create_account: '1. CriaÃ§Ã£o da conta',
+  c1_create_account: '1. Criacao da conta',
   c2_professional_identity: '2. Identidade profissional',
-  c3_public_profile: '3. Perfil pÃºblico',
-  c4_services: '4. ServiÃ§os',
-  c5_availability_calendar: '5. Disponibilidade e calendÃ¡rio',
-  c6_plan_billing_setup_pre: '6. Plano, termos e cobranÃ§a',
-  c6_plan_billing_setup_post: '6. Plano, termos e cobranÃ§a',
+  c3_public_profile: '3. Perfil publico',
+  c4_services: '4. Servicos',
+  c5_availability_calendar: '5. Disponibilidade e calendario',
+  c6_plan_billing_setup_post: '6. Plano, termos e cobranca',
   c7_payout_receipt: '7. Payout e recebimentos',
-  c8_submit_review: '8. Envio para anÃ¡lise',
+  c8_submit_review: '8. Envio para analise',
   c9_go_live: '9. Go-live',
 }
 
@@ -106,6 +108,27 @@ function isValidCoverPhotoUrl(value: string) {
     return false
   }
 }
+
+const LANGUAGE_OPTIONS = [
+  'Portugues',
+  'Ingles',
+  'Espanhol',
+  'Frances',
+  'Italiano',
+  'Alemao',
+  'Holandes',
+  'Arabe',
+  'Mandarim',
+  'Japones',
+  'Coreano',
+  'Hindi',
+  'Russo',
+  'Ucraniano',
+  'Hebraico',
+]
+
+const PROFESSIONAL_TITLES = ['Sr.', 'Sra.', 'Srta.', 'Dr.', 'Dra.', 'Prof.', 'Profa.', 'Prefiro nao informar']
+const TARGET_AUDIENCE_OPTIONS = ['Adultos', 'Criancas', 'Casais', 'Empresas', 'Estudantes', 'Imigrantes']
 
 function toKeywords(value: string) {
   return value
@@ -133,22 +156,32 @@ export function OnboardingTrackerModal({
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
   const [bio, setBio] = useState(initialBio || '')
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl || '')
+  const [photoUploadState, setPhotoUploadState] = useState<SaveState>('idle')
+  const [photoUploadError, setPhotoUploadError] = useState('')
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
+  const [identityTitle, setIdentityTitle] = useState('')
+  const [identityDisplayName, setIdentityDisplayName] = useState('')
+  const [identityYearsExperience, setIdentityYearsExperience] = useState('0')
+  const [identityPrimaryLanguage, setIdentityPrimaryLanguage] = useState('Portugues')
+  const [identitySecondaryLanguages, setIdentitySecondaryLanguages] = useState<string[]>([])
+  const [identityTargetAudiences, setIdentityTargetAudiences] = useState<string[]>([])
+  const [identityQualifications, setIdentityQualifications] = useState<QualificationStructured[]>([])
+  const [identityQualificationInput, setIdentityQualificationInput] = useState('')
+  const [identitySaveState, setIdentitySaveState] = useState<SaveState>('idle')
+  const [identityError, setIdentityError] = useState('')
+  const [professionalUserId, setProfessionalUserId] = useState('')
   const [serviceName, setServiceName] = useState('')
   const [serviceDescription, setServiceDescription] = useState('')
   const [servicePrice, setServicePrice] = useState('')
   const [serviceDuration, setServiceDuration] = useState('60')
-  const [serviceOptionId, setServiceOptionId] = useState('')
-  const [customServiceSuggestion, setCustomServiceSuggestion] = useState('')
   const [services, setServices] = useState<
     Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }>
   >([])
-  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([])
   const [serviceSaveState, setServiceSaveState] = useState<SaveState>('idle')
   const [serviceError, setServiceError] = useState('')
-  const [subcategorySlug, setSubcategorySlug] = useState('')
+  const [serviceCurrency, setServiceCurrency] = useState('BRL')
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRateMap>(getDefaultExchangeRates())
   const [planPricing, setPlanPricing] = useState<{
     currency: string
     monthlyAmount: number
@@ -212,10 +245,10 @@ export function OnboardingTrackerModal({
     async function loadModalContext() {
       setLoadingContext(true)
 
-      const [{ data: professional }, { data: existingServices }, { data: settingsRow }, { data: availabilityRows }, { data: bookingRows }] = await Promise.all([
+      const [{ data: professional }, { data: existingServices }, { data: settingsRow }, { data: availabilityRows }, { data: bookingRows }, { data: appRow }, { data: ratesRows }] = await Promise.all([
         supabase
           .from('professionals')
-          .select('subcategories')
+          .select('user_id,subcategories,years_experience')
           .eq('id', professionalId)
           .maybeSingle(),
         supabase
@@ -241,14 +274,21 @@ export function OnboardingTrackerModal({
           .gte('scheduled_at', new Date().toISOString())
           .order('scheduled_at', { ascending: true })
           .limit(200),
+        supabase
+          .from('professional_applications')
+          .select('title,display_name,primary_language,secondary_languages,target_audiences,qualifications_structured')
+          .eq('professional_id', professionalId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('exchange_rates')
+          .select('code,rate_to_brl')
+          .eq('is_active', true),
       ])
 
-      const mainSubcategory = Array.isArray(professional?.subcategories)
-        ? String(professional.subcategories[0] || '')
-        : ''
-
       if (mounted) {
-        setSubcategorySlug(mainSubcategory)
+        setProfessionalUserId(String(professional?.user_id || ''))
         setServices((existingServices || []) as Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }>)
 
         const defaults = buildDefaultAvailabilityMap()
@@ -293,19 +333,41 @@ export function OnboardingTrackerModal({
             }
           }),
         )
-      }
 
-      if (mainSubcategory) {
-        const { data: options } = await supabase
-          .from('taxonomy_service_options')
-          .select('id,slug,name_pt')
-          .eq('subcategory_slug', mainSubcategory)
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true })
-
-        if (mounted) {
-          setServiceOptions((options || []) as ServiceOption[])
+        const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
+        for (const row of (ratesRows || []) as Array<Record<string, unknown>>) {
+          const code = String(row.code || '').toUpperCase().trim()
+          const rate = Number(row.rate_to_brl)
+          if (!code || !Number.isFinite(rate) || rate <= 0) continue
+          normalizedRates[code] = rate
         }
+        setExchangeRates(normalizedRates)
+
+        const profileCurrency = await supabase
+          .from('profiles')
+          .select('currency,full_name')
+          .eq('id', String(professional?.user_id || ''))
+          .maybeSingle()
+
+        const resolvedCurrency = String(profileCurrency.data?.currency || 'BRL').toUpperCase()
+        setServiceCurrency(resolvedCurrency)
+        setIdentityDisplayName(String(appRow?.display_name || profileCurrency.data?.full_name || ''))
+        setIdentityTitle(String(appRow?.title || ''))
+        setIdentityYearsExperience(String(professional?.years_experience ?? 0))
+        setIdentityPrimaryLanguage(String(appRow?.primary_language || 'Portugues'))
+        setIdentitySecondaryLanguages(Array.isArray(appRow?.secondary_languages) ? appRow.secondary_languages.map(item => String(item)) : [])
+        setIdentityTargetAudiences(Array.isArray(appRow?.target_audiences) ? appRow.target_audiences.map(item => String(item)) : [])
+        const parsedQualifications = Array.isArray(appRow?.qualifications_structured)
+          ? appRow.qualifications_structured.map((item: any) => ({
+              name: String(item?.name || ''),
+              requires_registration: Boolean(item?.requires_registration),
+              course_name: String(item?.course_name || ''),
+              registration_number: String(item?.registration_number || ''),
+              issuer: String(item?.issuer || ''),
+              country: String(item?.country || ''),
+            }))
+          : []
+        setIdentityQualifications(parsedQualifications)
       }
 
       const pricingResponse = await fetch('/api/professional/plan-pricing', {
@@ -355,29 +417,145 @@ export function OnboardingTrackerModal({
 
   const activeStage = stagesById.get(normalizeStageIdForLookup(activeStageId))
 
-  async function handleRewriteBioWithAi() {
-    setAiLoading(true)
-    setBioError('')
-    try {
-      const response = await fetch('/api/professional/rewrite-bio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ bio }),
+  function toggleMultiValue(value: string, values: string[], setter: (next: string[]) => void) {
+    if (values.includes(value)) {
+      setter(values.filter(item => item !== value))
+    } else {
+      setter([...values, value])
+    }
+  }
+
+  async function uploadProfessionalPhoto(file: File) {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      setPhotoUploadState('error')
+      setPhotoUploadError('Formato invalido. Use JPG, PNG ou WEBP.')
+      return
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setPhotoUploadState('error')
+      setPhotoUploadError('Arquivo acima de 3MB. Reduza antes de enviar.')
+      return
+    }
+
+    setPhotoUploadState('saving')
+    setPhotoUploadError('')
+    const extension = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    const filePath = `${professionalId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+    const { error: uploadError } = await supabase.storage
+      .from('professional-profile-media')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type,
       })
 
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(String(data?.error || 'Falha ao melhorar texto com IA.'))
-      }
-
-      const rewritten = String(data?.bio || '').slice(0, 500)
-      setBio(rewritten)
-    } catch (error) {
-      setBioError(error instanceof Error ? error.message : 'Falha ao melhorar texto com IA.')
-    } finally {
-      setAiLoading(false)
+    if (uploadError) {
+      setPhotoUploadState('error')
+      setPhotoUploadError('Falha no upload da foto. Tente novamente.')
+      return
     }
+
+    const { data } = supabase.storage.from('professional-profile-media').getPublicUrl(filePath)
+    setCoverPhotoUrl(String(data.publicUrl || ''))
+    setPhotoUploadState('saved')
+    setTimeout(() => setPhotoUploadState('idle'), 2500)
+  }
+
+  function addIdentityQualification() {
+    const name = identityQualificationInput.trim()
+    if (!name) return
+    setIdentityQualifications(prev => [
+      ...prev,
+      {
+        name,
+        requires_registration: false,
+        course_name: '',
+        registration_number: '',
+        issuer: '',
+        country: '',
+      },
+    ])
+    setIdentityQualificationInput('')
+  }
+
+  async function saveIdentity() {
+    setIdentitySaveState('saving')
+    setIdentityError('')
+    const years = Number(identityYearsExperience || 0)
+    if (!Number.isFinite(years) || years < 0 || years > 60) {
+      setIdentitySaveState('error')
+      setIdentityError('Anos de experiencia deve estar entre 0 e 60.')
+      return
+    }
+
+    const invalidQualification = identityQualifications.find(
+      item =>
+        !item.name.trim() ||
+        (item.requires_registration &&
+          (!item.registration_number.trim() || !item.issuer.trim() || !item.country.trim())) ||
+        (!item.requires_registration && !item.course_name.trim()),
+    )
+    if (invalidQualification) {
+      setIdentitySaveState('error')
+      setIdentityError('Complete os campos obrigatorios das qualificacoes antes de salvar.')
+      return
+    }
+
+    const { error: professionalError } = await supabase
+      .from('professionals')
+      .update({
+        years_experience: years,
+        languages: Array.from(new Set([identityPrimaryLanguage, ...identitySecondaryLanguages].filter(Boolean))),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', professionalId)
+
+    if (professionalError) {
+      setIdentitySaveState('error')
+      setIdentityError('Nao foi possivel salvar dados profissionais.')
+      return
+    }
+
+    const appPayload = {
+      user_id: professionalUserId || null,
+      professional_id: professionalId,
+      title: identityTitle || null,
+      display_name: identityDisplayName || null,
+      primary_language: identityPrimaryLanguage || null,
+      secondary_languages: identitySecondaryLanguages,
+      target_audiences: identityTargetAudiences,
+      qualifications_structured: identityQualifications,
+      updated_at: new Date().toISOString(),
+    }
+
+    let appError: { message?: string } | null = null
+    if (professionalUserId) {
+      const upsertResult = await supabase
+        .from('professional_applications')
+        .upsert(appPayload, { onConflict: 'user_id' })
+      appError = upsertResult.error
+    } else {
+      const updateResult = await supabase
+        .from('professional_applications')
+        .update(appPayload)
+        .eq('professional_id', professionalId)
+      appError = updateResult.error
+    }
+
+    if (appError) {
+      setIdentitySaveState('error')
+      setIdentityError('Nao foi possivel salvar identidade profissional.')
+      return
+    }
+
+    await fetch('/api/professional/recompute-visibility', {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    setIdentitySaveState('saved')
+    setTimeout(() => setIdentitySaveState('idle'), 2000)
   }
 
   async function savePublicProfile() {
@@ -435,6 +613,11 @@ export function OnboardingTrackerModal({
       setServiceError('Informe um tÃ­tulo para o serviÃ§o.')
       return
     }
+    if (serviceName.trim().length > 20) {
+      setServiceSaveState('error')
+      setServiceError('Titulo do servico deve ter no maximo 20 caracteres.')
+      return
+    }
     if (!serviceDescription.trim()) {
       setServiceSaveState('error')
       setServiceError('Informe uma descriÃ§Ã£o para o serviÃ§o.')
@@ -444,7 +627,7 @@ export function OnboardingTrackerModal({
     const duration = Number(serviceDuration)
     if (!Number.isFinite(price) || price <= 0) {
       setServiceSaveState('error')
-      setServiceError('Informe um preÃ§o vÃ¡lido em BRL.')
+      setServiceError('Informe um preco valido.')
       return
     }
     if (!Number.isFinite(duration) || duration < 15 || duration > 240) {
@@ -456,8 +639,10 @@ export function OnboardingTrackerModal({
     setServiceSaveState('saving')
     setServiceError('')
 
-    const selectedOption = serviceOptions.find(option => option.id === serviceOptionId)
     const keywords = toKeywords(serviceDescription)
+    const selectedCurrency = serviceCurrency || 'BRL'
+    const selectedRate = exchangeRates[selectedCurrency] || 1
+    const priceBrl = selectedCurrency === 'BRL' ? price : price / selectedRate
 
     const insertPayload = {
       professional_id: professionalId,
@@ -465,12 +650,12 @@ export function OnboardingTrackerModal({
       service_type: 'one_off',
       description: serviceDescription.trim(),
       duration_minutes: duration,
-      price_brl: price,
+      price_brl: Number(priceBrl.toFixed(2)),
       enable_recurring: false,
       enable_monthly: false,
       is_active: true,
       is_draft: false,
-      category: selectedOption?.name_pt || null,
+      category: null,
       tags: keywords.slice(0, tierLimits.serviceOptionsPerService),
       updated_at: new Date().toISOString(),
     }
@@ -487,45 +672,6 @@ export function OnboardingTrackerModal({
       return
     }
 
-    if (customServiceSuggestion.trim()) {
-      const { data: application } = await supabase
-        .from('professional_applications')
-        .select('id,taxonomy_suggestions')
-        .eq('professional_id', professionalId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (application?.id) {
-        const currentSuggestions =
-          application.taxonomy_suggestions && typeof application.taxonomy_suggestions === 'object'
-            ? (application.taxonomy_suggestions as Record<string, unknown>)
-            : {}
-        const currentServiceSuggestions = Array.isArray(currentSuggestions.service_options)
-          ? (currentSuggestions.service_options as Array<Record<string, unknown>>)
-          : []
-        const nextServiceSuggestions = [
-          ...currentServiceSuggestions,
-          {
-            subcategory_slug: subcategorySlug || null,
-            suggested_name: customServiceSuggestion.trim(),
-            created_from: 'onboarding_tracker_modal',
-            created_at: new Date().toISOString(),
-          },
-        ]
-        await supabase
-          .from('professional_applications')
-          .update({
-            taxonomy_suggestions: {
-              ...currentSuggestions,
-              service_options: nextServiceSuggestions,
-            },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', application.id)
-      }
-    }
-
     await fetch('/api/professional/recompute-visibility', {
       method: 'POST',
       credentials: 'include',
@@ -536,8 +682,6 @@ export function OnboardingTrackerModal({
     setServiceDescription('')
     setServicePrice('')
     setServiceDuration('60')
-    setServiceOptionId('')
-    setCustomServiceSuggestion('')
     setServiceSaveState('saved')
     setTimeout(() => setServiceSaveState('idle'), 2000)
   }
@@ -553,6 +697,8 @@ export function OnboardingTrackerModal({
     setAvailabilityError('')
 
     const nowIso = new Date().toISOString()
+    const maxBufferForTier = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
+    const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, bufferMinutes))
     const rows = WEEK_DAYS.map(day => ({
       professional_id: professionalId,
       day_of_week: day.value,
@@ -587,8 +733,8 @@ export function OnboardingTrackerModal({
           timezone: calendarTimezone,
           minimum_notice_hours: minimumNoticeHours,
           max_booking_window_days: maxBookingWindowDays,
-          buffer_minutes: bufferMinutes,
-          buffer_time_minutes: bufferMinutes,
+          buffer_minutes: safeBufferMinutes,
+          buffer_time_minutes: safeBufferMinutes,
           confirmation_mode: String(tier || '').toLowerCase() === 'basic' ? 'auto_accept' : confirmationMode,
           enable_recurring: enableRecurring,
           allow_multi_session: allowMultiSession,
@@ -647,18 +793,20 @@ export function OnboardingTrackerModal({
               <nav className="space-y-1">
                 {stageItems.map(item => {
                   const isActive = item.id === activeStageId
+                  const isLockedCompleted = item.complete && item.id === 'c1_create_account'
                   return (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => setActiveStageId(item.id)}
+                      disabled={isLockedCompleted}
                       className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition ${
                         isActive
                           ? 'border-brand-300 bg-brand-50 text-brand-800'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900'
-                      }`}
+                      } ${isLockedCompleted ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                       <div className="flex items-center gap-2">
                         {item.complete ? (
@@ -699,6 +847,226 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
 
+              {(activeStageId === 'c2_professional_identity') && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Titulo</label>
+                      <select
+                        value={identityTitle}
+                        onChange={event => setIdentityTitle(event.target.value)}
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecione...</option>
+                        {PROFESSIONAL_TITLES.map(option => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Nome publico profissional</label>
+                      <input
+                        type="text"
+                        value={identityDisplayName}
+                        onChange={event => setIdentityDisplayName(event.target.value)}
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiencia</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={60}
+                        value={identityYearsExperience}
+                        onChange={event => setIdentityYearsExperience(event.target.value)}
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Idioma principal</label>
+                      <select
+                        value={identityPrimaryLanguage}
+                        onChange={event => setIdentityPrimaryLanguage(event.target.value)}
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                      >
+                        {LANGUAGE_OPTIONS.map(option => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                    <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundarios (clique para selecionar)</p>
+                    <div className="flex flex-wrap gap-2">
+                      {LANGUAGE_OPTIONS.filter(item => item !== identityPrimaryLanguage).map(option => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => toggleMultiValue(option, identitySecondaryLanguages, setIdentitySecondaryLanguages)}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                            identitySecondaryLanguages.includes(option)
+                              ? 'border-brand-500 bg-brand-500 text-white'
+                              : 'border-neutral-300 bg-white text-neutral-700'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                    <p className="mb-2 text-xs font-semibold text-neutral-700">Publico atendido</p>
+                    <div className="flex flex-wrap gap-2">
+                      {TARGET_AUDIENCE_OPTIONS.map(option => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => toggleMultiValue(option, identityTargetAudiences, setIdentityTargetAudiences)}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                            identityTargetAudiences.includes(option)
+                              ? 'border-brand-500 bg-brand-500 text-white'
+                              : 'border-neutral-300 bg-white text-neutral-700'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Cursos e credenciamentos</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="text"
+                        value={identityQualificationInput}
+                        onChange={event => setIdentityQualificationInput(event.target.value)}
+                        className="min-w-[240px] flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                        placeholder="Adicionar curso, certificado ou registro"
+                      />
+                      <button
+                        type="button"
+                        onClick={addIdentityQualification}
+                        className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {identityQualifications.map((item, index) => (
+                        <div key={`${item.name}-${index}`} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-neutral-900">{item.name}</p>
+                            <button
+                              type="button"
+                              onClick={() => setIdentityQualifications(prev => prev.filter((_, i) => i !== index))}
+                              className="text-xs font-semibold text-red-600"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                          <label className="mb-2 inline-flex items-center gap-2 text-xs text-neutral-700">
+                            <input
+                              type="checkbox"
+                              checked={item.requires_registration}
+                              onChange={event =>
+                                setIdentityQualifications(prev =>
+                                  prev.map((current, i) =>
+                                    i === index
+                                      ? { ...current, requires_registration: event.target.checked }
+                                      : current,
+                                  ),
+                                )
+                              }
+                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                            />
+                            Exige numero de registro profissional
+                          </label>
+                          {item.requires_registration ? (
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                              <input
+                                type="text"
+                                value={item.registration_number}
+                                onChange={event =>
+                                  setIdentityQualifications(prev =>
+                                    prev.map((current, i) =>
+                                      i === index ? { ...current, registration_number: event.target.value } : current,
+                                    ),
+                                  )
+                                }
+                                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                                placeholder="Numero registro"
+                              />
+                              <input
+                                type="text"
+                                value={item.issuer}
+                                onChange={event =>
+                                  setIdentityQualifications(prev =>
+                                    prev.map((current, i) =>
+                                      i === index ? { ...current, issuer: event.target.value } : current,
+                                    ),
+                                  )
+                                }
+                                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                                placeholder="Orgao emissor"
+                              />
+                              <input
+                                type="text"
+                                value={item.country}
+                                onChange={event =>
+                                  setIdentityQualifications(prev =>
+                                    prev.map((current, i) =>
+                                      i === index ? { ...current, country: event.target.value } : current,
+                                    ),
+                                  )
+                                }
+                                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                                placeholder="Pais do registro"
+                              />
+                            </div>
+                          ) : (
+                            <input
+                              type="text"
+                              value={item.course_name}
+                              onChange={event =>
+                                setIdentityQualifications(prev =>
+                                  prev.map((current, i) =>
+                                    i === index ? { ...current, course_name: event.target.value } : current,
+                                  ),
+                                )
+                              }
+                              className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                              placeholder="Nome do curso/formacao"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {identityError ? <p className="text-sm font-medium text-red-700">{identityError}</p> : null}
+                  <button
+                    type="button"
+                    onClick={() => void saveIdentity()}
+                    disabled={identitySaveState === 'saving'}
+                    className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+                  >
+                    {identitySaveState === 'saving'
+                      ? 'Salvando...'
+                      : identitySaveState === 'saved'
+                        ? 'Salvo'
+                        : 'Salvar identidade profissional'}
+                  </button>
+                </div>
+              )}
+
               {(activeStageId === 'c3_public_profile') && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-neutral-200 bg-white p-4">
@@ -713,33 +1081,49 @@ export function OnboardingTrackerModal({
                       className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                       placeholder="Descreva sua atuaÃ§Ã£o profissional em linguagem clara e objetiva."
                     />
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleRewriteBioWithAi()}
-                        disabled={aiLoading}
-                        className="inline-flex items-center gap-2 rounded-lg border border-brand-300 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 disabled:opacity-60"
-                      >
-                        {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                        Melhorar texto com IA
-                      </button>
-                    </div>
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <label className="mb-2 block text-sm font-semibold text-neutral-900">
-                      URL da foto de capa (consistÃªncia visual)
-                    </label>
-                    <input
-                      type="url"
-                      value={coverPhotoUrl}
-                      onChange={event => setCoverPhotoUrl(event.target.value)}
-                      placeholder="https://..."
-                      className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                    />
+                    <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil/capa</label>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+                        <Upload className="h-3.5 w-3.5" />
+                        Upload
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={event => {
+                            const file = event.target.files?.[0]
+                            if (file) void uploadProfessionalPhoto(file)
+                          }}
+                        />
+                      </label>
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+                        <Camera className="h-3.5 w-3.5" />
+                        Tirar foto
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          capture="user"
+                          className="hidden"
+                          onChange={event => {
+                            const file = event.target.files?.[0]
+                            if (file) void uploadProfessionalPhoto(file)
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {coverPhotoUrl ? (
+                      <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={coverPhotoUrl} alt="Foto do perfil" className="h-44 w-full object-cover" />
+                      </div>
+                    ) : null}
                     <p className="mt-2 text-xs text-neutral-500">
-                      Nesta fase aplicamos consistÃªncia bÃ¡sica de URL/formato. EdiÃ§Ã£o de foto com IA fica para um prÃ³ximo bloco.
+                      Regras: JPG/PNG/WEBP, maximo de 3MB, enquadramento retangular limpo.
                     </p>
+                    {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
                   </div>
 
                   {bioError ? (
@@ -778,8 +1162,10 @@ export function OnboardingTrackerModal({
                           value={serviceName}
                           onChange={event => setServiceName(event.target.value)}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                          placeholder="Ex.: SessÃ£o de orientaÃ§Ã£o fiscal internacional"
+                          maxLength={20}
+                          placeholder="Ex.: Consultoria fiscal"
                         />
+                        <p className="mt-1 text-[11px] text-neutral-500">{serviceName.length}/20</p>
                       </div>
                       <div className="md:col-span-2">
                         <label className="mb-1 block text-xs font-semibold text-neutral-700">DescriÃ§Ã£o</label>
@@ -792,7 +1178,7 @@ export function OnboardingTrackerModal({
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">PreÃ§o por sessÃ£o (BRL)</label>
+                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Preco por sessao ({serviceCurrency})</label>
                         <input
                           type="number"
                           min={0}
@@ -815,31 +1201,6 @@ export function OnboardingTrackerModal({
                             </option>
                           ))}
                         </select>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">ServiÃ§o sugerido (catÃ¡logo)</label>
-                        <select
-                          value={serviceOptionId}
-                          onChange={event => setServiceOptionId(event.target.value)}
-                          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                        >
-                          <option value="">Selecione...</option>
-                          {serviceOptions.map(option => (
-                            <option key={option.id} value={option.id}>
-                              {option.name_pt}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Outro (sugestÃ£o para admin)</label>
-                        <input
-                          type="text"
-                          value={customServiceSuggestion}
-                          onChange={event => setCustomServiceSuggestion(event.target.value)}
-                          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                          placeholder="Nome do serviÃ§o que nÃ£o encontrou"
-                        />
                       </div>
                     </div>
 
@@ -1017,9 +1378,13 @@ export function OnboardingTrackerModal({
                       <input
                         type="number"
                         min={0}
-                        max={180}
+                        max={String(tier || '').toLowerCase() === 'basic' ? 15 : 180}
                         value={bufferMinutes}
-                        onChange={event => setBufferMinutes(Math.max(0, Number(event.target.value || 0)))}
+                        onChange={event => {
+                          const next = Math.max(0, Number(event.target.value || 0))
+                          const maxBuffer = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
+                          setBufferMinutes(Math.min(maxBuffer, next))
+                        }}
                         className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                       />
                     </div>
@@ -1092,7 +1457,7 @@ export function OnboardingTrackerModal({
                 </div>
               )}
 
-              {(activeStageId === 'c6_plan_billing_setup_pre' || activeStageId === 'c6_plan_billing_setup_post') && (
+              {(activeStageId === 'c6_plan_billing_setup_post') && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-neutral-200 bg-white p-4">
                     <h3 className="text-sm font-semibold text-neutral-900">Plano e cobranÃ§a</h3>
@@ -1119,7 +1484,7 @@ export function OnboardingTrackerModal({
                 </div>
               )}
 
-              {!['c3_public_profile', 'c4_services', 'c5_availability_calendar', 'c6_plan_billing_setup_pre', 'c6_plan_billing_setup_post'].includes(activeStageId) ? (
+              {!['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar', 'c6_plan_billing_setup_post'].includes(activeStageId) ? (
                 <div className="rounded-xl border border-neutral-200 bg-white p-4">
                   <p className="text-sm text-neutral-700">
                     Esta etapa usa os mesmos gates do backend. VocÃª pode corrigir pendÃªncias pelos links abaixo.
