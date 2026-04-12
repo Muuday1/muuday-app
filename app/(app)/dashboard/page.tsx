@@ -20,6 +20,7 @@ import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-h
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
+import { OnboardingTrackerModal } from '@/components/dashboard/OnboardingTrackerModal'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
   'pending',
@@ -105,7 +106,7 @@ export default async function DashboardPage() {
   const { data: professional } = await getPrimaryProfessionalForUser(
     supabase,
     user.id,
-    'id, status, tier, bio, category, session_price_brl, session_duration_minutes, rating, total_reviews, total_bookings, first_booking_enabled, first_booking_gate_note',
+    'id, public_code, status, tier, bio, category, cover_photo_url, session_price_brl, session_duration_minutes, rating, total_reviews, total_bookings, first_booking_enabled, first_booking_gate_note',
   )
 
   if (!professional) redirect('/completar-perfil')
@@ -232,6 +233,17 @@ export default async function DashboardPage() {
   const currency = profile.currency || 'BRL'
   const onboardingEvaluation = onboardingState?.evaluation || null
   const onboardingIncomplete = Boolean(onboardingEvaluation && !onboardingEvaluation.summary.canGoLive)
+  const stageTitleMap: Record<string, string> = {
+    c1_create_account: '1. Criação da conta',
+    c2_professional_identity: '2. Identidade profissional',
+    c3_public_profile: '3. Perfil público',
+    c4_services: '4. Serviços',
+    c5_availability_calendar: '5. Disponibilidade e calendário',
+    c6_plan_billing_setup: '6. Plano, termos e cobrança',
+    c7_payout_receipt: '7. Payout e recebimentos',
+    c8_submit_review: '8. Envio para análise',
+    c9_go_live: '9. Go-live',
+  }
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
@@ -239,7 +251,7 @@ export default async function DashboardPage() {
         <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="font-display text-lg font-bold text-amber-900">Complete o onboarding para liberar o perfil</h2>
           <p className="mt-1 text-sm text-amber-800">
-            Você ainda tem pendências nas etapas C1-C9. O painel operacional fica limitado até concluir os requisitos.
+            Você ainda tem pendências no tracker de onboarding. O painel operacional fica limitado até concluir os requisitos.
           </p>
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {onboardingEvaluation.stages.map(stage => (
@@ -251,20 +263,20 @@ export default async function DashboardPage() {
                     : 'border-amber-200 bg-amber-100 text-amber-900'
                 }`}
               >
-                <p className="font-semibold">{stage.title}</p>
+                <p className="font-semibold">{stageTitleMap[stage.id] || stage.title}</p>
                 <p className="mt-0.5">
                   {stage.complete ? 'Concluído' : stage.blockers[0]?.title || 'Pendente'}
                 </p>
               </div>
             ))}
           </div>
-          <Link
-            href="/onboarding-profissional"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800"
-          >
-            Abrir tracker C1-C9
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <OnboardingTrackerModal
+            professionalId={professionalId}
+            tier={String(professional.tier || 'basic')}
+            onboardingEvaluation={onboardingEvaluation}
+            initialBio={String(professional.bio || '')}
+            initialCoverPhotoUrl={String(professional.cover_photo_url || '')}
+          />
         </section>
       ) : null}
 

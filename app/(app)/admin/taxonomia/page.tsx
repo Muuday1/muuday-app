@@ -13,18 +13,21 @@ import {
   Loader2,
   Tag,
   FolderTree,
+  Briefcase,
 } from 'lucide-react'
 
 type Category = { id: string; slug: string; name_pt: string; name_en: string; icon: string; sort_order: number; is_active: boolean }
 type Subcategory = { id: string; category_id: string; slug: string; name_pt: string; name_en: string; sort_order: number; is_active: boolean }
 type Specialty = { id: string; subcategory_id: string; slug: string; name_pt: string; name_en: string; sort_order: number; is_active: boolean }
 type TagSuggestion = { id: string; professional_id: string; tag: string; status: string; created_at: string }
+type ServiceOption = { id: string; subcategory_slug: string; slug: string; name_pt: string; name_en: string; sort_order: number; is_active: boolean }
 
 export default function TaxonomiaPage() {
   const supabase = useMemo(() => createClient(), [])
   const [categories, setCategories] = useState<Category[]>([])
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [specialties, setSpecialties] = useState<Specialty[]>([])
+  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([])
   const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([])
   const [expandedCat, setExpandedCat] = useState<string | null>(null)
   const [expandedSub, setExpandedSub] = useState<string | null>(null)
@@ -32,19 +35,21 @@ export default function TaxonomiaPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [editItem, setEditItem] = useState<{ type: string; id: string; name_pt: string; name_en: string; slug: string } | null>(null)
   const [addItem, setAddItem] = useState<{ type: string; parentId: string; name_pt: string; name_en: string; slug: string } | null>(null)
-  const [activeTab, setActiveTab] = useState<'tree' | 'tags'>('tree')
+  const [activeTab, setActiveTab] = useState<'tree' | 'services' | 'tags'>('tree')
 
   const loadAll = useCallback(async () => {
     setLoading(true)
-    const [cRes, scRes, spRes, tsRes] = await Promise.all([
+    const [cRes, scRes, spRes, soRes, tsRes] = await Promise.all([
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('subcategories').select('*').order('sort_order'),
       supabase.from('specialties').select('*').order('sort_order'),
+      supabase.from('taxonomy_service_options').select('*').order('subcategory_slug').order('sort_order'),
       supabase.from('tag_suggestions').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
     ])
     setCategories(cRes.data || [])
     setSubcategories(scRes.data || [])
     setSpecialties(spRes.data || [])
+    setServiceOptions(soRes.data || [])
     setTagSuggestions(tsRes.data || [])
     setLoading(false)
   }, [supabase])
@@ -90,7 +95,13 @@ export default function TaxonomiaPage() {
   async function handleSaveEdit() {
     if (!editItem) return
     setActionLoading(editItem.id)
-    const table = editItem.type === 'category' ? 'categories' : editItem.type === 'subcategory' ? 'subcategories' : 'specialties'
+    const table = editItem.type === 'category'
+      ? 'categories'
+      : editItem.type === 'subcategory'
+        ? 'subcategories'
+        : editItem.type === 'service_option'
+          ? 'taxonomy_service_options'
+          : 'specialties'
     await supabase.from(table).update({
       name_pt: editItem.name_pt.trim(),
       name_en: editItem.name_en.trim(),
@@ -103,8 +114,30 @@ export default function TaxonomiaPage() {
 
   async function handleToggleActive(type: string, id: string, currentActive: boolean) {
     setActionLoading(id)
-    const table = type === 'category' ? 'categories' : type === 'subcategory' ? 'subcategories' : 'specialties'
+    const table = type === 'category'
+      ? 'categories'
+      : type === 'subcategory'
+        ? 'subcategories'
+        : type === 'service_option'
+          ? 'taxonomy_service_options'
+          : 'specialties'
     await supabase.from(table).update({ is_active: !currentActive }).eq('id', id)
+    setActionLoading(null)
+    loadAll()
+  }
+
+  async function handleAddServiceOption() {
+    if (!addItem || addItem.type !== 'service_option' || !addItem.name_pt.trim()) return
+    setActionLoading('add')
+    const maxOrder = serviceOptions.filter(s => s.subcategory_slug === addItem.parentId).length + 1
+    await supabase.from('taxonomy_service_options').insert({
+      subcategory_slug: addItem.parentId,
+      slug: addItem.slug || slugify(addItem.name_pt),
+      name_pt: addItem.name_pt.trim(),
+      name_en: addItem.name_en.trim() || addItem.name_pt.trim(),
+      sort_order: maxOrder,
+    })
+    setAddItem(null)
     setActionLoading(null)
     loadAll()
   }
@@ -135,6 +168,12 @@ export default function TaxonomiaPage() {
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'tree' ? 'bg-brand-500 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
         >
           <FolderTree className="w-4 h-4" /> Árvore
+        </button>
+        <button
+          onClick={() => setActiveTab('services')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'services' ? 'bg-brand-500 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+        >
+          <Briefcase className="w-4 h-4" /> Serviços
         </button>
         <button
           onClick={() => setActiveTab('tags')}
@@ -268,6 +307,91 @@ export default function TaxonomiaPage() {
                     )}
                   </div>
                 )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {activeTab === 'services' && (
+        <div className="space-y-3">
+          {subcategories.map(sub => {
+            const subServiceOptions = serviceOptions.filter(option => option.subcategory_slug === sub.slug)
+            return (
+              <div key={sub.id} className="bg-white rounded-2xl border border-neutral-100 p-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900">{sub.name_pt}</p>
+                    <p className="text-xs text-neutral-500">{sub.slug}</p>
+                  </div>
+                  <span className="text-xs text-neutral-500">{subServiceOptions.length} opções</span>
+                </div>
+
+                <div className="space-y-2">
+                  {subServiceOptions.map(option => (
+                    <div key={option.id} className="flex items-center gap-2 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
+                      {editItem?.id === option.id ? (
+                        <div className="flex flex-1 items-center gap-2">
+                          <input
+                            value={editItem.name_pt}
+                            onChange={e => setEditItem({ ...editItem, name_pt: e.target.value })}
+                            className="flex-1 px-2 py-1 border rounded-lg text-xs"
+                          />
+                          <input
+                            value={editItem.name_en}
+                            onChange={e => setEditItem({ ...editItem, name_en: e.target.value })}
+                            className="flex-1 px-2 py-1 border rounded-lg text-xs"
+                          />
+                          <button onClick={handleSaveEdit} className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditItem(null)} className="text-neutral-400"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className={`flex-1 text-xs ${option.is_active ? 'text-neutral-800' : 'text-neutral-400 line-through'}`}>{option.name_pt}</p>
+                          <button
+                            onClick={() => setEditItem({ type: 'service_option', id: option.id, name_pt: option.name_pt, name_en: option.name_en, slug: option.slug })}
+                            className="text-neutral-400 hover:text-neutral-600"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleActive('service_option', option.id, option.is_active)}
+                            className={`text-xs px-2 py-0.5 rounded-full ${option.is_active ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-500'}`}
+                          >
+                            {actionLoading === option.id ? '...' : option.is_active ? 'Ativo' : 'Inativo'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+
+                  {addItem?.type === 'service_option' && addItem.parentId === sub.slug ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={addItem.name_pt}
+                        onChange={e => setAddItem({ ...addItem, name_pt: e.target.value, slug: slugify(e.target.value) })}
+                        className="flex-1 px-2 py-1 border rounded-lg text-xs"
+                        placeholder="Nome PT"
+                        autoFocus
+                      />
+                      <input
+                        value={addItem.name_en}
+                        onChange={e => setAddItem({ ...addItem, name_en: e.target.value })}
+                        className="flex-1 px-2 py-1 border rounded-lg text-xs"
+                        placeholder="Nome EN"
+                      />
+                      <button onClick={handleAddServiceOption} disabled={actionLoading === 'add'} className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setAddItem(null)} className="text-neutral-400"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddItem({ type: 'service_option', parentId: sub.slug, name_pt: '', name_en: '', slug: '' })}
+                      className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700"
+                    >
+                      <Plus className="w-3 h-3" /> Opção de serviço
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}

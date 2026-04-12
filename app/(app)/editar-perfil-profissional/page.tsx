@@ -257,32 +257,6 @@ export default function EditarPerfilProfissionalPage() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Cobertura do perfil</h2>
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">WhatsApp</label>
-            <input
-              type="text"
-              value={whatsappNumber}
-              onChange={event => setWhatsappNumber(event.target.value)}
-              placeholder="+55 11 99999-9999"
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">URL da foto de capa</label>
-            <input
-              type="url"
-              value={coverPhotoUrl}
-              onChange={event => setCoverPhotoUrl(event.target.value)}
-              placeholder="https://..."
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-        </div>
-      </div>
-
       <TierLockedOverlay
         currentTier={tier}
         requiredTier="professional"

@@ -1,0 +1,113 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import {
+  getStripeClientForRegion,
+  resolveStripePlatformRegion,
+  type StripePlatformRegion,
+} from '@/lib/stripe/client'
+
+const PRICE_ENV_KEYS: Record<
+  StripePlatformRegion,
+  Record<'basic' | 'professional' | 'premium', Record<'monthly' | 'annual', string>>
+> = {
+  uk: {
+    basic: {
+      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_UK',
+      annual: 'STRIPE_PRICE_BASIC_ANNUAL_UK',
+    },
+    professional: {
+      monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_UK',
+      annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_UK',
+    },
+    premium: {
+      monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_UK',
+      annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_UK',
+    },
+  },
+  br: {
+    basic: {
+      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_BR',
+      annual: 'STRIPE_PRICE_BASIC_ANNUAL_BR',
+    },
+    professional: {
+      monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_BR',
+      annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_BR',
+    },
+    premium: {
+      monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_BR',
+      annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_BR',
+    },
+  },
+}
+
+function readTier(value: string | null | undefined): 'basic' | 'professional' | 'premium' {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'professional' || normalized === 'premium') return normalized
+  return 'basic'
+}
+
+export async function GET() {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Sessão inválida.' }, { status: 401 })
+  }
+
+  const [{ data: profile }, { data: professional }] = await Promise.all([
+    supabase.from('profiles').select('role,country').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('professionals')
+      .select('tier,platform_region')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  if (profile?.role !== 'profissional' || !professional) {
+    return NextResponse.json({ error: 'Perfil profissional não encontrado.' }, { status: 404 })
+  }
+
+  const region =
+    (professional.platform_region as StripePlatformRegion | null) ||
+    resolveStripePlatformRegion(profile.country)
+
+  const stripe = getStripeClientForRegion(region)
+  if (!stripe) {
+    return NextResponse.json({ error: 'Provider de cobrança indisponível para esta região.' }, { status: 503 })
+  }
+
+  const tier = readTier(professional.tier)
+  const monthlyKey = PRICE_ENV_KEYS[region][tier].monthly
+  const annualKey = PRICE_ENV_KEYS[region][tier].annual
+  const monthlyPriceId = process.env[monthlyKey]
+  const annualPriceId = process.env[annualKey]
+
+  if (!monthlyPriceId || !annualPriceId) {
+    return NextResponse.json(
+      { error: `Preço do plano não configurado (${monthlyKey}/${annualKey}).` },
+      { status: 503 },
+    )
+  }
+
+  try {
+    const [monthlyPrice, annualPrice] = await Promise.all([
+      stripe.prices.retrieve(monthlyPriceId),
+      stripe.prices.retrieve(annualPriceId),
+    ])
+
+    return NextResponse.json({
+      provider: region === 'br' ? 'stripe-br' : 'stripe-uk',
+      currency: String(monthlyPrice.currency || annualPrice.currency || 'brl').toUpperCase(),
+      monthlyAmount: Number(monthlyPrice.unit_amount || 0),
+      annualAmount: Number(annualPrice.unit_amount || 0),
+      tier,
+      region,
+    })
+  } catch {
+    return NextResponse.json({ error: 'Não foi possível carregar preços do provider.' }, { status: 503 })
+  }
+}
