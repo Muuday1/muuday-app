@@ -284,6 +284,14 @@ export function OnboardingTrackerModal({
   const [calendarSyncProvider, setCalendarSyncProvider] = useState<'google' | 'outlook' | 'apple'>('google')
   const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(false)
   const [calendarProviderAccountEmail, setCalendarProviderAccountEmail] = useState('')
+  const [calendarConnectionStatus, setCalendarConnectionStatus] = useState<
+    'disconnected' | 'pending' | 'connected' | 'error'
+  >('disconnected')
+  const [calendarLastSyncAt, setCalendarLastSyncAt] = useState('')
+  const [calendarLastSyncError, setCalendarLastSyncError] = useState('')
+  const [appleCaldavUsername, setAppleCaldavUsername] = useState('')
+  const [appleCaldavPassword, setAppleCaldavPassword] = useState('')
+  const [appleCaldavServerUrl, setAppleCaldavServerUrl] = useState('')
   const [calendarSyncState, setCalendarSyncState] = useState<SaveState>('idle')
   const [calendarBookings, setCalendarBookings] = useState<
     Array<{ id: string; start_utc: string; end_utc: string; status: string }>
@@ -338,6 +346,7 @@ export function OnboardingTrackerModal({
         { data: settingsRow },
         { data: availabilityRows },
         { data: bookingRows },
+        { data: externalBusyRows },
         { data: appRow },
         { data: ratesRows },
         { data: calendarIntegrationRow },
@@ -374,6 +383,13 @@ export function OnboardingTrackerModal({
           .order('scheduled_at', { ascending: true })
           .limit(200),
         supabase
+          .from('external_calendar_busy_slots')
+          .select('id,start_time_utc,end_time_utc,provider')
+          .eq('professional_id', professionalId)
+          .gte('start_time_utc', new Date().toISOString())
+          .order('start_time_utc', { ascending: true })
+          .limit(300),
+        supabase
           .from('professional_applications')
           .select(
             'title,display_name,primary_language,secondary_languages,target_audiences,qualifications_structured',
@@ -388,7 +404,9 @@ export function OnboardingTrackerModal({
           .eq('is_active', true),
         supabase
           .from('calendar_integrations')
-          .select('provider,sync_enabled,provider_account_email')
+          .select(
+            'provider,sync_enabled,provider_account_email,connection_status,last_sync_at,last_sync_completed_at,last_sync_error',
+          )
           .eq('professional_id', professionalId)
           .maybeSingle(),
         supabase
@@ -422,29 +440,49 @@ export function OnboardingTrackerModal({
         setEnableRecurring(Boolean(settingsRow?.enable_recurring))
         setAllowMultiSession(Boolean(settingsRow?.allow_multi_session))
         setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
-        const provider = String(settingsRow?.calendar_sync_provider || 'google')
+        const provider = String(
+          calendarIntegrationRow?.provider || settingsRow?.calendar_sync_provider || 'google',
+        )
         setCalendarSyncProvider(provider === 'outlook' || provider === 'apple' ? provider : 'google')
         setCalendarSyncEnabled(Boolean(calendarIntegrationRow?.sync_enabled))
         setCalendarProviderAccountEmail(String(calendarIntegrationRow?.provider_account_email || ''))
-
-        setCalendarBookings(
-          ((bookingRows || []) as Array<Record<string, unknown>>).map(row => {
-            const scheduledAt = new Date(String(row.scheduled_at || ''))
-            const durationMinutes = Number(row.duration_minutes || 60)
-            const startUtcIso = String(row.start_time_utc || row.scheduled_at || '')
-            const endUtcIso =
-              String(row.end_time_utc || '') ||
-              (Number.isNaN(scheduledAt.getTime())
-                ? ''
-                : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
-            return {
-              id: String(row.id || ''),
-              start_utc: startUtcIso,
-              end_utc: endUtcIso,
-              status: String(row.status || 'pending'),
-            }
-          }),
+        setCalendarConnectionStatus(
+          String(calendarIntegrationRow?.connection_status || 'disconnected') === 'connected'
+            ? 'connected'
+            : String(calendarIntegrationRow?.connection_status || 'disconnected') === 'pending'
+              ? 'pending'
+              : String(calendarIntegrationRow?.connection_status || 'disconnected') === 'error'
+                ? 'error'
+                : 'disconnected',
         )
+        setCalendarLastSyncAt(
+          String(calendarIntegrationRow?.last_sync_completed_at || calendarIntegrationRow?.last_sync_at || ''),
+        )
+        setCalendarLastSyncError(String(calendarIntegrationRow?.last_sync_error || ''))
+
+        const internalCalendarBookings = ((bookingRows || []) as Array<Record<string, unknown>>).map(row => {
+          const scheduledAt = new Date(String(row.scheduled_at || ''))
+          const durationMinutes = Number(row.duration_minutes || 60)
+          const startUtcIso = String(row.start_time_utc || row.scheduled_at || '')
+          const endUtcIso =
+            String(row.end_time_utc || '') ||
+            (Number.isNaN(scheduledAt.getTime())
+              ? ''
+              : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
+          return {
+            id: String(row.id || ''),
+            start_utc: startUtcIso,
+            end_utc: endUtcIso,
+            status: String(row.status || 'pending'),
+          }
+        })
+        const externalCalendarBookings = ((externalBusyRows || []) as Array<Record<string, unknown>>).map(row => ({
+          id: `external-${String(row.id || '')}`,
+          start_utc: String(row.start_time_utc || ''),
+          end_utc: String(row.end_time_utc || ''),
+          status: `external_${String(row.provider || 'calendar')}`,
+        }))
+        setCalendarBookings([...internalCalendarBookings, ...externalCalendarBookings])
 
         const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
         for (const row of (ratesRows || []) as Array<Record<string, unknown>>) {
@@ -1028,33 +1066,102 @@ export function OnboardingTrackerModal({
     setTimeout(() => setAvailabilitySaveState('idle'), 2000)
   }
 
-  async function toggleCalendarSync(enabled: boolean) {
-    setCalendarSyncState('saving')
-    const nowIso = new Date().toISOString()
-    const { error } = await supabase.from('calendar_integrations').upsert(
-      {
-        professional_id: professionalId,
-        provider: calendarSyncProvider,
-        sync_enabled: enabled,
-        provider_account_email: calendarProviderAccountEmail || null,
-        updated_at: nowIso,
-      },
-      { onConflict: 'professional_id' },
-    )
-
-    if (error) {
-      setCalendarSyncState('error')
-      if (String(error.message || '').toLowerCase().includes('provider')) {
-        setAvailabilityError(
-          'Provider de calendario nao habilitado no banco. Rode a migration de providers (google/outlook/apple) e tente novamente.',
-        )
-      } else {
-        setAvailabilityError(`Nao foi possivel atualizar integracao: ${error.message}`)
-      }
+  async function connectCalendarProvider() {
+    const isPremiumProvider = calendarSyncProvider !== 'google'
+    const locked =
+      isPremiumProvider && !isFeatureAvailable(String(tier || '').toLowerCase(), 'outlook_sync')
+    if (locked) {
+      setAvailabilityError('Este provider está disponível apenas em plano superior.')
       return
     }
 
-    setCalendarSyncEnabled(enabled)
+    if (calendarSyncProvider === 'apple') {
+      if (!appleCaldavUsername.trim() || !appleCaldavPassword.trim()) {
+        setAvailabilityError('Informe Apple ID e app-specific password para conectar Apple CalDAV.')
+        return
+      }
+
+      setCalendarSyncState('saving')
+      setAvailabilityError('')
+      const response = await fetch('/api/professional/calendar/connect/apple', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          username: appleCaldavUsername.trim(),
+          appPassword: appleCaldavPassword.trim(),
+          accountEmail: calendarProviderAccountEmail.trim() || appleCaldavUsername.trim(),
+          serverUrl: appleCaldavServerUrl.trim() || undefined,
+        }),
+      })
+
+      const result = (await response.json().catch(() => ({}))) as { error?: string; accountEmail?: string }
+      if (!response.ok) {
+        setCalendarSyncState('error')
+        setAvailabilityError(result.error || 'Não foi possível conectar Apple CalDAV.')
+        return
+      }
+
+      setCalendarSyncEnabled(true)
+      setCalendarConnectionStatus('connected')
+      setCalendarProviderAccountEmail(result.accountEmail || appleCaldavUsername.trim())
+      setCalendarLastSyncAt(new Date().toISOString())
+      setCalendarLastSyncError('')
+      setCalendarSyncState('saved')
+      setTimeout(() => setCalendarSyncState('idle'), 1500)
+      return
+    }
+
+    setCalendarSyncState('saving')
+    const next = encodeURIComponent('/dashboard')
+    window.location.href = `/api/professional/calendar/connect/${calendarSyncProvider}?next=${next}`
+  }
+
+  async function disconnectCalendarProvider() {
+    setCalendarSyncState('saving')
+    setAvailabilityError('')
+    const response = await fetch('/api/professional/calendar/disconnect', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ provider: calendarSyncProvider }),
+    })
+
+    const result = (await response.json().catch(() => ({}))) as { error?: string }
+    if (!response.ok) {
+      setCalendarSyncState('error')
+      setAvailabilityError(result.error || 'Não foi possível desconectar calendário.')
+      return
+    }
+
+    setCalendarSyncEnabled(false)
+    setCalendarConnectionStatus('disconnected')
+    setCalendarProviderAccountEmail('')
+    setCalendarLastSyncError('')
+    setCalendarSyncState('saved')
+    setTimeout(() => setCalendarSyncState('idle'), 1500)
+  }
+
+  async function runCalendarSyncNow() {
+    setCalendarSyncState('saving')
+    setAvailabilityError('')
+    const response = await fetch('/api/professional/calendar/sync', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ provider: calendarSyncProvider }),
+    })
+    const result = (await response.json().catch(() => ({}))) as { error?: string }
+    if (!response.ok) {
+      setCalendarSyncState('error')
+      setAvailabilityError(result.error || 'Falha ao sincronizar calendário.')
+      return
+    }
+
+    setCalendarSyncEnabled(true)
+    setCalendarLastSyncAt(new Date().toISOString())
+    setCalendarLastSyncError('')
+    setCalendarConnectionStatus('connected')
     setCalendarSyncState('saved')
     setTimeout(() => setCalendarSyncState('idle'), 1500)
   }
@@ -1947,13 +2054,38 @@ export function OnboardingTrackerModal({
                           type="email"
                           value={calendarProviderAccountEmail}
                           onChange={event => setCalendarProviderAccountEmail(event.target.value)}
-                          placeholder="Email da conta conectada (opcional)"
+                          placeholder="Email da conta conectada"
                           className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                         />
+                        {calendarSyncProvider === 'apple' ? (
+                          <div className="mt-2 space-y-2">
+                            <input
+                              type="email"
+                              value={appleCaldavUsername}
+                              onChange={event => setAppleCaldavUsername(event.target.value)}
+                              placeholder="Apple ID (email)"
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="password"
+                              value={appleCaldavPassword}
+                              onChange={event => setAppleCaldavPassword(event.target.value)}
+                              placeholder="App-specific password"
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="url"
+                              value={appleCaldavServerUrl}
+                              onChange={event => setAppleCaldavServerUrl(event.target.value)}
+                              placeholder="Servidor CalDAV (opcional)"
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                            />
+                          </div>
+                        ) : null}
                         <div className="mt-2 flex flex-wrap gap-2">
                           <button
                             type="button"
-                            onClick={() => void toggleCalendarSync(true)}
+                            onClick={() => void connectCalendarProvider()}
                             disabled={calendarSyncState === 'saving'}
                             className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
                           >
@@ -1961,15 +2093,35 @@ export function OnboardingTrackerModal({
                           </button>
                           <button
                             type="button"
-                            onClick={() => void toggleCalendarSync(false)}
+                            onClick={() => void disconnectCalendarProvider()}
                             disabled={calendarSyncState === 'saving'}
                             className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
                           >
                             Desconectar
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => void runCalendarSyncNow()}
+                            disabled={calendarSyncState === 'saving' || !calendarSyncEnabled}
+                            className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+                          >
+                            Sincronizar agora
+                          </button>
                           <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-700">
-                            {calendarSyncEnabled ? 'Conectado' : 'Nao conectado'}
+                            {calendarConnectionStatus === 'connected'
+                              ? 'Conectado'
+                              : calendarConnectionStatus === 'pending'
+                                ? 'Pendente'
+                                : calendarConnectionStatus === 'error'
+                                  ? 'Com erro'
+                                  : 'Nao conectado'}
                           </span>
+                        </div>
+                        <div className="mt-2 space-y-1 text-[11px] text-neutral-600">
+                          <p>Ultimo sync: {calendarLastSyncAt ? new Date(calendarLastSyncAt).toLocaleString('pt-BR') : 'nunca'}</p>
+                          {calendarLastSyncError ? (
+                            <p className="font-medium text-red-700">Erro: {calendarLastSyncError}</p>
+                          ) : null}
                         </div>
                       </div>
                     </div>

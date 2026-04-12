@@ -131,18 +131,58 @@ export default async function AgendarPage({
         }))
       : legacyAvailability || []
 
-  // Fetch existing bookings for the next 30 days to block already-booked slots
+  // Fetch internal bookings + external busy slots to block unavailable times
   const now = new Date()
-  const thirtyDaysLater = new Date(now)
-  thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30)
+  const bookingWindowEnd = new Date(now)
+  bookingWindowEnd.setDate(bookingWindowEnd.getDate() + Math.max(30, bookingSettings.maxBookingWindowDays))
 
-  const { data: existingBookings } = await supabase
-    .from('bookings')
-    .select('scheduled_at, duration_minutes')
-    .eq('professional_id', professional.id)
-    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-    .gte('scheduled_at', now.toISOString())
-    .lte('scheduled_at', thirtyDaysLater.toISOString())
+  const [{ data: bookingRows }, { data: externalBusyRows }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('scheduled_at, start_time_utc, end_time_utc, duration_minutes')
+      .eq('professional_id', professional.id)
+      .in('status', ['pending', 'pending_confirmation', 'confirmed'])
+      .gte('scheduled_at', now.toISOString())
+      .lte('scheduled_at', bookingWindowEnd.toISOString()),
+    supabase
+      .from('external_calendar_busy_slots')
+      .select('start_time_utc, end_time_utc')
+      .eq('professional_id', professional.id)
+      .gte('start_time_utc', now.toISOString())
+      .lte('start_time_utc', bookingWindowEnd.toISOString()),
+  ])
+
+  const existingBookings = [
+    ...((bookingRows || []).map((row: Record<string, unknown>) => {
+      const startIso = String(row.start_time_utc || row.scheduled_at || '')
+      const endIso = String(row.end_time_utc || '')
+      const start = new Date(startIso)
+      const end = new Date(endIso)
+      const fallbackDuration = Number(row.duration_minutes || 60)
+      const durationMinutes =
+        !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start
+          ? Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000))
+          : fallbackDuration
+      return {
+        scheduled_at: startIso,
+        duration_minutes: durationMinutes,
+      }
+    })),
+    ...((externalBusyRows || []).map((row: Record<string, unknown>) => {
+      const startIso = String(row.start_time_utc || '')
+      const endIso = String(row.end_time_utc || '')
+      const start = new Date(startIso)
+      const end = new Date(endIso)
+      const durationMinutes =
+        !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start
+          ? Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000))
+          : 60
+      return {
+        scheduled_at: startIso,
+        duration_minutes: durationMinutes,
+      }
+    })),
+  ]
 
   const queryTipo = searchParams?.tipo
   const querySessoes = searchParams?.sessoes

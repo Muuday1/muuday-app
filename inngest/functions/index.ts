@@ -4,11 +4,17 @@ import { runBookingReminderSync } from '@/lib/ops/booking-reminders'
 import { runPublicVisibilitySync } from '@/lib/ops/public-visibility-sync'
 import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
 import {
+  cancelBookingInExternalCalendar,
+  syncExternalBusySlotsForProfessional,
+  upsertBookingInExternalCalendar,
+} from '@/lib/calendar/sync/service'
+import {
   processStripeWebhookInbox,
   runStripeFailedPaymentRetries,
   runStripeSubscriptionRenewalChecks,
   runStripeWeeklyPayoutEligibilityScan,
 } from '@/lib/ops/stripe-resilience'
+import type { CalendarProvider } from '@/lib/calendar/types'
 import { inngest } from '../client'
 
 type SupabaseDbChangeEventData = {
@@ -19,6 +25,13 @@ type SupabaseDbChangeEventData = {
   record?: Record<string, unknown> | null
   oldRecord?: Record<string, unknown> | null
   receivedAt?: string
+}
+
+type CalendarBookingSyncEventData = {
+  bookingId?: string
+  action?: 'upsert_booking' | 'cancel_booking' | 'poll_busy'
+  provider?: CalendarProvider
+  professionalId?: string
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -32,6 +45,13 @@ function asString(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed ? trimmed : null
+}
+
+function asCalendarProvider(value: unknown): CalendarProvider | null {
+  if (value === 'google' || value === 'outlook' || value === 'apple') {
+    return value
+  }
+  return null
 }
 
 function isBookingStatus(value: string | null): value is
@@ -293,6 +313,131 @@ export const stripeFailedPaymentRetries = inngest.createFunction(
   },
 )
 
+export const syncExternalCalendarIntegrations = inngest.createFunction(
+  {
+    id: 'sync-external-calendar-integrations',
+    name: 'Sync external calendar integrations',
+    triggers: [{ cron: '*/10 * * * *' }, { event: 'calendar/integrations.sync.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('sync-external-calendar-integrations', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for calendar integration sync.')
+      }
+
+      const payload = asRecord(event.data)
+      const requestedProfessionalId = asString(payload.professionalId)
+      const requestedProvider = asCalendarProvider(payload.provider)
+
+      let query = admin
+        .from('calendar_integrations')
+        .select('professional_id, provider, sync_enabled, connection_status')
+        .eq('sync_enabled', true)
+        .in('connection_status', ['connected', 'pending', 'error'])
+
+      if (requestedProfessionalId) {
+        query = query.eq('professional_id', requestedProfessionalId)
+      }
+      if (requestedProvider) {
+        query = query.eq('provider', requestedProvider)
+      }
+
+      const { data: integrations, error } = await query
+      if (error) {
+        throw new Error(`Failed to load calendar integrations for sync: ${error.message}`)
+      }
+
+      let synced = 0
+      let failed = 0
+      const failures: Array<{ professionalId: string; provider: string; error: string }> = []
+
+      for (const row of integrations || []) {
+        const professionalId = asString((row as Record<string, unknown>).professional_id)
+        const provider = asCalendarProvider((row as Record<string, unknown>).provider)
+        if (!professionalId || !provider) continue
+
+        const syncResult = await syncExternalBusySlotsForProfessional(admin, professionalId, provider)
+        if ('ok' in syncResult && syncResult.ok === false) {
+          failed += 1
+          failures.push({
+            professionalId,
+            provider,
+            error: syncResult.error,
+          })
+          continue
+        }
+        synced += 1
+      }
+
+      return {
+        requestedProfessionalId,
+        requestedProvider,
+        total: (integrations || []).length,
+        synced,
+        failed,
+        failures: failures.slice(0, 20),
+      }
+    })
+
+    logger.info('External calendar integrations sync executed.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const processCalendarBookingSync = inngest.createFunction(
+  {
+    id: 'process-calendar-booking-sync',
+    name: 'Process calendar booking sync',
+    triggers: [{ event: 'calendar/booking.sync.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('process-calendar-booking-sync', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for calendar booking sync.')
+      }
+
+      const payload = asRecord(event.data) as CalendarBookingSyncEventData
+      const bookingId = asString(payload.bookingId)
+      const action = payload.action
+      const provider = asCalendarProvider(payload.provider)
+      const professionalId = asString(payload.professionalId)
+
+      if (action === 'poll_busy') {
+        if (!professionalId) {
+          return { ignored: true, reason: 'missing_professional_id' }
+        }
+        const syncResult = await syncExternalBusySlotsForProfessional(admin, professionalId, provider || undefined)
+        return { ignored: false, action, professionalId, provider, syncResult }
+      }
+
+      if (!bookingId) {
+        return { ignored: true, reason: 'missing_booking_id' }
+      }
+
+      if (action === 'cancel_booking') {
+        const cancelResult = await cancelBookingInExternalCalendar(admin, bookingId)
+        return { ignored: false, action, bookingId, cancelResult }
+      }
+
+      const upsertResult = await upsertBookingInExternalCalendar(admin, bookingId)
+      return { ignored: false, action: 'upsert_booking', bookingId, upsertResult }
+    })
+
+    logger.info('Calendar booking sync processed.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
 export const processSupabasePaymentsChange = inngest.createFunction(
   {
     id: 'process-supabase-payments-change',
@@ -432,6 +577,14 @@ export const processSupabasePaymentsChange = inngest.createFunction(
             })
           : false
 
+        let calendarSync: string = 'skipped'
+        try {
+          const syncResult = await upsertBookingInExternalCalendar(admin, bookingId)
+          calendarSync = JSON.stringify(syncResult)
+        } catch (calendarError) {
+          calendarSync = `error:${calendarError instanceof Error ? calendarError.message : String(calendarError)}`
+        }
+
         return {
           ignored: false,
           handledAs: 'captured',
@@ -440,6 +593,7 @@ export const processSupabasePaymentsChange = inngest.createFunction(
           nextStatus,
           insertedForUser,
           insertedForProfessional,
+          calendarSync,
         }
       }
 
@@ -491,6 +645,14 @@ export const processSupabasePaymentsChange = inngest.createFunction(
             })
           : false
 
+        let calendarSync: string = 'skipped'
+        try {
+          const syncResult = await cancelBookingInExternalCalendar(admin, bookingId)
+          calendarSync = JSON.stringify(syncResult)
+        } catch (calendarError) {
+          calendarSync = `error:${calendarError instanceof Error ? calendarError.message : String(calendarError)}`
+        }
+
         return {
           ignored: false,
           handledAs: 'failed',
@@ -499,6 +661,7 @@ export const processSupabasePaymentsChange = inngest.createFunction(
           nextStatus: 'cancelled',
           insertedForUser,
           insertedForProfessional,
+          calendarSync,
         }
       }
 

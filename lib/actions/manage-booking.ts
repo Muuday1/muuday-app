@@ -21,11 +21,13 @@ import {
   isSlotWithinWorkingHours,
   mapLegacyAvailabilityToRules,
 } from '@/lib/booking/availability-engine'
+import { hasExternalBusyConflict } from '@/lib/booking/external-calendar-conflicts'
 import {
   evaluateRecurringChangeDeadline,
   evaluateRecurringPauseDeadline,
   type RecurringDeadlineDecision,
 } from '@/lib/booking/recurring-deadlines'
+import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 
 type ActionResult =
   | { success: true }
@@ -305,6 +307,11 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Erro ao confirmar agendamento. Tente novamente.' }
   }
 
+  await enqueueBookingCalendarSync({
+    bookingId: safeBookingId,
+    action: 'upsert_booking',
+    source: 'booking.confirm',
+  })
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -408,6 +415,11 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
   }
 
   await applyPaymentRefund(supabase, adminSupabase, safeBookingId, refundDecision.refundPercentage)
+  await enqueueBookingCalendarSync({
+    bookingId: safeBookingId,
+    action: 'cancel_booking',
+    source: 'booking.cancel',
+  })
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -552,6 +564,19 @@ export async function rescheduleBooking(
   )
   if (hasConflict) return { success: false, error: 'Este hor?rio ja est? reservado. Escolha outro.' }
 
+  const externalConflict = await hasExternalBusyConflict(
+    supabase as any,
+    professional.id,
+    scheduledDate.toISOString(),
+    endDate.toISOString(),
+  )
+  if (externalConflict) {
+    return {
+      success: false,
+      error: 'Este horário conflita com agenda externa conectada do profissional.',
+    }
+  }
+
   const slotLock = await acquireSlotLock(supabase, {
     professionalId: professional.id,
     userId: user.id,
@@ -597,6 +622,11 @@ export async function rescheduleBooking(
     return { success: false, error: 'Erro ao remarcar agendamento. Tente novamente.' }
   }
 
+  await enqueueBookingCalendarSync({
+    bookingId: booking.id,
+    action: 'upsert_booking',
+    source: 'booking.reschedule',
+  })
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -798,6 +828,11 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     })
   }
 
+  await enqueueBookingCalendarSync({
+    bookingId: safeBookingId,
+    action: 'cancel_booking',
+    source: 'booking.no_show_professional',
+  })
   revalidatePath('/agenda')
   return { success: true }
 }
@@ -866,6 +901,11 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'N?o foi poss?vel registrar no-show. Tente novamente.' }
   }
 
+  await enqueueBookingCalendarSync({
+    bookingId: safeBookingId,
+    action: 'cancel_booking',
+    source: 'booking.no_show_user',
+  })
   revalidatePath('/agenda')
   return { success: true }
 }

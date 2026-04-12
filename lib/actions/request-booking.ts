@@ -14,6 +14,8 @@ import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
+import { hasExternalBusyConflict } from '@/lib/booking/external-calendar-conflicts'
+import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import {
   REQUEST_BOOKING_STATUSES,
   assertRequestBookingTransition,
@@ -571,6 +573,19 @@ export async function offerRequestBooking(input: {
     return { success: false, error: 'Hor?rio indispon?vel por conflito com outro agendamento.' }
   }
 
+  const externalConflict = await hasExternalBusyConflict(
+    supabase as any,
+    professional.id,
+    proposalStartUtc.toISOString(),
+    proposalEndUtc.toISOString(),
+  )
+  if (externalConflict) {
+    return {
+      success: false,
+      error: 'Horário proposto conflita com agenda externa conectada do profissional.',
+    }
+  }
+
   const proposalExpiresAt = new Date(
     Date.now() + OFFER_EXPIRATION_HOURS * 60 * 60 * 1000,
   ).toISOString()
@@ -846,6 +861,19 @@ export async function acceptRequestBooking(
     return { success: false, error: 'Outro agendamento ocupou este hor?rio. Solicite nova proposta.' }
   }
 
+  const externalConflict = await hasExternalBusyConflict(
+    supabase as any,
+    professional.id,
+    startUtc.toISOString(),
+    endUtc.toISOString(),
+  )
+  if (externalConflict) {
+    return {
+      success: false,
+      error: 'A proposta conflita com agenda externa do profissional. Solicite novo horário.',
+    }
+  }
+
   const userCurrency = profile?.currency || 'BRL'
   const sessionPriceBrl = Number(professional.session_price_brl) || 0
   const exchangeRates = await getExchangeRates(supabase as any)
@@ -985,6 +1013,11 @@ export async function acceptRequestBooking(
       .eq('status', currentStatus)
   }
 
+  await enqueueBookingCalendarSync({
+    bookingId: booking.id,
+    action: 'upsert_booking',
+    source: 'request-booking.accept',
+  })
   revalidatePath('/agenda')
   revalidatePath(`/profissional/${professional.id}`)
   return { success: true, bookingId: booking.id }

@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
@@ -18,6 +18,8 @@ import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 import { createBatchBookingGroup } from '@/lib/booking/batch-booking'
 import { generateRecurrenceSlots } from '@/lib/booking/recurrence-engine'
+import { hasExternalBusyConflict } from '@/lib/booking/external-calendar-conflicts'
+import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 
 type BookingCreateResult =
   | { success: true; bookingId: string }
@@ -116,16 +118,16 @@ function isValidIsoLocalDateTime(value: string) {
 
 const localDateTimeSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Hor�rio inv�lido.')
-  .refine(isValidIsoLocalDateTime, 'Hor�rio inv�lido.')
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horï¿½rio invï¿½lido.')
+  .refine(isValidIsoLocalDateTime, 'Horï¿½rio invï¿½lido.')
 
-const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inv�lida.')
+const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data invï¿½lida.')
 
 const createBookingSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional inv�lido.'),
+  professionalId: z.string().uuid('Identificador de profissional invï¿½lido.'),
   scheduledAt: localDateTimeSchema.optional(),
-  notes: z.string().trim().max(500, 'Observa��es muito longas.').optional(),
-  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sess�o muito longo.').optional(),
+  notes: z.string().trim().max(500, 'Observaï¿½ï¿½es muito longas.').optional(),
+  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessï¿½o muito longo.').optional(),
   bookingType: z.enum(['one_off', 'recurring', 'batch']).default('one_off').optional(),
   recurringPeriodicity: z.enum(['weekly', 'biweekly', 'monthly', 'custom_days']).optional(),
   recurringIntervalDays: z.number().int().min(1).max(365).optional(),
@@ -257,7 +259,7 @@ export async function createBooking(data: {
 }): Promise<BookingCreateResult> {
   const parsedInput = createBookingSchema.safeParse(data)
   if (!parsedInput.success) {
-    const firstError = parsedInput.error.issues[0]?.message || 'Dados inv�lidos para agendamento.'
+    const firstError = parsedInput.error.issues[0]?.message || 'Dados invï¿½lidos para agendamento.'
     return { success: false, error: firstError }
   }
 
@@ -286,11 +288,11 @@ export async function createBooking(data: {
     .single()
 
   if (!professional || professional.status !== 'approved') {
-    return { success: false, error: 'Profissional n�o dispon�vel.' }
+    return { success: false, error: 'Profissional nï¿½o disponï¿½vel.' }
   }
 
   if (professional.user_id === user.id) {
-    return { success: false, error: 'N�o � permitido agendar sess�o com seu pr�prio perfil.' }
+    return { success: false, error: 'Nï¿½o ï¿½ permitido agendar sessï¿½o com seu prï¿½prio perfil.' }
   }
 
   const eligibility = await evaluateFirstBookingEligibility(supabase, bookingInput.professionalId)
@@ -323,11 +325,11 @@ export async function createBooking(data: {
 
   const bookingType = bookingInput.bookingType || 'one_off'
   if (bookingType === 'recurring' && !bookingSettings.enableRecurring) {
-    return { success: false, error: 'Este profissional n�o aceita pacotes recorrentes no momento.' }
+    return { success: false, error: 'Este profissional nï¿½o aceita pacotes recorrentes no momento.' }
   }
 
   if (bookingSettings.requireSessionPurpose && !bookingInput.sessionPurpose?.trim()) {
-    return { success: false, error: 'Informe o objetivo da sess�o antes de continuar.' }
+    return { success: false, error: 'Informe o objetivo da sessï¿½o antes de continuar.' }
   }
 
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
@@ -338,17 +340,17 @@ export async function createBooking(data: {
   let batchBookingGroupId: string | null = null
 
   if (bookingType === 'one_off') {
-    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha um hor�rio para agendar.' }
+    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha um horï¿½rio para agendar.' }
     const slot = parseSlotFromLocalDateTime(bookingInput.scheduledAt, userTimezone, durationMinutes)
-    if (!slot) return { success: false, error: 'Hor�rio inv�lido.' }
+    if (!slot) return { success: false, error: 'Horï¿½rio invï¿½lido.' }
     plannedSessions.push(slot)
   }
 
   if (bookingType === 'recurring') {
-    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha o hor�rio base da recorr�ncia.' }
+    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha o horï¿½rio base da recorrï¿½ncia.' }
 
     const firstSlot = parseSlotFromLocalDateTime(bookingInput.scheduledAt, userTimezone, durationMinutes)
-    if (!firstSlot) return { success: false, error: 'Hor�rio inv�lido.' }
+    if (!firstSlot) return { success: false, error: 'Horï¿½rio invï¿½lido.' }
 
     let recurrenceEndDateUtc: Date | null = null
     if (bookingInput.recurringEndDate) {
@@ -383,7 +385,7 @@ export async function createBooking(data: {
 
   if (bookingType === 'batch') {
     if (!bookingInput.batchDates || bookingInput.batchDates.length < 2) {
-      return { success: false, error: 'Selecione ao menos duas datas para m�ltiplos agendamentos.' }
+      return { success: false, error: 'Selecione ao menos duas datas para mï¿½ltiplos agendamentos.' }
     }
 
     const parsedBatch = bookingInput.batchDates
@@ -391,7 +393,7 @@ export async function createBooking(data: {
       .filter(Boolean) as SessionSlot[]
 
     if (parsedBatch.length !== bookingInput.batchDates.length) {
-      return { success: false, error: 'Uma ou mais datas do pacote est�o inv�lidas.' }
+      return { success: false, error: 'Uma ou mais datas do pacote estï¿½o invï¿½lidas.' }
     }
 
     const batchDecision = createBatchBookingGroup({
@@ -409,7 +411,7 @@ export async function createBooking(data: {
   }
 
   if (plannedSessions.length === 0) {
-    return { success: false, error: 'N�o foi poss�vel montar os hor�rios do agendamento.' }
+    return { success: false, error: 'Nï¿½o foi possï¿½vel montar os horï¿½rios do agendamento.' }
   }
 
   const availabilityRules = await loadAvailabilityRules(
@@ -423,7 +425,7 @@ export async function createBooking(data: {
     if (slot.startUtc.getTime() < minimumStartTime) {
       return {
         success: false,
-        error: `Selecione um hor�rio com pelo menos ${bookingSettings.minimumNoticeHours} horas de anteced�ncia.`,
+        error: `Selecione um horï¿½rio com pelo menos ${bookingSettings.minimumNoticeHours} horas de antecedï¿½ncia.`,
       }
     }
 
@@ -443,7 +445,7 @@ export async function createBooking(data: {
       availabilityRules,
     )
     if (!fitsAvailability) {
-      return { success: false, error: 'Um ou mais hor�rios n�o est�o dispon�veis para este profissional.' }
+      return { success: false, error: 'Um ou mais horï¿½rios nï¿½o estï¿½o disponï¿½veis para este profissional.' }
     }
 
     const allowedByException = await isSlotAllowedByExceptions(
@@ -454,7 +456,7 @@ export async function createBooking(data: {
       slot.endUtc,
     )
     if (!allowedByException) {
-      return { success: false, error: 'Um ou mais hor�rios foram bloqueados por indisponibilidade.' }
+      return { success: false, error: 'Um ou mais horï¿½rios foram bloqueados por indisponibilidade.' }
     }
 
     const conflict = await hasInternalConflict(
@@ -465,7 +467,19 @@ export async function createBooking(data: {
       bookingSettings.bufferMinutes,
     )
     if (conflict) {
-      return { success: false, error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.' }
+      return { success: false, error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.' }
+    }
+    const externalConflict = await hasExternalBusyConflict(
+      supabase as any,
+      bookingInput.professionalId,
+      slot.startUtc.toISOString(),
+      slot.endUtc.toISOString(),
+    )
+    if (externalConflict) {
+      return {
+        success: false,
+        error: 'Um ou mais horários conflitam com a agenda externa conectada do profissional.',
+      }
     }
   }
 
@@ -489,8 +503,8 @@ export async function createBooking(data: {
         success: false,
         error:
           lockResult.reason === 'locked'
-            ? 'Outro cliente acabou de selecionar este hor�rio. Escolha outro.'
-            : 'N�o foi poss�vel reservar o hor�rio. Tente novamente.',
+            ? 'Outro cliente acabou de selecionar este horï¿½rio. Escolha outro.'
+            : 'Nï¿½o foi possï¿½vel reservar o horï¿½rio. Tente novamente.',
       }
     }
     acquiredLockIds.push(lockResult.lockId)
@@ -510,6 +524,7 @@ export async function createBooking(data: {
 
   let bookingId: string | null = null
   let paymentAnchorBookingId: string | null = null
+  let createdBookingIds: string[] = []
 
   try {
     if (bookingType === 'one_off') {
@@ -550,7 +565,7 @@ export async function createBooking(data: {
         if (isActiveSlotCollision(error)) {
           return {
             success: false,
-            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
+            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
           }
         }
         reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
@@ -558,6 +573,7 @@ export async function createBooking(data: {
       }
       bookingId = booking.id
       paymentAnchorBookingId = booking.id
+      createdBookingIds = [booking.id]
     } else if (bookingType === 'recurring') {
       const firstSlot = plannedSessions[0]
       const recurrencePeriodicity = bookingInput.recurringPeriodicity || 'weekly'
@@ -609,7 +625,7 @@ export async function createBooking(data: {
         if (isActiveSlotCollision(parentError)) {
           return {
             success: false,
-            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
+            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
           }
         }
         reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
@@ -651,20 +667,21 @@ export async function createBooking(data: {
 
       // keep parent row, replace recurrence children
       await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
-      const { error: childError } = await supabase
+      const { data: childRows, error: childError } = await supabase
         .from('bookings')
         .insert(childBookingsPayload.slice(1))
+        .select('id')
       if (childError) {
         if (isActiveSlotCollision(childError)) {
           await supabase.from('bookings').delete().eq('id', parentBooking.id)
           return {
             success: false,
-            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
+            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
           }
         }
         reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
-        return { success: false, error: 'Erro ao criar sess�es recorrentes. Tente novamente.' }
+        return { success: false, error: 'Erro ao criar sessï¿½es recorrentes. Tente novamente.' }
       }
 
       const sessionsPayload = plannedSessions.map((slot, index) => ({
@@ -685,6 +702,12 @@ export async function createBooking(data: {
 
       bookingId = parentBooking.id
       paymentAnchorBookingId = parentBooking.id
+      createdBookingIds = [
+        parentBooking.id,
+        ...((childRows || [])
+          .map(row => String((row as Record<string, unknown>).id))
+          .filter(Boolean)),
+      ]
     } else {
       const batchGroupId = batchBookingGroupId || crypto.randomUUID()
 
@@ -728,7 +751,7 @@ export async function createBooking(data: {
         if (isActiveSlotCollision(batchInsertError)) {
           return {
             success: false,
-            error: 'Um ou mais hor�rios j� foram reservados. Escolha outro hor�rio.',
+            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
           }
         }
         reportBookingError(batchInsertError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_batch_insert_failed')
@@ -737,6 +760,9 @@ export async function createBooking(data: {
 
       bookingId = String(batchRows[0].id)
       paymentAnchorBookingId = String(batchRows[0].id)
+      createdBookingIds = (batchRows || [])
+        .map(row => String((row as Record<string, unknown>).id))
+        .filter(Boolean)
     }
   } finally {
     for (const lockId of acquiredLockIds) {
@@ -810,6 +836,20 @@ export async function createBooking(data: {
       error: 'Falha ao processar pagamento. Nenhum agendamento foi confirmado.',
     }
   }
+  const bookingIdsForCalendarSync = Array.from(
+    new Set(createdBookingIds.length ? createdBookingIds : [bookingId]),
+  )
+  await Promise.all(
+    bookingIdsForCalendarSync.map(syncBookingId =>
+      enqueueBookingCalendarSync({
+        bookingId: syncBookingId,
+        action: 'upsert_booking',
+        source: 'booking.create',
+      }),
+    ),
+  )
 
   return { success: true, bookingId }
 }
+
+

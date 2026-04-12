@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { serve } from 'inngest/next'
 import { inngest } from '@/inngest/client'
 import {
+  processCalendarBookingSync,
   processSupabasePaymentsChange,
   processStripeWebhookInboxQueue,
   releaseRecurringReservedSlots,
+  syncExternalCalendarIntegrations,
   stripeFailedPaymentRetries,
   stripeSubscriptionRenewalChecks,
   stripeWeeklyPayoutEligibilityScan,
@@ -23,6 +25,8 @@ const inngestHandler = serve({
   functions: [
     syncBookingReminders,
     releaseRecurringReservedSlots,
+    syncExternalCalendarIntegrations,
+    processCalendarBookingSync,
     processSupabasePaymentsChange,
     processStripeWebhookInboxQueue,
     stripeWeeklyPayoutEligibilityScan,
