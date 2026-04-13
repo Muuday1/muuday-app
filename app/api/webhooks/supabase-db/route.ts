@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 import { inngest } from '@/inngest/client'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -61,10 +62,17 @@ function parseAuthToken(request: NextRequest) {
   return ''
 }
 
+function safeSecretCompare(left: string, right: string) {
+  const leftBuffer = Buffer.from(left)
+  const rightBuffer = Buffer.from(right)
+  if (leftBuffer.length !== rightBuffer.length) return false
+  return timingSafeEqual(leftBuffer, rightBuffer)
+}
+
 function isAuthorizedWebhookRequest(request: NextRequest) {
   const expectedSecret = normalizeSecret(process.env.SUPABASE_DB_WEBHOOK_SECRET)
   if (!expectedSecret) return false
-  return normalizeSecret(parseAuthToken(request)) === expectedSecret
+  return safeSecretCompare(normalizeSecret(parseAuthToken(request)), expectedSecret)
 }
 
 export async function POST(request: NextRequest) {

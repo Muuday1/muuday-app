@@ -28,8 +28,8 @@ const GOOGLE_DEFAULT_SCOPE = [
 ].join(' ')
 
 function getGoogleEnv() {
-  const clientId = process.env.GOOGLE_CLIENT_ID || ''
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ''
+  const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim()
+  const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim()
   if (!clientId || !clientSecret) {
     throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required.')
   }

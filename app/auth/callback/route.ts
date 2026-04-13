@@ -2,9 +2,10 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 
-function getBaseUrl(request: NextRequest) {
-  return request.nextUrl.origin
+function getBaseUrl() {
+  return getAppBaseUrl()
 }
 
 export async function GET(request: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error')
   const roleHint = 'usuario' as const
-  const baseUrl = getBaseUrl(request)
+  const baseUrl = getBaseUrl()
 
   if (oauthError || !code) {
     Sentry.captureMessage('auth_oauth_callback_invalid_request', {

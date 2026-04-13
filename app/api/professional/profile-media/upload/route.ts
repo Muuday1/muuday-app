@@ -1,20 +1,14 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { validateFileSignature } from '@/lib/security/file-signature'
 
 const PROFILE_MEDIA_BUCKET = 'professional-profile-media'
 const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-
-function sanitizeFilename(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9._-]/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 120)
-}
+const ALLOWED_KINDS = ['jpg', 'png', 'webp'] as const
 
 async function ensureProfileMediaBucket(admin: NonNullable<ReturnType<typeof createAdminClient>>) {
   const { data: bucket } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
@@ -61,6 +55,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Arquivo acima de 3MB.' }, { status: 400 })
     }
 
+    const bytes = Buffer.from(await file.arrayBuffer())
+    const signatureValidation = validateFileSignature({
+      bytes,
+      claimedMimeType: file.type,
+      allowedKinds: ALLOWED_KINDS,
+    })
+    if (!signatureValidation.ok) {
+      return NextResponse.json({ error: signatureValidation.error }, { status: 400 })
+    }
+
     const admin = createAdminClient()
     if (!admin) {
       return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada.' }, { status: 503 })
@@ -68,13 +72,10 @@ export async function POST(request: Request) {
 
     await ensureProfileMediaBucket(admin)
 
-    const ext = file.name.includes('.') ? file.name.split('.').pop() || 'bin' : 'bin'
-    const safeBaseName = sanitizeFilename(file.name.replace(/\.[^.]+$/, '')) || 'profile-photo'
-    const filePath = `${professional.id}/${Date.now()}-${safeBaseName}.${ext}`
+    const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
 
-    const bytes = Buffer.from(await file.arrayBuffer())
     const { error: uploadError } = await admin.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
-      contentType: file.type,
+      contentType: signatureValidation.canonicalMimeType,
       upsert: false,
       cacheControl: '3600',
     })

@@ -20,8 +20,8 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 const OUTLOOK_SCOPE = ['offline_access', 'User.Read', 'Calendars.ReadWrite'].join(' ')
 
 function getOutlookEnv() {
-  const clientId = process.env.OUTLOOK_CLIENT_ID || ''
-  const clientSecret = process.env.OUTLOOK_CLIENT_SECRET || ''
+  const clientId = (process.env.OUTLOOK_CLIENT_ID || '').trim()
+  const clientSecret = (process.env.OUTLOOK_CLIENT_SECRET || '').trim()
   if (!clientId || !clientSecret) {
     throw new Error('OUTLOOK_CLIENT_ID and OUTLOOK_CLIENT_SECRET are required.')
   }

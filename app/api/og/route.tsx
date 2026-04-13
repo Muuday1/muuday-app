@@ -12,12 +12,52 @@ function decodeParam(value: string | null, fallback: string) {
   }
 }
 
+function normalizeHost(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    return new URL(value).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
+function getAllowedAvatarHosts() {
+  const hosts = new Set<string>(['lh3.googleusercontent.com'])
+  const supabaseHost = normalizeHost(process.env.NEXT_PUBLIC_SUPABASE_URL)
+  if (supabaseHost) hosts.add(supabaseHost)
+  return hosts
+}
+
+function sanitizeAvatarUrl(rawValue: string | null | undefined): string {
+  const value = String(rawValue || '').trim()
+  if (!value) return ''
+
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'https:') return ''
+
+    const allowedHosts = getAllowedAvatarHosts()
+    if (!allowedHosts.has(parsed.hostname.toLowerCase())) return ''
+
+    const supabaseHost = normalizeHost(process.env.NEXT_PUBLIC_SUPABASE_URL)
+    if (supabaseHost && parsed.hostname.toLowerCase() === supabaseHost) {
+      const path = parsed.pathname || ''
+      const isProfileMediaPath = path.includes('/storage/v1/object/public/professional-profile-media/')
+      if (!isProfileMediaPath) return ''
+    }
+
+    return parsed.toString()
+  } catch {
+    return ''
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const name = decodeParam(searchParams.get('name'), 'Profissional Muuday')
   const specialty = decodeParam(searchParams.get('specialty'), 'Atendimento por vídeo')
   const price = decodeParam(searchParams.get('price'), 'Consulte valores')
-  const avatar = searchParams.get('avatar') || ''
+  const avatar = sanitizeAvatarUrl(searchParams.get('avatar'))
 
   return new ImageResponse(
     (

@@ -1,11 +1,15 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { validateFileSignature } from '@/lib/security/file-signature'
 
 const CREDENTIALS_BUCKET = 'professional-credentials'
+const STORAGE_URI_PREFIX = `storage://${CREDENTIALS_BUCKET}/`
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png'])
+const ALLOWED_KINDS = ['pdf', 'jpg', 'png'] as const
 const CREDENTIAL_TYPES = new Set(['diploma', 'license', 'certification', 'other'])
 
 function sanitizeFilename(value: string) {
@@ -31,10 +35,28 @@ function resolveCredentialType(value: unknown): 'diploma' | 'license' | 'certifi
 }
 
 function extractStoragePath(fileUrl: string, bucket: string) {
-  const marker = `/storage/v1/object/public/${bucket}/`
-  const idx = fileUrl.indexOf(marker)
-  if (idx === -1) return null
-  return decodeURIComponent(fileUrl.slice(idx + marker.length))
+  const normalized = String(fileUrl || '').trim()
+  if (!normalized) return null
+
+  const storagePrefix = `storage://${bucket}/`
+  if (normalized.startsWith(storagePrefix)) {
+    return decodeURIComponent(normalized.slice(storagePrefix.length))
+  }
+
+  const publicMarker = `/storage/v1/object/public/${bucket}/`
+  const signedMarker = `/storage/v1/object/sign/${bucket}/`
+
+  const publicIndex = normalized.indexOf(publicMarker)
+  if (publicIndex !== -1) {
+    return decodeURIComponent(normalized.slice(publicIndex + publicMarker.length).split('?')[0])
+  }
+
+  const signedIndex = normalized.indexOf(signedMarker)
+  if (signedIndex !== -1) {
+    return decodeURIComponent(normalized.slice(signedIndex + signedMarker.length).split('?')[0])
+  }
+
+  return null
 }
 
 async function ensureCredentialsBucket(admin: NonNullable<ReturnType<typeof createAdminClient>>) {
@@ -42,7 +64,7 @@ async function ensureCredentialsBucket(admin: NonNullable<ReturnType<typeof crea
   if (bucket) return
 
   const { error } = await admin.storage.createBucket(CREDENTIALS_BUCKET, {
-    public: true,
+    public: false,
     fileSizeLimit: String(MAX_FILE_SIZE_BYTES),
     allowedMimeTypes: Array.from(ALLOWED_TYPES),
   })
@@ -100,6 +122,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Arquivo excede 2MB.' }, { status: 400 })
     }
 
+    const bytes = Buffer.from(await file.arrayBuffer())
+    const signatureValidation = validateFileSignature({
+      bytes,
+      claimedMimeType: file.type,
+      allowedKinds: ALLOWED_KINDS,
+    })
+    if (!signatureValidation.ok) {
+      return NextResponse.json({ error: signatureValidation.error }, { status: 400 })
+    }
+
     const qualificationName = safeQualificationName(formData.get('qualificationName'))
     const credentialType = resolveCredentialType(formData.get('credentialType'))
 
@@ -110,13 +142,11 @@ export async function POST(request: Request) {
 
     await ensureCredentialsBucket(admin)
 
-    const ext = file.name.includes('.') ? file.name.split('.').pop() || 'bin' : 'bin'
     const safeBaseName = sanitizeFilename(file.name.replace(/\.[^.]+$/, '')) || 'credential'
-    const filePath = `${authResult.professionalId}/${Date.now()}-${safeBaseName}.${ext}`
+    const filePath = `${authResult.professionalId}/${Date.now()}-${randomUUID()}-${safeBaseName}.${signatureValidation.extension}`
 
-    const bytes = Buffer.from(await file.arrayBuffer())
     const { error: uploadError } = await admin.storage.from(CREDENTIALS_BUCKET).upload(filePath, bytes, {
-      contentType: file.type,
+      contentType: signatureValidation.canonicalMimeType,
       upsert: false,
       cacheControl: '3600',
     })
@@ -125,14 +155,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Falha no upload: ${uploadError.message}` }, { status: 500 })
     }
 
-    const { data: publicData } = admin.storage.from(CREDENTIALS_BUCKET).getPublicUrl(filePath)
-
     const dbFileName = `${qualificationName}::${file.name}`
     const { data: inserted, error: insertError } = await authResult.supabase
       .from('professional_credentials')
       .insert({
         professional_id: authResult.professionalId,
-        file_url: publicData.publicUrl,
+        file_url: `${STORAGE_URI_PREFIX}${encodeURIComponent(filePath)}`,
         file_name: dbFileName,
         credential_type: credentialType,
         verified: false,
@@ -147,7 +175,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Falha ao registrar comprovante: ${insertError.message}` }, { status: 500 })
     }
 
-    return NextResponse.json({ credential: inserted })
+    return NextResponse.json({
+      credential: inserted,
+      downloadUrl: `/api/professional/credentials/download/${inserted.id}`,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro inesperado no upload.'
     return NextResponse.json({ error: message }, { status: 500 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveAuthenticatedProfessionalContext } from '@/lib/calendar/auth-context'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 import { createCalendarOAuthState } from '@/lib/calendar/oauth-state'
 import { getCalendarProviderAdapter } from '@/lib/calendar/providers'
 import { syncExternalBusySlotsForProfessional, verifyAndPersistAppleCaldavConnection } from '@/lib/calendar/sync/service'
@@ -24,7 +25,8 @@ function parseProvider(value: string): CalendarProvider | null {
 }
 
 function callbackUrl(request: NextRequest, provider: CalendarProvider) {
-  return `${request.nextUrl.origin}/api/professional/calendar/callback/${provider}`
+  const baseUrl = getAppBaseUrl()
+  return `${baseUrl}/api/professional/calendar/callback/${provider}`
 }
 
 export async function GET(

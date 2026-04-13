@@ -238,7 +238,7 @@ export default async function AdminReviewProfessionalPage({
                       </p>
                     ) : null}
                     <a
-                      href={item.file_url}
+                      href={`/api/professional/credentials/download/${item.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-2 inline-flex text-xs font-semibold text-brand-700 hover:text-brand-800"

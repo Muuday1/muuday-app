@@ -1555,7 +1555,7 @@ export function OnboardingTrackerModal({
                                     className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5"
                                   >
                                     <a
-                                      href={document.file_url}
+                                      href={`/api/professional/credentials/download/${document.id}`}
                                       target="_blank"
                                       rel="noreferrer"
                                       className="truncate text-xs font-medium text-brand-700 hover:text-brand-800"
