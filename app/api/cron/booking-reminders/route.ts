@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runBookingReminderSync } from '@/lib/ops/booking-reminders'
 import {
@@ -15,7 +16,6 @@ function parseAuthToken(request: NextRequest) {
   if (match?.[1]?.trim()) return match[1].trim()
   const altHeader = request.headers.get('x-cron-secret') || ''
   if (altHeader.trim()) return altHeader.trim()
-  // Never accept tokens via query string — they leak into logs, referrers, and browser history
   return ''
 }
 
@@ -29,11 +29,17 @@ function normalizeSecret(value: string | undefined | null) {
   return normalized
 }
 
+function safeSecretCompare(left: string, right: string) {
+  const leftBuffer = Buffer.from(left)
+  const rightBuffer = Buffer.from(right)
+  if (leftBuffer.length !== rightBuffer.length) return false
+  return timingSafeEqual(leftBuffer, rightBuffer)
+}
+
 function isAuthorizedCronRequest(request: NextRequest) {
   const expectedSecret = normalizeSecret(process.env.CRON_SECRET)
-  // Always require a secret — preview/staging deployments are publicly accessible
   if (!expectedSecret) return false
-  return normalizeSecret(parseAuthToken(request)) === expectedSecret
+  return safeSecretCompare(normalizeSecret(parseAuthToken(request)), expectedSecret)
 }
 
 export async function GET(request: NextRequest) {
@@ -50,25 +56,28 @@ export async function GET(request: NextRequest) {
 
   const admin = createAdminClient()
   if (!admin) {
-    return withCors(NextResponse.json(
-      { error: 'Admin client not configured. Set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY.' },
-      { status: 500 },
-    ))
+    return withCors(
+      NextResponse.json(
+        { error: 'Admin client not configured. Set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY.' },
+        { status: 500 },
+      ),
+    )
   }
 
   try {
     const result = await runBookingReminderSync(admin)
-    return withCors(NextResponse.json({
-      ok: true,
-      source: 'cron',
-      checked: result.checked,
-      inserted: result.inserted,
-      at: result.at,
-    }))
+    return withCors(
+      NextResponse.json({
+        ok: true,
+        source: 'cron',
+        checked: result.checked,
+        inserted: result.inserted,
+        at: result.at,
+      }),
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown'
     console.error('[cron/booking-reminders] sync error:', message)
-    // Only include details in non-production to avoid leaking internal info
     const body: Record<string, string> = { error: 'Failed to save reminders.' }
     if (process.env.NODE_ENV !== 'production') body.details = message
     return withCors(NextResponse.json(body, { status: 500 }))

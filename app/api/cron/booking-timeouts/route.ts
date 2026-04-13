@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
 import {
@@ -26,7 +27,7 @@ function parseAuthToken(request: NextRequest) {
   if (match?.[1]?.trim()) return match[1].trim()
   const altHeader = request.headers.get('x-cron-secret') || ''
   if (altHeader.trim()) return altHeader.trim()
-  // Never accept tokens via query string — they leak into logs, referrers, and browser history
+  // Never accept tokens via query string - they leak into logs, referrers, and browser history
   return ''
 }
 
@@ -40,11 +41,17 @@ function normalizeSecret(value: string | undefined | null) {
   return normalized
 }
 
+function safeSecretCompare(left: string, right: string) {
+  const leftBuffer = Buffer.from(left)
+  const rightBuffer = Buffer.from(right)
+  if (leftBuffer.length !== rightBuffer.length) return false
+  return timingSafeEqual(leftBuffer, rightBuffer)
+}
 function isAuthorizedCronRequest(request: NextRequest) {
   const expectedSecret = normalizeSecret(process.env.CRON_SECRET)
-  // Always require a secret — preview/staging deployments are publicly accessible
+  // Always require a secret - preview/staging deployments are publicly accessible
   if (!expectedSecret) return false
-  return normalizeSecret(parseAuthToken(request)) === expectedSecret
+  return safeSecretCompare(normalizeSecret(parseAuthToken(request)), expectedSecret)
 }
 
 function getConfirmationDeadline(booking: BookingRow) {
@@ -118,13 +125,11 @@ export async function GET(request: NextRequest) {
 
   if (bookingsResponse.error) {
     console.error('[cron/booking-timeouts] fetch error:', bookingsResponse.error)
-    return NextResponse.json(
-      {
-        error: 'Failed to load pending bookings.',
-        details: bookingsResponse.error.message || 'unknown',
-      },
-      { status: 500, headers: corsDecision.headers },
-    )
+    const body: Record<string, string> = { error: 'Failed to load pending bookings.' }
+    if (process.env.NODE_ENV !== 'production') {
+      body.details = bookingsResponse.error.message || 'unknown'
+    }
+    return withCors(NextResponse.json(body, { status: 500 }))
   }
 
   // Already filtered at DB level via .eq('status', 'pending_confirmation')

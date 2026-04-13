@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runPublicVisibilitySync } from '@/lib/ops/public-visibility-sync'
 import {
@@ -28,10 +29,17 @@ function normalizeSecret(value: string | undefined | null) {
   return normalized
 }
 
+function safeSecretCompare(left: string, right: string) {
+  const leftBuffer = Buffer.from(left)
+  const rightBuffer = Buffer.from(right)
+  if (leftBuffer.length !== rightBuffer.length) return false
+  return timingSafeEqual(leftBuffer, rightBuffer)
+}
+
 function isAuthorizedCronRequest(request: NextRequest) {
   const expectedSecret = normalizeSecret(process.env.CRON_SECRET)
   if (!expectedSecret) return false
-  return normalizeSecret(parseAuthToken(request)) === expectedSecret
+  return safeSecretCompare(normalizeSecret(parseAuthToken(request)), expectedSecret)
 }
 
 export async function GET(request: NextRequest) {
