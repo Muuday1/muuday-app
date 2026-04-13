@@ -1,4 +1,4 @@
-export const metadata = { title: 'Sessão de vídeo | Muuday' }
+﻿export const metadata = { title: 'Sessao de video | Muuday' }
 
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -62,8 +62,23 @@ export default async function VideoSessionPage({
   if (!startAt) {
     return (
       <div className="mx-auto max-w-4xl p-6 md:p-8">
-        <h1 className="text-xl font-bold text-neutral-900">Sessão indisponível</h1>
-        <p className="mt-2 text-sm text-neutral-600">Não foi possível identificar o horário da sessão.</p>
+        <h1 className="text-xl font-bold text-neutral-900">Sessao indisponivel</h1>
+        <p className="mt-2 text-sm text-neutral-600">Nao foi possivel identificar o horario da sessao.</p>
+      </div>
+    )
+  }
+
+  const videoAllowedStatuses = ['confirmed', 'completed']
+  if (!videoAllowedStatuses.includes(String(booking.status || ''))) {
+    return (
+      <div className="mx-auto max-w-5xl p-6 md:p-8">
+        <Link href="/agenda" className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-700">
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para agenda
+        </Link>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          Esta sessao ainda nao pode abrir videochamada. Aguarde confirmacao do agendamento.
+        </div>
       </div>
     )
   }
@@ -87,20 +102,20 @@ export default async function VideoSessionPage({
       <div className="mb-5 rounded-2xl border border-neutral-200 bg-white p-5">
         <div className="flex items-center gap-2">
           <Video className="h-5 w-5 text-brand-500" />
-          <h1 className="text-xl font-bold text-neutral-900">Sessão por vídeo</h1>
+          <h1 className="text-xl font-bold text-neutral-900">Sessao por video</h1>
         </div>
         <p className="mt-2 text-sm text-neutral-600">
           {userName} com {professionalName}
         </p>
         <p className="mt-1 inline-flex items-center gap-1 text-xs text-neutral-500">
           <Clock className="h-3.5 w-3.5" />
-          Janela de entrada: {formatInTimeZone(joinStart, timezone, 'dd/MM HH:mm')} até {formatInTimeZone(joinEnd, timezone, 'dd/MM HH:mm')}
+          Janela de entrada: {formatInTimeZone(joinStart, timezone, 'dd/MM HH:mm')} ate {formatInTimeZone(joinEnd, timezone, 'dd/MM HH:mm')}
         </p>
       </div>
 
       {!canJoin ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-          A entrada fica disponível 20 minutos antes do início e até 4 horas após o fim da sessão.
+          A entrada fica disponivel 20 minutos antes do inicio e ate 4 horas apos o fim da sessao.
         </div>
       ) : (
         <VideoSession bookingId={params.bookingId} />

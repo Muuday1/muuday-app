@@ -66,7 +66,7 @@ export default async function FinanceiroPage() {
       <div className="mb-8">
         <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Financeiro</h1>
         <p className="text-neutral-500">
-          Visao inicial de ganhos e transacoes. A camada completa de payout e conciliacao entra na Wave 3.
+          Acompanhe ganhos, pagamentos pendentes e volume de agendamentos em um unico painel.
         </p>
       </div>
 
@@ -88,10 +88,10 @@ export default async function FinanceiroPage() {
       <div className="bg-white rounded-2xl border border-neutral-100 p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Wallet className="w-4 h-4 text-brand-500" />
-          <h2 className="font-semibold text-neutral-900">Proximas evolucoes</h2>
+          <h2 className="font-semibold text-neutral-900">Proximos recursos</h2>
         </div>
         <ul className="text-sm text-neutral-600 space-y-2">
-          <li>Historico detalhado por booking (bruto, taxas, liquido).</li>
+          <li>Historico detalhado por booking (bruto, taxas e liquido).</li>
           <li>Payouts semanais e falhas de saque com tratamento operacional.</li>
           <li>Consolidacao com ledger interno para reconciliacao.</li>
         </ul>

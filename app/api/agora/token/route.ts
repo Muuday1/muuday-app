@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/security/rate-limit'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid(),
@@ -17,12 +18,25 @@ function toSafeIso(value: unknown) {
   return parsed.toISOString()
 }
 
+function getClientIp(request: NextRequest) {
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(',')[0]?.trim()
+    if (firstIp) return firstIp
+  }
+
+  const realIp = request.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+
+  return 'unknown'
+}
+
 export async function POST(request: NextRequest) {
   const appId = process.env.AGORA_APP_ID
   const appCertificate = process.env.AGORA_APP_CERTIFICATE
   if (!appId || !appCertificate) {
     return NextResponse.json(
-      { error: 'Sessão de vídeo indisponível: configuração do Agora ausente.' },
+      { error: 'Sessao de video indisponivel: configuracao do Agora ausente.' },
       { status: 503 },
     )
   }
@@ -30,7 +44,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const parsed = payloadSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos para token de sessão.' }, { status: 400 })
+    return NextResponse.json({ error: 'Dados invalidos para token de sessao.' }, { status: 400 })
   }
 
   const supabase = createClient()
@@ -38,7 +52,20 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Sessão expirada. Faça login novamente.' }, { status: 401 })
+    return NextResponse.json({ error: 'Sessao expirada. Faca login novamente.' }, { status: 401 })
+  }
+
+  const rl = await rateLimit('bookingManage', `agora-token:${user.id}:${getClientIp(request)}`)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Muitas tentativas para iniciar videochamada. Tente novamente em instantes.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.max(1, rl.retryAfterSeconds)),
+        },
+      },
+    )
   }
 
   const { data: profile } = await supabase
@@ -56,7 +83,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (!booking) {
-    return NextResponse.json({ error: 'Sessão não encontrada.' }, { status: 404 })
+    return NextResponse.json({ error: 'Sessao nao encontrada.' }, { status: 404 })
   }
 
   const professionalOwnerId =
@@ -67,19 +94,19 @@ export async function POST(request: NextRequest) {
   const isParticipant =
     booking.user_id === user.id || professionalOwnerId === user.id || profile?.role === 'admin'
   if (!isParticipant) {
-    return NextResponse.json({ error: 'Você não tem acesso a esta sessão.' }, { status: 403 })
+    return NextResponse.json({ error: 'Voce nao tem acesso a esta sessao.' }, { status: 403 })
   }
 
-  if (!['pending_confirmation', 'confirmed', 'completed'].includes(String(booking.status || ''))) {
+  if (!['confirmed', 'completed'].includes(String(booking.status || ''))) {
     return NextResponse.json(
-      { error: 'A sessão não está em estado válido para chamada de vídeo.' },
+      { error: 'A sessao nao esta em estado valido para chamada de video.' },
       { status: 409 },
     )
   }
 
   const startIso = toSafeIso(booking.start_time_utc) || toSafeIso(booking.scheduled_at)
   if (!startIso) {
-    return NextResponse.json({ error: 'Horário da sessão inválido.' }, { status: 409 })
+    return NextResponse.json({ error: 'Horario da sessao invalido.' }, { status: 409 })
   }
   const startAt = new Date(startIso)
   const durationMinutes = Number(booking.duration_minutes || 60)
@@ -95,7 +122,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          'Entrada na sessão liberada somente na janela permitida (20 min antes até 4h após o fim).',
+          'Entrada na sessao liberada somente na janela permitida (20 min antes ate 4h apos o fim).',
       },
       { status: 403 },
     )
@@ -125,4 +152,3 @@ export async function POST(request: NextRequest) {
     windowEndUtc: joinEnd.toISOString(),
   })
 }
-

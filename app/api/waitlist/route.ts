@@ -111,7 +111,11 @@ export async function POST(request: NextRequest) {
       )
 
     if (dbError) {
-      console.error('[waitlist] DB error:', dbError)
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[waitlist] DB error:', dbError)
+      } else {
+        console.error('[waitlist] DB error')
+      }
       return applyExtraHeaders(
         withCors(
           NextResponse.json(
@@ -133,13 +137,13 @@ export async function POST(request: NextRequest) {
           addContactToResend(email, firstname, SEGMENTS.waitlist),
         ])
       } catch (error) {
-        console.error('[waitlist] Email error:', error)
+        console.error('[waitlist] Email error')
       }
     })()
 
     return applyExtraHeaders(withCors(NextResponse.json({ success: true })), rateLimitHeaders)
   } catch (error) {
-    console.error('[waitlist] Error:', error)
+    console.error('[waitlist] Error')
     return withCors(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
   }
 }

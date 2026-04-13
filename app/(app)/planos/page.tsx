@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -9,32 +9,32 @@ import { cn, formatCurrency } from '@/lib/utils'
 type BillingCycle = 'monthly' | 'annual'
 type TierId = 'basic' | 'professional' | 'premium'
 
-const PLAN_PRICES_BRL: Record<Exclude<TierId, 'basic'>, number> = {
-  professional: 149,
-  premium: 299,
+const PLAN_PRICES_BRL: Record<TierId, number> = {
+  basic: 49.99,
+  professional: 99.99,
+  premium: 149.99,
 }
 
 const PLAN_FEATURES: Array<{ label: string; basic: string; professional: string; premium: string }> = [
-  { label: 'Serviços ativos', basic: '1', professional: '5', premium: '10' },
+  { label: 'Servicos ativos', basic: '1', professional: '5', premium: '10' },
   { label: 'Especialidades', basic: '1', professional: '3', premium: '3' },
   { label: 'Tags', basic: '3', professional: '5', premium: '10' },
   { label: 'Janela de agendamento', basic: '60 dias', professional: '90 dias', premium: '180 dias' },
-  { label: 'Recorrência + pacotes', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
-  { label: 'Múltiplas datas no checkout', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
-  { label: 'Vídeo intro no perfil', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'WhatsApp no perfil', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'Redes sociais', basic: 'Não', professional: 'Até 2', premium: 'Até 5' },
-  { label: 'Manual accept', basic: 'Não', professional: 'Sim', premium: 'Sim' },
+  { label: 'Recorrencia + pacotes', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
+  { label: 'Multiplas datas no checkout', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
+  { label: 'Video intro no perfil', basic: 'Nao', professional: 'Sim', premium: 'Sim' },
+  { label: 'WhatsApp no perfil', basic: 'Nao', professional: 'Sim', premium: 'Sim' },
+  { label: 'Redes sociais', basic: 'Nao', professional: 'Ate 2', premium: 'Ate 5' },
+  { label: 'Manual accept', basic: 'Nao', professional: 'Sim', premium: 'Sim' },
 ]
 
 function tierLabel(tier: TierId) {
-  if (tier === 'basic') return 'Básico'
+  if (tier === 'basic') return 'Basico'
   if (tier === 'professional') return 'Professional'
   return 'Premium'
 }
 
 function getPrice(tier: TierId, cycle: BillingCycle) {
-  if (tier === 'basic') return 0
   const monthly = PLAN_PRICES_BRL[tier]
   return cycle === 'annual' ? monthly * 10 : monthly
 }
@@ -47,7 +47,7 @@ export default function PlanosPage() {
   const [loadingTier, setLoadingTier] = useState<TierId | null>(null)
   const [message, setMessage] = useState<string | null>(
     searchParams.get('checkout') === 'success'
-      ? 'Pagamento recebido. Seu plano será atualizado após confirmação do webhook.'
+      ? 'Pagamento recebido. Seu plano sera atualizado apos confirmacao do webhook.'
       : searchParams.get('checkout') === 'cancelled'
         ? 'Checkout cancelado.'
         : null,
@@ -92,10 +92,6 @@ export default function PlanosPage() {
   async function handleSelectPlan(tier: TierId) {
     if (loadingTier) return
     if (tier === currentTier) return
-    if (tier === 'basic') {
-      setMessage('Plano Básico é gratuito. O downgrade é processado no próximo ciclo.')
-      return
-    }
 
     setLoadingTier(tier)
     setMessage(null)
@@ -107,7 +103,7 @@ export default function PlanosPage() {
       })
       const json = await response.json()
       if (!response.ok) {
-        throw new Error(json?.error || 'Não foi possível iniciar o checkout.')
+        throw new Error(json?.error || 'Nao foi possivel iniciar o checkout.')
       }
       if (json.url) {
         window.location.href = json.url
@@ -128,7 +124,7 @@ export default function PlanosPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-neutral-900">Planos Muuday</h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Trial de 3 meses após aprovação de go-live. Plano anual custa 10x o mensal.
+            Trial de 3 meses apos aprovacao de go-live. Plano anual custa 10x o mensal.
           </p>
         </div>
         <div className="inline-flex items-center rounded-xl border border-neutral-200 bg-white p-1 text-sm">
@@ -168,11 +164,9 @@ export default function PlanosPage() {
           return (
             <div key={tier} className="rounded-2xl border border-neutral-200 bg-white p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{tierLabel(tier)}</p>
-              <p className="mt-2 text-3xl font-bold text-neutral-900">
-                {tier === 'basic' ? 'Grátis' : formatCurrency(price, 'BRL')}
-              </p>
+              <p className="mt-2 text-3xl font-bold text-neutral-900">{formatCurrency(price, 'BRL')}</p>
               <p className="mt-1 text-xs text-neutral-500">
-                {tier === 'basic' ? 'sem mensalidade' : billingCycle === 'annual' ? 'cobrança anual' : 'cobrança mensal'}
+                {billingCycle === 'annual' ? 'cobranca anual' : 'cobranca mensal'}
               </p>
               <button
                 type="button"
@@ -198,7 +192,7 @@ export default function PlanosPage() {
           <thead className="bg-neutral-50">
             <tr>
               <th className="px-4 py-3 text-neutral-700">Recurso</th>
-              <th className="px-4 py-3 text-neutral-700">Básico</th>
+              <th className="px-4 py-3 text-neutral-700">Basico</th>
               <th className="px-4 py-3 text-neutral-700">Professional</th>
               <th className="px-4 py-3 text-neutral-700">Premium</th>
             </tr>
@@ -217,19 +211,19 @@ export default function PlanosPage() {
       </div>
 
       <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600">
-        <p className="mb-2 font-semibold text-neutral-800">FAQ rápido</p>
+        <p className="mb-2 font-semibold text-neutral-800">FAQ rapido</p>
         <ul className="space-y-2">
           <li className="flex items-start gap-2">
             <Check className="mt-0.5 h-4 w-4 text-brand-500" />
-            Upgrade é imediato após confirmação do webhook.
+            Upgrade e imediato apos confirmacao do webhook.
           </li>
           <li className="flex items-start gap-2">
             <Check className="mt-0.5 h-4 w-4 text-brand-500" />
-            Downgrade para Básico entra no próximo ciclo de cobrança.
+            Downgrade para Basico entra no proximo ciclo de cobranca.
           </li>
           <li className="flex items-start gap-2">
             <Check className="mt-0.5 h-4 w-4 text-brand-500" />
-            Trial de 3 meses começa após aprovação e go-live.
+            Trial de 3 meses comeca apos aprovacao e go-live.
           </li>
         </ul>
         <button

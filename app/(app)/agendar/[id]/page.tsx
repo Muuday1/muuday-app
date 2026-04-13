@@ -57,7 +57,7 @@ export default async function AgendarPage({
   // when multiple foreign keys exist between professionals and profiles.
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*')
+    .select('id,user_id,status,public_code,category,session_duration_minutes,session_price_brl')
     .eq('id', params.id)
     .single()
 

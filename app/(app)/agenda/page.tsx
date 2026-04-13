@@ -132,7 +132,11 @@ export default async function AgendaPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id,role,timezone')
+    .eq('id', user.id)
+    .single()
   const isProfessionalRole = profile?.role === 'profissional'
 
   const { data: professional } = isProfessionalRole

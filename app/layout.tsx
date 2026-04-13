@@ -18,6 +18,8 @@ const bricolage = Bricolage_Grotesque({
   display: 'swap',
 })
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.muuday.com'
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -25,15 +27,36 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Muuday â€” Especialistas brasileiros, onde vocÃª estiver',
+  metadataBase: new URL(appUrl),
+  title: 'Muuday - Especialistas brasileiros, onde voce estiver',
   description: 'Conectamos brasileiros no exterior aos melhores profissionais do Brasil.',
+  openGraph: {
+    type: 'website',
+    url: appUrl,
+    title: 'Muuday - Especialistas brasileiros, onde voce estiver',
+    description: 'Conectamos brasileiros no exterior aos melhores profissionais do Brasil.',
+    images: [
+      {
+        url: '/assets/marketing/landing/hero-main.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Muuday',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Muuday - Especialistas brasileiros, onde voce estiver',
+    description: 'Conectamos brasileiros no exterior aos melhores profissionais do Brasil.',
+    images: ['/assets/marketing/landing/hero-main.webp'],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body
-        className={`${jakarta.variable} ${bricolage.variable} min-h-screen font-sans antialiased bg-[#f6f4ef] flex flex-col`}
+        className={`${jakarta.variable} ${bricolage.variable} min-h-screen flex flex-col bg-[#f6f8fb] font-sans antialiased`}
       >
         <CookieConsentRoot country="BR" />
         <PostHogProvider>{children}</PostHogProvider>
@@ -43,4 +66,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
-

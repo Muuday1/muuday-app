@@ -25,6 +25,10 @@ import { isFeatureAvailable } from '@/lib/tier-config'
 
 const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
+const PROFESSIONAL_PROFILE_FIELDS =
+  'id,user_id,public_code,status,category,subcategories,tags,bio,timezone,languages,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,years_experience,social_links,video_intro_url,cover_photo_url,first_booking_enabled,tier,minimum_notice_hours,max_booking_window_days,enable_recurring,whatsapp_number'
+const PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY = `${PROFESSIONAL_PROFILE_FIELDS},is_publicly_visible,profiles!inner(full_name,country,avatar_url,role)`
+const PROFESSIONAL_PROFILE_SELECT_LEGACY = `${PROFESSIONAL_PROFILE_FIELDS},profiles!inner(full_name,country,avatar_url,role)`
 
 function getCountryDisplayName(countryCodeOrName?: string | null) {
   if (!countryCodeOrName) return 'Online'
@@ -160,7 +164,11 @@ async function loadPublicProfessionalByParam(
   const buildQuery = (useVisibilityColumn: boolean) => {
     let professionalQuery = adminClient
       .from('professionals')
-      .select('*, profiles!inner(*), first_booking_enabled, is_publicly_visible')
+      .select(
+        useVisibilityColumn
+          ? (PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY as any)
+          : (PROFESSIONAL_PROFILE_SELECT_LEGACY as any),
+      )
       .eq('status', 'approved')
       .eq('profiles.role', 'profissional')
 
@@ -182,18 +190,19 @@ async function loadPublicProfessionalByParam(
   let { data: professional, error } = await buildQuery(true).maybeSingle()
   if (error?.message?.includes('is_publicly_visible')) {
     const fallback = await buildQuery(false).maybeSingle()
-    professional = fallback.data
+    professional = fallback.data as any
     if (professional) {
+      const professionalRecord = professional as any
       const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient as any, [
-        professional,
+        professionalRecord,
       ])
-      const canGoLive = visibilityByProfessionalId.get(String(professional.id))?.canGoLive
+      const canGoLive = visibilityByProfessionalId.get(String(professionalRecord.id))?.canGoLive
       if (!canGoLive) return null
     }
   }
   if (!professional) return null
 
-  return professional
+  return professional as any
 }
 
 async function loadCachedPublicProfessionalByParam(
@@ -256,8 +265,8 @@ export default async function ProfissionalPage({
         .from('professionals')
         .select(
           withVisibilityColumn
-            ? '*, profiles!inner(*), first_booking_enabled, is_publicly_visible'
-            : '*, profiles!inner(*), first_booking_enabled',
+            ? (PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY as any)
+            : (PROFESSIONAL_PROFILE_SELECT_LEGACY as any),
         )
         .eq('profiles.role', 'profissional')
 
@@ -305,7 +314,7 @@ export default async function ProfissionalPage({
 
   const { data: availability } = await readClient
     .from('availability')
-    .select('*')
+    .select('id,day_of_week,start_time,end_time,is_active')
     .eq('professional_id', professional.id)
     .eq('is_active', true)
     .order('day_of_week')
@@ -318,7 +327,7 @@ export default async function ProfissionalPage({
 
   const { data: reviews } = await readClient
     .from('reviews')
-    .select('*, profiles(full_name)')
+    .select('id,rating,comment,professional_response,profiles(full_name)')
     .eq('professional_id', professional.id)
     .eq('is_visible', true)
     .order('created_at', { ascending: false })

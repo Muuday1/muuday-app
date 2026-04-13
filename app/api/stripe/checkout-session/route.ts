@@ -103,10 +103,12 @@ export async function POST(request: NextRequest) {
   const envKey = PRICE_ENV_KEYS[region][parsed.data.tier][parsed.data.billingCycle]
   const priceId = process.env[envKey]
   if (!priceId) {
-    return NextResponse.json(
-      { error: `Preco de plano nao configurado (${envKey}).` },
-      { status: 503 },
-    )
+    console.error('[stripe] missing price configuration', {
+      region,
+      tier: parsed.data.tier,
+      cycle: parsed.data.billingCycle,
+    })
+    return NextResponse.json({ error: 'Preco de plano nao configurado no momento.' }, { status: 503 })
   }
 
   const baseUrl = appBaseUrl(request)
