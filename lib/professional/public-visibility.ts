@@ -6,13 +6,13 @@ import {
 } from '@/lib/professional/onboarding-gates'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 
-type ProfessionalSearchProfile = {
+export type ProfessionalSearchProfile = {
   full_name?: string | null
   country?: string | null
   avatar_url?: string | null
 }
 
-type ProfessionalSearchRecord = {
+export type ProfessionalSearchRecord = {
   id: string
   status?: string | null
   tier?: string | null

@@ -14,13 +14,16 @@ function nowIso() {
   return new Date().toISOString()
 }
 
+const CALENDAR_INTEGRATION_FIELDS =
+  'id,professional_id,provider,auth_type,connection_status,provider_account_email,external_account_id,external_calendar_id,access_token_encrypted,refresh_token_encrypted,token_expires_at,token_metadata,scope,sync_cursor,sync_enabled,last_sync_at,last_sync_error,last_sync_started_at,last_sync_completed_at,caldav_principal_url,caldav_calendar_url,connected_at,updated_at'
+
 export async function getCalendarIntegrationByProfessionalId(
   admin: SupabaseClient,
   professionalId: string,
 ): Promise<CalendarIntegrationRow | null> {
   const { data, error } = await admin
     .from('calendar_integrations')
-    .select('*')
+    .select(CALENDAR_INTEGRATION_FIELDS)
     .eq('professional_id', professionalId)
     .maybeSingle()
 
@@ -319,7 +322,7 @@ export async function getBookingExternalCalendarEvent(
 ) {
   const { data, error } = await admin
     .from('booking_external_calendar_events')
-    .select('*')
+    .select('id,external_event_id,external_calendar_id,provider')
     .eq('booking_id', bookingId)
     .eq('provider', provider)
     .maybeSingle()

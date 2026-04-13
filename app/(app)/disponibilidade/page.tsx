@@ -153,14 +153,14 @@ export default function DisponibilidadePage() {
     // Load existing availability
     const { data: rows } = await supabase
       .from('availability')
-      .select('*')
+      .select('day_of_week,start_time,end_time,is_active')
       .eq('professional_id', professional.id)
 
     if (rows && rows.length > 0) {
       const newState = buildDefaultState()
       for (const row of rows) {
         newState[row.day_of_week] = {
-          is_available: Boolean(row.is_active ?? row.is_available),
+          is_available: Boolean(row.is_active),
           start_time: row.start_time.slice(0, 5), // "HH:MM:SS" -> "HH:MM"
           end_time: row.end_time.slice(0, 5),
         }

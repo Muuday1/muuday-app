@@ -28,7 +28,7 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
 
   const { data: professional } = await supabase
     .from('professionals')
-    .select('*')
+    .select('id,user_id,public_code,status,tier,session_duration_minutes')
     .eq('id', params.id)
     .single()
 

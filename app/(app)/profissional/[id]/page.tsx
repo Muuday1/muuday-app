@@ -1,5 +1,6 @@
-export const metadata = { title: 'Profissional | Muuday' }
+﻿export const metadata = { title: 'Profissional | Muuday' }
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
@@ -17,6 +18,7 @@ import {
 import {
   filterPubliclyVisibleProfessionals,
   getPublicVisibilityByProfessionalId,
+  type ProfessionalSearchRecord,
 } from '@/lib/professional/public-visibility'
 import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-specialties'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
@@ -27,8 +29,56 @@ const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
 const PROFESSIONAL_PROFILE_FIELDS =
   'id,user_id,public_code,status,category,subcategories,tags,bio,timezone,languages,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,years_experience,social_links,video_intro_url,cover_photo_url,first_booking_enabled,tier,minimum_notice_hours,max_booking_window_days,enable_recurring,whatsapp_number'
-const PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY = `${PROFESSIONAL_PROFILE_FIELDS},is_publicly_visible,profiles!inner(full_name,country,avatar_url,role)`
-const PROFESSIONAL_PROFILE_SELECT_LEGACY = `${PROFESSIONAL_PROFILE_FIELDS},profiles!inner(full_name,country,avatar_url,role)`
+const PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY =
+  `${PROFESSIONAL_PROFILE_FIELDS},is_publicly_visible,profiles!inner(full_name,country,avatar_url,role)` as const
+const PROFESSIONAL_PROFILE_SELECT_LEGACY =
+  `${PROFESSIONAL_PROFILE_FIELDS},profiles!inner(full_name,country,avatar_url,role)` as const
+
+type PublicProfileEmbedded = {
+  full_name?: string | null
+  country?: string | null
+  avatar_url?: string | null
+  role?: string | null
+}
+
+type PublicProfessionalRecord = ProfessionalSearchRecord & {
+  user_id?: string
+  public_code?: string | null
+  category?: string | null
+  subcategories?: string[] | null
+  tags?: string[] | null
+  rating?: number | null
+  total_reviews?: number | null
+  total_bookings?: number | null
+  years_experience?: number | null
+  social_links?: Record<string, string> | string[] | null
+  tier?: string | null
+  first_booking_enabled?: boolean | null
+  session_price_brl?: number | null
+  session_duration_minutes?: number | null
+  whatsapp_number?: string | null
+  cover_photo_url?: string | null
+  video_intro_url?: string | null
+  timezone?: string | null
+  minimum_notice_hours?: number | null
+  max_booking_window_days?: number | null
+  enable_recurring?: boolean | null
+  is_publicly_visible?: boolean | null
+  profiles?: PublicProfileEmbedded | PublicProfileEmbedded[] | null
+}
+
+type AvailabilitySlotRow = {
+  id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active?: boolean
+}
+
+type ExistingBookingRow = {
+  scheduled_at: string
+  duration_minutes: number
+}
 
 function getCountryDisplayName(countryCodeOrName?: string | null) {
   if (!countryCodeOrName) return 'Online'
@@ -54,16 +104,18 @@ function getNameInitial(name?: string | null, fallback = 'P') {
   return normalized.charAt(0).toUpperCase()
 }
 
-function getPrimarySpecialty(professional: any, specialties: string[]) {
+function getPrimarySpecialty(professional: PublicProfessionalRecord, specialties: string[]) {
   const firstSpecialty = specialties[0]
   if (firstSpecialty) return firstSpecialty
 
-  const subcategory = (professional.subcategories || []).find((entry: string) =>
+  const subcategory = ((professional.subcategories || []) as string[]).find((entry: string) =>
     String(entry || '').trim(),
   )
   if (subcategory) return String(subcategory)
 
-  const tag = (professional.tags || []).find((entry: string) => String(entry || '').trim())
+  const tag = ((professional.tags || []) as string[]).find((entry: string) =>
+    String(entry || '').trim(),
+  )
   if (tag) return String(tag)
 
   return getSearchCategoryLabel(professional.category)
@@ -158,7 +210,7 @@ function getPublicProfileCacheIdentity(
 
 async function loadPublicProfessionalByParam(
   parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
-) {
+): Promise<PublicProfessionalRecord | null> {
   const adminClient = createAdminClient()
   if (!adminClient) return null
   const buildQuery = (useVisibilityColumn: boolean) => {
@@ -166,8 +218,8 @@ async function loadPublicProfessionalByParam(
       .from('professionals')
       .select(
         useVisibilityColumn
-          ? (PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY as any)
-          : (PROFESSIONAL_PROFILE_SELECT_LEGACY as any),
+          ? PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY
+          : PROFESSIONAL_PROFILE_SELECT_LEGACY,
       )
       .eq('status', 'approved')
       .eq('profiles.role', 'profissional')
@@ -187,22 +239,26 @@ async function loadPublicProfessionalByParam(
     return professionalQuery
   }
 
-  let { data: professional, error } = await buildQuery(true).maybeSingle()
-  if (error?.message?.includes('is_publicly_visible')) {
-    const fallback = await buildQuery(false).maybeSingle()
-    professional = fallback.data as any
-    if (professional) {
-      const professionalRecord = professional as any
-      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient as any, [
-        professionalRecord,
-      ])
-      const canGoLive = visibilityByProfessionalId.get(String(professionalRecord.id))?.canGoLive
+  const initialResult = (await buildQuery(true).maybeSingle()) as unknown as {
+    data: PublicProfessionalRecord | null
+    error: { message?: string } | null
+  }
+  let normalizedProfessional = initialResult.data
+  if (initialResult.error?.message?.includes('is_publicly_visible')) {
+    const fallback = (await buildQuery(false).maybeSingle()) as unknown as {
+      data: PublicProfessionalRecord | null
+      error: { message?: string } | null
+    }
+    normalizedProfessional = fallback.data as unknown as PublicProfessionalRecord | null
+    if (normalizedProfessional) {
+      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient, [normalizedProfessional])
+      const canGoLive = visibilityByProfessionalId.get(String(normalizedProfessional.id))?.canGoLive
       if (!canGoLive) return null
     }
   }
-  if (!professional) return null
+  if (!normalizedProfessional) return null
 
-  return professional as any
+  return normalizedProfessional
 }
 
 async function loadCachedPublicProfessionalByParam(
@@ -211,7 +267,7 @@ async function loadCachedPublicProfessionalByParam(
   const cacheIdentity = getPublicProfileCacheIdentity(parsedParam)
   const getWithIsrTag = unstable_cache(
     async () =>
-      getOrSetUpstashJsonCache<any | null>({
+      getOrSetUpstashJsonCache<PublicProfessionalRecord | null>({
         key: `public-profile:${cacheIdentity}`,
         ttlSeconds: PUBLIC_PROFILE_CACHE_TTL_SECONDS,
         version: PUBLIC_PROFILE_CACHE_VERSION,
@@ -242,7 +298,7 @@ export default async function ProfissionalPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const readClient = (user ? supabase : createAdminClient()) || supabase
+  const readClient = ((user ? supabase : createAdminClient()) || supabase) as SupabaseClient
 
   let viewerCurrency = 'BRL'
   let viewerTimezone = 'America/Sao_Paulo'
@@ -258,15 +314,15 @@ export default async function ProfissionalPage({
     viewerTimezone = String(viewerProfile?.timezone || viewerTimezone)
   }
 
-  let professional: any = null
+  let professional: PublicProfessionalRecord | null = null
   if (user) {
     const buildProfessionalQuery = (withVisibilityColumn: boolean) => {
       let professionalQuery = readClient
         .from('professionals')
         .select(
           withVisibilityColumn
-            ? (PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY as any)
-            : (PROFESSIONAL_PROFILE_SELECT_LEGACY as any),
+            ? PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY
+            : PROFESSIONAL_PROFILE_SELECT_LEGACY,
         )
         .eq('profiles.role', 'profissional')
 
@@ -281,9 +337,15 @@ export default async function ProfissionalPage({
       return professionalQuery
     }
 
-    let professionalResult = await buildProfessionalQuery(true).maybeSingle()
+    let professionalResult = (await buildProfessionalQuery(true).maybeSingle()) as unknown as {
+      data: PublicProfessionalRecord | null
+      error: { message?: string } | null
+    }
     if (professionalResult.error?.message?.includes('is_publicly_visible')) {
-      professionalResult = await buildProfessionalQuery(false).maybeSingle()
+      professionalResult = (await buildProfessionalQuery(false).maybeSingle()) as unknown as {
+        data: PublicProfessionalRecord | null
+        error: { message?: string } | null
+      }
     }
 
     professional = professionalResult.data
@@ -301,9 +363,7 @@ export default async function ProfissionalPage({
       typeof professional.is_publicly_visible === 'boolean' ? professional.is_publicly_visible : null
 
     if (isPubliclyVisible === null) {
-      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient as any, [
-        professional,
-      ])
+      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient, [professional])
       isPubliclyVisible = Boolean(visibilityByProfessionalId.get(String(professional.id))?.canGoLive)
     }
 
@@ -347,7 +407,7 @@ export default async function ProfissionalPage({
   const specialtyIds = Array.from(
     new Set(
       (professionalSpecialtyLinks || [])
-        .map((entry: any) => String(entry.specialty_id || '').trim())
+        .map((entry: { specialty_id?: string | null }) => String(entry.specialty_id || '').trim())
         .filter(Boolean),
     ),
   )
@@ -363,7 +423,7 @@ export default async function ProfissionalPage({
     professionalSpecialties = Array.from(
       new Set(
         (specialtyRows || [])
-          .map((row: any) => String(row.name_pt || '').trim())
+          .map((row: { name_pt?: string | null }) => String(row.name_pt || '').trim())
           .filter(Boolean),
       ),
     ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
@@ -399,7 +459,8 @@ export default async function ProfissionalPage({
     .order('rating', { ascending: false })
     .limit(24)
 
-  let recommendationCandidates: any[] = (recommendationCandidatesRaw || []) as any[]
+  let recommendationCandidates: PublicProfessionalRecord[] =
+    (recommendationCandidatesRaw || []) as unknown as PublicProfessionalRecord[]
   if (recommendationCandidatesError?.message?.includes('is_publicly_visible')) {
     const fallbackCandidatesResult = await readClient
       .from('professionals')
@@ -413,15 +474,15 @@ export default async function ProfissionalPage({
       .limit(24)
 
     recommendationCandidates = (await filterPubliclyVisibleProfessionals(
-      readClient as any,
-      (fallbackCandidatesResult.data || []) as any,
-    )) as any[]
+      readClient,
+      ((fallbackCandidatesResult.data || []) as unknown as PublicProfessionalRecord[]),
+    )) as unknown as PublicProfessionalRecord[]
   }
 
-  const recommendationIds = recommendationCandidates.map((candidate: any) => String(candidate.id))
+  const recommendationIds = recommendationCandidates.map((candidate: PublicProfessionalRecord) => String(candidate.id))
   const recommendationSpecialtyContext =
     recommendationIds.length > 0
-      ? await loadProfessionalSpecialtyContext(readClient as any, recommendationIds)
+      ? await loadProfessionalSpecialtyContext(readClient, recommendationIds)
       : {
           byProfessionalId: new Map<string, string[]>(),
           primaryByProfessionalId: new Map<string, string>(),
@@ -429,7 +490,9 @@ export default async function ProfissionalPage({
         }
 
   const recommendations = recommendationCandidates.slice(0, 10)
-  const profile = professional.profiles as any
+  const profile = Array.isArray(professional.profiles)
+    ? professional.profiles[0]
+    : professional.profiles
   const primarySpecialty = getPrimarySpecialty(professional, professionalSpecialties)
   const professionalTimezone = String(professional.timezone || viewerTimezone)
   const tier = String(professional.tier || 'basic').toLowerCase()
@@ -450,12 +513,12 @@ export default async function ProfissionalPage({
         href="/buscar"
         className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-neutral-500 transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
       >
-        <ArrowLeft className="h-4 w-4" /> Voltar à busca
+        <ArrowLeft className="h-4 w-4" /> Voltar Ã  busca
       </Link>
 
       <ProfileAvailabilityBookingSection
-        availability={(availability || []) as any[]}
-        existingBookings={(existingBookings || []) as any[]}
+        availability={(availability || []) as AvailabilitySlotRow[]}
+        existingBookings={(existingBookings || []) as ExistingBookingRow[]}
         isLoggedIn={Boolean(user)}
         isOwnProfessional={isOwnProfessional}
         firstBookingBlocked={firstBookingBlocked}
@@ -511,8 +574,8 @@ export default async function ProfissionalPage({
                     <h1 className="font-display text-2xl font-bold text-neutral-900">{profile?.full_name}</h1>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
                       <span>{primarySpecialty}</span>
-                      {professional.years_experience > 0 ? (
-                        <span>• {professional.years_experience} anos de experiência</span>
+                      {Number(professional.years_experience || 0) > 0 ? (
+                        <span>â€¢ {Number(professional.years_experience)} anos de experiÃªncia</span>
                       ) : null}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -553,7 +616,7 @@ export default async function ProfissionalPage({
                             : 'border-blue-200 bg-blue-50 text-blue-700'
                         }`}
                       >
-                        {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
+                        {professional.tier === 'premium' ? 'â­ Premium' : 'âœ“ Profissional'}
                       </span>
                     ) : null}
 
@@ -562,20 +625,20 @@ export default async function ProfissionalPage({
                     <div className="flex items-center gap-1.5 rounded-full bg-accent-50 px-3 py-1.5">
                       <Star className="h-4 w-4 fill-accent-500 text-accent-500" />
                       <span className="text-sm font-semibold text-accent-700">
-                        {professional.rating > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
+                        {Number(professional.rating || 0) > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
                       </span>
-                      {professional.total_reviews > 0 ? (
-                        <span className="text-xs text-accent-500">({professional.total_reviews})</span>
+                      {Number(professional.total_reviews || 0) > 0 ? (
+                        <span className="text-xs text-accent-500">({Number(professional.total_reviews)})</span>
                       ) : null}
                     </div>
                   </div>
                 </div>
 
-                {professional.tags?.length > 0 ? (
+                {((professional.tags || []) as string[]).length > 0 ? (
                   <div className="mt-4">
-                    <p className="mb-1 text-[11px] text-neutral-400">Foco de atuação</p>
+                    <p className="mb-1 text-[11px] text-neutral-400">Foco de atuaÃ§Ã£o</p>
                     <div className="flex flex-wrap gap-2">
-                      {professional.tags.map((tag: string) => (
+                      {((professional.tags || []) as string[]).map((tag: string) => (
                         <span
                           key={tag}
                           className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
@@ -599,7 +662,7 @@ export default async function ProfissionalPage({
             <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <h2 className="mb-3 font-display text-lg font-semibold text-neutral-900">Sobre mim</h2>
               <p className="whitespace-pre-line leading-relaxed text-neutral-600">
-                {professional.bio || 'Sem descrição.'}
+                {professional.bio || 'Sem descriÃ§Ã£o.'}
               </p>
             </div>
 
@@ -607,12 +670,12 @@ export default async function ProfissionalPage({
               <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
                   <PlayCircle className="h-5 w-5 text-brand-500" />
-                  Vídeo de apresentação
+                  VÃ­deo de apresentaÃ§Ã£o
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-neutral-200">
                   <iframe
                     src={videoEmbedUrl}
-                    title="Vídeo de apresentação do profissional"
+                    title="VÃ­deo de apresentaÃ§Ã£o do profissional"
                     className="aspect-video h-full w-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -642,24 +705,24 @@ export default async function ProfissionalPage({
           <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Rating</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Avaliação média</p>
+              <p className="text-xs text-neutral-500">AvaliaÃ§Ã£o mÃ©dia</p>
               <p className="mt-1 text-xl font-semibold text-neutral-900">
-                {professional.rating > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
+                {Number(professional.rating || 0) > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
               </p>
             </div>
             <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Total de avaliações</p>
+              <p className="text-xs text-neutral-500">Total de avaliaÃ§Ãµes</p>
               <p className="mt-1 text-xl font-semibold text-neutral-900">{professional.total_reviews || 0}</p>
             </div>
             <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Sessões concluídas</p>
+              <p className="text-xs text-neutral-500">SessÃµes concluÃ­das</p>
               <p className="mt-1 text-xl font-semibold text-neutral-900">{professional.total_bookings || 0}</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Comentários</h2>
+          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">ComentÃ¡rios</h2>
           {reviews && reviews.length > 0 ? (
             <div className="space-y-4">
               {reviews.map((review: any) => (
@@ -680,7 +743,7 @@ export default async function ProfissionalPage({
                       ))}
                     </div>
                   </div>
-                  <p className="ml-9 text-sm text-neutral-600">{review.comment || 'Sem comentário.'}</p>
+                  <p className="ml-9 text-sm text-neutral-600">{review.comment || 'Sem comentÃ¡rio.'}</p>
                   {review.professional_response ? (
                     <div className="ml-9 mt-2 border-l-2 border-brand-200 pl-3">
                       <p className="mb-0.5 text-xs font-medium text-brand-700">Resposta do profissional</p>
@@ -691,14 +754,14 @@ export default async function ProfissionalPage({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-neutral-500">Este profissional ainda não recebeu comentários públicos.</p>
+            <p className="text-sm text-neutral-500">Este profissional ainda nÃ£o recebeu comentÃ¡rios pÃºblicos.</p>
           )}
         </div>
 
         {recommendations.length > 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">
-              Pessoas que você também pode gostar
+              Pessoas que vocÃª tambÃ©m pode gostar
             </h2>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {recommendations.map((item: any) => {
@@ -765,3 +828,4 @@ export default async function ProfissionalPage({
     </div>
   )
 }
+

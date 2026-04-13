@@ -34,6 +34,8 @@ const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 const OFFER_EXPIRATION_HOURS = 24
 const REQUEST_BOOKING_STATUS_SET = new Set<string>(REQUEST_BOOKING_STATUSES)
 const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
+const REQUEST_BOOKING_FIELDS =
+  'id,user_id,professional_id,status,preferred_start_utc,preferred_end_utc,user_timezone,user_message,proposal_start_utc,proposal_end_utc,proposal_timezone,proposal_message,proposal_expires_at,declined_at,cancelled_at,expired_at,created_at,updated_at'
 
 type PostgrestLikeError = {
   code?: string | null
@@ -157,7 +159,7 @@ async function expireRequestIfNeeded(
     })
     .eq('id', String(request.id))
     .eq('status', status)
-    .select('*')
+    .select(REQUEST_BOOKING_FIELDS)
     .maybeSingle()
 
   return expiredRequest || { ...request, status: 'expired' }
@@ -448,7 +450,7 @@ export async function offerRequestBooking(input: {
 
   const { data: request } = await supabase
     .from('request_bookings')
-    .select('*')
+    .select(REQUEST_BOOKING_FIELDS)
     .eq('id', parsed.data.requestId)
     .eq('professional_id', professionalId)
     .single()
@@ -756,7 +758,7 @@ export async function acceptRequestBooking(
 
   const { data: request } = await supabase
     .from('request_bookings')
-    .select('*')
+    .select(REQUEST_BOOKING_FIELDS)
     .eq('id', parsed.data)
     .eq('user_id', user.id)
     .single()

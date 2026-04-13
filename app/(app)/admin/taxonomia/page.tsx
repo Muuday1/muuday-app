@@ -40,11 +40,28 @@ export default function TaxonomiaPage() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     const [cRes, scRes, spRes, soRes, tsRes] = await Promise.all([
-      supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('subcategories').select('*').order('sort_order'),
-      supabase.from('specialties').select('*').order('sort_order'),
-      supabase.from('taxonomy_service_options').select('*').order('subcategory_slug').order('sort_order'),
-      supabase.from('tag_suggestions').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
+      supabase
+        .from('categories')
+        .select('id,slug,name_pt,name_en,icon,sort_order,is_active')
+        .order('sort_order'),
+      supabase
+        .from('subcategories')
+        .select('id,category_id,slug,name_pt,name_en,sort_order,is_active')
+        .order('sort_order'),
+      supabase
+        .from('specialties')
+        .select('id,subcategory_id,slug,name_pt,name_en,sort_order,is_active')
+        .order('sort_order'),
+      supabase
+        .from('taxonomy_service_options')
+        .select('id,subcategory_slug,slug,name_pt,name_en,sort_order,is_active')
+        .order('subcategory_slug')
+        .order('sort_order'),
+      supabase
+        .from('tag_suggestions')
+        .select('id,professional_id,tag,status,created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false }),
     ])
     setCategories(cRes.data || [])
     setSubcategories(scRes.data || [])
