@@ -821,7 +821,7 @@ export default function BookingForm({
                     />
                     <span className="text-xs text-neutral-500">
                       {resolvedRecurringSessionsCount > 0
-                        ? `${resolvedRecurringSessionsCount} sessão(ões) dentro da janela`
+                        ? `${resolvedRecurringSessionsCount} ${resolvedRecurringSessionsCount === 1 ? 'sessão' : 'sessões'} dentro da janela`
                         : 'Escolha uma data final válida'}
                     </span>
                   </div>
@@ -1054,7 +1054,7 @@ export default function BookingForm({
                   Adicionar ao lote
                 </button>
                 <span className="text-xs text-neutral-500">
-                  {batchDateTimes.length} sessão(ões) adicionada(s)
+                  {batchDateTimes.length} {batchDateTimes.length === 1 ? 'sessão adicionada' : 'sessões adicionadas'}
                 </span>
               </div>
               {batchSlotsPreview.length > 0 ? (
@@ -1251,4 +1251,3 @@ export default function BookingForm({
     </div>
   )
 }
-

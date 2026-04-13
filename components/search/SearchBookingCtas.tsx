@@ -20,7 +20,7 @@ export function SearchBookingCtas({
   bookHref,
   messageHref,
   bookLabel = 'Agendar',
-  messageLabel = 'Mandar mensagem',
+  messageLabel = 'Enviar mensagem',
 }: SearchBookingCtasProps) {
   const [open, setOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction>('book')

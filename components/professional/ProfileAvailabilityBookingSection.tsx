@@ -529,7 +529,7 @@ export function ProfileAvailabilityBookingSection({
                 disabled
                 className="w-full cursor-not-allowed rounded-xl border border-neutral-200 bg-neutral-50 py-3 text-sm font-semibold text-neutral-400"
               >
-                Mandar mensagem
+                Enviar mensagem
               </button>
               <p className="text-center text-xs text-neutral-500">
                 Não é possível agendar sessão com o próprio perfil.
@@ -554,7 +554,7 @@ export function ProfileAvailabilityBookingSection({
               bookHref={bookHrefWithSelection}
               messageHref={messageHref}
               bookLabel="Agendar sessão"
-              messageLabel="Mandar mensagem"
+              messageLabel="Enviar mensagem"
             />
           )}
 

@@ -217,7 +217,7 @@ function emailLayout(heroBadge: string, heroTitle: string, body: string) {
           <a href="${T.instagram}">Instagram</a>
           <a href="mailto:${T.contact}">Contato</a>
         </div>
-        <div class="unsub">Não quer mais receber estes emails? <a href="${APP_URL}/configuracoes">Cancelar subscrição</a></div>
+        <div class="unsub">Não quer mais receber estes emails? <a href="${APP_URL}/configuracoes">Cancelar inscrição</a></div>
       </div>
     </div>
   </div>
@@ -894,4 +894,3 @@ export async function sendPasswordResetEmail(to: string, actionLink: string) {
     ),
   })
 }
-

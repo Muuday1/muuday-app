@@ -948,12 +948,12 @@ export default function CadastroPage() {
                   ? 'border-brand-500 bg-brand-50'
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
               }`}
-              aria-label="Selecionar conta de usuário"
+              aria-label="Selecionar conta de cliente"
             >
               <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm">
                 <User className="h-5 w-5 text-brand-600" />
               </div>
-              <div className="text-sm font-semibold text-neutral-900">Sou usuário</div>
+              <div className="text-sm font-semibold text-neutral-900">Sou cliente</div>
               <div className="mt-0.5 text-xs text-neutral-500">Busco profissionais brasileiros no exterior</div>
             </button>
             <button

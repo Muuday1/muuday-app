@@ -356,7 +356,9 @@ export default async function DashboardPage() {
           ) : (
             <p className="text-sm text-neutral-500">Sem sessões confirmadas no momento.</p>
           )}
-          <p className="mt-2 text-xs text-neutral-500">Total futuro: {upcomingBookings?.length || 0} sessão(ões)</p>
+          <p className="mt-2 text-xs text-neutral-500">
+            Total futuro: {upcomingBookings?.length || 0} {(upcomingBookings?.length || 0) === 1 ? 'sessão' : 'sessões'}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-neutral-100 bg-white p-5">

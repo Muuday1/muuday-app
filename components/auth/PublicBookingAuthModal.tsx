@@ -76,7 +76,7 @@ export function PublicBookingAuthModal({
             className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-center text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
           >
             <span className="inline-flex items-center justify-center gap-2">
-              <MessageCircle className="h-4 w-4" /> Mandar mensagem
+              <MessageCircle className="h-4 w-4" /> Enviar mensagem
             </span>
           </Link>
         ) : (
@@ -111,10 +111,10 @@ export function PublicBookingAuthModal({
             type="button"
             onClick={() => setPendingAction('request')}
             className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
-            aria-label="Entrar para mandar mensagem"
+            aria-label="Entrar para enviar mensagem"
           >
             <span className="inline-flex items-center justify-center gap-2">
-              <MessageCircle className="h-4 w-4" /> Mandar mensagem
+              <MessageCircle className="h-4 w-4" /> Enviar mensagem
             </span>
           </button>
         ) : (
@@ -134,10 +134,10 @@ export function PublicBookingAuthModal({
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-display text-xl font-bold text-neutral-900">
-                  {isRequestAction ? 'Continue para mandar mensagem' : 'Continue para agendar'}
+                  {isRequestAction ? 'Continue para enviar mensagem' : 'Continue para agendar'}
                 </h3>
                 <p className="mt-1 text-sm text-neutral-500">
-                  Crie uma conta de usuário para continuar.
+                  Crie uma conta para continuar.
                 </p>
               </div>
               <button

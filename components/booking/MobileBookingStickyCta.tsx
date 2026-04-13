@@ -80,7 +80,7 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
               <div>
                 <h3 className="font-display text-xl font-bold text-neutral-900">Continue para agendar</h3>
                 <p className="mt-1 text-sm text-neutral-500">
-                  Crie uma conta de usuário para continuar com o agendamento.
+                  Crie uma conta para continuar com o agendamento.
                 </p>
               </div>
               <button
