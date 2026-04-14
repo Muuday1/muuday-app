@@ -1,12 +1,17 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
 import { getBufferConfig, getMinNoticeRange, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
+import {
+  PROFESSIONAL_TERMS,
+  PROFESSIONAL_TERMS_VERSION,
+  type ProfessionalTermKey,
+} from '@/lib/legal/professional-terms'
 
 type Blocker = {
   code: string
@@ -57,6 +62,12 @@ type OnboardingTrackerModalProps = {
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type PendingPhoto = {
+  file: File
+  previewUrl: string
+  width: number
+  height: number
+}
 
 const WEEK_DAYS: Array<{ value: number; label: string }> = [
   { value: 1, label: 'Seg' },
@@ -84,7 +95,6 @@ const BUSINESS_STAGE_ORDER = [
   'c6_plan_billing_setup_post',
   'c7_payout_receipt',
   'c8_submit_review',
-  'c9_go_live',
 ] as const
 
 const NAVIGABLE_STAGE_ORDER = BUSINESS_STAGE_ORDER.filter(id => id !== 'c1_create_account')
@@ -96,42 +106,25 @@ const BUSINESS_STAGE_LABELS: Record<string, string> = {
   c4_services: 'Serviços',
   c5_availability_calendar: 'Disponibilidade',
   c6_plan_billing_setup_post: 'Plano',
-  c7_payout_receipt: 'Recebimentos',
+  c7_payout_receipt: 'Financeiro',
   c8_submit_review: 'Enviar',
-  c9_go_live: 'Publicação',
 }
 
-const STAGE_PROGRESS_LABELS: Record<string, string> = {
-  c1_create_account: 'Conta criada',
-  c2_professional_identity: 'Identidade profissional',
-  c3_public_profile: 'Perfil público',
-  c4_services: 'Configurar serviços',
-  c5_availability_calendar: 'Disponibilidade e agenda',
-  c6_plan_billing_setup_post: 'Plano e cobrança',
-  c7_payout_receipt: 'Recebimentos',
-  c8_submit_review: 'Enviar para análise',
-  c9_go_live: 'Publicar perfil',
-}
+const TERMS_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as ProfessionalTermKey[]
 
-const PLAN_STAGE_GUIDANCE: Record<string, string[]> = {
-  c1_create_account: ['Criação de conta', 'Acesso básico à plataforma'],
-  c2_professional_identity: ['Qualificações', 'Idiomas e público atendido'],
-  c3_public_profile: ['Perfil público', 'Foto de perfil e bio'],
-  c4_services: ['Serviços ativos', 'Limites por plano'],
-  c5_availability_calendar: ['Horas de trabalho', 'Regras básicas de agenda', 'Calendário completo fora do tracker'],
-  c6_plan_billing_setup_post: ['Cobrança mensal ou anual', 'Upgrade imediato'],
-  c7_payout_receipt: ['Recebimento', 'Conciliação financeira'],
-  c8_submit_review: ['Revisão administrativa', 'Publicação'],
-  c9_go_live: ['Perfil publicado', 'Aceite de novos agendamentos'],
-}
+const PLAN_COMPARISON_ROWS: Array<{ label: string; basic: string; professional: string; premium: string }> = [
+  { label: 'Tags de foco', basic: '3', professional: '5', premium: '10' },
+  { label: 'Serviços ativos', basic: '1', professional: '5', premium: '10' },
+  { label: 'Janela de agendamento', basic: '60 dias', professional: '90 dias', premium: '180 dias' },
+  { label: 'Confirmação manual', basic: 'Não', professional: 'Sim', premium: 'Sim' },
+  { label: 'Integrações de calendário', basic: 'Google', professional: 'Google e Outlook', premium: 'Google, Outlook e Apple' },
+  { label: 'Operação financeira', basic: 'Essencial', professional: 'Expandida', premium: 'Completa' },
+]
 
-const HIGHLIGHT_MILESTONES = new Set(['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'])
-
-const EXECUTIVE_GATE_LABELS: Record<string, string> = {
-  review_submission: 'Revisão',
-  go_live: 'Perfil',
-  first_booking_acceptance: 'Agenda',
-  payout_receipt: 'Recebimentos',
+const PLAN_TIER_LABELS: Record<string, string> = {
+  basic: 'Básico',
+  professional: 'Profissional',
+  premium: 'Premium',
 }
 
 function normalizeStageIdForLookup(id: string) {
@@ -253,6 +246,119 @@ function formatCurrencyFromBrl(amountBrl: number, currency: string, rates: Excha
   }
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+async function readImageDimensions(file: File) {
+  const previewUrl = URL.createObjectURL(file)
+  const result = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight })
+    image.onerror = () => reject(new Error('Nao foi possivel ler a imagem selecionada.'))
+    image.src = previewUrl
+  })
+
+  return { previewUrl, ...result }
+}
+
+async function buildAvatarCropFile(file: File, focusX: number, focusY: number) {
+  const dimensions = await readImageDimensions(file)
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const next = new Image()
+      next.onload = () => resolve(next)
+      next.onerror = () => reject(new Error('Nao foi possivel preparar a imagem para recorte.'))
+      next.src = dimensions.previewUrl
+    })
+
+    const outputSize = 800
+    const scale = Math.max(outputSize / image.naturalWidth, outputSize / image.naturalHeight)
+    const displayedWidth = image.naturalWidth * scale
+    const displayedHeight = image.naturalHeight * scale
+    const overflowX = Math.max(0, displayedWidth - outputSize)
+    const overflowY = Math.max(0, displayedHeight - outputSize)
+    const sourceSize = outputSize / scale
+    const sourceX = overflowX > 0 ? clamp((overflowX * (focusX / 100)) / scale, 0, image.naturalWidth - sourceSize) : 0
+    const sourceY = overflowY > 0 ? clamp((overflowY * (focusY / 100)) / scale, 0, image.naturalHeight - sourceSize) : 0
+
+    const canvas = document.createElement('canvas')
+    canvas.width = outputSize
+    canvas.height = outputSize
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('Nao foi possivel preparar a foto agora.')
+    }
+
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      outputSize,
+      outputSize,
+    )
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        nextBlob => {
+          if (nextBlob) {
+            resolve(nextBlob)
+            return
+          }
+          reject(new Error('Nao foi possivel exportar a foto recortada.'))
+        },
+        'image/webp',
+        0.92,
+      )
+    })
+
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'avatar'
+    return new File([blob], `${baseName}-avatar.webp`, { type: 'image/webp' })
+  } finally {
+    URL.revokeObjectURL(dimensions.previewUrl)
+  }
+}
+
+function getPlanFeatureHighlights(stageId: string) {
+  if (stageId === 'c2_professional_identity') {
+    return [
+      `Básico: até ${PLAN_COMPARISON_ROWS[0].basic} tags de foco`,
+      `Profissional: até ${PLAN_COMPARISON_ROWS[0].professional} tags de foco`,
+      `Premium: até ${PLAN_COMPARISON_ROWS[0].premium} tags de foco`,
+    ]
+  }
+
+  if (stageId === 'c4_services') {
+    return [
+      `Básico: ${PLAN_COMPARISON_ROWS[1].basic} serviço ativo`,
+      `Profissional: ${PLAN_COMPARISON_ROWS[1].professional} serviços ativos`,
+      `Premium: ${PLAN_COMPARISON_ROWS[1].premium} serviços ativos`,
+    ]
+  }
+
+  if (stageId === 'c5_availability_calendar') {
+    return [
+      `Básico: ${PLAN_COMPARISON_ROWS[2].basic} de janela e Google`,
+      `Profissional: ${PLAN_COMPARISON_ROWS[2].professional} e Outlook`,
+      `Premium: ${PLAN_COMPARISON_ROWS[2].premium} e Apple`,
+    ]
+  }
+
+  if (stageId === 'c7_payout_receipt') {
+    return [
+      `Básico: ${PLAN_COMPARISON_ROWS[5].basic}`,
+      `Profissional: ${PLAN_COMPARISON_ROWS[5].professional}`,
+      `Premium: ${PLAN_COMPARISON_ROWS[5].premium}`,
+    ]
+  }
+
+  return []
+}
+
 function buildDefaultAvailabilityMap() {
   return WEEK_DAYS.reduce<Record<number, AvailabilityDayState>>((acc, day) => {
     acc[day.value] = { is_available: false, start_time: '09:00', end_time: '18:00' }
@@ -282,7 +388,11 @@ function getBlockerCta(blocker: Blocker): BlockerCta | null {
   }
 
   if (blocker.actionHref === '/planos') {
-    return { kind: 'external', label: 'Abrir planos', href: '/planos' }
+    return { kind: 'internal', label: 'Abrir plano', stageId: 'c6_plan_billing_setup_post' }
+  }
+
+  if (blocker.actionHref === '/financeiro') {
+    return { kind: 'internal', label: 'Abrir financeiro', stageId: 'c7_payout_receipt' }
   }
 
   if (blocker.actionHref === '/configuracoes') {
@@ -316,13 +426,23 @@ export function OnboardingTrackerModal({
   const supabase = useMemo(() => createClient(), [])
   const [open, setOpen] = useState(false)
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
-  const [isSidebarCompact, setIsSidebarCompact] = useState(true)
   const [bio, setBio] = useState(initialBio || '')
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl || '')
   const [photoUploadState, setPhotoUploadState] = useState<SaveState>('idle')
   const [photoUploadError, setPhotoUploadError] = useState('')
   const [photoFocusX, setPhotoFocusX] = useState(50)
   const [photoFocusY, setPhotoFocusY] = useState(50)
+  const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null)
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<Record<ProfessionalTermKey, boolean>>(() =>
+    TERMS_KEYS.reduce(
+      (acc, key) => ({ ...acc, [key]: false }),
+      {} as Record<ProfessionalTermKey, boolean>,
+    ),
+  )
+  const [activeTermsModalKey, setActiveTermsModalKey] = useState<ProfessionalTermKey | null>(null)
+  const [termsModalScrolledToEnd, setTermsModalScrolledToEnd] = useState(false)
+  const [submitTermsError, setSubmitTermsError] = useState('')
+  const dragStateRef = useRef<{ startX: number; startY: number; startFocusX: number; startFocusY: number } | null>(null)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
   const [identityTitle, setIdentityTitle] = useState('')
@@ -339,7 +459,6 @@ export function OnboardingTrackerModal({
   const [identityQualificationCustomEnabled, setIdentityQualificationCustomEnabled] = useState(false)
   const [identitySaveState, setIdentitySaveState] = useState<SaveState>('idle')
   const [identityError, setIdentityError] = useState('')
-  const [professionalUserId, setProfessionalUserId] = useState('')
   const [serviceName, setServiceName] = useState('')
   const [serviceDescription, setServiceDescription] = useState('')
   const [servicePrice, setServicePrice] = useState('')
@@ -423,6 +542,14 @@ export function OnboardingTrackerModal({
   }, [open])
 
   useEffect(() => {
+    return () => {
+      if (pendingPhoto?.previewUrl) {
+        URL.revokeObjectURL(pendingPhoto.previewUrl)
+      }
+    }
+  }, [pendingPhoto])
+
+  useEffect(() => {
     if (!open) return
 
     let mounted = true
@@ -452,7 +579,7 @@ export function OnboardingTrackerModal({
         supabase
           .from('professional_settings')
           .select(
-            'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider',
+            'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version',
           )
           .eq('professional_id', professionalId)
           .maybeSingle(),
@@ -481,7 +608,6 @@ export function OnboardingTrackerModal({
       ])
 
       if (mounted) {
-        setProfessionalUserId(String(professional?.user_id || ''))
         setServices((existingServices || []) as Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }>)
 
         const defaults = buildDefaultAvailabilityMap()
@@ -516,7 +642,7 @@ export function OnboardingTrackerModal({
 
         const profileCurrency = await supabase
           .from('profiles')
-          .select('currency,full_name,timezone')
+          .select('currency,full_name,timezone,avatar_url')
           .eq('id', String(professional?.user_id || ''))
           .maybeSingle()
 
@@ -526,6 +652,7 @@ export function OnboardingTrackerModal({
         )
         setServiceCurrency(resolvedCurrency)
         setProfileTimezone(resolvedTimezone)
+        setCoverPhotoUrl(String(profileCurrency.data?.avatar_url || ''))
         setIdentityDisplayName(String(appRow?.display_name || profileCurrency.data?.full_name || ''))
         setIdentityTitle(String(appRow?.title || ''))
         setIdentityYearsExperience(String(professional?.years_experience ?? 0))
@@ -579,6 +706,15 @@ export function OnboardingTrackerModal({
         }
 
         setIdentityQualifications(Array.from(qualificationMap.values()))
+        const existingTermsAccepted = Boolean(
+          settingsRow && (settingsRow as Record<string, unknown>).terms_accepted_at && (settingsRow as Record<string, unknown>).terms_version,
+        )
+        setHasAcceptedTerms(
+          TERMS_KEYS.reduce(
+            (acc, key) => ({ ...acc, [key]: existingTermsAccepted }),
+            {} as Record<ProfessionalTermKey, boolean>,
+          ),
+        )
       }
 
       const pricingResponse = await fetch('/api/professional/plan-pricing', {
@@ -639,22 +775,12 @@ export function OnboardingTrackerModal({
     }
   }, [stagesById])
 
-  const hasUrgentBlockers = useMemo(
-    () => stageItems.some(item => !item.complete && (item.blocker?.code?.includes('warning') || item.blocker)),
-    [stageItems],
-  )
-
   const activeStage = stagesById.get(normalizeStageIdForLookup(activeStageId))
-  const executiveGateSummary = useMemo(
-    () =>
-      Object.entries(currentEvaluation.gates).map(([gateId, gate]) => ({
-        id: gateId,
-        label: EXECUTIVE_GATE_LABELS[gateId] || gate.title,
-        passed: gate.passed,
-        description: gate.passed ? 'Ok' : gate.blockers[0]?.title || 'Pendente',
-      })),
-    [currentEvaluation.gates],
+  const activeTerm = useMemo(
+    () => PROFESSIONAL_TERMS.find(item => item.key === activeTermsModalKey) || null,
+    [activeTermsModalKey],
   )
+  const currentPlanLabel = PLAN_TIER_LABELS[String(tier || '').toLowerCase()] || 'Básico'
 
   function toggleMultiValue(value: string, values: string[], setter: (next: string[]) => void) {
     if (values.includes(value)) {
@@ -664,47 +790,11 @@ export function OnboardingTrackerModal({
     }
   }
 
-  async function refreshOnboardingEvaluation(options?: { advanceToNextPending?: boolean }) {
-    setTrackerRefreshState('saving')
-    const response = await fetch('/api/professional/onboarding/state', {
-      method: 'GET',
-      credentials: 'include',
-    })
-    const payload = (await response.json().catch(() => ({}))) as {
-      evaluation?: ProfessionalOnboardingEvaluation
-      error?: string
-    }
-
-    if (!response.ok || !payload.evaluation) {
-      setTrackerRefreshState('error')
-      return null
-    }
-
-    setCurrentEvaluation(payload.evaluation)
-    onEvaluationChange?.(payload.evaluation)
-    setTrackerRefreshState('saved')
-    setTimeout(() => setTrackerRefreshState('idle'), 1200)
-
-    if (options?.advanceToNextPending) {
-      const nextPending = NAVIGABLE_STAGE_ORDER.find(id => {
-        const stage = payload.evaluation?.stages.find(
-          stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(id),
-        )
-        return stage ? !stage.complete : false
-      })
-      if (nextPending) {
-        setActiveStageId(nextPending)
-      }
-    }
-
-    return payload.evaluation
-  }
-
-  async function uploadProfessionalPhoto(file: File) {
+  async function prepareProfessionalPhoto(file: File) {
     const allowed = ['image/jpeg', 'image/png', 'image/webp']
     if (!allowed.includes(file.type)) {
       setPhotoUploadState('error')
-      setPhotoUploadError('Formato invalido. Use JPG, PNG ou WEBP.')
+      setPhotoUploadError('Formato inválido. Use JPG, PNG ou WEBP.')
       return
     }
     if (file.size > 3 * 1024 * 1024) {
@@ -713,11 +803,43 @@ export function OnboardingTrackerModal({
       return
     }
 
-    setPhotoUploadState('saving')
     setPhotoUploadError('')
+    setPhotoUploadState('saving')
+    try {
+      const imageMeta = await readImageDimensions(file)
+      if (imageMeta.width < 320 || imageMeta.height < 320) {
+        URL.revokeObjectURL(imageMeta.previewUrl)
+        setPhotoUploadState('error')
+        setPhotoUploadError('Use uma foto com pelo menos 320x320 pixels.')
+        return
+      }
 
+      setPendingPhoto(previous => {
+        if (previous?.previewUrl) {
+          URL.revokeObjectURL(previous.previewUrl)
+        }
+        return {
+          file,
+          previewUrl: imageMeta.previewUrl,
+          width: imageMeta.width,
+          height: imageMeta.height,
+        }
+      })
+      setPhotoFocusX(50)
+      setPhotoFocusY(50)
+      setPhotoUploadState('idle')
+    } catch (error) {
+      setPhotoUploadState('error')
+      setPhotoUploadError(error instanceof Error ? error.message : 'Não foi possível preparar a foto.')
+    }
+  }
+
+  async function uploadPreparedProfessionalPhoto() {
+    if (!pendingPhoto) return coverPhotoUrl
+
+    const croppedFile = await buildAvatarCropFile(pendingPhoto.file, photoFocusX, photoFocusY)
     const form = new FormData()
-    form.append('file', file)
+    form.append('file', croppedFile)
     const response = await fetch('/api/professional/profile-media/upload', {
       method: 'POST',
       body: form,
@@ -726,17 +848,104 @@ export function OnboardingTrackerModal({
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}))
-      setPhotoUploadState('error')
-      setPhotoUploadError(String(errorBody?.error || 'Falha no upload da foto. Tente novamente.'))
-      return
+      throw new Error(String(errorBody?.error || 'Falha no upload da foto. Tente novamente.'))
     }
 
     const payload = (await response.json()) as { publicUrl?: string }
-    setCoverPhotoUrl(String(payload.publicUrl || ''))
-    setPhotoFocusX(50)
-    setPhotoFocusY(50)
-    setPhotoUploadState('saved')
-    setTimeout(() => setPhotoUploadState('idle'), 2500)
+    const nextUrl = String(payload.publicUrl || '')
+    if (!nextUrl) {
+      throw new Error('A foto foi enviada, mas a URL final não foi retornada.')
+    }
+
+    setCoverPhotoUrl(nextUrl)
+    setPendingPhoto(previous => {
+      if (previous?.previewUrl) {
+        URL.revokeObjectURL(previous.previewUrl)
+      }
+      return null
+    })
+    return nextUrl
+  }
+
+  async function saveSection<TPayload extends object>(payload: TPayload, fallbackError: string) {
+    setTrackerRefreshState('saving')
+    const response = await fetch('/api/professional/onboarding/save', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const json = (await response.json().catch(() => ({}))) as {
+      ok?: boolean
+      error?: string
+      evaluation?: ProfessionalOnboardingEvaluation
+      service?: { id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }
+    }
+
+    if (!response.ok || !json.ok || !json.evaluation) {
+      setTrackerRefreshState('error')
+      throw new Error(json.error || fallbackError)
+    }
+
+    setCurrentEvaluation(json.evaluation)
+    onEvaluationChange?.(json.evaluation)
+    setTrackerRefreshState('saved')
+    setTimeout(() => setTrackerRefreshState('idle'), 1200)
+    const nextPending = NAVIGABLE_STAGE_ORDER.find(id => {
+      const stage = json.evaluation?.stages.find(
+        stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(id),
+      )
+      return stage ? !stage.complete : false
+    })
+    if (nextPending) {
+      setActiveStageId(nextPending)
+    }
+
+    return json
+  }
+
+  function handlePhotoDragStart(clientX: number, clientY: number) {
+    if (!pendingPhoto) return
+    dragStateRef.current = {
+      startX: clientX,
+      startY: clientY,
+      startFocusX: photoFocusX,
+      startFocusY: photoFocusY,
+    }
+  }
+
+  function handlePhotoDragMove(clientX: number, clientY: number) {
+    if (!pendingPhoto || !dragStateRef.current) return
+    const previewSize = 224
+    const scale = Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height)
+    const displayedWidth = pendingPhoto.width * scale
+    const displayedHeight = pendingPhoto.height * scale
+    const overflowX = Math.max(1, displayedWidth - previewSize)
+    const overflowY = Math.max(1, displayedHeight - previewSize)
+    const deltaX = clientX - dragStateRef.current.startX
+    const deltaY = clientY - dragStateRef.current.startY
+    setPhotoFocusX(clamp(dragStateRef.current.startFocusX - (deltaX / overflowX) * 100, 0, 100))
+    setPhotoFocusY(clamp(dragStateRef.current.startFocusY - (deltaY / overflowY) * 100, 0, 100))
+  }
+
+  function handlePhotoDragEnd() {
+    dragStateRef.current = null
+  }
+
+  function openTerm(termKey: ProfessionalTermKey) {
+    setActiveTermsModalKey(termKey)
+    setTermsModalScrolledToEnd(false)
+  }
+
+  function acceptActiveTerm() {
+    if (!activeTerm || !termsModalScrolledToEnd) return
+    setHasAcceptedTerms(previous => ({ ...previous, [activeTerm.key]: true }))
+    setActiveTermsModalKey(null)
+    setTermsModalScrolledToEnd(false)
+  }
+
+  function allRequiredTermsAccepted() {
+    return TERMS_KEYS.every(key => hasAcceptedTerms[key])
   }
 
   function addIdentityQualification() {
@@ -875,70 +1084,26 @@ export function OnboardingTrackerModal({
       return
     }
 
-    const { error: professionalError } = await supabase
-      .from('professionals')
-      .update({
-        years_experience: years,
-        languages: Array.from(new Set([identityPrimaryLanguage, ...identitySecondaryLanguages].filter(Boolean))),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', professionalId)
-
-    if (professionalError) {
+    try {
+      await saveSection(
+        {
+          section: 'identity',
+          title: identityTitle,
+          displayName: identityDisplayName,
+          yearsExperience: years,
+          primaryLanguage: identityPrimaryLanguage,
+          secondaryLanguages: identitySecondaryLanguages,
+          targetAudiences: identityTargetAudiences,
+          qualifications: identityQualifications,
+        },
+        'Não foi possível salvar identidade profissional.',
+      )
+      setIdentitySaveState('saved')
+      setTimeout(() => setIdentitySaveState('idle'), 2000)
+    } catch (error) {
       setIdentitySaveState('error')
-      setIdentityError('Não foi possível salvar dados profissionais.')
-      return
+      setIdentityError(error instanceof Error ? error.message : 'Não foi possível salvar identidade profissional.')
     }
-
-    const appPayload = {
-      user_id: professionalUserId || null,
-      professional_id: professionalId,
-      title: identityTitle || null,
-      display_name: identityDisplayName || null,
-      primary_language: identityPrimaryLanguage || null,
-      secondary_languages: identitySecondaryLanguages,
-      target_audiences: identityTargetAudiences,
-      qualifications_structured: identityQualifications.map(item => ({
-        id: item.id,
-        name: item.name,
-        requires_registration: item.requires_registration,
-        course_name: item.course_name,
-        registration_number: item.registration_number,
-        issuer: item.issuer,
-        country: item.country,
-        evidence_file_names: item.evidence_files.map(file => file.file_name),
-      })),
-      updated_at: new Date().toISOString(),
-    }
-
-    let appError: { message?: string } | null = null
-    if (professionalUserId) {
-      const upsertResult = await supabase
-        .from('professional_applications')
-        .upsert(appPayload, { onConflict: 'user_id' })
-      appError = upsertResult.error
-    } else {
-      const updateResult = await supabase
-        .from('professional_applications')
-        .update(appPayload)
-        .eq('professional_id', professionalId)
-      appError = updateResult.error
-    }
-
-    if (appError) {
-      setIdentitySaveState('error')
-      setIdentityError('Não foi possível salvar identidade profissional.')
-      return
-    }
-
-    await fetch('/api/professional/recompute-visibility', {
-      method: 'POST',
-      credentials: 'include',
-    })
-
-    setIdentitySaveState('saved')
-    await refreshOnboardingEvaluation({ advanceToNextPending: true })
-    setTimeout(() => setIdentitySaveState('idle'), 2000)
   }
 
   async function savePublicProfile() {
@@ -952,37 +1117,34 @@ export function OnboardingTrackerModal({
       setBioSaveState('error')
       return
     }
-    if (!isValidCoverPhotoUrl(coverPhotoUrl.trim())) {
-      setBioError('A URL da foto de capa é inválida.')
-      setBioSaveState('error')
-      return
-    }
-
     setBioSaveState('saving')
     setBioError('')
-    const { error } = await supabase
-      .from('professionals')
-      .update({
-        bio: bio.trim(),
-        cover_photo_url: coverPhotoUrl.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', professionalId)
+    try {
+      setPhotoUploadState(pendingPhoto ? 'saving' : photoUploadState)
+      const nextAvatarUrl = pendingPhoto ? await uploadPreparedProfessionalPhoto() : coverPhotoUrl.trim()
+      if (!isValidCoverPhotoUrl(nextAvatarUrl.trim())) {
+        throw new Error('A URL final da foto do perfil é inválida.')
+      }
 
-    if (error) {
+      await saveSection(
+        {
+          section: 'public_profile',
+          bio: bio.trim(),
+          avatarUrl: nextAvatarUrl.trim(),
+        },
+        'Não foi possível salvar o perfil público.',
+      )
+      setPhotoUploadState('saved')
+      setBioSaveState('saved')
+      setTimeout(() => {
+        setPhotoUploadState('idle')
+        setBioSaveState('idle')
+      }, 2000)
+    } catch (error) {
+      setPhotoUploadState('error')
       setBioSaveState('error')
-      setBioError('Não foi possível salvar o perfil público.')
-      return
+      setBioError(error instanceof Error ? error.message : 'Não foi possível salvar o perfil público.')
     }
-
-    await fetch('/api/professional/recompute-visibility', {
-      method: 'POST',
-      credentials: 'include',
-    })
-
-    setBioSaveState('saved')
-    await refreshOnboardingEvaluation({ advanceToNextPending: true })
-    setTimeout(() => setBioSaveState('idle'), 2000)
   }
 
   async function saveService() {
@@ -1032,45 +1194,30 @@ export function OnboardingTrackerModal({
     const selectedRate = exchangeRates[selectedCurrency] || 1
     const priceBrl = selectedCurrency === 'BRL' ? price : price / selectedRate
 
-    const insertPayload = {
-      professional_id: professionalId,
-      name: serviceName.trim(),
-      service_type: 'one_off',
-      description: serviceDescription.trim(),
-      duration_minutes: duration,
-      price_brl: Number(priceBrl.toFixed(2)),
-      enable_recurring: false,
-      enable_monthly: false,
-      is_active: true,
-      is_draft: false,
-      updated_at: new Date().toISOString(),
-    }
-
-    const { data: inserted, error } = await supabase
-      .from('professional_services')
-      .insert(insertPayload)
-      .select('id,name,description,price_brl,duration_minutes')
-      .single()
-
-    if (error) {
+    try {
+      const result = await saveSection(
+        {
+          section: 'service',
+          name: serviceName.trim(),
+          description: serviceDescription.trim(),
+          priceBrl: Number(priceBrl.toFixed(2)),
+          durationMinutes: duration,
+        },
+        'Não foi possível criar o serviço.',
+      )
+      if (result.service) {
+        setServices(prev => [...prev, result.service!])
+      }
+      setServiceName('')
+      setServiceDescription('')
+      setServicePrice('')
+      setServiceDuration('60')
+      setServiceSaveState('saved')
+      setTimeout(() => setServiceSaveState('idle'), 2000)
+    } catch (error) {
       setServiceSaveState('error')
-      setServiceError(`Não foi possível criar o serviço: ${error.message}`)
-      return
+      setServiceError(error instanceof Error ? error.message : 'Não foi possível criar o serviço.')
     }
-
-    await fetch('/api/professional/recompute-visibility', {
-      method: 'POST',
-      credentials: 'include',
-    })
-
-    setServices(prev => [...prev, inserted as { id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }])
-    setServiceName('')
-    setServiceDescription('')
-    setServicePrice('')
-    setServiceDuration('60')
-    setServiceSaveState('saved')
-    await refreshOnboardingEvaluation({ advanceToNextPending: true })
-    setTimeout(() => setServiceSaveState('idle'), 2000)
   }
 
   async function saveAvailabilityCalendar() {
@@ -1083,9 +1230,6 @@ export function OnboardingTrackerModal({
     setAvailabilitySaveState('saving')
     setAvailabilityError('')
 
-    const nowIso = new Date().toISOString()
-    const maxBufferForTier = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
-    const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, bufferMinutes))
     const safeNoticeHours = Math.min(
       Number(minNoticeRange.max),
       Math.max(Number(minNoticeRange.min), Number(minimumNoticeHours || minNoticeRange.min)),
@@ -1094,74 +1238,49 @@ export function OnboardingTrackerModal({
       Number(tierLimits.bookingWindowDays),
       Math.max(1, Number(maxBookingWindowDays || 1)),
     )
-    const rows = WEEK_DAYS.map(day => ({
-      professional_id: professionalId,
-      day_of_week: day.value,
-      start_time: `${availabilityMap[day.value].start_time}:00`,
-      end_time: `${availabilityMap[day.value].end_time}:00`,
-      is_active: availabilityMap[day.value].is_available,
-    }))
 
-    const { error: deleteError } = await supabase
-      .from('availability')
-      .delete()
-      .eq('professional_id', professionalId)
-
-    if (deleteError) {
-      setAvailabilitySaveState('error')
-      setAvailabilityError('Não foi possível atualizar disponibilidade.')
-      return
-    }
-
-    const { error: insertError } = await supabase.from('availability').insert(rows)
-    if (insertError) {
-      setAvailabilitySaveState('error')
-      setAvailabilityError('Não foi possível salvar horários.')
-      return
-    }
-
-    const { error: settingsError } = await supabase
-      .from('professional_settings')
-      .upsert(
+    try {
+      await saveSection(
         {
-          professional_id: professionalId,
-          timezone: profileTimezone,
-          minimum_notice_hours: safeNoticeHours,
-          max_booking_window_days: safeBookingWindow,
-          buffer_minutes: safeBufferMinutes,
-          buffer_time_minutes: safeBufferMinutes,
-          confirmation_mode: canUseManualConfirmation ? confirmationMode : 'auto_accept',
-          enable_recurring: enableRecurring,
-          allow_multi_session: allowMultiSession,
-          require_session_purpose: requireSessionPurpose,
-          updated_at: nowIso,
+          section: 'availability',
+          profileTimezone,
+          availabilityMap,
+          minimumNoticeHours: safeNoticeHours,
+          maxBookingWindowDays: safeBookingWindow,
+          bufferMinutes,
+          confirmationMode: canUseManualConfirmation ? confirmationMode : 'auto_accept',
+          enableRecurring,
+          allowMultiSession,
+          requireSessionPurpose,
         },
-        { onConflict: 'professional_id' },
+        'Não foi possível salvar disponibilidade e regras.',
       )
-
-    if (settingsError) {
+      setAvailabilitySaveState('saved')
+      setTimeout(() => setAvailabilitySaveState('idle'), 2000)
+    } catch (error) {
       setAvailabilitySaveState('error')
-      setAvailabilityError('Disponibilidade salva, mas falhou ao salvar regras.')
-      return
+      setAvailabilityError(
+        error instanceof Error ? error.message : 'Não foi possível salvar disponibilidade e regras.',
+      )
     }
-
-    await fetch('/api/professional/recompute-visibility', {
-      method: 'POST',
-      credentials: 'include',
-    })
-
-    setAvailabilitySaveState('saved')
-    await refreshOnboardingEvaluation({ advanceToNextPending: true })
-    setTimeout(() => setAvailabilitySaveState('idle'), 2000)
   }
 
   async function submitForReview() {
     setSubmitReviewState('saving')
     setSubmitReviewMessage('')
+    setSubmitTermsError('')
+
+    if (!allRequiredTermsAccepted()) {
+      setSubmitReviewState('error')
+      setSubmitTermsError('Aceite todos os termos obrigatórios antes de enviar.')
+      return
+    }
 
     const response = await fetch('/api/professional/onboarding/submit-review', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
+      body: JSON.stringify({ acceptedTerms: true, termsVersion: PROFESSIONAL_TERMS_VERSION }),
     })
     const payload = (await response.json().catch(() => ({}))) as {
       ok?: boolean
@@ -1178,8 +1297,7 @@ export function OnboardingTrackerModal({
     setCurrentEvaluation(payload.evaluation)
     onEvaluationChange?.(payload.evaluation)
     setSubmitReviewState('saved')
-    setSubmitReviewMessage('Perfil enviado para análise. Agora vamos acompanhar a publicação.')
-    setActiveStageId('c9_go_live')
+    setSubmitReviewMessage('Perfil enviado para análise. A equipe vai revisar e liberar a publicação.')
     setTimeout(() => setSubmitReviewState('idle'), 2200)
   }
 
@@ -1324,42 +1442,48 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
 
-              <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Resumo executivo</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {executiveGateSummary.map(item => (
-                        <span
-                          key={item.id}
-                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                            item.passed
-                              ? 'border-green-200 bg-green-50 text-green-700'
-                              : 'border-amber-200 bg-amber-50 text-amber-800'
-                          }`}
-                        >
-                          {item.label}: {item.description}
-                        </span>
-                      ))}
+              {getPlanFeatureHighlights(activeStageId).length > 0 ? (
+                <div className="mb-4 rounded-xl border border-brand-100 bg-brand-50/50 p-3">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Planos nesta etapa</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {getPlanFeatureHighlights(activeStageId).map(item => (
+                          <span
+                            key={item}
+                            className="inline-flex items-center rounded-full border border-brand-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-brand-800"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-700">
-                    {planPricing ? (
+                    <div className="flex flex-col gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-700">
                       <p>
-                        Plano atual:{' '}
-                        <strong>
+                        Plano atual: <strong>{currentPlanLabel}</strong>
+                      </p>
+                      {planPricing ? (
+                        <p>
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
                             planPricing.monthlyAmount / 100,
-                          )}
-                        </strong>
-                        {' '}/ mes
-                      </p>
-                    ) : (
-                      <p>{pricingError || 'Preco indisponivel no momento.'}</p>
-                    )}
+                          )}{' '}
+                          / mês
+                        </p>
+                      ) : (
+                        <p>{pricingError || 'Preço indisponível no momento.'}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveStageId('c6_plan_billing_setup_post')}
+                        className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800"
+                      >
+                        Ver planos desta etapa
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
               {(activeStageId === 'c2_professional_identity') && (
                 <div className="space-y-4">
@@ -1680,7 +1804,10 @@ export function OnboardingTrackerModal({
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil/capa</label>
+                    <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil</label>
+                    <p className="mb-3 text-xs text-neutral-600">
+                      Use uma foto nítida, com boa iluminação, rosto centralizado e fundo simples. Validamos formato, peso e resolução automaticamente.
+                    </p>
                     <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
                       <Upload className="h-3.5 w-3.5" />
                       Enviar foto
@@ -1691,7 +1818,7 @@ export function OnboardingTrackerModal({
                         onChange={event => {
                           const file = event.target.files?.[0]
                           if (file) {
-                            void uploadProfessionalPhoto(file)
+                            void prepareProfessionalPhoto(file)
                           } else {
                             setPhotoUploadState('error')
                             setPhotoUploadError('Não foi possível selecionar a foto. Tente novamente.')
@@ -1699,53 +1826,82 @@ export function OnboardingTrackerModal({
                         }}
                       />
                     </label>
-                    {coverPhotoUrl ? (
+                    {(pendingPhoto || coverPhotoUrl) ? (
                       <div className="mt-3">
-                        <div
-                          className="mb-3 h-28 w-28 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50"
-                        >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={coverPhotoUrl}
-                            alt="Foto do perfil"
-                            className="h-full w-full object-cover"
-                            style={{ objectPosition: `${photoFocusX}% ${photoFocusY}%` }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <div className="space-y-1">
-                            <label className="text-xs font-semibold text-neutral-700">Posição horizontal</label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              value={photoFocusX}
-                              onChange={event => setPhotoFocusX(Number(event.target.value))}
-                              className="h-2 w-full cursor-pointer rounded-lg bg-neutral-200 accent-brand-600"
-                            />
+                        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
+                          <div className="space-y-3">
+                            <div
+                              className="relative h-56 w-56 overflow-hidden rounded-full border border-neutral-200 bg-neutral-50"
+                              onMouseMove={event => {
+                                if (dragStateRef.current) handlePhotoDragMove(event.clientX, event.clientY)
+                              }}
+                              onMouseUp={handlePhotoDragEnd}
+                              onMouseLeave={handlePhotoDragEnd}
+                              onTouchMove={event => {
+                                const touch = event.touches[0]
+                                if (touch) handlePhotoDragMove(touch.clientX, touch.clientY)
+                              }}
+                              onTouchEnd={handlePhotoDragEnd}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={pendingPhoto?.previewUrl || coverPhotoUrl}
+                                alt="Prévia da foto do perfil"
+                                className="absolute select-none object-cover"
+                                draggable={false}
+                                onMouseDown={event => handlePhotoDragStart(event.clientX, event.clientY)}
+                                onTouchStart={event => {
+                                  const touch = event.touches[0]
+                                  if (touch) handlePhotoDragStart(touch.clientX, touch.clientY)
+                                }}
+                                style={
+                                  pendingPhoto
+                                    ? (() => {
+                                        const previewSize = 224
+                                        const scale = Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height)
+                                        const displayedWidth = pendingPhoto.width * scale
+                                        const displayedHeight = pendingPhoto.height * scale
+                                        const overflowX = Math.max(0, displayedWidth - previewSize)
+                                        const overflowY = Math.max(0, displayedHeight - previewSize)
+                                        return {
+                                          width: `${displayedWidth}px`,
+                                          height: `${displayedHeight}px`,
+                                          left: `${-(overflowX * (photoFocusX / 100))}px`,
+                                          top: `${-(overflowY * (photoFocusY / 100))}px`,
+                                        }
+                                      })()
+                                    : { inset: 0, width: '100%', height: '100%', objectPosition: 'center' }
+                                }
+                              />
+                            </div>
+                            <p className="text-[11px] text-neutral-500">
+                              Arraste a imagem para reposicionar o centro visível do avatar.
+                            </p>
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-xs font-semibold text-neutral-700">Posição vertical</label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              value={photoFocusY}
-                              onChange={event => setPhotoFocusY(Number(event.target.value))}
-                              className="h-2 w-full cursor-pointer rounded-lg bg-neutral-200 accent-brand-600"
-                            />
+                          <div className="space-y-3">
+                            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                              <p className="text-xs font-semibold text-neutral-800">Pré-validação automática</p>
+                              <ul className="mt-2 space-y-1 text-xs text-neutral-600">
+                                <li>JPG, PNG ou WEBP</li>
+                                <li>Até 3MB</li>
+                                <li>Mínimo de 320x320 px</li>
+                                <li>O recorte final será quadrado e exibido em formato circular</li>
+                              </ul>
+                            </div>
+                            {pendingPhoto ? (
+                              <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-3 text-xs text-brand-900">
+                                Nova foto pronta para salvar. O upload final acontece quando você clicar em salvar.
+                              </div>
+                            ) : null}
                           </div>
-                          <p className="text-xs text-neutral-500">
-                            Ajuste o enquadramento para alinhar a foto como ela ficará no card.
-                          </p>
                         </div>
                       </div>
                     ) : null}
                     <p className="mt-2 text-xs text-neutral-500">
-                      Regras: JPG/PNG/WEBP, máximo de 3MB. O recorte é ajustável e refletirá como a foto aparece no card.
+                      Regras: JPG/PNG/WEBP, máximo de 3MB. O avatar final será o mesmo exibido no card público.
                     </p>
                     {photoUploadState === 'saving' ? (
-                      <p className="mt-2 text-xs text-brand-700">Enviando foto...</p>
+                      <p className="mt-2 text-xs text-brand-700">Preparando foto...</p>
                     ) : null}
                     {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
                   </div>
@@ -2115,28 +2271,208 @@ export function OnboardingTrackerModal({
                 </div>
               )}
 
+              {activeStageId === 'c6_plan_billing_setup_post' ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-neutral-900">Escolha o plano da operação</h3>
+                        <p className="mt-1 text-sm text-neutral-700">
+                          Compare limites de serviços, agenda e operação financeira. Você pode trocar de plano sem sair do tracker.
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">
+                        <p>Plano atual: <strong>{currentPlanLabel}</strong></p>
+                        {planPricing ? (
+                          <p className="mt-1">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
+                              planPricing.monthlyAmount / 100,
+                            )}{' '}
+                            / mês
+                          </p>
+                        ) : (
+                          <p className="mt-1">{pricingError || 'Preço indisponível no momento.'}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="bg-neutral-50">
+                        <tr>
+                          <th className="px-4 py-3 text-neutral-700">Recurso</th>
+                          <th className="px-4 py-3 text-neutral-700">Básico</th>
+                          <th className="px-4 py-3 text-neutral-700">Profissional</th>
+                          <th className="px-4 py-3 text-neutral-700">Premium</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PLAN_COMPARISON_ROWS.map(row => (
+                          <tr key={row.label} className="border-t border-neutral-100">
+                            <td className="px-4 py-3 font-medium text-neutral-800">{row.label}</td>
+                            <td className="px-4 py-3 text-neutral-600">{row.basic}</td>
+                            <td className="px-4 py-3 text-neutral-600">{row.professional}</td>
+                            <td className="px-4 py-3 text-neutral-600">{row.premium}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href="/planos"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex items-center gap-1 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                    >
+                      Abrir seleção de planos
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setActiveStageId('c7_payout_receipt')}
+                      className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
+                    >
+                      Continuar para financeiro
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {activeStageId === 'c7_payout_receipt' ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                    <h3 className="text-base font-semibold text-neutral-900">Financeiro</h3>
+                    <p className="mt-1 text-sm text-neutral-700">
+                      Aqui você acompanha o cartão da assinatura e a prontidão de recebimentos. O checkout do plano e os detalhes financeiros continuam nas telas completas.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className={`rounded-xl border p-3 ${currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_billing_card') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                      <p className="text-sm font-semibold text-neutral-900">Cartão da assinatura</p>
+                      <p className="mt-1 text-xs text-neutral-700">
+                        {currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_billing_card')
+                          ? 'Ainda falta adicionar o cartão usado para cobrar o plano.'
+                          : 'Cartão configurado para a cobrança do plano.'}
+                      </p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_onboarding') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                      <p className="text-sm font-semibold text-neutral-900">Recebimentos</p>
+                      <p className="mt-1 text-xs text-neutral-700">
+                        {currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_onboarding')
+                          ? 'Conecte a conta financeira para receber pela plataforma.'
+                          : 'Conta de recebimentos conectada.'}
+                      </p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_kyc') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                      <p className="text-sm font-semibold text-neutral-900">Validação operacional</p>
+                      <p className="mt-1 text-xs text-neutral-700">
+                        {currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_kyc')
+                          ? 'Ainda faltam dados de validação financeira.'
+                          : 'Validação financeira concluída.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(activeStage?.blockers || []).length > 0 ? (
+                    <ul className="space-y-2">
+                      {(activeStage?.blockers || []).map(blocker => (
+                        <li key={blocker.code} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                          <p className="font-semibold">{blocker.title}</p>
+                          <p className="mt-1 text-xs">{blocker.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href="/planos"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
+                    >
+                      Abrir cobrança do plano
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/financeiro"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
+                    >
+                      Abrir área financeira
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setActiveStageId('c8_submit_review')}
+                      className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                    >
+                      Continuar para envio
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               {activeStageId === 'c8_submit_review' ? (
                 <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
                   <div>
                     <h3 className="text-base font-semibold text-neutral-900">Pronto para enviar seu perfil?</h3>
                     <p className="mt-1 text-sm text-neutral-700">
-                      Revise as pendências abaixo. Quando tudo estiver em ordem, envie o perfil para a etapa de análise sem sair do tracker.
+                      Revise as pendências abaixo, aceite os termos obrigatórios e envie o perfil para análise sem sair do tracker.
                     </p>
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
-                    {executiveGateSummary.map(item => (
+                    {stageItems.map(item => (
                       <div
                         key={item.id}
                         className={`rounded-xl border px-3 py-3 text-sm ${
-                          item.passed
+                          item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900'
                         }`}
                       >
                         <p className="font-semibold">{item.label}</p>
-                        <p className="mt-1 text-xs">{item.description}</p>
+                        <p className="mt-1 text-xs">{item.complete ? 'Etapa concluída.' : item.blocker?.title || 'Ainda pendente.'}</p>
                       </div>
                     ))}
+                  </div>
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-neutral-900">Termos obrigatórios</h4>
+                        <p className="mt-1 text-xs text-neutral-600">
+                          Leia até o final e aceite cada termo antes de enviar.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
+                        {Object.values(hasAcceptedTerms).filter(Boolean).length}/{TERMS_KEYS.length} aceitos
+                      </span>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {PROFESSIONAL_TERMS.map(term => (
+                        <div key={term.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-neutral-900">{term.shortLabel}</p>
+                            <p className="mt-1 text-xs text-neutral-500">{term.version}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasAcceptedTerms[term.key] ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>
+                              {hasAcceptedTerms[term.key] ? 'Aceito' : 'Pendente'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openTerm(term.key)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+                            >
+                              {hasAcceptedTerms[term.key] ? 'Revisar termo' : 'Ler e aceitar'}
+                              <ArrowRight className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {(activeStage?.blockers || []).length > 0 ? (
                     <ul className="space-y-2">
@@ -2153,17 +2489,18 @@ export function OnboardingTrackerModal({
                       {submitReviewMessage}
                     </p>
                   ) : null}
+                  {submitTermsError ? <p className="text-sm text-red-700">{submitTermsError}</p> : null}
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => void submitForReview()}
-                      disabled={submitReviewState === 'saving' || !currentEvaluation.summary.canSubmitForReview}
+                      disabled={submitReviewState === 'saving'}
                       className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {submitReviewState === 'saving' ? 'Enviando...' : 'Enviar para análise'}
                     </button>
                     {!currentEvaluation.summary.canSubmitForReview ? (
-                      <span className="text-xs text-amber-700">Conclua os itens pendentes antes do envio.</span>
+                      <span className="text-xs text-amber-700">Se ainda houver pendências, o tracker vai indicar o que precisa ser ajustado.</span>
                     ) : null}
                   </div>
                 </div>
@@ -2212,6 +2549,58 @@ export function OnboardingTrackerModal({
               ) : null}
             </section>
           </div>
+
+          {activeTerm ? (
+            <div
+              className="fixed inset-0 z-[90] flex items-center justify-center bg-neutral-900/55 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Leitura de termo"
+            >
+              <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
+                <div className="border-b border-neutral-200 px-5 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{activeTerm.version}</p>
+                  <h3 className="mt-1 text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
+                </div>
+                <div
+                  className="max-h-[55vh] overflow-y-auto px-5 py-4"
+                  onScroll={event => {
+                    const element = event.currentTarget
+                    if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
+                      setTermsModalScrolledToEnd(true)
+                    }
+                  }}
+                >
+                  {activeTerm.sections.map(section => (
+                    <section key={section.heading} className="mb-4">
+                      <h4 className="text-sm font-semibold text-neutral-800">{section.heading}</h4>
+                      <p className="mt-1 text-sm leading-6 text-neutral-700">{section.body}</p>
+                    </section>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-2 border-t border-neutral-200 px-5 py-4 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTermsModalKey(null)
+                      setTermsModalScrolledToEnd(false)
+                    }}
+                    className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300"
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={acceptActiveTerm}
+                    disabled={!termsModalScrolledToEnd}
+                    className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {termsModalScrolledToEnd ? 'Aceitar termo' : 'Role até o fim para aceitar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </>

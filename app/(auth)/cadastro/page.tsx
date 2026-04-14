@@ -72,6 +72,7 @@ const PROFESSIONAL_TERM_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as Profe
 function buildInitialTermsState(): ProfessionalTermsAccepted {
   return {
     platform_terms: false,
+    payment_terms: false,
     privacy_terms: false,
     regulated_scope_terms: false,
   }

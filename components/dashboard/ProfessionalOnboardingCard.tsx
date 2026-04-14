@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState } from 'react'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
@@ -19,10 +19,9 @@ const STAGE_LABELS: Record<string, string> = {
   c3_public_profile: 'Perfil público',
   c4_service_setup: 'Serviços',
   c5_availability_calendar: 'Disponibilidade',
-  c6_plan_billing_setup: 'Plano e cobrança',
-  c7_payout_payments: 'Recebimentos',
+  c6_plan_billing_setup: 'Plano',
+  c7_payout_payments: 'Financeiro',
   c8_submit_review: 'Enviar para análise',
-  c9_go_live: 'Publicação',
 }
 
 function normalizeStageId(stageId: string) {
@@ -55,7 +54,7 @@ export function ProfessionalOnboardingCard({
   const pendingStages = useMemo(
     () =>
       evaluation.stages
-        .filter(stage => normalizeStageId(stage.id) !== 'c1_account_creation' && !stage.complete)
+        .filter(stage => !['c1_account_creation', 'c9_go_live'].includes(normalizeStageId(stage.id)) && !stage.complete)
         .slice(0, 4)
         .map(stage => ({
           id: stage.id,
@@ -66,12 +65,12 @@ export function ProfessionalOnboardingCard({
   )
 
   const completedCount = useMemo(
-    () => evaluation.stages.filter(stage => normalizeStageId(stage.id) !== 'c1_account_creation' && stage.complete).length,
+    () => evaluation.stages.filter(stage => !['c1_account_creation', 'c9_go_live'].includes(normalizeStageId(stage.id)) && stage.complete).length,
     [evaluation],
   )
 
   const totalCount = useMemo(
-    () => evaluation.stages.filter(stage => normalizeStageId(stage.id) !== 'c1_account_creation').length,
+    () => evaluation.stages.filter(stage => !['c1_account_creation', 'c9_go_live'].includes(normalizeStageId(stage.id))).length,
     [evaluation],
   )
 

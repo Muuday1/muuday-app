@@ -12,7 +12,19 @@ const ALLOWED_KINDS = ['jpg', 'png', 'webp'] as const
 
 async function ensureProfileMediaBucket(admin: NonNullable<ReturnType<typeof createAdminClient>>) {
   const { data: bucket } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
-  if (bucket) return
+  if (bucket) {
+    if (!bucket.public) {
+      const { error: updateError } = await admin.storage.updateBucket(PROFILE_MEDIA_BUCKET, {
+        public: true,
+        fileSizeLimit: String(MAX_FILE_SIZE_BYTES),
+        allowedMimeTypes: Array.from(ALLOWED_TYPES),
+      })
+      if (updateError) {
+        throw updateError
+      }
+    }
+    return
+  }
 
   const { error } = await admin.storage.createBucket(PROFILE_MEDIA_BUCKET, {
     public: true,
