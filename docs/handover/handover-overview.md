@@ -1,14 +1,14 @@
-﻿# Handover Overview
+# Handover Overview
 
-Last updated: 2026-03-30
+Last updated: 2026-04-14
 
 ## Product summary
 
-Muuday is a services marketplace with integrated discovery, booking, payments, payouts, trust, admin operations, and compliance controls.
+Muuday is a services marketplace for discovery, booking, payments, trust, and professional operations, centered on connecting Brazilian professionals with Brazilian clients, including users living abroad.
 
 ## Canonical baseline
 
-The canonical decision baseline is now:
+The decision baseline is:
 
 1. `docs/spec/source-of-truth/part1-foundations-search-tiers.md`
 2. `docs/spec/source-of-truth/part2-onboarding-booking-lifecycle.md`
@@ -16,29 +16,28 @@ The canonical decision baseline is now:
 4. `docs/spec/source-of-truth/part4-admin-ops-notifications-trust.md`
 5. `docs/spec/source-of-truth/part5-video-compliance-open-items.md`
 
-Use `docs/spec/consolidated/master-spec.md` for unified reading and `execution-plan.md` for build order.
+Use `docs/spec/consolidated/master-spec.md` for unified reading and `docs/project/roadmap.md` for current execution order.
 
 ## Current stage
 
-`In progress` - Implementation exists for major MVP surfaces, but full parity with canonical 5-part spec is not complete.
+`In progress` - Wave 2 is closed, production is stable, and the active workstream is stabilization and UX refinement on public flows and professional operations. Wave 3 real-money execution is not open yet.
 
 ## Current priorities
 
-1. Wave 2 parity for onboarding and booking lifecycle correctness.
-2. Apply migration 013 in production and keep dual-gate policy consistent.
-3. Activate Inngest in production (keys + cloud sync) while keeping cron fallback.
-4. Wave 3 payments-revenue implementation (Stripe + ledger + payout lifecycle).
-5. Wave 4 admin case operations and trust/notification system completion.
+1. Keep public shell, search, and profile UX stable and clean.
+2. Keep professional onboarding and tracker consistent with the live dashboard flow.
+3. Close remaining operational hardening items before Wave 3.
+4. Keep docs, migrations, and release hygiene current.
 
-## Biggest risks / unknowns
+## Biggest risks
 
-1. BR-entity rail provider decision still open (Airwallex vs dLocal) for Wave 3 real-money go-live.
-2. Session provider lock is closed (Agora) for current roadmap execution.
-3. Open legal/tax wording freeze for sensitive categories and final compliance language.
+1. Wave 3 still depends on payment-rail execution work and financial compliance closure.
+2. Legal and tax wording is not fully frozen for sensitive categories.
+3. Local environment drift remains a risk if work happens outside `C:\dev\muuday-app`.
 
-## Where to start (new contributor)
+## Where to start
 
-1. Read `docs/spec/README.md`.
-2. Read `docs/spec/consolidated/master-spec.md`.
-3. Execute `docs/spec/consolidated/execution-plan.md` in wave order.
-4. Use `docs/handover/current-state.md` + `docs/handover/next-steps.md` as real-time operating context.
+1. Read `docs/handover/control-snapshot.md`.
+2. Read `docs/handover/current-state.md`.
+3. Read `docs/handover/next-steps.md`.
+4. Use `docs/project/roadmap.md` to place any new work in the correct wave.
