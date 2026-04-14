@@ -106,6 +106,10 @@ export function MobileFiltersDrawer({
   const [state, setState] = useState<SearchQueryState>(initialState)
 
   useEffect(() => {
+    setState(initialState)
+  }, [initialState])
+
+  useEffect(() => {
     if (!open) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'

@@ -2,7 +2,7 @@
 
 import { Languages } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { AVAILABILITY_WINDOWS } from '@/lib/search-config'
 import { PriceRangeSlider } from '@/components/search/PriceRangeSlider'
 
@@ -100,6 +100,10 @@ export function DesktopFiltersAutoApply({
   const pathname = usePathname() || '/buscar'
   const [isPending, startTransition] = useTransition()
   const [state, setState] = useState<SearchQueryState>(initialState)
+
+  useEffect(() => {
+    setState(initialState)
+  }, [initialState])
 
   const sliderMin = useMemo(() => parseToInt(state.precoMin, 0), [state.precoMin])
   const sliderMax = useMemo(() => parseToInt(state.precoMax, priceMax), [state.precoMax, priceMax])

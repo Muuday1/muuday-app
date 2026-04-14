@@ -13,7 +13,9 @@ import {
   PUBLIC_CURRENCY_OPTIONS,
   PUBLIC_LANGUAGE_COOKIE,
   PUBLIC_LANGUAGE_OPTIONS,
+  normalizeCurrency,
 } from '@/lib/public-preferences'
+import { getDefaultExchangeRates } from '@/lib/exchange-rates'
 
 type PublicHeaderProps = {
   isLoggedIn: boolean
@@ -56,6 +58,7 @@ export function PublicHeader({
   const showCurrencySelector =
     !isLoggedInClient &&
     (pathname.startsWith('/buscar') || pathname.startsWith('/profissional'))
+  const activeCurrency = normalizeCurrency(searchParams?.get('moeda')) || initialCurrency
 
   useEffect(() => {
     setMenuOpen(false)
@@ -136,6 +139,31 @@ export function PublicHeader({
 
     if (pathname.startsWith('/buscar')) {
       const params = new URLSearchParams(searchParams?.toString() || '')
+      const previousCurrency = normalizeCurrency(params.get('moeda')) || initialCurrency
+      const rates = getDefaultExchangeRates()
+      const previousRate = rates[previousCurrency] || 1
+      const nextRate = rates[currency] || 1
+
+      const convertPriceParam = (key: 'precoMin' | 'precoMax') => {
+        const raw = params.get(key)
+        if (!raw) return
+        const parsed = Number(raw)
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          params.delete(key)
+          return
+        }
+
+        const normalizedBrl = parsed / previousRate
+        const converted = Math.max(0, Math.round(normalizedBrl * nextRate))
+        if (converted <= 0) {
+          params.delete(key)
+          return
+        }
+        params.set(key, String(converted))
+      }
+
+      convertPriceParam('precoMin')
+      convertPriceParam('precoMax')
       params.set('moeda', currency)
       const query = params.toString()
       router.replace(query ? `${pathname}?${query}` : pathname)
@@ -202,7 +230,7 @@ export function PublicHeader({
 
             {showCurrencySelector && (
               <select
-                defaultValue={initialCurrency}
+                value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
                 className="h-9 rounded-full border border-brand-100 bg-white px-3 py-2 text-xs font-semibold text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 aria-label="Selecionar moeda"
@@ -258,7 +286,7 @@ export function PublicHeader({
             </select>
             {showCurrencySelector && (
               <select
-                defaultValue={initialCurrency}
+                value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
                 className="h-8 rounded-full border border-brand-100 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 aria-label="Selecionar moeda"
