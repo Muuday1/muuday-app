@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
 import { getBufferConfig, getMinNoticeRange, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
-import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 
@@ -93,13 +92,13 @@ const NAVIGABLE_STAGE_ORDER = BUSINESS_STAGE_ORDER.filter(id => id !== 'c1_creat
 const BUSINESS_STAGE_LABELS: Record<string, string> = {
   c1_create_account: '1. Criação da conta',
   c2_professional_identity: 'Identidade',
-  c3_public_profile: 'Perfil',
+  c3_public_profile: 'Perfil público',
   c4_services: 'Serviços',
   c5_availability_calendar: 'Disponibilidade',
   c6_plan_billing_setup_post: 'Plano',
-  c7_payout_receipt: 'Pagamento',
+  c7_payout_receipt: 'Recebimentos',
   c8_submit_review: 'Enviar',
-  c9_go_live: 'Go-live',
+  c9_go_live: 'Publicação',
 }
 
 const STAGE_PROGRESS_LABELS: Record<string, string> = {
@@ -109,9 +108,9 @@ const STAGE_PROGRESS_LABELS: Record<string, string> = {
   c4_services: 'Configurar serviços',
   c5_availability_calendar: 'Disponibilidade e agenda',
   c6_plan_billing_setup_post: 'Plano e cobrança',
-  c7_payout_receipt: 'Payout',
+  c7_payout_receipt: 'Recebimentos',
   c8_submit_review: 'Enviar para análise',
-  c9_go_live: 'Ativar perfil',
+  c9_go_live: 'Publicar perfil',
 }
 
 const PLAN_STAGE_GUIDANCE: Record<string, string[]> = {
@@ -119,20 +118,20 @@ const PLAN_STAGE_GUIDANCE: Record<string, string[]> = {
   c2_professional_identity: ['Qualificações', 'Idiomas e público atendido'],
   c3_public_profile: ['Perfil público', 'Foto de perfil e bio'],
   c4_services: ['Serviços ativos', 'Limites por plano'],
-  c5_availability_calendar: ['Janela de agenda', 'Confirmação manual (planos superiores)', 'Integrações de calendário'],
+  c5_availability_calendar: ['Horas de trabalho', 'Regras básicas de agenda', 'Calendário completo fora do tracker'],
   c6_plan_billing_setup_post: ['Cobrança mensal ou anual', 'Upgrade imediato'],
   c7_payout_receipt: ['Recebimento', 'Conciliação financeira'],
-  c8_submit_review: ['Revisão administrativa', 'Go-live'],
+  c8_submit_review: ['Revisão administrativa', 'Publicação'],
   c9_go_live: ['Perfil publicado', 'Aceite de novos agendamentos'],
 }
 
 const HIGHLIGHT_MILESTONES = new Set(['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'])
 
 const EXECUTIVE_GATE_LABELS: Record<string, string> = {
-  review_submission: 'Revisao',
+  review_submission: 'Revisão',
   go_live: 'Perfil',
   first_booking_acceptance: 'Agenda',
-  payout_receipt: 'Pagamento',
+  payout_receipt: 'Recebimentos',
 }
 
 function normalizeStageIdForLookup(id: string) {
@@ -261,6 +260,50 @@ function buildDefaultAvailabilityMap() {
   }, {})
 }
 
+type BlockerCta =
+  | { kind: 'internal'; label: string; stageId: string }
+  | { kind: 'external'; label: string; href: string }
+
+function getBlockerCta(blocker: Blocker): BlockerCta | null {
+  if (blocker.code === 'missing_review_requirements') {
+    return { kind: 'internal', label: 'Revisar pendências do tracker', stageId: 'c8_submit_review' }
+  }
+
+  if (blocker.code === 'missing_credentials') {
+    return { kind: 'internal', label: 'Abrir identidade profissional', stageId: 'c2_professional_identity' }
+  }
+
+  if (blocker.actionHref === '/disponibilidade') {
+    return { kind: 'internal', label: 'Abrir disponibilidade', stageId: 'c5_availability_calendar' }
+  }
+
+  if (blocker.actionHref === '/configuracoes-agendamento') {
+    return { kind: 'external', label: 'Abrir regras de agendamento', href: '/configuracoes-agendamento' }
+  }
+
+  if (blocker.actionHref === '/planos') {
+    return { kind: 'external', label: 'Abrir planos', href: '/planos' }
+  }
+
+  if (blocker.actionHref === '/configuracoes') {
+    return { kind: 'external', label: 'Abrir configurações da conta', href: '/configuracoes' }
+  }
+
+  if (blocker.actionHref === '/editar-perfil' || blocker.actionHref === '/editar-perfil-profissional') {
+    return { kind: 'internal', label: 'Abrir identidade profissional', stageId: 'c2_professional_identity' }
+  }
+
+  if (blocker.actionHref === '/completar-perfil') {
+    return { kind: 'internal', label: 'Abrir serviços', stageId: 'c4_services' }
+  }
+
+  if (blocker.actionHref === '/onboarding-profissional') {
+    return { kind: 'internal', label: 'Voltar ao tracker', stageId: 'c8_submit_review' }
+  }
+
+  return blocker.actionHref ? { kind: 'external', label: 'Abrir etapa relacionada', href: blocker.actionHref } : null
+}
+
 export function OnboardingTrackerModal({
   professionalId,
   tier,
@@ -329,21 +372,6 @@ export function OnboardingTrackerModal({
   const [enableRecurring, setEnableRecurring] = useState(false)
   const [allowMultiSession, setAllowMultiSession] = useState(false)
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
-  const [calendarSyncProvider, setCalendarSyncProvider] = useState<'google' | 'outlook' | 'apple'>('google')
-  const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(false)
-  const [calendarProviderAccountEmail, setCalendarProviderAccountEmail] = useState('')
-  const [calendarConnectionStatus, setCalendarConnectionStatus] = useState<
-    'disconnected' | 'pending' | 'connected' | 'error'
-  >('disconnected')
-  const [calendarLastSyncAt, setCalendarLastSyncAt] = useState('')
-  const [calendarLastSyncError, setCalendarLastSyncError] = useState('')
-  const [appleCaldavUsername, setAppleCaldavUsername] = useState('')
-  const [appleCaldavPassword, setAppleCaldavPassword] = useState('')
-  const [appleCaldavServerUrl, setAppleCaldavServerUrl] = useState('')
-  const [calendarSyncState, setCalendarSyncState] = useState<SaveState>('idle')
-  const [calendarBookings, setCalendarBookings] = useState<
-    Array<{ id: string; start_utc: string; end_utc: string; status: string }>
-  >([])
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
   const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
@@ -406,11 +434,8 @@ export function OnboardingTrackerModal({
         { data: existingServices },
         { data: settingsRow },
         { data: availabilityRows },
-        { data: bookingRows },
-        { data: externalBusyRows },
         { data: appRow },
         { data: ratesRows },
-        { data: calendarIntegrationRow },
         { data: credentialRows },
       ] = await Promise.all([
         supabase
@@ -436,21 +461,6 @@ export function OnboardingTrackerModal({
           .select('day_of_week,start_time,end_time,is_active')
           .eq('professional_id', professionalId),
         supabase
-          .from('bookings')
-          .select('id,start_time_utc,end_time_utc,scheduled_at,duration_minutes,status')
-          .eq('professional_id', professionalId)
-          .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-          .gte('scheduled_at', new Date().toISOString())
-          .order('scheduled_at', { ascending: true })
-          .limit(200),
-        supabase
-          .from('external_calendar_busy_slots')
-          .select('id,start_time_utc,end_time_utc,provider')
-          .eq('professional_id', professionalId)
-          .gte('start_time_utc', new Date().toISOString())
-          .order('start_time_utc', { ascending: true })
-          .limit(300),
-        supabase
           .from('professional_applications')
           .select(
             'title,display_name,primary_language,secondary_languages,target_audiences,qualifications_structured',
@@ -463,13 +473,6 @@ export function OnboardingTrackerModal({
           .from('exchange_rates')
           .select('code,rate_to_brl')
           .eq('is_active', true),
-        supabase
-          .from('calendar_integrations')
-          .select(
-            'provider,sync_enabled,provider_account_email,connection_status,last_sync_at,last_sync_completed_at,last_sync_error',
-          )
-          .eq('professional_id', professionalId)
-          .maybeSingle(),
         supabase
           .from('professional_credentials')
           .select('id,file_name,file_url,scan_status,verified,credential_type')
@@ -501,49 +504,6 @@ export function OnboardingTrackerModal({
         setEnableRecurring(Boolean(settingsRow?.enable_recurring))
         setAllowMultiSession(Boolean(settingsRow?.allow_multi_session))
         setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
-        const provider = String(
-          calendarIntegrationRow?.provider || settingsRow?.calendar_sync_provider || 'google',
-        )
-        setCalendarSyncProvider(provider === 'outlook' || provider === 'apple' ? provider : 'google')
-        setCalendarSyncEnabled(Boolean(calendarIntegrationRow?.sync_enabled))
-        setCalendarProviderAccountEmail(String(calendarIntegrationRow?.provider_account_email || ''))
-        setCalendarConnectionStatus(
-          String(calendarIntegrationRow?.connection_status || 'disconnected') === 'connected'
-            ? 'connected'
-            : String(calendarIntegrationRow?.connection_status || 'disconnected') === 'pending'
-              ? 'pending'
-              : String(calendarIntegrationRow?.connection_status || 'disconnected') === 'error'
-                ? 'error'
-                : 'disconnected',
-        )
-        setCalendarLastSyncAt(
-          String(calendarIntegrationRow?.last_sync_completed_at || calendarIntegrationRow?.last_sync_at || ''),
-        )
-        setCalendarLastSyncError(String(calendarIntegrationRow?.last_sync_error || ''))
-
-        const internalCalendarBookings = ((bookingRows || []) as Array<Record<string, unknown>>).map(row => {
-          const scheduledAt = new Date(String(row.scheduled_at || ''))
-          const durationMinutes = Number(row.duration_minutes || 60)
-          const startUtcIso = String(row.start_time_utc || row.scheduled_at || '')
-          const endUtcIso =
-            String(row.end_time_utc || '') ||
-            (Number.isNaN(scheduledAt.getTime())
-              ? ''
-              : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
-          return {
-            id: String(row.id || ''),
-            start_utc: startUtcIso,
-            end_utc: endUtcIso,
-            status: String(row.status || 'pending'),
-          }
-        })
-        const externalCalendarBookings = ((externalBusyRows || []) as Array<Record<string, unknown>>).map(row => ({
-          id: `external-${String(row.id || '')}`,
-          start_utc: String(row.start_time_utc || ''),
-          end_utc: String(row.end_time_utc || ''),
-          status: `external_${String(row.provider || 'calendar')}`,
-        }))
-        setCalendarBookings([...internalCalendarBookings, ...externalCalendarBookings])
 
         const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
         for (const row of (ratesRows || []) as Array<Record<string, unknown>>) {
@@ -638,7 +598,7 @@ export function OnboardingTrackerModal({
         } else {
           const errorBody = await pricingResponse.json().catch(() => ({}))
           setPlanPricing(null)
-          setPricingError(sanitizePricingErrorMessage(String(errorBody?.error || 'Nao foi possivel carregar precos agora.')))
+          setPricingError(sanitizePricingErrorMessage(String(errorBody?.error || 'Não foi possível carregar preços agora.')))
         }
       }
 
@@ -1174,7 +1134,6 @@ export function OnboardingTrackerModal({
           enable_recurring: enableRecurring,
           allow_multi_session: allowMultiSession,
           require_session_purpose: requireSessionPurpose,
-          calendar_sync_provider: calendarSyncProvider,
           updated_at: nowIso,
         },
         { onConflict: 'professional_id' },
@@ -1212,116 +1171,16 @@ export function OnboardingTrackerModal({
 
     if (!response.ok || !payload.ok || !payload.evaluation) {
       setSubmitReviewState('error')
-      setSubmitReviewMessage(payload.error || 'Nao foi possivel enviar o perfil para analise.')
+      setSubmitReviewMessage(payload.error || 'Não foi possível enviar o perfil para análise.')
       return
     }
 
     setCurrentEvaluation(payload.evaluation)
     onEvaluationChange?.(payload.evaluation)
     setSubmitReviewState('saved')
-    setSubmitReviewMessage('Perfil enviado para analise. Agora vamos acompanhar o go-live.')
+    setSubmitReviewMessage('Perfil enviado para análise. Agora vamos acompanhar a publicação.')
     setActiveStageId('c9_go_live')
     setTimeout(() => setSubmitReviewState('idle'), 2200)
-  }
-
-  async function connectCalendarProvider() {
-    const isPremiumProvider = calendarSyncProvider !== 'google'
-    const locked =
-      isPremiumProvider && !isFeatureAvailable(String(tier || '').toLowerCase(), 'outlook_sync')
-    if (locked) {
-      setAvailabilityError('Este provider está disponível apenas em plano superior.')
-      return
-    }
-
-    if (calendarSyncProvider === 'apple') {
-      if (!appleCaldavUsername.trim() || !appleCaldavPassword.trim()) {
-        setAvailabilityError('Informe Apple ID e app-specific password para conectar Apple CalDAV.')
-        return
-      }
-
-      setCalendarSyncState('saving')
-      setAvailabilityError('')
-      const response = await fetch('/api/professional/calendar/connect/apple', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          username: appleCaldavUsername.trim(),
-          appPassword: appleCaldavPassword.trim(),
-          accountEmail: calendarProviderAccountEmail.trim() || appleCaldavUsername.trim(),
-          serverUrl: appleCaldavServerUrl.trim() || undefined,
-        }),
-      })
-
-      const result = (await response.json().catch(() => ({}))) as { error?: string; accountEmail?: string }
-      if (!response.ok) {
-        setCalendarSyncState('error')
-        setAvailabilityError(result.error || 'Não foi possível conectar Apple CalDAV.')
-        return
-      }
-
-      setCalendarSyncEnabled(true)
-      setCalendarConnectionStatus('connected')
-      setCalendarProviderAccountEmail(result.accountEmail || appleCaldavUsername.trim())
-      setCalendarLastSyncAt(new Date().toISOString())
-      setCalendarLastSyncError('')
-      setCalendarSyncState('saved')
-      setTimeout(() => setCalendarSyncState('idle'), 1500)
-      return
-    }
-
-    setCalendarSyncState('saving')
-    const next = encodeURIComponent('/dashboard')
-    window.location.href = `/api/professional/calendar/connect/${calendarSyncProvider}?next=${next}`
-  }
-
-  async function disconnectCalendarProvider() {
-    setCalendarSyncState('saving')
-    setAvailabilityError('')
-    const response = await fetch('/api/professional/calendar/disconnect', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ provider: calendarSyncProvider }),
-    })
-
-    const result = (await response.json().catch(() => ({}))) as { error?: string }
-    if (!response.ok) {
-      setCalendarSyncState('error')
-      setAvailabilityError(result.error || 'Não foi possível desconectar calendário.')
-      return
-    }
-
-    setCalendarSyncEnabled(false)
-    setCalendarConnectionStatus('disconnected')
-    setCalendarProviderAccountEmail('')
-    setCalendarLastSyncError('')
-    setCalendarSyncState('saved')
-    setTimeout(() => setCalendarSyncState('idle'), 1500)
-  }
-
-  async function runCalendarSyncNow() {
-    setCalendarSyncState('saving')
-    setAvailabilityError('')
-    const response = await fetch('/api/professional/calendar/sync', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ provider: calendarSyncProvider }),
-    })
-    const result = (await response.json().catch(() => ({}))) as { error?: string }
-    if (!response.ok) {
-      setCalendarSyncState('error')
-      setAvailabilityError(result.error || 'Falha ao sincronizar calendário.')
-      return
-    }
-
-    setCalendarSyncEnabled(true)
-    setCalendarLastSyncAt(new Date().toISOString())
-    setCalendarLastSyncError('')
-    setCalendarConnectionStatus('connected')
-    setCalendarSyncState('saved')
-    setTimeout(() => setCalendarSyncState('idle'), 1500)
   }
 
   return (
@@ -2009,123 +1868,127 @@ export function OnboardingTrackerModal({
                             
               {(activeStageId === 'c5_availability_calendar') && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <h3 className="text-sm font-semibold text-neutral-900">Disponibilidade semanal</h3>
-                            <p className="mt-1 text-xs text-neutral-500">
-                              O fuso horario segue o perfil profissional e atualiza automaticamente com horario de verao e inverno.
-                            </p>
-                          </div>
-                          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-xs text-neutral-700">
-                            Fuso: <strong>{profileTimezone}</strong>
-                          </div>
-                        </div>
+                  <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="max-w-2xl">
+                        <h3 className="text-sm font-semibold text-neutral-900">Defina aqui só os seus horários de trabalho</h3>
+                        <p className="mt-1 text-sm text-neutral-700">
+                          Nesta etapa você configura a disponibilidade recorrente da semana. Esses horários representam quando você aceita atender pela Muuday.
+                        </p>
+                        <p className="mt-2 text-xs text-neutral-600">
+                          Bloqueios pontuais, compromissos fora da plataforma e integração com Google, Outlook ou Apple ficam no calendário completo.
+                        </p>
                       </div>
-
-                      <ProfessionalAvailabilityCalendar
-                        timezone={profileTimezone}
-                        availabilityRules={WEEK_DAYS.map(day => ({
-                          day_of_week: day.value,
-                          start_time: `${availabilityMap[day.value].start_time}:00`,
-                          end_time: `${availabilityMap[day.value].end_time}:00`,
-                          is_active: availabilityMap[day.value].is_available,
-                        }))}
-                        bookings={calendarBookings}
-                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href="/disponibilidade"
+                          className="inline-flex items-center justify-center rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-semibold text-brand-700 hover:border-brand-300 hover:text-brand-800"
+                        >
+                          Abrir calendário completo
+                        </Link>
+                        <Link
+                          href="/configuracoes-agendamento"
+                          className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
+                        >
+                          Ajustar regras avançadas
+                        </Link>
+                      </div>
                     </div>
+                    <div className="mt-3 rounded-lg border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-700">
+                      Fuso do perfil: <strong>{profileTimezone}</strong>. A agenda usa esse fuso e acompanha horário de verão e inverno automaticamente.
+                    </div>
+                  </div>
 
-                    <div className="max-h-[68vh] space-y-3 overflow-y-auto pr-1">
-                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                        <h4 className="text-sm font-semibold text-neutral-900">Agenda semanal</h4>
-                        <p className="mt-1 text-xs text-neutral-500">Ative dias e ajuste os blocos de horario.</p>
-                        <div className="mt-3 space-y-2.5">
-                          {WEEK_DAYS.map(day => {
-                            const dayState = availabilityMap[day.value]
-                            const isActive = dayState?.is_available
-                            return (
-                              <div
-                                key={day.value}
-                                className={`rounded-xl border px-3 py-2 ${
-                                  isActive ? 'border-brand-200 bg-brand-50/30' : 'border-neutral-200 bg-neutral-50'
-                                }`}
-                              >
-                                <div className="grid grid-cols-1 gap-2">
-                                  <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(isActive)}
-                                      onChange={event =>
-                                        setAvailabilityMap(prev => ({
-                                          ...prev,
-                                          [day.value]: {
-                                            ...prev[day.value],
-                                            is_available: event.target.checked,
-                                          },
-                                        }))
-                                      }
-                                      className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                                    />
-                                    {day.label}
-                                  </label>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <select
-                                      value={dayState?.start_time || '09:00'}
-                                      disabled={!isActive}
-                                      onChange={event =>
-                                        setAvailabilityMap(prev => ({
-                                          ...prev,
-                                          [day.value]: {
-                                            ...prev[day.value],
-                                            start_time: event.target.value,
-                                          },
-                                        }))
-                                      }
-                                      className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      {TIME_OPTIONS.map(option => (
-                                        <option key={`start-${day.value}-${option}`} value={option}>
-                                          Inicio {option}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <select
-                                      value={dayState?.end_time || '18:00'}
-                                      disabled={!isActive}
-                                      onChange={event =>
-                                        setAvailabilityMap(prev => ({
-                                          ...prev,
-                                          [day.value]: {
-                                            ...prev[day.value],
-                                            end_time: event.target.value,
-                                          },
-                                        }))
-                                      }
-                                      className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      {TIME_OPTIONS.map(option => (
-                                        <option key={`end-${day.value}-${option}`} value={option}>
-                                          Fim {option}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <h4 className="text-sm font-semibold text-neutral-900">Horas de trabalho por dia</h4>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Ative apenas os dias em que você costuma atender. Você poderá bloquear exceções e indisponibilidades no calendário completo.
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 gap-2.5">
+                      {WEEK_DAYS.map(day => {
+                        const dayState = availabilityMap[day.value]
+                        const isActive = dayState?.is_available
+                        return (
+                          <div
+                            key={day.value}
+                            className={`rounded-xl border px-3 py-3 ${
+                              isActive ? 'border-brand-200 bg-brand-50/30' : 'border-neutral-200 bg-neutral-50'
+                            }`}
+                          >
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,180px)_1fr] md:items-center">
+                              <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(isActive)}
+                                  onChange={event =>
+                                    setAvailabilityMap(prev => ({
+                                      ...prev,
+                                      [day.value]: {
+                                        ...prev[day.value],
+                                        is_available: event.target.checked,
+                                      },
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                {day.label}
+                              </label>
+                              <div className="grid grid-cols-2 gap-2">
+                                <select
+                                  value={dayState?.start_time || '09:00'}
+                                  disabled={!isActive}
+                                  onChange={event =>
+                                    setAvailabilityMap(prev => ({
+                                      ...prev,
+                                      [day.value]: {
+                                        ...prev[day.value],
+                                        start_time: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {TIME_OPTIONS.map(option => (
+                                    <option key={`start-${day.value}-${option}`} value={option}>
+                                      Início {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={dayState?.end_time || '18:00'}
+                                  disabled={!isActive}
+                                  onChange={event =>
+                                    setAvailabilityMap(prev => ({
+                                      ...prev,
+                                      [day.value]: {
+                                        ...prev[day.value],
+                                        end_time: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {TIME_OPTIONS.map(option => (
+                                    <option key={`end-${day.value}-${option}`} value={option}>
+                                      Fim {option}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
 
-                      <details className="rounded-xl border border-neutral-200 bg-white p-3.5" open>
-                        <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-900">
-                          Regras de agendamento
-                        </summary>
-                        <div className="mt-3 space-y-3">
+                  <details className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-900">
+                      Regras básicas de agendamento
+                    </summary>
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedencia minima (horas)</label>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedência mínima (horas)</label>
                             <input
                               type="number"
                               min={Number(minNoticeRange.min)}
@@ -2147,7 +2010,7 @@ export function OnboardingTrackerModal({
                           </div>
 
                           <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Janela maxima (dias)</label>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Janela máxima (dias)</label>
                             <input
                               type="number"
                               min={1}
@@ -2166,7 +2029,7 @@ export function OnboardingTrackerModal({
                           </div>
 
                           <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Buffer entre sessoes (min)</label>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Buffer entre sessões (min)</label>
                             <input
                               type="number"
                               min={0}
@@ -2182,13 +2045,13 @@ export function OnboardingTrackerModal({
                             />
                             {!bufferConfig.configurable ? (
                               <p className="mt-1 text-[11px] text-amber-700">
-                                No plano basico, buffer fixo em {bufferConfig.defaultMinutes} min.
+                                No plano básico, o buffer fica travado em {bufferConfig.defaultMinutes} min.
                               </p>
                             ) : null}
                           </div>
 
                           <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmacao</label>
+                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmação</label>
                             <select
                               value={canUseManualConfirmation ? confirmationMode : 'auto_accept'}
                               disabled={!canUseManualConfirmation}
@@ -2196,11 +2059,11 @@ export function OnboardingTrackerModal({
                               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
                             >
                               <option value="auto_accept">Auto-aceite</option>
-                              <option value="manual">Confirmacao manual</option>
+                              <option value="manual">Confirmação manual</option>
                             </select>
                             {!canUseManualConfirmation ? (
                               <p className="mt-1 text-[11px] text-amber-700">
-                                Confirmacao manual disponivel a partir do plano Profissional.
+                                Confirmação manual disponível a partir do plano Profissional.
                               </p>
                             ) : null}
                           </div>
@@ -2212,7 +2075,7 @@ export function OnboardingTrackerModal({
                               onChange={event => setEnableRecurring(event.target.checked)}
                               className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                             />
-                            Permitir recorrencia
+                            Permitir recorrência
                           </label>
                           <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
                             <input
@@ -2221,7 +2084,7 @@ export function OnboardingTrackerModal({
                               onChange={event => setAllowMultiSession(event.target.checked)}
                               className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                             />
-                            Permitir multiplas sessoes
+                            Permitir múltiplas sessões
                           </label>
                           <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
                             <input
@@ -2230,120 +2093,10 @@ export function OnboardingTrackerModal({
                               onChange={event => setRequireSessionPurpose(event.target.checked)}
                               className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                             />
-                            Exigir objetivo da sessao
+                            Exigir objetivo da sessão
                           </label>
                         </div>
                       </details>
-
-                      <details className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                        <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-900">
-                          Sync de calendario
-                        </summary>
-                        <p className="mt-1 text-xs text-neutral-500">
-                          Selecione o provider e conecte/desconecte por aqui.
-                        </p>
-                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                          {(['google', 'outlook', 'apple'] as const).map(provider => {
-                            const isPremiumProvider = provider !== 'google'
-                            const locked = isPremiumProvider && !isFeatureAvailable(String(tier || '').toLowerCase(), 'outlook_sync')
-                            const selected = calendarSyncProvider === provider
-                            return (
-                              <button
-                                key={provider}
-                                type="button"
-                                disabled={locked}
-                                onClick={() => {
-                                  if (locked) return
-                                  setCalendarSyncProvider(provider)
-                                }}
-                                className={`rounded-lg border px-2 py-2 text-xs font-semibold ${
-                                  selected
-                                    ? 'border-brand-500 bg-brand-500 text-white'
-                                    : 'border-neutral-200 bg-white text-neutral-700'
-                                } ${locked ? 'cursor-not-allowed opacity-50' : ''}`}
-                              >
-                                {provider === 'google' ? 'Google' : provider === 'outlook' ? 'Outlook' : 'Apple'}
-                                {locked ? ' (plano superior)' : ''}
-                              </button>
-                            )
-                          })}
-                        </div>
-                        <input
-                          type="email"
-                          value={calendarProviderAccountEmail}
-                          onChange={event => setCalendarProviderAccountEmail(event.target.value)}
-                          placeholder="Email da conta conectada"
-                          className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                        />
-                        {calendarSyncProvider === 'apple' ? (
-                          <div className="mt-2 space-y-2">
-                            <input
-                              type="email"
-                              value={appleCaldavUsername}
-                              onChange={event => setAppleCaldavUsername(event.target.value)}
-                              placeholder="Apple ID (email)"
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                            />
-                            <input
-                              type="password"
-                              value={appleCaldavPassword}
-                              onChange={event => setAppleCaldavPassword(event.target.value)}
-                              placeholder="App-specific password"
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                            />
-                            <input
-                              type="url"
-                              value={appleCaldavServerUrl}
-                              onChange={event => setAppleCaldavServerUrl(event.target.value)}
-                              placeholder="Servidor CalDAV (opcional)"
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                            />
-                          </div>
-                        ) : null}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void connectCalendarProvider()}
-                            disabled={calendarSyncState === 'saving'}
-                            className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                          >
-                            {calendarSyncState === 'saving' ? 'Conectando...' : 'Conectar'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void disconnectCalendarProvider()}
-                            disabled={calendarSyncState === 'saving'}
-                            className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-                          >
-                            Desconectar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void runCalendarSyncNow()}
-                            disabled={calendarSyncState === 'saving' || !calendarSyncEnabled}
-                            className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-                          >
-                            Sincronizar agora
-                          </button>
-                          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-700">
-                            {calendarConnectionStatus === 'connected'
-                              ? 'Conectado'
-                              : calendarConnectionStatus === 'pending'
-                                ? 'Pendente'
-                                : calendarConnectionStatus === 'error'
-                                  ? 'Com erro'
-                                  : 'Nao conectado'}
-                          </span>
-                        </div>
-                        <div className="mt-2 space-y-1 text-[11px] text-neutral-600">
-                          <p>Ultimo sync: {calendarLastSyncAt ? new Date(calendarLastSyncAt).toLocaleString('pt-BR') : 'nunca'}</p>
-                          {calendarLastSyncError ? (
-                            <p className="font-medium text-red-700">Erro: {calendarLastSyncError}</p>
-                          ) : null}
-                        </div>
-                      </details>
-                    </div>
-                  </div>
 
                   {availabilityError ? <p className="text-sm font-medium text-red-700">{availabilityError}</p> : null}
 
@@ -2357,7 +2110,7 @@ export function OnboardingTrackerModal({
                       ? 'Salvando...'
                       : availabilitySaveState === 'saved'
                         ? 'Salvo'
-                        : 'Salvar disponibilidade e calendario'}
+                        : 'Salvar horas de trabalho'}
                   </button>
                 </div>
               )}
@@ -2367,7 +2120,7 @@ export function OnboardingTrackerModal({
                   <div>
                     <h3 className="text-base font-semibold text-neutral-900">Pronto para enviar seu perfil?</h3>
                     <p className="mt-1 text-sm text-neutral-700">
-                      Revise as pendencias abaixo. Quando tudo estiver em ordem, envie o perfil para a etapa de analise sem sair do tracker.
+                      Revise as pendências abaixo. Quando tudo estiver em ordem, envie o perfil para a etapa de análise sem sair do tracker.
                     </p>
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
@@ -2407,7 +2160,7 @@ export function OnboardingTrackerModal({
                       disabled={submitReviewState === 'saving' || !currentEvaluation.summary.canSubmitForReview}
                       className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {submitReviewState === 'saving' ? 'Enviando...' : 'Enviar para analise'}
+                      {submitReviewState === 'saving' ? 'Enviando...' : 'Enviar para análise'}
                     </button>
                     {!currentEvaluation.summary.canSubmitForReview ? (
                       <span className="text-xs text-amber-700">Conclua os itens pendentes antes do envio.</span>
@@ -2424,12 +2177,34 @@ export function OnboardingTrackerModal({
                       <li key={blocker.code} className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">
                         <p className="font-semibold text-neutral-900">{blocker.title}</p>
                         <p className="mt-1">{blocker.description}</p>
-                        {blocker.actionHref ? (
-                          <Link href={blocker.actionHref} className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800">
-                            Corrigir
-                            <ArrowRight className="h-3 w-3" />
-                          </Link>
-                        ) : null}
+                        {(() => {
+                          const cta = getBlockerCta(blocker)
+                          if (!cta) return null
+
+                          if (cta.kind === 'internal') {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setActiveStageId(cta.stageId)}
+                                className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800"
+                              >
+                                {cta.label}
+                                <ArrowRight className="h-3 w-3" />
+                              </button>
+                            )
+                          }
+
+                          return (
+                            <Link
+                              href={cta.href}
+                              onClick={() => setOpen(false)}
+                              className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800"
+                            >
+                              {cta.label}
+                              <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          )
+                        })()}
                       </li>
                     ))}
                   </ul>

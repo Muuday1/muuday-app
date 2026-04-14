@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Check, Clock, AlertCircle, ChevronLeft } from 'lucide-react'
+import { Loader2, Check, Clock, AlertCircle, ChevronLeft, RefreshCcw, Link2 } from 'lucide-react'
 import Link from 'next/link'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
+import { isFeatureAvailable } from '@/lib/tier-config'
 
 // day_of_week: 0=Sunday, 1=Monday, ..., 6=Saturday
 // We display Mon-Sun (1-6, 0) but store as 0-6
@@ -52,6 +53,7 @@ function buildDefaultState(): AvailabilityState {
 }
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
+type CalendarProvider = 'google' | 'outlook' | 'apple'
 
 export default function DisponibilidadePage() {
   const router = useRouter()
@@ -60,11 +62,24 @@ export default function DisponibilidadePage() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [professionalId, setProfessionalId] = useState<string | null>(null)
+  const [professionalTier, setProfessionalTier] = useState('basic')
   const [accessDenied, setAccessDenied] = useState(false)
   const [bufferMinutes, setBufferMinutes] = useState(15)
   const [maxWindowDays, setMaxWindowDays] = useState(60)
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [calendarTimezone, setCalendarTimezone] = useState('America/Sao_Paulo')
+  const [calendarProvider, setCalendarProvider] = useState<CalendarProvider>('google')
+  const [calendarConnectionStatus, setCalendarConnectionStatus] = useState<
+    'disconnected' | 'pending' | 'connected' | 'error'
+  >('disconnected')
+  const [calendarProviderAccountEmail, setCalendarProviderAccountEmail] = useState('')
+  const [calendarLastSyncAt, setCalendarLastSyncAt] = useState('')
+  const [calendarLastSyncError, setCalendarLastSyncError] = useState('')
+  const [calendarSyncState, setCalendarSyncState] = useState<SaveStatus>('idle')
+  const [calendarSyncError, setCalendarSyncError] = useState('')
+  const [appleCaldavUsername, setAppleCaldavUsername] = useState('')
+  const [appleCaldavPassword, setAppleCaldavPassword] = useState('')
+  const [appleCaldavServerUrl, setAppleCaldavServerUrl] = useState('')
   const [upcomingBookings, setUpcomingBookings] = useState<
     Array<{ id: string; start_utc: string; end_utc: string; status: string }>
   >([])
@@ -94,7 +109,7 @@ export default function DisponibilidadePage() {
     }
 
     // Get professional profile
-    const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+    const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id, tier')
 
     if (!professional) {
       setAccessDenied(true)
@@ -103,8 +118,9 @@ export default function DisponibilidadePage() {
     }
 
     setProfessionalId(professional.id)
+    setProfessionalTier(String(professional.tier || 'basic').toLowerCase())
 
-    const [{ data: settingsRow }, { data: calendarRow }, { data: bookingRows }] = await Promise.all([
+    const [{ data: settingsRow }, { data: calendarRow }, { data: bookingRows }, { data: externalBusyRows }] = await Promise.all([
       supabase
         .from('professional_settings')
         .select('timezone, buffer_minutes, buffer_time_minutes, max_booking_window_days')
@@ -112,7 +128,7 @@ export default function DisponibilidadePage() {
         .maybeSingle(),
       supabase
         .from('calendar_integrations')
-        .select('sync_enabled')
+        .select('provider, sync_enabled, provider_account_email, connection_status, last_sync_at, last_sync_completed_at, last_sync_error')
         .eq('professional_id', professional.id)
         .maybeSingle(),
       supabase
@@ -123,6 +139,13 @@ export default function DisponibilidadePage() {
         .gte('scheduled_at', new Date().toISOString())
         .order('scheduled_at', { ascending: true })
         .limit(300),
+      supabase
+        .from('external_calendar_busy_slots')
+        .select('id,start_time_utc,end_time_utc,provider')
+        .eq('professional_id', professional.id)
+        .gte('start_time_utc', new Date().toISOString())
+        .order('start_time_utc', { ascending: true })
+        .limit(300),
     ])
 
     setBufferMinutes(
@@ -131,23 +154,45 @@ export default function DisponibilidadePage() {
     setCalendarTimezone(String(settingsRow?.timezone || 'America/Sao_Paulo'))
     setMaxWindowDays(Number(settingsRow?.max_booking_window_days || 60))
     setCalendarConnected(Boolean(calendarRow?.sync_enabled))
+    const resolvedProvider = String(calendarRow?.provider || 'google')
+    setCalendarProvider(resolvedProvider === 'outlook' || resolvedProvider === 'apple' ? resolvedProvider : 'google')
+    setCalendarProviderAccountEmail(String(calendarRow?.provider_account_email || ''))
+    setCalendarConnectionStatus(
+      String(calendarRow?.connection_status || 'disconnected') === 'connected'
+        ? 'connected'
+        : String(calendarRow?.connection_status || 'disconnected') === 'pending'
+          ? 'pending'
+          : String(calendarRow?.connection_status || 'disconnected') === 'error'
+            ? 'error'
+            : 'disconnected',
+    )
+    setCalendarLastSyncAt(String(calendarRow?.last_sync_completed_at || calendarRow?.last_sync_at || ''))
+    setCalendarLastSyncError(String(calendarRow?.last_sync_error || ''))
     setUpcomingBookings(
-      (bookingRows || []).map((row: Record<string, unknown>) => {
-        const scheduledAt = new Date(String(row.scheduled_at || ''))
-        const durationMinutes = Number(row.duration_minutes || 60)
-        const startUtcIso = String(row.start_time_utc || row.scheduled_at || '')
-        const endUtcIso =
-          String(row.end_time_utc || '') ||
-          (Number.isNaN(scheduledAt.getTime())
-            ? ''
-            : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
-        return {
-          id: String(row.id || ''),
-          start_utc: startUtcIso,
-          end_utc: endUtcIso,
-          status: String(row.status || 'pending'),
-        }
-      }),
+      [
+        ...(bookingRows || []).map((row: Record<string, unknown>) => {
+          const scheduledAt = new Date(String(row.scheduled_at || ''))
+          const durationMinutes = Number(row.duration_minutes || 60)
+          const startUtcIso = String(row.start_time_utc || row.scheduled_at || '')
+          const endUtcIso =
+            String(row.end_time_utc || '') ||
+            (Number.isNaN(scheduledAt.getTime())
+              ? ''
+              : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
+          return {
+            id: String(row.id || ''),
+            start_utc: startUtcIso,
+            end_utc: endUtcIso,
+            status: String(row.status || 'pending'),
+          }
+        }),
+        ...(externalBusyRows || []).map((row: Record<string, unknown>) => ({
+          id: `external-${String(row.id || '')}`,
+          start_utc: String(row.start_time_utc || ''),
+          end_utc: String(row.end_time_utc || ''),
+          status: `external_${String(row.provider || 'calendar')}`,
+        })),
+      ].filter(item => item.start_utc && item.end_utc),
     )
 
     // Load existing availability
@@ -200,7 +245,111 @@ export default function DisponibilidadePage() {
     return day.start_time < day.end_time
   }
 
+  async function connectCalendarProvider() {
+    const locked = calendarProvider !== 'google' && !isFeatureAvailable(professionalTier, 'outlook_sync')
+    if (locked) {
+      setCalendarSyncError('Esse provider está disponível apenas em plano superior.')
+      return
+    }
+
+    if (calendarProvider === 'apple') {
+      if (!appleCaldavUsername.trim() || !appleCaldavPassword.trim()) {
+        setCalendarSyncError('Informe Apple ID e app-specific password para conectar Apple CalDAV.')
+        return
+      }
+
+      setCalendarSyncState('saving')
+      setCalendarSyncError('')
+      const response = await fetch('/api/professional/calendar/connect/apple', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          username: appleCaldavUsername.trim(),
+          appPassword: appleCaldavPassword.trim(),
+          accountEmail: calendarProviderAccountEmail.trim() || appleCaldavUsername.trim(),
+          serverUrl: appleCaldavServerUrl.trim() || undefined,
+        }),
+      })
+
+      const result = (await response.json().catch(() => ({}))) as { error?: string; accountEmail?: string }
+      if (!response.ok) {
+        setCalendarSyncState('error')
+        setCalendarSyncError(result.error || 'Não foi possível conectar Apple CalDAV.')
+        return
+      }
+
+      setCalendarConnected(true)
+      setCalendarConnectionStatus('connected')
+      setCalendarProviderAccountEmail(result.accountEmail || appleCaldavUsername.trim())
+      setCalendarLastSyncAt(new Date().toISOString())
+      setCalendarLastSyncError('')
+      setCalendarSyncState('success')
+      void loadAvailability()
+      setTimeout(() => setCalendarSyncState('idle'), 1800)
+      return
+    }
+
+    setCalendarSyncState('saving')
+    const next = encodeURIComponent('/disponibilidade')
+    window.location.href = `/api/professional/calendar/connect/${calendarProvider}?next=${next}`
+  }
+
+  async function disconnectCalendarProvider() {
+    setCalendarSyncState('saving')
+    setCalendarSyncError('')
+    const response = await fetch('/api/professional/calendar/disconnect', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ provider: calendarProvider }),
+    })
+
+    const result = (await response.json().catch(() => ({}))) as { error?: string }
+    if (!response.ok) {
+      setCalendarSyncState('error')
+      setCalendarSyncError(result.error || 'Não foi possível desconectar o calendário.')
+      return
+    }
+
+    setCalendarConnected(false)
+    setCalendarConnectionStatus('disconnected')
+    setCalendarProviderAccountEmail('')
+    setCalendarLastSyncAt('')
+    setCalendarLastSyncError('')
+    setCalendarSyncState('success')
+    void loadAvailability()
+    setTimeout(() => setCalendarSyncState('idle'), 1800)
+  }
+
+  async function runCalendarSyncNow() {
+    setCalendarSyncState('saving')
+    setCalendarSyncError('')
+    const response = await fetch('/api/professional/calendar/sync', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ provider: calendarProvider }),
+    })
+
+    const result = (await response.json().catch(() => ({}))) as { error?: string }
+    if (!response.ok) {
+      setCalendarSyncState('error')
+      setCalendarSyncError(result.error || 'Não foi possível sincronizar o calendário.')
+      return
+    }
+
+    setCalendarConnected(true)
+    setCalendarConnectionStatus('connected')
+    setCalendarLastSyncAt(new Date().toISOString())
+    setCalendarLastSyncError('')
+    setCalendarSyncState('success')
+    await loadAvailability()
+    setTimeout(() => setCalendarSyncState('idle'), 1800)
+  }
+
   const hasErrors = DAYS_OF_WEEK.some(d => !isValidTimeRange(availability[d.value]))
+  const outlookLocked = !isFeatureAvailable(professionalTier, 'outlook_sync')
 
   async function handleSave() {
     if (!professionalId || hasErrors) return
@@ -284,42 +433,39 @@ export default function DisponibilidadePage() {
   const activeDaysCount = DAYS_OF_WEEK.filter(d => availability[d.value].is_available).length
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto">
-      {/* Header */}
+    <div className="mx-auto max-w-5xl p-6 md:p-8">
       <div className="mb-8">
         <Link
           href="/perfil"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-600 transition-colors mb-4"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-neutral-600"
         >
           <ChevronLeft className="w-4 h-4" />
           Voltar ao perfil
         </Link>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">
-              Disponibilidade
-            </h1>
+            <h1 className="mb-1 font-display text-3xl font-bold text-neutral-900">Calendário e disponibilidade</h1>
             <p className="text-neutral-500">
-              Configure os dias e horários em que você atende clientes
+              Defina seus horários recorrentes de trabalho e concentre aqui as integrações do seu calendário.
             </p>
           </div>
-          {activeDaysCount > 0 && (
-            <span className="flex-shrink-0 text-xs font-medium bg-brand-50 text-brand-700 px-3 py-1.5 rounded-full">
+          {activeDaysCount > 0 ? (
+            <span className="flex-shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
               {activeDaysCount} {activeDaysCount === 1 ? 'dia ativo' : 'dias ativos'}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Info banner */}
-      <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
-        <Clock className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-brand-700">
-          Os horários são exibidos para clientes no fuso horário local deles. Configure os dias em que você está disponível para sessões.
-        </p>
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
+        <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-600" />
+        <div className="space-y-1 text-sm text-brand-700">
+          <p>Os horários abaixo representam sua disponibilidade recorrente de trabalho na Muuday.</p>
+          <p>Compromissos pontuais fora da plataforma e períodos ocupados pelas integrações aparecem no calendário completo logo abaixo.</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
           <p className="text-xs text-neutral-500">Buffer ativo</p>
           <p className="text-sm font-semibold text-neutral-900">{bufferMinutes} min</p>
@@ -329,20 +475,143 @@ export default function DisponibilidadePage() {
           <p className="text-sm font-semibold text-neutral-900">{maxWindowDays} dias</p>
         </div>
         <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
-          <p className="text-xs text-neutral-500">Sync de calendário</p>
+          <p className="text-xs text-neutral-500">Status de sync</p>
           <p className="text-sm font-semibold text-neutral-900">
             {calendarConnected ? 'Conectado' : 'Não conectado'}
           </p>
         </div>
       </div>
 
-      <div className="mb-6">
-        <Link
-          href="/configuracoes-agendamento"
-          className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 bg-white border border-neutral-200 hover:border-neutral-300 px-4 py-2 rounded-xl transition-all"
-        >
-          Ajustar regras de agendamento
-        </Link>
+      <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-900">Integrações do calendário</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Conecte Google, Outlook ou Apple para importar ocupações externas e evitar conflitos de agenda.
+              </p>
+            </div>
+            <div className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-700">
+              {calendarConnectionStatus === 'connected'
+                ? 'Conectado'
+                : calendarConnectionStatus === 'pending'
+                  ? 'Conexão pendente'
+                  : calendarConnectionStatus === 'error'
+                    ? 'Com erro'
+                    : 'Sem conexão'}
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {(['google', 'outlook', 'apple'] as const).map(provider => {
+              const locked = provider !== 'google' && outlookLocked
+              const selected = calendarProvider === provider
+              return (
+                <button
+                  key={provider}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => {
+                    if (locked) return
+                    setCalendarProvider(provider)
+                    setCalendarSyncError('')
+                  }}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${
+                    selected
+                      ? 'border-brand-500 bg-brand-500 text-white'
+                      : 'border-neutral-200 bg-white text-neutral-700 hover:border-brand-300 hover:text-brand-700'
+                  } ${locked ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  {provider === 'google' ? 'Google' : provider === 'outlook' ? 'Outlook' : 'Apple'}
+                  {locked ? ' · plano superior' : ''}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-4 space-y-2 rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+            <p>
+              Conta conectada: <strong>{calendarProviderAccountEmail || 'nenhuma informada ainda'}</strong>
+            </p>
+            <p>
+              Última sincronização:{' '}
+              <strong>{calendarLastSyncAt ? new Date(calendarLastSyncAt).toLocaleString('pt-BR') : 'nunca'}</strong>
+            </p>
+            {calendarLastSyncError ? (
+              <p className="font-medium text-red-700">Erro recente: {calendarLastSyncError}</p>
+            ) : null}
+          </div>
+
+          {calendarProvider === 'apple' ? (
+            <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-3">
+              <input
+                type="email"
+                value={appleCaldavUsername}
+                onChange={event => setAppleCaldavUsername(event.target.value)}
+                placeholder="Apple ID"
+                className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="password"
+                value={appleCaldavPassword}
+                onChange={event => setAppleCaldavPassword(event.target.value)}
+                placeholder="App-specific password"
+                className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="url"
+                value={appleCaldavServerUrl}
+                onChange={event => setAppleCaldavServerUrl(event.target.value)}
+                placeholder="Servidor CalDAV (opcional)"
+                className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              />
+            </div>
+          ) : null}
+
+          {calendarSyncError ? <p className="mt-3 text-sm font-medium text-red-700">{calendarSyncError}</p> : null}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void connectCalendarProvider()}
+              disabled={calendarSyncState === 'saving'}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60"
+            >
+              <Link2 className="h-4 w-4" />
+              {calendarSyncState === 'saving' ? 'Conectando...' : 'Conectar calendário'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void runCalendarSyncNow()}
+              disabled={calendarSyncState === 'saving' || !calendarConnected}
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-neutral-300 hover:text-neutral-900 disabled:opacity-60"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Sincronizar agora
+            </button>
+            <button
+              type="button"
+              onClick={() => void disconnectCalendarProvider()}
+              disabled={calendarSyncState === 'saving' || !calendarConnected}
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-neutral-300 hover:text-neutral-900 disabled:opacity-60"
+            >
+              Desconectar
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
+          <h2 className="text-base font-semibold text-neutral-900">Regras de agendamento</h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Ajuste buffer, confirmação, janela máxima e outras regras fora do editor semanal.
+          </p>
+          <Link
+            href="/configuracoes-agendamento"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:border-neutral-300 hover:text-neutral-900"
+          >
+            Ajustar regras de agendamento
+          </Link>
+        </div>
       </div>
 
       {/* Weekly schedule */}
@@ -451,7 +720,18 @@ export default function DisponibilidadePage() {
         })}
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
+        <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-900">Calendário completo</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Use esta visão para acompanhar a sua disponibilidade base, sessões já marcadas e ocupações vindas dos calendários conectados.
+            </p>
+          </div>
+          <div className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+            Fuso: {calendarTimezone}
+          </div>
+        </div>
         <ProfessionalAvailabilityCalendar
           timezone={calendarTimezone}
           availabilityRules={DAYS_OF_WEEK.map(day => ({
@@ -527,7 +807,7 @@ export default function DisponibilidadePage() {
       {saveStatus === 'success' && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 mb-4 flex items-center gap-2">
           <Check className="w-4 h-4 flex-shrink-0" />
-          Disponibilidade salva com sucesso!
+          Horas de trabalho salvas com sucesso!
         </div>
       )}
 
@@ -549,7 +829,7 @@ export default function DisponibilidadePage() {
             Salvo!
           </>
         ) : (
-          'Salvar disponibilidade'
+          'Salvar horas de trabalho'
         )}
       </button>
     </div>

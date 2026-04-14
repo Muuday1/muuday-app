@@ -16,13 +16,13 @@ type ProfessionalOnboardingCardProps = {
 
 const STAGE_LABELS: Record<string, string> = {
   c2_basic_identity: 'Identidade',
-  c3_public_profile: 'Perfil publico',
-  c4_service_setup: 'Servicos',
+  c3_public_profile: 'Perfil público',
+  c4_service_setup: 'Serviços',
   c5_availability_calendar: 'Disponibilidade',
-  c6_plan_billing_setup: 'Plano e cobranca',
-  c7_payout_payments: 'Pagamento',
-  c8_submit_review: 'Enviar para analise',
-  c9_go_live: 'Go-live',
+  c6_plan_billing_setup: 'Plano e cobrança',
+  c7_payout_payments: 'Recebimentos',
+  c8_submit_review: 'Enviar para análise',
+  c9_go_live: 'Publicação',
 }
 
 function normalizeStageId(stageId: string) {
@@ -60,7 +60,7 @@ export function ProfessionalOnboardingCard({
         .map(stage => ({
           id: stage.id,
           title: STAGE_LABELS[normalizeStageId(stage.id)] || stage.title,
-          description: stage.blockers[0]?.description || 'Ainda ha itens para concluir nesta etapa.',
+          description: stage.blockers[0]?.description || 'Ainda há itens para concluir nesta etapa.',
         })),
     [evaluation],
   )
@@ -77,11 +77,11 @@ export function ProfessionalOnboardingCard({
 
   const feedbackMessage =
     result === 'submitted'
-      ? 'Perfil enviado para analise com sucesso.'
+      ? 'Perfil enviado para análise com sucesso.'
       : result === 'blocked'
-        ? 'Ainda existem pendencias obrigatorias antes do envio.'
+        ? 'Ainda existem pendências obrigatórias antes do envio.'
         : result === 'error'
-          ? 'Nao foi possivel concluir a acao agora. Tente novamente.'
+          ? 'Não foi possível concluir a ação agora. Tente novamente.'
           : ''
 
   return (
@@ -95,7 +95,7 @@ export function ProfessionalOnboardingCard({
         <div className="max-w-2xl">
           <h2 className="font-display text-lg font-bold text-amber-900">Complete o onboarding para liberar o perfil</h2>
           <p className="mt-1 text-sm text-amber-800">
-            Falta concluir o tracker profissional antes da publicacao. Continue de onde parou e envie o perfil para analise no fim do fluxo.
+            Falta concluir as etapas do onboarding antes da publicação. Continue de onde parou e envie o perfil para análise no fim do fluxo.
           </p>
         </div>
         <div className="min-w-[210px] rounded-xl border border-amber-200 bg-white/80 px-4 py-3">
@@ -103,6 +103,7 @@ export function ProfessionalOnboardingCard({
           <p className="mt-1 text-2xl font-bold text-amber-950">
             {completedCount}/{totalCount}
           </p>
+          <p className="mt-1 text-xs text-amber-800">etapas concluídas</p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-amber-100">
             <div
               className="h-full rounded-full bg-emerald-500 transition-all"
