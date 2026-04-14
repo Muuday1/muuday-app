@@ -20,7 +20,7 @@ import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-h
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
-import { OnboardingTrackerModal } from '@/components/dashboard/OnboardingTrackerModal'
+import { ProfessionalOnboardingCard } from '@/components/dashboard/ProfessionalOnboardingCard'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
   'pending',
@@ -85,7 +85,11 @@ function toUiLabel(value?: string | null, dictionary: Record<string, string> = {
   return value.replaceAll('_', ' ')
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { openOnboarding?: string; result?: string }
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -233,51 +237,20 @@ export default async function DashboardPage() {
   const currency = profile.currency || 'BRL'
   const onboardingEvaluation = onboardingState?.evaluation || null
   const onboardingIncomplete = Boolean(onboardingEvaluation && !onboardingEvaluation.summary.canGoLive)
-  const stageTitleMap: Record<string, string> = {
-    c1_create_account: '1. Criação da conta',
-    c2_professional_identity: '2. Identidade profissional',
-    c3_public_profile: '3. Perfil público',
-    c4_services: '4. Serviços',
-    c5_availability_calendar: '5. Disponibilidade e calendário',
-    c6_plan_billing_setup: '6. Plano, termos e cobrança',
-    c7_payout_receipt: '7. Payout e recebimentos',
-    c8_submit_review: '8. Envio para análise',
-    c9_go_live: '9. Go-live',
-  }
+  const shouldAutoOpenOnboarding = searchParams?.openOnboarding === '1'
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
       {onboardingIncomplete && onboardingEvaluation ? (
-        <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="font-display text-lg font-bold text-amber-900">Complete o onboarding para liberar o perfil</h2>
-          <p className="mt-1 text-sm text-amber-800">
-            Você ainda tem pendências no tracker de onboarding. O painel operacional fica limitado até concluir os requisitos.
-          </p>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {onboardingEvaluation.stages.map(stage => (
-              <div
-                key={stage.id}
-                className={`rounded-xl border px-3 py-2 text-xs ${
-                  stage.complete
-                    ? 'border-green-200 bg-green-50 text-green-800'
-                    : 'border-amber-200 bg-amber-100 text-amber-900'
-                }`}
-              >
-                <p className="font-semibold">{stageTitleMap[stage.id] || stage.title}</p>
-                <p className="mt-0.5">
-                  {stage.complete ? 'Concluído' : stage.blockers[0]?.title || 'Pendente'}
-                </p>
-              </div>
-            ))}
-          </div>
-          <OnboardingTrackerModal
-            professionalId={professionalId}
-            tier={String(professional.tier || 'basic')}
-            onboardingEvaluation={onboardingEvaluation}
-            initialBio={String(professional.bio || '')}
-            initialCoverPhotoUrl={String(professional.cover_photo_url || '')}
-          />
-        </section>
+        <ProfessionalOnboardingCard
+          professionalId={professionalId}
+          tier={String(professional.tier || 'basic')}
+          initialEvaluation={onboardingEvaluation}
+          initialBio={String(professional.bio || '')}
+          initialCoverPhotoUrl={String(professional.cover_photo_url || '')}
+          autoOpen={shouldAutoOpenOnboarding}
+          result={searchParams?.result}
+        />
       ) : null}
 
       <div className={onboardingIncomplete ? 'pointer-events-none select-none blur-[1px] opacity-80' : ''}>

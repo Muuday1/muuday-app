@@ -3,9 +3,8 @@
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
-import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
+import { submitProfessionalForReview } from '@/lib/professional/submit-review'
 
 const submitProfessionalForReviewInputSchema = z.object({})
 
@@ -34,34 +33,12 @@ export async function submitProfessionalForReviewAction() {
     redirect('/completar-perfil?result=missing-profile')
   }
 
-  const onboardingState = await loadProfessionalOnboardingState(supabase, professional.id)
-  if (!onboardingState) {
-    redirect('/completar-perfil?result=missing-state')
+  const result = await submitProfessionalForReview(supabase, professional.id)
+  if (!result.ok) {
+    if (result.code === 'missing_state') redirect('/completar-perfil?result=missing-state')
+    if (result.code === 'blocked') redirect('/dashboard?openOnboarding=1&result=blocked')
+    redirect('/dashboard?openOnboarding=1&result=error')
   }
 
-  if (!onboardingState.evaluation.summary.canSubmitForReview) {
-    redirect('/onboarding-profissional?result=blocked')
-  }
-
-  const firstBookingBlocker = onboardingState.evaluation.gates.first_booking_acceptance.blockers[0]
-  const firstBookingNote = firstBookingBlocker
-    ? `${firstBookingBlocker.code}:${firstBookingBlocker.title}`
-    : null
-
-  const { error } = await supabase
-    .from('professionals')
-    .update({
-      status: 'pending_review',
-      first_booking_gate_note: firstBookingNote,
-      first_booking_gate_updated_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', professional.id)
-
-  if (error) {
-    redirect('/onboarding-profissional?result=error')
-  }
-
-  await recomputeProfessionalVisibility(supabase, professional.id)
-  redirect('/onboarding-profissional?result=submitted')
+  redirect('/dashboard?openOnboarding=1&result=submitted')
 }

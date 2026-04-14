@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowRight, Camera, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
 import { getBufferConfig, getMinNoticeRange, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
+import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 
 type Blocker = {
   code: string
@@ -20,10 +21,6 @@ type Stage = {
   title: string
   complete: boolean
   blockers: Blocker[]
-}
-
-type OnboardingEvaluation = {
-  stages: Stage[]
 }
 
 type QualificationStructured = {
@@ -53,9 +50,11 @@ type AvailabilityDayState = {
 type OnboardingTrackerModalProps = {
   professionalId: string
   tier: string
-  onboardingEvaluation: OnboardingEvaluation
+  onboardingEvaluation: ProfessionalOnboardingEvaluation
   initialBio: string
   initialCoverPhotoUrl: string
+  autoOpen?: boolean
+  onEvaluationChange?: (evaluation: ProfessionalOnboardingEvaluation) => void
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -89,16 +88,30 @@ const BUSINESS_STAGE_ORDER = [
   'c9_go_live',
 ] as const
 
+const NAVIGABLE_STAGE_ORDER = BUSINESS_STAGE_ORDER.filter(id => id !== 'c1_create_account')
+
 const BUSINESS_STAGE_LABELS: Record<string, string> = {
   c1_create_account: '1. Criação da conta',
-  c2_professional_identity: '2. Identidade profissional',
-  c3_public_profile: '3. Perfil público',
-  c4_services: '4. Serviços',
-  c5_availability_calendar: '5. Disponibilidade e calendário',
-  c6_plan_billing_setup_post: '6. Plano, termos e cobrança',
-  c7_payout_receipt: '7. Payout e recebimentos',
-  c8_submit_review: '8. Envio para análise',
-  c9_go_live: '9. Go-live',
+  c2_professional_identity: 'Identidade',
+  c3_public_profile: 'Perfil',
+  c4_services: 'Serviços',
+  c5_availability_calendar: 'Disponibilidade',
+  c6_plan_billing_setup_post: 'Plano',
+  c7_payout_receipt: 'Pagamento',
+  c8_submit_review: 'Enviar',
+  c9_go_live: 'Go-live',
+}
+
+const STAGE_PROGRESS_LABELS: Record<string, string> = {
+  c1_create_account: 'Conta criada',
+  c2_professional_identity: 'Identidade profissional',
+  c3_public_profile: 'Perfil público',
+  c4_services: 'Configurar serviços',
+  c5_availability_calendar: 'Disponibilidade e agenda',
+  c6_plan_billing_setup_post: 'Plano e cobrança',
+  c7_payout_receipt: 'Payout',
+  c8_submit_review: 'Enviar para análise',
+  c9_go_live: 'Ativar perfil',
 }
 
 const PLAN_STAGE_GUIDANCE: Record<string, string[]> = {
@@ -113,11 +126,33 @@ const PLAN_STAGE_GUIDANCE: Record<string, string[]> = {
   c9_go_live: ['Perfil publicado', 'Aceite de novos agendamentos'],
 }
 
+const HIGHLIGHT_MILESTONES = new Set(['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'])
+
+const EXECUTIVE_GATE_LABELS: Record<string, string> = {
+  review_submission: 'Revisao',
+  go_live: 'Perfil',
+  first_booking_acceptance: 'Agenda',
+  payout_receipt: 'Pagamento',
+}
+
 function normalizeStageIdForLookup(id: string) {
-  if (id === 'c6_plan_billing_setup_pre' || id === 'c6_plan_billing_setup_post') {
+  const normalized = String(id || '')
+  if (normalized === 'c1_create_account' || normalized === 'c1_account_creation') return 'c1_account_creation'
+  if (normalized === 'c2_professional_identity' || normalized === 'c2_basic_identity') return 'c2_basic_identity'
+  if (normalized === 'c3_public_profile') return 'c3_public_profile'
+  if (normalized === 'c4_services' || normalized === 'c4_service_setup') return 'c4_service_setup'
+  if (normalized === 'c5_availability_calendar') return 'c5_availability_calendar'
+  if (
+    normalized === 'c6_plan_billing_setup_pre' ||
+    normalized === 'c6_plan_billing_setup_post' ||
+    normalized === 'c6_plan_billing_setup'
+  ) {
     return 'c6_plan_billing_setup'
   }
-  return id
+  if (normalized === 'c7_payout_receipt' || normalized === 'c7_payout_payments') return 'c7_payout_payments'
+  if (normalized === 'c8_submit_review') return 'c8_submit_review'
+  if (normalized === 'c9_go_live') return 'c9_go_live'
+  return normalized
 }
 
 function isValidCoverPhotoUrl(value: string) {
@@ -128,6 +163,14 @@ function isValidCoverPhotoUrl(value: string) {
   } catch {
     return false
   }
+}
+
+function sanitizePricingErrorMessage(error: string) {
+  if (!error) return 'Preco indisponivel no momento.'
+  if (error.includes('STRIPE_') || error.includes('AIRWALLEX_') || error.includes('PRICE_')) {
+    return 'Preco indisponivel no momento.'
+  }
+  return error
 }
 
 const LANGUAGE_OPTIONS = [
@@ -224,14 +267,19 @@ export function OnboardingTrackerModal({
   onboardingEvaluation,
   initialBio,
   initialCoverPhotoUrl,
+  autoOpen = false,
+  onEvaluationChange,
 }: OnboardingTrackerModalProps) {
   const supabase = useMemo(() => createClient(), [])
   const [open, setOpen] = useState(false)
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
+  const [isSidebarCompact, setIsSidebarCompact] = useState(true)
   const [bio, setBio] = useState(initialBio || '')
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl || '')
   const [photoUploadState, setPhotoUploadState] = useState<SaveState>('idle')
   const [photoUploadError, setPhotoUploadError] = useState('')
+  const [photoFocusX, setPhotoFocusX] = useState(50)
+  const [photoFocusY, setPhotoFocusY] = useState(50)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
   const [identityTitle, setIdentityTitle] = useState('')
@@ -296,15 +344,19 @@ export function OnboardingTrackerModal({
   const [calendarBookings, setCalendarBookings] = useState<
     Array<{ id: string; start_utc: string; end_utc: string; status: string }>
   >([])
+  const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
+  const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
+  const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
+  const [submitReviewMessage, setSubmitReviewMessage] = useState('')
 
   const stagesById = useMemo(() => {
     const map = new Map<string, Stage>()
-    onboardingEvaluation.stages.forEach(stage => map.set(stage.id, stage))
+    currentEvaluation.stages.forEach(stage => map.set(stage.id, stage as Stage))
     return map
-  }, [onboardingEvaluation.stages])
+  }, [currentEvaluation.stages])
 
   const firstPendingStageId = useMemo(() => {
-    const firstPending = BUSINESS_STAGE_ORDER.filter(id => id !== 'c1_create_account').find(id => {
+    const firstPending = NAVIGABLE_STAGE_ORDER.find(id => {
       const stage = stagesById.get(normalizeStageIdForLookup(id))
       return stage ? !stage.complete : false
     })
@@ -323,6 +375,15 @@ export function OnboardingTrackerModal({
     if (!open) return
     setActiveStageId(firstPendingStageId)
   }, [open, firstPendingStageId])
+
+  useEffect(() => {
+    setCurrentEvaluation(onboardingEvaluation)
+  }, [onboardingEvaluation])
+
+  useEffect(() => {
+    if (!autoOpen) return
+    setOpen(true)
+  }, [autoOpen])
 
   useEffect(() => {
     if (!open) return
@@ -577,7 +638,7 @@ export function OnboardingTrackerModal({
         } else {
           const errorBody = await pricingResponse.json().catch(() => ({}))
           setPlanPricing(null)
-          setPricingError(String(errorBody?.error || 'Não foi possível carregar preços agora.'))
+          setPricingError(sanitizePricingErrorMessage(String(errorBody?.error || 'Nao foi possivel carregar precos agora.')))
         }
       }
 
@@ -594,9 +655,9 @@ export function OnboardingTrackerModal({
   }, [open, professionalId, supabase])
 
   const stageItems = useMemo(() => {
-    return BUSINESS_STAGE_ORDER.map(id => {
+    return NAVIGABLE_STAGE_ORDER.map(id => {
       const stage = stagesById.get(normalizeStageIdForLookup(id))
-      const forceComplete = id === 'c1_create_account'
+      const forceComplete = false
       return {
         id,
         label: BUSINESS_STAGE_LABELS[id],
@@ -606,7 +667,34 @@ export function OnboardingTrackerModal({
     })
   }, [stagesById])
 
+  const stageCompletionSummary = useMemo(() => {
+    const rows = NAVIGABLE_STAGE_ORDER.map(id => {
+      const stage = stagesById.get(normalizeStageIdForLookup(id))
+      return Boolean(stage?.complete)
+    })
+    const completed = rows.filter(Boolean).length
+    return {
+      total: rows.length,
+      completed,
+    }
+  }, [stagesById])
+
+  const hasUrgentBlockers = useMemo(
+    () => stageItems.some(item => !item.complete && (item.blocker?.code?.includes('warning') || item.blocker)),
+    [stageItems],
+  )
+
   const activeStage = stagesById.get(normalizeStageIdForLookup(activeStageId))
+  const executiveGateSummary = useMemo(
+    () =>
+      Object.entries(currentEvaluation.gates).map(([gateId, gate]) => ({
+        id: gateId,
+        label: EXECUTIVE_GATE_LABELS[gateId] || gate.title,
+        passed: gate.passed,
+        description: gate.passed ? 'Ok' : gate.blockers[0]?.title || 'Pendente',
+      })),
+    [currentEvaluation.gates],
+  )
 
   function toggleMultiValue(value: string, values: string[], setter: (next: string[]) => void) {
     if (values.includes(value)) {
@@ -614,6 +702,42 @@ export function OnboardingTrackerModal({
     } else {
       setter([...values, value])
     }
+  }
+
+  async function refreshOnboardingEvaluation(options?: { advanceToNextPending?: boolean }) {
+    setTrackerRefreshState('saving')
+    const response = await fetch('/api/professional/onboarding/state', {
+      method: 'GET',
+      credentials: 'include',
+    })
+    const payload = (await response.json().catch(() => ({}))) as {
+      evaluation?: ProfessionalOnboardingEvaluation
+      error?: string
+    }
+
+    if (!response.ok || !payload.evaluation) {
+      setTrackerRefreshState('error')
+      return null
+    }
+
+    setCurrentEvaluation(payload.evaluation)
+    onEvaluationChange?.(payload.evaluation)
+    setTrackerRefreshState('saved')
+    setTimeout(() => setTrackerRefreshState('idle'), 1200)
+
+    if (options?.advanceToNextPending) {
+      const nextPending = NAVIGABLE_STAGE_ORDER.find(id => {
+        const stage = payload.evaluation?.stages.find(
+          stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(id),
+        )
+        return stage ? !stage.complete : false
+      })
+      if (nextPending) {
+        setActiveStageId(nextPending)
+      }
+    }
+
+    return payload.evaluation
   }
 
   async function uploadProfessionalPhoto(file: File) {
@@ -649,6 +773,8 @@ export function OnboardingTrackerModal({
 
     const payload = (await response.json()) as { publicUrl?: string }
     setCoverPhotoUrl(String(payload.publicUrl || ''))
+    setPhotoFocusX(50)
+    setPhotoFocusY(50)
     setPhotoUploadState('saved')
     setTimeout(() => setPhotoUploadState('idle'), 2500)
   }
@@ -851,6 +977,7 @@ export function OnboardingTrackerModal({
     })
 
     setIdentitySaveState('saved')
+    await refreshOnboardingEvaluation({ advanceToNextPending: true })
     setTimeout(() => setIdentitySaveState('idle'), 2000)
   }
 
@@ -894,6 +1021,7 @@ export function OnboardingTrackerModal({
     })
 
     setBioSaveState('saved')
+    await refreshOnboardingEvaluation({ advanceToNextPending: true })
     setTimeout(() => setBioSaveState('idle'), 2000)
   }
 
@@ -981,6 +1109,7 @@ export function OnboardingTrackerModal({
     setServicePrice('')
     setServiceDuration('60')
     setServiceSaveState('saved')
+    await refreshOnboardingEvaluation({ advanceToNextPending: true })
     setTimeout(() => setServiceSaveState('idle'), 2000)
   }
 
@@ -1063,7 +1192,36 @@ export function OnboardingTrackerModal({
     })
 
     setAvailabilitySaveState('saved')
+    await refreshOnboardingEvaluation({ advanceToNextPending: true })
     setTimeout(() => setAvailabilitySaveState('idle'), 2000)
+  }
+
+  async function submitForReview() {
+    setSubmitReviewState('saving')
+    setSubmitReviewMessage('')
+
+    const response = await fetch('/api/professional/onboarding/submit-review', {
+      method: 'POST',
+      credentials: 'include',
+    })
+    const payload = (await response.json().catch(() => ({}))) as {
+      ok?: boolean
+      evaluation?: ProfessionalOnboardingEvaluation
+      error?: string
+    }
+
+    if (!response.ok || !payload.ok || !payload.evaluation) {
+      setSubmitReviewState('error')
+      setSubmitReviewMessage(payload.error || 'Nao foi possivel enviar o perfil para analise.')
+      return
+    }
+
+    setCurrentEvaluation(payload.evaluation)
+    onEvaluationChange?.(payload.evaluation)
+    setSubmitReviewState('saved')
+    setSubmitReviewMessage('Perfil enviado para analise. Agora vamos acompanhar o go-live.')
+    setActiveStageId('c9_go_live')
+    setTimeout(() => setSubmitReviewState('idle'), 2200)
   }
 
   async function connectCalendarProvider() {
@@ -1179,12 +1337,12 @@ export function OnboardingTrackerModal({
 
       {open ? (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-neutral-900/45 px-2 py-3 sm:px-4 sm:py-5"
+          className="fixed inset-0 z-[80] flex items-end bg-neutral-900/45 sm:items-center sm:justify-center sm:px-4 sm:py-5"
           role="dialog"
           aria-modal="true"
           aria-label="Tracker de onboarding profissional"
         >
-          <div className="grid h-[94vh] max-h-[940px] w-full max-w-[1280px] grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white md:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px]">
+          <div className="grid h-[100dvh] w-full max-w-full grid-cols-1 overflow-hidden bg-white sm:h-[92vh] sm:max-h-[940px] sm:max-w-[1120px] sm:rounded-2xl sm:border sm:border-neutral-200 md:grid-cols-[250px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
             <aside className="border-b border-neutral-100 bg-neutral-50 p-3.5 md:border-b-0 md:border-r">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-[13px] font-semibold tracking-tight text-neutral-900">Tracker de onboarding</h3>
@@ -1196,29 +1354,64 @@ export function OnboardingTrackerModal({
                   Fechar
                 </button>
               </div>
-              <nav className="space-y-1.5">
+
+              <div className="mb-3 rounded-xl border border-neutral-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Progresso</p>
+                    <p className="mt-1 text-lg font-semibold text-neutral-900">
+                      {stageCompletionSummary.completed} de {stageCompletionSummary.total} etapas concluídas
+                    </p>
+                  </div>
+                  {trackerRefreshState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin text-neutral-500" /> : null}
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-200">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{ width: `${Math.round((stageCompletionSummary.completed / Math.max(1, stageCompletionSummary.total)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <nav className="flex gap-2 overflow-x-auto pb-1 md:hidden">
                 {stageItems.map(item => {
                   const isActive = item.id === activeStageId
-                  const isLockedCompleted = item.complete && item.id === 'c1_create_account'
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => {
-                        if (isLockedCompleted) return
-                        setActiveStageId(item.id)
-                      }}
-                      disabled={isLockedCompleted}
-                      aria-disabled={isLockedCompleted}
-                      className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
+                      onClick={() => setActiveStageId(item.id)}
+                      className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                        isActive
+                          ? 'border-brand-300 bg-brand-50 text-brand-800'
+                          : item.complete
+                            ? 'border-green-200 bg-green-50 text-green-800'
+                            : 'border-amber-200 bg-amber-50 text-amber-900'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </nav>
+
+              <nav className="hidden space-y-1.5 md:block">
+                {stageItems.map(item => {
+                  const isActive = item.id === activeStageId
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveStageId(item.id)}
+                      className={`w-full rounded-xl border px-3 py-3 text-left transition ${
                         isActive
                           ? 'border-brand-300 bg-brand-50 text-brand-800 shadow-sm'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100/60'
-                      } ${isLockedCompleted ? 'cursor-not-allowed opacity-70' : ''}`}
+                      }`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <span
                           className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
                             item.complete
@@ -1236,7 +1429,12 @@ export function OnboardingTrackerModal({
                             <Circle className="h-3.5 w-3.5" />
                           )}
                         </span>
-                        <span className="line-clamp-2 text-[12px] font-semibold leading-4">{item.label}</span>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold leading-4">{item.label}</p>
+                          <p className="mt-1 text-[11px] text-neutral-500">
+                            {item.complete ? 'Concluida' : item.blocker?.title || 'Pendente'}
+                          </p>
+                        </div>
                       </div>
                     </button>
                   )
@@ -1267,43 +1465,41 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
 
-              <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 xl:hidden">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Plano desta etapa</p>
-                <ul className="mt-1.5 space-y-1">
-                  {(PLAN_STAGE_GUIDANCE[activeStageId] || []).map(item => (
-                    <li key={item} className="text-xs text-neutral-700">
-                      • {item}
-                    </li>
-                  ))}
-                </ul>
-                {planPricing ? (
-                  <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-2 text-xs text-neutral-700">
-                    <p>
-                      Mensal:{' '}
-                      <strong>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
-                          planPricing.monthlyAmount / 100,
-                        )}
-                      </strong>
-                    </p>
-                    <p>
-                      Anual (10x):{' '}
-                      <strong>
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
-                          planPricing.annualAmount / 100,
-                        )}
-                      </strong>
-                    </p>
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Resumo executivo</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {executiveGateSummary.map(item => (
+                        <span
+                          key={item.id}
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                            item.passed
+                              ? 'border-green-200 bg-green-50 text-green-700'
+                              : 'border-amber-200 bg-amber-50 text-amber-800'
+                          }`}
+                        >
+                          {item.label}: {item.description}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="mt-2 text-xs text-amber-700">{pricingError || 'Preco indisponivel no momento.'}</p>
-                )}
-                <Link
-                  href="/planos"
-                  className="mt-2 inline-flex rounded-md bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
-                >
-                  Alterar plano
-                </Link>
+                  <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-700">
+                    {planPricing ? (
+                      <p>
+                        Plano atual:{' '}
+                        <strong>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
+                            planPricing.monthlyAmount / 100,
+                          )}
+                        </strong>
+                        {' '}/ mes
+                      </p>
+                    ) : (
+                      <p>{pricingError || 'Preco indisponivel no momento.'}</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {(activeStageId === 'c2_professional_identity') && (
@@ -1626,48 +1822,68 @@ export function OnboardingTrackerModal({
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil/capa</label>
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-                        <Upload className="h-3.5 w-3.5" />
-                        Upload
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={event => {
-                            const file = event.target.files?.[0]
-                            if (file) {
-                              void uploadProfessionalPhoto(file)
-                            } else {
-                              setPhotoUploadState('error')
-                              setPhotoUploadError('Não foi possível abrir a câmera neste dispositivo. Use "Upload".')
-                            }
-                          }}
-                        />
-                      </label>
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-                        <Camera className="h-3.5 w-3.5" />
-                        Tirar foto
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          capture="user"
-                          className="hidden"
-                          onChange={event => {
-                            const file = event.target.files?.[0]
-                            if (file) void uploadProfessionalPhoto(file)
-                          }}
-                        />
-                      </label>
-                    </div>
+                    <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
+                      <Upload className="h-3.5 w-3.5" />
+                      Enviar foto
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={event => {
+                          const file = event.target.files?.[0]
+                          if (file) {
+                            void uploadProfessionalPhoto(file)
+                          } else {
+                            setPhotoUploadState('error')
+                            setPhotoUploadError('Não foi possível selecionar a foto. Tente novamente.')
+                          }
+                        }}
+                      />
+                    </label>
                     {coverPhotoUrl ? (
-                      <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200">
+                      <div className="mt-3">
+                        <div
+                          className="mb-3 h-28 w-28 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50"
+                        >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={coverPhotoUrl} alt="Foto do perfil" className="h-44 w-full object-cover" />
+                          <img
+                            src={coverPhotoUrl}
+                            alt="Foto do perfil"
+                            className="h-full w-full object-cover"
+                            style={{ objectPosition: `${photoFocusX}% ${photoFocusY}%` }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-neutral-700">Posição horizontal</label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={photoFocusX}
+                              onChange={event => setPhotoFocusX(Number(event.target.value))}
+                              className="h-2 w-full cursor-pointer rounded-lg bg-neutral-200 accent-brand-600"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-neutral-700">Posição vertical</label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={photoFocusY}
+                              onChange={event => setPhotoFocusY(Number(event.target.value))}
+                              className="h-2 w-full cursor-pointer rounded-lg bg-neutral-200 accent-brand-600"
+                            />
+                          </div>
+                          <p className="text-xs text-neutral-500">
+                            Ajuste o enquadramento para alinhar a foto como ela ficará no card.
+                          </p>
+                        </div>
                       </div>
                     ) : null}
                     <p className="mt-2 text-xs text-neutral-500">
-                      Regras: JPG/PNG/WEBP, maximo de 3MB, enquadramento retangular limpo.
+                      Regras: JPG/PNG/WEBP, máximo de 3MB. O recorte é ajustável e refletirá como a foto aparece no card.
                     </p>
                     {photoUploadState === 'saving' ? (
                       <p className="mt-2 text-xs text-brand-700">Enviando foto...</p>
@@ -1699,9 +1915,7 @@ export function OnboardingTrackerModal({
                     <p className="mt-1 text-xs text-neutral-500">
                       Serviços cadastrados: {services.length}/{tierLimits.services}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Valores exibidos em {serviceCurrency}; armazenamento interno em BRL.
-                    </p>
+                    <p className="mt-1 text-xs text-neutral-500">Valores exibidos em {serviceCurrency}.</p>
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
@@ -1800,9 +2014,9 @@ export function OnboardingTrackerModal({
                       <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
-                            <h3 className="text-sm font-semibold text-neutral-900">Calendario de disponibilidade</h3>
+                            <h3 className="text-sm font-semibold text-neutral-900">Disponibilidade semanal</h3>
                             <p className="mt-1 text-xs text-neutral-500">
-                              O fuso horario segue o perfil profissional e atualiza automaticamente com horario de verao/inverno.
+                              O fuso horario segue o perfil profissional e atualiza automaticamente com horario de verao e inverno.
                             </p>
                           </div>
                           <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-xs text-neutral-700">
@@ -1905,8 +2119,10 @@ export function OnboardingTrackerModal({
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                        <h4 className="text-sm font-semibold text-neutral-900">Regras de agendamento</h4>
+                      <details className="rounded-xl border border-neutral-200 bg-white p-3.5" open>
+                        <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-900">
+                          Regras de agendamento
+                        </summary>
                         <div className="mt-3 space-y-3">
                           <div>
                             <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedencia minima (horas)</label>
@@ -2017,10 +2233,12 @@ export function OnboardingTrackerModal({
                             Exigir objetivo da sessao
                           </label>
                         </div>
-                      </div>
+                      </details>
 
-                      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                        <h4 className="text-sm font-semibold text-neutral-900">Sync de calendario</h4>
+                      <details className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                        <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-900">
+                          Sync de calendario
+                        </summary>
                         <p className="mt-1 text-xs text-neutral-500">
                           Selecione o provider e conecte/desconecte por aqui.
                         </p>
@@ -2123,7 +2341,7 @@ export function OnboardingTrackerModal({
                             <p className="font-medium text-red-700">Erro: {calendarLastSyncError}</p>
                           ) : null}
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </div>
 
@@ -2144,10 +2362,62 @@ export function OnboardingTrackerModal({
                 </div>
               )}
 
-              {!['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'].includes(activeStageId) ? (
+              {activeStageId === 'c8_submit_review' ? (
+                <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-neutral-900">Pronto para enviar seu perfil?</h3>
+                    <p className="mt-1 text-sm text-neutral-700">
+                      Revise as pendencias abaixo. Quando tudo estiver em ordem, envie o perfil para a etapa de analise sem sair do tracker.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {executiveGateSummary.map(item => (
+                      <div
+                        key={item.id}
+                        className={`rounded-xl border px-3 py-3 text-sm ${
+                          item.passed
+                            ? 'border-green-200 bg-green-50 text-green-800'
+                            : 'border-amber-200 bg-amber-50 text-amber-900'
+                        }`}
+                      >
+                        <p className="font-semibold">{item.label}</p>
+                        <p className="mt-1 text-xs">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {(activeStage?.blockers || []).length > 0 ? (
+                    <ul className="space-y-2">
+                      {(activeStage?.blockers || []).map(blocker => (
+                        <li key={blocker.code} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                          <p className="font-semibold">{blocker.title}</p>
+                          <p className="mt-1 text-xs">{blocker.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {submitReviewMessage ? (
+                    <p className={`text-sm ${submitReviewState === 'error' ? 'text-red-700' : 'text-green-700'}`}>
+                      {submitReviewMessage}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void submitForReview()}
+                      disabled={submitReviewState === 'saving' || !currentEvaluation.summary.canSubmitForReview}
+                      className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {submitReviewState === 'saving' ? 'Enviando...' : 'Enviar para analise'}
+                    </button>
+                    {!currentEvaluation.summary.canSubmitForReview ? (
+                      <span className="text-xs text-amber-700">Conclua os itens pendentes antes do envio.</span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : !['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'].includes(activeStageId) ? (
                 <div className="rounded-xl border border-neutral-200 bg-white p-4">
                   <p className="text-sm text-neutral-700">
-                    Esta etapa usa os mesmos gates do backend. Você pode corrigir pendências pelos links abaixo.
+                    Esta etapa ainda depende de itens pendentes. Revise os pontos abaixo para continuar no tracker.
                   </p>
                   <ul className="mt-3 space-y-2">
                     {(activeStage?.blockers || []).map(blocker => (
@@ -2166,80 +2436,6 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
             </section>
-
-            <aside className="hidden border-l border-neutral-100 bg-neutral-50 p-4 xl:block">
-              <div className="sticky top-0 space-y-4">
-                <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Planos e evolução
-                  </p>
-                  <h3 className="mt-1 text-sm font-semibold text-neutral-900">
-                    Recursos desta etapa
-                  </h3>
-                  <ul className="mt-2 space-y-1">
-                    {(PLAN_STAGE_GUIDANCE[activeStageId] || []).map(item => (
-                      <li key={item} className="text-xs text-neutral-700">
-                        • {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-2.5 text-xs text-neutral-700">
-                    {planPricing ? (
-                      <>
-                        <p>
-                          Mensal:{' '}
-                          <strong>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
-                              planPricing.monthlyAmount / 100,
-                            )}
-                          </strong>
-                        </p>
-                        <p>
-                          Anual (10x):{' '}
-                          <strong>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
-                              planPricing.annualAmount / 100,
-                            )}
-                          </strong>
-                        </p>
-                        <p className="mt-1 text-[11px] text-neutral-500">Fonte: {planPricing.provider}</p>
-                      </>
-                    ) : (
-                      <p className="text-[11px] text-amber-700">{pricingError || 'Preco indisponivel no momento.'}</p>
-                    )}
-                    <p className="mt-1 text-[11px] text-neutral-500">Plano profissional nao e gratuito.</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="rounded-xl border border-brand-200 bg-brand-50 p-3">
-                    <p className="text-xs font-semibold text-brand-800">Básico</p>
-                    <p className="mt-1 text-xs text-brand-700">
-                      Até {getTierLimits('basic').services} serviço, até {getTierLimits('basic').bookingWindowDays} dias de janela.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                    <p className="text-xs font-semibold text-neutral-900">Profissional</p>
-                    <p className="mt-1 text-xs text-neutral-700">
-                      Confirmação manual, mais serviços e janela de agenda ampliada.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                    <p className="text-xs font-semibold text-neutral-900">Premium</p>
-                    <p className="mt-1 text-xs text-neutral-700">
-                      Capacidade máxima e recursos avançados de operação.
-                    </p>
-                  </div>
-                </div>
-
-                <Link
-                  href="/planos"
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600"
-                >
-                  Alterar plano
-                </Link>
-              </div>
-            </aside>
           </div>
         </div>
       ) : null}
