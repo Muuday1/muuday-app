@@ -513,7 +513,7 @@ export default async function ProfissionalPage({
         href="/buscar"
         className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-neutral-500 transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
       >
-        <ArrowLeft className="h-4 w-4" /> Voltar Ã  busca
+        <ArrowLeft className="h-4 w-4" /> Voltar à busca
       </Link>
 
       <ProfileAvailabilityBookingSection
@@ -575,7 +575,7 @@ export default async function ProfissionalPage({
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
                       <span>{primarySpecialty}</span>
                       {Number(professional.years_experience || 0) > 0 ? (
-                        <span>â€¢ {Number(professional.years_experience)} anos de experiÃªncia</span>
+                        <span>• {Number(professional.years_experience)} anos de experiência</span>
                       ) : null}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -636,7 +636,7 @@ export default async function ProfissionalPage({
 
                 {((professional.tags || []) as string[]).length > 0 ? (
                   <div className="mt-4">
-                    <p className="mb-1 text-[11px] text-neutral-400">Foco de atuaÃ§Ã£o</p>
+                    <p className="mb-1 text-[11px] text-neutral-400">Foco de atuação</p>
                     <div className="flex flex-wrap gap-2">
                       {((professional.tags || []) as string[]).map((tag: string) => (
                         <span
@@ -662,7 +662,7 @@ export default async function ProfissionalPage({
             <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <h2 className="mb-3 font-display text-lg font-semibold text-neutral-900">Sobre mim</h2>
               <p className="whitespace-pre-line leading-relaxed text-neutral-600">
-                {professional.bio || 'Sem descriÃ§Ã£o.'}
+                {professional.bio || 'Sem descrição.'}
               </p>
             </div>
 
@@ -670,12 +670,12 @@ export default async function ProfissionalPage({
               <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
                   <PlayCircle className="h-5 w-5 text-brand-500" />
-                  VÃ­deo de apresentaÃ§Ã£o
+                  Vídeo de apresentação
                 </h2>
                 <div className="overflow-hidden rounded-xl border border-neutral-200">
                   <iframe
                     src={videoEmbedUrl}
-                    title="VÃ­deo de apresentaÃ§Ã£o do profissional"
+                    title="Vídeo de apresentação do profissional"
                     className="aspect-video h-full w-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -705,24 +705,24 @@ export default async function ProfissionalPage({
           <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Rating</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">AvaliaÃ§Ã£o mÃ©dia</p>
+              <p className="text-xs text-neutral-500">Avaliação média</p>
               <p className="mt-1 text-xl font-semibold text-neutral-900">
                 {Number(professional.rating || 0) > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
               </p>
             </div>
             <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Total de avaliaÃ§Ãµes</p>
+              <p className="text-xs text-neutral-500">Total de avaliações</p>
               <p className="mt-1 text-xl font-semibold text-neutral-900">{professional.total_reviews || 0}</p>
             </div>
             <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">SessÃµes concluÃ­das</p>
+              <p className="text-xs text-neutral-500">Sessões concluídas</p>
               <p className="mt-1 text-xl font-semibold text-neutral-900">{professional.total_bookings || 0}</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">ComentÃ¡rios</h2>
+          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Comentários</h2>
           {reviews && reviews.length > 0 ? (
             <div className="space-y-4">
               {reviews.map((review: any) => (
@@ -743,7 +743,7 @@ export default async function ProfissionalPage({
                       ))}
                     </div>
                   </div>
-                  <p className="ml-9 text-sm text-neutral-600">{review.comment || 'Sem comentÃ¡rio.'}</p>
+                  <p className="ml-9 text-sm text-neutral-600">{review.comment || 'Sem comentário.'}</p>
                   {review.professional_response ? (
                     <div className="ml-9 mt-2 border-l-2 border-brand-200 pl-3">
                       <p className="mb-0.5 text-xs font-medium text-brand-700">Resposta do profissional</p>
@@ -754,14 +754,14 @@ export default async function ProfissionalPage({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-neutral-500">Este profissional ainda nÃ£o recebeu comentÃ¡rios pÃºblicos.</p>
+            <p className="text-sm text-neutral-500">Este profissional ainda não recebeu comentários públicos.</p>
           )}
         </div>
 
         {recommendations.length > 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">
-              Pessoas que vocÃª tambÃ©m pode gostar
+              Pessoas que você também pode gostar
             </h2>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {recommendations.map((item: any) => {

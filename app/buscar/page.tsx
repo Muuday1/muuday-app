@@ -832,8 +832,8 @@ export async function BuscarPageContent({
         <div className="mb-4">
           <p className="text-sm font-semibold text-neutral-900">
             {hasActiveFilters
-              ? `${totalResults} profissionais disponÃ­veis para os filtros selecionados`
-              : `${totalResults} profissionais disponÃ­veis`}
+              ? `${totalResults} profissionais disponíveis para os filtros selecionados`
+              : `${totalResults} profissionais disponíveis`}
           </p>
           {selectedCategoryLabel || selectedSubcategoryLabel || selectedSpecialty ? (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -854,7 +854,7 @@ export async function BuscarPageContent({
               ) : null}
             </div>
           ) : (
-            <p className="mt-1 text-xs text-neutral-500">SugestÃµes iniciais variadas para te ajudar a comeÃ§ar.</p>
+            <p className="mt-1 text-xs text-neutral-500">Sugestões iniciais variadas para te ajudar a começar.</p>
           )}
         </div>
 
@@ -862,7 +862,7 @@ export async function BuscarPageContent({
           <div className="rounded-2xl border border-neutral-200 bg-white px-6 py-12 text-center">
             <p className="mb-1 text-base font-semibold text-neutral-900">Nenhum profissional encontrado</p>
             <p className="mx-auto max-w-md text-sm text-neutral-500">
-              Ajuste categoria, subcategoria, especialidade ou faixa de preÃ§o para ver mais resultados.
+              Ajuste categoria, subcategoria, especialidade ou faixa de preço para ver mais resultados.
             </p>
             {hasActiveFilters ? (
               <div className="mt-5 flex items-center justify-center gap-2">
@@ -949,7 +949,7 @@ export async function BuscarPageContent({
                               )}
                             </p>
                             <p className="text-[11px] text-neutral-400">
-                              por sessÃ£o de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
+                              por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
                             </p>
                           </div>
                         </div>
@@ -973,7 +973,7 @@ export async function BuscarPageContent({
                           {professional.video_intro_url ? (
                             <span className="inline-flex items-center gap-1 bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
                               <PlayCircle className="w-3 h-3" />
-                              VÃ­deo
+                              Vídeo
                             </span>
                           ) : null}
                           {professional.tier !== 'basic' && professional.whatsapp_number ? (
