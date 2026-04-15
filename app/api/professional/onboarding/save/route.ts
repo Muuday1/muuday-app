@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -83,14 +83,14 @@ function normalizeLanguages(primary: string, secondary: string[]) {
 }
 
 function getQualificationValidationMessage(item: z.infer<typeof qualificationSchema>) {
-  const label = item.name.trim() || 'qualificação'
-  if (!item.name.trim()) return 'Informe o nome da qualificação.'
+  const label = item.name.trim() || 'qualificaÃ§Ã£o'
+  if (!item.name.trim()) return 'Informe o nome da qualificaÃ§Ã£o.'
   if (item.requires_registration) {
-    if (!item.registration_number.trim()) return `Informe o número de registro em "${label}".`
-    if (!item.issuer.trim()) return `Informe o órgão emissor em "${label}".`
-    if (!item.country.trim()) return `Informe o país do registro em "${label}".`
+    if (!item.registration_number.trim()) return `Informe o nÃºmero de registro em "${label}".`
+    if (!item.issuer.trim()) return `Informe o Ã³rgÃ£o emissor em "${label}".`
+    if (!item.country.trim()) return `Informe o paÃ­s do registro em "${label}".`
   } else if (!item.course_name.trim()) {
-    return `Informe o nome do curso ou formação em "${label}".`
+    return `Informe o nome do curso ou formaÃ§Ã£o em "${label}".`
   }
   if (item.evidence_files.length === 0) return `Envie ao menos um comprovante para "${label}".`
   return ''
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   try {
     const payload = payloadSchema.safeParse(await request.json().catch(() => null))
     if (!payload.success) {
-      return NextResponse.json({ error: 'Dados inválidos para salvar esta etapa.' }, { status: 400 })
+      return NextResponse.json({ error: 'Dados invÃ¡lidos para salvar esta etapa.' }, { status: 400 })
     }
 
     const supabase = createClient()
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Sessão inválida.' }, { status: 401 })
+      return NextResponse.json({ error: 'SessÃ£o invÃ¡lida.' }, { status: 401 })
     }
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
 
     const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id,user_id,tier')
     if (!professional?.id) {
-      return NextResponse.json({ error: 'Perfil profissional não encontrado.' }, { status: 404 })
+      return NextResponse.json({ error: 'Perfil profissional nÃ£o encontrado.' }, { status: 404 })
     }
 
     const admin = createAdminClient()
@@ -145,7 +145,11 @@ export async function POST(request: Request) {
         .eq('id', professionalId)
 
       if (professionalError) {
-        return NextResponse.json({ error: 'Não foi possível salvar dados profissionais.' }, { status: 500 })
+        console.error('[onboarding/save][identity] professionals mirror update failed', {
+          professionalId,
+          message: professionalError.message,
+          code: professionalError.code,
+        })
       }
 
       const appPayload = {
@@ -153,6 +157,7 @@ export async function POST(request: Request) {
         professional_id: professionalId,
         title: payload.data.title || null,
         display_name: payload.data.displayName || null,
+        years_experience: payload.data.yearsExperience,
         primary_language: payload.data.primaryLanguage || null,
         secondary_languages: payload.data.secondaryLanguages,
         target_audiences: payload.data.targetAudiences,
@@ -175,7 +180,7 @@ export async function POST(request: Request) {
         .upsert(appPayload, { onConflict: 'user_id' })
 
       if (appError) {
-        return NextResponse.json({ error: 'Não foi possível salvar identidade profissional.' }, { status: 500 })
+        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar identidade profissional.' }, { status: 500 })
       }
     }
 
@@ -189,7 +194,7 @@ export async function POST(request: Request) {
         .eq('id', professionalId)
 
       if (professionalError) {
-        return NextResponse.json({ error: 'Não foi possível salvar o perfil público.' }, { status: 500 })
+        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar o perfil pÃºblico.' }, { status: 500 })
       }
 
       const { error: profileError } = await db
@@ -200,7 +205,7 @@ export async function POST(request: Request) {
         .eq('id', userId)
 
       if (profileError) {
-        return NextResponse.json({ error: 'Não foi possível salvar a foto do perfil.' }, { status: 500 })
+        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar a foto do perfil.' }, { status: 500 })
       }
     }
 
@@ -224,13 +229,13 @@ export async function POST(request: Request) {
         .single()
 
       if (error || !inserted) {
-        return NextResponse.json({ error: 'Não foi possível criar o serviço.' }, { status: 500 })
+        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel criar o serviÃ§o.' }, { status: 500 })
       }
 
       await recomputeProfessionalVisibility(db, professionalId)
       const onboardingState = await loadProfessionalOnboardingState(db, professionalId)
       if (!onboardingState) {
-        return NextResponse.json({ error: 'Serviço salvo, mas o tracker não pôde ser atualizado.' }, { status: 500 })
+        return NextResponse.json({ error: 'ServiÃ§o salvo, mas o tracker nÃ£o pÃ´de ser atualizado.' }, { status: 500 })
       }
 
       return NextResponse.json({
@@ -245,7 +250,7 @@ export async function POST(request: Request) {
         day => day.is_available && day.start_time >= day.end_time,
       )
       if (invalidRange) {
-        return NextResponse.json({ error: 'Horários inválidos: início deve ser menor que fim.' }, { status: 400 })
+        return NextResponse.json({ error: 'HorÃ¡rios invÃ¡lidos: inÃ­cio deve ser menor que fim.' }, { status: 400 })
       }
 
       const nowIso = new Date().toISOString()
@@ -261,12 +266,12 @@ export async function POST(request: Request) {
 
       const { error: deleteError } = await db.from('availability').delete().eq('professional_id', professionalId)
       if (deleteError) {
-        return NextResponse.json({ error: 'Não foi possível atualizar a disponibilidade.' }, { status: 500 })
+        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel atualizar a disponibilidade.' }, { status: 500 })
       }
 
       const { error: insertError } = await db.from('availability').insert(safeRows)
       if (insertError) {
-        return NextResponse.json({ error: 'Não foi possível salvar os horários.' }, { status: 500 })
+        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar os horÃ¡rios.' }, { status: 500 })
       }
 
       const { error: settingsError } = await db
@@ -295,7 +300,7 @@ export async function POST(request: Request) {
     await recomputeProfessionalVisibility(db, professionalId)
     const onboardingState = await loadProfessionalOnboardingState(db, professionalId)
     if (!onboardingState) {
-      return NextResponse.json({ error: 'Alterações salvas, mas o tracker não pôde ser atualizado.' }, { status: 500 })
+      return NextResponse.json({ error: 'AlteraÃ§Ãµes salvas, mas o tracker nÃ£o pÃ´de ser atualizado.' }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -307,3 +312,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
+

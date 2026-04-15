@@ -669,7 +669,7 @@ export function OnboardingTrackerModal({
         supabase
           .from('professional_applications')
           .select(
-            'title,display_name,category,specialty_name,focus_areas,primary_language,secondary_languages,target_audiences,qualifications_structured',
+            'title,display_name,category,specialty_name,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
           )
           .eq('professional_id', professionalId)
           .order('updated_at', { ascending: false })
@@ -773,7 +773,14 @@ export function OnboardingTrackerModal({
               : [],
         )
         setIdentityTitle(String(appRow?.title || ''))
-        setIdentityYearsExperience(String(professional?.years_experience ?? 0))
+        const yearsFromProfessional = Number(professional?.years_experience)
+        const yearsFromApplication = Number(appRow?.years_experience)
+        const resolvedYears = Number.isFinite(yearsFromProfessional)
+          ? yearsFromProfessional
+          : Number.isFinite(yearsFromApplication)
+            ? yearsFromApplication
+            : 0
+        setIdentityYearsExperience(String(resolvedYears))
         setIdentityPrimaryLanguage(String(appRow?.primary_language || 'Português'))
         setIdentitySecondaryLanguages(Array.isArray(appRow?.secondary_languages) ? appRow.secondary_languages.map(item => String(item)) : [])
         setIdentityTargetAudiences(Array.isArray(appRow?.target_audiences) ? appRow.target_audiences.map(item => String(item)) : [])
