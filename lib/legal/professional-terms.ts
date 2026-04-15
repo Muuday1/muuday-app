@@ -9,87 +9,92 @@ export type ProfessionalTerm = {
   title: string
   version: string
   shortLabel: string
+  acceptanceLabel: string
   sections: Array<{ heading: string; body: string }>
 }
 
 export const PROFESSIONAL_TERMS: ProfessionalTerm[] = [
   {
     key: 'platform_terms',
-    title: 'Termos da plataforma para profissionais da Muuday',
-    version: 'v1.1-2026-04',
-    shortLabel: 'Termos da plataforma',
+    title: 'Termos de Uso da Plataforma Muuday',
+    version: 'v2.0 - 15 abr 2026',
+    shortLabel: 'Termos de Uso da Plataforma',
+    acceptanceLabel: 'Aceito os Termos de Uso',
     sections: [
       {
-        heading: '1. Objeto',
-        body: 'A Muuday é uma plataforma digital de conexão entre clientes e profissionais. O profissional é responsável pelo seu serviço, conteúdo, conduta e cumprimento das leis aplicáveis.',
+        heading: 'Objeto e natureza da plataforma',
+        body: 'A Muuday opera como plataforma tecnológica de intermediação entre clientes e profissionais. A Muuday não presta diretamente serviços médicos, jurídicos, contábeis ou equivalentes.',
       },
       {
-        heading: '2. Natureza da plataforma',
-        body: 'A Muuday não atua como clínica, escritório de advocacia, contador responsável técnico ou representante legal. A plataforma facilita descoberta, contato, organização e comunicação.',
+        heading: 'Conta, elegibilidade e segurança',
+        body: 'O profissional declara capacidade legal para contratar, mantém dados verdadeiros e atualizados, e responde pelo uso da conta e pelas credenciais de acesso.',
       },
       {
-        heading: '3. Responsabilidades do profissional',
-        body: 'Você declara que possui habilitação adequada para sua atividade e que manterá seus dados cadastrais, qualificações e documentos corretos, atualizados e verificáveis.',
+        heading: 'Responsabilidades do profissional',
+        body: 'O profissional é integralmente responsável pelos serviços prestados, conteúdo publicado, conformidade regulatória e cumprimento das leis aplicáveis em sua atuação.',
       },
       {
-        heading: '4. Revisão e moderação',
-        body: 'A Muuday pode solicitar ajustes, documentos adicionais, suspender perfil ou encerrar acesso quando houver risco regulatório, inconsistências ou violação destes termos.',
+        heading: 'Moderação, suspensão e encerramento',
+        body: 'A Muuday pode solicitar documentos, ajustar visibilidade, suspender ou encerrar conta em caso de inconsistência, risco regulatório, fraude ou violação contratual.',
       },
     ],
   },
   {
     key: 'payment_terms',
-    title: 'Termos de cobrança, plano e pagamentos',
-    version: 'v1.1-2026-04',
-    shortLabel: 'Termos de cobrança e pagamentos',
+    title: 'Termos Financeiros: Plano, Cobrança e Payout',
+    version: 'v2.0 - 15 abr 2026',
+    shortLabel: 'Termos Financeiros',
+    acceptanceLabel: 'Li e autorizo a cobrança recorrente',
     sections: [
       {
-        heading: '1. Plano e recorrência',
-        body: 'O profissional concorda com a cobrança recorrente do plano escolhido, conforme o ciclo contratado, até cancelamento conforme as regras da plataforma.',
+        heading: 'Plano e cobrança recorrente',
+        body: 'Ao contratar um plano, o profissional autoriza cobrança recorrente no meio de pagamento cadastrado, conforme ciclo e condições comerciais vigentes.',
       },
       {
-        heading: '2. Cartão e meios de pagamento',
-        body: 'O profissional é responsável por manter um cartão ou meio de pagamento válido para a cobrança do plano. Falhas de pagamento podem limitar recursos ou bloquear publicação.',
+        heading: 'Falha de pagamento e inadimplência',
+        body: 'Falhas de cobrança podem gerar restrição de funcionalidades, suspensão operacional e necessidade de regularização para continuidade do serviço.',
       },
       {
-        heading: '3. Recebimentos',
-        body: 'Recebimentos ao profissional dependem da configuração correta da conta financeira, cumprimento de validações e eventuais revisões operacionais e antifraude.',
+        heading: 'Payout e recebimentos',
+        body: 'Recebimentos dependem da configuração financeira, validações obrigatórias e conformidade operacional no provedor de pagamentos.',
       },
       {
-        heading: '4. Cancelamento e ajustes',
-        body: 'Alterações de plano, upgrades, downgrades, reembolsos e ajustes operacionais seguem as regras comerciais e operacionais vigentes na Muuday.',
+        heading: 'Reembolso, disputa e chargeback',
+        body: 'A operação financeira considera políticas de cancelamento, reembolso, disputas e chargebacks conforme as regras da plataforma e do intermediador.',
       },
     ],
   },
   {
     key: 'privacy_terms',
-    title: 'Termos de segurança, privacidade e proteção de dados',
-    version: 'v1.1-2026-04',
-    shortLabel: 'Segurança e proteção de dados',
+    title: 'Política de Privacidade e Proteção de Dados',
+    version: 'v2.0 - 15 abr 2026',
+    shortLabel: 'Privacidade e Proteção de Dados',
+    acceptanceLabel: 'Li e aceito a Política de Privacidade',
     sections: [
       {
-        heading: '1. Dados tratados',
-        body: 'A Muuday pode tratar dados cadastrais, profissionais e documentos enviados para análise de conta, segurança, prevenção de fraude e operação da plataforma.',
+        heading: 'Dados tratados e bases legais',
+        body: 'A Muuday trata dados cadastrais, profissionais, operacionais e financeiros com base legal adequada para execução contratual, segurança e obrigações regulatórias.',
       },
       {
-        heading: '2. Base legal e finalidade',
-        body: 'Os dados são tratados para execução da relação contratual, cumprimento de obrigações legais, segurança da plataforma e melhoria de processos de revisão.',
+        heading: 'Compartilhamento e transferências',
+        body: 'Dados podem ser compartilhados com operadores essenciais, provedores de infraestrutura e parceiros financeiros com medidas técnicas e contratuais de proteção.',
       },
       {
-        heading: '3. Compartilhamento',
-        body: 'Dados podem ser compartilhados com operadores técnicos essenciais, como infraestrutura, armazenamento e segurança, sob controles compatíveis com a operação da plataforma.',
+        heading: 'Retenção e direitos do titular',
+        body: 'Dados são mantidos pelo prazo necessário às finalidades legais e operacionais, com garantia de direitos de acesso, correção e demais direitos previstos em lei.',
       },
       {
-        heading: '4. Retenção e direitos',
-        body: 'Os dados são retidos pelo período necessário para obrigações legais, auditoria e segurança. O profissional pode solicitar informações e ajustes conforme a legislação aplicável.',
+        heading: 'Segurança e incidentes',
+        body: 'A plataforma aplica medidas de segurança para prevenir incidentes e executa procedimentos de resposta e mitigação quando necessário.',
       },
     ],
   },
   {
     key: 'regulated_scope_terms',
-    title: 'Declaração de escopo consultivo e conformidade regulatória',
-    version: 'v1.1-2026-04',
-    shortLabel: 'Escopo consultivo e conformidade',
+    title: 'Declaração de Conformidade Regulatória e Escopo Consultivo',
+    version: 'v2.0 - 15 abr 2026',
+    shortLabel: 'Conformidade Regulatória',
+    acceptanceLabel: 'Declaro estar em conformidade regulatória',
     sections: [
       {
         heading: '1. Escopo consultivo',
@@ -100,8 +105,8 @@ export const PROFESSIONAL_TERMS: ProfessionalTerm[] = [
         body: 'Você se compromete a respeitar limites de jurisdição, licenças, registros profissionais e regras locais do país onde o cliente se encontra e/ou onde o serviço é efetivamente prestado.',
       },
       {
-        heading: '3. Serviços regulados',
-        body: 'Atos privativos ou regulados, como médico, jurídico, contábil e outros, somente podem ocorrer quando legalmente permitidos ao profissional. A Muuday pode bloquear ou sinalizar casos de risco.',
+        heading: '3. Regras por categoria profissional',
+        body: 'Categorias reguladas (saúde, jurídico, contábil e outras) devem observar regras específicas dos respectivos conselhos e autoridades locais.',
       },
       {
         heading: '4. Declaração do profissional',
@@ -111,4 +116,4 @@ export const PROFESSIONAL_TERMS: ProfessionalTerm[] = [
   },
 ]
 
-export const PROFESSIONAL_TERMS_VERSION = '2026-04-v2'
+export const PROFESSIONAL_TERMS_VERSION = '2026-04-v3'

@@ -1,0 +1,429 @@
+==============================================================================
+     DOCUMENTO 2 DE 4 — POLÍTICA DE PRIVACIDADE E PROTEÇÃO DE DADOS
+              (APLICÁVEL A PROFISSIONAIS PRESTADORES DE SERVIÇOS)
+==============================================================================
+
+Versão: 2.0
+Última atualização: 15 de abril de 2026
+Operadora: Muuday
+Idioma prevalente: Português do Brasil
+
+------------------------------------------------------------------------------
+MOMENTO DE ACEITE
+------------------------------------------------------------------------------
+Este documento deve ser aceito no cadastro inicial, em checkbox
+separado e destacado do aceite dos Termos de Uso da Plataforma, em
+cumprimento ao princípio da granularidade do consentimento previsto
+na LGPD e no GDPR.
+
+------------------------------------------------------------------------------
+DOCUMENTOS RELACIONADOS
+------------------------------------------------------------------------------
+Este é o Documento 2 de um conjunto de 4 (quatro) documentos:
+  1. Termos de Uso da Plataforma
+  2. Política de Privacidade e Proteção de Dados (este documento)
+  3. Termos Financeiros: Plano, Cobrança e Payout
+  4. Declaração de Conformidade Regulatória e Escopo Consultivo
+
+==============================================================================
+PREÂMBULO
+==============================================================================
+
+Esta Política descreve como a Muuday coleta, utiliza, compartilha,
+retém e protege dados pessoais do Profissional, bem como os direitos
+que lhe são assegurados pela legislação aplicável. Ao aceitar esta
+Política, o Profissional declara estar ciente e de acordo com as
+práticas aqui descritas.
+
+O aceite desta Política NÃO substitui consentimentos específicos
+eventualmente exigidos para finalidades adicionais (ex.: marketing
+direto, comunicações promocionais de parceiros), que serão coletados
+separadamente quando aplicáveis.
+
+==============================================================================
+SUMÁRIO
+==============================================================================
+
+  1. LEIS APLICÁVEIS E ESCOPO
+  2. PAPÉIS E RESPONSABILIDADES (CONTROLADOR / OPERADOR)
+  3. DADOS TRATADOS PELA MUUDAY
+  4. FINALIDADES E BASES LEGAIS
+  5. COMPARTILHAMENTO COM TERCEIROS
+  6. TRANSFERÊNCIA INTERNACIONAL DE DADOS
+  7. RETENÇÃO E ELIMINAÇÃO
+  8. DIREITOS DOS TITULARES
+  9. SEGURANÇA DA INFORMAÇÃO
+ 10. INCIDENTES DE SEGURANÇA
+ 11. USO DE COOKIES E TECNOLOGIAS DE RASTREAMENTO
+ 12. DADOS DE CLIENTES TRATADOS PELO PROFISSIONAL
+ 13. ENCARREGADO DE DADOS (DPO) E CANAIS
+ 14. ALTERAÇÕES DESTA POLÍTICA
+
+==============================================================================
+1. LEIS APLICÁVEIS E ESCOPO
+==============================================================================
+
+1.1. O tratamento de dados pessoais realizado pela Muuday observa:
+
+   (a) a Lei Geral de Proteção de Dados — LGPD (Lei nº 13.709/2018);
+   (b) o Regulamento Geral de Proteção de Dados da União Europeia —
+   GDPR (UE 2016/679);
+   (c) o UK GDPR e o Data Protection Act 2018 (Reino Unido);
+   (d) a California Consumer Privacy Act / California Privacy Rights
+   Act (CCPA/CPRA);
+   (e) a Ley Federal de Protección de Datos Personales em Posesión
+   de los Particulares (LFPDPPP, México);
+   (f) demais normas aplicáveis conforme a jurisdição do titular.
+
+1.2. Esta Política aplica-se ao tratamento de dados pessoais do
+Profissional no contexto de sua relação com a Muuday, bem como, no
+que couber, aos dados tratados no âmbito da Plataforma.
+
+==============================================================================
+2. PAPÉIS E RESPONSABILIDADES (CONTROLADOR / OPERADOR)
+==============================================================================
+
+2.1. Dados do Profissional. Em relação aos dados pessoais do próprio
+Profissional (cadastro, documentos, dados financeiros, uso da
+Plataforma), a MUUDAY atua como CONTROLADORA.
+
+2.2. Dados de Clientes na atividade-fim. Em relação aos dados pessoais
+de Clientes tratados pelo Profissional no exercício de sua atividade
+profissional (diagnóstico, atendimento, orientação, prontuário,
+histórico clínico, estratégia jurídica, informações fiscais do
+cliente), o PROFISSIONAL atua como CONTROLADOR AUTÔNOMO E
+INDEPENDENTE, sendo o único responsável pelas bases legais,
+finalidades, retenção, segurança e direitos dos titulares.
+
+2.3. Controladoria independente da Muuday. Em relação aos dados de
+Clientes tratados pela Muuday para a operação da Plataforma
+(cadastro do Cliente, cobrança, agendamento, pagamento, segurança,
+antifraude, marketing próprio), a MUUDAY atua como CONTROLADORA
+INDEPENDENTE.
+
+2.4. Relação operador/controlador específica. Em hipóteses
+excepcionais (por exemplo, disponibilização de recursos de
+prontuário integrado ou armazenamento sob custódia da Muuday), as
+partes celebrarão instrumento específico de operador (DPA — Data
+Processing Agreement), que prevalecerá sobre esta Política no seu
+escopo particular.
+
+==============================================================================
+3. DADOS TRATADOS PELA MUUDAY
+==============================================================================
+
+A Muuday poderá tratar as seguintes categorias de dados do
+Profissional:
+
+3.1. Dados cadastrais e de identificação: nome completo ou razão
+social; CPF ou CNPJ; RG, CNH ou documento equivalente; selfie e
+biometria facial para KYC; data de nascimento; endereço; e-mail;
+telefone.
+
+3.2. Dados profissionais: número de registro em conselho de classe;
+diplomas, certificados e comprovantes de formação; currículo;
+especializações; áreas de atuação; idiomas; fotos e vídeos de perfil.
+
+3.3. Dados financeiros: dados bancários para payout; histórico de
+Payouts; informações fiscais; dados do Plano contratado; tokens de
+meios de pagamento (armazenados pelo Intermediário de Pagamento).
+
+3.4. Dados de uso e técnicos: endereço IP; geolocalização aproximada;
+identificadores de dispositivo; navegador; sistema operacional;
+páginas visitadas; cliques; interações; logs de acesso e de
+alterações.
+
+3.5. Dados de comunicação: mensagens trocadas com Clientes pela
+Plataforma; mensagens com o suporte da Muuday; avaliações e
+respostas.
+
+3.6. Dados de desempenho na Plataforma: taxa de resposta; taxa de
+comparecimento; avaliações recebidas; histórico de disputas,
+chargebacks e reembolsos.
+
+3.7. Dados sensíveis. A Muuday poderá, em caráter excepcional e
+apenas quando estritamente necessário (ex.: verificação de
+antecedentes criminais em categorias reguladas), tratar dados
+considerados sensíveis pela LGPD, sempre com base legal específica
+e com medidas adicionais de proteção.
+
+==============================================================================
+4. FINALIDADES E BASES LEGAIS
+==============================================================================
+
+A Muuday trata os dados do Profissional para as seguintes
+finalidades, fundamentadas nas bases legais indicadas:
+
+4.1. Execução do contrato (art. 7º, V, LGPD / art. 6(1)(b), GDPR):
+   (a) cadastro e manutenção da Conta;
+   (b) oferta, agendamento e operação de Serviços;
+   (c) processamento de pagamentos e Payouts;
+   (d) suporte ao Profissional e ao Cliente;
+   (e) aplicação de políticas de moderação e qualidade.
+
+4.2. Cumprimento de obrigação legal ou regulatória (art. 7º, II,
+LGPD / art. 6(1)(c), GDPR):
+   (a) KYC e due diligence antifraude;
+   (b) prevenção e combate à lavagem de dinheiro, financiamento ao
+   terrorismo e corrupção (Lei nº 9.613/1998; COAF/UIF; OFAC);
+   (c) cumprimento de obrigações tributárias e acessórias (inclusive
+   FATCA e CRS, quando aplicável);
+   (d) resposta a requisições de autoridades competentes;
+   (e) guarda de registros nos prazos legais.
+
+4.3. Legítimo interesse (art. 7º, IX, LGPD / art. 6(1)(f), GDPR):
+   (a) segurança da Plataforma e prevenção à fraude;
+   (b) melhoria contínua do produto e dos serviços;
+   (c) análise estatística e desenvolvimento de novas funcionalidades;
+   (d) comunicação institucional e operacional com o Profissional;
+   (e) defesa de direitos em processos judiciais, administrativos e
+   arbitrais.
+
+4.4. Consentimento (art. 7º, I, LGPD / art. 6(1)(a), GDPR): quando
+aplicável, para finalidades específicas como marketing direto,
+comunicações promocionais, uso estendido de imagem em campanhas
+publicitárias e tratamento de dados sensíveis que não se enquadrem
+em outra base legal.
+
+4.5. Exercício regular de direitos (art. 7º, VI, LGPD): em processos
+judiciais, administrativos e arbitrais.
+
+==============================================================================
+5. COMPARTILHAMENTO COM TERCEIROS
+==============================================================================
+
+Os dados poderão ser compartilhados com:
+
+5.1. Intermediários de Pagamento: notadamente Stripe, Inc. e suas
+subsidiárias, para processamento de pagamentos, Payouts, KYC e
+prevenção à fraude.
+
+5.2. Provedores de infraestrutura e tecnologia: serviços de
+hospedagem em nuvem (ex.: AWS, Google Cloud, Supabase), banco de
+dados, armazenamento, autenticação e monitoramento.
+
+5.3. Ferramentas operacionais: e-mail transacional (ex.: Resend),
+analytics de produto (ex.: PostHog), ferramentas de CRM, atendimento
+e comunicação.
+
+5.4. Ferramentas antifraude e verificação de identidade: provedores
+de verificação documental, biométrica e de listas restritivas.
+
+5.5. Autoridades públicas: mediante requisição legal ou ordem
+judicial, ou quando necessário à proteção de direitos.
+
+5.6. Parceiros comerciais e profissionais: quando expressamente
+autorizado pelo Profissional ou quando necessário à execução de
+funcionalidade específica escolhida por ele (ex.: integração com
+agenda externa).
+
+5.7. Empresas do mesmo grupo econômico: sob contratos que imponham
+dever de confidencialidade e proteção de dados.
+
+5.8. Sucessores: em caso de fusão, aquisição, reorganização
+societária ou venda de ativos, com manutenção das salvaguardas.
+
+Todos os terceiros são contratualmente obrigados a adotar medidas
+adequadas de proteção e a tratar os dados apenas para as finalidades
+autorizadas.
+
+==============================================================================
+6. TRANSFERÊNCIA INTERNACIONAL DE DADOS
+==============================================================================
+
+6.1. Considerando que a operação envolve Clientes e, eventualmente,
+Profissionais fora do Brasil, os dados poderão ser transferidos
+internacionalmente.
+
+6.2. Salvaguardas adotadas incluem, conforme o caso:
+   (a) cláusulas-padrão contratuais aprovadas pela ANPD ou Comissão
+   Europeia (SCCs);
+   (b) decisões de adequação;
+   (c) consentimento específico e informado do titular;
+   (d) regras corporativas globais vinculantes (BCRs);
+   (e) execução de contrato com o titular;
+   (f) garantias contratuais adicionais quando necessárias.
+
+==============================================================================
+7. RETENÇÃO E ELIMINAÇÃO
+==============================================================================
+
+7.1. Os dados são retidos pelo tempo necessário:
+
+   (a) à execução do contrato e da relação com o Profissional;
+   (b) ao cumprimento de obrigações legais e regulatórias, incluindo,
+   sem limitação:
+       - guarda fiscal (mínimo 5 anos);
+       - guarda trabalhista (mínimo 5 anos);
+       - guarda contábil (mínimo 10 anos, quando aplicável);
+       - obrigações AML/CFT (mínimo 5 anos após término da relação);
+       - Marco Civil da Internet (logs de conexão: 1 ano; logs de
+       acesso: 6 meses);
+   (c) à defesa em processos judiciais, administrativos e arbitrais
+   (até o fim do prazo prescricional aplicável);
+   (d) a finalidades estatísticas e de auditoria, de forma
+   anonimizada quando possível.
+
+7.2. Após decurso dos prazos aplicáveis, os dados serão eliminados
+ou anonimizados, salvo necessidade legal de retenção adicional.
+
+==============================================================================
+8. DIREITOS DOS TITULARES
+==============================================================================
+
+8.1. O Profissional, na qualidade de titular, pode exercer os
+seguintes direitos:
+
+   (a) confirmação da existência de tratamento;
+   (b) acesso aos dados;
+   (c) correção de dados incompletos, inexatos ou desatualizados;
+   (d) anonimização, bloqueio ou eliminação de dados desnecessários,
+   excessivos ou tratados em desconformidade;
+   (e) portabilidade a outro fornecedor de serviço, observados
+   segredos comerciais e industriais;
+   (f) eliminação dos dados tratados com base no consentimento,
+   ressalvadas as hipóteses legais de retenção;
+   (g) informação sobre compartilhamento;
+   (h) informação sobre a possibilidade de não fornecer consentimento
+   e suas consequências;
+   (i) revogação do consentimento;
+   (j) oposição ao tratamento realizado com base no legítimo interesse;
+   (k) revisão de decisões automatizadas que afetem seus interesses,
+   quando aplicável;
+   (l) apresentação de reclamação à autoridade de proteção de dados
+   competente (ANPD, ICO, CNIL etc.).
+
+8.2. As solicitações podem ser realizadas pelos canais indicados na
+seção 13. A Muuday responderá no prazo legal aplicável (em regra,
+até 15 dias pela LGPD ou 30 dias pelo GDPR), podendo solicitar
+informações adicionais para verificar a identidade do requisitante.
+
+==============================================================================
+9. SEGURANÇA DA INFORMAÇÃO
+==============================================================================
+
+9.1. A Muuday adota medidas técnicas e administrativas razoáveis
+para proteger os dados, incluindo:
+
+   (a) criptografia em trânsito (TLS) e em repouso, quando
+   aplicável;
+   (b) controles de acesso baseados em princípio do menor privilégio;
+   (c) autenticação forte para áreas administrativas;
+   (d) segregação de ambientes (produção, homologação, desenvolvimento);
+   (e) registro de logs de acesso e alteração;
+   (f) backups regulares;
+   (g) treinamento periódico da equipe;
+   (h) avaliação contínua de fornecedores.
+
+9.2. Nenhum sistema é, contudo, 100% imune a incidentes. A Muuday
+não garante segurança absoluta, comprometendo-se a adotar as
+melhores práticas do mercado.
+
+==============================================================================
+10. INCIDENTES DE SEGURANÇA
+==============================================================================
+
+10.1. Em caso de incidente de segurança que possa acarretar risco
+ou dano relevante aos titulares, a Muuday comunicará a ANPD e os
+titulares afetados no prazo razoável exigido pela legislação
+aplicável (em regra, sem atraso indevido).
+
+10.2. A comunicação conterá, no mínimo: descrição da natureza do
+incidente; categorias de titulares e dados afetados; medidas
+técnicas e de segurança adotadas; riscos relacionados; e canais de
+contato para mais informações.
+
+==============================================================================
+11. USO DE COOKIES E TECNOLOGIAS DE RASTREAMENTO
+==============================================================================
+
+11.1. A Plataforma utiliza cookies e tecnologias similares para:
+autenticação; preferências de usuário; analytics; segurança;
+medição de desempenho; e, quando consentido, marketing.
+
+11.2. O Profissional pode gerenciar preferências de cookies no
+painel disponibilizado na Plataforma e no seu navegador. Cookies
+essenciais, necessários ao funcionamento básico, não podem ser
+desativados.
+
+==============================================================================
+12. DADOS DE CLIENTES TRATADOS PELO PROFISSIONAL
+==============================================================================
+
+12.1. O Profissional, na qualidade de CONTROLADOR AUTÔNOMO de dados
+de seus Clientes no exercício da atividade-fim, obriga-se a:
+
+   (a) tratar tais dados apenas para finalidades legítimas, com base
+   legal adequada e respeitando os princípios da LGPD, GDPR e demais
+   leis aplicáveis;
+   (b) manter registro das operações de tratamento (RoPA), quando
+   exigido;
+   (c) implementar medidas técnicas e organizacionais de segurança
+   compatíveis com a natureza dos dados (especialmente para dados
+   sensíveis como saúde, orientação sexual, origem racial/étnica,
+   dados financeiros, etc.);
+   (d) atender aos direitos dos titulares nos prazos legais;
+   (e) manter sigilo profissional e observar os códigos de ética
+   aplicáveis;
+   (f) comunicar incidentes de segurança à Muuday, quando
+   relacionados à Plataforma, e à autoridade competente;
+   (g) indicar encarregado quando exigido;
+   (h) obter consentimento específico dos Clientes quando necessário;
+   (i) informar adequadamente os Clientes sobre o tratamento de
+   seus dados.
+
+12.2. O Profissional é integralmente responsável por reclamações,
+sanções administrativas e decisões judiciais decorrentes de
+irregularidades no tratamento de dados de seus Clientes, obrigando-se
+a manter a Muuday indene (conforme cláusula de indenização do
+Documento 1).
+
+==============================================================================
+13. ENCARREGADO DE DADOS (DPO) E CANAIS
+==============================================================================
+
+Encarregado de Proteção de Dados (DPO):
+  E-mail: privacidade@muuday.com
+
+Canais de exercício de direitos e dúvidas:
+  E-mail: privacidade@muuday.com
+  Formulário disponível em: https://www.muuday.com/privacidade
+
+Autoridades de proteção de dados de referência:
+  Brasil: ANPD — Autoridade Nacional de Proteção de Dados
+  (www.gov.br/anpd)
+  União Europeia: autoridade do seu país de residência
+  Reino Unido: ICO — Information Commissioner's Office (ico.org.uk)
+
+==============================================================================
+14. ALTERAÇÕES DESTA POLÍTICA
+==============================================================================
+
+14.1. A Muuday poderá atualizar esta Política para refletir
+evoluções legais, regulatórias, tecnológicas ou operacionais.
+
+14.2. Alterações materiais serão comunicadas com antecedência
+mínima de 15 dias por e-mail e/ou aviso na Plataforma. Quando
+exigido por lei, novo consentimento específico será solicitado.
+
+14.3. A versão vigente estará sempre disponível em:
+https://www.muuday.com/privacidade
+
+==============================================================================
+DECLARAÇÃO DE ACEITE — DOCUMENTO 2 DE 4
+==============================================================================
+
+Ao marcar o checkbox "Li e aceito a Política de Privacidade e
+Proteção de Dados", o Profissional declara que:
+
+  (i) leu e compreendeu integralmente esta Política;
+  (ii) está ciente de que atua como CONTROLADOR AUTÔNOMO dos dados
+  de seus Clientes tratados no exercício de sua atividade-fim;
+  (iii) concorda com o tratamento de seus próprios dados pela
+  Muuday, nas finalidades e bases legais descritas;
+  (iv) compromete-se a cumprir integralmente suas obrigações como
+  controlador perante seus Clientes.
+
+==============================================================================
+                          FIM DO DOCUMENTO 2
+==============================================================================

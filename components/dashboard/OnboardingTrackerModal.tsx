@@ -281,6 +281,13 @@ function humanizeTaxonomyValue(value: string) {
     .join(' ')
 }
 
+function resolveTaxonomyLabel(value: string, nameBySlug: Record<string, string>) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const normalized = raw.toLowerCase()
+  return nameBySlug[normalized] || humanizeTaxonomyValue(raw)
+}
+
 function getQualificationValidationMessage(item: QualificationStructured) {
   const label = item.name.trim() || 'qualificação'
   if (!item.name.trim()) return 'Informe o nome da qualificação.'
@@ -549,6 +556,8 @@ export function OnboardingTrackerModal({
   const [availabilitySaveState, setAvailabilitySaveState] = useState<SaveState>('idle')
   const [availabilityError, setAvailabilityError] = useState('')
   const [profileTimezone, setProfileTimezone] = useState('America/Sao_Paulo')
+  const [categoryNameBySlug, setCategoryNameBySlug] = useState<Record<string, string>>({})
+  const [subcategoryNameBySlug, setSubcategoryNameBySlug] = useState<Record<string, string>>({})
   const [minimumNoticeHours, setMinimumNoticeHours] = useState(24)
   const [maxBookingWindowDays, setMaxBookingWindowDays] = useState(30)
   const [bufferMinutes, setBufferMinutes] = useState(15)
@@ -632,6 +641,8 @@ export function OnboardingTrackerModal({
         { data: appRow },
         { data: ratesRows },
         { data: credentialRows },
+        { data: categoryRows },
+        { data: subcategoryRows },
       ] = await Promise.all([
         supabase
           .from('professionals')
@@ -673,6 +684,14 @@ export function OnboardingTrackerModal({
           .select('id,file_name,file_url,scan_status,verified,credential_type')
           .eq('professional_id', professionalId)
           .order('uploaded_at', { ascending: false }),
+        supabase
+          .from('categories')
+          .select('slug,name_pt')
+          .eq('is_active', true),
+        supabase
+          .from('subcategories')
+          .select('slug,name_pt')
+          .eq('is_active', true),
       ])
 
       if (mounted) {
@@ -731,6 +750,21 @@ export function OnboardingTrackerModal({
             ? String(professional.subcategories[0] || '')
             : String(appRow?.specialty_name || ''),
         )
+        const nextCategoryNames: Record<string, string> = {}
+        for (const row of (categoryRows || []) as Array<Record<string, unknown>>) {
+          const slug = String(row.slug || '').trim().toLowerCase()
+          const name = String(row.name_pt || '').trim()
+          if (slug && name) nextCategoryNames[slug] = name
+        }
+        setCategoryNameBySlug(nextCategoryNames)
+
+        const nextSubcategoryNames: Record<string, string> = {}
+        for (const row of (subcategoryRows || []) as Array<Record<string, unknown>>) {
+          const slug = String(row.slug || '').trim().toLowerCase()
+          const name = String(row.name_pt || '').trim()
+          if (slug && name) nextSubcategoryNames[slug] = name
+        }
+        setSubcategoryNameBySlug(nextSubcategoryNames)
         setIdentityFocusAreas(
           Array.isArray(professional?.focus_areas) && professional.focus_areas.length > 0
             ? professional.focus_areas.map(item => String(item))
@@ -791,7 +825,10 @@ export function OnboardingTrackerModal({
 
         setIdentityQualifications(Array.from(qualificationMap.values()))
         const existingTermsAccepted = Boolean(
-          settingsRow && (settingsRow as Record<string, unknown>).terms_accepted_at && (settingsRow as Record<string, unknown>).terms_version,
+          settingsRow &&
+            (settingsRow as Record<string, unknown>).terms_accepted_at &&
+            String((settingsRow as Record<string, unknown>).terms_version || '') ===
+              PROFESSIONAL_TERMS_VERSION,
         )
         setHasAcceptedTerms(
           TERMS_KEYS.reduce(
@@ -1442,6 +1479,15 @@ export function OnboardingTrackerModal({
     setSubmitReviewMessage('')
     setSubmitTermsError('')
 
+    const pendingStages = stageItems.filter(item => item.id !== 'c8_submit_review' && !item.complete)
+    if (pendingStages.length > 0) {
+      setSubmitReviewState('error')
+      setSubmitReviewMessage(
+        `Finalize as etapas pendentes antes de enviar: ${pendingStages.map(item => item.label).join(', ')}.`,
+      )
+      return
+    }
+
     if (!allRequiredTermsAccepted()) {
       setSubmitReviewState('error')
       setSubmitTermsError('Aceite todos os termos obrigatórios antes de enviar.')
@@ -1810,7 +1856,7 @@ export function OnboardingTrackerModal({
                       <label className="mb-1 block text-xs font-semibold text-neutral-700">Categoria principal</label>
                       <input
                         type="text"
-                        value={humanizeTaxonomyValue(identityCategory)}
+                        value={resolveTaxonomyLabel(identityCategory, categoryNameBySlug)}
                         readOnly
                         className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
                       />
@@ -1819,7 +1865,7 @@ export function OnboardingTrackerModal({
                       <label className="mb-1 block text-xs font-semibold text-neutral-700">Área de atuação específica</label>
                       <input
                         type="text"
-                        value={humanizeTaxonomyValue(identitySubcategory)}
+                        value={resolveTaxonomyLabel(identitySubcategory, subcategoryNameBySlug)}
                         readOnly
                         className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
                       />
@@ -2843,6 +2889,7 @@ export function OnboardingTrackerModal({
                           <div>
                             <p className="text-sm font-semibold text-neutral-900">{term.shortLabel}</p>
                             <p className="mt-1 text-xs text-neutral-500">{term.version}</p>
+                            <p className="mt-1 text-xs text-neutral-600">{term.acceptanceLabel}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasAcceptedTerms[term.key] ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>

@@ -1,0 +1,491 @@
+==============================================================================
+       DOCUMENTO 3 DE 4 — TERMOS FINANCEIROS: PLANO, COBRANÇA E PAYOUT
+              (APLICÁVEL A PROFISSIONAIS PRESTADORES DE SERVIÇOS)
+==============================================================================
+
+Versão: 2.0
+Última atualização: 15 de abril de 2026
+Operadora: Muuday
+Idioma prevalente: Português do Brasil
+
+------------------------------------------------------------------------------
+MOMENTO DE ACEITE
+------------------------------------------------------------------------------
+Este documento deve ser aceito no momento da escolha do Plano e
+cadastro do meio de pagamento, em checkbox separado e destacado,
+antes da primeira cobrança, em atenção ao dever de destaque previsto
+no art. 54, §4º, do Código de Defesa do Consumidor e às regras
+aplicáveis a contratos de adesão de cobrança recorrente.
+
+------------------------------------------------------------------------------
+DOCUMENTOS RELACIONADOS
+------------------------------------------------------------------------------
+Este é o Documento 3 de um conjunto de 4 (quatro) documentos:
+  1. Termos de Uso da Plataforma
+  2. Política de Privacidade e Proteção de Dados
+  3. Termos Financeiros: Plano, Cobrança e Payout (este documento)
+  4. Declaração de Conformidade Regulatória e Escopo Consultivo
+
+==============================================================================
+PREÂMBULO — ATENÇÃO ESPECIAL
+==============================================================================
+
+>>> ESTE DOCUMENTO CONTÉM AUTORIZAÇÃO EXPRESSA DE COBRANÇA AUTOMÁTICA
+    RECORRENTE NO SEU MEIO DE PAGAMENTO. <<<
+
+>>> LEIA COM ATENÇÃO AS CLÁUSULAS DESTACADAS, ESPECIALMENTE AS
+    RELATIVAS A RETENÇÃO DE PAYOUT, COMPENSAÇÃO, CHARGEBACK E
+    ENCARGOS DE INADIMPLÊNCIA. <<<
+
+Este documento rege os aspectos financeiros da relação entre a
+Muuday e o Profissional, incluindo Plano, cobrança, Taxa da
+Plataforma, processamento de pagamentos, Payouts, tributos,
+cancelamentos, reembolsos, chargebacks e demais temas correlatos.
+
+==============================================================================
+SUMÁRIO
+==============================================================================
+
+  1. DEFINIÇÕES FINANCEIRAS
+  2. PLANO, ASSINATURA E COBRANÇA RECORRENTE
+  3. REAJUSTE DE PREÇOS
+  4. FALHA DE PAGAMENTO E INADIMPLÊNCIA
+  5. DIREITO DE ARREPENDIMENTO
+  6. TAXA DA PLATAFORMA E PRECIFICAÇÃO DO SERVIÇO
+  7. INTERMEDIÁRIO DE PAGAMENTO (STRIPE CONNECT)
+  8. PAYOUTS (RECEBIMENTOS DO PROFISSIONAL)
+  9. RETENÇÕES E COMPENSAÇÕES
+ 10. CÂMBIO E MOEDA
+ 11. CANCELAMENTOS E REEMBOLSOS A CLIENTES
+ 12. CHARGEBACKS
+ 13. DISPUTAS ENTRE CLIENTE E PROFISSIONAL
+ 14. TRIBUTOS E OBRIGAÇÕES FISCAIS
+ 15. EMISSÃO DE DOCUMENTOS FISCAIS
+ 16. ATUAÇÃO INTERNACIONAL E EXTERIOR
+ 17. AUDITORIA E DEMONSTRATIVOS
+
+==============================================================================
+1. DEFINIÇÕES FINANCEIRAS
+==============================================================================
+
+1.1. "Plano": modalidade de assinatura contratada pelo Profissional
+para uso da Plataforma, conforme tabela vigente.
+
+1.2. "Taxa da Plataforma": valor cobrado pela Muuday do Cliente,
+exibido separadamente no checkout, em contrapartida pelos serviços
+de intermediação, infraestrutura e tecnologia.
+
+1.3. "Payout": repasse financeiro devido ao Profissional, processado
+pelo Intermediário de Pagamento, relativo a Sessões efetivamente
+concluídas, após deduções contratuais, fiscais e retenções.
+
+1.4. "Intermediário de Pagamento": prestador terceirizado de
+serviços de processamento de pagamentos e repasse, notadamente
+Stripe, Inc. e suas subsidiárias.
+
+1.5. "Ciclo de Cobrança": periodicidade da cobrança do Plano
+(mensal, trimestral, semestral ou anual), conforme escolhido pelo
+Profissional.
+
+1.6. "Chargeback": contestação do pagamento pelo Cliente junto à
+operadora do cartão ou meio de pagamento utilizado.
+
+==============================================================================
+2. PLANO, ASSINATURA E COBRANÇA RECORRENTE
+==============================================================================
+
+2.1. Contratação do Plano. O Profissional concorda com a modalidade,
+valor, Ciclo de Cobrança e condições do Plano escolhido no momento
+da contratação, conforme exibidos de forma clara na Plataforma.
+
+2.2. AUTORIZAÇÃO EXPRESSA DE COBRANÇA RECORRENTE (cláusula
+destacada). O Profissional AUTORIZA EXPRESSAMENTE a Muuday e/ou o
+Intermediário de Pagamento a:
+
+   (a) efetuar cobrança automática e recorrente do valor do Plano
+   no meio de pagamento cadastrado (cartão de crédito, débito,
+   carteiras digitais, débito em conta, entre outros);
+   (b) armazenar, por meio do Intermediário de Pagamento, os dados
+   do meio de pagamento sob forma tokenizada, para fins de cobrança
+   recorrente;
+   (c) renovar automaticamente a cobrança ao término de cada Ciclo,
+   nos termos e valores vigentes;
+   (d) efetuar novas tentativas de cobrança em caso de insucesso da
+   primeira.
+
+Essa autorização vigora até cancelamento expresso nos termos do
+item 4.4 desta Política ou até encerramento da Conta.
+
+2.3. Meio de pagamento válido. É obrigação do Profissional manter,
+na Plataforma, meio de pagamento válido, com saldo ou limite
+suficiente, e atualizar os dados sempre que houver alteração.
+
+2.4. Primeira cobrança. Poderá ocorrer imediatamente após a
+contratação ou após período de trial, conforme divulgado na
+Plataforma.
+
+==============================================================================
+3. REAJUSTE DE PREÇOS
+==============================================================================
+
+3.1. Os valores dos Planos poderão ser reajustados:
+
+   (a) ANUALMENTE, pela variação do IPCA (IBGE) ou índice substituto,
+   sem necessidade de aviso prévio adicional;
+   (b) A QUALQUER TEMPO, em razão de alterações tributárias, custos
+   de infraestrutura, cambiais ou estratégia comercial, mediante
+   COMUNICAÇÃO PRÉVIA MÍNIMA DE 30 (TRINTA) DIAS.
+
+3.2. Em caso de discordância com reajuste extraordinário (item
+3.1(b)), o Profissional poderá cancelar o Plano antes da entrada em
+vigor do novo valor, sem ônus adicional.
+
+==============================================================================
+4. FALHA DE PAGAMENTO E INADIMPLÊNCIA
+==============================================================================
+
+4.1. Em caso de insucesso na cobrança do Plano, a Muuday poderá:
+
+   (a) efetuar novas tentativas em janelas programadas;
+   (b) notificar o Profissional por e-mail e pela Plataforma;
+   (c) RESTRINGIR FUNCIONALIDADES (ex.: ocultar perfil da busca,
+   desabilitar recebimento de novas reservas);
+   (d) SUSPENDER A CONTA após período de carência definido na
+   Plataforma;
+   (e) aplicar ENCARGOS MORATÓRIOS: multa de 2% (dois por cento),
+   juros de 1% (um por cento) ao mês e correção monetária pelo IPCA;
+   (f) registrar o débito em cadastros de inadimplentes (Serasa,
+   SPC ou equivalentes no exterior), após notificação prévia;
+   (g) promover cobrança extrajudicial e judicial;
+   (h) ceder o crédito a terceiros para cobrança;
+   (i) compensar o débito com eventuais Payouts pendentes do
+   Profissional.
+
+4.2. O Profissional permanece responsável pelas Sessões já
+agendadas, mesmo durante a suspensão por inadimplência.
+
+4.3. Regularização. O acesso pleno é restabelecido após a
+regularização integral do débito, incluindo os encargos.
+
+4.4. Cancelamento pelo Profissional. O Profissional poderá
+solicitar cancelamento do Plano a qualquer tempo pelos canais
+oficiais. O cancelamento produz efeitos ao final do Ciclo de
+Cobrança já pago, sem restituição proporcional, salvo disposição
+legal em sentido contrário ou na hipótese do item 5.
+
+==============================================================================
+5. DIREITO DE ARREPENDIMENTO
+==============================================================================
+
+5.1. Quando aplicável o art. 49 do Código de Defesa do Consumidor,
+o Profissional pessoa física poderá exercer o direito de
+arrependimento em até 7 (sete) dias corridos contados da
+contratação inicial do Plano, mediante solicitação pelos canais
+oficiais.
+
+5.2. A restituição ocorrerá no mesmo meio de pagamento utilizado,
+no prazo de até 14 (quatorze) dias úteis após a confirmação da
+solicitação.
+
+5.3. O direito de arrependimento não se aplica a renovações
+automáticas subsequentes à contratação inicial.
+
+==============================================================================
+6. TAXA DA PLATAFORMA E PRECIFICAÇÃO DO SERVIÇO
+==============================================================================
+
+6.1. Modelo de precificação.
+
+   (a) O Profissional define o preço do Serviço em REAIS (BRL);
+   (b) A Taxa da Plataforma é ADICIONADA "POR CIMA" e cobrada do
+   Cliente no checkout, de forma destacada;
+   (c) O Profissional recebe o valor INTEGRAL do Serviço por ele
+   precificado, descontadas apenas:
+       - tarifas do Intermediário de Pagamento;
+       - eventuais retenções legais, fiscais ou judiciais;
+       - valores objeto de chargeback, reembolso ou disputa;
+       - compensações autorizadas nestes Termos;
+   (d) A Muuday recebe a Taxa da Plataforma;
+   (e) Tarifas e Taxa aplicáveis serão sempre previamente divulgadas
+   na Plataforma.
+
+6.2. Alterações no valor ou estrutura da Taxa da Plataforma serão
+comunicadas com antecedência mínima de 30 (trinta) dias.
+
+==============================================================================
+7. INTERMEDIÁRIO DE PAGAMENTO (STRIPE CONNECT)
+==============================================================================
+
+7.1. O processamento dos pagamentos dos Clientes e o repasse ao
+Profissional ocorrem por meio do Stripe Connect Express (ou solução
+equivalente), em conta própria do Profissional configurada na
+Plataforma.
+
+7.2. Adesão aos termos da Stripe. Ao se cadastrar, o Profissional
+ADERE aos termos da Stripe aplicáveis (disponíveis em
+https://stripe.com/legal/connect-account) e autoriza o
+compartilhamento de dados necessários à operação, KYC e prevenção
+à fraude.
+
+7.3. A Muuday NÃO retém em nome próprio os valores do Cliente
+destinados ao Profissional, atuando apenas como interface
+tecnológica entre o Profissional e o Intermediário de Pagamento.
+
+==============================================================================
+8. PAYOUTS (RECEBIMENTOS DO PROFISSIONAL)
+==============================================================================
+
+8.1. Ciclo de Payout. Os Payouts são realizados em CICLO SEMANAL
+EM BATCH (ou em periodicidade distinta informada na Plataforma) e
+contemplam apenas Sessões:
+
+   (a) efetivamente concluídas;
+   (b) não contestadas pelo Cliente;
+   (c) não reembolsadas;
+   (d) fora de período de retenção antifraude.
+
+8.2. Condicionantes. Os Payouts dependem de:
+
+   (a) configuração correta da conta no Intermediário de Pagamento;
+   (b) cumprimento integral das validações KYC;
+   (c) inexistência de pendências, disputas ou investigações em
+   curso.
+
+8.3. Moeda do Payout. O Payout é processado em Reais (BRL) para
+conta bancária no Brasil, ou conforme disponibilidade oferecida
+pelo Intermediário de Pagamento em outras jurisdições.
+
+8.4. Tarifas de Payout. Eventuais tarifas do Intermediário de
+Pagamento para a realização do Payout serão destacadas no
+demonstrativo.
+
+==============================================================================
+9. RETENÇÕES E COMPENSAÇÕES
+==============================================================================
+
+9.1. RETENÇÃO DE PAYOUT (cláusula destacada). A Muuday e/ou o
+Intermediário de Pagamento PODERÃO RETER Payouts, total ou
+parcialmente, nas seguintes hipóteses:
+
+   (a) suspeita fundada de fraude, lavagem de dinheiro, evasão
+   cambial ou uso indevido da Plataforma;
+   (b) abertura de disputa pelo Cliente;
+   (c) ocorrência de chargeback;
+   (d) pendência documental de KYC ou falhas em procedimentos
+   antifraude;
+   (e) determinação de autoridade administrativa, fiscal ou
+   judicial competente;
+   (f) inadimplência do Profissional para com a Muuday;
+   (g) investigação interna em curso;
+   (h) descumprimento reiterado destes Termos;
+   (i) necessidade de constituição de reserva para fazer frente a
+   eventuais reembolsos em categoria de risco elevado.
+
+9.2. Prazo máximo de retenção preventiva. Salvo determinação legal
+ou judicial em contrário, e excetuadas as hipóteses de disputa ou
+chargeback em aberto, a retenção preventiva não excederá 180 (cento
+e oitenta) dias, após os quais a Muuday decidirá pela liberação,
+compensação ou providência adicional.
+
+9.3. COMPENSAÇÃO (cláusula destacada). O Profissional AUTORIZA a
+Muuday a compensar, de quaisquer valores a pagar (Payouts atuais
+ou futuros), créditos da Muuday ou de terceiros relacionados,
+inclusive:
+
+   (a) multas, inclusive a multa de não-circunvenção do Documento 1;
+   (b) ressarcimentos e indenizações;
+   (c) custos de chargeback;
+   (d) tarifas de Payout não compensadas;
+   (e) encargos moratórios;
+   (f) valores devidos no âmbito de disputas com Clientes.
+
+==============================================================================
+10. CÂMBIO E MOEDA
+==============================================================================
+
+10.1. A Plataforma exibirá ao Cliente, de forma meramente
+referencial, a conversão do preço em moeda local, utilizando taxa
+de câmbio fornecida por terceiros.
+
+10.2. Tal conversão NÃO REPRESENTA obrigação cambial da Muuday,
+que NÃO ATUA como instituição de câmbio, corretora ou remessadora
+de valores.
+
+10.3. Variações cambiais entre o momento da cobrança e o momento
+do Payout podem ocorrer e NÃO SÃO DE RESPONSABILIDADE da Muuday.
+
+10.4. Quando o Cliente estiver no exterior, tarifas de conversão
+e IOF/tributos cambiais poderão incidir por parte do emissor do
+cartão do Cliente ou do Intermediário de Pagamento, os quais são
+suportados pelo próprio Cliente.
+
+==============================================================================
+11. CANCELAMENTOS E REEMBOLSOS A CLIENTES
+==============================================================================
+
+11.1. Regras de cancelamento de Sessões por parte do Cliente são
+disciplinadas pela Política de Cancelamento e Reembolso vigente na
+Plataforma, que poderá prever janelas de reembolso total, parcial
+ou nulo, conforme antecedência e natureza do Serviço.
+
+11.2. Em caso de reembolso devido ao Cliente:
+
+   (a) se a Sessão ainda não foi realizada: o valor é devolvido ao
+   Cliente e não há Payout;
+   (b) se a Sessão já foi realizada e o reembolso é determinado por
+   disputa: a Muuday poderá estornar ou reter o Payout
+   correspondente;
+   (c) se o reembolso é parcial: o cálculo seguirá as regras da
+   Política de Cancelamento.
+
+11.3. No-show e atrasos. Políticas específicas constarão dos
+documentos operacionais da Plataforma e poderão gerar penalidades
+ao Profissional (desconto do Payout, redução de ranking, bloqueio
+temporário) ou ao Cliente (cobrança integral sem reembolso),
+conforme o caso.
+
+==============================================================================
+12. CHARGEBACKS
+==============================================================================
+
+12.1. Em caso de chargeback, a Muuday poderá:
+
+   (a) estornar o Payout correspondente;
+   (b) reter valores futuros até a solução definitiva;
+   (c) solicitar documentação ao Profissional para defesa junto à
+   bandeira do cartão;
+   (d) cobrar taxas administrativas repassadas pelo Intermediário
+   de Pagamento;
+   (e) repassar integralmente ao Profissional o ÔNUS do chargeback
+   julgado procedente.
+
+12.2. Se o chargeback for julgado improcedente e o valor for
+recuperado, o Payout será liberado ao Profissional, descontadas
+apenas as tarifas aplicáveis.
+
+12.3. Profissionais com ALTA TAXA DE CHARGEBACK poderão ter seu
+Plano reclassificado, o ciclo de Payout ampliado, reserva de
+segurança imposta ou a Conta descredenciada.
+
+==============================================================================
+13. DISPUTAS ENTRE CLIENTE E PROFISSIONAL
+==============================================================================
+
+13.1. A Muuday poderá, a seu exclusivo critério e SEM OBRIGAÇÃO
+LEGAL, atuar como facilitadora para resolução amigável de disputas,
+o que NÃO caracteriza assunção de responsabilidade pelos Serviços
+prestados.
+
+13.2. A decisão final em matéria litigiosa cabe às partes ou, na
+ausência de acordo, ao Poder Judiciário ou câmara arbitral
+competente.
+
+13.3. O Profissional compromete-se a cooperar com investigações
+internas, fornecendo documentos e informações em prazo razoável.
+
+==============================================================================
+14. TRIBUTOS E OBRIGAÇÕES FISCAIS
+==============================================================================
+
+14.1. Responsabilidade tributária. O Profissional é o ÚNICO E
+EXCLUSIVO RESPONSÁVEL pela apuração, declaração, retenção e
+recolhimento de todos os tributos incidentes sobre os valores
+recebidos, incluindo, sem limitação:
+
+   (a) Imposto de Renda (IRPF ou IRPJ);
+   (b) Contribuição Previdenciária (INSS);
+   (c) Imposto sobre Serviços de Qualquer Natureza (ISS);
+   (d) PIS e COFINS, quando aplicável;
+   (e) CSLL, quando aplicável;
+   (f) Simples Nacional ou outros regimes tributários;
+   (g) tributos estrangeiros porventura aplicáveis.
+
+14.2. A Muuday NÃO atua como fonte pagadora responsável por retenção
+de IR ou INSS em favor de autoridade fiscal brasileira, salvo quando
+a legislação expressamente o exigir.
+
+14.3. Obrigação de informação. O Profissional autoriza a Muuday a
+reportar a autoridades fiscais brasileiras e estrangeiras os valores
+movimentados e demais informações exigidas pela legislação aplicável
+(inclusive, quando cabível, FATCA, CRS e obrigações acessórias da
+Receita Federal do Brasil).
+
+==============================================================================
+15. EMISSÃO DE DOCUMENTOS FISCAIS
+==============================================================================
+
+15.1. O Profissional COMPROMETE-SE a emitir, quando legalmente
+exigido:
+
+   (a) nota fiscal eletrônica de serviço;
+   (b) recibo de profissional autônomo (RPA);
+   (c) invoice internacional;
+   (d) ou outro documento fiscal equivalente,
+
+em favor do Cliente, nos termos das normas aplicáveis à sua
+categoria, regime tributário e jurisdição.
+
+15.2. A Muuday poderá, como cortesia e sem responsabilidade fiscal
+própria, oferecer funcionalidades que auxiliem na emissão desses
+documentos, o que NÃO transfere responsabilidade à Muuday.
+
+==============================================================================
+16. ATUAÇÃO INTERNACIONAL E EXTERIOR
+==============================================================================
+
+16.1. Se o Profissional residir no exterior, auferir rendimentos
+no exterior ou atender Cliente no exterior, poderão incidir regras
+tributárias adicionais:
+
+   (a) retenção na fonte estrangeira (withholding tax);
+   (b) tratados de bitributação;
+   (c) obrigações fiscais locais;
+   (d) regras cambiais do Banco Central do Brasil.
+
+16.2. O Profissional assume INTEGRALMENTE tais encargos e libera a
+Muuday de qualquer responsabilidade, obrigando-se a manter a Muuday
+indene caso seja autuado por autoridade fiscal estrangeira.
+
+==============================================================================
+17. AUDITORIA E DEMONSTRATIVOS
+==============================================================================
+
+17.1. A Muuday disponibilizará ao Profissional, no painel da
+Plataforma, demonstrativos de transações, Payouts, tarifas, Taxas
+da Plataforma, retenções e compensações.
+
+17.2. Eventuais divergências devem ser questionadas pelo
+Profissional no prazo de 90 (noventa) dias contados da
+disponibilização do demonstrativo, sob pena de convalidação tácita.
+
+17.3. A Muuday poderá, a seu critério, auditar registros
+relacionados à Conta do Profissional para fins de compliance,
+antifraude e verificação de conformidade com estes Termos.
+
+==============================================================================
+DECLARAÇÃO DE ACEITE — DOCUMENTO 3 DE 4
+==============================================================================
+
+Ao marcar o checkbox "Li e autorizo a cobrança recorrente e os
+Termos Financeiros", o Profissional declara, de forma INEQUÍVOCA e
+com DESTAQUE:
+
+  (i) ter lido e compreendido integralmente este documento,
+  especialmente as cláusulas destacadas;
+  (ii) AUTORIZAR EXPRESSAMENTE a cobrança automática e recorrente
+  do Plano no meio de pagamento cadastrado, nos termos do item 2.2;
+  (iii) CONCORDAR com as regras de retenção de Payout e
+  compensação previstas na Seção 9;
+  (iv) ASSUMIR integralmente suas obrigações tributárias e fiscais,
+  liberando a Muuday de qualquer responsabilidade a esse título;
+  (v) estar ciente de que a Muuday não atua como instituição
+  financeira, de câmbio ou de pagamento.
+
+Canais oficiais:
+  Suporte financeiro: financeiro@muuday.com
+  Suporte geral: suporte@muuday.com
+  Site: https://www.muuday.com
+
+==============================================================================
+                          FIM DO DOCUMENTO 3
+==============================================================================

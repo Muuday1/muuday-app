@@ -1,0 +1,560 @@
+==============================================================================
+        DOCUMENTO 1 DE 4 — TERMOS DE USO DA PLATAFORMA MUUDAY
+              (APLICÁVEL A PROFISSIONAIS PRESTADORES DE SERVIÇOS)
+==============================================================================
+
+Versão: 2.0
+Última atualização: 15 de abril de 2026
+Operadora: Muuday (denominação comercial da pessoa jurídica operadora
+da plataforma, doravante "Muuday", "nós" ou "Plataforma")
+Idioma prevalente: Português do Brasil
+
+------------------------------------------------------------------------------
+MOMENTO DE ACEITE
+------------------------------------------------------------------------------
+Este documento deve ser aceito no cadastro inicial, mediante checkbox
+destacado, antes da criação da Conta.
+
+------------------------------------------------------------------------------
+DOCUMENTOS RELACIONADOS
+------------------------------------------------------------------------------
+Este é o Documento 1 de um conjunto de 4 (quatro) documentos que, em
+conjunto, regem a relação entre a Muuday e o Profissional:
+  1. Termos de Uso da Plataforma (este documento)
+  2. Política de Privacidade e Proteção de Dados
+  3. Termos Financeiros: Plano, Cobrança e Payout
+  4. Declaração de Conformidade Regulatória e Escopo Consultivo
+
+Cada documento possui aceite próprio e independente.
+
+==============================================================================
+PREÂMBULO E ACEITE
+==============================================================================
+
+Estes Termos de Uso da Plataforma (doravante "Termos") constituem
+contrato juridicamente vinculante celebrado entre a Muuday e a pessoa
+física ou jurídica que se cadastra como profissional prestador de
+serviços na Plataforma (doravante "Profissional", "Você" ou "Usuário
+Profissional").
+
+Ao clicar em "Aceito os Termos de Uso da Plataforma", ao concluir o
+cadastro ou ao, de qualquer forma, usar a Plataforma, o Profissional
+declara que: (i) leu e compreendeu integralmente estes Termos; (ii)
+possui capacidade civil plena e, se pessoa jurídica, poderes para
+obrigar-se contratualmente; (iii) concorda em obrigar-se a todas as
+cláusulas aqui previstas.
+
+Se o Profissional NÃO concorda com qualquer disposição, deverá
+abster-se de prosseguir com o cadastro.
+
+==============================================================================
+SUMÁRIO
+==============================================================================
+
+  1. DEFINIÇÕES
+  2. OBJETO E NATUREZA DA PLATAFORMA
+  3. CADASTRO, ELEGIBILIDADE E VERIFICAÇÃO DE IDENTIDADE (KYC)
+  4. CONTA, CREDENCIAIS E SEGURANÇA
+  5. RESPONSABILIDADES DO PROFISSIONAL
+  6. CONTEÚDO DO PROFISSIONAL, PROPRIEDADE INTELECTUAL E LICENÇAS
+  7. REVISÃO, MODERAÇÃO, SUSPENSÃO E DESCREDENCIAMENTO
+  8. RELAÇÃO COM CLIENTES, COMUNICAÇÃO E NÃO-CIRCUNVENÇÃO
+  9. PROPRIEDADE INTELECTUAL DA MUUDAY
+ 10. DECLARAÇÕES E GARANTIAS DO PROFISSIONAL
+ 11. LIMITAÇÃO DE RESPONSABILIDADE DA MUUDAY
+ 12. INDENIZAÇÃO (HOLD HARMLESS)
+ 13. MODIFICAÇÕES DOS TERMOS E DOS SERVIÇOS
+ 14. VIGÊNCIA, RESCISÃO E EFEITOS DA EXTINÇÃO
+ 15. COMUNICAÇÕES E NOTIFICAÇÕES ELETRÔNICAS
+ 16. FORÇA MAIOR E CASO FORTUITO
+ 17. CESSÃO, SUBCONTRATAÇÃO E SUCESSÃO
+ 18. DISPOSIÇÕES GERAIS
+ 19. LEI APLICÁVEL, FORO E RESOLUÇÃO DE CONFLITOS
+
+==============================================================================
+1. DEFINIÇÕES
+==============================================================================
+
+Para os fins destes Termos:
+
+1.1. "Cliente" ou "Usuário Final": pessoa física ou jurídica,
+localizada no Brasil ou no exterior, que contrata serviços do
+Profissional por meio da Plataforma.
+
+1.2. "Conta": registro eletrônico do Profissional na Plataforma,
+acessado mediante credenciais próprias e intransferíveis.
+
+1.3. "Conteúdo do Profissional": quaisquer textos, imagens, vídeos,
+currículos, certificados, logotipos, descrições de serviços, preços,
+avaliações respondidas, mensagens e demais materiais publicados pelo
+Profissional na Plataforma.
+
+1.4. "Serviço": atividade profissional ofertada e prestada pelo
+Profissional a Clientes por intermédio da Plataforma.
+
+1.5. "Sessão": encontro síncrono ou assíncrono entre Profissional e
+Cliente, agendado e pago por meio da Plataforma.
+
+==============================================================================
+2. OBJETO E NATUREZA DA PLATAFORMA
+==============================================================================
+
+2.1. Objeto. A Muuday disponibiliza plataforma digital marketplace
+que conecta Clientes (notadamente brasileiros residentes no exterior)
+a Profissionais qualificados, oferecendo infraestrutura tecnológica
+para descoberta de perfis, comunicação, agendamento, processamento
+de pagamentos por intermediário terceirizado, emissão de lembretes
+e gestão operacional da relação entre as partes.
+
+2.2. Natureza jurídica. A Muuday atua exclusivamente como
+intermediadora tecnológica e provedora de aplicação de internet, nos
+termos do Marco Civil da Internet (Lei nº 12.965/2014). A Muuday NÃO
+É, sob nenhuma circunstância, em nenhuma jurisdição:
+
+   (a) prestadora dos serviços profissionais ofertados pelo
+   Profissional;
+   (b) clínica, consultório, hospital, estabelecimento de saúde ou
+   prestadora de serviços médicos, psicológicos, odontológicos,
+   fisioterápicos ou congêneres;
+   (c) escritório de advocacia, sociedade de advogados,
+   correspondente jurídico ou prestadora de serviços jurídicos;
+   (d) escritório de contabilidade, contador responsável técnico,
+   consultoria tributária ou prestadora de serviços contábeis;
+   (e) instituição de ensino, coach certificador ou entidade
+   credenciadora de qualquer natureza;
+   (f) empregadora, tomadora de serviços, contratante, preposta,
+   mandatária ou representante legal do Profissional;
+   (g) instituição financeira, instituição de pagamento, corretora
+   de câmbio, remessadora de valores ou entidade equivalente.
+
+2.3. Inexistência de vínculo empregatício ou societário. A relação
+entre a Muuday e o Profissional é estritamente de uso de plataforma
+tecnológica mediante pagamento de Plano. NÃO HÁ vínculo empregatício,
+societário, de parceria, de representação, de agência, de franquia,
+de joint venture ou de qualquer outra natureza que não a expressamente
+prevista nestes Termos. O Profissional é prestador autônomo,
+integralmente responsável pela forma, meios, preço, jornada e
+execução do seu Serviço.
+
+2.4. Independência do Profissional. O Profissional reconhece que:
+(i) determina livremente seus horários, metodologias, preços e
+Clientes; (ii) não está subordinado hierarquicamente à Muuday; (iii)
+não recebe salário, décimo terceiro, férias, gratificações ou
+benefícios trabalhistas; (iv) arca integralmente com seus custos
+operacionais, equipamentos, conexão, softwares auxiliares e tributos;
+(v) pode atuar simultaneamente em outras plataformas ou canais
+concorrentes, observadas as regras de não-circunvenção destes Termos.
+
+==============================================================================
+3. CADASTRO, ELEGIBILIDADE E VERIFICAÇÃO DE IDENTIDADE (KYC)
+==============================================================================
+
+3.1. Elegibilidade. Podem se cadastrar como Profissionais pessoas
+físicas maiores de 18 anos, com capacidade civil plena, ou pessoas
+jurídicas regularmente constituídas, desde que cumpram
+cumulativamente:
+
+   (a) possuam habilitação, registro, licença, inscrição ou
+   credenciamento profissional válido e vigente no órgão regulador
+   competente (ex.: CRM, CRP, OAB, CRC, CREF, CRO, CREFITO, entre
+   outros), quando exigido por lei;
+   (b) não estejam suspensos, cassados, impedidos ou em qualquer
+   medida restritiva imposta pelo respectivo conselho profissional,
+   autoridade regulatória ou Poder Judiciário;
+   (c) não constem de listas restritivas nacionais ou internacionais
+   (OFAC/SDN, ONU, União Europeia, Reino Unido, COAF/UIF, CEIS,
+   CEPIM, CNJ), nem estejam sancionados por crimes contra a
+   administração pública, lavagem de dinheiro, financiamento ao
+   terrorismo, corrupção, crimes contra a ordem tributária, crimes
+   contra a criança e o adolescente ou crimes contra a vida,
+   dignidade sexual ou integridade física.
+
+3.2. Informações cadastrais. O Profissional obriga-se a fornecer
+informações verdadeiras, exatas, atuais e completas, incluindo:
+nome completo ou razão social; CPF ou CNPJ; documento de identidade;
+comprovante de residência; número de registro profissional;
+comprovantes de formação; e-mail válido; telefone ativo; dados
+bancários; selfie e documentos adicionais para verificação quando
+solicitados.
+
+3.3. Verificação KYC. O Profissional reconhece que a Muuday e o
+Intermediário de Pagamento poderão, a qualquer tempo, realizar
+procedimentos de verificação de identidade (KYC), due diligence
+reforçada e screening de listas restritivas. O não atendimento
+integral e tempestivo autoriza a Muuday a suspender, bloquear ou
+encerrar a Conta.
+
+3.4. Veracidade contínua. O Profissional declara, sob as penas da
+lei, que todas as informações são verdadeiras e compromete-se a
+atualizá-las imediatamente, incluindo mudança de endereço, suspensão
+de registro profissional, alteração societária, abertura de
+procedimento disciplinar ou ação judicial relevante.
+
+3.5. Unicidade da Conta. Cada Profissional poderá manter apenas uma
+Conta ativa. É vedado cadastro múltiplo, uso de identidade alheia,
+criação de perfis fictícios ou cessão da Conta a terceiros.
+
+3.6. Menores. É terminantemente proibido o cadastro de menores de
+18 anos, ainda que emancipados.
+
+==============================================================================
+4. CONTA, CREDENCIAIS E SEGURANÇA
+==============================================================================
+
+4.1. Sigilo. As credenciais de acesso são pessoais e intransferíveis.
+O Profissional é integralmente responsável por todas as atividades
+realizadas em sua Conta.
+
+4.2. Autenticação de dois fatores. A Muuday poderá exigir ativação
+de 2FA como condição para acesso ou execução de ações sensíveis.
+
+4.3. Notificação de incidentes. O Profissional obriga-se a notificar
+imediatamente a Muuday sobre qualquer uso não autorizado, suspeita
+de comprometimento, phishing ou incidente de segurança.
+
+4.4. Isenção. A Muuday não responde por perdas decorrentes do
+descumprimento pelo Profissional das obrigações de sigilo.
+
+==============================================================================
+5. RESPONSABILIDADES DO PROFISSIONAL
+==============================================================================
+
+5.1. Responsabilidade integral pelo Serviço. O Profissional é o
+único e exclusivo responsável, civil, penal, administrativa, ética,
+tributária e regulatoriamente, por:
+
+   (a) qualidade técnica, diligência e adequação do Serviço;
+   (b) cumprimento das normas deontológicas do conselho de classe;
+   (c) obtenção e manutenção de licenças, autorizações, registros e
+   seguros profissionais exigidos no Brasil e no exterior;
+   (d) guarda, sigilo e adequado tratamento dos dados do Cliente;
+   (e) recolhimento dos tributos incidentes sobre seus rendimentos;
+   (f) emissão de recibos, notas fiscais, invoices ou documentos
+   fiscais equivalentes;
+   (g) eventuais danos causados ao Cliente, a terceiros ou à Muuday
+   em razão de ação ou omissão na prestação do Serviço.
+
+5.2. Dever de diligência. O Profissional compromete-se a: (i)
+atender com cordialidade e profissionalismo; (ii) cumprir
+pontualmente horários; (iii) não faltar injustificadamente a Sessões
+confirmadas; (iv) comunicar antecipadamente impossibilidades; (v)
+manter canal de comunicação responsivo pela Plataforma; (vi) não
+cobrar valores fora da Plataforma.
+
+5.3. Condutas vedadas. É terminantemente proibido ao Profissional:
+
+   (a) oferecer serviços ilícitos, antiéticos ou que violem normas
+   regulatórias;
+   (b) induzir o Cliente a erro, prometer resultados impossíveis,
+   realizar publicidade enganosa;
+   (c) discriminar Clientes por qualquer motivo vedado por lei;
+   (d) praticar assédio moral, sexual ou conduta inapropriada;
+   (e) compartilhar ou utilizar dados de Clientes para finalidades
+   diversas da prestação do Serviço;
+   (f) manipular avaliações, criar perfis falsos ou praticar fraude
+   reputacional;
+   (g) promover plataformas concorrentes utilizando a infraestrutura
+   da Muuday;
+   (h) utilizar a Plataforma para lavagem de dinheiro, financiamento
+   ao terrorismo, evasão cambial ou sonegação;
+   (i) contornar medidas de segurança, criar bots, scrapers ou
+   automações não autorizadas.
+
+5.4. Seguro profissional. A Muuday recomenda enfaticamente — e
+poderá, para determinadas categorias, exigir — a contratação e
+manutenção de seguro de responsabilidade civil profissional
+compatível com a atividade exercida.
+
+==============================================================================
+6. CONTEÚDO DO PROFISSIONAL, PROPRIEDADE INTELECTUAL E LICENÇAS
+==============================================================================
+
+6.1. Titularidade. O Profissional mantém a titularidade do Conteúdo
+que publica, observados os direitos de terceiros.
+
+6.2. Licença à Muuday. Ao publicar Conteúdo na Plataforma, o
+Profissional concede à Muuday licença mundial, não exclusiva,
+gratuita, sublicenciável, transferível, válida pelo prazo máximo
+permitido pela legislação aplicável, para hospedar, armazenar,
+reproduzir, modificar (para fins de formatação, tradução ou
+adaptação técnica), exibir, distribuir, comunicar ao público e
+utilizar tal conteúdo, no todo ou em parte, para fins de: (i)
+operação, promoção e desenvolvimento da Plataforma; (ii) divulgação
+comercial e marketing, incluindo redes sociais, e-mails, mídia paga
+e materiais institucionais; (iii) uso em produtos e serviços
+presentes e futuros da Muuday.
+
+6.3. Imagem e voz. O Profissional autoriza expressamente o uso de
+sua imagem, voz, nome, nome profissional e atributos da
+personalidade, nos termos do art. 20 do Código Civil, para as
+finalidades descritas no item 6.2, sem obrigação de pagamento
+adicional.
+
+6.4. Declaração de originalidade. O Profissional declara que o
+Conteúdo: (i) é de sua autoria ou está regularmente licenciado;
+(ii) não viola direitos de terceiros; (iii) não contém material
+difamatório, obsceno, discriminatório, violento ou ilegal.
+
+6.5. Remoção. A Muuday poderá remover Conteúdo, a qualquer tempo,
+quando considerá-lo em desacordo com estes Termos ou com a
+legislação aplicável.
+
+==============================================================================
+7. REVISÃO, MODERAÇÃO, SUSPENSÃO E DESCREDENCIAMENTO
+==============================================================================
+
+7.1. Poder de moderação. A Muuday reserva-se o direito de revisar,
+moderar, solicitar ajustes, exigir documentos, limitar
+funcionalidades, ocultar perfil, suspender acesso ou encerrar
+unilateralmente a Conta, com ou sem aviso prévio, nas hipóteses de:
+
+   (a) violação, ainda que indiciária, destes Termos ou de
+   documentos relacionados;
+   (b) risco regulatório, reputacional ou de segurança;
+   (c) inconsistências, indícios de fraude ou denúncias fundamentadas;
+   (d) reclamações reiteradas, avaliações substancialmente
+   negativas, altos índices de cancelamento ou chargeback;
+   (e) inadimplência do Plano ou falha em KYC;
+   (f) determinação de autoridade competente;
+   (g) conveniência operacional ou estratégica, observado o item
+   14.3.
+
+7.2. Devido processo interno. Sempre que possível, a Muuday fornecerá
+oportunidade de esclarecimento antes da medida definitiva. Decisões
+finais são de competência exclusiva da Muuday.
+
+7.3. Efeitos da suspensão. Durante a suspensão, o Profissional não
+poderá receber novas reservas, permanecendo responsável pelas
+Sessões já confirmadas e pelos pagamentos do Plano.
+
+==============================================================================
+8. RELAÇÃO COM CLIENTES, COMUNICAÇÃO E NÃO-CIRCUNVENÇÃO
+==============================================================================
+
+8.1. Comunicação pela Plataforma. Todas as comunicações iniciais,
+agendamentos e pagamentos deverão ocorrer obrigatoriamente pela
+Plataforma.
+
+8.2. NÃO-CIRCUNVENÇÃO (cláusula destacada). O Profissional
+compromete-se, durante a vigência destes Termos e pelo prazo de 12
+(doze) meses após o encerramento da Conta, a NÃO:
+
+   (a) oferecer, induzir ou convencer Clientes conhecidos através
+   da Plataforma a contratar Serviços fora dela, com o intuito de
+   evitar a Taxa da Plataforma;
+   (b) compartilhar com o Cliente dados bancários, chaves Pix ou
+   links de pagamento próprios, para recebimento direto;
+   (c) solicitar reembolso na Plataforma e, simultaneamente, receber
+   o valor diretamente do Cliente.
+
+8.3. PENALIDADE (cláusula destacada). A violação do item 8.2 sujeita
+o Profissional à MULTA NÃO COMPENSATÓRIA equivalente a 12 (doze)
+vezes o valor da última Taxa da Plataforma aplicável à relação
+circunvencionada, sem prejuízo de perdas e danos, rescisão e
+retenção de Payouts.
+
+8.4. Clientes preexistentes. Clientes que o Profissional já atendia
+fora da Plataforma e que livremente escolham migrar para ela não
+estão cobertos pela regra de não-circunvenção, desde que declarados
+no onboarding.
+
+==============================================================================
+9. PROPRIEDADE INTELECTUAL DA MUUDAY
+==============================================================================
+
+9.1. Todos os direitos sobre a Plataforma (marca, logo, nome
+empresarial, domínio, interface, design, código-fonte, bancos de
+dados, algoritmos, metodologias e conteúdos editoriais) são de
+titularidade exclusiva da Muuday ou de seus licenciadores.
+
+9.2. É vedado ao Profissional: (i) copiar, modificar, distribuir,
+sublicenciar, vender ou criar obras derivadas da Plataforma; (ii)
+realizar engenharia reversa; (iii) utilizar a marca Muuday sem
+autorização expressa.
+
+9.3. Sugestões enviadas pelo Profissional poderão ser livremente
+utilizadas pela Muuday, sem compensação.
+
+==============================================================================
+10. DECLARAÇÕES E GARANTIAS DO PROFISSIONAL
+==============================================================================
+
+O Profissional, sob as penas da lei, declara e garante:
+
+   (a) todas as informações cadastrais são verdadeiras e atualizadas;
+   (b) possui plena capacidade jurídica e regular habilitação;
+   (c) não está sujeito a sanção, suspensão ou impedimento
+   profissional;
+   (d) não figura em listas restritivas de sanções;
+   (e) atuará com diligência, ética e em conformidade com a lei;
+   (f) é o único responsável pelo Serviço;
+   (g) manterá a Muuday indene em face de reclamações decorrentes
+   de sua atuação.
+
+==============================================================================
+11. LIMITAÇÃO DE RESPONSABILIDADE DA MUUDAY
+==============================================================================
+
+11.1. Inexistência de responsabilidade pelo Serviço. A Muuday NÃO é
+parte, responsável, fiadora, avalista, garantidora, supervisora ou
+fiscalizadora dos Serviços prestados. A responsabilidade é exclusiva
+do Profissional.
+
+11.2. "As is" / "as available". A Plataforma é disponibilizada no
+estado em que se encontra, sem garantias de disponibilidade
+ininterrupta, ausência de erros ou adequação a fim específico.
+
+11.3. Exclusões. A Muuday não responde, na máxima extensão legal,
+por:
+   (a) danos decorrentes de atos ou omissões do Profissional ou
+   Cliente;
+   (b) lucros cessantes, danos indiretos, punitivos ou
+   consequenciais;
+   (c) falhas em serviços de terceiros (internet, cartão, banco,
+   Stripe, videoconferência, e-mail etc.);
+   (d) perda de dados por causa não imputável exclusivamente à
+   Muuday;
+   (e) interrupções programadas para manutenção;
+   (f) força maior e caso fortuito;
+   (g) consequências regulatórias sofridas pelo Profissional.
+
+11.4. LIMITAÇÃO QUANTITATIVA (cláusula destacada). Quando houver
+responsabilidade imputável à Muuday, seu montante total será
+LIMITADO, na máxima extensão legalmente permitida, ao somatório dos
+valores efetivamente pagos pelo Profissional à Muuday a título de
+Plano nos 12 (doze) meses anteriores ao evento gerador.
+
+==============================================================================
+12. INDENIZAÇÃO (HOLD HARMLESS)
+==============================================================================
+
+12.1. O Profissional obriga-se a indenizar, defender e manter a
+Muuday, seus administradores, empregados, sócios, licenciadores e
+coligadas indenes de e contra qualquer reclamação, demanda, ação,
+perda, dano, multa, sanção administrativa, honorários e custas
+decorrentes de:
+
+   (a) violação destes Termos ou legislação aplicável pelo
+   Profissional;
+   (b) violação de direitos de terceiros;
+   (c) prestação defeituosa, culposa ou dolosa do Serviço;
+   (d) disputas entre o Profissional e Cliente, conselho
+   profissional, autoridade fiscal, regulatória ou judicial.
+
+12.2. A Muuday poderá, a seu critério, assumir a defesa jurídica,
+sem prejuízo do direito de regresso contra o Profissional.
+
+==============================================================================
+13. MODIFICAÇÕES DOS TERMOS E DOS SERVIÇOS
+==============================================================================
+
+13.1. A Muuday poderá alterar estes Termos e as funcionalidades da
+Plataforma a qualquer tempo, refletindo evolução legal, regulatória,
+tecnológica ou comercial.
+
+13.2. Alterações materiais serão comunicadas com antecedência mínima
+de 15 dias por e-mail ou aviso na Plataforma.
+
+13.3. O uso continuado após a vigência da nova versão constitui
+aceite. Em caso de discordância, o Profissional poderá cancelar a
+Conta.
+
+==============================================================================
+14. VIGÊNCIA, RESCISÃO E EFEITOS DA EXTINÇÃO
+==============================================================================
+
+14.1. Vigência. Prazo indeterminado a partir do aceite.
+
+14.2. Rescisão pelo Profissional. A qualquer tempo, mediante
+encerramento da Conta, respeitado o ciclo já pago do Plano e as
+Sessões já agendadas.
+
+14.3. Rescisão pela Muuday. Aviso prévio de 30 dias por conveniência,
+ou imediata nas hipóteses do item 7.1 alíneas "a" a "f".
+
+14.4. Efeitos. (a) perda de acesso a novas reservas; (b) obrigação
+de concluir Sessões já confirmadas; (c) pagamento de valores
+devidos; (d) manutenção de dados pelos prazos legais; (e)
+sobrevivência das cláusulas de confidencialidade, propriedade
+intelectual, não-circunvenção, indenização, limitação de
+responsabilidade, foro e lei aplicável.
+
+==============================================================================
+15. COMUNICAÇÕES E NOTIFICAÇÕES ELETRÔNICAS
+==============================================================================
+
+15.1. As comunicações oficiais ocorrem por meios eletrônicos
+(e-mail cadastrado, notificações na Plataforma, mensagens in-app),
+com presunção de recebimento no dia seguinte ao envio.
+
+15.2. A assinatura eletrônica (clique de aceite, biometria,
+certificado ICP-Brasil ou equivalente) é reconhecida, nos termos da
+Lei nº 14.063/2020, da MP 2.200-2/2001, do eIDAS e do ESIGN Act.
+
+==============================================================================
+16. FORÇA MAIOR E CASO FORTUITO
+==============================================================================
+
+Nenhuma das partes será responsável por descumprimento decorrente
+de força maior ou caso fortuito, incluindo pandemia, guerra, ato
+governamental, falha generalizada de internet, ataques cibernéticos,
+desastres naturais ou eventos fora do controle razoável das partes,
+nos termos do art. 393 do Código Civil.
+
+==============================================================================
+17. CESSÃO, SUBCONTRATAÇÃO E SUCESSÃO
+==============================================================================
+
+17.1. O Profissional não poderá ceder ou transferir estes Termos
+sem anuência prévia da Muuday.
+
+17.2. A Muuday poderá ceder estes Termos a empresa do seu grupo
+econômico, sucessor ou adquirente, mediante comunicação.
+
+==============================================================================
+18. DISPOSIÇÕES GERAIS
+==============================================================================
+
+18.1. Integralidade. Estes Termos, somados aos demais documentos
+relacionados, constituem o acordo integral entre as partes.
+
+18.2. Tolerância. A eventual tolerância quanto ao descumprimento
+não implica novação ou renúncia.
+
+18.3. Independência das cláusulas. A invalidade de qualquer cláusula
+não prejudica as demais.
+
+18.4. Idioma. Em caso de conflito entre versões traduzidas,
+prevalece a versão em Português do Brasil.
+
+==============================================================================
+19. LEI APLICÁVEL, FORO E RESOLUÇÃO DE CONFLITOS
+==============================================================================
+
+19.1. Lei aplicável. Leis da República Federativa do Brasil.
+
+19.2. Negociação amigável. As partes envidarão esforços para
+resolver amigavelmente qualquer controvérsia em 30 dias.
+
+19.3. Mediação e arbitragem. As partes poderão, consensualmente,
+submeter controvérsias à mediação ou arbitragem (Lei nº 9.307/1996).
+
+19.4. Foro. Ressalvadas hipóteses de competência absoluta, foro da
+Comarca da Capital do Estado de São Paulo/SP.
+
+==============================================================================
+DECLARAÇÃO DE ACEITE — DOCUMENTO 1 DE 4
+==============================================================================
+
+Ao marcar o checkbox "Aceito os Termos de Uso da Plataforma", o
+Profissional declara ter lido, compreendido e aceito integralmente
+este documento.
+
+Canais oficiais:
+  Suporte: suporte@muuday.com
+  Compliance: compliance@muuday.com
+  Site: https://www.muuday.com
+
+==============================================================================
+                          FIM DO DOCUMENTO 1
+==============================================================================

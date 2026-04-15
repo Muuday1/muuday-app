@@ -1,0 +1,536 @@
+==============================================================================
+    DOCUMENTO 4 DE 4 — DECLARAÇÃO DE CONFORMIDADE REGULATÓRIA E
+                    ESCOPO CONSULTIVO
+              (APLICÁVEL A PROFISSIONAIS PRESTADORES DE SERVIÇOS)
+==============================================================================
+
+Versão: 2.0
+Última atualização: 15 de abril de 2026
+Operadora: Muuday
+Idioma prevalente: Português do Brasil
+
+------------------------------------------------------------------------------
+MOMENTO DE ACEITE
+------------------------------------------------------------------------------
+Este documento deve ser aceito pelo Profissional no momento do
+onboarding, em checkbox separado e destacado, APÓS a seleção da
+categoria profissional. A Muuday poderá exibir seções específicas
+conforme a categoria escolhida (ex.: médico vê com destaque as
+regras do CFM; advogado, as da OAB; contador, as do CRC), sem
+prejuízo da aplicação integral deste documento.
+
+------------------------------------------------------------------------------
+DOCUMENTOS RELACIONADOS
+------------------------------------------------------------------------------
+Este é o Documento 4 de um conjunto de 4 (quatro) documentos:
+  1. Termos de Uso da Plataforma
+  2. Política de Privacidade e Proteção de Dados
+  3. Termos Financeiros: Plano, Cobrança e Payout
+  4. Declaração de Conformidade Regulatória e Escopo Consultivo
+     (este documento)
+
+==============================================================================
+PREÂMBULO — IMPORTÂNCIA DESTE DOCUMENTO
+==============================================================================
+
+>>> ESTE DOCUMENTO CONTÉM DECLARAÇÕES DO PROFISSIONAL QUE TÊM EFEITO
+    JURÍDICO E RESPONSABILIZAM INTEGRALMENTE O DECLARANTE PERANTE
+    AUTORIDADES REGULATÓRIAS, CONSELHOS PROFISSIONAIS, AUTORIDADES
+    FISCAIS E TERCEIROS. <<<
+
+A Muuday opera em cenário de atuação INTERNACIONAL, conectando
+Profissionais no Brasil a Clientes localizados em diversos países.
+Esse cenário impõe atenção redobrada a regras de licenciamento,
+jurisdição, ética profissional, telemedicina, publicidade, sigilo,
+prevenção à lavagem de dinheiro e sanções internacionais.
+
+Ao aceitar este documento, o Profissional declara, sob as penas da
+lei, conhecer e se comprometer com todas as regras aqui descritas.
+
+==============================================================================
+SUMÁRIO
+==============================================================================
+
+  1. ESCOPO CONSULTIVO DO ATENDIMENTO
+  2. JURISDIÇÃO E LICENCIAMENTO
+  3. ORIENTAÇÃO LOCAL E URGÊNCIAS
+  4. NÃO-CIRCUNVENÇÃO REGULATÓRIA
+  5. REGRAS ESPECÍFICAS PARA SAÚDE
+  6. REGRAS ESPECÍFICAS PARA JURÍDICO
+  7. REGRAS ESPECÍFICAS PARA CONTABILIDADE E FINANÇAS
+  8. REGRAS ESPECÍFICAS PARA DEMAIS PROFISSÕES REGULADAS
+  9. PUBLICIDADE, COMUNICAÇÃO E CAPTAÇÃO
+ 10. SIGILO PROFISSIONAL E CONFIDENCIALIDADE
+ 11. PREVENÇÃO À LAVAGEM DE DINHEIRO, ANTICORRUPÇÃO E SANÇÕES
+ 12. DECLARAÇÕES E GARANTIAS DO PROFISSIONAL
+ 13. BLOQUEIO PREVENTIVO E MEDIDAS DE MITIGAÇÃO
+ 14. RESPONSABILIDADES E ISENÇÃO DA MUUDAY
+
+==============================================================================
+1. ESCOPO CONSULTIVO DO ATENDIMENTO
+==============================================================================
+
+1.1. Caráter consultivo. O Profissional reconhece e concorda que os
+atendimentos iniciados por meio da Plataforma possuem, em regra,
+caráter:
+
+   (a) CONSULTIVO;
+   (b) INFORMATIVO;
+   (c) EDUCACIONAL;
+   (d) ORIENTATIVO;
+   (e) DE SEGUNDA OPINIÃO;
+
+não substituindo o atendimento presencial, o acompanhamento local
+ou o ato privativo sujeito a regulação territorial específica,
+quando a lei do país do Cliente ou do país do Profissional assim o
+exigir.
+
+1.2. Comunicação ao Cliente. O Profissional compromete-se a
+esclarecer ao Cliente, quando relevante, as limitações desse formato
+e a eventual necessidade de atendimento local complementar.
+
+1.3. Vedação à apresentação enganosa. É VEDADO ao Profissional
+apresentar o atendimento pela Plataforma como equivalente a ou
+substitutivo de atendimento presencial regulado, quando não o for.
+
+==============================================================================
+2. JURISDIÇÃO E LICENCIAMENTO
+==============================================================================
+
+2.1. O Profissional compromete-se a respeitar ESTRITAMENTE:
+
+   (a) os limites de jurisdição de seu registro profissional;
+   (b) as regras do conselho de classe competente no Brasil;
+   (c) as regras, licenciamentos e restrições do país onde o Cliente
+   está fisicamente localizado no momento da Sessão;
+   (d) as regras do país onde o Serviço é efetivamente prestado;
+   (e) tratados internacionais, acordos de reciprocidade e normas
+   supranacionais aplicáveis (ex.: normas europeias para atuação em
+   Estados-membros da UE).
+
+2.2. Dupla conformidade. Em caso de atendimento a Cliente no
+exterior, o Profissional deve observar tanto a legislação brasileira
+quanto a legislação local do Cliente, prevalecendo a mais restritiva
+quando houver conflito.
+
+2.3. Verificação prévia. É DEVER do Profissional verificar, antes da
+prestação do Serviço, se a legislação do país do Cliente permite o
+tipo de atendimento ofertado por profissional licenciado no Brasil.
+
+==============================================================================
+3. ORIENTAÇÃO LOCAL E URGÊNCIAS
+==============================================================================
+
+3.1. O Profissional compromete-se a orientar o Cliente a buscar
+profissional local regularmente habilitado, especialmente nas
+hipóteses de:
+
+   (a) necessidade de ato privativo que exija licença local (ex.:
+   prescrição de medicamento com validade no país, peticionamento
+   judicial estrangeiro, representação fiscal local);
+   (b) urgência ou emergência médica;
+   (c) procedimentos que requeiram presença física;
+   (d) emissão de documentos com validade exclusiva no país de
+   residência do Cliente;
+   (e) situações que extrapolem o escopo consultivo.
+
+3.2. Em hipóteses de risco à vida ou à integridade física do
+Cliente, o Profissional da área da saúde deverá orientar o Cliente
+a buscar IMEDIATAMENTE serviço de emergência local (ex.: 112 na
+UE/UK, 911 nos EUA, 192 no Brasil).
+
+==============================================================================
+4. NÃO-CIRCUNVENÇÃO REGULATÓRIA
+==============================================================================
+
+4.1. DECLARAÇÃO EXPRESSA (cláusula destacada). O Profissional
+DECLARA que NÃO UTILIZARÁ a Plataforma para:
+
+   (a) contornar, burlar ou fraudar regras regulatórias ou de
+   licenciamento profissional de qualquer país;
+   (b) exercer no exterior atividades privativas ou reservadas a
+   profissionais locais, sem o devido credenciamento;
+   (c) emitir documentos, prescrições, laudos ou pareceres
+   destinados a produzir efeitos em jurisdição onde não esteja
+   licenciado, salvo se expressamente permitido;
+   (d) prestar serviços a Cliente que, nos termos da legislação
+   local, exijam profissional registrado naquela jurisdição.
+
+4.2. RESPONSABILIDADE INTEGRAL (cláusula destacada). O Profissional
+assume INTEGRAL e EXCLUSIVA responsabilidade por eventuais infrações
+regulatórias, administrativas, disciplinares, civis ou penais que
+venha a cometer, obrigando-se a manter a MUUDAY INDENE de quaisquer
+reclamações, multas, sanções, custas processuais e honorários
+advocatícios decorrentes (conforme a cláusula de indenização do
+Documento 1).
+
+==============================================================================
+5. REGRAS ESPECÍFICAS PARA SAÚDE
+==============================================================================
+
+Aplicável a médicos, psicólogos, nutricionistas, fisioterapeutas,
+odontólogos, fonoaudiólogos, terapeutas ocupacionais, educadores
+físicos, enfermeiros e demais profissionais da área da saúde.
+
+5.1. Registro ativo. O Profissional declara possuir REGISTRO ATIVO
+e REGULAR no respectivo conselho profissional (CRM, CRP, CRN,
+CREFITO, CRO, CRFa, COFFITO, CREF, COREN etc.), sem qualquer
+suspensão, cassação ou impedimento.
+
+5.2. Telessaúde no Brasil. O Profissional obriga-se a observar as
+normas aplicáveis sobre telessaúde, teleatendimento e telepsicologia,
+incluindo, sem limitação:
+
+   (a) Lei nº 13.989/2020 (telemedicina em caráter emergencial)
+   e normas sucedâneas;
+   (b) Resolução CFM nº 2.314/2022 e atualizações posteriores;
+   (c) Resolução CFP nº 11/2018 e atualizações posteriores;
+   (d) normas específicas do CFN, COFFITO, CFO, CFFa, CFF, COFEN
+   e demais conselhos aplicáveis;
+   (e) normas da ANVISA quando aplicáveis;
+   (f) LGPD, especialmente no tratamento de dados pessoais
+   sensíveis de saúde (art. 11).
+
+5.3. Prontuário. O Profissional obriga-se a manter PRONTUÁRIO
+ELETRÔNICO seguro, sigiloso e conforme padrões do respectivo
+conselho, pelo prazo mínimo exigido pela legislação (20 anos para
+médicos, conforme Resolução CFM nº 1.821/2007, e prazos aplicáveis
+às demais categorias).
+
+5.4. Prescrições. O Profissional reconhece que prescrições de
+medicamentos emitidas no Brasil podem NÃO TER VALIDADE no país de
+residência do Cliente, devendo orientá-lo quanto à necessidade de
+consulta com profissional local para obtenção de receita válida
+naquela jurisdição.
+
+5.5. Casos de risco. Em qualquer indício de:
+
+   (a) risco de suicídio, autoagressão ou agressão a terceiros;
+   (b) emergência médica;
+   (c) abuso, violência ou crime em curso;
+   (d) envolvimento de crianças ou adolescentes em situação de
+   risco;
+
+o Profissional deverá adotar as medidas protetivas previstas em seu
+código de ética e orientar IMEDIATAMENTE o Cliente a buscar socorro
+local, sem prejuízo do cumprimento de deveres legais de notificação.
+
+5.6. Telemedicina em jurisdições estrangeiras. O Profissional da
+saúde reconhece que diversos países (notadamente EUA, Canadá,
+Portugal, Alemanha, Reino Unido e Austrália) possuem legislação
+específica sobre telemedicina transnacional, podendo exigir
+licenciamento local. O Profissional é responsável por verificar e
+cumprir tais exigências.
+
+==============================================================================
+6. REGRAS ESPECÍFICAS PARA JURÍDICO
+==============================================================================
+
+Aplicável a advogados, estagiários de advocacia e profissionais do
+Direito.
+
+6.1. Inscrição ativa. O Profissional advogado declara possuir
+INSCRIÇÃO ATIVA E REGULAR na OAB, sem qualquer suspensão, cassação
+ou impedimento.
+
+6.2. Estatuto e Código de Ética. O Profissional compromete-se a
+observar integralmente:
+
+   (a) o Estatuto da Advocacia e da OAB (Lei nº 8.906/1994);
+   (b) o Código de Ética e Disciplina da OAB;
+   (c) o Regulamento Geral do Estatuto da Advocacia;
+   (d) Provimentos aplicáveis do Conselho Federal da OAB, notadamente
+   o Provimento nº 205/2021 (publicidade profissional) e
+   atualizações;
+   (e) provimentos seccionais aplicáveis.
+
+6.3. Vedações. O Profissional advogado COMPROMETE-SE a NÃO:
+
+   (a) utilizar a Plataforma para captação indevida de clientela,
+   mercantilização da advocacia, oferta genérica de serviços a
+   público indeterminado ou promessa de resultado;
+   (b) praticar conduta vedada pelo Código de Ética (ex.: agenciar
+   causas, dividir honorários com terceiros não advogados, etc.);
+   (c) apresentar-se ou deixar que a Muuday apresente o serviço como
+   atividade de escritório de advocacia — a Muuday é plataforma
+   tecnológica, não é escritório;
+   (d) atuar em causa judicial ou extrajudicial em jurisdição onde
+   não esteja habilitado, salvo cooperação com profissional local;
+   (e) oferecer "consultoria" que configure prática ilegal da
+   profissão em país estrangeiro.
+
+6.4. Limites da consultoria. O Profissional advogado prestará
+orientação jurídica dentro dos limites do Direito brasileiro, ou
+do direito estrangeiro para o qual esteja habilitado. Ao Cliente
+residente no exterior, INFORMARÁ EXPRESSAMENTE a necessidade de
+consultar advogado local habilitado para atos forenses estrangeiros
+e questões que envolvam direito local.
+
+6.5. Sigilo e prerrogativas. Aplicam-se integralmente o sigilo
+profissional do advogado e as prerrogativas previstas no Estatuto
+da OAB.
+
+==============================================================================
+7. REGRAS ESPECÍFICAS PARA CONTABILIDADE E FINANÇAS
+==============================================================================
+
+Aplicável a contadores, técnicos em contabilidade, consultores
+fiscais, consultores financeiros, planejadores financeiros e
+profissionais correlatos.
+
+7.1. Registro ativo. O Profissional contador declara possuir
+registro ATIVO E REGULAR no CRC, quando exigido por lei.
+
+7.2. Normas aplicáveis. O Profissional compromete-se a observar:
+
+   (a) o Código de Ética Profissional do Contador (Resolução CFC
+   nº 803/1996 e atualizações);
+   (b) as Normas Brasileiras de Contabilidade (NBCs);
+   (c) a Lei nº 9.613/1998 (prevenção à lavagem de dinheiro) e
+   regulamentação do COAF/UIF aplicável ao setor contábil;
+   (d) obrigações acessórias da Receita Federal do Brasil.
+
+7.3. Aconselhamento de investimento. O Profissional declara que NÃO
+PRESTARÁ aconselhamento de investimento regulado pela Comissão de
+Valores Mobiliários (CVM), ANBIMA ou autoridade estrangeira
+equivalente (SEC nos EUA, FCA no Reino Unido, CMVM em Portugal,
+BaFin na Alemanha etc.), SALVO se devidamente credenciado (ex.:
+analista CNPI, consultor de valores mobiliários registrado na CVM,
+planejador CFP, Registered Investment Advisor).
+
+7.4. Distinção entre orientação e recomendação. O Profissional não
+credenciado limitar-se-á à ORIENTAÇÃO EDUCACIONAL, INFORMATIVA e à
+ESTRUTURAÇÃO TRIBUTÁRIA e contábil, sem emitir recomendação
+personalizada de compra, venda ou manutenção de ativos financeiros.
+
+7.5. Orientação local. O Profissional orientará o Cliente residente
+no exterior quanto à necessidade de assessoria fiscal local no
+país de residência, considerando regras de tratados de bitributação,
+declarações obrigatórias e normas locais.
+
+==============================================================================
+8. REGRAS ESPECÍFICAS PARA DEMAIS PROFISSÕES REGULADAS
+==============================================================================
+
+Aplicam-se regras análogas às demais categorias reguladas, incluindo
+mas não se limitando a:
+
+8.1. Educadores físicos (CREF) — Resolução CONFEF específica para
+atuação online;
+8.2. Engenheiros e arquitetos (CREA/CAU) — limites de atuação em
+projetos que requerem ART/RRT com validade local;
+8.3. Corretores de imóveis (CRECI) — vedação a intermediação imobiliária
+em jurisdições estrangeiras;
+8.4. Terapeutas holísticos, coaches e profissionais de bem-estar:
+(i) não poderão apresentar sua atuação como substitutiva de
+tratamento médico, psicológico ou psiquiátrico;
+(ii) não poderão prometer cura de enfermidades;
+(iii) observarão eventual regulamentação específica (ex.: normas
+da International Coach Federation, regulamentações estaduais de
+terapias integrativas).
+
+8.5. O Profissional de qualquer categoria regulada compromete-se a
+observar integralmente a legislação específica de sua profissão.
+
+==============================================================================
+9. PUBLICIDADE, COMUNICAÇÃO E CAPTAÇÃO
+==============================================================================
+
+9.1. Toda publicidade, comunicação ou divulgação realizada pelo
+Profissional na Plataforma deve observar:
+
+   (a) normas do respectivo conselho profissional;
+   (b) o Código de Defesa do Consumidor (vedação à publicidade
+   enganosa e abusiva);
+   (c) normas do CONAR quando aplicáveis;
+   (d) normas estrangeiras de publicidade profissional quando a
+   comunicação for dirigida a público estrangeiro.
+
+9.2. VEDAÇÕES específicas:
+
+   (a) promessa de resultado (especialmente em saúde e jurídico);
+   (b) uso de termos sensacionalistas, alarmistas ou que
+   desvalorizem colegas ou outras categorias;
+   (c) comparação de preços em categorias onde tal prática seja
+   vedada pelo conselho;
+   (d) uso de imagens "antes/depois" em desacordo com normas
+   éticas aplicáveis (ex.: Resolução CFM sobre publicidade médica);
+   (e) uso de depoimentos de pacientes/clientes quando vedado pelo
+   respectivo conselho.
+
+==============================================================================
+10. SIGILO PROFISSIONAL E CONFIDENCIALIDADE
+==============================================================================
+
+10.1. O Profissional compromete-se a manter SIGILO ABSOLUTO sobre
+todas as informações do Cliente obtidas em razão da prestação do
+Serviço, observando:
+
+   (a) o sigilo profissional previsto em seu código de ética;
+   (b) o sigilo médico (art. 154 do Código Penal; Código de Ética
+   Médica);
+   (c) o sigilo profissional do advogado (art. 7º, XIX, da Lei nº
+   8.906/1994);
+   (d) as regras de confidencialidade aplicáveis a contadores,
+   psicólogos e demais categorias;
+   (e) a LGPD e legislações estrangeiras sobre dados sensíveis.
+
+10.2. O sigilo perdura APÓS o término da relação com o Cliente e
+com a Muuday.
+
+10.3. Hipóteses legais de quebra de sigilo (ordem judicial, risco
+iminente à vida, comunicação a autoridade competente) serão
+observadas estritamente conforme previsão legal.
+
+==============================================================================
+11. PREVENÇÃO À LAVAGEM DE DINHEIRO, ANTICORRUPÇÃO E SANÇÕES
+==============================================================================
+
+11.1. O Profissional compromete-se a cumprir integralmente:
+
+   (a) a Lei nº 9.613/1998 (prevenção à lavagem de dinheiro);
+   (b) a Lei nº 13.260/2016 (antiterrorismo);
+   (c) a Lei nº 12.846/2013 (Lei Anticorrupção);
+   (d) o UK Bribery Act 2010;
+   (e) o Foreign Corrupt Practices Act (FCPA — EUA);
+   (f) regulamentações do COAF/UIF;
+   (g) sanções da OFAC, ONU, União Europeia, Reino Unido e demais
+   autoridades internacionais aplicáveis.
+
+11.2. VEDAÇÕES ABSOLUTAS. É TERMINANTEMENTE VEDADO ao Profissional:
+
+   (a) operar em benefício direto ou indireto de pessoas físicas
+   ou jurídicas constantes de listas de sanções internacionais;
+   (b) participar de esquemas de lavagem de capitais, ocultação
+   patrimonial ou dissimulação de origem ilícita de recursos;
+   (c) oferecer ou aceitar vantagem indevida a agente público;
+   (d) participar de esquemas de evasão cambial ou evasão fiscal;
+   (e) financiar, direta ou indiretamente, atividades terroristas
+   ou organizações criminosas.
+
+11.3. Cooperação. A Muuday poderá solicitar, a qualquer tempo,
+informações e documentos adicionais, inclusive sobre origem dos
+recursos, natureza dos Serviços e Clientes, comunicando às
+autoridades competentes operações atípicas, suspeitas ou
+relacionadas a pessoas sancionadas, nos termos da lei.
+
+11.4. Pessoas Politicamente Expostas (PEPs). O Profissional que seja
+ou venha a se tornar PEP, nos termos da regulamentação aplicável,
+deverá declarar tal condição no cadastro ou em até 30 (trinta) dias
+da alteração.
+
+==============================================================================
+12. DECLARAÇÕES E GARANTIAS DO PROFISSIONAL
+==============================================================================
+
+O Profissional, sob as penas da lei (incluindo, sem limitação,
+responsabilização por falsidade ideológica — art. 299 do Código
+Penal), DECLARA E GARANTE:
+
+   (a) possuir habilitação profissional regular e registro ativo
+   no conselho competente, quando exigido;
+   (b) não estar sujeito a qualquer suspensão, cassação,
+   impedimento ou medida restritiva imposta por conselho,
+   autoridade regulatória ou Poder Judiciário;
+   (c) não figurar em listas restritivas de sanções internacionais;
+   (d) não ter sido condenado por crimes contra a administração
+   pública, lavagem de dinheiro, financiamento ao terrorismo,
+   corrupção, crimes contra a ordem tributária, crimes contra a
+   criança e o adolescente, crimes contra a dignidade sexual ou
+   contra a vida;
+   (e) declarar condição de PEP, quando aplicável;
+   (f) conhecer e cumprir integralmente as normas regulatórias,
+   éticas e legais aplicáveis a sua atividade no Brasil e nos
+   países onde preste Serviços;
+   (g) verificar previamente a legalidade do atendimento a Clientes
+   estrangeiros antes da prestação do Serviço;
+   (h) manter documentação atualizada e disponível para auditoria;
+   (i) obrigar-se a manter a Muuday indene em face de quaisquer
+   reclamações, sanções ou responsabilizações decorrentes de sua
+   atuação;
+   (j) compreender que a Muuday é plataforma tecnológica
+   intermediadora, sem responsabilidade pelo Serviço prestado.
+
+==============================================================================
+13. BLOQUEIO PREVENTIVO E MEDIDAS DE MITIGAÇÃO
+==============================================================================
+
+13.1. A Muuday poderá, a seu exclusivo critério, BLOQUEAR,
+SINALIZAR, RESTRINGIR OU RECUSAR perfis, serviços ou Sessões que
+envolvam alto risco regulatório, SEM que tal ato configure juízo
+sobre a conduta do Profissional, mas mera precaução operacional.
+
+13.2. Exemplos não exaustivos de situações de risco:
+
+   (a) categoria de serviço vedada ou regulada em país de residência
+   de parte significativa dos Clientes;
+   (b) indícios de atuação fora do escopo licenciado;
+   (c) reclamações reiteradas de Clientes;
+   (d) comunicação ou conteúdo que sugira promessa de resultado
+   vedada;
+   (e) suspeita de uso da Plataforma para fins de evasão
+   regulatória.
+
+13.3. A Muuday poderá exigir revisão de conteúdo, documentos
+adicionais, ajuste de descrição de serviços ou restringir países de
+atendimento.
+
+==============================================================================
+14. RESPONSABILIDADES E ISENÇÃO DA MUUDAY
+==============================================================================
+
+14.1. A Muuday NÃO É responsável por:
+
+   (a) a regularidade do licenciamento do Profissional em qualquer
+   jurisdição;
+   (b) infrações éticas, disciplinares ou regulatórias cometidas
+   pelo Profissional;
+   (c) a qualidade, adequação ou legalidade do Serviço prestado;
+   (d) consequências fiscais, trabalhistas, previdenciárias ou
+   regulatórias da atuação do Profissional;
+   (e) decisões de conselhos profissionais, autoridades
+   administrativas ou Poder Judiciário relacionadas ao Profissional.
+
+14.2. A Muuday NÃO atua como fiscal, auditora ou certificadora de
+conformidade regulatória do Profissional, sendo responsabilidade
+exclusiva deste manter-se em conformidade.
+
+14.3. A verificação documental realizada no KYC tem caráter
+operacional e de prevenção à fraude, NÃO CONSTITUINDO atestado de
+regularidade ética, regulatória ou profissional.
+
+==============================================================================
+DECLARAÇÃO DE ACEITE — DOCUMENTO 4 DE 4
+==============================================================================
+
+Ao marcar o checkbox "Li e declaro estar em conformidade
+regulatória", o Profissional declara, SOB AS PENAS DA LEI e de forma
+INEQUÍVOCA:
+
+  (i) ter lido e compreendido integralmente este documento,
+  especialmente as cláusulas destacadas;
+  (ii) POSSUIR habilitação profissional regular e todos os registros
+  exigidos para sua atividade, sem qualquer suspensão ou impedimento;
+  (iii) RECONHECER o caráter consultivo do atendimento pela
+  Plataforma e COMPROMETER-SE a orientar o Cliente quando necessário
+  atendimento local;
+  (iv) COMPROMETER-SE a NÃO utilizar a Plataforma para contornar
+  regras regulatórias de qualquer país;
+  (v) CUMPRIR integralmente as normas específicas de sua categoria
+  profissional (saúde, jurídico, contábil ou outra);
+  (vi) CUMPRIR as normas de prevenção à lavagem de dinheiro,
+  anticorrupção e sanções internacionais;
+  (vii) ASSUMIR integral e exclusiva responsabilidade por qualquer
+  infração e MANTER A MUUDAY INDENE de quaisquer consequências;
+  (viii) estar ciente de que declarações falsas ou inexatas sujeitam
+  o Profissional a responsabilização civil, administrativa e penal,
+  inclusive por falsidade ideológica.
+
+Canais oficiais:
+  Compliance e conformidade: compliance@muuday.com
+  Suporte regulatório: suporte@muuday.com
+  Site: https://www.muuday.com
+
+==============================================================================
+                          FIM DO DOCUMENTO 4
+==============================================================================
