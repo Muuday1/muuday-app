@@ -177,12 +177,13 @@ export async function POST(request: Request) {
         .select('years_experience,focus_areas,languages')
         .eq('id', professionalId)
         .maybeSingle()
-
       if (previousProfessionalError) {
-        return NextResponse.json(
-          { error: 'Nao foi possivel validar o estado atual dos dados profissionais.' },
-          { status: 500 },
-        )
+        // Backup row is best-effort. We should not block save when this read fails.
+        console.error('[onboarding-save] could not read previous professionals row', {
+          professionalId,
+          message: previousProfessionalError.message,
+          code: previousProfessionalError.code,
+        })
       }
 
       const { error: professionalError } = await db
@@ -231,7 +232,7 @@ export async function POST(request: Request) {
         .upsert(appPayload, { onConflict: 'user_id' })
 
       if (appError) {
-        if (previousProfessionalRow) {
+        if (previousProfessionalRow && !previousProfessionalError) {
           await db
             .from('professionals')
             .update({
@@ -338,27 +339,29 @@ export async function POST(request: Request) {
         .from('availability')
         .select('day_of_week,start_time,end_time,is_active')
         .eq('professional_id', professionalId)
-
       if (previousAvailabilityError) {
-        return NextResponse.json(
-          { error: 'Nao foi possivel ler a disponibilidade atual antes de salvar.' },
-          { status: 500 },
-        )
+        // Backup rows are best-effort. We should not block save when this read fails.
+        console.error('[onboarding-save] could not read previous availability rows', {
+          professionalId,
+          message: previousAvailabilityError.message,
+          code: previousAvailabilityError.code,
+        })
       }
 
       const { data: previousSettingsRow, error: previousSettingsError } = await db
         .from('professional_settings')
         .select(
-          'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose',
+          'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,require_session_purpose',
         )
         .eq('professional_id', professionalId)
         .maybeSingle()
-
       if (previousSettingsError) {
-        return NextResponse.json(
-          { error: 'Nao foi possivel ler as regras atuais de agendamento antes de salvar.' },
-          { status: 500 },
-        )
+        // Backup row is best-effort. We should not block save when this read fails.
+        console.error('[onboarding-save] could not read previous professional settings row', {
+          professionalId,
+          message: previousSettingsError.message,
+          code: previousSettingsError.code,
+        })
       }
 
       const { error: deleteError } = await db.from('availability').delete().eq('professional_id', professionalId)
@@ -388,7 +391,7 @@ export async function POST(request: Request) {
       if (settingsError) {
         // Best-effort rollback for availability rows when settings save fails.
         await db.from('availability').delete().eq('professional_id', professionalId)
-        if (Array.isArray(previousAvailabilityRows) && previousAvailabilityRows.length > 0) {
+        if (!previousAvailabilityError && Array.isArray(previousAvailabilityRows) && previousAvailabilityRows.length > 0) {
           const restoreRows = previousAvailabilityRows.map(row => ({
             professional_id: professionalId,
             day_of_week: Number(row.day_of_week),
@@ -399,7 +402,7 @@ export async function POST(request: Request) {
           await db.from('availability').insert(restoreRows)
         }
 
-        if (previousSettingsRow) {
+        if (previousSettingsRow && !previousSettingsError) {
           await upsertProfessionalSettingsWithFallback(db, {
             professional_id: professionalId,
             timezone: previousSettingsRow.timezone,
@@ -409,7 +412,7 @@ export async function POST(request: Request) {
             buffer_time_minutes: previousSettingsRow.buffer_time_minutes,
             confirmation_mode: previousSettingsRow.confirmation_mode,
             enable_recurring: previousSettingsRow.enable_recurring,
-            allow_multi_session: previousSettingsRow.allow_multi_session,
+            allow_multi_session: payload.data.allowMultiSession,
             require_session_purpose: previousSettingsRow.require_session_purpose,
             updated_at: nowIso,
           })
