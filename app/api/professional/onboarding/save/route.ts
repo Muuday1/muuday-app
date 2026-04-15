@@ -30,7 +30,7 @@ const identitySchema = z.object({
   section: z.literal('identity'),
   title: z.string().optional().default(''),
   displayName: z.string().trim().min(1).max(160),
-  yearsExperience: z.number().int().min(0).max(60),
+  yearsExperience: z.coerce.number().int().min(0).max(60),
   primaryLanguage: z.string().trim().min(1).max(80),
   secondaryLanguages: z.array(z.string().trim().min(1).max(80)).max(20),
   targetAudiences: z.array(z.string().trim().min(1).max(80)).max(20),
@@ -48,8 +48,8 @@ const serviceSchema = z.object({
   section: z.literal('service'),
   name: z.string().trim().min(1).max(30),
   description: z.string().trim().min(1).max(120),
-  priceBrl: z.number().positive().max(50000),
-  durationMinutes: z.number().int().min(15).max(240),
+  priceBrl: z.coerce.number().positive().max(50000),
+  durationMinutes: z.coerce.number().int().min(15).max(240),
 })
 
 const availabilityDaySchema = z.object({
@@ -62,9 +62,9 @@ const availabilitySchema = z.object({
   section: z.literal('availability'),
   profileTimezone: z.string().trim().min(1).max(80),
   availabilityMap: z.record(z.string(), availabilityDaySchema),
-  minimumNoticeHours: z.number().int().min(0).max(168),
-  maxBookingWindowDays: z.number().int().min(1).max(365),
-  bufferMinutes: z.number().int().min(0).max(120),
+  minimumNoticeHours: z.coerce.number().int().min(0).max(168),
+  maxBookingWindowDays: z.coerce.number().int().min(1).max(365),
+  bufferMinutes: z.coerce.number().int().min(0).max(120),
   confirmationMode: z.enum(['auto_accept', 'manual']),
   enableRecurring: z.boolean(),
   allowMultiSession: z.boolean(),
@@ -138,7 +138,13 @@ export async function POST(request: Request) {
   try {
     const payload = payloadSchema.safeParse(await request.json().catch(() => null))
     if (!payload.success) {
-      return NextResponse.json({ error: 'Dados invalidos para salvar esta etapa.' }, { status: 400 })
+      const firstIssue = payload.error.issues[0]
+      const issuePath = firstIssue?.path?.length ? firstIssue.path.join('.') : ''
+      const fieldPart = issuePath ? ` Campo: ${issuePath}.` : ''
+      return NextResponse.json(
+        { error: `Dados invalidos para salvar esta etapa.${fieldPart}` },
+        { status: 400 },
+      )
     }
 
     const supabase = createClient()
