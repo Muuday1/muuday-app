@@ -71,6 +71,13 @@ type PendingPhoto = {
   height: number
 }
 
+type ProfileSummary = {
+  currency?: string | null
+  full_name?: string | null
+  timezone?: string | null
+  avatar_url?: string | null
+}
+
 const WEEK_DAYS: Array<{ value: number; label: string }> = [
   { value: 1, label: 'Seg' },
   { value: 2, label: 'Ter' },
@@ -728,20 +735,39 @@ export function OnboardingTrackerModal({
         }
         setExchangeRates(normalizedRates)
 
-        const profileCurrency = await supabase
-          .from('profiles')
-          .select('currency,full_name,timezone,avatar_url')
-          .eq('id', String(professional?.user_id || ''))
-          .maybeSingle()
+        const primaryProfileUserId = String(professional?.user_id || '').trim()
+        let profileRow: ProfileSummary | null = null
 
-        const resolvedCurrency = String(profileCurrency.data?.currency || 'BRL').toUpperCase()
+        if (primaryProfileUserId) {
+          const profileByProfessional = await supabase
+            .from('profiles')
+            .select('currency,full_name,timezone,avatar_url')
+            .eq('id', primaryProfileUserId)
+            .maybeSingle()
+          profileRow = (profileByProfessional.data as ProfileSummary | null) || null
+        }
+
+        if (!profileRow) {
+          const authUser = await supabase.auth.getUser()
+          const fallbackUserId = String(authUser.data.user?.id || '').trim()
+          if (fallbackUserId) {
+            const profileBySession = await supabase
+              .from('profiles')
+              .select('currency,full_name,timezone,avatar_url')
+              .eq('id', fallbackUserId)
+              .maybeSingle()
+            profileRow = (profileBySession.data as ProfileSummary | null) || null
+          }
+        }
+
+        const resolvedCurrency = String(profileRow?.currency || 'BRL').toUpperCase()
         const resolvedTimezone = String(
-          profileCurrency.data?.timezone || settingsRow?.timezone || 'America/Sao_Paulo',
+          profileRow?.timezone || settingsRow?.timezone || 'America/Sao_Paulo',
         )
         setServiceCurrency(resolvedCurrency)
         setProfileTimezone(resolvedTimezone)
-        setCoverPhotoUrl(String(profileCurrency.data?.avatar_url || ''))
-        const resolvedDisplayName = String(appRow?.display_name || profileCurrency.data?.full_name || '')
+        setCoverPhotoUrl(String(profileRow?.avatar_url || ''))
+        const resolvedDisplayName = String(appRow?.display_name || profileRow?.full_name || '')
         setIdentityDisplayName(resolvedDisplayName)
         setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
         setIdentityCategory(String(professional?.category || appRow?.category || ''))
