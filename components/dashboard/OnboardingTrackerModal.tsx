@@ -3082,7 +3082,6 @@ export function OnboardingTrackerModal({
                         <div key={term.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold text-neutral-900">{term.shortLabel}</p>
-                            <p className="mt-1 text-xs text-neutral-500">{term.version}</p>
                             <p className="mt-1 text-xs text-neutral-600">{term.acceptanceLabel}</p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -3145,8 +3144,7 @@ export function OnboardingTrackerModal({
             >
               <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
                 <div className="border-b border-neutral-200 px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{activeTerm.version}</p>
-                  <h3 className="mt-1 text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
                 </div>
                 <div
                   ref={termsModalContentRef}
