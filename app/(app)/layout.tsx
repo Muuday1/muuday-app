@@ -68,13 +68,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <p className="text-xs text-neutral-400 capitalize">{profile?.role}</p>
                 </div>
               </div>
-              <Link
-                href="/auth/signout"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
-              >
-                <LogOut className="w-4 h-4" />
-                Sair
-              </Link>
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </button>
+              </form>
             </>
           ) : (
             <Link
@@ -98,14 +100,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <>
-                <Link
-                  href="/auth/signout"
-                  aria-label="Sair da conta"
-                  className="h-8 px-2.5 rounded-full border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="text-xs font-medium">Sair</span>
-                </Link>
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    aria-label="Sair da conta"
+                    className="h-8 px-2.5 rounded-full border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-xs font-medium">Sair</span>
+                  </button>
+                </form>
                 <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
                   {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>

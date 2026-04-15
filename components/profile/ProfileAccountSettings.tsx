@@ -337,12 +337,14 @@ export function ProfileAccountSettings() {
       <div className="rounded-2xl border border-red-100 bg-white p-6">
         <h3 className="mb-2 font-display font-bold text-red-700">Zona de risco</h3>
         <p className="mb-4 text-sm text-neutral-500">Ações irreversíveis para sua conta.</p>
-        <Link
-          href="/auth/signout"
-          className="inline-flex rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
-        >
-          Sair da conta
-        </Link>
+        <form action="/auth/signout" method="post">
+          <button
+            type="submit"
+            className="inline-flex rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
+          >
+            Sair da conta
+          </button>
+        </form>
       </div>
     </div>
   )

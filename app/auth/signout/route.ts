@@ -35,5 +35,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  return handleSignOut(request)
+  const redirectUrl = new URL('/', request.url)
+  return NextResponse.redirect(redirectUrl)
 }
