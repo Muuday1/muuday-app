@@ -14,14 +14,31 @@ type ProfessionalOnboardingCardProps = {
   result?: string
 }
 
-const STAGE_LABELS: Record<string, string> = {
-  c2_basic_identity: 'Identidade',
-  c3_public_profile: 'Perfil público',
+const UI_STAGE_ORDER = [
+  'c2_professional_identity',
+  'c4_service_setup',
+  'c5_availability_calendar',
+  'c6_plan_billing_setup',
+  'c7_payout_payments',
+  'c8_submit_review',
+] as const
+
+const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = {
+  c2_professional_identity: 'Identidade',
   c4_service_setup: 'Serviços',
   c5_availability_calendar: 'Disponibilidade',
   c6_plan_billing_setup: 'Plano',
   c7_payout_payments: 'Financeiro',
   c8_submit_review: 'Enviar para análise',
+}
+
+const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number], string[]> = {
+  c2_professional_identity: ['c2_basic_identity', 'c3_public_profile'],
+  c4_service_setup: ['c4_service_setup'],
+  c5_availability_calendar: ['c5_availability_calendar'],
+  c6_plan_billing_setup: ['c6_plan_billing_setup'],
+  c7_payout_payments: ['c7_payout_payments'],
+  c8_submit_review: ['c8_submit_review'],
 }
 
 function normalizeStageId(stageId: string) {
@@ -51,28 +68,48 @@ export function ProfessionalOnboardingCard({
 }: ProfessionalOnboardingCardProps) {
   const [evaluation, setEvaluation] = useState(initialEvaluation)
 
+  const normalizedStages = useMemo(() => {
+    const map = new Map<string, ProfessionalOnboardingEvaluation['stages'][number]>()
+    evaluation.stages.forEach(stage => map.set(normalizeStageId(stage.id), stage))
+    return map
+  }, [evaluation])
+
   const pendingStages = useMemo(
-    () =>
-      evaluation.stages
-        .filter(stage => !['c1_account_creation', 'c9_go_live'].includes(normalizeStageId(stage.id)) && !stage.complete)
-        .slice(0, 4)
-        .map(stage => ({
-          id: stage.id,
-          title: STAGE_LABELS[normalizeStageId(stage.id)] || stage.title,
-          description: stage.blockers[0]?.description || 'Ainda há itens para concluir nesta etapa.',
-        })),
-    [evaluation],
+    () => {
+      const rows: Array<{
+        id: (typeof UI_STAGE_ORDER)[number]
+        title: string
+        description: string
+      }> = []
+
+      UI_STAGE_ORDER.forEach(stageId => {
+        const backendStages = UI_STAGE_BACKEND_STAGE_IDS[stageId]
+          .map(id => normalizedStages.get(id))
+          .filter((stage): stage is ProfessionalOnboardingEvaluation['stages'][number] => Boolean(stage))
+        const firstPending = backendStages.find(stage => !stage?.complete)
+        if (firstPending) {
+          rows.push({
+            id: stageId,
+            title: UI_STAGE_LABELS[stageId],
+            description: firstPending.blockers[0]?.description || 'Ainda há itens para concluir nesta etapa.',
+          })
+        }
+      })
+
+      return rows.slice(0, 4)
+    },
+    [normalizedStages],
   )
 
   const completedCount = useMemo(
-    () => evaluation.stages.filter(stage => !['c1_account_creation', 'c9_go_live'].includes(normalizeStageId(stage.id)) && stage.complete).length,
-    [evaluation],
+    () =>
+      UI_STAGE_ORDER.filter(stageId =>
+        UI_STAGE_BACKEND_STAGE_IDS[stageId].every(id => normalizedStages.get(id)?.complete),
+      ).length,
+    [normalizedStages],
   )
 
-  const totalCount = useMemo(
-    () => evaluation.stages.filter(stage => !['c1_account_creation', 'c9_go_live'].includes(normalizeStageId(stage.id))).length,
-    [evaluation],
-  )
+  const totalCount = UI_STAGE_ORDER.length
 
   const feedbackMessage =
     result === 'submitted'

@@ -86,10 +86,8 @@ for (let h = 6; h <= 23; h += 1) {
   }
 }
 
-const BUSINESS_STAGE_ORDER = [
-  'c1_create_account',
+const UI_STAGE_ORDER = [
   'c2_professional_identity',
-  'c3_public_profile',
   'c4_services',
   'c5_availability_calendar',
   'c6_plan_billing_setup_post',
@@ -97,17 +95,22 @@ const BUSINESS_STAGE_ORDER = [
   'c8_submit_review',
 ] as const
 
-const NAVIGABLE_STAGE_ORDER = BUSINESS_STAGE_ORDER.filter(id => id !== 'c1_create_account')
-
-const BUSINESS_STAGE_LABELS: Record<string, string> = {
-  c1_create_account: '1. Criação da conta',
+const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = {
   c2_professional_identity: 'Identidade',
-  c3_public_profile: 'Perfil público',
   c4_services: 'Serviços',
   c5_availability_calendar: 'Disponibilidade',
   c6_plan_billing_setup_post: 'Plano',
   c7_payout_receipt: 'Financeiro',
   c8_submit_review: 'Enviar',
+}
+
+const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number], string[]> = {
+  c2_professional_identity: ['c2_basic_identity', 'c3_public_profile'],
+  c4_services: ['c4_service_setup'],
+  c5_availability_calendar: ['c5_availability_calendar'],
+  c6_plan_billing_setup_post: ['c6_plan_billing_setup'],
+  c7_payout_receipt: ['c7_payout_payments'],
+  c8_submit_review: ['c8_submit_review'],
 }
 
 const TERMS_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as ProfessionalTermKey[]
@@ -248,6 +251,14 @@ function formatCurrencyFromBrl(amountBrl: number, currency: string, rates: Excha
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
+}
+
+function humanizeTaxonomyValue(value: string) {
+  return String(value || '')
+    .split('-')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 async function readImageDimensions(file: File) {
@@ -453,9 +464,13 @@ export function OnboardingTrackerModal({
   const [identityTitle, setIdentityTitle] = useState('')
   const [identityDisplayName, setIdentityDisplayName] = useState('')
   const [identityDisplayNameLocked, setIdentityDisplayNameLocked] = useState(false)
+  const [identityCategory, setIdentityCategory] = useState('')
+  const [identitySubcategory, setIdentitySubcategory] = useState('')
+  const [identityFocusAreas, setIdentityFocusAreas] = useState<string[]>([])
   const [identityYearsExperience, setIdentityYearsExperience] = useState('0')
   const [identityPrimaryLanguage, setIdentityPrimaryLanguage] = useState('Portugues')
   const [identitySecondaryLanguages, setIdentitySecondaryLanguages] = useState<string[]>([])
+  const [secondaryLanguagesOpen, setSecondaryLanguagesOpen] = useState(false)
   const [identityTargetAudiences, setIdentityTargetAudiences] = useState<string[]>([])
   const [identityQualifications, setIdentityQualifications] = useState<QualificationStructured[]>([])
   const [identityQualificationSelection, setIdentityQualificationSelection] = useState(
@@ -509,9 +524,12 @@ export function OnboardingTrackerModal({
   }, [currentEvaluation.stages])
 
   const firstPendingStageId = useMemo(() => {
-    const firstPending = NAVIGABLE_STAGE_ORDER.find(id => {
-      const stage = stagesById.get(normalizeStageIdForLookup(id))
-      return stage ? !stage.complete : false
+    const firstPending = UI_STAGE_ORDER.find(id => {
+      const stageIds = UI_STAGE_BACKEND_STAGE_IDS[id]
+      return stageIds.some(stageId => {
+        const stage = stagesById.get(normalizeStageIdForLookup(stageId))
+        return stage ? !stage.complete : false
+      })
     })
     return firstPending || 'c2_professional_identity'
   }, [stagesById])
@@ -573,7 +591,7 @@ export function OnboardingTrackerModal({
       ] = await Promise.all([
         supabase
           .from('professionals')
-          .select('user_id,subcategories,years_experience')
+          .select('user_id,category,subcategories,focus_areas,years_experience')
           .eq('id', professionalId)
           .maybeSingle(),
         supabase
@@ -662,6 +680,9 @@ export function OnboardingTrackerModal({
         const resolvedDisplayName = String(appRow?.display_name || profileCurrency.data?.full_name || '')
         setIdentityDisplayName(resolvedDisplayName)
         setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
+        setIdentityCategory(String(professional?.category || ''))
+        setIdentitySubcategory(Array.isArray(professional?.subcategories) ? String(professional.subcategories[0] || '') : '')
+        setIdentityFocusAreas(Array.isArray(professional?.focus_areas) ? professional.focus_areas.map(item => String(item)) : [])
         setIdentityTitle(String(appRow?.title || ''))
         setIdentityYearsExperience(String(professional?.years_experience ?? 0))
         setIdentityPrimaryLanguage(String(appRow?.primary_language || 'Portugues'))
@@ -759,29 +780,31 @@ export function OnboardingTrackerModal({
   }, [open, professionalId, supabase])
 
   const stageItems = useMemo(() => {
-    return NAVIGABLE_STAGE_ORDER.map(id => {
-      const stage = stagesById.get(normalizeStageIdForLookup(id))
-      const forceComplete = false
+    return UI_STAGE_ORDER.map(id => {
+      const backendStages = UI_STAGE_BACKEND_STAGE_IDS[id]
+        .map(stageId => stagesById.get(normalizeStageIdForLookup(stageId)))
+        .filter(Boolean) as Stage[]
+
+      const complete = backendStages.length > 0 && backendStages.every(stage => stage.complete)
+      const firstBlockedStage = backendStages.find(stage => !stage.complete)
+
       return {
         id,
-        label: BUSINESS_STAGE_LABELS[id],
-        complete: forceComplete ? true : Boolean(stage?.complete),
-        blocker: stage?.blockers[0] || null,
+        label: UI_STAGE_LABELS[id],
+        complete,
+        blocker: firstBlockedStage?.blockers[0] || null,
       }
     })
   }, [stagesById])
 
   const stageCompletionSummary = useMemo(() => {
-    const rows = NAVIGABLE_STAGE_ORDER.map(id => {
-      const stage = stagesById.get(normalizeStageIdForLookup(id))
-      return Boolean(stage?.complete)
-    })
+    const rows = stageItems.map(item => item.complete)
     const completed = rows.filter(Boolean).length
     return {
       total: rows.length,
       completed,
     }
-  }, [stagesById])
+  }, [stageItems])
 
   const activeStage = stagesById.get(normalizeStageIdForLookup(activeStageId))
   const activeTerm = useMemo(
@@ -885,7 +908,11 @@ export function OnboardingTrackerModal({
     return nextUrl
   }
 
-  async function saveSection<TPayload extends object>(payload: TPayload, fallbackError: string) {
+  async function saveSection<TPayload extends object>(
+    payload: TPayload,
+    fallbackError: string,
+    options?: { autoAdvance?: boolean },
+  ) {
     setTrackerRefreshState('saving')
     const response = await fetch('/api/professional/onboarding/save', {
       method: 'POST',
@@ -909,13 +936,15 @@ export function OnboardingTrackerModal({
     onEvaluationChange?.(json.evaluation)
     setTrackerRefreshState('saved')
     setTimeout(() => setTrackerRefreshState('idle'), 1200)
-    const nextPending = NAVIGABLE_STAGE_ORDER.find(id => {
-      const stage = json.evaluation?.stages.find(
-        stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(id),
-      )
-      return stage ? !stage.complete : false
-    })
-    if (nextPending) {
+    const nextPending = UI_STAGE_ORDER.find(id =>
+      UI_STAGE_BACKEND_STAGE_IDS[id].some(stageId => {
+        const stage = json.evaluation?.stages.find(
+          stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(stageId),
+        )
+        return stage ? !stage.complete : false
+      }),
+    )
+    if (options?.autoAdvance !== false && nextPending) {
       setActiveStageId(nextPending)
     }
 
@@ -1085,7 +1114,7 @@ export function OnboardingTrackerModal({
     if (!Number.isFinite(years) || years < 0 || years > 60) {
       setIdentitySaveState('error')
       setIdentityError('Anos de experiência devem estar entre 0 e 60.')
-      return
+      return false
     }
 
     const invalidQualification = identityQualifications.find(
@@ -1099,7 +1128,7 @@ export function OnboardingTrackerModal({
     if (invalidQualification) {
       setIdentitySaveState('error')
       setIdentityError('Complete os campos obrigatórios das qualificações antes de salvar.')
-      return
+      return false
     }
 
     try {
@@ -1115,12 +1144,15 @@ export function OnboardingTrackerModal({
           qualifications: identityQualifications,
         },
         'Não foi possível salvar identidade profissional.',
+        { autoAdvance: false },
       )
       setIdentitySaveState('saved')
       setTimeout(() => setIdentitySaveState('idle'), 2000)
+      return true
     } catch (error) {
       setIdentitySaveState('error')
       setIdentityError(error instanceof Error ? error.message : 'Não foi possível salvar identidade profissional.')
+      return false
     }
   }
 
@@ -1128,12 +1160,12 @@ export function OnboardingTrackerModal({
     if (bio.trim().length === 0) {
       setBioError('O campo "Sobre você" não pode ficar vazio.')
       setBioSaveState('error')
-      return
+      return false
     }
     if (bio.length > 500) {
       setBioError('O campo "Sobre você" deve ter no máximo 500 caracteres.')
       setBioSaveState('error')
-      return
+      return false
     }
     setBioSaveState('saving')
     setBioError('')
@@ -1151,6 +1183,7 @@ export function OnboardingTrackerModal({
           avatarUrl: nextAvatarUrl.trim(),
         },
         'Não foi possível salvar o perfil público.',
+        { autoAdvance: false },
       )
       setPhotoUploadState('saved')
       setBioSaveState('saved')
@@ -1158,11 +1191,21 @@ export function OnboardingTrackerModal({
         setPhotoUploadState('idle')
         setBioSaveState('idle')
       }, 2000)
+      return true
     } catch (error) {
       setPhotoUploadState('error')
       setBioSaveState('error')
       setBioError(error instanceof Error ? error.message : 'Não foi possível salvar o perfil público.')
+      return false
     }
+  }
+
+  async function saveIdentityAndPublicProfile() {
+    const identityOk = await saveIdentity()
+    if (!identityOk) return
+    const profileOk = await savePublicProfile()
+    if (!profileOk) return
+    setActiveStageId('c4_services')
   }
 
   async function saveService() {
@@ -1440,7 +1483,7 @@ export function OnboardingTrackerModal({
             <section className="overflow-y-auto p-4 md:p-5">
               <div className="mb-4 border-b border-neutral-100 pb-3">
                 <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
-                  {BUSINESS_STAGE_LABELS[activeStageId]}
+                  {UI_STAGE_LABELS[activeStageId as (typeof UI_STAGE_ORDER)[number]]}
                 </h2>
                 {activeStage?.complete ? (
                   <p className="mt-1 text-sm text-green-700">Etapa concluída.</p>
@@ -1505,6 +1548,121 @@ export function OnboardingTrackerModal({
 
               {(activeStageId === 'c2_professional_identity') && (
                 <div className="space-y-4">
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil</label>
+                    <p className="mb-3 text-xs text-neutral-600">
+                      Use uma foto nítida, com boa iluminação, rosto centralizado e fundo simples. Validamos formato, peso e resolução automaticamente.
+                    </p>
+                    <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
+                      <Upload className="h-3.5 w-3.5" />
+                      Enviar foto
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={event => {
+                          const file = event.target.files?.[0]
+                          if (file) {
+                            void prepareProfessionalPhoto(file)
+                          } else {
+                            setPhotoUploadState('error')
+                            setPhotoUploadError('Não foi possível selecionar a foto. Tente novamente.')
+                          }
+                        }}
+                      />
+                    </label>
+                    {(pendingPhoto || coverPhotoUrl) ? (
+                      <div className="mt-3">
+                        <div className="grid gap-4 lg:grid-cols-[208px_minmax(0,1fr)] lg:items-start">
+                          <div className="space-y-3">
+                            <div
+                              className="relative h-48 w-48 overflow-hidden rounded-full border border-neutral-200 bg-white"
+                              onMouseMove={event => {
+                                if (dragStateRef.current) handlePhotoDragMove(event.clientX, event.clientY)
+                              }}
+                              onMouseUp={handlePhotoDragEnd}
+                              onMouseLeave={handlePhotoDragEnd}
+                              onTouchMove={event => {
+                                const touch = event.touches[0]
+                                if (touch) handlePhotoDragMove(touch.clientX, touch.clientY)
+                              }}
+                              onTouchEnd={handlePhotoDragEnd}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={pendingPhoto?.previewUrl || coverPhotoUrl}
+                                alt="Prévia da foto do perfil"
+                                className="absolute select-none object-cover"
+                                draggable={false}
+                                onMouseDown={event => handlePhotoDragStart(event.clientX, event.clientY)}
+                                onTouchStart={event => {
+                                  const touch = event.touches[0]
+                                  if (touch) handlePhotoDragStart(touch.clientX, touch.clientY)
+                                }}
+                                style={
+                                  pendingPhoto
+                                    ? (() => {
+                                        const previewSize = 192
+                                        const scale =
+                                          Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height) *
+                                          photoZoom
+                                        const displayedWidth = pendingPhoto.width * scale
+                                        const displayedHeight = pendingPhoto.height * scale
+                                        const overflowX = Math.max(0, displayedWidth - previewSize)
+                                        const overflowY = Math.max(0, displayedHeight - previewSize)
+                                        return {
+                                          width: `${displayedWidth}px`,
+                                          height: `${displayedHeight}px`,
+                                          left: `${-(overflowX * (photoFocusX / 100))}px`,
+                                          top: `${-(overflowY * (photoFocusY / 100))}px`,
+                                        }
+                                      })()
+                                    : { inset: 0, width: '100%', height: '100%', objectPosition: 'center' }
+                                }
+                              />
+                            </div>
+                            <p className="text-[11px] text-neutral-500">
+                              Arraste a imagem para reposicionar o centro. Use o zoom se quiser ajustar também para os lados.
+                            </p>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                              <p className="text-xs font-semibold text-neutral-800">Pré-validação automática</p>
+                              <ul className="mt-2 space-y-1 text-xs text-neutral-600">
+                                <li>JPG, PNG ou WEBP</li>
+                                <li>Até 3MB</li>
+                                <li>Mínimo de 320x320 px</li>
+                                <li>Rosto centralizado, sem óculos escuros e com fundo claro ou neutro</li>
+                                <li>O recorte final será quadrado e exibido em formato circular</li>
+                              </ul>
+                            </div>
+                            {pendingPhoto ? (
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold text-neutral-700">Zoom</span>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="2.5"
+                                  step="0.05"
+                                  value={photoZoom}
+                                  onChange={event => setPhotoZoom(Number(event.target.value))}
+                                  className="w-full accent-brand-600"
+                                />
+                              </label>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Regras: JPG/PNG/WEBP, máximo de 3MB. O avatar final será o mesmo exibido no card público.
+                    </p>
+                    {photoUploadState === 'saving' ? (
+                      <p className="mt-2 text-xs text-brand-700">Preparando foto...</p>
+                    ) : null}
+                    {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
+                  </div>
+
                   <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 md:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
@@ -1537,6 +1695,55 @@ export function OnboardingTrackerModal({
                       ) : null}
                     </div>
                     <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Categoria principal</label>
+                      <input
+                        type="text"
+                        value={humanizeTaxonomyValue(identityCategory)}
+                        readOnly
+                        className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Área de atuação específica</label>
+                      <input
+                        type="text"
+                        value={humanizeTaxonomyValue(identitySubcategory)}
+                        readOnly
+                        className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Tags de foco</label>
+                      <div className="flex min-h-11 flex-wrap gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+                        {identityFocusAreas.length > 0 ? (
+                          identityFocusAreas.map(tag => (
+                            <span
+                              key={tag}
+                              className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-800"
+                            >
+                              {tag}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-neutral-500">Nenhuma tag registrada ainda.</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-sm font-semibold text-neutral-900">Sobre você</label>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs text-neutral-500">Resumo público exibido no perfil</span>
+                        <span className="text-xs text-neutral-500">{bio.length}/500</span>
+                      </div>
+                      <textarea
+                        value={bio}
+                        onChange={event => setBio(event.target.value.slice(0, 500))}
+                        rows={5}
+                        className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        placeholder="Descreva sua atuação profissional em linguagem clara e objetiva."
+                      />
+                    </div>
+                    <div>
                       <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiência</label>
                       <input
                         type="number"
@@ -1564,22 +1771,45 @@ export function OnboardingTrackerModal({
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundários (clique para selecionar)</p>
-                    <div className="flex flex-wrap gap-2">
-                      {LANGUAGE_OPTIONS.filter(item => item !== identityPrimaryLanguage).map(option => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => toggleMultiValue(option, identitySecondaryLanguages, setIdentitySecondaryLanguages)}
-                          className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                            identitySecondaryLanguages.includes(option)
-                              ? 'border-brand-500 bg-brand-500 text-white'
-                              : 'border-neutral-300 bg-white text-neutral-700'
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ))}
+                    <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundários</p>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setSecondaryLanguagesOpen(previous => !previous)}
+                        className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2 text-left text-sm text-neutral-700"
+                      >
+                        <span className="truncate">
+                          {identitySecondaryLanguages.length > 0
+                            ? identitySecondaryLanguages.join(', ')
+                            : 'Selecione idiomas secundários'}
+                        </span>
+                        <span className="text-xs text-neutral-400">{secondaryLanguagesOpen ? 'Fechar' : 'Selecionar'}</span>
+                      </button>
+                      {secondaryLanguagesOpen ? (
+                        <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
+                          <div className="grid gap-1">
+                            {LANGUAGE_OPTIONS.filter(item => item !== identityPrimaryLanguage).map(option => (
+                              <button
+                                key={option}
+                                type="button"
+                                onClick={() =>
+                                  toggleMultiValue(option, identitySecondaryLanguages, setIdentitySecondaryLanguages)
+                                }
+                                className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
+                                  identitySecondaryLanguages.includes(option)
+                                    ? 'bg-brand-50 text-brand-800'
+                                    : 'text-neutral-700 hover:bg-neutral-50'
+                                }`}
+                              >
+                                <span>{option}</span>
+                                <span className="text-xs font-semibold">
+                                  {identitySecondaryLanguages.includes(option) ? 'Selecionado' : 'Selecionar'}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -1796,163 +2026,18 @@ export function OnboardingTrackerModal({
                   </div>
 
                   {identityError ? <p className="text-sm font-medium text-red-700">{identityError}</p> : null}
+                  {bioError ? <p className="text-sm font-medium text-red-700">{bioError}</p> : null}
                   <button
                     type="button"
-                    onClick={() => void saveIdentity()}
-                    disabled={identitySaveState === 'saving'}
+                    onClick={() => void saveIdentityAndPublicProfile()}
+                    disabled={identitySaveState === 'saving' || bioSaveState === 'saving'}
                     className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
                   >
-                    {identitySaveState === 'saving'
+                    {identitySaveState === 'saving' || bioSaveState === 'saving'
                       ? 'Salvando...'
-                      : identitySaveState === 'saved'
+                      : identitySaveState === 'saved' && bioSaveState === 'saved'
                         ? 'Salvo'
-                        : 'Salvar identidade profissional'}
-                  </button>
-                </div>
-              )}
-
-              {(activeStageId === 'c3_public_profile') && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <div className="mb-2 flex items-center justify-between">
-                      <label className="text-sm font-semibold text-neutral-900">Sobre você</label>
-                      <span className="text-xs text-neutral-500">{bio.length}/500</span>
-                    </div>
-                    <textarea
-                      value={bio}
-                      onChange={event => setBio(event.target.value.slice(0, 500))}
-                      rows={6}
-                      className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                      placeholder="Descreva sua atuação profissional em linguagem clara e objetiva."
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil</label>
-                    <p className="mb-3 text-xs text-neutral-600">
-                      Use uma foto nítida, com boa iluminação, rosto centralizado e fundo simples. Validamos formato, peso e resolução automaticamente.
-                    </p>
-                    <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
-                      <Upload className="h-3.5 w-3.5" />
-                      Enviar foto
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={event => {
-                          const file = event.target.files?.[0]
-                          if (file) {
-                            void prepareProfessionalPhoto(file)
-                          } else {
-                            setPhotoUploadState('error')
-                            setPhotoUploadError('Não foi possível selecionar a foto. Tente novamente.')
-                          }
-                        }}
-                      />
-                    </label>
-                    {(pendingPhoto || coverPhotoUrl) ? (
-                      <div className="mt-3">
-                        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-                          <div className="space-y-3">
-                            <div
-                              className="relative h-48 w-48 overflow-hidden rounded-full border border-neutral-200 bg-white"
-                              onMouseMove={event => {
-                                if (dragStateRef.current) handlePhotoDragMove(event.clientX, event.clientY)
-                              }}
-                              onMouseUp={handlePhotoDragEnd}
-                              onMouseLeave={handlePhotoDragEnd}
-                              onTouchMove={event => {
-                                const touch = event.touches[0]
-                                if (touch) handlePhotoDragMove(touch.clientX, touch.clientY)
-                              }}
-                              onTouchEnd={handlePhotoDragEnd}
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={pendingPhoto?.previewUrl || coverPhotoUrl}
-                                alt="Prévia da foto do perfil"
-                                className="absolute select-none object-cover"
-                                draggable={false}
-                                onMouseDown={event => handlePhotoDragStart(event.clientX, event.clientY)}
-                                onTouchStart={event => {
-                                  const touch = event.touches[0]
-                                  if (touch) handlePhotoDragStart(touch.clientX, touch.clientY)
-                                }}
-                                style={
-                                  pendingPhoto
-                                    ? (() => {
-                                        const previewSize = 192
-                                        const scale =
-                                          Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height) *
-                                          photoZoom
-                                        const displayedWidth = pendingPhoto.width * scale
-                                        const displayedHeight = pendingPhoto.height * scale
-                                        const overflowX = Math.max(0, displayedWidth - previewSize)
-                                        const overflowY = Math.max(0, displayedHeight - previewSize)
-                                        return {
-                                          width: `${displayedWidth}px`,
-                                          height: `${displayedHeight}px`,
-                                          left: `${-(overflowX * (photoFocusX / 100))}px`,
-                                          top: `${-(overflowY * (photoFocusY / 100))}px`,
-                                        }
-                                      })()
-                                    : { inset: 0, width: '100%', height: '100%', objectPosition: 'center' }
-                                }
-                              />
-                            </div>
-                            <p className="text-[11px] text-neutral-500">
-                              Arraste a imagem para reposicionar o centro. Use o zoom se quiser ajustar também para os lados.
-                            </p>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                              <p className="text-xs font-semibold text-neutral-800">Pré-validação automática</p>
-                              <ul className="mt-2 space-y-1 text-xs text-neutral-600">
-                                <li>JPG, PNG ou WEBP</li>
-                                <li>Até 3MB</li>
-                                <li>Mínimo de 320x320 px</li>
-                                <li>Rosto centralizado, sem óculos escuros e com fundo claro ou neutro</li>
-                                <li>O recorte final será quadrado e exibido em formato circular</li>
-                              </ul>
-                            </div>
-                            {pendingPhoto ? (
-                              <label className="block">
-                                <span className="mb-1 block text-xs font-semibold text-neutral-700">Zoom</span>
-                                <input
-                                  type="range"
-                                  min="1"
-                                  max="2.5"
-                                  step="0.05"
-                                  value={photoZoom}
-                                  onChange={event => setPhotoZoom(Number(event.target.value))}
-                                  className="w-full accent-brand-600"
-                                />
-                              </label>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                    <p className="mt-2 text-xs text-neutral-500">
-                      Regras: JPG/PNG/WEBP, máximo de 3MB. O avatar final será o mesmo exibido no card público.
-                    </p>
-                    {photoUploadState === 'saving' ? (
-                      <p className="mt-2 text-xs text-brand-700">Preparando foto...</p>
-                    ) : null}
-                    {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
-                  </div>
-
-                  {bioError ? (
-                    <p className="text-sm font-medium text-red-700">{bioError}</p>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={() => void savePublicProfile()}
-                    disabled={bioSaveState === 'saving'}
-                    className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                  >
-                    {bioSaveState === 'saving' ? 'Salvando...' : bioSaveState === 'saved' ? 'Salvo' : 'Salvar perfil público'}
+                        : 'Salvar identidade e perfil'}
                   </button>
                 </div>
               )}
@@ -2540,7 +2625,7 @@ export function OnboardingTrackerModal({
                     ) : null}
                   </div>
                 </div>
-              ) : !['c2_professional_identity', 'c3_public_profile', 'c4_services', 'c5_availability_calendar'].includes(activeStageId) ? (
+              ) : !['c2_professional_identity', 'c4_services', 'c5_availability_calendar'].includes(activeStageId) ? (
                 <div className="rounded-xl border border-neutral-200 bg-white p-4">
                   <p className="text-sm text-neutral-700">
                     Esta etapa ainda depende de itens pendentes. Revise os pontos abaixo para continuar no tracker.
