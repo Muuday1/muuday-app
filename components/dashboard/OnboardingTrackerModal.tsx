@@ -608,6 +608,11 @@ export function OnboardingTrackerModal({
   onEvaluationChange,
 }: OnboardingTrackerModalProps) {
   const supabase = useMemo(() => createClient(), [])
+  const initialTier = useMemo<PlanTier>(() => {
+    const normalized = String(tier || 'basic').toLowerCase()
+    if (normalized === 'professional' || normalized === 'premium') return normalized
+    return 'basic'
+  }, [tier])
   const [open, setOpen] = useState(false)
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
   const [bio, setBio] = useState(initialBio || '')
@@ -677,9 +682,8 @@ export function OnboardingTrackerModal({
     provider: string
   } | null>(null)
   const [pricingError, setPricingError] = useState('')
-  const [selectedPlanTier, setSelectedPlanTier] = useState<PlanTier>(
-    (String(tier || '').toLowerCase() as PlanTier) || 'basic',
-  )
+  const [activeTier, setActiveTier] = useState<PlanTier>(initialTier)
+  const [selectedPlanTier, setSelectedPlanTier] = useState<PlanTier>(initialTier)
   const [selectedPlanCycle, setSelectedPlanCycle] = useState<BillingCycle>('monthly')
   const [planActionState, setPlanActionState] = useState<SaveState>('idle')
   const [planActionError, setPlanActionError] = useState('')
@@ -724,7 +728,7 @@ export function OnboardingTrackerModal({
     return firstPending || 'c2_professional_identity'
   }, [stagesById])
 
-  const normalizedTier = useMemo(() => String(tier || 'basic').toLowerCase(), [tier])
+  const normalizedTier = useMemo(() => String(activeTier || 'basic').toLowerCase(), [activeTier])
   const tierLimits = useMemo(() => getTierLimits(normalizedTier), [normalizedTier])
   const minNoticeRange = useMemo(() => getMinNoticeRange(normalizedTier), [normalizedTier])
   const isBasicTier = normalizedTier === 'basic'
@@ -748,6 +752,11 @@ export function OnboardingTrackerModal({
   useEffect(() => {
     setCurrentEvaluation(onboardingEvaluation)
   }, [onboardingEvaluation])
+
+  useEffect(() => {
+    setActiveTier(initialTier)
+    setSelectedPlanTier(initialTier)
+  }, [initialTier])
 
   useEffect(() => {
     if (!autoOpen) return
@@ -791,7 +800,7 @@ export function OnboardingTrackerModal({
       ] = await Promise.all([
         supabase
           .from('professionals')
-          .select('user_id,category,subcategories,focus_areas,years_experience')
+          .select('user_id,category,subcategories,focus_areas,years_experience,tier')
           .eq('id', professionalId)
           .maybeSingle(),
         supabase
@@ -907,6 +916,13 @@ export function OnboardingTrackerModal({
         const resolvedTimezone = String(settingsRow?.timezone || profileRow?.timezone || browserTimezone)
         setServiceCurrency(resolvedCurrency)
         setProfileTimezone(resolvedTimezone)
+        const professionalTier = String(professional?.tier || '').toLowerCase()
+        const normalizedProfessionalTier: PlanTier =
+          professionalTier === 'professional' || professionalTier === 'premium'
+            ? professionalTier
+            : 'basic'
+        setActiveTier(normalizedProfessionalTier)
+        setSelectedPlanTier(normalizedProfessionalTier)
         setCoverPhotoUrl(String(profileRow?.avatar_url || ''))
         const resolvedDisplayName = String(appRow?.display_name || profileRow?.full_name || '')
         setIdentityDisplayName(resolvedDisplayName)
@@ -1079,6 +1095,18 @@ export function OnboardingTrackerModal({
         previous.includes('c6_plan_billing_setup_post') ? previous : [...previous, 'c6_plan_billing_setup_post'],
       )
       void refreshTrackerEvaluation()
+      void (async () => {
+        const { data: freshProfessional } = await supabase
+          .from('professionals')
+          .select('tier')
+          .eq('id', professionalId)
+          .maybeSingle()
+        const freshTier = String(freshProfessional?.tier || '').toLowerCase()
+        const normalizedFreshTier: PlanTier =
+          freshTier === 'professional' || freshTier === 'premium' ? freshTier : 'basic'
+        setActiveTier(normalizedFreshTier)
+        setSelectedPlanTier(normalizedFreshTier)
+      })()
       setTimeout(() => setPlanActionState('idle'), 2200)
     } else if (checkoutState === 'cancelled') {
       setPlanActionState('error')
@@ -1089,7 +1117,7 @@ export function OnboardingTrackerModal({
     const nextQuery = params.toString()
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`
     window.history.replaceState({}, '', nextUrl)
-  }, [open, refreshTrackerEvaluation])
+  }, [open, professionalId, refreshTrackerEvaluation, supabase])
 
   const stageItems = useMemo(() => {
     return UI_STAGE_ORDER.map(id => {
@@ -1124,7 +1152,7 @@ export function OnboardingTrackerModal({
     () => PROFESSIONAL_TERMS.find(item => item.key === activeTermsModalKey) || null,
     [activeTermsModalKey],
   )
-  const currentPlanLabel = PLAN_TIER_LABELS[String(tier || '').toLowerCase()] || 'Básico'
+  const currentPlanLabel = PLAN_TIER_LABELS[String(activeTier || '').toLowerCase()] || 'Básico'
   const displayPlanCurrency = planPricing?.currency || serviceCurrency || 'BRL'
 
   useEffect(() => {
@@ -1703,7 +1731,7 @@ export function OnboardingTrackerModal({
     setPlanActionError('')
 
     try {
-      if (selectedPlanTier === String(tier || '').toLowerCase()) {
+      if (selectedPlanTier === String(activeTier || '').toLowerCase()) {
         await refreshTrackerEvaluation()
         setPlanActionState('saved')
         setManualCompletedStageIds(previous =>
@@ -2796,17 +2824,17 @@ export function OnboardingTrackerModal({
                             <input
                               type="number"
                               min={0}
-                              max={String(tier || '').toLowerCase() === 'basic' ? 15 : 120}
+                              max={isBasicTier ? 15 : 120}
                               value={bufferMinutes}
                               onChange={event => {
                                 const next = Math.max(0, Number(event.target.value || 0))
-                                const maxBuffer = String(tier || '').toLowerCase() === 'basic' ? 15 : 120
+                                const maxBuffer = isBasicTier ? 15 : 120
                                 setBufferMinutes(Math.min(maxBuffer, next))
                               }}
                               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                             />
                             <p className="mt-1 text-[11px] text-neutral-500">
-                              Limite atual: {String(tier || '').toLowerCase() === 'basic' ? 15 : 120} minutos.
+                              Limite atual: {isBasicTier ? 15 : 120} minutos.
                             </p>
                           </div>
 
@@ -2916,7 +2944,7 @@ export function OnboardingTrackerModal({
                         displayPlanCurrency,
                         exchangeRates,
                       )
-                      const isCurrent = planTier === String(tier || '').toLowerCase()
+                            const isCurrent = planTier === String(activeTier || '').toLowerCase()
                       const isSelected = selectedPlanTier === planTier
 
                       return (
@@ -3015,7 +3043,7 @@ export function OnboardingTrackerModal({
                       >
                         {planActionState === 'saving'
                           ? 'Salvando...'
-                          : selectedPlanTier === String(tier || '').toLowerCase()
+                          : selectedPlanTier === String(activeTier || '').toLowerCase()
                             ? 'Salvar plano'
                             : 'Salvar plano'}
                       </button>
