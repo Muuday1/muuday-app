@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
-import { getBufferConfig, getMinNoticeRange, getTierLimits } from '@/lib/tier-config'
+import { getMinNoticeRange, getTierLimits } from '@/lib/tier-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
@@ -76,6 +76,15 @@ type ProfileSummary = {
   full_name?: string | null
   timezone?: string | null
   avatar_url?: string | null
+}
+
+type PhotoValidationStatus = 'pass' | 'fail' | 'unknown'
+type PhotoValidationChecks = {
+  format: PhotoValidationStatus
+  size: PhotoValidationStatus
+  minResolution: PhotoValidationStatus
+  faceCentered: PhotoValidationStatus
+  neutralBackground: PhotoValidationStatus
 }
 
 const WEEK_DAYS: Array<{ value: number; label: string }> = [
@@ -277,6 +286,32 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
+function rgbToHsl(r: number, g: number, b: number) {
+  const rn = r / 255
+  const gn = g / 255
+  const bn = b / 255
+  const max = Math.max(rn, gn, bn)
+  const min = Math.min(rn, gn, bn)
+  const l = (max + min) / 2
+  if (max === min) return { h: 0, s: 0, l }
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h = 0
+  switch (max) {
+    case rn:
+      h = (gn - bn) / d + (gn < bn ? 6 : 0)
+      break
+    case gn:
+      h = (bn - rn) / d + 2
+      break
+    default:
+      h = (rn - gn) / d + 4
+      break
+  }
+  h /= 6
+  return { h, s, l }
+}
+
 function humanizeTaxonomyValue(value: string) {
   const raw = String(value || '').trim()
   if (!raw) return ''
@@ -319,6 +354,85 @@ async function readImageDimensions(file: File) {
   })
 
   return { previewUrl, ...result }
+}
+
+async function runPhotoAutoValidation(file: File, width: number, height: number) {
+  const checks: PhotoValidationChecks = {
+    format: ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ? 'pass' : 'fail',
+    size: file.size <= 3 * 1024 * 1024 ? 'pass' : 'fail',
+    minResolution: width >= 320 && height >= 320 ? 'pass' : 'fail',
+    faceCentered: 'unknown',
+    neutralBackground: 'unknown',
+  }
+
+  const previewUrl = URL.createObjectURL(file)
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const next = new Image()
+      next.onload = () => resolve(next)
+      next.onerror = () => reject(new Error('Nao foi possivel ler a imagem para validacao.'))
+      next.src = previewUrl
+    })
+
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.drawImage(image, 0, 0)
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+      const step = Math.max(2, Math.floor(Math.min(canvas.width, canvas.height) / 80))
+      let sampled = 0
+      let satAcc = 0
+      let lightAcc = 0
+      for (let y = 0; y < canvas.height; y += step) {
+        for (let x = 0; x < canvas.width; x += step) {
+          const isEdge =
+            x < canvas.width * 0.15 ||
+            x > canvas.width * 0.85 ||
+            y < canvas.height * 0.15 ||
+            y > canvas.height * 0.85
+          if (!isEdge) continue
+          const idx = (y * canvas.width + x) * 4
+          const hsl = rgbToHsl(data[idx] || 0, data[idx + 1] || 0, data[idx + 2] || 0)
+          satAcc += hsl.s
+          lightAcc += hsl.l
+          sampled += 1
+        }
+      }
+      if (sampled > 0) {
+        const avgSat = satAcc / sampled
+        const avgLight = lightAcc / sampled
+        checks.neutralBackground = avgSat <= 0.35 && avgLight >= 0.52 ? 'pass' : 'fail'
+      }
+    }
+
+    type FaceDetectorLike = {
+      detect: (source: CanvasImageSource) => Promise<Array<{ boundingBox?: { x: number; y: number; width: number; height: number } }>>
+    }
+    const FaceDetectorCtor = (window as unknown as { FaceDetector?: new (opts?: unknown) => FaceDetectorLike }).FaceDetector
+    if (FaceDetectorCtor) {
+      try {
+        const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 } as unknown)
+        const faces = await detector.detect(image)
+        if (faces.length === 1 && faces[0]?.boundingBox) {
+          const box = faces[0].boundingBox
+          const centerX = (box.x + box.width / 2) / image.naturalWidth
+          const centerY = (box.y + box.height / 2) / image.naturalHeight
+          checks.faceCentered =
+            Math.abs(centerX - 0.5) <= 0.22 && Math.abs(centerY - 0.45) <= 0.25 ? 'pass' : 'fail'
+        } else {
+          checks.faceCentered = 'fail'
+        }
+      } catch {
+        checks.faceCentered = 'unknown'
+      }
+    }
+  } finally {
+    URL.revokeObjectURL(previewUrl)
+  }
+
+  return checks
 }
 
 async function buildAvatarCropFile(file: File, focusX: number, focusY: number, zoom: number) {
@@ -492,6 +606,13 @@ export function OnboardingTrackerModal({
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl || '')
   const [photoUploadState, setPhotoUploadState] = useState<SaveState>('idle')
   const [photoUploadError, setPhotoUploadError] = useState('')
+  const [photoValidationChecks, setPhotoValidationChecks] = useState<PhotoValidationChecks>({
+    format: 'unknown',
+    size: 'unknown',
+    minResolution: 'unknown',
+    faceCentered: 'unknown',
+    neutralBackground: 'unknown',
+  })
   const [photoFocusX, setPhotoFocusX] = useState(50)
   const [photoFocusY, setPhotoFocusY] = useState(50)
   const [photoZoom, setPhotoZoom] = useState(1)
@@ -597,7 +718,6 @@ export function OnboardingTrackerModal({
   const normalizedTier = useMemo(() => String(tier || 'basic').toLowerCase(), [tier])
   const tierLimits = useMemo(() => getTierLimits(normalizedTier), [normalizedTier])
   const minNoticeRange = useMemo(() => getMinNoticeRange(normalizedTier), [normalizedTier])
-  const bufferConfig = useMemo(() => getBufferConfig(normalizedTier), [normalizedTier])
   const isBasicTier = normalizedTier === 'basic'
 
   useEffect(() => {
@@ -981,11 +1101,25 @@ export function OnboardingTrackerModal({
   async function prepareProfessionalPhoto(file: File) {
     const allowed = ['image/jpeg', 'image/png', 'image/webp']
     if (!allowed.includes(file.type)) {
+      setPhotoValidationChecks({
+        format: 'fail',
+        size: 'unknown',
+        minResolution: 'unknown',
+        faceCentered: 'unknown',
+        neutralBackground: 'unknown',
+      })
       setPhotoUploadState('error')
       setPhotoUploadError('Formato inválido. Use JPG, PNG ou WEBP.')
       return
     }
     if (file.size > 3 * 1024 * 1024) {
+      setPhotoValidationChecks({
+        format: 'pass',
+        size: 'fail',
+        minResolution: 'unknown',
+        faceCentered: 'unknown',
+        neutralBackground: 'unknown',
+      })
       setPhotoUploadState('error')
       setPhotoUploadError('Arquivo acima de 3MB. Reduza antes de enviar.')
       return
@@ -999,6 +1133,21 @@ export function OnboardingTrackerModal({
         URL.revokeObjectURL(imageMeta.previewUrl)
         setPhotoUploadState('error')
         setPhotoUploadError('Use uma foto com pelo menos 320x320 pixels.')
+        return
+      }
+
+      const checks = await runPhotoAutoValidation(file, imageMeta.width, imageMeta.height)
+      setPhotoValidationChecks(checks)
+      if (checks.faceCentered === 'fail') {
+        URL.revokeObjectURL(imageMeta.previewUrl)
+        setPhotoUploadState('error')
+        setPhotoUploadError('Nao foi possivel validar o rosto centralizado. Escolha outra foto com o rosto bem enquadrado.')
+        return
+      }
+      if (checks.neutralBackground === 'fail') {
+        URL.revokeObjectURL(imageMeta.previewUrl)
+        setPhotoUploadState('error')
+        setPhotoUploadError('Fundo da foto fora do padrao. Use fundo claro ou neutro para continuar.')
         return
       }
 
@@ -1744,9 +1893,6 @@ export function OnboardingTrackerModal({
                 <div className="space-y-4">
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil</label>
-                    <p className="mb-3 text-xs text-neutral-600">
-                      Use uma foto nítida, com boa iluminação, rosto centralizado e fundo simples. Validamos formato, peso e resolução automaticamente.
-                    </p>
                     <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
                       <Upload className="h-3.5 w-3.5" />
                       Enviar foto
@@ -1822,14 +1968,31 @@ export function OnboardingTrackerModal({
                           </div>
                           <div className="space-y-3">
                             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                              <p className="text-xs font-semibold text-neutral-800">Pré-validação automática</p>
-                              <ul className="mt-2 space-y-1 text-xs text-neutral-600">
-                                <li>JPG, PNG ou WEBP</li>
-                                <li>Até 3MB</li>
-                                <li>Mínimo de 320x320 px</li>
-                                <li>Rosto centralizado, sem óculos escuros e com fundo claro ou neutro</li>
-                                <li>O recorte final será quadrado e exibido em formato circular</li>
-                              </ul>
+                              <p className="text-xs font-semibold text-neutral-800">Validação automática</p>
+                              <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs">
+                                {[
+                                  ['Formato (JPG/PNG/WEBP)', photoValidationChecks.format],
+                                  ['Tamanho (até 3MB)', photoValidationChecks.size],
+                                  ['Resolução mínima (320x320)', photoValidationChecks.minResolution],
+                                  ['Rosto centralizado', photoValidationChecks.faceCentered],
+                                  ['Fundo claro/neutro', photoValidationChecks.neutralBackground],
+                                ].map(([label, status]) => (
+                                  <div key={String(label)} className="flex items-center justify-between gap-2">
+                                    <span className="text-neutral-700">{label}</span>
+                                    <span
+                                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                        status === 'pass'
+                                          ? 'bg-green-100 text-green-700'
+                                          : status === 'fail'
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-neutral-200 text-neutral-600'
+                                      }`}
+                                    >
+                                      {status === 'pass' ? 'ok' : status === 'fail' ? 'falhou' : 'n/a'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                             {pendingPhoto ? (
                               <label className="block">
@@ -1849,9 +2012,6 @@ export function OnboardingTrackerModal({
                         </div>
                       </div>
                     ) : null}
-                    <p className="mt-2 text-xs text-neutral-500">
-                      Regras: JPG/PNG/WEBP, máximo de 3MB. O avatar final será o mesmo exibido no card público.
-                    </p>
                     {photoUploadState === 'saving' ? (
                       <p className="mt-2 text-xs text-brand-700">Preparando foto...</p>
                     ) : null}
@@ -2506,12 +2666,12 @@ export function OnboardingTrackerModal({
                             <input
                               type="number"
                               min={Math.max(1, Math.ceil(Number(minNoticeRange.min)))}
-                              max={Number(minNoticeRange.max)}
+                              max={Math.min(Number(minNoticeRange.max), 168)}
                               value={minimumNoticeHours}
                               onChange={event =>
                                 setMinimumNoticeHours(
                                   Math.min(
-                                    Number(minNoticeRange.max),
+                                    Math.min(Number(minNoticeRange.max), 168),
                                     Math.max(
                                       Math.max(1, Math.ceil(Number(minNoticeRange.min))),
                                       Number(event.target.value || minNoticeRange.min),
@@ -2550,21 +2710,18 @@ export function OnboardingTrackerModal({
                             <input
                               type="number"
                               min={0}
-                              max={String(tier || '').toLowerCase() === 'basic' ? 15 : 180}
+                              max={String(tier || '').toLowerCase() === 'basic' ? 15 : 120}
                               value={bufferMinutes}
-                              disabled={!bufferConfig.configurable}
                               onChange={event => {
                                 const next = Math.max(0, Number(event.target.value || 0))
-                                const maxBuffer = String(tier || '').toLowerCase() === 'basic' ? 15 : 180
+                                const maxBuffer = String(tier || '').toLowerCase() === 'basic' ? 15 : 120
                                 setBufferMinutes(Math.min(maxBuffer, next))
                               }}
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                             />
-                            {!bufferConfig.configurable ? (
-                              <p className="mt-1 text-[11px] text-amber-700">
-                                No plano básico, o buffer fica travado em {bufferConfig.defaultMinutes} min.
-                              </p>
-                            ) : null}
+                            <p className="mt-1 text-[11px] text-neutral-500">
+                              Limite atual: {String(tier || '').toLowerCase() === 'basic' ? 15 : 120} minutos.
+                            </p>
                           </div>
 
                           <div>

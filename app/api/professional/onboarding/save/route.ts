@@ -62,9 +62,9 @@ const availabilitySchema = z.object({
   section: z.literal('availability'),
   profileTimezone: z.string().trim().min(1).max(80),
   availabilityMap: z.record(z.string(), availabilityDaySchema),
-  minimumNoticeHours: z.number().int().min(0).max(720),
+  minimumNoticeHours: z.number().int().min(0).max(168),
   maxBookingWindowDays: z.number().int().min(1).max(365),
-  bufferMinutes: z.number().int().min(0).max(180),
+  bufferMinutes: z.number().int().min(0).max(120),
   confirmationMode: z.enum(['auto_accept', 'manual']),
   enableRecurring: z.boolean(),
   allowMultiSession: z.boolean(),
@@ -82,15 +82,53 @@ function normalizeLanguages(primary: string, secondary: string[]) {
   return Array.from(new Set([primary, ...secondary].map(item => item.trim()).filter(Boolean)))
 }
 
+function isMissingAllowMultiSessionColumnError(error: { message?: string; details?: string; code?: string } | null | undefined) {
+  if (!error) return false
+  const haystack = `${String(error.code || '')} ${String(error.message || '')} ${String(error.details || '')}`.toLowerCase()
+  return haystack.includes('allow_multi_session') && (haystack.includes('column') || haystack.includes('42703'))
+}
+
+async function upsertProfessionalSettingsWithFallback(
+  db: ReturnType<typeof createClient> | NonNullable<ReturnType<typeof createAdminClient>>,
+  payload: {
+    professional_id: string
+    timezone: string
+    minimum_notice_hours: number
+    max_booking_window_days: number
+    buffer_minutes: number
+    buffer_time_minutes: number
+    confirmation_mode: 'auto_accept' | 'manual'
+    enable_recurring: boolean
+    allow_multi_session: boolean
+    require_session_purpose: boolean
+    updated_at: string
+  },
+) {
+  const withAllowMultiSession = await db
+    .from('professional_settings')
+    .upsert(payload, { onConflict: 'professional_id' })
+
+  if (!withAllowMultiSession.error) {
+    return withAllowMultiSession
+  }
+
+  if (!isMissingAllowMultiSessionColumnError(withAllowMultiSession.error)) {
+    return withAllowMultiSession
+  }
+
+  const { allow_multi_session: _ignored, ...fallbackPayload } = payload
+  return db.from('professional_settings').upsert(fallbackPayload, { onConflict: 'professional_id' })
+}
+
 function getQualificationValidationMessage(item: z.infer<typeof qualificationSchema>) {
-  const label = item.name.trim() || 'qualificaÃ§Ã£o'
-  if (!item.name.trim()) return 'Informe o nome da qualificaÃ§Ã£o.'
+  const label = item.name.trim() || 'qualificacao'
+  if (!item.name.trim()) return 'Informe o nome da qualificacao.'
   if (item.requires_registration) {
-    if (!item.registration_number.trim()) return `Informe o nÃºmero de registro em "${label}".`
-    if (!item.issuer.trim()) return `Informe o Ã³rgÃ£o emissor em "${label}".`
-    if (!item.country.trim()) return `Informe o paÃ­s do registro em "${label}".`
+    if (!item.registration_number.trim()) return `Informe o numero de registro em "${label}".`
+    if (!item.issuer.trim()) return `Informe o orgao emissor em "${label}".`
+    if (!item.country.trim()) return `Informe o pais do registro em "${label}".`
   } else if (!item.course_name.trim()) {
-    return `Informe o nome do curso ou formaÃ§Ã£o em "${label}".`
+    return `Informe o nome do curso ou formacao em "${label}".`
   }
   if (item.evidence_files.length === 0) return `Envie ao menos um comprovante para "${label}".`
   return ''
@@ -100,7 +138,7 @@ export async function POST(request: Request) {
   try {
     const payload = payloadSchema.safeParse(await request.json().catch(() => null))
     if (!payload.success) {
-      return NextResponse.json({ error: 'Dados invÃ¡lidos para salvar esta etapa.' }, { status: 400 })
+      return NextResponse.json({ error: 'Dados invalidos para salvar esta etapa.' }, { status: 400 })
     }
 
     const supabase = createClient()
@@ -109,7 +147,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'SessÃ£o invÃ¡lida.' }, { status: 401 })
+      return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
     }
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
@@ -119,7 +157,7 @@ export async function POST(request: Request) {
 
     const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id,user_id,tier')
     if (!professional?.id) {
-      return NextResponse.json({ error: 'Perfil profissional nÃ£o encontrado.' }, { status: 404 })
+      return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
     }
 
     const admin = createAdminClient()
@@ -132,6 +170,19 @@ export async function POST(request: Request) {
 
       if (invalidQualification) {
         return NextResponse.json({ error: getQualificationValidationMessage(invalidQualification) }, { status: 400 })
+      }
+
+      const { data: previousProfessionalRow, error: previousProfessionalError } = await db
+        .from('professionals')
+        .select('years_experience,focus_areas,languages')
+        .eq('id', professionalId)
+        .maybeSingle()
+
+      if (previousProfessionalError) {
+        return NextResponse.json(
+          { error: 'Nao foi possivel validar o estado atual dos dados profissionais.' },
+          { status: 500 },
+        )
       }
 
       const { error: professionalError } = await db
@@ -180,7 +231,22 @@ export async function POST(request: Request) {
         .upsert(appPayload, { onConflict: 'user_id' })
 
       if (appError) {
-        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar identidade profissional.' }, { status: 500 })
+        if (previousProfessionalRow) {
+          await db
+            .from('professionals')
+            .update({
+              years_experience: previousProfessionalRow.years_experience,
+              focus_areas: previousProfessionalRow.focus_areas,
+              languages: previousProfessionalRow.languages,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', professionalId)
+        }
+
+        return NextResponse.json(
+          { error: 'Nao foi possivel salvar dados profissionais. Nenhuma alteracao foi aplicada por completo.' },
+          { status: 500 },
+        )
       }
     }
 
@@ -194,7 +260,7 @@ export async function POST(request: Request) {
         .eq('id', professionalId)
 
       if (professionalError) {
-        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar o perfil pÃºblico.' }, { status: 500 })
+        return NextResponse.json({ error: 'Nao foi possivel salvar o perfil publico.' }, { status: 500 })
       }
 
       const { error: profileError } = await db
@@ -205,7 +271,7 @@ export async function POST(request: Request) {
         .eq('id', userId)
 
       if (profileError) {
-        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar a foto do perfil.' }, { status: 500 })
+        return NextResponse.json({ error: 'Nao foi possivel salvar a foto do perfil.' }, { status: 500 })
       }
     }
 
@@ -229,13 +295,13 @@ export async function POST(request: Request) {
         .single()
 
       if (error || !inserted) {
-        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel criar o serviÃ§o.' }, { status: 500 })
+        return NextResponse.json({ error: 'Nao foi possivel criar o servico.' }, { status: 500 })
       }
 
       await recomputeProfessionalVisibility(db, professionalId)
       const onboardingState = await loadProfessionalOnboardingState(db, professionalId)
       if (!onboardingState) {
-        return NextResponse.json({ error: 'ServiÃ§o salvo, mas o tracker nÃ£o pÃ´de ser atualizado.' }, { status: 500 })
+        return NextResponse.json({ error: 'Servico salvo, mas o tracker nao pode ser atualizado.' }, { status: 500 })
       }
 
       return NextResponse.json({
@@ -250,15 +316,16 @@ export async function POST(request: Request) {
         day => day.is_available && day.start_time >= day.end_time,
       )
       if (invalidRange) {
-        return NextResponse.json({ error: 'HorÃ¡rios invÃ¡lidos: inÃ­cio deve ser menor que fim.' }, { status: 400 })
+        return NextResponse.json({ error: 'Horarios invalidos: inicio deve ser menor que fim.' }, { status: 400 })
       }
 
       const nowIso = new Date().toISOString()
       const normalizedTier = String(professional.tier || '').toLowerCase()
-      const maxBufferForTier = normalizedTier === 'basic' ? 15 : 180
-      const safeMinimumNoticeHours = Math.max(1, Math.min(720, Number(payload.data.minimumNoticeHours || 1)))
+      const maxBufferForTier = normalizedTier === 'basic' ? 15 : 120
+      const safeMinimumNoticeHours = Math.max(1, Math.min(168, Number(payload.data.minimumNoticeHours || 1)))
       const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, payload.data.bufferMinutes))
       const safeConfirmationMode = normalizedTier === 'basic' ? 'manual' : payload.data.confirmationMode
+      const safeBookingWindowDays = Math.max(1, Math.min(365, Number(payload.data.maxBookingWindowDays || 30)))
       const safeRows = Object.entries(payload.data.availabilityMap).map(([day, value]) => ({
         professional_id: professionalId,
         day_of_week: Number(day),
@@ -267,44 +334,108 @@ export async function POST(request: Request) {
         is_active: value.is_available,
       }))
 
+      const { data: previousAvailabilityRows, error: previousAvailabilityError } = await db
+        .from('availability')
+        .select('day_of_week,start_time,end_time,is_active')
+        .eq('professional_id', professionalId)
+
+      if (previousAvailabilityError) {
+        return NextResponse.json(
+          { error: 'Nao foi possivel ler a disponibilidade atual antes de salvar.' },
+          { status: 500 },
+        )
+      }
+
+      const { data: previousSettingsRow, error: previousSettingsError } = await db
+        .from('professional_settings')
+        .select(
+          'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose',
+        )
+        .eq('professional_id', professionalId)
+        .maybeSingle()
+
+      if (previousSettingsError) {
+        return NextResponse.json(
+          { error: 'Nao foi possivel ler as regras atuais de agendamento antes de salvar.' },
+          { status: 500 },
+        )
+      }
+
       const { error: deleteError } = await db.from('availability').delete().eq('professional_id', professionalId)
       if (deleteError) {
-        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel atualizar a disponibilidade.' }, { status: 500 })
+        return NextResponse.json({ error: 'Nao foi possivel atualizar a disponibilidade.' }, { status: 500 })
       }
 
       const { error: insertError } = await db.from('availability').insert(safeRows)
       if (insertError) {
-        return NextResponse.json({ error: 'NÃ£o foi possÃ­vel salvar os horÃ¡rios.' }, { status: 500 })
+        return NextResponse.json({ error: 'Nao foi possivel salvar os horarios.' }, { status: 500 })
       }
 
-      const { error: settingsError } = await db
-        .from('professional_settings')
-        .upsert(
-          {
-            professional_id: professionalId,
-            timezone: payload.data.profileTimezone,
-            minimum_notice_hours: safeMinimumNoticeHours,
-            max_booking_window_days: payload.data.maxBookingWindowDays,
-            buffer_minutes: safeBufferMinutes,
-            buffer_time_minutes: safeBufferMinutes,
-            confirmation_mode: safeConfirmationMode,
-            enable_recurring: payload.data.enableRecurring,
-            allow_multi_session: payload.data.allowMultiSession,
-            require_session_purpose: payload.data.requireSessionPurpose,
-            updated_at: nowIso,
-          },
-          { onConflict: 'professional_id' },
-        )
+      const { error: settingsError } = await upsertProfessionalSettingsWithFallback(db, {
+        professional_id: professionalId,
+        timezone: payload.data.profileTimezone,
+        minimum_notice_hours: safeMinimumNoticeHours,
+        max_booking_window_days: safeBookingWindowDays,
+        buffer_minutes: safeBufferMinutes,
+        buffer_time_minutes: safeBufferMinutes,
+        confirmation_mode: safeConfirmationMode,
+        enable_recurring: payload.data.enableRecurring,
+        allow_multi_session: payload.data.allowMultiSession,
+        require_session_purpose: payload.data.requireSessionPurpose,
+        updated_at: nowIso,
+      })
 
       if (settingsError) {
-        return NextResponse.json({ error: 'Disponibilidade salva, mas falhou ao salvar regras.' }, { status: 500 })
+        // Best-effort rollback for availability rows when settings save fails.
+        await db.from('availability').delete().eq('professional_id', professionalId)
+        if (Array.isArray(previousAvailabilityRows) && previousAvailabilityRows.length > 0) {
+          const restoreRows = previousAvailabilityRows.map(row => ({
+            professional_id: professionalId,
+            day_of_week: Number(row.day_of_week),
+            start_time: String(row.start_time),
+            end_time: String(row.end_time),
+            is_active: Boolean(row.is_active),
+          }))
+          await db.from('availability').insert(restoreRows)
+        }
+
+        if (previousSettingsRow) {
+          await upsertProfessionalSettingsWithFallback(db, {
+            professional_id: professionalId,
+            timezone: previousSettingsRow.timezone,
+            minimum_notice_hours: previousSettingsRow.minimum_notice_hours,
+            max_booking_window_days: previousSettingsRow.max_booking_window_days,
+            buffer_minutes: previousSettingsRow.buffer_minutes,
+            buffer_time_minutes: previousSettingsRow.buffer_time_minutes,
+            confirmation_mode: previousSettingsRow.confirmation_mode,
+            enable_recurring: previousSettingsRow.enable_recurring,
+            allow_multi_session: previousSettingsRow.allow_multi_session,
+            require_session_purpose: previousSettingsRow.require_session_purpose,
+            updated_at: nowIso,
+          })
+        }
+
+        if (isMissingAllowMultiSessionColumnError(settingsError)) {
+          return NextResponse.json(
+            {
+              error:
+                'Nao foi possivel salvar regras de agendamento porque a base ainda nao suporta allow_multi_session. Execute a migration 042.',
+            },
+            { status: 500 },
+          )
+        }
+
+        return NextResponse.json(
+          { error: 'Nao foi possivel salvar regras de agendamento. Tente novamente.' },
+          { status: 500 },
+        )
       }
     }
 
     await recomputeProfessionalVisibility(db, professionalId)
     const onboardingState = await loadProfessionalOnboardingState(db, professionalId)
     if (!onboardingState) {
-      return NextResponse.json({ error: 'AlteraÃ§Ãµes salvas, mas o tracker nÃ£o pÃ´de ser atualizado.' }, { status: 500 })
+      return NextResponse.json({ error: 'Alteracoes salvas, mas o tracker nao pode ser atualizado.' }, { status: 500 })
     }
 
     return NextResponse.json({

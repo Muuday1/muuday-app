@@ -59,10 +59,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Arquivo obrigatorio.' }, { status: 400 })
     }
 
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'Formato invalido. Use JPG, PNG ou WEBP.' }, { status: 400 })
-    }
-
     if (file.size > MAX_FILE_SIZE_BYTES) {
       return NextResponse.json({ error: 'Arquivo acima de 3MB.' }, { status: 400 })
     }
@@ -70,11 +66,17 @@ export async function POST(request: Request) {
     const bytes = Buffer.from(await file.arrayBuffer())
     const signatureValidation = validateFileSignature({
       bytes,
-      claimedMimeType: file.type,
+      // Some mobile browsers (especially iOS camera capture) send an inaccurate MIME type.
+      // We rely on signature sniffing as source of truth for profile photos.
+      claimedMimeType: '',
       allowedKinds: ALLOWED_KINDS,
     })
     if (!signatureValidation.ok) {
       return NextResponse.json({ error: signatureValidation.error }, { status: 400 })
+    }
+
+    if (!ALLOWED_TYPES.has(signatureValidation.canonicalMimeType)) {
+      return NextResponse.json({ error: 'Formato invalido. Use JPG, PNG ou WEBP.' }, { status: 400 })
     }
 
     const admin = createAdminClient()
