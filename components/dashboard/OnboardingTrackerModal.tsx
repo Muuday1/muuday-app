@@ -195,6 +195,14 @@ function isValidCoverPhotoUrl(value: string) {
 
 function sanitizePricingErrorMessage(error: string) {
   if (!error) return 'Preco indisponivel no momento.'
+  const normalized = error.toLowerCase()
+  if (
+    normalized.includes('faca login') ||
+    normalized.includes('sessao invalida') ||
+    normalized.includes('sessao inv')
+  ) {
+    return 'Sua sessao expirou. Entre novamente para continuar.'
+  }
   if (error.includes('STRIPE_') || error.includes('AIRWALLEX_') || error.includes('PRICE_')) {
     return 'Preco indisponivel no momento.'
   }
@@ -1615,7 +1623,7 @@ export function OnboardingTrackerModal({
           minimumNoticeHours: safeNoticeHours,
           maxBookingWindowDays: safeBookingWindow,
           bufferMinutes,
-          confirmationMode: isBasicTier ? 'manual' : confirmationMode,
+          confirmationMode: isBasicTier ? 'auto_accept' : confirmationMode,
           enableRecurring,
           allowMultiSession,
           requireSessionPurpose,
@@ -1650,10 +1658,16 @@ export function OnboardingTrackerModal({
         return
       }
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       const response = await fetch('/api/stripe/checkout-session', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           tier: selectedPlanTier,
           billingCycle: selectedPlanCycle,
@@ -2740,7 +2754,7 @@ export function OnboardingTrackerModal({
                           <div>
                             <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmação</label>
                             <select
-                              value={isBasicTier ? 'manual' : confirmationMode}
+                              value={isBasicTier ? 'auto_accept' : confirmationMode}
                               disabled={isBasicTier}
                               onChange={event => setConfirmationMode(event.target.value === 'manual' ? 'manual' : 'auto_accept')}
                               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"

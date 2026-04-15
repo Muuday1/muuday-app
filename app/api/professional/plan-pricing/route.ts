@@ -53,7 +53,7 @@ export async function GET() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json({ error: 'Sessão inválida.' }, { status: 401 })
+    return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
   }
 
   const [{ data: profile }, { data: professional }] = await Promise.all([
@@ -68,7 +68,7 @@ export async function GET() {
   ])
 
   if (profile?.role !== 'profissional' || !professional) {
-    return NextResponse.json({ error: 'Perfil profissional não encontrado.' }, { status: 404 })
+    return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
   }
 
   const region =
@@ -77,7 +77,7 @@ export async function GET() {
 
   const stripe = getStripeClientForRegion(region)
   if (!stripe) {
-    return NextResponse.json({ error: 'Provider de cobrança indisponível para esta região.' }, { status: 503 })
+    return NextResponse.json({ error: 'Provider de cobranca indisponivel para esta regiao.' }, { status: 503 })
   }
 
   const tier = readTier(professional.tier)
@@ -87,10 +87,13 @@ export async function GET() {
   const annualPriceId = process.env[annualKey]
 
   if (!monthlyPriceId || !annualPriceId) {
-    return NextResponse.json(
-      { error: `Preço do plano não configurado (${monthlyKey}/${annualKey}).` },
-      { status: 503 },
-    )
+    console.error('[plan-pricing] missing stripe price configuration', {
+      region,
+      tier,
+      monthlyConfigured: Boolean(monthlyPriceId),
+      annualConfigured: Boolean(annualPriceId),
+    })
+    return NextResponse.json({ error: 'Preco indisponivel no momento.' }, { status: 503 })
   }
 
   try {
@@ -108,6 +111,6 @@ export async function GET() {
       region,
     })
   } catch {
-    return NextResponse.json({ error: 'Não foi possível carregar preços do provider.' }, { status: 503 })
+    return NextResponse.json({ error: 'Nao foi possivel carregar precos do provider.' }, { status: 503 })
   }
 }

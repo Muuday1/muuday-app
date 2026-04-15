@@ -96,9 +96,21 @@ export default function PlanosPage() {
     setLoadingTier(tier)
     setMessage(null)
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       const response = await fetch('/api/stripe/checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        ...(session?.access_token
+          ? {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            }
+          : {}),
         body: JSON.stringify({ tier, billingCycle }),
       })
       const json = await response.json()

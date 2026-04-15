@@ -79,26 +79,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Formato invalido. Use JPG, PNG ou WEBP.' }, { status: 400 })
     }
 
+    const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
     const admin = createAdminClient()
-    if (!admin) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada.' }, { status: 503 })
+    if (admin) {
+      await ensureProfileMediaBucket(admin)
+
+      const { error: uploadError } = await admin.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
+        contentType: signatureValidation.canonicalMimeType,
+        upsert: false,
+        cacheControl: '3600',
+      })
+
+      if (uploadError) {
+        return NextResponse.json({ error: `Falha no upload: ${uploadError.message}` }, { status: 500 })
+      }
+
+      const { data: publicData } = admin.storage.from(PROFILE_MEDIA_BUCKET).getPublicUrl(filePath)
+
+      return NextResponse.json({
+        publicUrl: publicData.publicUrl,
+        path: filePath,
+      })
     }
 
-    await ensureProfileMediaBucket(admin)
-
-    const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
-
-    const { error: uploadError } = await admin.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
+    // Fallback for environments without service role key.
+    const { error: uploadError } = await supabase.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
       contentType: signatureValidation.canonicalMimeType,
       upsert: false,
       cacheControl: '3600',
     })
 
     if (uploadError) {
-      return NextResponse.json({ error: `Falha no upload: ${uploadError.message}` }, { status: 500 })
+      return NextResponse.json(
+        {
+          error:
+            'Falha no upload da foto. Verifique as policies do bucket professional-profile-media para upload autenticado.',
+        },
+        { status: 500 },
+      )
     }
 
-    const { data: publicData } = admin.storage.from(PROFILE_MEDIA_BUCKET).getPublicUrl(filePath)
+    const { data: publicData } = supabase.storage.from(PROFILE_MEDIA_BUCKET).getPublicUrl(filePath)
 
     return NextResponse.json({
       publicUrl: publicData.publicUrl,

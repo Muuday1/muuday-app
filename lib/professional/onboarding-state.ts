@@ -112,7 +112,7 @@ export async function loadProfessionalOnboardingState(
     email: String(profileRow?.email || ''),
     country: String(profileRow?.country || ''),
     timezone: String(profileRow?.timezone || ''),
-    avatarUrl: String(profileRow?.avatar_url || ''),
+    avatarUrl: String(profileRow?.avatar_url || professionalRow.cover_photo_url || ''),
     primaryLanguage:
       Array.isArray(professionalRow.languages) && professionalRow.languages.length > 0
         ? String(professionalRow.languages[0] || '')
@@ -183,6 +183,10 @@ export async function loadProfessionalOnboardingState(
     onboardingFinanceBypass: Boolean(
       (settingsRow as Record<string, unknown> | null)?.onboarding_finance_bypass,
     ),
+  }
+
+  if (!snapshot.account.timezone && normalizedSettings.timezone) {
+    snapshot.account.timezone = normalizedSettings.timezone
   }
 
   const { count: availabilityRulesCount } = await supabase

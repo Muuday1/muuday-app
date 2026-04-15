@@ -57,9 +57,25 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient()
-  const {
+  let {
     data: { user },
   } = await supabase.auth.getUser()
+
+  if (!user) {
+    const authorization = request.headers.get('authorization')
+    const bearerToken =
+      authorization && authorization.toLowerCase().startsWith('bearer ')
+        ? authorization.slice(7).trim()
+        : ''
+
+    if (bearerToken) {
+      const {
+        data: { user: bearerUser },
+      } = await supabase.auth.getUser(bearerToken)
+      user = bearerUser ?? null
+    }
+  }
+
   if (!user) {
     return NextResponse.json({ error: 'Faca login para continuar.' }, { status: 401 })
   }
