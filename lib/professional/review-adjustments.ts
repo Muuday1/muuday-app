@@ -52,8 +52,6 @@ export const REVIEW_ADJUSTMENT_PRESET_FIELDS: Array<{
   { stageId: 'c5_availability_calendar', fieldKey: 'calendar_sync', label: 'Integração de calendário' },
   { stageId: 'c6_plan_billing_setup_post', fieldKey: 'plan_selection', label: 'Seleção de plano' },
   { stageId: 'c6_plan_billing_setup_post', fieldKey: 'plan_terms', label: 'Termos do plano' },
-  { stageId: 'c7_payout_receipt', fieldKey: 'billing_card', label: 'Cartão para cobrança' },
-  { stageId: 'c7_payout_receipt', fieldKey: 'payout_data', label: 'Dados de recebimento' },
   { stageId: 'c8_submit_review', fieldKey: 'required_terms', label: 'Termos obrigatórios' },
 ]
 

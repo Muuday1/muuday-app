@@ -11,7 +11,10 @@ import {
   sendProfileRejectedEmail,
 } from '@/lib/email/resend'
 import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
-import { REVIEW_ADJUSTMENT_STAGE_LABELS } from '@/lib/professional/review-adjustments'
+import {
+  REVIEW_ADJUSTMENT_PRESET_FIELDS,
+  REVIEW_ADJUSTMENT_STAGE_LABELS,
+} from '@/lib/professional/review-adjustments'
 
 type AdminActionResult =
   | { success: true }
@@ -64,6 +67,10 @@ const adminToggleReviewVisibilityInputSchema = adminReviewActionInputSchema.exte
 function getFirstValidationError(error: z.ZodError) {
   return error.issues[0]?.message || 'Dados invalidos.'
 }
+
+const ALLOWED_REVIEW_ADJUSTMENT_KEYS = new Set(
+  REVIEW_ADJUSTMENT_PRESET_FIELDS.map(item => `${String(item.stageId)}::${String(item.fieldKey)}`),
+)
 
 /**
  * Server-side admin role check. Returns the authenticated user ID or throws.
@@ -376,6 +383,12 @@ export async function adminReviewProfessionalDecision(
     const structuredAdjustments = parsed.data.adjustments || []
     if (parsed.data.decision === 'needs_changes' && structuredAdjustments.length === 0) {
       return { success: false, error: 'Selecione pelo menos um ajuste obrigatorio para solicitar alteracoes.' }
+    }
+    const invalidAdjustment = structuredAdjustments.find(
+      item => !ALLOWED_REVIEW_ADJUSTMENT_KEYS.has(`${String(item.stageId)}::${String(item.fieldKey)}`),
+    )
+    if (invalidAdjustment) {
+      return { success: false, error: 'Foi enviado um ajuste invalido para uma etapa indisponivel no tracker.' }
     }
 
     const targetStatus = parsed.data.decision

@@ -6,7 +6,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
-import { SECTION_TO_REVIEW_STAGES } from '@/lib/professional/review-adjustments'
+import { SECTION_TO_REVIEW_FIELD_KEYS, SECTION_TO_REVIEW_STAGES } from '@/lib/professional/review-adjustments'
 
 const qualificationFileSchema = z.object({
   id: z.string(),
@@ -120,6 +120,85 @@ function getResolvedAdjustmentIds(
   return Array.isArray(payload.resolvedAdjustmentIds)
     ? payload.resolvedAdjustmentIds.filter(Boolean)
     : []
+}
+
+function normalizeTextForDiff(value: unknown) {
+  return String(value || '').trim()
+}
+
+function normalizeStringArrayForDiff(values: unknown) {
+  if (!Array.isArray(values)) return []
+  return values
+    .map(item => normalizeTextForDiff(item))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b))
+}
+
+function areStringArraysEqualForDiff(left: unknown, right: unknown) {
+  const leftNormalized = normalizeStringArrayForDiff(left)
+  const rightNormalized = normalizeStringArrayForDiff(right)
+  if (leftNormalized.length !== rightNormalized.length) return false
+  return leftNormalized.every((value, index) => value === rightNormalized[index])
+}
+
+function normalizeQualificationPayloadForDiff(values: unknown) {
+  if (!Array.isArray(values)) return []
+  return values
+    .map(item => {
+      const record = item as Record<string, unknown>
+      return {
+        name: normalizeTextForDiff(record.name),
+        requires_registration: Boolean(record.requires_registration),
+        course_name: normalizeTextForDiff(record.course_name),
+        registration_number: normalizeTextForDiff(record.registration_number),
+        issuer: normalizeTextForDiff(record.issuer),
+        country: normalizeTextForDiff(record.country),
+        evidence_file_names: normalizeStringArrayForDiff(
+          Array.isArray(record.evidence_files)
+            ? (record.evidence_files as Array<Record<string, unknown>>).map(file => file.file_name)
+            : record.evidence_file_names,
+        ),
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function qualificationsChangedForDiff(previous: unknown, next: unknown) {
+  const previousNormalized = normalizeQualificationPayloadForDiff(previous)
+  const nextNormalized = normalizeQualificationPayloadForDiff(next)
+  return JSON.stringify(previousNormalized) !== JSON.stringify(nextNormalized)
+}
+
+function normalizeAvailabilityRowsForDiff(rows: unknown) {
+  if (!Array.isArray(rows)) return []
+  return rows
+    .map(item => {
+      const row = item as Record<string, unknown>
+      return {
+        day_of_week: Number(row.day_of_week),
+        start_time: String(row.start_time || '').slice(0, 5),
+        end_time: String(row.end_time || '').slice(0, 5),
+        is_active: Boolean(row.is_active),
+      }
+    })
+    .sort((a, b) => a.day_of_week - b.day_of_week)
+}
+
+function normalizeAvailabilityMapForDiff(value: Record<string, z.infer<typeof availabilityDaySchema>>) {
+  return Object.entries(value)
+    .map(([day, row]) => ({
+      day_of_week: Number(day),
+      start_time: String(row.start_time || '').slice(0, 5),
+      end_time: String(row.end_time || '').slice(0, 5),
+      is_active: Boolean(row.is_available),
+    }))
+    .sort((a, b) => a.day_of_week - b.day_of_week)
+}
+
+function availabilityRowsChangedForDiff(previousRows: unknown, nextMap: Record<string, z.infer<typeof availabilityDaySchema>>) {
+  const previousNormalized = normalizeAvailabilityRowsForDiff(previousRows)
+  const nextNormalized = normalizeAvailabilityMapForDiff(nextMap)
+  return JSON.stringify(previousNormalized) !== JSON.stringify(nextNormalized)
 }
 
 async function upsertProfessionalApplicationWithFallback(
@@ -236,7 +315,7 @@ export async function POST(request: Request) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role,full_name,country,timezone')
+      .select('role,full_name,country,timezone,avatar_url')
       .eq('id', user.id)
       .maybeSingle()
     if (!profile || profile.role !== 'profissional') {
@@ -260,6 +339,13 @@ export async function POST(request: Request) {
     const maxBufferForTier = tierConfig.bufferConfig.maxMinutes
 
     const savedSection = payload.data.section
+    const resolvedAdjustmentFieldKeys = new Set<string>()
+    let createdService: { id: string; name: string; description: string | null; price_brl: number; duration_minutes: number } | null = null
+    const { data: previousPublicProfileRow } = await db
+      .from('professionals')
+      .select('bio,cover_photo_url')
+      .eq('id', professionalId)
+      .maybeSingle()
 
     if (savedSection === 'identity') {
       if (!String(profile?.country || '').trim() || !String(profile?.timezone || '').trim()) {
@@ -306,7 +392,9 @@ export async function POST(request: Request) {
 
       const { data: existingApplication } = await db
         .from('professional_applications')
-        .select('category,specialty_name,taxonomy_suggestions')
+        .select(
+          'category,specialty_name,taxonomy_suggestions,display_name,primary_language,secondary_languages,target_audiences,focus_areas,years_experience,qualifications_structured',
+        )
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -339,6 +427,43 @@ export async function POST(request: Request) {
           : inferredSubcategory
             ? [inferredSubcategory]
             : []
+      const previousDisplayName = String(existingApplication?.display_name || profile?.full_name || '').trim()
+      if (previousDisplayName !== effectiveDisplayName) {
+        resolvedAdjustmentFieldKeys.add('display_name')
+      }
+
+      const previousYearsExperience = Number(existingApplication?.years_experience ?? previousProfessionalRow?.years_experience ?? 0)
+      if (previousYearsExperience !== payload.data.yearsExperience) {
+        resolvedAdjustmentFieldKeys.add('experience')
+      }
+
+      const previousPrimaryLanguage = String(
+        existingApplication?.primary_language ||
+          (Array.isArray(previousProfessionalRow?.languages) ? previousProfessionalRow.languages[0] : '') ||
+          '',
+      ).trim()
+      if (previousPrimaryLanguage !== payload.data.primaryLanguage.trim()) {
+        resolvedAdjustmentFieldKeys.add('languages')
+      }
+
+      if (!areStringArraysEqualForDiff(existingApplication?.secondary_languages, payload.data.secondaryLanguages)) {
+        resolvedAdjustmentFieldKeys.add('languages')
+      }
+
+      if (!areStringArraysEqualForDiff(existingApplication?.target_audiences, payload.data.targetAudiences)) {
+        resolvedAdjustmentFieldKeys.add('audience')
+      }
+
+      const previousFocusAreas = Array.isArray(previousProfessionalRow?.focus_areas)
+        ? previousProfessionalRow.focus_areas
+        : existingApplication?.focus_areas
+      if (!areStringArraysEqualForDiff(previousFocusAreas, payload.data.focusAreas)) {
+        resolvedAdjustmentFieldKeys.add('focus_tags')
+      }
+
+      if (qualificationsChangedForDiff(existingApplication?.qualifications_structured, payload.data.qualifications)) {
+        resolvedAdjustmentFieldKeys.add('qualifications')
+      }
 
       const professionalMirrorUpdate: Record<string, unknown> = {
         years_experience: payload.data.yearsExperience,
@@ -431,6 +556,21 @@ export async function POST(request: Request) {
     }
 
     if (savedSection === 'public_profile') {
+      const previousBio = String(previousPublicProfileRow?.bio || '').trim()
+      const nextBio = String(payload.data.bio || '').trim()
+      const previousCoverPhotoPath = String(previousPublicProfileRow?.cover_photo_url || '').trim()
+      const nextCoverPhotoPath = String(payload.data.avatarPath || '').trim()
+      const previousAvatarUrl = String(profile?.avatar_url || '').trim()
+      const nextAvatarUrl = String(payload.data.avatarUrl || '').trim()
+
+      if (
+        previousBio !== nextBio ||
+        previousCoverPhotoPath !== nextCoverPhotoPath ||
+        previousAvatarUrl !== nextAvatarUrl
+      ) {
+        resolvedAdjustmentFieldKeys.add('photo')
+      }
+
       const { error: professionalError } = await db
         .from('professionals')
         .update({
@@ -491,18 +631,10 @@ export async function POST(request: Request) {
       if (error || !inserted) {
         return NextResponse.json({ error: 'Nao foi possivel criar o servico.' }, { status: 500 })
       }
-
-      await recomputeProfessionalVisibility(db, professionalId)
-      const onboardingState = await loadProfessionalOnboardingState(db, professionalId)
-      if (!onboardingState) {
-        return NextResponse.json({ error: 'Servico salvo, mas o tracker nao pode ser atualizado.' }, { status: 500 })
-      }
-
-      return NextResponse.json({
-        ok: true,
-        service: inserted,
-        evaluation: onboardingState.evaluation,
-      })
+      createdService = inserted
+      resolvedAdjustmentFieldKeys.add('service_title')
+      resolvedAdjustmentFieldKeys.add('service_description')
+      resolvedAdjustmentFieldKeys.add('service_price')
     }
 
     if (savedSection === 'availability') {
@@ -552,7 +684,7 @@ export async function POST(request: Request) {
       const { data: previousSettingsRow, error: previousSettingsError } = await db
         .from('professional_settings')
         .select(
-          'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,require_session_purpose',
+          'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose',
         )
         .eq('professional_id', professionalId)
         .maybeSingle()
@@ -563,6 +695,33 @@ export async function POST(request: Request) {
           message: previousSettingsError.message,
           code: previousSettingsError.code,
         })
+      }
+
+      if (availabilityRowsChangedForDiff(previousAvailabilityRows, payload.data.availabilityMap)) {
+        resolvedAdjustmentFieldKeys.add('weekly_schedule')
+      }
+
+      const previousMinimumNoticeHours = Number(previousSettingsRow?.minimum_notice_hours ?? minNoticeRange.min)
+      const previousMaxBookingWindowDays = Number(
+        previousSettingsRow?.max_booking_window_days ?? tierLimits.bookingWindowDays,
+      )
+      const previousBufferMinutes = Number(
+        previousSettingsRow?.buffer_minutes ?? previousSettingsRow?.buffer_time_minutes ?? 0,
+      )
+      const previousConfirmationMode = String(previousSettingsRow?.confirmation_mode || 'auto_accept')
+      const previousEnableRecurring = Boolean(previousSettingsRow?.enable_recurring)
+      const previousAllowMultiSession = Boolean(previousSettingsRow?.allow_multi_session)
+      const previousRequireSessionPurpose = Boolean(previousSettingsRow?.require_session_purpose)
+      const bookingRulesChanged =
+        previousMinimumNoticeHours !== safeMinimumNoticeHours ||
+        previousMaxBookingWindowDays !== safeBookingWindowDays ||
+        previousBufferMinutes !== safeBufferMinutes ||
+        previousConfirmationMode !== safeConfirmationMode ||
+        previousEnableRecurring !== payload.data.enableRecurring ||
+        previousAllowMultiSession !== payload.data.allowMultiSession ||
+        previousRequireSessionPurpose !== payload.data.requireSessionPurpose
+      if (bookingRulesChanged) {
+        resolvedAdjustmentFieldKeys.add('booking_rules')
       }
 
       const { error: deleteError } = await db.from('availability').delete().eq('professional_id', professionalId)
@@ -613,7 +772,7 @@ export async function POST(request: Request) {
             buffer_time_minutes: previousSettingsRow.buffer_time_minutes,
             confirmation_mode: previousSettingsRow.confirmation_mode,
             enable_recurring: previousSettingsRow.enable_recurring,
-            allow_multi_session: payload.data.allowMultiSession,
+            allow_multi_session: previousAllowMultiSession,
             require_session_purpose: previousSettingsRow.require_session_purpose,
             updated_at: nowIso,
           })
@@ -638,8 +797,12 @@ export async function POST(request: Request) {
 
     const stageIdsForSection = SECTION_TO_REVIEW_STAGES[savedSection] || []
     const resolvedAdjustmentIds = getResolvedAdjustmentIds(payload.data)
+    const allowedFieldKeysForSection = new Set(SECTION_TO_REVIEW_FIELD_KEYS[savedSection] || [])
+    const changedFieldKeysForSection = Array.from(resolvedAdjustmentFieldKeys).filter(fieldKey =>
+      allowedFieldKeysForSection.has(fieldKey),
+    )
 
-    if (resolvedAdjustmentIds.length > 0) {
+    if (resolvedAdjustmentIds.length > 0 && changedFieldKeysForSection.length > 0) {
       await db
         .from('professional_review_adjustments')
         .update({
@@ -651,6 +814,7 @@ export async function POST(request: Request) {
         .eq('professional_id', professionalId)
         .in('id', resolvedAdjustmentIds)
         .in('stage_id', stageIdsForSection)
+        .in('field_key', changedFieldKeysForSection)
         .in('status', ['open', 'reopened'])
     }
 
@@ -663,6 +827,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       evaluation: onboardingState.evaluation,
+      service: createdService,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro inesperado ao salvar esta etapa.'

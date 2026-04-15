@@ -68,6 +68,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Encoding check
+        run: npm run check:encoding
+
       - name: Build
         run: npm run build
 

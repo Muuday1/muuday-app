@@ -613,13 +613,24 @@ export default function AdminPage() {
                       onClick={() => setExpandedId(isExpanded ? null : pro.id)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm">
-                          {pro.profiles?.full_name?.charAt(0) || '?'}
-                        </div>
+                        {pro.profiles?.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={pro.profiles.avatar_url}
+                            alt={`Foto de ${pro.profiles?.full_name || 'profissional'}`}
+                            className="h-10 w-10 rounded-full border border-neutral-200 object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm">
+                            {pro.profiles?.full_name?.charAt(0) || '?'}
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-neutral-900">{pro.profiles?.full_name}</p>
                           <p className="text-sm text-neutral-500">
-                            {getPrimarySpecialty(pro)} • {pro.profiles?.email}
+                            {getPrimarySpecialty(pro)} •{' '}
+                            {getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Preço não definido'} •{' '}
+                            {pro.profiles?.email}
                           </p>
                         </div>
                       </div>
@@ -652,8 +663,10 @@ export default function AdminPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Preço</p>
-                                <p className="text-sm font-semibold text-neutral-900">R$ {pro.session_price_brl}</p>
+                                <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Preço base</p>
+                                <p className="text-sm font-semibold text-neutral-900">
+                                  {getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Não definido'}
+                                </p>
                               </div>
                               <div>
                                 <p className="text-xs font-medium text-neutral-400 uppercase mb-1">Duração</p>

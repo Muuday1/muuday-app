@@ -35,7 +35,7 @@ export default async function AdminReviewProfessionalPage({
   const { data: professional } = await supabase
     .from('professionals')
     .select(
-      'id,user_id,status,tier,category,subcategories,tags,bio,whatsapp_number,cover_photo_url,video_intro_url,social_links,admin_review_notes,created_at,profiles!professionals_user_id_fkey(full_name,email,country,timezone)',
+      'id,user_id,status,tier,category,subcategories,tags,bio,session_price_brl,whatsapp_number,cover_photo_url,video_intro_url,social_links,admin_review_notes,created_at,profiles!professionals_user_id_fkey(full_name,email,country,timezone,avatar_url)',
     )
     .eq('id', params.professionalId)
     .maybeSingle()
@@ -72,6 +72,11 @@ export default async function AdminReviewProfessionalPage({
   const result = parseResultMessage(searchParams?.result)
   const owner = Array.isArray(professional.profiles) ? professional.profiles[0] : professional.profiles
   const semiAuto = buildProfessionalCredentialFlags({ application, credentials })
+  const activeServicePrices = (services || [])
+    .filter(service => Boolean(service.is_active) && Number(service.price_brl || 0) > 0)
+    .map(service => Number(service.price_brl || 0))
+  const minServicePrice = activeServicePrices.length > 0 ? Math.min(...activeServicePrices) : 0
+  const visibleBasePrice = minServicePrice > 0 ? minServicePrice : Number(professional.session_price_brl || 0)
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
@@ -105,9 +110,28 @@ export default async function AdminReviewProfessionalPage({
               <CircleAlert className="h-4 w-4 text-brand-500" />
               <h2 className="font-semibold text-neutral-900">Resumo</h2>
             </div>
-            <p className="text-sm text-neutral-700">
-              <strong>{owner?.full_name || 'Profissional'}</strong> • {owner?.email || '-'}
-            </p>
+            <div className="flex items-center gap-3">
+              {owner?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={owner.avatar_url}
+                  alt={`Foto de ${owner?.full_name || 'profissional'}`}
+                  className="h-12 w-12 rounded-full border border-neutral-200 object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-base font-semibold text-brand-700">
+                  {(owner?.full_name || 'P').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-neutral-700">
+                  <strong>{owner?.full_name || 'Profissional'}</strong> • {owner?.email || '-'}
+                </p>
+                <p className="text-xs text-neutral-500">
+                  Preço base: {visibleBasePrice > 0 ? `R$ ${visibleBasePrice.toFixed(2)}` : 'Não definido'}
+                </p>
+              </div>
+            </div>
             <p className="mt-1 text-sm text-neutral-600">
               Status atual: <strong>{String(professional.status || 'draft')}</strong> • Tier selecionado:{' '}
               <strong>{String(professional.tier || 'basic')}</strong>

@@ -142,6 +142,14 @@ const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number], string
   c8_submit_review: ['c8_submit_review'],
 }
 
+const ACTIONABLE_ADJUSTMENT_STAGE_IDS = new Set<string>([
+  'c2_professional_identity',
+  'c4_services',
+  'c5_availability_calendar',
+  'c6_plan_billing_setup_post',
+  'c8_submit_review',
+])
+
 const TERMS_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as ProfessionalTermKey[]
 
 const PLAN_PRICE_BASE_BRL: Record<PlanTier, number> = {
@@ -805,7 +813,12 @@ export function OnboardingTrackerModal({
   const trackerIsReadOnly = trackerViewMode === 'submitted_waiting' || trackerViewMode === 'approved'
   const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
   const openReviewAdjustments = useMemo(
-    () => reviewAdjustments.filter(item => item.status === 'open' || item.status === 'reopened'),
+    () =>
+      reviewAdjustments.filter(
+        item =>
+          (item.status === 'open' || item.status === 'reopened') &&
+          ACTIONABLE_ADJUSTMENT_STAGE_IDS.has(String(item.stageId || '')),
+      ),
     [reviewAdjustments],
   )
   const trackerAdjustmentMode = trackerNeedsAdjustments && openReviewAdjustments.length > 0

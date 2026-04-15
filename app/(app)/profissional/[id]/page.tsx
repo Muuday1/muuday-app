@@ -616,7 +616,7 @@ export default async function ProfissionalPage({
                             : 'border-blue-200 bg-blue-50 text-blue-700'
                         }`}
                       >
-                        {professional.tier === 'premium' ? 'â­ Premium' : 'âœ“ Profissional'}
+                        {professional.tier === 'premium' ? '⭐ Premium' : '✓ Profissional'}
                       </span>
                     ) : null}
 
