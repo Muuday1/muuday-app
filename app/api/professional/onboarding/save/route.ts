@@ -249,6 +249,15 @@ export async function POST(request: Request) {
         .upsert(appPayload, { onConflict: 'user_id' })
 
       if (appError) {
+        console.error('[onboarding/save][identity] professional_applications upsert failed', {
+          professionalId,
+          userId,
+          code: appError.code,
+          message: appError.message,
+          details: appError.details,
+          hint: appError.hint,
+        })
+
         if (isPermissionError(appError)) {
           // In environments without service-role key, RLS may block application upsert.
           // Keep identity save successful and rely on professional/profile fallbacks.
