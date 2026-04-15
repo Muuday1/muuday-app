@@ -21,33 +21,6 @@ function getStorageUploadErrorMessage(error: { message?: string; details?: strin
   return `Falha no upload: ${String(error?.message || 'erro desconhecido')}`
 }
 
-async function ensureProfileMediaBucket(admin: NonNullable<ReturnType<typeof createAdminClient>>) {
-  const { data: bucket } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
-  if (bucket) {
-    if (!bucket.public) {
-      const { error: updateError } = await admin.storage.updateBucket(PROFILE_MEDIA_BUCKET, {
-        public: true,
-        fileSizeLimit: String(MAX_FILE_SIZE_BYTES),
-        allowedMimeTypes: Array.from(ALLOWED_TYPES),
-      })
-      if (updateError) {
-        throw updateError
-      }
-    }
-    return
-  }
-
-  const { error } = await admin.storage.createBucket(PROFILE_MEDIA_BUCKET, {
-    public: true,
-    fileSizeLimit: String(MAX_FILE_SIZE_BYTES),
-    allowedMimeTypes: Array.from(ALLOWED_TYPES),
-  })
-
-  if (error && !String(error.message || '').toLowerCase().includes('already')) {
-    throw error
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = createClient()
@@ -93,11 +66,10 @@ export async function POST(request: Request) {
     const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
     const admin = createAdminClient()
     if (admin) {
-      try {
-        await ensureProfileMediaBucket(admin)
-      } catch {
+      const { data: bucket, error: bucketError } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
+      if (bucketError || !bucket) {
         return NextResponse.json(
-          { error: 'Nao foi possivel validar bucket de fotos no momento. Tente novamente em instantes.' },
+          { error: 'Bucket professional-profile-media não encontrado ou inacessível.' },
           { status: 503 },
         )
       }

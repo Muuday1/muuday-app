@@ -126,8 +126,10 @@ export async function POST(request: NextRequest) {
       .eq('professional_id', professional.id)
       .maybeSingle()
     const financeBypass = Boolean((settings as { onboarding_finance_bypass?: boolean } | null)?.onboarding_finance_bypass)
+    const allowFallbackPlanSwitch =
+      financeBypass || String(process.env.PLAN_PRICING_ALLOW_FALLBACK || '').toLowerCase() === 'true'
 
-    if (financeBypass) {
+    if (allowFallbackPlanSwitch) {
       await supabase
         .from('professionals')
         .update({ tier: parsed.data.tier, updated_at: new Date().toISOString() })

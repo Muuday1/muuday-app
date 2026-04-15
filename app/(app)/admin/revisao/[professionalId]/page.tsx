@@ -1,21 +1,11 @@
-export const metadata = { title: 'Revisão de profissional | Muuday' }
+﻿export const metadata = { title: 'Revisão de profissional | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { CheckCircle2, CircleAlert, Clock3, FileText, XCircle } from 'lucide-react'
+import { CircleAlert, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { adminReviewProfessionalDecision } from '@/lib/actions/admin'
 import { buildProfessionalCredentialFlags } from '@/lib/admin/professional-credential-checks'
-
-async function submitReviewDecision(formData: FormData) {
-  'use server'
-  const professionalId = String(formData.get('professionalId') || '')
-  const decision = String(formData.get('decision') || '') as 'approved' | 'rejected' | 'needs_changes'
-  const notes = String(formData.get('notes') || '')
-  const result = await adminReviewProfessionalDecision(professionalId, decision, notes)
-  const suffix = result.success ? 'success' : `error:${encodeURIComponent(result.error)}`
-  redirect(`/admin/revisao/${professionalId}?result=${suffix}`)
-}
+import { AdminReviewDecisionForm } from '@/components/admin/AdminReviewDecisionForm'
 
 function parseResultMessage(resultRaw?: string) {
   if (!resultRaw) return null
@@ -254,18 +244,18 @@ export default async function AdminReviewProfessionalPage({
           <div className="rounded-2xl border border-neutral-200 bg-white p-5">
             <div className="mb-3 flex items-center gap-2">
               <CircleAlert className="h-4 w-4 text-brand-500" />
-              <h2 className="font-semibold text-neutral-900">Analise semi-automatica (flags)</h2>
+              <h2 className="font-semibold text-neutral-900">Análise semi-automática (flags)</h2>
             </div>
             <p className="text-xs text-neutral-500">
-              Esta analise gera alertas para suporte da decisao do admin. Nao reprova automaticamente.
+              Esta análise gera alertas para suporte da decisão do admin. Não reprova automaticamente.
             </p>
             <p className="mt-2 text-xs text-neutral-600">
-              Total: <strong>{semiAuto.summary.total}</strong> • Alto: <strong>{semiAuto.summary.high}</strong> • Medio:{' '}
+              Total: <strong>{semiAuto.summary.total}</strong> • Alto: <strong>{semiAuto.summary.high}</strong> • Médio:{' '}
               <strong>{semiAuto.summary.medium}</strong> • Baixo: <strong>{semiAuto.summary.low}</strong>
             </p>
             {semiAuto.flags.length === 0 ? (
               <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-                Nenhuma inconsistencia automatica encontrada nesta revisao.
+                Nenhuma inconsistência automática encontrada nesta revisão.
               </p>
             ) : (
               <ul className="mt-3 space-y-2">
@@ -291,52 +281,14 @@ export default async function AdminReviewProfessionalPage({
         <aside className="space-y-4">
           <div className="rounded-2xl border border-neutral-200 bg-white p-5">
             <h2 className="mb-3 font-semibold text-neutral-900">Decisão de revisão</h2>
-            <form action={submitReviewDecision} className="space-y-3">
-              <input type="hidden" name="professionalId" value={professional.id} />
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Notas para o profissional
-                </span>
-                <textarea
-                  name="notes"
-                  defaultValue={professional.admin_review_notes || ''}
-                  rows={6}
-                  maxLength={1200}
-                  className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
-                  placeholder="Descreva ajustes necessários (quando houver)."
-                />
-              </label>
-              <button
-                type="submit"
-                name="decision"
-                value="approved"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Aprovar
-              </button>
-              <button
-                type="submit"
-                name="decision"
-                value="needs_changes"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600"
-              >
-                <Clock3 className="h-4 w-4" />
-                Solicitar ajustes
-              </button>
-              <button
-                type="submit"
-                name="decision"
-                value="rejected"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
-              >
-                <XCircle className="h-4 w-4" />
-                Rejeitar
-              </button>
-            </form>
+            <AdminReviewDecisionForm
+              professionalId={professional.id}
+              defaultNotes={String(professional.admin_review_notes || '')}
+            />
           </div>
         </aside>
       </div>
     </div>
   )
 }
+

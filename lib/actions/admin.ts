@@ -10,6 +10,8 @@ import {
   sendProfileNeedsChangesEmail,
   sendProfileRejectedEmail,
 } from '@/lib/email/resend'
+import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
+import { REVIEW_ADJUSTMENT_STAGE_LABELS } from '@/lib/professional/review-adjustments'
 
 type AdminActionResult =
   | { success: true }
@@ -42,6 +44,17 @@ const adminProfessionalDecisionInputSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional invalido.'),
   decision: z.enum(['approved', 'rejected', 'needs_changes']),
   notes: z.string().trim().max(1200, 'Notas muito longas.').optional(),
+  adjustments: z
+    .array(
+      z.object({
+        stageId: z.string().min(1),
+        fieldKey: z.string().min(1),
+        message: z.string().trim().min(3).max(600),
+        severity: z.enum(['low', 'medium', 'high']),
+      }),
+    )
+    .max(40)
+    .optional(),
 })
 
 const adminToggleReviewVisibilityInputSchema = adminReviewActionInputSchema.extend({
@@ -333,11 +346,13 @@ export async function adminReviewProfessionalDecision(
   professionalId: string,
   decision: 'approved' | 'rejected' | 'needs_changes',
   notes?: string,
+  adjustments?: ReviewAdjustmentItemInput[],
 ): Promise<AdminActionResult> {
   const parsed = adminProfessionalDecisionInputSchema.safeParse({
     professionalId,
     decision,
     notes,
+    adjustments,
   })
   if (!parsed.success) {
     return { success: false, error: getFirstValidationError(parsed.error) }
@@ -358,6 +373,11 @@ export async function adminReviewProfessionalDecision(
       return { success: false, error: 'Profissional nao encontrado.' }
     }
 
+    const structuredAdjustments = parsed.data.adjustments || []
+    if (parsed.data.decision === 'needs_changes' && structuredAdjustments.length === 0) {
+      return { success: false, error: 'Selecione pelo menos um ajuste obrigatório para solicitar alterações.' }
+    }
+
     const targetStatus = parsed.data.decision
     const nowIso = new Date().toISOString()
     const { error: updateError } = await supabase
@@ -375,6 +395,48 @@ export async function adminReviewProfessionalDecision(
       return { success: false, error: updateError.message }
     }
 
+    if (targetStatus === 'needs_changes') {
+      await supabase
+        .from('professional_review_adjustments')
+        .update({
+          status: 'reopened',
+          resolved_at: null,
+          resolved_by: null,
+          resolution_note: 'new_adjustments_requested',
+        })
+        .eq('professional_id', parsed.data.professionalId)
+        .in('status', ['open', 'resolved_by_professional'])
+
+      const adjustmentsPayload = structuredAdjustments.map(item => ({
+        professional_id: parsed.data.professionalId,
+        stage_id: item.stageId,
+        field_key: item.fieldKey,
+        message: item.message,
+        severity: item.severity,
+        status: 'open',
+        created_by: userId,
+      }))
+
+      const { error: insertAdjustmentsError } = await supabase
+        .from('professional_review_adjustments')
+        .insert(adjustmentsPayload)
+
+      if (insertAdjustmentsError) {
+        return { success: false, error: 'Não foi possível registrar os ajustes estruturados.' }
+      }
+    } else {
+      await supabase
+        .from('professional_review_adjustments')
+        .update({
+          status: 'resolved_by_admin',
+          resolved_at: nowIso,
+          resolved_by: userId,
+          resolution_note: targetStatus === 'approved' ? 'approved' : 'closed_by_rejection',
+        })
+        .eq('professional_id', parsed.data.professionalId)
+        .in('status', ['open', 'reopened', 'resolved_by_professional'])
+    }
+
     const { data: professionalOwner } = await supabase
       .from('profiles')
       .select('email,full_name')
@@ -389,10 +451,24 @@ export async function adminReviewProfessionalDecision(
             professionalOwner.full_name || 'Profissional',
           )
         } else if (targetStatus === 'needs_changes') {
+          const structuredMessage =
+            structuredAdjustments.length > 0
+              ? structuredAdjustments
+                  .map(item => {
+                    const stageLabel =
+                      REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] ||
+                      item.stageId
+                    return `• ${stageLabel} (${item.fieldKey}): ${item.message}`
+                  })
+                  .join('\n')
+              : ''
           await sendProfileNeedsChangesEmail(
             professionalOwner.email,
             professionalOwner.full_name || 'Profissional',
-            parsed.data.notes || 'Revise os dados enviados e atualize seu perfil.',
+            [parsed.data.notes || '', structuredMessage]
+              .map(item => item.trim())
+              .filter(Boolean)
+              .join('\n\n') || 'Revise os dados enviados e atualize seu perfil.',
           )
         } else {
           await sendProfileRejectedEmail(

@@ -57,6 +57,7 @@ type AdminProfessional = {
     email: string
     country: string
     timezone: string
+    avatar_url?: string | null
   }
 }
 
@@ -98,6 +99,7 @@ export default function AdminPage() {
   const [professionals, setProfessionals] = useState<AdminProfessional[]>([])
   const [professionalSpecialties, setProfessionalSpecialties] = useState<Record<string, string[]>>({})
   const [professionalCredentialCounts, setProfessionalCredentialCounts] = useState<Record<string, number>>({})
+  const [professionalMinServicePrice, setProfessionalMinServicePrice] = useState<Record<string, number>>({})
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -167,6 +169,7 @@ export default function AdminPage() {
       if (professionalIds.length === 0) {
         setProfessionalSpecialties({})
         setProfessionalCredentialCounts({})
+        setProfessionalMinServicePrice({})
       } else {
         const { data: credentialRows } = await supabase
           .from('professional_credentials')
@@ -181,6 +184,24 @@ export default function AdminPage() {
         }, {} as Record<string, number>)
 
         setProfessionalCredentialCounts(credentialCountMap)
+
+        const { data: serviceRows } = await supabase
+          .from('professional_services')
+          .select('professional_id,price_brl,is_active')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true)
+
+        const minPriceMap = (serviceRows || []).reduce((acc, row: any) => {
+          const professionalId = String(row.professional_id || '').trim()
+          const price = Number(row.price_brl || 0)
+          if (!professionalId || !Number.isFinite(price) || price <= 0) return acc
+          if (!(professionalId in acc) || price < acc[professionalId]!) {
+            acc[professionalId] = price
+          }
+          return acc
+        }, {} as Record<string, number>)
+
+        setProfessionalMinServicePrice(minPriceMap)
 
         const { data: linkRows } = await supabase
           .from('professional_specialties')
@@ -381,6 +402,14 @@ export default function AdminPage() {
     return CATEGORIES.find(category => category.slug === professional.category)?.name || professional.category
   }
 
+  const getVisibleBasePrice = (professional: AdminProfessional) => {
+    const byService = professionalMinServicePrice[professional.id]
+    if (Number.isFinite(byService) && byService > 0) return byService
+    const fallback = Number(professional.session_price_brl || 0)
+    if (Number.isFinite(fallback) && fallback > 0) return fallback
+    return 0
+  }
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'overview', label: 'Visão geral', icon: <TrendingUp className="w-4 h-4" /> },
     { id: 'professionals', label: 'Profissionais', icon: <Users className="w-4 h-4" />, badge: stats?.pendingProfessionals },
@@ -499,12 +528,23 @@ export default function AdminPage() {
             {professionals.slice(0, 5).map(pro => (
               <div key={pro.id} className="flex items-center justify-between py-3 border-b border-neutral-50 last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
-                    {pro.profiles?.full_name?.charAt(0) || '?'}
-                  </div>
+                  {pro.profiles?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={pro.profiles.avatar_url}
+                      alt={`Foto de ${pro.profiles?.full_name || 'profissional'}`}
+                      className="h-8 w-8 rounded-full border border-neutral-200 object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
+                      {pro.profiles?.full_name?.charAt(0) || '?'}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-medium text-neutral-900">{pro.profiles?.full_name}</p>
-                    <p className="text-xs text-neutral-400">{getPrimarySpecialty(pro)}</p>
+                    <p className="text-xs text-neutral-400">
+                      {getPrimarySpecialty(pro)} · {getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Preço não definido'}
+                    </p>
                   </div>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[pro.status]}`}>

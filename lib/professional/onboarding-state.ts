@@ -1,5 +1,6 @@
-﻿import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { PROFESSIONAL_REQUIRED_TERMS, PROFESSIONAL_TERMS_VERSION } from '@/lib/legal/professional-terms'
 import {
   evaluateOnboardingGates,
   firstBookingGateErrorMessage,
@@ -200,6 +201,26 @@ export async function loadProfessionalOnboardingState(
     ),
   }
 
+  const { data: acceptedTermsRows } = await supabase
+    .from('professional_term_acceptances')
+    .select('term_key,accepted_at')
+    .eq('professional_id', professionalId)
+    .eq('term_version', PROFESSIONAL_TERMS_VERSION)
+
+  const acceptedTermsByKey = new Set(
+    (acceptedTermsRows || []).map(row => String(row.term_key || '')).filter(Boolean),
+  )
+  const hasAcceptedCurrentTerms = PROFESSIONAL_REQUIRED_TERMS.every(key => acceptedTermsByKey.has(key))
+  if (hasAcceptedCurrentTerms) {
+    const latestAcceptedAt = (acceptedTermsRows || [])
+      .map(row => String(row.accepted_at || '').trim())
+      .filter(Boolean)
+      .sort((a, b) => b.localeCompare(a))[0]
+    snapshot.settings.termsAcceptedAt =
+      snapshot.settings.termsAcceptedAt || latestAcceptedAt || new Date().toISOString()
+    snapshot.settings.termsVersion = PROFESSIONAL_TERMS_VERSION
+  }
+
   if (!snapshot.account.timezone && normalizedSettings.timezone) {
     snapshot.account.timezone = normalizedSettings.timezone
   }
@@ -310,4 +331,5 @@ export async function evaluateFirstBookingEligibility(
     evaluation: onboardingState.evaluation,
   }
 }
+
 

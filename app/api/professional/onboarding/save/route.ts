@@ -6,6 +6,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
+import { SECTION_TO_REVIEW_FIELD_KEYS, SECTION_TO_REVIEW_STAGES } from '@/lib/professional/review-adjustments'
 
 const qualificationFileSchema = z.object({
   id: z.string(),
@@ -241,7 +242,9 @@ export async function POST(request: Request) {
     const minNoticeRange = tierConfig.minNoticeRange
     const maxBufferForTier = tierConfig.bufferConfig.maxMinutes
 
-    if (payload.data.section === 'identity') {
+    const savedSection = payload.data.section
+
+    if (savedSection === 'identity') {
       const effectiveDisplayName = String(payload.data.displayName || profile?.full_name || '').trim()
       if (!effectiveDisplayName) {
         return NextResponse.json({ error: 'Informe o nome publico profissional para continuar.' }, { status: 400 })
@@ -400,7 +403,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (payload.data.section === 'public_profile') {
+    if (savedSection === 'public_profile') {
       const { error: professionalError } = await db
         .from('professionals')
         .update({
@@ -425,7 +428,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (payload.data.section === 'service') {
+    if (savedSection === 'service') {
       const { count: activeServicesCount } = await db
         .from('professional_services')
         .select('id', { count: 'exact', head: true })
@@ -474,7 +477,7 @@ export async function POST(request: Request) {
       })
     }
 
-    if (payload.data.section === 'availability') {
+    if (savedSection === 'availability') {
       const invalidRange = Object.values(payload.data.availabilityMap).some(
         day => day.is_available && day.start_time >= day.end_time,
       )
@@ -603,6 +606,23 @@ export async function POST(request: Request) {
           { status: 500 },
         )
       }
+    }
+
+    const stageIdsForSection = SECTION_TO_REVIEW_STAGES[savedSection] || []
+    const fieldKeysForSection = SECTION_TO_REVIEW_FIELD_KEYS[savedSection] || []
+    if (stageIdsForSection.length > 0 && fieldKeysForSection.length > 0) {
+      await db
+        .from('professional_review_adjustments')
+        .update({
+          status: 'resolved_by_professional',
+          resolved_at: new Date().toISOString(),
+          resolved_by: user.id,
+          resolution_note: `resolved_by_section:${savedSection}`,
+        })
+        .eq('professional_id', professionalId)
+        .in('stage_id', stageIdsForSection)
+        .in('field_key', fieldKeysForSection)
+        .in('status', ['open', 'reopened'])
     }
 
     await recomputeProfessionalVisibility(db, professionalId)

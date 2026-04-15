@@ -66,7 +66,7 @@ export async function GET() {
     supabase.from('profiles').select('role,country,currency').eq('id', user.id).maybeSingle(),
     supabase
       .from('professionals')
-      .select('tier,platform_region')
+      .select('id,tier,platform_region')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
       .limit(1)
@@ -87,6 +87,14 @@ export async function GET() {
   }
 
   const tier = readTier(professional.tier)
+  const { data: settings } = await supabase
+    .from('professional_settings')
+    .select('onboarding_finance_bypass')
+    .eq('professional_id', professional.id)
+    .maybeSingle()
+  const allowFallbackPricing =
+    Boolean((settings as { onboarding_finance_bypass?: boolean } | null)?.onboarding_finance_bypass) ||
+    String(process.env.PLAN_PRICING_ALLOW_FALLBACK || '').toLowerCase() === 'true'
   const monthlyKey = PRICE_ENV_KEYS[region][tier].monthly
   const annualKey = PRICE_ENV_KEYS[region][tier].annual
   const monthlyPriceId = process.env[monthlyKey]
@@ -99,15 +107,19 @@ export async function GET() {
       monthlyConfigured: Boolean(monthlyPriceId),
       annualConfigured: Boolean(annualPriceId),
     })
+    if (!allowFallbackPricing) {
+      return NextResponse.json({ error: 'Preco de plano nao configurado no momento.' }, { status: 503 })
+    }
     const fallbackMonthly = PLAN_PRICE_BASE_MINOR_BRL[tier]
     return NextResponse.json({
-      provider: 'fallback-local',
+      provider: 'fallback-test',
       currency: String(profile?.currency || (region === 'uk' ? 'GBP' : 'BRL')).toUpperCase(),
       monthlyAmount: fallbackMonthly,
       annualAmount: fallbackMonthly * 10,
       tier,
       region,
       fallback: true,
+      mode: 'test',
     })
   }
 

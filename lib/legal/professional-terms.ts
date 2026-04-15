@@ -197,3 +197,17 @@ export const PROFESSIONAL_TERMS: ProfessionalTerm[] = [
 ]
 
 export const PROFESSIONAL_TERMS_VERSION = '2026-04-v3'
+
+export const PROFESSIONAL_REQUIRED_TERMS = PROFESSIONAL_TERMS.map(term => term.key)
+
+export function getProfessionalTermTextHash(termKey: ProfessionalTermKey) {
+  const term = PROFESSIONAL_TERMS.find(item => item.key === termKey)
+  if (!term) return ''
+  const payload = JSON.stringify({
+    key: term.key,
+    title: term.title,
+    sections: term.sections,
+  })
+  return createHash('sha256').update(payload).digest('hex')
+}
+import { createHash } from 'crypto'

@@ -8,6 +8,10 @@ import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } fro
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
+  REVIEW_ADJUSTMENT_STAGE_LABELS,
+  type ReviewAdjustmentItem,
+} from '@/lib/professional/review-adjustments'
+import {
   PROFESSIONAL_TERMS,
   PROFESSIONAL_TERMS_VERSION,
   type ProfessionalTermKey,
@@ -659,6 +663,9 @@ export function OnboardingTrackerModal({
     ),
   )
   const [activeTermsModalKey, setActiveTermsModalKey] = useState<ProfessionalTermKey | null>(null)
+  const [termViewTokensByKey, setTermViewTokensByKey] = useState<
+    Partial<Record<ProfessionalTermKey, string>>
+  >({})
   const [termsModalScrolledToEnd, setTermsModalScrolledToEnd] = useState(false)
   const [submitTermsError, setSubmitTermsError] = useState('')
   const dragStateRef = useRef<{ startX: number; startY: number; startFocusX: number; startFocusY: number } | null>(null)
@@ -728,6 +735,7 @@ export function OnboardingTrackerModal({
   const [allowMultiSession, setAllowMultiSession] = useState(true)
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
+  const [reviewAdjustments, setReviewAdjustments] = useState<ReviewAdjustmentItem[]>([])
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
@@ -761,6 +769,18 @@ export function OnboardingTrackerModal({
   )
   const trackerIsReadOnly = trackerViewMode === 'submitted_waiting' || trackerViewMode === 'approved'
   const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
+  const openReviewAdjustments = useMemo(
+    () => reviewAdjustments.filter(item => item.status === 'open' || item.status === 'reopened'),
+    [reviewAdjustments],
+  )
+  const trackerAdjustmentMode = trackerNeedsAdjustments && openReviewAdjustments.length > 0
+  const editableStageIds = useMemo(() => {
+    const set = new Set<string>()
+    openReviewAdjustments.forEach(item => set.add(String(item.stageId || '')))
+    set.add('c8_submit_review')
+    return set
+  }, [openReviewAdjustments])
+  const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
   const minNoticeRange = tierConfig.minNoticeRange
@@ -775,9 +795,22 @@ export function OnboardingTrackerModal({
     const json = (await response.json().catch(() => ({}))) as {
       evaluation?: ProfessionalOnboardingEvaluation
       professionalStatus?: string
+      reviewAdjustments?: ReviewAdjustmentItem[]
+      termsAcceptanceByKey?: Record<string, boolean>
     }
     if (!response.ok || !json.evaluation) return
     setCurrentEvaluation(json.evaluation)
+    if (Array.isArray(json.reviewAdjustments)) {
+      setReviewAdjustments(json.reviewAdjustments)
+    }
+    if (json.termsAcceptanceByKey && typeof json.termsAcceptanceByKey === 'object') {
+      setHasAcceptedTerms(
+        TERMS_KEYS.reduce(
+          (acc, key) => ({ ...acc, [key]: Boolean(json.termsAcceptanceByKey?.[key]) }),
+          {} as Record<ProfessionalTermKey, boolean>,
+        ),
+      )
+    }
     if (typeof json.professionalStatus === 'string') {
       setCurrentProfessionalStatus(json.professionalStatus)
       onTrackerStateChange?.({
@@ -798,8 +831,13 @@ export function OnboardingTrackerModal({
       setActiveStageId('c8_submit_review')
       return
     }
+    if (trackerAdjustmentMode) {
+      const firstAdjustmentStage = UI_STAGE_ORDER.find(stageId => editableStageIds.has(stageId))
+      setActiveStageId(firstAdjustmentStage || 'c8_submit_review')
+      return
+    }
     setActiveStageId(firstPendingStageId)
-  }, [open, firstPendingStageId, trackerIsReadOnly])
+  }, [open, firstPendingStageId, trackerIsReadOnly, trackerAdjustmentMode, editableStageIds])
 
   useEffect(() => {
     setCurrentEvaluation(onboardingEvaluation)
@@ -842,6 +880,7 @@ export function OnboardingTrackerModal({
     let mounted = true
     async function loadModalContext() {
       setLoadingContext(true)
+      try {
 
       const [
         { data: professional },
@@ -1099,18 +1138,6 @@ export function OnboardingTrackerModal({
         }
 
         setIdentityQualifications(Array.from(qualificationMap.values()))
-        const existingTermsAccepted = Boolean(
-          settingsRow &&
-            (settingsRow as Record<string, unknown>).terms_accepted_at &&
-            String((settingsRow as Record<string, unknown>).terms_version || '') ===
-              PROFESSIONAL_TERMS_VERSION,
-        )
-        setHasAcceptedTerms(
-          TERMS_KEYS.reduce(
-            (acc, key) => ({ ...acc, [key]: existingTermsAccepted }),
-            {} as Record<ProfessionalTermKey, boolean>,
-          ),
-        )
       }
 
       const pricingResponse = await fetch('/api/professional/plan-pricing', {
@@ -1134,12 +1161,21 @@ export function OnboardingTrackerModal({
         }
       }
 
-      if (mounted) {
-        setLoadingContext(false)
-      }
-
-      if (mounted) {
-        await refreshTrackerEvaluation()
+        if (mounted) {
+          await refreshTrackerEvaluation()
+        }
+      } catch (error) {
+        if (mounted) {
+          setAvailabilityError(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível carregar todos os dados do tracker.',
+          )
+        }
+      } finally {
+        if (mounted) {
+          setLoadingContext(false)
+        }
       }
     }
 
@@ -1193,17 +1229,27 @@ export function OnboardingTrackerModal({
         .filter(Boolean) as Stage[]
 
       const completeFromBackend = backendStages.length > 0 && backendStages.every(stage => stage.complete)
-      const complete = completeFromBackend || manualCompletedStageIds.includes(id)
+      const hasOpenAdjustment = openReviewAdjustments.some(adjustment => adjustment.stageId === id)
+      const complete = (completeFromBackend || manualCompletedStageIds.includes(id)) && !hasOpenAdjustment
       const firstBlockedStage = backendStages.find(stage => !stage.complete)
+      const firstAdjustment = openReviewAdjustments.find(adjustment => adjustment.stageId === id)
 
       return {
         id,
         label: UI_STAGE_LABELS[id],
         complete,
-        blocker: complete ? null : firstBlockedStage?.blockers[0] || null,
+        blocker: complete
+          ? null
+          : hasOpenAdjustment
+            ? {
+                code: `adjustment:${firstAdjustment?.fieldKey || 'item'}`,
+                title: 'Ajuste solicitado',
+                description: firstAdjustment?.message || 'Existe um ajuste pendente nesta etapa.',
+              }
+            : firstBlockedStage?.blockers[0] || null,
       }
     })
-  }, [stagesById, manualCompletedStageIds])
+  }, [stagesById, manualCompletedStageIds, openReviewAdjustments])
 
   const stageCompletionSummary = useMemo(() => {
     const rows = stageItems.map(item => item.complete)
@@ -1452,16 +1498,62 @@ export function OnboardingTrackerModal({
     dragStateRef.current = null
   }
 
-  function openTerm(termKey: ProfessionalTermKey) {
-    setActiveTermsModalKey(termKey)
-    setTermsModalScrolledToEnd(false)
+  async function openTerm(termKey: ProfessionalTermKey) {
+    setSubmitTermsError('')
+    try {
+      const response = await fetch('/api/professional/onboarding/open-term', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ termKey }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as {
+        ok?: boolean
+        token?: string
+        error?: string
+      }
+      if (!response.ok || !payload.ok || !payload.token) {
+        setSubmitTermsError(payload.error || 'Não foi possível abrir este termo agora.')
+        return
+      }
+
+      setTermViewTokensByKey(previous => ({ ...previous, [termKey]: payload.token }))
+      setActiveTermsModalKey(termKey)
+      setTermsModalScrolledToEnd(false)
+    } catch (error) {
+      setSubmitTermsError(error instanceof Error ? error.message : 'Não foi possível abrir este termo agora.')
+    }
   }
 
-  function acceptActiveTerm() {
+  async function acceptActiveTerm() {
     if (!activeTerm || !termsModalScrolledToEnd) return
-    setHasAcceptedTerms(previous => ({ ...previous, [activeTerm.key]: true }))
-    setActiveTermsModalKey(null)
-    setTermsModalScrolledToEnd(false)
+    const termViewToken = termViewTokensByKey[activeTerm.key]
+    if (!termViewToken) {
+      setSubmitTermsError('Abra novamente o termo antes de aceitar.')
+      return
+    }
+    setSubmitTermsError('')
+    try {
+      const response = await fetch('/api/professional/onboarding/accept-term', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ termKey: activeTerm.key, termViewToken }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      if (!response.ok || !payload.ok) {
+        setSubmitTermsError(payload.error || 'Não foi possível registrar o aceite deste termo.')
+        return
+      }
+      setHasAcceptedTerms(previous => ({ ...previous, [activeTerm.key]: true }))
+      setTermViewTokensByKey(previous => ({ ...previous, [activeTerm.key]: '' }))
+      setActiveTermsModalKey(null)
+      setTermsModalScrolledToEnd(false)
+    } catch (error) {
+      setSubmitTermsError(
+        error instanceof Error ? error.message : 'Não foi possível registrar o aceite deste termo.',
+      )
+    }
   }
 
   function allRequiredTermsAccepted() {
@@ -1861,11 +1953,20 @@ export function OnboardingTrackerModal({
       return
     }
 
+    if (openReviewAdjustments.length > 0) {
+      setSubmitReviewState('error')
+      setSubmitReviewMessage('Resolva todos os ajustes solicitados antes de reenviar para análise.')
+      return
+    }
+
     const response = await fetch('/api/professional/onboarding/submit-review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ acceptedTerms: true, termsVersion: PROFESSIONAL_TERMS_VERSION }),
+      body: JSON.stringify({
+        acceptedTerms: true,
+        termsVersion: PROFESSIONAL_TERMS_VERSION,
+      }),
     })
     const payload = (await response.json().catch(() => ({}))) as {
       ok?: boolean
@@ -1952,16 +2053,17 @@ export function OnboardingTrackerModal({
                       type="button"
                       onClick={() => {
                         if (trackerIsReadOnly) return
+                        if (trackerAdjustmentMode && !editableStageIds.has(item.id)) return
                         setActiveStageId(item.id)
                       }}
-                      disabled={trackerIsReadOnly}
+                      disabled={trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id))}
                       className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                         isActive
                           ? 'border-brand-300 bg-brand-50 text-brand-800'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900'
-                      } ${trackerIsReadOnly ? 'cursor-not-allowed opacity-70' : ''}`}
+                      } ${trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id)) ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                       {item.label}
                     </button>
@@ -1978,16 +2080,17 @@ export function OnboardingTrackerModal({
                       type="button"
                       onClick={() => {
                         if (trackerIsReadOnly) return
+                        if (trackerAdjustmentMode && !editableStageIds.has(item.id)) return
                         setActiveStageId(item.id)
                       }}
-                      disabled={trackerIsReadOnly}
+                      disabled={trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id))}
                       className={`w-full rounded-xl border px-3 py-3 text-left transition ${
                         isActive
                           ? 'border-brand-300 bg-brand-50 text-brand-800 shadow-sm'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100/60'
-                      } ${trackerIsReadOnly ? 'cursor-not-allowed opacity-80' : ''}`}
+                      } ${trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id)) ? 'cursor-not-allowed opacity-80' : ''}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span
@@ -2054,6 +2157,18 @@ export function OnboardingTrackerModal({
                   <p className="mt-1 text-xs">
                     Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.
                   </p>
+                  {openReviewAdjustments.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-xs">
+                      {openReviewAdjustments.map(item => (
+                        <li key={item.id} className="rounded-md bg-white/70 px-2 py-1">
+                          <span className="font-semibold">
+                            {REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || item.stageId}
+                          </span>{' '}
+                          • {item.message}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -2078,6 +2193,10 @@ export function OnboardingTrackerModal({
                         : 'Nossa equipe está revisando suas informações. Verifique também spam e promoções para não perder o e-mail de atualização.'}
                     </p>
                   </div>
+                </div>
+              ) : !stageIsEditable ? (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+                  Esta etapa não possui ajustes pendentes nesta rodada. Foque apenas nas etapas destacadas e depois envie novamente.
                 </div>
               ) : (
                 <>
@@ -3272,55 +3391,70 @@ export function OnboardingTrackerModal({
                     </p>
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
-                    {stageItems.map(item => (
+                    {stageItems
+                      .filter(item => item.id !== 'c8_submit_review' && !item.complete)
+                      .map(item => (
                       <div
                         key={item.id}
-                        className={`rounded-xl border px-3 py-3 text-sm ${
-                          item.complete
-                            ? 'border-green-200 bg-green-50 text-green-800'
-                            : 'border-amber-200 bg-amber-50 text-amber-900'
-                        }`}
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900"
                       >
                         <p className="font-semibold">{item.label}</p>
-                        <p className="mt-1 text-xs">{item.complete ? 'Etapa concluída.' : item.blocker?.title || 'Ainda pendente.'}</p>
+                        <p className="mt-1 text-xs">{item.blocker?.title || 'Ainda pendente.'}</p>
                       </div>
                     ))}
                   </div>
+                  {stageItems.filter(item => item.id !== 'c8_submit_review' && !item.complete).length === 0 ? (
+                    <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+                      Não há pendências técnicas nas etapas anteriores.
+                    </p>
+                  ) : null}
                   <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    {(() => {
+                      const pendingTerms = PROFESSIONAL_TERMS.filter(term => !hasAcceptedTerms[term.key])
+                      return (
+                        <>
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <h4 className="text-sm font-semibold text-neutral-900">Termos obrigatórios</h4>
                         <p className="mt-1 text-xs text-neutral-600">
-                          Leia até o final e aceite cada termo antes de enviar.
+                          {pendingTerms.length > 0
+                            ? 'Leia até o final e aceite cada termo pendente antes de enviar.'
+                            : 'Todos os termos obrigatórios desta versão já foram aceitos.'}
                         </p>
                       </div>
                       <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
                         {Object.values(hasAcceptedTerms).filter(Boolean).length}/{TERMS_KEYS.length} aceitos
                       </span>
                     </div>
+                    {pendingTerms.length > 0 ? (
                     <div className="mt-3 space-y-2">
-                      {PROFESSIONAL_TERMS.map(term => (
+                      {pendingTerms.map(term => (
                         <div key={term.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold text-neutral-900">{term.shortLabel}</p>
                             <p className="mt-1 text-xs text-neutral-600">{term.acceptanceLabel}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasAcceptedTerms[term.key] ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>
-                              {hasAcceptedTerms[term.key] ? 'Aceito' : 'Pendente'}
-                            </span>
                             <button
                               type="button"
-                              onClick={() => openTerm(term.key)}
+                              onClick={() => void openTerm(term.key)}
                               className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
                             >
-                              {hasAcceptedTerms[term.key] ? 'Revisar termo' : 'Ler e aceitar'}
+                              Ler e aceitar
                               <ArrowRight className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
+                    ) : (
+                      <p className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+                        Termos em dia para esta versão.
+                      </p>
+                    )}
+                        </>
+                      )
+                    })()}
                   </div>
                   {(activeStage?.blockers || []).length > 0 ? (
                     <ul className="space-y-2">

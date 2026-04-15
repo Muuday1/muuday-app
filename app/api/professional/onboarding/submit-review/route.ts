@@ -3,7 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { submitProfessionalForReview } from '@/lib/professional/submit-review'
-import { PROFESSIONAL_TERMS_VERSION } from '@/lib/legal/professional-terms'
+import {
+  PROFESSIONAL_REQUIRED_TERMS,
+  PROFESSIONAL_TERMS_VERSION,
+} from '@/lib/legal/professional-terms'
 
 export async function POST(request: Request) {
   const supabase = createClient()
@@ -32,6 +35,22 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
   const db = admin ?? supabase
+  const { data: acceptedTermsRows, error: acceptedTermsError } = await db
+    .from('professional_term_acceptances')
+    .select('term_key')
+    .eq('professional_id', professional.id)
+    .eq('term_version', PROFESSIONAL_TERMS_VERSION)
+    .in('term_key', PROFESSIONAL_REQUIRED_TERMS)
+  if (acceptedTermsError) {
+    return NextResponse.json({ error: 'Não foi possível validar os termos aceitos.' }, { status: 500 })
+  }
+
+  const acceptedTerms = new Set((acceptedTermsRows || []).map(row => String(row.term_key || '')))
+  const missingTerm = PROFESSIONAL_REQUIRED_TERMS.find(term => !acceptedTerms.has(term))
+  if (missingTerm) {
+    return NextResponse.json({ error: 'Aceite todos os termos obrigatórios antes de enviar.' }, { status: 400 })
+  }
+
   const { error: termsError } = await db
     .from('professional_settings')
     .upsert(
