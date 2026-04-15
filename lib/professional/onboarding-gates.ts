@@ -114,6 +114,7 @@ export type ProfessionalOnboardingSnapshot = {
     termsVersion?: string | null
     bufferTimeMinutes?: number | null
     notificationPreferences?: { email: boolean; push: boolean; whatsapp: boolean } | null
+    onboardingFinanceBypass?: boolean | null
   }
   serviceCount: number
   hasServicePricingAndDuration: boolean
@@ -197,6 +198,7 @@ export function evaluateOnboardingGates(
   const billingCardOnFile = Boolean(snapshot.settings.billingCardOnFile)
   const payoutOnboardingStarted = Boolean(snapshot.settings.payoutOnboardingStarted)
   const payoutKycCompleted = Boolean(snapshot.settings.payoutKycCompleted)
+  const onboardingFinanceBypass = Boolean(snapshot.settings.onboardingFinanceBypass)
   const cancellationPolicyAccepted = Boolean(snapshot.settings.cancellationPolicyAccepted)
   const termsAccepted = hasText(snapshot.settings.termsAcceptedAt) || hasText(snapshot.settings.termsVersion)
   const categorySensitive = snapshot.sensitiveCategory || isSensitiveCategory(snapshot.professional.category)
@@ -609,7 +611,7 @@ export function evaluateOnboardingGates(
       actionHref: '/planos',
     })
   }
-  if (!fieldState.billing_card_for_professional_plan) {
+  if (!fieldState.billing_card_for_professional_plan && !onboardingFinanceBypass) {
     billingBlockers.push({
       code: 'missing_billing_card',
       title: 'Cartao nao configurado',
@@ -620,7 +622,7 @@ export function evaluateOnboardingGates(
   }
 
   const payoutSetupBlockers: OnboardingBlocker[] = []
-  if (!fieldState.payout_connected_account_minimum) {
+  if (!fieldState.payout_connected_account_minimum && !onboardingFinanceBypass) {
     payoutSetupBlockers.push({
       code: 'missing_payout_onboarding',
       title: 'Onboarding de payout pendente',
@@ -685,7 +687,7 @@ export function evaluateOnboardingGates(
 
   const firstBookingBlockers: OnboardingBlocker[] = []
   if (!canGoLive) firstBookingBlockers.push(...goLiveBlockers)
-  if (!fieldState.payout_connected_account_minimum) {
+  if (!fieldState.payout_connected_account_minimum && !onboardingFinanceBypass) {
     firstBookingBlockers.push({
       code: 'missing_payout_setup',
       title: 'Payout nao iniciado',
@@ -694,7 +696,7 @@ export function evaluateOnboardingGates(
       actionHref: '/configuracoes',
     })
   }
-  if (!fieldState.payout_kyc_complete) {
+  if (!fieldState.payout_kyc_complete && !onboardingFinanceBypass) {
     firstBookingBlockers.push({
       code: 'missing_payout_kyc',
       title: 'KYC de payout incompleto',
@@ -717,7 +719,7 @@ export function evaluateOnboardingGates(
 
   const payoutReceiptBlockers: OnboardingBlocker[] = []
   if (!canGoLive) payoutReceiptBlockers.push(...goLiveBlockers)
-  if (!fieldState.payout_connected_account_minimum) {
+  if (!fieldState.payout_connected_account_minimum && !onboardingFinanceBypass) {
     payoutReceiptBlockers.push({
       code: 'missing_payout_setup',
       title: 'Payout nao iniciado',
@@ -726,7 +728,7 @@ export function evaluateOnboardingGates(
       actionHref: '/configuracoes',
     })
   }
-  if (!fieldState.payout_kyc_complete) {
+  if (!fieldState.payout_kyc_complete && !onboardingFinanceBypass) {
     payoutReceiptBlockers.push({
       code: 'missing_payout_kyc',
       title: 'KYC de payout incompleto',

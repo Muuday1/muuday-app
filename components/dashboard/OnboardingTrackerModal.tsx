@@ -540,6 +540,8 @@ export function OnboardingTrackerModal({
   const [selectedPlanCycle, setSelectedPlanCycle] = useState<BillingCycle>('monthly')
   const [planActionState, setPlanActionState] = useState<SaveState>('idle')
   const [planActionError, setPlanActionError] = useState('')
+  const [isFinanceBypassEnabled, setIsFinanceBypassEnabled] = useState(false)
+  const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
     buildDefaultAvailabilityMap(),
@@ -645,7 +647,7 @@ export function OnboardingTrackerModal({
         supabase
           .from('professional_settings')
           .select(
-            'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version',
+            'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
           )
           .eq('professional_id', professionalId)
           .maybeSingle(),
@@ -696,6 +698,7 @@ export function OnboardingTrackerModal({
         setEnableRecurring(Boolean(settingsRow?.enable_recurring))
         setAllowMultiSession(Boolean(settingsRow?.allow_multi_session))
         setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
+        setIsFinanceBypassEnabled(Boolean(settingsRow?.onboarding_finance_bypass))
 
         const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
         for (const row of (ratesRows || []) as Array<Record<string, unknown>>) {
@@ -837,17 +840,18 @@ export function OnboardingTrackerModal({
         .map(stageId => stagesById.get(normalizeStageIdForLookup(stageId)))
         .filter(Boolean) as Stage[]
 
-      const complete = backendStages.length > 0 && backendStages.every(stage => stage.complete)
+      const completeFromBackend = backendStages.length > 0 && backendStages.every(stage => stage.complete)
+      const complete = completeFromBackend || manualCompletedStageIds.includes(id)
       const firstBlockedStage = backendStages.find(stage => !stage.complete)
 
       return {
         id,
         label: UI_STAGE_LABELS[id],
         complete,
-        blocker: firstBlockedStage?.blockers[0] || null,
+        blocker: complete ? null : firstBlockedStage?.blockers[0] || null,
       }
     })
-  }, [stagesById])
+  }, [stagesById, manualCompletedStageIds])
 
   const stageCompletionSummary = useMemo(() => {
     const rows = stageItems.map(item => item.complete)
@@ -1400,6 +1404,12 @@ export function OnboardingTrackerModal({
     try {
       if (selectedPlanTier === String(tier || '').toLowerCase()) {
         setPlanActionState('saved')
+        setManualCompletedStageIds(previous =>
+          previous.includes('c6_plan_billing_setup_post')
+            ? previous
+            : [...previous, 'c6_plan_billing_setup_post'],
+        )
+        setActiveStageId('c7_payout_receipt')
         setTimeout(() => setPlanActionState('idle'), 1800)
         return
       }
@@ -2706,10 +2716,24 @@ export function OnboardingTrackerModal({
               {activeStageId === 'c7_payout_receipt' ? (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <h3 className="text-base font-semibold text-neutral-900">Financeiro</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-semibold text-neutral-900">Financeiro</h3>
+                      {isFinanceBypassEnabled ? (
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                          Modo de teste ativo
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-1 text-sm text-neutral-700">
-                      Aqui você acompanha o cartão da assinatura e a prontidão de recebimentos. O checkout do plano e os detalhes financeiros continuam nas telas completas.
+                      {isFinanceBypassEnabled
+                        ? 'Esta etapa ficará para a ativação final. Para perfis de teste, você pode concluir o onboarding sem configurar recebimentos agora.'
+                        : 'Aqui você acompanha o cartão da assinatura e a prontidão de recebimentos. O checkout do plano e os detalhes financeiros continuam nas telas completas.'}
                     </p>
+                    {isFinanceBypassEnabled ? (
+                      <p className="mt-2 text-xs text-amber-700">
+                        Financeiro será concluído depois. Seu acesso atual está em modo de teste.
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-3">
@@ -2739,7 +2763,7 @@ export function OnboardingTrackerModal({
                     </div>
                   </div>
 
-                  {(activeStage?.blockers || []).length > 0 ? (
+                  {(activeStage?.blockers || []).length > 0 && !isFinanceBypassEnabled ? (
                     <ul className="space-y-2">
                       {(activeStage?.blockers || []).map(blocker => (
                         <li key={blocker.code} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -2866,48 +2890,6 @@ export function OnboardingTrackerModal({
                       <span className="text-xs text-amber-700">Se ainda houver pendências, o tracker vai indicar o que precisa ser ajustado.</span>
                     ) : null}
                   </div>
-                </div>
-              ) : !['c2_professional_identity', 'c4_services', 'c5_availability_calendar'].includes(activeStageId) ? (
-                <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                  <p className="text-sm text-neutral-700">
-                    Esta etapa ainda depende de itens pendentes. Revise os pontos abaixo para continuar no tracker.
-                  </p>
-                  <ul className="mt-3 space-y-2">
-                    {(activeStage?.blockers || []).map(blocker => (
-                      <li key={blocker.code} className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">
-                        <p className="font-semibold text-neutral-900">{blocker.title}</p>
-                        <p className="mt-1">{blocker.description}</p>
-                        {(() => {
-                          const cta = getBlockerCta(blocker)
-                          if (!cta) return null
-
-                          if (cta.kind === 'internal') {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => setActiveStageId(cta.stageId)}
-                                className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800"
-                              >
-                                {cta.label}
-                                <ArrowRight className="h-3 w-3" />
-                              </button>
-                            )
-                          }
-
-                          return (
-                            <Link
-                              href={cta.href}
-                              onClick={() => setOpen(false)}
-                              className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800"
-                            >
-                              {cta.label}
-                              <ArrowRight className="h-3 w-3" />
-                            </Link>
-                          )
-                        })()}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ) : null}
             </section>

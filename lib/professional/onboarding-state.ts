@@ -122,7 +122,7 @@ export async function loadProfessionalOnboardingState(
   const { data: settingsRow, error: settingsError } = await supabase
     .from('professional_settings')
     .select(
-      'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, cancellation_policy_accepted, require_session_purpose, billing_card_on_file, payout_onboarding_started, payout_kyc_completed, terms_accepted_at, terms_version, calendar_sync_provider, notification_email, notification_push, notification_whatsapp',
+      'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, cancellation_policy_accepted, require_session_purpose, billing_card_on_file, payout_onboarding_started, payout_kyc_completed, terms_accepted_at, terms_version, calendar_sync_provider, notification_email, notification_push, notification_whatsapp, onboarding_finance_bypass',
     )
     .eq('professional_id', professionalId)
     .maybeSingle()
@@ -151,6 +151,9 @@ export async function loadProfessionalOnboardingState(
       push: Boolean(normalizedSettings.notificationPush),
       whatsapp: Boolean(normalizedSettings.notificationWhatsapp),
     },
+    onboardingFinanceBypass: Boolean(
+      (settingsRow as Record<string, unknown> | null)?.onboarding_finance_bypass,
+    ),
   }
 
   const { count: availabilityRulesCount } = await supabase
