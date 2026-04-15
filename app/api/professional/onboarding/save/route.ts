@@ -94,6 +94,63 @@ function isPermissionError(error: { message?: string; details?: string; code?: s
   return haystack.includes('42501') || haystack.includes('permission denied') || haystack.includes('row-level security')
 }
 
+function extractMissingColumnName(error: { message?: string; details?: string; code?: string } | null | undefined) {
+  if (!error) return null
+  const message = `${String(error.message || '')} ${String(error.details || '')}`
+  const match = message.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?[a-zA-Z0-9_]+"?\s+does\s+not\s+exist/i)
+  return match?.[1] ?? null
+}
+
+function isMissingOnConflictConstraint(error: { message?: string; details?: string; code?: string } | null | undefined) {
+  if (!error) return false
+  const haystack = `${String(error.code || '')} ${String(error.message || '')} ${String(error.details || '')}`.toLowerCase()
+  return haystack.includes('42p10') || haystack.includes('no unique or exclusion constraint matching')
+}
+
+async function upsertProfessionalApplicationWithFallback(
+  db: ReturnType<typeof createClient> | NonNullable<ReturnType<typeof createAdminClient>>,
+  payload: Record<string, unknown>,
+) {
+  let attemptPayload: Record<string, unknown> = { ...payload }
+  let lastError: { message?: string; details?: string; code?: string } | null = null
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { error } = await db.from('professional_applications').upsert(attemptPayload, { onConflict: 'user_id' })
+    if (!error) {
+      return { error: null }
+    }
+
+    lastError = error
+    const missingColumn = extractMissingColumnName(error)
+    if (missingColumn && Object.prototype.hasOwnProperty.call(attemptPayload, missingColumn)) {
+      const { [missingColumn]: _drop, ...nextPayload } = attemptPayload
+      attemptPayload = nextPayload
+      continue
+    }
+
+    if (isMissingOnConflictConstraint(error)) {
+      const { error: updateError } = await db
+        .from('professional_applications')
+        .update(attemptPayload)
+        .eq('user_id', String(payload.user_id || ''))
+      if (!updateError) {
+        return { error: null }
+      }
+
+      const { error: insertError } = await db.from('professional_applications').insert(attemptPayload)
+      if (!insertError) {
+        return { error: null }
+      }
+
+      return { error: insertError }
+    }
+
+    return { error }
+  }
+
+  return { error: lastError }
+}
+
 async function upsertProfessionalSettingsWithFallback(
   db: ReturnType<typeof createClient> | NonNullable<ReturnType<typeof createAdminClient>>,
   payload: {
@@ -191,7 +248,7 @@ export async function POST(request: Request) {
 
       const { data: previousProfessionalRow, error: previousProfessionalError } = await db
         .from('professionals')
-        .select('years_experience,focus_areas,languages')
+        .select('years_experience,focus_areas,languages,category')
         .eq('id', professionalId)
         .maybeSingle()
       if (previousProfessionalError) {
@@ -221,9 +278,24 @@ export async function POST(request: Request) {
         })
       }
 
+      const { data: existingApplication } = await db
+        .from('professional_applications')
+        .select('category')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      const applicationCategory = String(existingApplication?.category || previousProfessionalRow?.category || '').trim()
+      if (!applicationCategory) {
+        return NextResponse.json(
+          { error: 'Nao foi possivel identificar a categoria profissional. Atualize seu cadastro inicial e tente novamente.' },
+          { status: 400 },
+        )
+      }
+
       const appPayload = {
         user_id: userId,
         professional_id: professionalId,
+        category: applicationCategory,
         title: payload.data.title || null,
         display_name: effectiveDisplayName,
         years_experience: payload.data.yearsExperience,
@@ -244,9 +316,7 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       }
 
-      const { error: appError } = await db
-        .from('professional_applications')
-        .upsert(appPayload, { onConflict: 'user_id' })
+      const { error: appError } = await upsertProfessionalApplicationWithFallback(db, appPayload)
 
       if (appError) {
         console.error('[onboarding/save][identity] professional_applications upsert failed', {
@@ -255,7 +325,6 @@ export async function POST(request: Request) {
           code: appError.code,
           message: appError.message,
           details: appError.details,
-          hint: appError.hint,
         })
 
         if (isPermissionError(appError)) {
