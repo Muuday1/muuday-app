@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
-import { getBufferConfig, getMinNoticeRange, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
+import { getBufferConfig, getMinNoticeRange, getTierLimits } from '@/lib/tier-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
@@ -569,8 +569,8 @@ export function OnboardingTrackerModal({
   const [maxBookingWindowDays, setMaxBookingWindowDays] = useState(30)
   const [bufferMinutes, setBufferMinutes] = useState(15)
   const [confirmationMode, setConfirmationMode] = useState<'auto_accept' | 'manual'>('auto_accept')
-  const [enableRecurring, setEnableRecurring] = useState(false)
-  const [allowMultiSession, setAllowMultiSession] = useState(false)
+  const [enableRecurring, setEnableRecurring] = useState(true)
+  const [allowMultiSession, setAllowMultiSession] = useState(true)
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
@@ -594,13 +594,11 @@ export function OnboardingTrackerModal({
     return firstPending || 'c2_professional_identity'
   }, [stagesById])
 
-  const tierLimits = useMemo(() => getTierLimits(String(tier || 'basic').toLowerCase()), [tier])
-  const minNoticeRange = useMemo(() => getMinNoticeRange(String(tier || 'basic').toLowerCase()), [tier])
-  const bufferConfig = useMemo(() => getBufferConfig(String(tier || 'basic').toLowerCase()), [tier])
-  const canUseManualConfirmation = useMemo(
-    () => isFeatureAvailable(String(tier || 'basic').toLowerCase(), 'manual_accept'),
-    [tier],
-  )
+  const normalizedTier = useMemo(() => String(tier || 'basic').toLowerCase(), [tier])
+  const tierLimits = useMemo(() => getTierLimits(normalizedTier), [normalizedTier])
+  const minNoticeRange = useMemo(() => getMinNoticeRange(normalizedTier), [normalizedTier])
+  const bufferConfig = useMemo(() => getBufferConfig(normalizedTier), [normalizedTier])
+  const isBasicTier = normalizedTier === 'basic'
 
   useEffect(() => {
     if (!open) return
@@ -721,8 +719,12 @@ export function OnboardingTrackerModal({
         setConfirmationMode(
           String(settingsRow?.confirmation_mode || 'auto_accept') === 'manual' ? 'manual' : 'auto_accept',
         )
-        setEnableRecurring(Boolean(settingsRow?.enable_recurring))
-        setAllowMultiSession(Boolean(settingsRow?.allow_multi_session))
+        setEnableRecurring(
+          typeof settingsRow?.enable_recurring === 'boolean' ? Boolean(settingsRow.enable_recurring) : true,
+        )
+        setAllowMultiSession(
+          typeof settingsRow?.allow_multi_session === 'boolean' ? Boolean(settingsRow.allow_multi_session) : true,
+        )
         setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
         setIsFinanceBypassEnabled(Boolean(settingsRow?.onboarding_finance_bypass))
 
@@ -760,10 +762,9 @@ export function OnboardingTrackerModal({
           }
         }
 
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo'
         const resolvedCurrency = String(profileRow?.currency || 'BRL').toUpperCase()
-        const resolvedTimezone = String(
-          profileRow?.timezone || settingsRow?.timezone || 'America/Sao_Paulo',
-        )
+        const resolvedTimezone = String(settingsRow?.timezone || profileRow?.timezone || browserTimezone)
         setServiceCurrency(resolvedCurrency)
         setProfileTimezone(resolvedTimezone)
         setCoverPhotoUrl(String(profileRow?.avatar_url || ''))
@@ -1432,9 +1433,12 @@ export function OnboardingTrackerModal({
     setAvailabilitySaveState('saving')
     setAvailabilityError('')
 
-    const safeNoticeHours = Math.min(
-      Number(minNoticeRange.max),
-      Math.max(Number(minNoticeRange.min), Number(minimumNoticeHours || minNoticeRange.min)),
+    const safeNoticeHours = Math.max(
+      1,
+      Math.min(
+        Number(minNoticeRange.max),
+        Math.max(Math.ceil(Number(minNoticeRange.min)), Number(minimumNoticeHours || minNoticeRange.min)),
+      ),
     )
     const safeBookingWindow = Math.min(
       Number(tierLimits.bookingWindowDays),
@@ -1450,7 +1454,7 @@ export function OnboardingTrackerModal({
           minimumNoticeHours: safeNoticeHours,
           maxBookingWindowDays: safeBookingWindow,
           bufferMinutes,
-          confirmationMode: canUseManualConfirmation ? confirmationMode : 'auto_accept',
+          confirmationMode: isBasicTier ? 'manual' : confirmationMode,
           enableRecurring,
           allowMultiSession,
           requireSessionPurpose,
@@ -2395,33 +2399,19 @@ export function OnboardingTrackerModal({
               {(activeStageId === 'c5_availability_calendar') && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="flex flex-col gap-3">
                       <div className="max-w-2xl">
                         <h3 className="text-sm font-semibold text-neutral-900">Defina aqui só os seus horários de trabalho</h3>
                         <p className="mt-1 text-sm text-neutral-700">
                           Nesta etapa você configura a disponibilidade recorrente da semana. Esses horários representam quando você aceita atender pela Muuday.
                         </p>
                         <p className="mt-2 text-xs text-neutral-600">
-                          Bloqueios pontuais, compromissos fora da plataforma e integração com Google, Outlook ou Apple ficam no calendário completo.
+                          Bloqueios pontuais, integrações e regras avançadas ficam nas páginas de Calendário e Configurações.
                         </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href="/disponibilidade"
-                          className="inline-flex items-center justify-center rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-semibold text-brand-700 hover:border-brand-300 hover:text-brand-800"
-                        >
-                          Abrir calendário completo
-                        </Link>
-                        <Link
-                          href="/configuracoes-agendamento"
-                          className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
-                        >
-                          Ajustar regras avançadas
-                        </Link>
                       </div>
                     </div>
                     <div className="mt-3 rounded-lg border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-700">
-                      Fuso do perfil: <strong>{profileTimezone}</strong>. A agenda usa esse fuso e acompanha horário de verão e inverno automaticamente.
+                      Fuso configurado do perfil: <strong>{profileTimezone}</strong>. A agenda aplica esse fuso automaticamente, incluindo horário de verão/inverno quando aplicável.
                     </div>
                   </div>
 
@@ -2508,30 +2498,31 @@ export function OnboardingTrackerModal({
                     </div>
                   </div>
 
-                  <details className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-900">
-                      Regras básicas de agendamento
-                    </summary>
+                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                    <h4 className="text-sm font-semibold text-neutral-900">Regras básicas de agendamento</h4>
                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div>
                             <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedência mínima (horas)</label>
                             <input
                               type="number"
-                              min={Number(minNoticeRange.min)}
+                              min={Math.max(1, Math.ceil(Number(minNoticeRange.min)))}
                               max={Number(minNoticeRange.max)}
                               value={minimumNoticeHours}
                               onChange={event =>
                                 setMinimumNoticeHours(
                                   Math.min(
                                     Number(minNoticeRange.max),
-                                    Math.max(Number(minNoticeRange.min), Number(event.target.value || minNoticeRange.min)),
+                                    Math.max(
+                                      Math.max(1, Math.ceil(Number(minNoticeRange.min))),
+                                      Number(event.target.value || minNoticeRange.min),
+                                    ),
                                   ),
                                 )
                               }
                               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                             />
                             <p className="mt-1 text-[11px] text-neutral-500">
-                              Faixa do seu plano: {minNoticeRange.min}h a {minNoticeRange.max}h.
+                              Tempo mínimo entre a solicitação e a sessão (ex.: 24h = pedido com 1 dia de antecedência).
                             </p>
                           </div>
 
@@ -2579,17 +2570,17 @@ export function OnboardingTrackerModal({
                           <div>
                             <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmação</label>
                             <select
-                              value={canUseManualConfirmation ? confirmationMode : 'auto_accept'}
-                              disabled={!canUseManualConfirmation}
+                              value={isBasicTier ? 'manual' : confirmationMode}
+                              disabled={isBasicTier}
                               onChange={event => setConfirmationMode(event.target.value === 'manual' ? 'manual' : 'auto_accept')}
                               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
                             >
                               <option value="auto_accept">Auto-aceite</option>
                               <option value="manual">Confirmação manual</option>
                             </select>
-                            {!canUseManualConfirmation ? (
+                            {isBasicTier ? (
                               <p className="mt-1 text-[11px] text-amber-700">
-                                Confirmação manual disponível a partir do plano Profissional.
+                                No plano básico, a confirmação é manual.
                               </p>
                             ) : null}
                           </div>
@@ -2622,7 +2613,7 @@ export function OnboardingTrackerModal({
                             Exigir objetivo da sessão
                           </label>
                         </div>
-                      </details>
+                      </div>
 
                   {availabilityError ? <p className="text-sm font-medium text-red-700">{availabilityError}</p> : null}
 

@@ -254,8 +254,11 @@ export async function POST(request: Request) {
       }
 
       const nowIso = new Date().toISOString()
-      const maxBufferForTier = String(professional.tier || '').toLowerCase() === 'basic' ? 15 : 180
+      const normalizedTier = String(professional.tier || '').toLowerCase()
+      const maxBufferForTier = normalizedTier === 'basic' ? 15 : 180
+      const safeMinimumNoticeHours = Math.max(1, Math.min(720, Number(payload.data.minimumNoticeHours || 1)))
       const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, payload.data.bufferMinutes))
+      const safeConfirmationMode = normalizedTier === 'basic' ? 'manual' : payload.data.confirmationMode
       const safeRows = Object.entries(payload.data.availabilityMap).map(([day, value]) => ({
         professional_id: professionalId,
         day_of_week: Number(day),
@@ -280,12 +283,13 @@ export async function POST(request: Request) {
           {
             professional_id: professionalId,
             timezone: payload.data.profileTimezone,
-            minimum_notice_hours: payload.data.minimumNoticeHours,
+            minimum_notice_hours: safeMinimumNoticeHours,
             max_booking_window_days: payload.data.maxBookingWindowDays,
             buffer_minutes: safeBufferMinutes,
             buffer_time_minutes: safeBufferMinutes,
-            confirmation_mode: payload.data.confirmationMode,
+            confirmation_mode: safeConfirmationMode,
             enable_recurring: payload.data.enableRecurring,
+            allow_multi_session: payload.data.allowMultiSession,
             require_session_purpose: payload.data.requireSessionPurpose,
             updated_at: nowIso,
           },
