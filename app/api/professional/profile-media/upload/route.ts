@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -9,6 +9,7 @@ const PROFILE_MEDIA_BUCKET = 'professional-profile-media'
 const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const ALLOWED_KINDS = ['jpg', 'png', 'webp'] as const
+const SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 30 // 30 days
 
 function getStorageUploadErrorMessage(error: { message?: string; details?: string; code?: string } | null | undefined) {
   const text = `${String(error?.code || '')} ${String(error?.message || '')} ${String(error?.details || '')}`.toLowerCase()
@@ -19,6 +20,17 @@ function getStorageUploadErrorMessage(error: { message?: string; details?: strin
     return 'Sem permissao para upload de foto. Ajuste as policies do bucket professional-profile-media.'
   }
   return `Falha no upload: ${String(error?.message || 'erro desconhecido')}`
+}
+
+async function createProfileMediaSignedUrl(
+  storage: { createSignedUrl: (path: string, expiresIn: number) => Promise<{ data: { signedUrl?: string | null } | null; error: { message?: string } | null }> },
+  path: string,
+) {
+  const { data, error } = await storage.createSignedUrl(path, SIGNED_URL_EXPIRY_SECONDS)
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message || 'Nao foi possivel gerar URL assinada para a foto.')
+  }
+  return data.signedUrl
 }
 
 export async function POST(request: Request) {
@@ -50,8 +62,6 @@ export async function POST(request: Request) {
     const bytes = Buffer.from(await file.arrayBuffer())
     const signatureValidation = validateFileSignature({
       bytes,
-      // Some mobile browsers (especially iOS camera capture) send an inaccurate MIME type.
-      // We rely on signature sniffing as source of truth for profile photos.
       claimedMimeType: '',
       allowedKinds: ALLOWED_KINDS,
     })
@@ -65,11 +75,18 @@ export async function POST(request: Request) {
 
     const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
     const admin = createAdminClient()
+
     if (admin) {
       const { data: bucket, error: bucketError } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
       if (bucketError || !bucket) {
         return NextResponse.json(
-          { error: 'Bucket professional-profile-media não encontrado ou inacessível.' },
+          { error: 'Bucket professional-profile-media nao encontrado ou inacessivel.' },
+          { status: 503 },
+        )
+      }
+      if (Boolean((bucket as { public?: boolean }).public)) {
+        return NextResponse.json(
+          { error: 'Bucket professional-profile-media deve permanecer privado.' },
           { status: 503 },
         )
       }
@@ -84,15 +101,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: getStorageUploadErrorMessage(uploadError) }, { status: 500 })
       }
 
-      const { data: publicData } = admin.storage.from(PROFILE_MEDIA_BUCKET).getPublicUrl(filePath)
+      const signedUrl = await createProfileMediaSignedUrl(admin.storage.from(PROFILE_MEDIA_BUCKET), filePath)
 
       return NextResponse.json({
-        publicUrl: publicData.publicUrl,
+        signedUrl,
         path: filePath,
       })
     }
 
-    // Fallback for environments without service role key.
     const { error: uploadError } = await supabase.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
       contentType: signatureValidation.canonicalMimeType,
       upsert: false,
@@ -100,19 +116,16 @@ export async function POST(request: Request) {
     })
 
     if (uploadError) {
-      return NextResponse.json(
-        { error: getStorageUploadErrorMessage(uploadError) },
-        { status: 500 },
-      )
+      return NextResponse.json({ error: getStorageUploadErrorMessage(uploadError) }, { status: 500 })
     }
 
-    const { data: publicData } = supabase.storage.from(PROFILE_MEDIA_BUCKET).getPublicUrl(filePath)
+    const signedUrl = await createProfileMediaSignedUrl(supabase.storage.from(PROFILE_MEDIA_BUCKET), filePath)
 
     return NextResponse.json({
-      publicUrl: publicData.publicUrl,
+      signedUrl,
       path: filePath,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Erro inesperado no upload da foto.' }, { status: 500 })
   }
 }

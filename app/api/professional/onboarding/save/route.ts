@@ -30,6 +30,7 @@ const qualificationSchema = z.object({
 
 const identitySchema = z.object({
   section: z.literal('identity'),
+  resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   title: z.string().optional().default(''),
   displayName: z.string().trim().max(160).default(''),
   yearsExperience: z.coerce.number().int().min(0).max(60),
@@ -42,12 +43,15 @@ const identitySchema = z.object({
 
 const publicProfileSchema = z.object({
   section: z.literal('public_profile'),
+  resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   bio: z.string().trim().min(1).max(500),
   avatarUrl: z.string().url().or(z.literal('')),
+  avatarPath: z.string().trim().optional().default(''),
 })
 
 const serviceSchema = z.object({
   section: z.literal('service'),
+  resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   name: z.string().trim().min(1).max(30),
   description: z.string().trim().min(1).max(120),
   priceBrl: z.coerce.number().positive().max(50000),
@@ -62,6 +66,7 @@ const availabilityDaySchema = z.object({
 
 const availabilitySchema = z.object({
   section: z.literal('availability'),
+  resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   profileTimezone: z.string().trim().min(1).max(80),
   availabilityMap: z.record(z.string(), availabilityDaySchema),
   minimumNoticeHours: z.coerce.number().int().min(0).max(168),
@@ -107,6 +112,14 @@ function isMissingOnConflictConstraint(error: { message?: string; details?: stri
   if (!error) return false
   const haystack = `${String(error.code || '')} ${String(error.message || '')} ${String(error.details || '')}`.toLowerCase()
   return haystack.includes('42p10') || haystack.includes('no unique or exclusion constraint matching')
+}
+
+function getResolvedAdjustmentIds(
+  payload: z.infer<typeof payloadSchema>,
+) {
+  return Array.isArray(payload.resolvedAdjustmentIds)
+    ? payload.resolvedAdjustmentIds.filter(Boolean)
+    : []
 }
 
 async function upsertProfessionalApplicationWithFallback(
@@ -221,7 +234,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
     }
 
-    const { data: profile } = await supabase.from('profiles').select('role,full_name').eq('id', user.id).maybeSingle()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role,full_name,country,timezone')
+      .eq('id', user.id)
+      .maybeSingle()
     if (!profile || profile.role !== 'profissional') {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
     }
@@ -245,6 +262,16 @@ export async function POST(request: Request) {
     const savedSection = payload.data.section
 
     if (savedSection === 'identity') {
+      if (!String(profile?.country || '').trim() || !String(profile?.timezone || '').trim()) {
+        return NextResponse.json(
+          {
+            error:
+              'Pais e fuso horario da conta sao obrigatorios antes de salvar a identidade. Atualize em /perfil e tente novamente.',
+          },
+          { status: 400 },
+        )
+      }
+
       const effectiveDisplayName = String(payload.data.displayName || profile?.full_name || '').trim()
       if (!effectiveDisplayName) {
         return NextResponse.json({ error: 'Informe o nome publico profissional para continuar.' }, { status: 400 })
@@ -408,6 +435,7 @@ export async function POST(request: Request) {
         .from('professionals')
         .update({
           bio: payload.data.bio,
+          cover_photo_url: payload.data.avatarPath || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', professionalId)
@@ -610,7 +638,22 @@ export async function POST(request: Request) {
 
     const stageIdsForSection = SECTION_TO_REVIEW_STAGES[savedSection] || []
     const fieldKeysForSection = SECTION_TO_REVIEW_FIELD_KEYS[savedSection] || []
-    if (stageIdsForSection.length > 0 && fieldKeysForSection.length > 0) {
+    const resolvedAdjustmentIds = getResolvedAdjustmentIds(payload.data)
+
+    if (resolvedAdjustmentIds.length > 0) {
+      await db
+        .from('professional_review_adjustments')
+        .update({
+          status: 'resolved_by_professional',
+          resolved_at: new Date().toISOString(),
+          resolved_by: user.id,
+          resolution_note: `resolved_by_ids:${savedSection}`,
+        })
+        .eq('professional_id', professionalId)
+        .in('id', resolvedAdjustmentIds)
+        .in('stage_id', stageIdsForSection)
+        .in('status', ['open', 'reopened'])
+    } else if (stageIdsForSection.length > 0 && fieldKeysForSection.length > 0) {
       await db
         .from('professional_review_adjustments')
         .update({

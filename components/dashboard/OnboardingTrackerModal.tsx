@@ -9,6 +9,8 @@ import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-ra
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
   REVIEW_ADJUSTMENT_STAGE_LABELS,
+  SECTION_TO_REVIEW_FIELD_KEYS,
+  SECTION_TO_REVIEW_STAGES,
   type ReviewAdjustmentItem,
 } from '@/lib/professional/review-adjustments'
 import {
@@ -203,6 +205,16 @@ function isValidCoverPhotoUrl(value: string) {
   } catch {
     return false
   }
+}
+
+function parseProfileMediaPath(value: string) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return ''
+  if (raw.startsWith('professional-profile-media/')) {
+    return raw.slice('professional-profile-media/'.length)
+  }
+  return raw
 }
 
 function sanitizePricingErrorMessage(error: string) {
@@ -623,6 +635,28 @@ function getBlockerCta(blocker: Blocker): BlockerCta | null {
   return blocker.actionHref ? { kind: 'external', label: 'Abrir etapa relacionada', href: blocker.actionHref } : null
 }
 
+function readSettledValue<T>(result: PromiseSettledResult<unknown>) {
+  if (result.status !== 'fulfilled') return null
+  const value = result.value
+  if (value && typeof value === 'object' && 'data' in (value as Record<string, unknown>)) {
+    return ((value as { data: T | null }).data ?? null) as T | null
+  }
+  return (value as T | null) ?? null
+}
+
+async function withTimeout<T>(promiseLike: PromiseLike<T>, timeoutMs: number) {
+  const promise = Promise.resolve(promiseLike)
+  let timer: ReturnType<typeof setTimeout> | null = null
+  try {
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timeout')), timeoutMs)
+    })
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
 export function OnboardingTrackerModal({
   professionalId,
   tier,
@@ -643,6 +677,7 @@ export function OnboardingTrackerModal({
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
   const [bio, setBio] = useState(initialBio || '')
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl || '')
+  const [coverPhotoPath, setCoverPhotoPath] = useState('')
   const [photoUploadState, setPhotoUploadState] = useState<SaveState>('idle')
   const [photoUploadError, setPhotoUploadError] = useState('')
   const [photoValidationChecks, setPhotoValidationChecks] = useState<PhotoValidationChecks>({
@@ -781,6 +816,34 @@ export function OnboardingTrackerModal({
     return set
   }, [openReviewAdjustments])
   const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
+
+  const openAdjustmentIdsByStageAndField = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const item of openReviewAdjustments) {
+      const key = `${String(item.stageId)}::${String(item.fieldKey)}`
+      const current = map.get(key) || []
+      current.push(String(item.id))
+      map.set(key, current)
+    }
+    return map
+  }, [openReviewAdjustments])
+
+  const getResolvedAdjustmentIdsForSection = useCallback(
+    (section: string) => {
+      const stageIds = SECTION_TO_REVIEW_STAGES[section] || []
+      const fieldKeys = SECTION_TO_REVIEW_FIELD_KEYS[section] || []
+      const ids: string[] = []
+      stageIds.forEach(stageId => {
+        fieldKeys.forEach(fieldKey => {
+          const key = `${stageId}::${fieldKey}`
+          const adjustmentIds = openAdjustmentIdsByStageAndField.get(key) || []
+          ids.push(...adjustmentIds)
+        })
+      })
+      return Array.from(new Set(ids))
+    },
+    [openAdjustmentIdsByStageAndField],
+  )
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
   const minNoticeRange = tierConfig.minNoticeRange
@@ -882,68 +945,95 @@ export function OnboardingTrackerModal({
       setLoadingContext(true)
       try {
 
-      const [
-        { data: professional },
-        { data: existingServices },
-        { data: settingsRow },
-        { data: availabilityRows },
-        { data: appRow },
-        { data: ratesRows },
-        { data: credentialRows },
-        { data: categoryRows },
-        { data: subcategoryRows },
-        planConfigResponse,
-      ] = await Promise.all([
-        supabase
-          .from('professionals')
-          .select('user_id,category,subcategories,focus_areas,years_experience,tier')
-          .eq('id', professionalId)
-          .maybeSingle(),
-        supabase
-          .from('professional_services')
-          .select('id,name,description,price_brl,duration_minutes')
-          .eq('professional_id', professionalId)
-          .eq('is_active', true)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('professional_settings')
-          .select(
-            'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
-          )
-          .eq('professional_id', professionalId)
-          .maybeSingle(),
-        supabase
-          .from('availability')
-          .select('day_of_week,start_time,end_time,is_active')
-          .eq('professional_id', professionalId),
-        supabase
-          .from('professional_applications')
-          .select(
-            'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
-          )
-          .eq('professional_id', professionalId)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('exchange_rates')
-          .select('code,rate_to_brl')
-          .eq('is_active', true),
-        supabase
-          .from('professional_credentials')
-          .select('id,file_name,file_url,scan_status,verified,credential_type')
-          .eq('professional_id', professionalId)
-          .order('uploaded_at', { ascending: false }),
-        supabase
-          .from('categories')
-          .select('slug,name_pt')
-          .eq('is_active', true),
-        supabase
-          .from('subcategories')
-          .select('slug,name_pt')
-          .eq('is_active', true),
-        fetch('/api/plan-config', { credentials: 'include' }).catch(() => null),
+      const settledQueries = await Promise.allSettled([
+        withTimeout(
+          supabase
+            .from('professionals')
+            .select('user_id,category,subcategories,focus_areas,years_experience,tier,cover_photo_url')
+            .eq('id', professionalId)
+            .maybeSingle(),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('professional_services')
+            .select('id,name,description,price_brl,duration_minutes')
+            .eq('professional_id', professionalId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: true }),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('professional_settings')
+            .select(
+              'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
+            )
+            .eq('professional_id', professionalId)
+            .maybeSingle(),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('availability')
+            .select('day_of_week,start_time,end_time,is_active')
+            .eq('professional_id', professionalId),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('professional_applications')
+            .select(
+              'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
+            )
+            .eq('professional_id', professionalId)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('exchange_rates')
+            .select('code,rate_to_brl')
+            .eq('is_active', true),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('professional_credentials')
+            .select('id,file_name,file_url,scan_status,verified,credential_type')
+            .eq('professional_id', professionalId)
+            .order('uploaded_at', { ascending: false }),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('categories')
+            .select('slug,name_pt')
+            .eq('is_active', true),
+          10000,
+        ),
+        withTimeout(
+          supabase
+            .from('subcategories')
+            .select('slug,name_pt')
+            .eq('is_active', true),
+          10000,
+        ),
+        withTimeout(fetch('/api/plan-config', { credentials: 'include' }).catch(() => null), 8000),
       ])
+
+      const professional = readSettledValue<any>(settledQueries[0]) || null
+      const existingServices = readSettledValue<any[]>(settledQueries[1]) || []
+      const settingsRow = readSettledValue<any>(settledQueries[2]) || null
+      const availabilityRows = readSettledValue<any[]>(settledQueries[3]) || []
+      const appRow = readSettledValue<any>(settledQueries[4]) || null
+      const ratesRows = readSettledValue<any[]>(settledQueries[5]) || []
+      const credentialRows = readSettledValue<any[]>(settledQueries[6]) || []
+      const categoryRows = readSettledValue<any[]>(settledQueries[7]) || []
+      const subcategoryRows = readSettledValue<any[]>(settledQueries[8]) || []
+      const planConfigResponse = readSettledValue<Response>(settledQueries[9]) || null
 
       if (mounted) {
         if (planConfigResponse) {
@@ -1029,7 +1119,11 @@ export function OnboardingTrackerModal({
             : 'basic'
         setActiveTier(normalizedProfessionalTier)
         setSelectedPlanTier(normalizedProfessionalTier)
-        setCoverPhotoUrl(String(profileRow?.avatar_url || ''))
+        const avatarUrlCandidate = String(profileRow?.avatar_url || '').trim()
+        const profileMediaPath = parseProfileMediaPath(avatarUrlCandidate)
+        const professionalMediaPath = parseProfileMediaPath(String(professional?.cover_photo_url || '').trim())
+        setCoverPhotoPath(profileMediaPath || professionalMediaPath || '')
+        setCoverPhotoUrl(avatarUrlCandidate)
         const resolvedDisplayName = String(appRow?.display_name || profileRow?.full_name || '')
         setIdentityDisplayName(resolvedDisplayName)
         setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
@@ -1074,7 +1168,7 @@ export function OnboardingTrackerModal({
         setSubcategoryNameBySlug(nextSubcategoryNames)
         setIdentityFocusAreas(
           Array.isArray(professional?.focus_areas) && professional.focus_areas.length > 0
-            ? professional.focus_areas.map(item => String(item))
+            ? professional.focus_areas.map((item: unknown) => String(item))
             : Array.isArray(appRow?.focus_areas)
               ? appRow.focus_areas.map((item: unknown) => String(item))
               : [],
@@ -1089,8 +1183,16 @@ export function OnboardingTrackerModal({
             : 0
         setIdentityYearsExperience(String(resolvedYears))
         setIdentityPrimaryLanguage(String(appRow?.primary_language || 'Português'))
-        setIdentitySecondaryLanguages(Array.isArray(appRow?.secondary_languages) ? appRow.secondary_languages.map(item => String(item)) : [])
-        setIdentityTargetAudiences(Array.isArray(appRow?.target_audiences) ? appRow.target_audiences.map(item => String(item)) : [])
+        setIdentitySecondaryLanguages(
+          Array.isArray(appRow?.secondary_languages)
+            ? appRow.secondary_languages.map((item: unknown) => String(item))
+            : [],
+        )
+        setIdentityTargetAudiences(
+          Array.isArray(appRow?.target_audiences)
+            ? appRow.target_audiences.map((item: unknown) => String(item))
+            : [],
+        )
         const parsedQualifications = Array.isArray(appRow?.qualifications_structured)
           ? appRow.qualifications_structured.map((item: any) => ({
               id: String(item?.id || crypto.randomUUID()),
@@ -1140,24 +1242,36 @@ export function OnboardingTrackerModal({
         setIdentityQualifications(Array.from(qualificationMap.values()))
       }
 
-      const pricingResponse = await fetch('/api/professional/plan-pricing', {
-        method: 'GET',
-        credentials: 'include',
-      })
-      if (mounted) {
-        if (pricingResponse.ok) {
-          const pricingJson = (await pricingResponse.json()) as {
-            currency: string
-            monthlyAmount: number
-            annualAmount: number
-            provider: string
+      try {
+        const pricingResponse = await withTimeout(
+          fetch('/api/professional/plan-pricing', {
+            method: 'GET',
+            credentials: 'include',
+          }),
+          8000,
+        )
+        if (mounted) {
+          if (pricingResponse.ok) {
+            const pricingJson = (await pricingResponse.json()) as {
+              currency: string
+              monthlyAmount: number
+              annualAmount: number
+              provider: string
+            }
+            setPlanPricing(pricingJson)
+            setPricingError('')
+          } else {
+            const errorBody = await pricingResponse.json().catch(() => ({}))
+            setPlanPricing(null)
+            setPricingError(
+              sanitizePricingErrorMessage(String(errorBody?.error || 'Nao foi possivel carregar precos agora.')),
+            )
           }
-          setPlanPricing(pricingJson)
-          setPricingError('')
-        } else {
-          const errorBody = await pricingResponse.json().catch(() => ({}))
+        }
+      } catch {
+        if (mounted) {
           setPlanPricing(null)
-          setPricingError(sanitizePricingErrorMessage(String(errorBody?.error || 'Não foi possível carregar preços agora.')))
+          setPricingError('Preco indisponivel no momento.')
         }
       }
 
@@ -1380,7 +1494,12 @@ export function OnboardingTrackerModal({
   }
 
   async function uploadPreparedProfessionalPhoto() {
-    if (!pendingPhoto) return coverPhotoUrl
+    if (!pendingPhoto) {
+      return {
+        avatarUrl: coverPhotoUrl,
+        avatarPath: coverPhotoPath,
+      }
+    }
 
     if (!photoHealthCheckedRef.current) {
       const healthResponse = await fetch('/api/professional/profile-media/health', {
@@ -1408,20 +1527,28 @@ export function OnboardingTrackerModal({
       throw new Error(String(errorBody?.error || 'Falha no upload da foto. Tente novamente.'))
     }
 
-    const payload = (await response.json()) as { publicUrl?: string }
-    const nextUrl = String(payload.publicUrl || '')
+    const payload = (await response.json()) as { signedUrl?: string; path?: string }
+    const nextUrl = String(payload.signedUrl || '').trim()
+    const nextPath = String(payload.path || '').trim()
     if (!nextUrl) {
-      throw new Error('A foto foi enviada, mas a URL final não foi retornada.')
+      throw new Error('A foto foi enviada, mas a URL final nao foi retornada.')
+    }
+    if (!nextPath) {
+      throw new Error('A foto foi enviada, mas o caminho interno nao foi retornado.')
     }
 
     setCoverPhotoUrl(nextUrl)
+    setCoverPhotoPath(nextPath)
     setPendingPhoto(previous => {
       if (previous?.previewUrl) {
         URL.revokeObjectURL(previous.previewUrl)
       }
       return null
     })
-    return nextUrl
+    return {
+      avatarUrl: nextUrl,
+      avatarPath: nextPath,
+    }
   }
 
   async function saveSection<TPayload extends object>(
@@ -1693,6 +1820,7 @@ export function OnboardingTrackerModal({
       await saveSection(
         {
           section: 'identity',
+          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('identity'),
           title: identityTitle,
           displayName: identityDisplayName,
           yearsExperience: years,
@@ -1702,7 +1830,7 @@ export function OnboardingTrackerModal({
           focusAreas: identityFocusAreas,
           qualifications: identityQualifications,
         },
-        'Não foi possível salvar identidade profissional.',
+        'Nao foi possivel salvar identidade profissional.',
         { autoAdvance: false },
       )
       setIdentitySaveState('saved')
@@ -1730,18 +1858,22 @@ export function OnboardingTrackerModal({
     setBioError('')
     try {
       setPhotoUploadState(pendingPhoto ? 'saving' : photoUploadState)
-      const nextAvatarUrl = pendingPhoto ? await uploadPreparedProfessionalPhoto() : coverPhotoUrl.trim()
-      if (!isValidCoverPhotoUrl(nextAvatarUrl.trim())) {
-        throw new Error('A URL final da foto do perfil é inválida.')
+      const nextPhoto = pendingPhoto
+        ? await uploadPreparedProfessionalPhoto()
+        : { avatarUrl: coverPhotoUrl.trim(), avatarPath: coverPhotoPath.trim() }
+      if (!isValidCoverPhotoUrl(nextPhoto.avatarUrl.trim())) {
+        throw new Error('A URL final da foto do perfil e invalida.')
       }
 
       await saveSection(
         {
           section: 'public_profile',
+          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('public_profile'),
           bio: bio.trim(),
-          avatarUrl: nextAvatarUrl.trim(),
+          avatarUrl: nextPhoto.avatarUrl.trim(),
+          avatarPath: nextPhoto.avatarPath.trim(),
         },
-        'Não foi possível salvar o perfil público.',
+        'Nao foi possivel salvar o perfil publico.',
         { autoAdvance: false },
       )
       setPhotoUploadState('saved')
@@ -1754,7 +1886,7 @@ export function OnboardingTrackerModal({
     } catch (error) {
       setPhotoUploadState('error')
       setBioSaveState('error')
-      setBioError(error instanceof Error ? error.message : 'Não foi possível salvar o perfil público.')
+      setBioError(error instanceof Error ? error.message : 'Nao foi possivel salvar o perfil publico.')
       return false
     }
   }
@@ -1818,12 +1950,13 @@ export function OnboardingTrackerModal({
       const result = await saveSection(
         {
           section: 'service',
+          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('service'),
           name: serviceName.trim(),
           description: serviceDescription.trim(),
           priceBrl: Number(priceBrl.toFixed(2)),
           durationMinutes: duration,
         },
-        'Não foi possível criar o serviço.',
+        'Nao foi possivel criar o servico.',
       )
       if (result.service) {
         setServices(prev => [...prev, result.service!])
@@ -1863,6 +1996,7 @@ export function OnboardingTrackerModal({
       await saveSection(
         {
           section: 'availability',
+          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('availability'),
           profileTimezone,
           availabilityMap,
           minimumNoticeHours: safeNoticeHours,
@@ -1873,7 +2007,7 @@ export function OnboardingTrackerModal({
           allowMultiSession,
           requireSessionPurpose,
         },
-        'Não foi possível salvar disponibilidade e regras.',
+        'Nao foi possivel salvar disponibilidade e regras.',
       )
       setAvailabilitySaveState('saved')
       setTimeout(() => setAvailabilitySaveState('idle'), 2000)

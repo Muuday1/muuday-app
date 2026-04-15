@@ -61,12 +61,12 @@ function getValidationError(error: z.ZodError) {
   return error.issues[0]?.message || 'Dados invalidos.'
 }
 
-// helper â€” swallows errors so a failed email never breaks the main flow
+// helper - swallows errors so a failed email never breaks the main flow
 async function safe<T>(fn: () => Promise<T>, label: string) {
   try { return await fn() } catch (e) { console.error(`[email] ${label}`, e) }
 }
 
-// Auth guard â€” ensures only authenticated users can trigger emails + rate limit
+// Auth guard - ensures only authenticated users can trigger emails + rate limit
 async function requireAuth(): Promise<string | null> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -113,7 +113,7 @@ async function assertCallerCanEmailRecipient(callerId: string, recipientEmail: s
 
   if (!recipientProfile) return false
 
-  // Check if there's any booking between caller and recipient (as userâ†”professional)
+  // Check if there's any booking between caller and recipient (as user<->professional)
   const { count: bookingCount } = await supabase
     .from('bookings')
     .select('id', { count: 'exact', head: true })
@@ -127,7 +127,7 @@ type NotifKey = 'booking_emails' | 'session_reminders' | 'news_promotions'
 
 // Returns false if the user has explicitly disabled this category
 async function canSend(userId: string | null | undefined, key: NotifKey): Promise<boolean> {
-  if (!userId) return true // no user context â†’ always send (e.g. professional notifications)
+  if (!userId) return true // no user context -> always send (e.g. professional notifications)
   try {
     const supabase = createClient()
     const { data } = await supabase
@@ -136,14 +136,14 @@ async function canSend(userId: string | null | undefined, key: NotifKey): Promis
       .eq('id', userId)
       .single()
     const prefs = data?.notification_preferences as Record<string, boolean> | null
-    if (!prefs) return true // no prefs saved â†’ default opt-in
+    if (!prefs) return true // no prefs saved -> default opt-in
     return prefs[key] !== false
   } catch {
-    return true // on error â†’ send anyway
+    return true // on error -> send anyway
   }
 }
 
-// â”€â”€â”€ Audience management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Audience management --------------------------------------------------
 export async function addUserToResendAction(email: string, firstName: string) {
   const payload = parsePayload(
     z.object({
@@ -157,8 +157,8 @@ export async function addUserToResendAction(email: string, firstName: string) {
   return safe(() => addContactToResend(payload.email, payload.firstName, SEGMENTS.usuarios), 'addContact')
 }
 
-// â”€â”€â”€ Transactional â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Welcome & account setup â€” only caller can send to their own email
+// --- Transactional --------------------------------------------------------
+// Welcome & account setup - only caller can send to their own email
 export async function sendWelcomeEmailAction(to: string, name: string) {
   const payload = parsePayload(z.object({ to: emailSchema, name: personNameSchema }), { to, name })
   if (!payload) return

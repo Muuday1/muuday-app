@@ -25,7 +25,8 @@
     "checkly:validate": "checkly debug parse-project --config checkly.config.js",
     "checkly:test": "checkly test",
     "checkly:deploy": "checkly deploy",
-    "checkly:plan": "checkly account plan --output json"
+    "checkly:plan": "checkly account plan --output json",
+    "check:encoding": "node scripts/ops/check-mojibake.cjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.46.0",

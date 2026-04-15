@@ -123,8 +123,8 @@ const PUBLIC_SEARCH_BASE_CACHE_TTL_MS = 180_000
 const CURRENCY_LABELS: Record<string, string> = {
   BRL: 'R$',
   USD: 'US$',
-  EUR: 'â‚¬',
-  GBP: 'Â£',
+  EUR: '€',
+  GBP: '£',
   CAD: 'CA$',
   AUD: 'A$',
 }

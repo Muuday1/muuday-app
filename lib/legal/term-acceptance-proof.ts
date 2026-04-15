@@ -22,17 +22,16 @@ function fromBase64Url(input: string) {
 }
 
 export function extractRequestIp(headers: Headers) {
-  const candidates = [
-    headers.get('x-vercel-forwarded-for'),
-    headers.get('x-forwarded-for'),
-    headers.get('x-real-ip'),
-  ]
-    .map(value => String(value || '').split(',')[0]?.trim())
-    .filter(Boolean) as string[]
+  const vercelIp = String(headers.get('x-vercel-forwarded-for') || '')
+    .split(',')[0]
+    ?.trim()
+  if (vercelIp && isIP(vercelIp)) return vercelIp
 
-  for (const candidate of candidates) {
-    if (isIP(candidate)) return candidate
-  }
+  const realIp = String(headers.get('x-real-ip') || '')
+    .split(',')[0]
+    ?.trim()
+  if (realIp && isIP(realIp)) return realIp
+
   return null
 }
 

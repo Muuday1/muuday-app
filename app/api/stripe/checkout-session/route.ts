@@ -127,7 +127,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
     const financeBypass = Boolean((settings as { onboarding_finance_bypass?: boolean } | null)?.onboarding_finance_bypass)
     const allowFallbackPlanSwitch =
-      financeBypass || String(process.env.PLAN_PRICING_ALLOW_FALLBACK || '').toLowerCase() === 'true'
+      parsed.data.source === 'onboarding_modal' ||
+      financeBypass ||
+      String(process.env.PLAN_PRICING_ALLOW_FALLBACK || '').toLowerCase() === 'true'
 
     if (allowFallbackPlanSwitch) {
       await supabase

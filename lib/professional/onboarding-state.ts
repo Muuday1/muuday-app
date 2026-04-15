@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { PROFESSIONAL_REQUIRED_TERMS, PROFESSIONAL_TERMS_VERSION } from '@/lib/legal/professional-terms'
 import {
   evaluateOnboardingGates,
@@ -68,6 +69,35 @@ function inferCountryFromTimezone(timezone: string | null | undefined) {
   return ''
 }
 
+const PROFILE_MEDIA_BUCKET = 'professional-profile-media'
+const PROFILE_MEDIA_SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 30
+
+function parseProfileMediaPath(value: string | null | undefined) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return ''
+  if (raw.startsWith(`${PROFILE_MEDIA_BUCKET}/`)) {
+    return raw.slice(PROFILE_MEDIA_BUCKET.length + 1).trim()
+  }
+  return raw
+}
+
+async function resolveSignedProfileMediaUrl(
+  pathValue: string | null | undefined,
+) {
+  const mediaPath = parseProfileMediaPath(pathValue)
+  if (!mediaPath) return ''
+
+  const admin = createAdminClient()
+  if (!admin) return ''
+
+  const { data, error } = await admin.storage
+    .from(PROFILE_MEDIA_BUCKET)
+    .createSignedUrl(mediaPath, PROFILE_MEDIA_SIGNED_URL_EXPIRY_SECONDS)
+  if (error || !data?.signedUrl) return ''
+  return data.signedUrl
+}
+
 export async function loadProfessionalOnboardingState(
   supabase: SupabaseClient,
   professionalId: string,
@@ -133,6 +163,15 @@ export async function loadProfessionalOnboardingState(
       Array.isArray(professionalRow.languages) && professionalRow.languages.length > 0
         ? String(professionalRow.languages[0] || '')
         : String(applicationRow?.primary_language || ''),
+  }
+
+  const signedAvatarFromProfilePath = await resolveSignedProfileMediaUrl(profileRow?.avatar_url)
+  const signedAvatarFromProfessionalPath = await resolveSignedProfileMediaUrl(professionalRow.cover_photo_url)
+
+  if (signedAvatarFromProfilePath) {
+    snapshot.account.avatarUrl = signedAvatarFromProfilePath
+  } else if (signedAvatarFromProfessionalPath) {
+    snapshot.account.avatarUrl = signedAvatarFromProfessionalPath
   }
 
   if (!snapshot.professional.category) {

@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
@@ -375,7 +375,7 @@ export async function adminReviewProfessionalDecision(
 
     const structuredAdjustments = parsed.data.adjustments || []
     if (parsed.data.decision === 'needs_changes' && structuredAdjustments.length === 0) {
-      return { success: false, error: 'Selecione pelo menos um ajuste obrigatório para solicitar alterações.' }
+      return { success: false, error: 'Selecione pelo menos um ajuste obrigatorio para solicitar alteracoes.' }
     }
 
     const targetStatus = parsed.data.decision
@@ -407,22 +407,81 @@ export async function adminReviewProfessionalDecision(
         .eq('professional_id', parsed.data.professionalId)
         .in('status', ['open', 'resolved_by_professional'])
 
-      const adjustmentsPayload = structuredAdjustments.map(item => ({
-        professional_id: parsed.data.professionalId,
-        stage_id: item.stageId,
-        field_key: item.fieldKey,
-        message: item.message,
-        severity: item.severity,
-        status: 'open',
-        created_by: userId,
-      }))
+      const uniqueAdjustments = new Map<string, (typeof structuredAdjustments)[number]>()
+      for (const item of structuredAdjustments) {
+        uniqueAdjustments.set(String(item.stageId) + '::' + String(item.fieldKey), item)
+      }
+      const adjustmentEntries = Array.from(uniqueAdjustments.entries())
+      const stageIds = Array.from(
+        new Set(adjustmentEntries.map(([key]) => key.split('::')[0]).filter(Boolean)),
+      ) as string[]
 
-      const { error: insertAdjustmentsError } = await supabase
+      const { data: existingRows, error: existingRowsError } = await supabase
         .from('professional_review_adjustments')
-        .insert(adjustmentsPayload)
+        .select('id,stage_id,field_key')
+        .eq('professional_id', parsed.data.professionalId)
+        .in('status', ['open', 'reopened'])
+        .in('stage_id', stageIds)
 
-      if (insertAdjustmentsError) {
-        return { success: false, error: 'Não foi possível registrar os ajustes estruturados.' }
+      if (existingRowsError) {
+        return { success: false, error: 'Nao foi possivel validar ajustes existentes.' }
+      }
+
+      const existingByKey = new Map<string, string>()
+      for (const row of existingRows || []) {
+        existingByKey.set(String(row.stage_id) + '::' + String(row.field_key), String(row.id))
+      }
+
+      const rowsToInsert: Array<{
+        professional_id: string
+        stage_id: string
+        field_key: string
+        message: string
+        severity: 'low' | 'medium' | 'high'
+        status: 'open'
+        created_by: string
+      }> = []
+
+      for (const [key, item] of adjustmentEntries) {
+        const existingId = existingByKey.get(key)
+        if (existingId) {
+          const { error: updateExistingError } = await supabase
+            .from('professional_review_adjustments')
+            .update({
+              message: item.message,
+              severity: item.severity,
+              status: 'open',
+              resolved_at: null,
+              resolved_by: null,
+              resolution_note: 'updated_by_admin',
+            })
+            .eq('id', existingId)
+
+          if (updateExistingError) {
+            return { success: false, error: 'Nao foi possivel atualizar um ajuste existente.' }
+          }
+          continue
+        }
+
+        rowsToInsert.push({
+          professional_id: parsed.data.professionalId,
+          stage_id: item.stageId,
+          field_key: item.fieldKey,
+          message: item.message,
+          severity: item.severity,
+          status: 'open',
+          created_by: userId,
+        })
+      }
+
+      if (rowsToInsert.length > 0) {
+        const { error: insertAdjustmentsError } = await supabase
+          .from('professional_review_adjustments')
+          .insert(rowsToInsert)
+
+        if (insertAdjustmentsError) {
+          return { success: false, error: 'Nao foi possivel registrar os ajustes estruturados.' }
+        }
       }
     } else {
       await supabase
@@ -474,7 +533,7 @@ export async function adminReviewProfessionalDecision(
           await sendProfileRejectedEmail(
             professionalOwner.email,
             professionalOwner.full_name || 'Profissional',
-            parsed.data.notes || 'Seu perfil precisa de ajustes para publicação.',
+            parsed.data.notes || 'Seu perfil precisa de ajustes para publicacao.',
           )
         }
       } catch {
@@ -512,3 +571,4 @@ export async function adminReviewProfessionalDecision(
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
   }
 }
+
