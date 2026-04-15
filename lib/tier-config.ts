@@ -7,6 +7,7 @@ export type ProfessionalTier = 'basic' | 'professional' | 'premium'
 
 export type TierFeature =
   | 'manual_accept'
+  | 'auto_accept'
   | 'video_intro'
   | 'whatsapp_profile'
   | 'social_links'
@@ -31,21 +32,21 @@ export const TIER_LIMITS: Record<ProfessionalTier, TierLimits> = {
     specialties: 1,
     tags: 3,
     services: 1,
-    serviceOptionsPerService: 3,
-    bookingWindowDays: 60,
+    serviceOptionsPerService: 1,
+    bookingWindowDays: 30,
   },
   professional: {
     specialties: 3,
-    tags: 5,
-    services: 5,
-    serviceOptionsPerService: 6,
+    tags: 4,
+    services: 3,
+    serviceOptionsPerService: 3,
     bookingWindowDays: 90,
   },
   premium: {
     specialties: 3,
-    tags: 10,
-    services: 10,
-    serviceOptionsPerService: 10,
+    tags: 5,
+    services: 5,
+    serviceOptionsPerService: 6,
     bookingWindowDays: 180,
   },
 }
@@ -67,6 +68,7 @@ const TIER_FEATURES: Record<ProfessionalTier, TierFeature[]> = {
   professional: [
     'cover_photo',
     'manual_accept',
+    'auto_accept',
     'video_intro',
     'whatsapp_profile',
     'social_links',
@@ -79,6 +81,7 @@ const TIER_FEATURES: Record<ProfessionalTier, TierFeature[]> = {
   premium: [
     'cover_photo',
     'manual_accept',
+    'auto_accept',
     'video_intro',
     'whatsapp_profile',
     'social_links',
@@ -120,9 +123,9 @@ export function isFeatureAvailable(tier: string, feature: TierFeature): boolean 
 
 export function getMinNoticeRange(tier: string): { min: number; max: number } {
   const normalizedTier = normalizeTier(tier)
-  if (normalizedTier === 'premium') return { min: 0.5, max: 168 }
-  if (normalizedTier === 'professional') return { min: 1, max: 72 }
-  return { min: 2, max: 48 }
+  if (normalizedTier === 'premium') return { min: 0, max: 168 }
+  if (normalizedTier === 'professional') return { min: 0, max: 96 }
+  return { min: 0, max: 48 }
 }
 
 export function getBufferConfig(tier: string): { configurable: boolean; defaultMinutes: number } {
@@ -130,6 +133,10 @@ export function getBufferConfig(tier: string): { configurable: boolean; defaultM
     return { configurable: false, defaultMinutes: 15 }
   }
   return { configurable: true, defaultMinutes: 15 }
+}
+
+export function getBufferMaxMinutes(tier: string): number {
+  return normalizeTier(tier) === 'basic' ? 15 : 120
 }
 
 export function getSocialLinksLimit(tier: string): number {

@@ -7,7 +7,7 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { z } from 'zod'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
-import { getSocialLinksLimit, getTierLimits, isFeatureAvailable } from '@/lib/tier-config'
+import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
 
 const VALID_CATEGORIES = [
   'saude-mental-bem-estar', 'saude-corpo-movimento', 'educacao-desenvolvimento',
@@ -102,7 +102,8 @@ export async function createProfessionalProfile(formData: FormData) {
   const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id, tier')
 
   const tierForValidation = String(existing?.tier || 'basic').toLowerCase()
-  const tierLimits = getTierLimits(tierForValidation)
+  const planConfigs = await loadPlanConfigMap()
+  const tierLimits = getPlanConfigForTier(planConfigs, tierForValidation).limits
   if (tags.length > tierLimits.tags) {
     return { error: `Seu plano permite até ${tierLimits.tags} tags.` }
   }
@@ -285,8 +286,10 @@ export async function saveProfessionalProfileDraft(input: {
   }
 
   const tier = String(professional.tier || 'basic').toLowerCase()
-  const tierLimits = getTierLimits(tier)
-  const socialLinksLimit = getSocialLinksLimit(tier)
+  const planConfigs = await loadPlanConfigMap()
+  const tierConfig = getPlanConfigForTier(planConfigs, tier)
+  const tierLimits = tierConfig.limits
+  const socialLinksLimit = tierConfig.socialLinksLimit
   if (parsed.data.tags.length > tierLimits.tags) {
     return { error: `Seu plano permite até ${tierLimits.tags} tags.` }
   }
@@ -299,7 +302,7 @@ export async function saveProfessionalProfileDraft(input: {
     }
   }
 
-  if (!isFeatureAvailable(tier, 'video_intro') && parsed.data.videoIntroUrl) {
+  if (!tierConfig.features.includes('video_intro') && parsed.data.videoIntroUrl) {
     return { error: 'Vídeo de apresentação disponível apenas no plano Professional ou Premium.' }
   }
 
@@ -324,7 +327,7 @@ export async function saveProfessionalProfileDraft(input: {
       whatsapp_number: parsed.data.whatsappNumber || null,
       cover_photo_url: parsed.data.coverPhotoUrl || null,
       video_intro_url:
-        isFeatureAvailable(tier, 'video_intro') && parsed.data.videoIntroUrl
+        tierConfig.features.includes('video_intro') && parsed.data.videoIntroUrl
           ? parsed.data.videoIntroUrl
           : null,
       social_links: socialLinksPayload,

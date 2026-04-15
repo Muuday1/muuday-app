@@ -7,6 +7,7 @@ import {
   DEFAULT_PROFESSIONAL_BOOKING_SETTINGS,
   normalizeProfessionalSettingsRow,
 } from '@/lib/booking/settings'
+import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
 import { BookingSettingsClient, type BookingSettingsForm } from '@/components/settings/BookingSettingsClient'
 
 export default async function ConfiguracoesAgendamentoPage() {
@@ -68,13 +69,18 @@ export default async function ConfiguracoesAgendamentoPage() {
       ? professional.session_duration_minutes
       : normalized.sessionDurationMinutes
 
+  const normalizedTier = String(professional.tier || 'basic').toLowerCase()
+  const planConfigMap = await loadPlanConfigMap()
+  const tierConfig = getPlanConfigForTier(planConfigMap, normalizedTier)
+  const tierLimits = tierConfig.limits
+  const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
+
   const initialForm: BookingSettingsForm = {
     timezone: normalized.timezone,
     sessionDurationMinutes: durationFromProfessional,
-    bufferMinutes:
-      String(professional.tier || 'basic').toLowerCase() === 'basic' ? 15 : normalized.bufferMinutes,
+    bufferMinutes: Math.min(maxBufferMinutes, Math.max(0, normalized.bufferMinutes)),
     minimumNoticeHours: normalized.minimumNoticeHours,
-    maxBookingWindowDays: normalized.maxBookingWindowDays,
+    maxBookingWindowDays: Math.min(tierLimits.bookingWindowDays, Math.max(1, normalized.maxBookingWindowDays)),
     enableRecurring: normalized.enableRecurring,
     confirmationMode: normalized.confirmationMode,
     cancellationPolicyCode: normalized.cancellationPolicyCode,
@@ -85,7 +91,8 @@ export default async function ConfiguracoesAgendamentoPage() {
     <BookingSettingsClient
       userId={user.id}
       professionalId={professional.id}
-      tier={String(professional.tier || 'basic').toLowerCase()}
+      tier={normalizedTier}
+      initialPlanConfig={tierConfig}
       initialForm={initialForm}
     />
   )

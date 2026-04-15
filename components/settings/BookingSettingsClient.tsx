@@ -8,7 +8,8 @@ import { AlertCircle, CalendarClock, Check, ChevronLeft, Loader2 } from 'lucide-
 import {
   DEFAULT_PROFESSIONAL_BOOKING_SETTINGS,
 } from '@/lib/booking/settings'
-import { getBufferConfig, getMinNoticeRange, getTierLimits } from '@/lib/tier-config'
+import type { PlanConfig } from '@/lib/plan-config'
+import { getDefaultPlanConfigMap } from '@/lib/plan-config'
 
 export type BookingSettingsForm = {
   timezone: string
@@ -26,18 +27,20 @@ type BookingSettingsClientProps = {
   userId: string
   professionalId: string
   tier: string
+  initialPlanConfig: PlanConfig
   initialForm: BookingSettingsForm
 }
 
 const DURATION_OPTIONS = [30, 45, 50, 60, 75, 90, 120]
-const BUFFER_OPTIONS = [0, 5, 10, 15, 20, 30, 45, 60]
-const MIN_NOTICE_OPTIONS = [1, 2, 4, 8, 12, 24, 48, 72, 96, 168]
+const BUFFER_OPTIONS = [0, 5, 10, 15, 20, 30, 45, 60, 90, 120]
+const MIN_NOTICE_OPTIONS = [0, 1, 2, 4, 8, 12, 24, 48, 72, 96, 168]
 const MAX_WINDOW_OPTIONS = [7, 14, 21, 30, 45, 60, 90, 120, 180, 365]
 
 export function BookingSettingsClient({
   userId,
   professionalId,
   tier: tierRaw,
+  initialPlanConfig,
   initialForm,
 }: BookingSettingsClientProps) {
   const supabase = useMemo(() => createClient(), [])
@@ -47,9 +50,11 @@ export function BookingSettingsClient({
   const [form, setForm] = useState<BookingSettingsForm>(initialForm)
 
   const tier = String(tierRaw || 'basic').toLowerCase()
-  const noticeRange = useMemo(() => getMinNoticeRange(tier), [tier])
-  const tierLimits = useMemo(() => getTierLimits(tier), [tier])
-  const bufferConfig = useMemo(() => getBufferConfig(tier), [tier])
+  const fallbackPlanConfig = useMemo(() => getDefaultPlanConfigMap().basic, [])
+  const planConfig = useMemo(() => initialPlanConfig || fallbackPlanConfig, [fallbackPlanConfig, initialPlanConfig])
+  const noticeRange = planConfig.minNoticeRange
+  const tierLimits = planConfig.limits
+  const bufferConfig = planConfig.bufferConfig
   const allowedMinNoticeOptions = useMemo(
     () => MIN_NOTICE_OPTIONS.filter(hours => hours >= noticeRange.min && hours <= noticeRange.max),
     [noticeRange.max, noticeRange.min],

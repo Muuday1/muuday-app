@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
-import { getMinNoticeRange, getTierLimits } from '@/lib/tier-config'
+import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
@@ -141,21 +141,24 @@ const PLAN_PRICE_BASE_BRL: Record<PlanTier, number> = {
 
 const PLAN_COMPARISON_ROWS: Array<{ label: string; basic: string; professional: string; premium: string }> = [
   { label: 'Período sem cobrança', basic: '90 dias', professional: '90 dias', premium: '90 dias' },
-  { label: 'Serviços ativos', basic: '1', professional: '5', premium: '10' },
+  { label: 'Serviços ativos', basic: '1', professional: '3', premium: '5' },
   { label: 'Especialidades no perfil', basic: '1', professional: '3', premium: '3' },
-  { label: 'Tags de foco', basic: '3', professional: '5', premium: '10' },
-  { label: 'Janela de agendamento', basic: '60 dias', professional: '90 dias', premium: '180 dias' },
-  { label: 'Buffer configurável', basic: 'Até 15 min', professional: 'Até 180 min', premium: 'Até 180 min' },
+  { label: 'Tags de foco', basic: '3', professional: '4', premium: '5' },
+  { label: 'Janela de agendamento', basic: '30 dias', professional: '90 dias', premium: '180 dias' },
+  { label: 'Opções por serviço', basic: '1', professional: '3', premium: '6' },
+  { label: 'Antecedência mínima', basic: '0h a 48h', professional: '0h a 96h', premium: '0h a 168h' },
+  { label: 'Buffer configurável', basic: 'Não (fixo em 15 min)', professional: 'Sim', premium: 'Sim' },
   { label: 'Confirmação manual', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'Recorrência e pacotes', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
-  { label: 'Múltiplas datas por checkout', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
-  { label: 'Vídeo de apresentação', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'WhatsApp no perfil', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'Redes sociais no perfil', basic: 'Não', professional: 'Até 2', premium: 'Até 5' },
-  { label: 'Integrações de calendário', basic: 'Google', professional: 'Google e Outlook', premium: 'Google, Outlook e Apple' },
-  { label: 'Operação financeira', basic: 'Essencial', professional: 'Expandida', premium: 'Completa' },
-  { label: 'Suporte operacional', basic: 'Base', professional: 'Prioritário', premium: 'Premium' },
+  { label: 'Auto-aceite', basic: 'Não', professional: 'Sim', premium: 'Sim' },
+  { label: 'Exportação PDF', basic: 'Não', professional: 'Não', premium: 'Sim' },
 ]
+
+const PLAN_ROW_BY_LABEL = PLAN_COMPARISON_ROWS.reduce<
+  Record<string, { label: string; basic: string; professional: string; premium: string }>
+>((acc, row) => {
+  acc[row.label] = row
+  return acc
+}, {})
 
 const PLAN_TIER_LABELS: Record<string, string> = {
   basic: 'Básico',
@@ -509,34 +512,38 @@ async function buildAvatarCropFile(file: File, focusX: number, focusY: number, z
 
 function getPlanFeatureHighlights(stageId: string) {
   if (stageId === 'c2_professional_identity') {
+    const tagsRow = PLAN_ROW_BY_LABEL['Tags de foco']
     return [
-      `Básico: até ${PLAN_COMPARISON_ROWS[0].basic} tags de foco`,
-      `Profissional: até ${PLAN_COMPARISON_ROWS[0].professional} tags de foco`,
-      `Premium: até ${PLAN_COMPARISON_ROWS[0].premium} tags de foco`,
+      `Básico: até ${tagsRow?.basic || '3'} tags de foco`,
+      `Profissional: até ${tagsRow?.professional || '4'} tags de foco`,
+      `Premium: até ${tagsRow?.premium || '5'} tags de foco`,
     ]
   }
 
   if (stageId === 'c4_services') {
+    const servicesRow = PLAN_ROW_BY_LABEL['Serviços ativos']
     return [
-      `Básico: ${PLAN_COMPARISON_ROWS[1].basic} serviço ativo`,
-      `Profissional: ${PLAN_COMPARISON_ROWS[1].professional} serviços ativos`,
-      `Premium: ${PLAN_COMPARISON_ROWS[1].premium} serviços ativos`,
+      `Básico: ${servicesRow?.basic || '1'} serviço ativo`,
+      `Profissional: ${servicesRow?.professional || '3'} serviços ativos`,
+      `Premium: ${servicesRow?.premium || '5'} serviços ativos`,
     ]
   }
 
   if (stageId === 'c5_availability_calendar') {
+    const windowRow = PLAN_ROW_BY_LABEL['Janela de agendamento']
     return [
-      `Básico: ${PLAN_COMPARISON_ROWS[2].basic} de janela e Google`,
-      `Profissional: ${PLAN_COMPARISON_ROWS[2].professional} e Outlook`,
-      `Premium: ${PLAN_COMPARISON_ROWS[2].premium} e Apple`,
+      `Básico: ${windowRow?.basic || '30 dias'} de janela`,
+      `Profissional: ${windowRow?.professional || '90 dias'} de janela`,
+      `Premium: ${windowRow?.premium || '180 dias'} de janela`,
     ]
   }
 
   if (stageId === 'c7_payout_receipt') {
+    const pdfRow = PLAN_ROW_BY_LABEL['Exportação PDF']
     return [
-      `Básico: ${PLAN_COMPARISON_ROWS[5].basic}`,
-      `Profissional: ${PLAN_COMPARISON_ROWS[5].professional}`,
-      `Premium: ${PLAN_COMPARISON_ROWS[5].premium}`,
+      `Básico: exportação em PDF ${pdfRow?.basic || 'Não'}`,
+      `Profissional: exportação em PDF ${pdfRow?.professional || 'Não'}`,
+      `Premium: exportação em PDF ${pdfRow?.premium || 'Sim'}`,
     ]
   }
 
@@ -709,6 +716,7 @@ export function OnboardingTrackerModal({
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
   const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
   const [submitReviewMessage, setSubmitReviewMessage] = useState('')
+  const [planConfigs, setPlanConfigs] = useState<PlanConfigMap>(getDefaultPlanConfigMap())
   const photoHealthCheckedRef = useRef(false)
 
   const stagesById = useMemo(() => {
@@ -729,8 +737,10 @@ export function OnboardingTrackerModal({
   }, [stagesById])
 
   const normalizedTier = useMemo(() => String(activeTier || 'basic').toLowerCase(), [activeTier])
-  const tierLimits = useMemo(() => getTierLimits(normalizedTier), [normalizedTier])
-  const minNoticeRange = useMemo(() => getMinNoticeRange(normalizedTier), [normalizedTier])
+  const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
+  const tierLimits = tierConfig.limits
+  const minNoticeRange = tierConfig.minNoticeRange
+  const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
   const isBasicTier = normalizedTier === 'basic'
   const refreshTrackerEvaluation = useCallback(async () => {
     const response = await fetch('/api/professional/onboarding/state', {
@@ -797,6 +807,7 @@ export function OnboardingTrackerModal({
         { data: credentialRows },
         { data: categoryRows },
         { data: subcategoryRows },
+        planConfigResponse,
       ] = await Promise.all([
         supabase
           .from('professionals')
@@ -846,9 +857,19 @@ export function OnboardingTrackerModal({
           .from('subcategories')
           .select('slug,name_pt')
           .eq('is_active', true),
+        fetch('/api/plan-config', { credentials: 'include' }).catch(() => null),
       ])
 
       if (mounted) {
+        if (planConfigResponse) {
+          const planConfigPayload = (await planConfigResponse.json().catch(() => null)) as
+            | { ok?: boolean; plans?: PlanConfigMap }
+            | null
+          if (planConfigResponse.ok && planConfigPayload?.ok && planConfigPayload.plans) {
+            setPlanConfigs(planConfigPayload.plans)
+          }
+        }
+
         setServices((existingServices || []) as Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }>)
 
         const defaults = buildDefaultAvailabilityMap()
@@ -1688,12 +1709,9 @@ export function OnboardingTrackerModal({
     setAvailabilitySaveState('saving')
     setAvailabilityError('')
 
-    const safeNoticeHours = Math.max(
-      1,
-      Math.min(
-        Number(minNoticeRange.max),
-        Math.max(Math.ceil(Number(minNoticeRange.min)), Number(minimumNoticeHours || minNoticeRange.min)),
-      ),
+    const safeNoticeHours = Math.min(
+      Number(minNoticeRange.max),
+      Math.max(Number(minNoticeRange.min), Number(minimumNoticeHours || minNoticeRange.min)),
     )
     const safeBookingWindow = Math.min(
       Number(tierLimits.bookingWindowDays),
@@ -2779,7 +2797,7 @@ export function OnboardingTrackerModal({
                             <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedência mínima (horas)</label>
                             <input
                               type="number"
-                              min={Math.max(1, Math.ceil(Number(minNoticeRange.min)))}
+                              min={Number(minNoticeRange.min)}
                               max={Math.min(Number(minNoticeRange.max), 168)}
                               value={minimumNoticeHours}
                               onChange={event =>
@@ -2787,7 +2805,7 @@ export function OnboardingTrackerModal({
                                   Math.min(
                                     Math.min(Number(minNoticeRange.max), 168),
                                     Math.max(
-                                      Math.max(1, Math.ceil(Number(minNoticeRange.min))),
+                                      Number(minNoticeRange.min),
                                       Number(event.target.value || minNoticeRange.min),
                                     ),
                                   ),
@@ -2824,17 +2842,16 @@ export function OnboardingTrackerModal({
                             <input
                               type="number"
                               min={0}
-                              max={isBasicTier ? 15 : 120}
+                              max={maxBufferMinutes}
                               value={bufferMinutes}
                               onChange={event => {
                                 const next = Math.max(0, Number(event.target.value || 0))
-                                const maxBuffer = isBasicTier ? 15 : 120
-                                setBufferMinutes(Math.min(maxBuffer, next))
+                                setBufferMinutes(Math.min(maxBufferMinutes, next))
                               }}
                               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                             />
                             <p className="mt-1 text-[11px] text-neutral-500">
-                              Limite atual: {isBasicTier ? 15 : 120} minutos.
+                              Limite atual: {maxBufferMinutes} minutos.
                             </p>
                           </div>
 
@@ -2851,7 +2868,7 @@ export function OnboardingTrackerModal({
                             </select>
                             {isBasicTier ? (
                               <p className="mt-1 text-[11px] text-amber-700">
-                                No plano básico, a confirmação é manual.
+                                No plano básico, o aceite é automático.
                               </p>
                             ) : null}
                           </div>

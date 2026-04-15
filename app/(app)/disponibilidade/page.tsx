@@ -7,7 +7,7 @@ import { Loader2, Check, Clock, AlertCircle, ChevronLeft, RefreshCcw, Link2 } fr
 import Link from 'next/link'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
-import { isFeatureAvailable } from '@/lib/tier-config'
+import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 
 // day_of_week: 0=Sunday, 1=Monday, ..., 6=Saturday
 // We display Mon-Sun (1-6, 0) but store as 0-6
@@ -63,9 +63,10 @@ export default function DisponibilidadePage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [professionalTier, setProfessionalTier] = useState('basic')
+  const [planConfigs, setPlanConfigs] = useState<PlanConfigMap | null>(null)
   const [accessDenied, setAccessDenied] = useState(false)
   const [bufferMinutes, setBufferMinutes] = useState(15)
-  const [maxWindowDays, setMaxWindowDays] = useState(60)
+  const [maxWindowDays, setMaxWindowDays] = useState(30)
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [calendarTimezone, setCalendarTimezone] = useState('America/Sao_Paulo')
   const [calendarProvider, setCalendarProvider] = useState<CalendarProvider>('google')
@@ -118,7 +119,19 @@ export default function DisponibilidadePage() {
     }
 
     setProfessionalId(professional.id)
-    setProfessionalTier(String(professional.tier || 'basic').toLowerCase())
+    if (!planConfigs) {
+      const planResponse = await fetch('/api/plan-config', { credentials: 'include' })
+      const planPayload = (await planResponse.json().catch(() => null)) as
+        | { ok?: boolean; plans?: PlanConfigMap }
+        | null
+      setPlanConfigs(planPayload?.ok && planPayload.plans ? planPayload.plans : getDefaultPlanConfigMap())
+    }
+    const normalizedTier = String(professional.tier || 'basic').toLowerCase()
+    const resolvedPlans = planConfigs || getDefaultPlanConfigMap()
+    const tierConfig = getPlanConfigForTier(resolvedPlans, normalizedTier)
+    const tierLimits = tierConfig.limits
+    const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
+    setProfessionalTier(normalizedTier)
 
     const [{ data: settingsRow }, { data: calendarRow }, { data: bookingRows }, { data: externalBusyRows }] = await Promise.all([
       supabase
@@ -148,11 +161,10 @@ export default function DisponibilidadePage() {
         .limit(300),
     ])
 
-    setBufferMinutes(
-      Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15),
-    )
+    const savedBufferMinutes = Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15)
+    setBufferMinutes(Math.min(maxBufferMinutes, Math.max(0, savedBufferMinutes)))
     setCalendarTimezone(String(settingsRow?.timezone || 'America/Sao_Paulo'))
-    setMaxWindowDays(Number(settingsRow?.max_booking_window_days || 60))
+    setMaxWindowDays(Number(settingsRow?.max_booking_window_days || tierLimits.bookingWindowDays))
     setCalendarConnected(Boolean(calendarRow?.sync_enabled))
     const resolvedProvider = String(calendarRow?.provider || 'google')
     setCalendarProvider(resolvedProvider === 'outlook' || resolvedProvider === 'apple' ? resolvedProvider : 'google')
@@ -214,7 +226,7 @@ export default function DisponibilidadePage() {
     }
 
     setLoading(false)
-  }, [router])
+  }, [planConfigs, router])
 
   useEffect(() => {
     loadAvailability()
@@ -246,7 +258,8 @@ export default function DisponibilidadePage() {
   }
 
   async function connectCalendarProvider() {
-    const locked = calendarProvider !== 'google' && !isFeatureAvailable(professionalTier, 'outlook_sync')
+    const tierFeatures = getPlanConfigForTier(planConfigs || getDefaultPlanConfigMap(), professionalTier).features
+    const locked = calendarProvider !== 'google' && !tierFeatures.includes('outlook_sync')
     if (locked) {
       setCalendarSyncError('Esse provider está disponível apenas em plano superior.')
       return
@@ -349,7 +362,7 @@ export default function DisponibilidadePage() {
   }
 
   const hasErrors = DAYS_OF_WEEK.some(d => !isValidTimeRange(availability[d.value]))
-  const outlookLocked = !isFeatureAvailable(professionalTier, 'outlook_sync')
+  const outlookLocked = !getPlanConfigForTier(planConfigs || getDefaultPlanConfigMap(), professionalTier).features.includes('outlook_sync')
 
   async function handleSave() {
     if (!professionalId || hasErrors) return

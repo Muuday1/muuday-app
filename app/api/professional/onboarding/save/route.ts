@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
+import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
 
 const qualificationFileSchema = z.object({
   id: z.string(),
@@ -233,11 +234,24 @@ export async function POST(request: Request) {
     const db = admin ?? supabase
     const professionalId = String(professional.id)
     const userId = String(professional.user_id || user.id)
+    const normalizedTier = String(professional.tier || '').toLowerCase()
+    const planConfigMap = await loadPlanConfigMap()
+    const tierConfig = getPlanConfigForTier(planConfigMap, normalizedTier)
+    const tierLimits = tierConfig.limits
+    const minNoticeRange = tierConfig.minNoticeRange
+    const maxBufferForTier = tierConfig.bufferConfig.maxMinutes
 
     if (payload.data.section === 'identity') {
       const effectiveDisplayName = String(payload.data.displayName || profile?.full_name || '').trim()
       if (!effectiveDisplayName) {
         return NextResponse.json({ error: 'Informe o nome publico profissional para continuar.' }, { status: 400 })
+      }
+
+      if (payload.data.focusAreas.length > tierLimits.tags) {
+        return NextResponse.json(
+          { error: `Seu plano permite até ${tierLimits.tags} tag(s) de foco.` },
+          { status: 400 },
+        )
       }
 
       const invalidQualification = payload.data.qualifications.find(item => getQualificationValidationMessage(item))
@@ -412,6 +426,19 @@ export async function POST(request: Request) {
     }
 
     if (payload.data.section === 'service') {
+      const { count: activeServicesCount } = await db
+        .from('professional_services')
+        .select('id', { count: 'exact', head: true })
+        .eq('professional_id', professionalId)
+        .eq('is_active', true)
+
+      if ((activeServicesCount || 0) >= tierLimits.services) {
+        return NextResponse.json(
+          { error: `Seu plano permite até ${tierLimits.services} serviço(s) ativo(s).` },
+          { status: 400 },
+        )
+      }
+
       const { data: inserted, error } = await db
         .from('professional_services')
         .insert({
@@ -456,12 +483,20 @@ export async function POST(request: Request) {
       }
 
       const nowIso = new Date().toISOString()
-      const normalizedTier = String(professional.tier || '').toLowerCase()
-      const maxBufferForTier = normalizedTier === 'basic' ? 15 : 120
-      const safeMinimumNoticeHours = Math.max(1, Math.min(168, Number(payload.data.minimumNoticeHours || 1)))
+      const safeMinimumNoticeHours = Math.min(
+        Number(minNoticeRange.max),
+        Math.max(Number(minNoticeRange.min), Number(payload.data.minimumNoticeHours || minNoticeRange.min)),
+      )
       const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, payload.data.bufferMinutes))
-      const safeConfirmationMode = normalizedTier === 'basic' ? 'manual' : payload.data.confirmationMode
-      const safeBookingWindowDays = Math.max(1, Math.min(365, Number(payload.data.maxBookingWindowDays || 30)))
+      const canUseManualConfirmation = tierConfig.features.includes('manual_accept')
+      const safeConfirmationMode =
+        canUseManualConfirmation && payload.data.confirmationMode === 'manual'
+          ? 'manual'
+          : 'auto_accept'
+      const safeBookingWindowDays = Math.max(
+        1,
+        Math.min(Number(tierLimits.bookingWindowDays), Number(payload.data.maxBookingWindowDays || tierLimits.bookingWindowDays)),
+      )
       const safeRows = Object.entries(payload.data.availabilityMap).map(([day, value]) => ({
         professional_id: professionalId,
         day_of_week: Number(day),

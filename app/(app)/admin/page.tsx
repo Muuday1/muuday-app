@@ -406,6 +406,12 @@ export default function AdminPage() {
           >
             <FolderTree className="w-4 h-4" /> Taxonomia
           </Link>
+          <Link
+            href="/admin/planos"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-neutral-200 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-all"
+          >
+            <Shield className="w-4 h-4" /> Planos
+          </Link>
         </div>
       </div>
 
