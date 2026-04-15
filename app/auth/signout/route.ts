@@ -1,9 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
-import { getAppBaseUrl } from '@/lib/config/app-url'
 
 async function handleSignOut(request: NextRequest) {
-  const redirectUrl = new URL('/', getAppBaseUrl())
+  // Always redirect back to this request origin to avoid cross-domain redirect mismatches.
+  const redirectUrl = new URL('/', request.url)
   const response = NextResponse.redirect(redirectUrl)
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
