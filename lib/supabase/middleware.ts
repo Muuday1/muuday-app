@@ -23,15 +23,33 @@ function shouldSampleFallback(userId: string, sampleRatePercent = 5) {
   return hash % 100 < sampleRatePercent
 }
 
+function isPrefetchRequest(request: NextRequest) {
+  const purpose = request.headers.get('purpose')?.toLowerCase()
+  const secPurpose = request.headers.get('sec-purpose')?.toLowerCase()
+  const nextRouterPrefetch = request.headers.get('next-router-prefetch')
+  const middlewarePrefetch = request.headers.get('x-middleware-prefetch')
+  return (
+    purpose === 'prefetch' ||
+    secPurpose === 'prefetch' ||
+    nextRouterPrefetch === '1' ||
+    middlewarePrefetch === '1'
+  )
+}
+
+function isRscRequest(request: NextRequest) {
+  return request.headers.get('rsc') === '1'
+}
+
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const pathname = request.nextUrl.pathname
+  const isPrefetch = isPrefetchRequest(request)
+  const isRsc = isRscRequest(request)
 
   // If Supabase env vars are missing (misconfigured preview/prod), do not crash middleware.
   // Keep public routes working and enforce basic route protection without auth.
   if (!supabaseUrl || !supabaseAnonKey) {
-    const pathname = request.nextUrl.pathname
-
     const protectedPaths = [
       '/dashboard',
       '/agenda',
@@ -51,13 +69,19 @@ export async function updateSession(request: NextRequest) {
     const isProtected = protectedPaths.some(path => pathname.startsWith(path))
     const isAdminRoute = pathname.startsWith('/admin')
 
-    if (isProtected || isAdminRoute) {
+    if ((isProtected || isAdminRoute) && !isPrefetch && !isRsc) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       if (!isAdminRoute) url.searchParams.set('redirect', pathname)
       return NextResponse.redirect(url)
     }
 
+    return NextResponse.next({ request })
+  }
+
+  // Avoid background session churn: for App Router prefetch/RSC requests, skip auth refresh.
+  // Protected pages still enforce auth/role in their own server components.
+  if (isPrefetch || isRsc) {
     return NextResponse.next({ request })
   }
 
@@ -92,8 +116,6 @@ export async function updateSession(request: NextRequest) {
     user?.app_metadata?.role ??
     (user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role
   )
-
-  const pathname = request.nextUrl.pathname
 
   // Public routes accessible without login (search/discovery)
   const publicAppPaths = ['/buscar', '/profissional']
@@ -146,14 +168,14 @@ export async function updateSession(request: NextRequest) {
     return cachedRole
   }
 
-  if (!user && isProtected) {
+  if (!user && isProtected && !isPrefetch && !isRsc) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
     return applyPendingCookies(NextResponse.redirect(url))
   }
 
-  if (!user && isAdminRoute) {
+  if (!user && isAdminRoute && !isPrefetch && !isRsc) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return applyPendingCookies(NextResponse.redirect(url))
@@ -163,19 +185,19 @@ export async function updateSession(request: NextRequest) {
   if (user && (isAdminRoute || isProfessionalRoute || isUserOnlyRoute)) {
     const role = await getProfileRole()
 
-    if (isAdminRoute && role !== 'admin') {
+    if (isAdminRoute && role !== 'admin' && !isPrefetch && !isRsc) {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
       return applyPendingCookies(NextResponse.redirect(url))
     }
 
-    if (isProfessionalRoute && role !== 'profissional') {
+    if (isProfessionalRoute && role !== 'profissional' && !isPrefetch && !isRsc) {
       const url = request.nextUrl.clone()
       url.pathname = '/buscar'
       return applyPendingCookies(NextResponse.redirect(url))
     }
 
-    if (isUserOnlyRoute && role !== 'usuario' && role !== 'admin') {
+    if (isUserOnlyRoute && role !== 'usuario' && role !== 'admin' && !isPrefetch && !isRsc) {
       const url = request.nextUrl.clone()
       url.pathname = role === 'profissional' ? '/dashboard' : '/buscar'
       return applyPendingCookies(NextResponse.redirect(url))
