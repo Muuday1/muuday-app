@@ -34,6 +34,7 @@ const identitySchema = z.object({
   primaryLanguage: z.string().trim().min(1).max(80),
   secondaryLanguages: z.array(z.string().trim().min(1).max(80)).max(20),
   targetAudiences: z.array(z.string().trim().min(1).max(80)).max(20),
+  focusAreas: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   qualifications: z.array(qualificationSchema).max(20),
 })
 
@@ -81,6 +82,20 @@ function normalizeLanguages(primary: string, secondary: string[]) {
   return Array.from(new Set([primary, ...secondary].map(item => item.trim()).filter(Boolean)))
 }
 
+function getQualificationValidationMessage(item: z.infer<typeof qualificationSchema>) {
+  const label = item.name.trim() || 'qualificação'
+  if (!item.name.trim()) return 'Informe o nome da qualificação.'
+  if (item.requires_registration) {
+    if (!item.registration_number.trim()) return `Informe o número de registro em "${label}".`
+    if (!item.issuer.trim()) return `Informe o órgão emissor em "${label}".`
+    if (!item.country.trim()) return `Informe o país do registro em "${label}".`
+  } else if (!item.course_name.trim()) {
+    return `Informe o nome do curso ou formação em "${label}".`
+  }
+  if (item.evidence_files.length === 0) return `Envie ao menos um comprovante para "${label}".`
+  return ''
+}
+
 export async function POST(request: Request) {
   try {
     const payload = payloadSchema.safeParse(await request.json().catch(() => null))
@@ -113,26 +128,17 @@ export async function POST(request: Request) {
     const userId = String(professional.user_id || user.id)
 
     if (payload.data.section === 'identity') {
-      const invalidQualification = payload.data.qualifications.find(
-        item =>
-          !item.name.trim() ||
-          (item.requires_registration &&
-            (!item.registration_number.trim() || !item.issuer.trim() || !item.country.trim())) ||
-          (!item.requires_registration && !item.course_name.trim()) ||
-          item.evidence_files.length === 0,
-      )
+      const invalidQualification = payload.data.qualifications.find(item => getQualificationValidationMessage(item))
 
       if (invalidQualification) {
-        return NextResponse.json(
-          { error: 'Complete os campos obrigatórios das qualificações antes de salvar.' },
-          { status: 400 },
-        )
+        return NextResponse.json({ error: getQualificationValidationMessage(invalidQualification) }, { status: 400 })
       }
 
       const { error: professionalError } = await db
         .from('professionals')
         .update({
           years_experience: payload.data.yearsExperience,
+          focus_areas: payload.data.focusAreas,
           languages: normalizeLanguages(payload.data.primaryLanguage, payload.data.secondaryLanguages),
           updated_at: new Date().toISOString(),
         })
@@ -150,6 +156,7 @@ export async function POST(request: Request) {
         primary_language: payload.data.primaryLanguage || null,
         secondary_languages: payload.data.secondaryLanguages,
         target_audiences: payload.data.targetAudiences,
+        focus_areas: payload.data.focusAreas,
         qualifications_structured: payload.data.qualifications.map(item => ({
           id: item.id,
           name: item.name,
