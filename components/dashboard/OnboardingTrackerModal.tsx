@@ -1248,6 +1248,18 @@ export function OnboardingTrackerModal({
     return json
   }
 
+  async function refreshTrackerEvaluation() {
+    const response = await fetch('/api/professional/onboarding/state', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    const json = (await response.json().catch(() => ({}))) as { evaluation?: ProfessionalOnboardingEvaluation }
+    if (!response.ok || !json.evaluation) return
+    setCurrentEvaluation(json.evaluation)
+    onEvaluationChange?.(json.evaluation)
+  }
+
   function handlePhotoDragStart(clientX: number, clientY: number) {
     if (!pendingPhoto) return
     dragStateRef.current = {
@@ -1626,6 +1638,7 @@ export function OnboardingTrackerModal({
 
     try {
       if (selectedPlanTier === String(tier || '').toLowerCase()) {
+        await refreshTrackerEvaluation()
         setPlanActionState('saved')
         setManualCompletedStageIds(previous =>
           previous.includes('c6_plan_billing_setup_post')

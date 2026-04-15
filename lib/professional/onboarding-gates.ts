@@ -582,15 +582,6 @@ export function evaluateOnboardingGates(
       actionHref: '/configuracoes-agendamento',
     })
   }
-  if (!fieldState.cancellation_policy_acceptance) {
-    availabilityBlockers.push({
-      code: 'missing_cancellation_policy',
-      title: 'Politica de cancelamento pendente',
-      description: 'Voce precisa aceitar a politica de cancelamento padrao da plataforma.',
-      stage: 'c5_availability_calendar',
-      actionHref: '/configuracoes-agendamento',
-    })
-  }
 
   const billingBlockers: OnboardingBlocker[] = []
   if (!fieldState.professional_plan_selection) {
@@ -602,26 +593,17 @@ export function evaluateOnboardingGates(
       actionHref: '/planos',
     })
   }
-  if (!fieldState.terms_acceptance) {
-    billingBlockers.push({
-      code: 'missing_terms_acceptance',
-      title: 'Aceite de termos pendente',
-      description: 'Aceite os termos da plataforma para concluir a etapa C6.',
-      stage: 'c6_plan_billing_setup',
-      actionHref: '/planos',
-    })
-  }
+
+  const payoutSetupBlockers: OnboardingBlocker[] = []
   if (!fieldState.billing_card_for_professional_plan && !onboardingFinanceBypass) {
-    billingBlockers.push({
+    payoutSetupBlockers.push({
       code: 'missing_billing_card',
       title: 'Cartao nao configurado',
       description: 'Adicione um cartao para ativar trial e assinatura do plano selecionado.',
-      stage: 'c6_plan_billing_setup',
+      stage: 'c7_payout_payments',
       actionHref: '/planos',
     })
   }
-
-  const payoutSetupBlockers: OnboardingBlocker[] = []
   if (!fieldState.payout_connected_account_minimum && !onboardingFinanceBypass) {
     payoutSetupBlockers.push({
       code: 'missing_payout_onboarding',
@@ -632,12 +614,23 @@ export function evaluateOnboardingGates(
     })
   }
 
+  const submitTermsBlockers: OnboardingBlocker[] = []
+  if (!fieldState.terms_acceptance) {
+    submitTermsBlockers.push({
+      code: 'missing_terms_acceptance',
+      title: 'Aceite de termos pendente',
+      description: 'Aceite os termos obrigatorios para concluir o envio do perfil.',
+      stage: 'c8_submit_review',
+      actionHref: '/onboarding-profissional',
+    })
+  }
+
   const reviewSubmissionBlockers = [
     ...identityBlockers,
     ...publicProfileBlockers,
     ...serviceBlockers,
     ...availabilityBlockers,
-    ...billingBlockers,
+    ...submitTermsBlockers,
     ...payoutSetupBlockers,
   ]
 
