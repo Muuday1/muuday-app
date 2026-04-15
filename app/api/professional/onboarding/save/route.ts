@@ -6,7 +6,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
-import { SECTION_TO_REVIEW_FIELD_KEYS, SECTION_TO_REVIEW_STAGES } from '@/lib/professional/review-adjustments'
+import { SECTION_TO_REVIEW_STAGES } from '@/lib/professional/review-adjustments'
 
 const qualificationFileSchema = z.object({
   id: z.string(),
@@ -637,7 +637,6 @@ export async function POST(request: Request) {
     }
 
     const stageIdsForSection = SECTION_TO_REVIEW_STAGES[savedSection] || []
-    const fieldKeysForSection = SECTION_TO_REVIEW_FIELD_KEYS[savedSection] || []
     const resolvedAdjustmentIds = getResolvedAdjustmentIds(payload.data)
 
     if (resolvedAdjustmentIds.length > 0) {
@@ -652,19 +651,6 @@ export async function POST(request: Request) {
         .eq('professional_id', professionalId)
         .in('id', resolvedAdjustmentIds)
         .in('stage_id', stageIdsForSection)
-        .in('status', ['open', 'reopened'])
-    } else if (stageIdsForSection.length > 0 && fieldKeysForSection.length > 0) {
-      await db
-        .from('professional_review_adjustments')
-        .update({
-          status: 'resolved_by_professional',
-          resolved_at: new Date().toISOString(),
-          resolved_by: user.id,
-          resolution_note: `resolved_by_section:${savedSection}`,
-        })
-        .eq('professional_id', professionalId)
-        .in('stage_id', stageIdsForSection)
-        .in('field_key', fieldKeysForSection)
         .in('status', ['open', 'reopened'])
     }
 

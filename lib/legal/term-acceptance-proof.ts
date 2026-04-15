@@ -21,16 +21,55 @@ function fromBase64Url(input: string) {
   return Buffer.from(input, 'base64url').toString('utf8')
 }
 
-export function extractRequestIp(headers: Headers) {
-  const vercelIp = String(headers.get('x-vercel-forwarded-for') || '')
-    .split(',')[0]
-    ?.trim()
-  if (vercelIp && isIP(vercelIp)) return vercelIp
+function extractIpFromHeaderValue(headerValue: string | null): string | null {
+  if (!headerValue) return null
+  const tokens = String(headerValue)
+    .split(',')
+    .map(token => token.trim())
+    .filter(Boolean)
 
-  const realIp = String(headers.get('x-real-ip') || '')
-    .split(',')[0]
-    ?.trim()
-  if (realIp && isIP(realIp)) return realIp
+  for (const token of tokens) {
+    let value = token
+
+    const forMatch = value.match(/for="?([^;"\s]+)"?/i)
+    if (forMatch?.[1]) {
+      value = forMatch[1]
+    }
+
+    if (value.startsWith('"') && value.endsWith('"')) {
+      value = value.slice(1, -1).trim()
+    }
+
+    if (value.startsWith('[') && value.includes(']')) {
+      const endBracket = value.indexOf(']')
+      value = value.slice(1, endBracket)
+    } else if (/:\d{1,5}$/.test(value) && value.split(':').length === 2) {
+      value = value.replace(/:\d{1,5}$/, '')
+    } else if (value.startsWith('::') && value.includes(':') && value.endsWith(']')) {
+      // noop guard for malformed bracket-like IPv6 fragments.
+      value = value.replace(/^\[|\]$/g, '')
+    }
+
+    if (isIP(value)) {
+      return value
+    }
+  }
+
+  return null
+}
+
+export function extractRequestIp(headers: Headers) {
+  const trustedForwardedFor = extractIpFromHeaderValue(headers.get('x-vercel-forwarded-for'))
+  if (trustedForwardedFor) return trustedForwardedFor
+
+  const cfIp = extractIpFromHeaderValue(headers.get('cf-connecting-ip'))
+  if (cfIp) return cfIp
+
+  const trueClientIp = extractIpFromHeaderValue(headers.get('true-client-ip'))
+  if (trueClientIp) return trueClientIp
+
+  const realIp = extractIpFromHeaderValue(headers.get('x-real-ip'))
+  if (realIp) return realIp
 
   return null
 }
