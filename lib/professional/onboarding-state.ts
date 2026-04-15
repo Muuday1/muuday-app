@@ -98,7 +98,9 @@ export async function loadProfessionalOnboardingState(
 
   const { data: applicationRow } = await supabase
     .from('professional_applications')
-    .select('display_name')
+    .select(
+      'display_name,category,specialty_name,primary_language,secondary_languages,focus_areas,years_experience,taxonomy_suggestions',
+    )
     .eq('user_id', String(professionalRow.user_id))
     .order('updated_at', { ascending: false })
     .order('created_at', { ascending: false })
@@ -114,10 +116,37 @@ export async function loadProfessionalOnboardingState(
     primaryLanguage:
       Array.isArray(professionalRow.languages) && professionalRow.languages.length > 0
         ? String(professionalRow.languages[0] || '')
-        : null,
+        : String(applicationRow?.primary_language || ''),
+  }
+
+  if (!snapshot.professional.category) {
+    snapshot.professional.category = String(applicationRow?.category || '')
+  }
+
+  if (!snapshot.professional.yearsExperience) {
+    snapshot.professional.yearsExperience = Number(applicationRow?.years_experience || 0)
   }
 
   snapshot.professional.displayName = String(applicationRow?.display_name || profileRow?.full_name || '')
+
+  if ((snapshot.professional.subcategories || []).length === 0) {
+    const taxonomySuggestions =
+      applicationRow?.taxonomy_suggestions && typeof applicationRow.taxonomy_suggestions === 'object'
+        ? (applicationRow.taxonomy_suggestions as Record<string, unknown>)
+        : null
+
+    const suggestedSubcategory = [
+      taxonomySuggestions?.subcategory_slug,
+      taxonomySuggestions?.subcategory,
+      taxonomySuggestions?.subcategoria,
+    ]
+      .map(value => String(value || '').trim())
+      .find(Boolean)
+
+    if (suggestedSubcategory) {
+      snapshot.professional.subcategories = [suggestedSubcategory]
+    }
+  }
 
   const { data: settingsRow, error: settingsError } = await supabase
     .from('professional_settings')
@@ -177,7 +206,8 @@ export async function loadProfessionalOnboardingState(
     .from('professional_specialties')
     .select('id', { head: true, count: 'exact' })
     .eq('professional_id', professionalId)
-  snapshot.specialtyCount = specialtiesCount || 0
+  snapshot.specialtyCount =
+    specialtiesCount || (String(applicationRow?.specialty_name || '').trim() ? 1 : 0)
 
   const { count: credentialsCount } = await supabase
     .from('professional_credentials')
@@ -206,7 +236,9 @@ export async function loadProfessionalOnboardingState(
     snapshot.hasServicePricingAndDuration = hasMinimumServiceData(professionalRow)
   }
 
-  snapshot.sensitiveCategory = isSensitiveCategory(professionalRow.category)
+  snapshot.sensitiveCategory = isSensitiveCategory(
+    String(professionalRow.category || applicationRow?.category || ''),
+  )
   const evaluation = evaluateOnboardingGates(snapshot)
   return { snapshot, evaluation }
 }

@@ -327,33 +327,32 @@ export async function POST(request: Request) {
           details: appError.details,
         })
 
-        if (isPermissionError(appError)) {
-          // In environments without service-role key, RLS may block application upsert.
-          // Keep identity save successful and rely on professional/profile fallbacks.
-          console.error('[onboarding/save][identity] professional_applications upsert permission error', {
-            professionalId,
-            userId,
-            code: appError.code,
-            message: appError.message,
-          })
-        } else {
-          if (previousProfessionalRow && !previousProfessionalError) {
-            await db
-              .from('professionals')
-              .update({
-                years_experience: previousProfessionalRow.years_experience,
-                focus_areas: previousProfessionalRow.focus_areas,
-                languages: previousProfessionalRow.languages,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', professionalId)
-          }
+        if (previousProfessionalRow && !previousProfessionalError) {
+          await db
+            .from('professionals')
+            .update({
+              years_experience: previousProfessionalRow.years_experience,
+              focus_areas: previousProfessionalRow.focus_areas,
+              languages: previousProfessionalRow.languages,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', professionalId)
+        }
 
+        if (isPermissionError(appError)) {
           return NextResponse.json(
-            { error: 'Nao foi possivel salvar dados profissionais. Nenhuma alteracao foi aplicada por completo.' },
+            {
+              error:
+                'Nao foi possivel salvar identidade profissional porque a aplicacao do profissional nao pode ser atualizada. Verifique a policy de UPDATE de professional_applications ou a service role do ambiente.',
+            },
             { status: 500 },
           )
         }
+
+        return NextResponse.json(
+          { error: 'Nao foi possivel salvar dados profissionais. Nenhuma alteracao foi aplicada por completo.' },
+          { status: 500 },
+        )
       }
     }
 

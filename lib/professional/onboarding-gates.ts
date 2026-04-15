@@ -631,7 +631,6 @@ export function evaluateOnboardingGates(
     ...serviceBlockers,
     ...availabilityBlockers,
     ...submitTermsBlockers,
-    ...payoutSetupBlockers,
   ]
 
   const canSubmitForReview = reviewSubmissionBlockers.length === 0
@@ -641,7 +640,7 @@ export function evaluateOnboardingGates(
         {
           code: 'missing_review_requirements',
           title: 'Envio para revisao bloqueado',
-          description: 'Complete os campos obrigatorios de C2 a C7.',
+          description: 'Complete as etapas obrigatorias de perfil antes de enviar para analise.',
           stage: 'c8_submit_review',
           actionHref: '/onboarding-profissional',
         },
