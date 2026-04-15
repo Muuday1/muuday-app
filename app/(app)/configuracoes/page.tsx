@@ -1,14 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
 import ProfessionalSettingsWorkspace from '@/components/settings/ProfessionalSettingsWorkspace'
 
 export const metadata = { title: 'Configurações | Muuday' }
 
 export default async function ConfiguracoesPage() {
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getUserWithSessionFallback<{ id: string }>(supabase)
 
   if (!user) {
     redirect('/login')

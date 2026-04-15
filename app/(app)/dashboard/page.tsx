@@ -15,6 +15,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
 import { formatCurrency } from '@/lib/utils'
 import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -91,9 +92,7 @@ export default async function DashboardPage({
   searchParams?: { openOnboarding?: string; result?: string }
 }) {
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getUserWithSessionFallback<{ id: string }>(supabase)
 
   if (!user) redirect('/login')
 
