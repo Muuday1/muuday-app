@@ -110,6 +110,12 @@ export async function adminUpdateProfessionalStatus(
   if (!parsed.success) {
     return { success: false, error: getFirstValidationError(parsed.error) }
   }
+  if (parsed.data.newStatus === 'needs_changes') {
+    return {
+      success: false,
+      error: 'Use "Revisar detalhes" para solicitar ajustes com itens estruturados.',
+    }
+  }
 
   try {
     const { supabase, userId } = await requireAdmin()

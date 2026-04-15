@@ -34,6 +34,7 @@ export async function GET() {
       .from('professional_review_adjustments')
       .select('id,stage_id,field_key,message,severity,status,created_at,resolved_at')
       .eq('professional_id', professional.id)
+      .in('status', ['open', 'reopened'])
       .order('created_at', { ascending: false }),
     supabase
       .from('professional_term_acceptances')

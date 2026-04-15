@@ -705,6 +705,7 @@ export function OnboardingTrackerModal({
       {} as Record<ProfessionalTermKey, boolean>,
     ),
   )
+  const [termsHydrated, setTermsHydrated] = useState(false)
   const [activeTermsModalKey, setActiveTermsModalKey] = useState<ProfessionalTermKey | null>(null)
   const [termViewTokensByKey, setTermViewTokensByKey] = useState<
     Partial<Record<ProfessionalTermKey, string>>
@@ -862,42 +863,63 @@ export function OnboardingTrackerModal({
   const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
   const isBasicTier = normalizedTier === 'basic'
   const refreshTrackerEvaluation = useCallback(async () => {
-    const response = await fetch('/api/professional/onboarding/state', {
-      method: 'GET',
-      credentials: 'include',
-      cache: 'no-store',
-    })
-    const json = (await response.json().catch(() => ({}))) as {
-      evaluation?: ProfessionalOnboardingEvaluation
-      professionalStatus?: string
-      reviewAdjustments?: ReviewAdjustmentItem[]
-      termsAcceptanceByKey?: Record<string, boolean>
-    }
-    if (!response.ok || !json.evaluation) return
-    setCurrentEvaluation(json.evaluation)
-    if (Array.isArray(json.reviewAdjustments)) {
-      setReviewAdjustments(json.reviewAdjustments)
-    }
-    if (json.termsAcceptanceByKey && typeof json.termsAcceptanceByKey === 'object') {
-      setHasAcceptedTerms(
-        TERMS_KEYS.reduce(
-          (acc, key) => ({ ...acc, [key]: Boolean(json.termsAcceptanceByKey?.[key]) }),
-          {} as Record<ProfessionalTermKey, boolean>,
-        ),
+    try {
+      const response = await withTimeout(
+        fetch('/api/professional/onboarding/state', {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        }),
+        9000,
       )
-    }
-    if (typeof json.professionalStatus === 'string') {
-      setCurrentProfessionalStatus(json.professionalStatus)
+      const json = (await withTimeout(
+        response.json().catch(() => ({})),
+        4000,
+      )) as {
+        evaluation?: ProfessionalOnboardingEvaluation
+        professionalStatus?: string
+        reviewAdjustments?: ReviewAdjustmentItem[]
+        termsAcceptanceByKey?: Record<string, boolean>
+      }
+      if (!response.ok || !json.evaluation) {
+        return { ok: false, termsLoaded: false }
+      }
+
+      setCurrentEvaluation(json.evaluation)
+      if (Array.isArray(json.reviewAdjustments)) {
+        setReviewAdjustments(json.reviewAdjustments)
+      }
+
+      let termsLoaded = false
+      if (json.termsAcceptanceByKey && typeof json.termsAcceptanceByKey === 'object') {
+        setHasAcceptedTerms(
+          TERMS_KEYS.reduce(
+            (acc, key) => ({ ...acc, [key]: Boolean(json.termsAcceptanceByKey?.[key]) }),
+            {} as Record<ProfessionalTermKey, boolean>,
+          ),
+        )
+        setTermsHydrated(true)
+        termsLoaded = true
+      } else {
+        setTermsHydrated(false)
+      }
+
+      if (typeof json.professionalStatus === 'string') {
+        setCurrentProfessionalStatus(json.professionalStatus)
+        onTrackerStateChange?.({
+          evaluation: json.evaluation,
+          professionalStatus: json.professionalStatus,
+        })
+        return { ok: true, termsLoaded }
+      }
       onTrackerStateChange?.({
         evaluation: json.evaluation,
-        professionalStatus: json.professionalStatus,
+        professionalStatus: currentProfessionalStatus,
       })
-      return
+      return { ok: true, termsLoaded }
+    } catch {
+      return { ok: false, termsLoaded: false }
     }
-    onTrackerStateChange?.({
-      evaluation: json.evaluation,
-      professionalStatus: currentProfessionalStatus,
-    })
   }, [currentProfessionalStatus, onTrackerStateChange])
 
   useEffect(() => {
@@ -955,6 +977,8 @@ export function OnboardingTrackerModal({
     let mounted = true
     async function loadModalContext() {
       setLoadingContext(true)
+      setTermsHydrated(false)
+      setAvailabilityError('')
       try {
 
       const settledQueries = await Promise.allSettled([
@@ -1098,24 +1122,30 @@ export function OnboardingTrackerModal({
         let profileRow: ProfileSummary | null = null
 
         if (primaryProfileUserId) {
-          const profileByProfessional = await supabase
-            .from('profiles')
-            .select('currency,full_name,timezone,avatar_url')
-            .eq('id', primaryProfileUserId)
-            .maybeSingle()
-          profileRow = (profileByProfessional.data as ProfileSummary | null) || null
+          const profileByProfessional = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('currency,full_name,timezone,avatar_url')
+              .eq('id', primaryProfileUserId)
+              .maybeSingle(),
+            8000,
+          ).catch(() => null)
+          profileRow = (profileByProfessional?.data as ProfileSummary | null) || null
         }
 
         if (!profileRow) {
-          const authUser = await supabase.auth.getUser()
-          const fallbackUserId = String(authUser.data.user?.id || '').trim()
+          const authUser = await withTimeout(supabase.auth.getUser(), 8000).catch(() => null)
+          const fallbackUserId = String(authUser?.data?.user?.id || '').trim()
           if (fallbackUserId) {
-            const profileBySession = await supabase
-              .from('profiles')
-              .select('currency,full_name,timezone,avatar_url')
-              .eq('id', fallbackUserId)
-              .maybeSingle()
-            profileRow = (profileBySession.data as ProfileSummary | null) || null
+            const profileBySession = await withTimeout(
+              supabase
+                .from('profiles')
+                .select('currency,full_name,timezone,avatar_url')
+                .eq('id', fallbackUserId)
+                .maybeSingle(),
+              8000,
+            ).catch(() => null)
+            profileRow = (profileBySession?.data as ProfileSummary | null) || null
           }
         }
 
@@ -1288,7 +1318,23 @@ export function OnboardingTrackerModal({
       }
 
         if (mounted) {
-          await refreshTrackerEvaluation()
+          const trackerRefresh = await withTimeout(refreshTrackerEvaluation(), 10000).catch(() => ({
+            ok: false,
+            termsLoaded: false,
+          }))
+
+          if (!trackerRefresh?.termsLoaded) {
+            const legacyTermsAccepted =
+              Boolean(settingsRow?.terms_accepted_at) &&
+              String(settingsRow?.terms_version || '').trim() === PROFESSIONAL_TERMS_VERSION
+            setHasAcceptedTerms(
+              TERMS_KEYS.reduce(
+                (acc, key) => ({ ...acc, [key]: legacyTermsAccepted }),
+                {} as Record<ProfessionalTermKey, boolean>,
+              ),
+            )
+            setTermsHydrated(true)
+          }
         }
       } catch (error) {
         if (mounted) {
@@ -1706,6 +1752,7 @@ export function OnboardingTrackerModal({
   }
 
   function allRequiredTermsAccepted() {
+    if (!termsHydrated) return false
     return TERMS_KEYS.every(key => hasAcceptedTerms[key])
   }
 
@@ -2103,6 +2150,12 @@ export function OnboardingTrackerModal({
       return
     }
 
+    if (!termsHydrated) {
+      setSubmitReviewState('error')
+      setSubmitTermsError('Aguarde o carregamento dos termos obrigatórios para enviar.')
+      return
+    }
+
     if (!allRequiredTermsAccepted()) {
       setSubmitReviewState('error')
       setSubmitTermsError('Aceite todos os termos obrigatórios antes de enviar.')
@@ -2311,11 +2364,15 @@ export function OnboardingTrackerModal({
                     {trackerViewMode === 'rejected' ? 'Perfil reprovado para esta rodada.' : 'Ajustes solicitados pelo time de revisão.'}
                   </p>
                   <p className="mt-1 text-xs">
-                    Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.
+                    {openReviewAdjustments.length > 0
+                      ? 'Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.'
+                      : 'Ainda não há ajustes estruturados vinculados a este status. Peça ao admin para registrar itens específicos na revisão.'}
                   </p>
-                  <p className="mt-1 text-[11px] text-amber-800">
-                    Marque os itens que você está corrigindo antes de salvar cada etapa.
-                  </p>
+                  {openReviewAdjustments.length > 0 ? (
+                    <p className="mt-1 text-[11px] text-amber-800">
+                      Marque os itens que você está corrigindo antes de salvar cada etapa.
+                    </p>
+                  ) : null}
                   {openReviewAdjustments.length > 0 ? (
                     <ul className="mt-2 space-y-1 text-xs">
                       {openReviewAdjustments.map(item => (
@@ -3590,23 +3647,31 @@ export function OnboardingTrackerModal({
                   ) : null}
                   <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
                     {(() => {
-                      const pendingTerms = PROFESSIONAL_TERMS.filter(term => !hasAcceptedTerms[term.key])
+                      const pendingTerms = termsHydrated
+                        ? PROFESSIONAL_TERMS.filter(term => !hasAcceptedTerms[term.key])
+                        : []
                       return (
                         <>
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <h4 className="text-sm font-semibold text-neutral-900">Termos obrigatórios</h4>
                         <p className="mt-1 text-xs text-neutral-600">
-                          {pendingTerms.length > 0
+                          {!termsHydrated
+                            ? 'Carregando o estado de aceite dos termos...'
+                            : pendingTerms.length > 0
                             ? 'Leia até o final e aceite cada termo pendente antes de enviar.'
                             : 'Todos os termos obrigatórios desta versão já foram aceitos.'}
                         </p>
                       </div>
                       <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
-                        {Object.values(hasAcceptedTerms).filter(Boolean).length}/{TERMS_KEYS.length} aceitos
+                        {termsHydrated ? `${Object.values(hasAcceptedTerms).filter(Boolean).length}/${TERMS_KEYS.length} aceitos` : '...'}
                       </span>
                     </div>
-                    {pendingTerms.length > 0 ? (
+                    {!termsHydrated ? (
+                      <p className="mt-3 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
+                        Validando aceites existentes...
+                      </p>
+                    ) : pendingTerms.length > 0 ? (
                     <div className="mt-3 space-y-2">
                       {pendingTerms.map(term => (
                         <div key={term.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
