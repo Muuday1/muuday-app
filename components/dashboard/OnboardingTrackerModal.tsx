@@ -54,16 +54,21 @@ type AvailabilityDayState = {
 type OnboardingTrackerModalProps = {
   professionalId: string
   tier: string
+  professionalStatus: string
   onboardingEvaluation: ProfessionalOnboardingEvaluation
   initialBio: string
   initialCoverPhotoUrl: string
   autoOpen?: boolean
-  onEvaluationChange?: (evaluation: ProfessionalOnboardingEvaluation) => void
+  onTrackerStateChange?: (state: {
+    evaluation: ProfessionalOnboardingEvaluation
+    professionalStatus: string
+  }) => void
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 type BillingCycle = 'monthly' | 'annual'
 type PlanTier = 'basic' | 'professional' | 'premium'
+type TrackerViewMode = 'editing' | 'submitted_waiting' | 'approved' | 'needs_changes' | 'rejected'
 type PendingPhoto = {
   file: File
   previewUrl: string
@@ -210,6 +215,15 @@ function sanitizePricingErrorMessage(error: string) {
     return 'Preco indisponivel no momento.'
   }
   return error
+}
+
+function resolveTrackerViewMode(status: string): TrackerViewMode {
+  const normalized = String(status || '').toLowerCase().trim()
+  if (normalized === 'pending_review') return 'submitted_waiting'
+  if (normalized === 'approved') return 'approved'
+  if (normalized === 'needs_changes') return 'needs_changes'
+  if (normalized === 'rejected') return 'rejected'
+  return 'editing'
 }
 
 const LANGUAGE_OPTIONS = [
@@ -608,11 +622,12 @@ function getBlockerCta(blocker: Blocker): BlockerCta | null {
 export function OnboardingTrackerModal({
   professionalId,
   tier,
+  professionalStatus,
   onboardingEvaluation,
   initialBio,
   initialCoverPhotoUrl,
   autoOpen = false,
-  onEvaluationChange,
+  onTrackerStateChange,
 }: OnboardingTrackerModalProps) {
   const supabase = useMemo(() => createClient(), [])
   const initialTier = useMemo<PlanTier>(() => {
@@ -713,6 +728,9 @@ export function OnboardingTrackerModal({
   const [allowMultiSession, setAllowMultiSession] = useState(true)
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
+  const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
+    String(professionalStatus || ''),
+  )
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
   const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
   const [submitReviewMessage, setSubmitReviewMessage] = useState('')
@@ -737,6 +755,12 @@ export function OnboardingTrackerModal({
   }, [stagesById])
 
   const normalizedTier = useMemo(() => String(activeTier || 'basic').toLowerCase(), [activeTier])
+  const trackerViewMode = useMemo(
+    () => resolveTrackerViewMode(currentProfessionalStatus),
+    [currentProfessionalStatus],
+  )
+  const trackerIsReadOnly = trackerViewMode === 'submitted_waiting' || trackerViewMode === 'approved'
+  const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
   const minNoticeRange = tierConfig.minNoticeRange
@@ -748,20 +772,42 @@ export function OnboardingTrackerModal({
       credentials: 'include',
       cache: 'no-store',
     })
-    const json = (await response.json().catch(() => ({}))) as { evaluation?: ProfessionalOnboardingEvaluation }
+    const json = (await response.json().catch(() => ({}))) as {
+      evaluation?: ProfessionalOnboardingEvaluation
+      professionalStatus?: string
+    }
     if (!response.ok || !json.evaluation) return
     setCurrentEvaluation(json.evaluation)
-    onEvaluationChange?.(json.evaluation)
-  }, [onEvaluationChange])
+    if (typeof json.professionalStatus === 'string') {
+      setCurrentProfessionalStatus(json.professionalStatus)
+      onTrackerStateChange?.({
+        evaluation: json.evaluation,
+        professionalStatus: json.professionalStatus,
+      })
+      return
+    }
+    onTrackerStateChange?.({
+      evaluation: json.evaluation,
+      professionalStatus: currentProfessionalStatus,
+    })
+  }, [currentProfessionalStatus, onTrackerStateChange])
 
   useEffect(() => {
     if (!open) return
+    if (trackerIsReadOnly) {
+      setActiveStageId('c8_submit_review')
+      return
+    }
     setActiveStageId(firstPendingStageId)
-  }, [open, firstPendingStageId])
+  }, [open, firstPendingStageId, trackerIsReadOnly])
 
   useEffect(() => {
     setCurrentEvaluation(onboardingEvaluation)
   }, [onboardingEvaluation])
+
+  useEffect(() => {
+    setCurrentProfessionalStatus(String(professionalStatus || ''))
+  }, [professionalStatus])
 
   useEffect(() => {
     setActiveTier(initialTier)
@@ -1357,7 +1403,10 @@ export function OnboardingTrackerModal({
     }
 
     setCurrentEvaluation(json.evaluation)
-    onEvaluationChange?.(json.evaluation)
+    onTrackerStateChange?.({
+      evaluation: json.evaluation,
+      professionalStatus: currentProfessionalStatus,
+    })
     setTrackerRefreshState('saved')
     setTimeout(() => setTrackerRefreshState('idle'), 1200)
     const nextPending = UI_STAGE_ORDER.find(id =>
@@ -1821,6 +1870,7 @@ export function OnboardingTrackerModal({
     const payload = (await response.json().catch(() => ({}))) as {
       ok?: boolean
       evaluation?: ProfessionalOnboardingEvaluation
+      professionalStatus?: string
       error?: string
     }
 
@@ -1831,9 +1881,16 @@ export function OnboardingTrackerModal({
     }
 
     setCurrentEvaluation(payload.evaluation)
-    onEvaluationChange?.(payload.evaluation)
+    const nextStatus = String(payload.professionalStatus || 'pending_review')
+    setCurrentProfessionalStatus(nextStatus)
+    onTrackerStateChange?.({
+      evaluation: payload.evaluation,
+      professionalStatus: nextStatus,
+    })
     setSubmitReviewState('saved')
-    setSubmitReviewMessage('Perfil enviado para análise. A equipe vai revisar e liberar a publicação.')
+    setSubmitReviewMessage(
+      'Onboarding concluído. Recebemos seu perfil e ele está em análise. Vamos avisar por e-mail quando houver atualização.',
+    )
     setTimeout(() => setSubmitReviewState('idle'), 2200)
   }
 
@@ -1893,14 +1950,18 @@ export function OnboardingTrackerModal({
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setActiveStageId(item.id)}
+                      onClick={() => {
+                        if (trackerIsReadOnly) return
+                        setActiveStageId(item.id)
+                      }}
+                      disabled={trackerIsReadOnly}
                       className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                         isActive
                           ? 'border-brand-300 bg-brand-50 text-brand-800'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900'
-                      }`}
+                      } ${trackerIsReadOnly ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                       {item.label}
                     </button>
@@ -1915,14 +1976,18 @@ export function OnboardingTrackerModal({
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setActiveStageId(item.id)}
+                      onClick={() => {
+                        if (trackerIsReadOnly) return
+                        setActiveStageId(item.id)
+                      }}
+                      disabled={trackerIsReadOnly}
                       className={`w-full rounded-xl border px-3 py-3 text-left transition ${
                         isActive
                           ? 'border-brand-300 bg-brand-50 text-brand-800 shadow-sm'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100/60'
-                      }`}
+                      } ${trackerIsReadOnly ? 'cursor-not-allowed opacity-80' : ''}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span
@@ -1958,9 +2023,21 @@ export function OnboardingTrackerModal({
             <section className="overflow-y-auto p-4 md:p-5">
               <div className="mb-4 border-b border-neutral-100 pb-3">
                 <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
-                  {UI_STAGE_LABELS[activeStageId as (typeof UI_STAGE_ORDER)[number]]}
+                  {trackerViewMode === 'submitted_waiting'
+                    ? 'Onboarding concluído'
+                    : trackerViewMode === 'approved'
+                      ? 'Perfil aprovado'
+                      : UI_STAGE_LABELS[activeStageId as (typeof UI_STAGE_ORDER)[number]]}
                 </h2>
-                {activeStage?.complete ? (
+                {trackerViewMode === 'submitted_waiting' ? (
+                  <p className="mt-1 text-sm text-blue-700">
+                    Recebemos seu perfil e ele está em análise. Vamos entrar em contato por e-mail com o resultado.
+                  </p>
+                ) : trackerViewMode === 'approved' ? (
+                  <p className="mt-1 text-sm text-green-700">
+                    Seu perfil já foi aprovado. As próximas alterações devem ser feitas pelas páginas de configuração.
+                  </p>
+                ) : activeStage?.complete ? (
                   <p className="mt-1 text-sm text-green-700">Etapa concluída.</p>
                 ) : (
                   <p className="mt-1 text-sm text-amber-700">
@@ -1968,6 +2045,17 @@ export function OnboardingTrackerModal({
                   </p>
                 )}
               </div>
+
+              {trackerNeedsAdjustments ? (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <p className="font-semibold">
+                    {trackerViewMode === 'rejected' ? 'Perfil reprovado para esta rodada.' : 'Ajustes solicitados pelo time de revisão.'}
+                  </p>
+                  <p className="mt-1 text-xs">
+                    Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.
+                  </p>
+                </div>
+              ) : null}
 
               {loadingContext ? (
                 <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
@@ -1978,6 +2066,21 @@ export function OnboardingTrackerModal({
                 </div>
               ) : null}
 
+              {trackerIsReadOnly ? (
+                <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900">
+                    <p className="text-sm font-semibold">
+                      {trackerViewMode === 'approved' ? 'Perfil aprovado e ativo.' : 'Perfil enviado para análise.'}
+                    </p>
+                    <p className="mt-1 text-sm">
+                      {trackerViewMode === 'approved'
+                        ? 'Tudo certo por aqui. Se precisar alterar dados, use as páginas de configuração.'
+                        : 'Nossa equipe está revisando suas informações. Verifique também spam e promoções para não perder o e-mail de atualização.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
               {getPlanFeatureHighlights(activeStageId).length > 0 ? (
                 <div className="mb-4 rounded-xl border border-brand-100 bg-brand-50/50 p-3">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -3250,6 +3353,8 @@ export function OnboardingTrackerModal({
                   </div>
                 </div>
               ) : null}
+                </>
+              )}
             </section>
           </div>
 

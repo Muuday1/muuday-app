@@ -59,5 +59,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     evaluation: result.onboardingState.evaluation,
+    professionalStatus: String(result.onboardingState.snapshot.professional.status || ''),
   })
 }

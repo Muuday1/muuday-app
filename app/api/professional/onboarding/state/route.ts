@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
   }
 
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id,status')
   if (!professional?.id) {
     return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
   }
@@ -30,6 +30,7 @@ export async function GET() {
 
   return NextResponse.json({
     professionalId: professional.id,
+    professionalStatus: String(professional.status || ''),
     evaluation: onboardingState.evaluation,
   })
 }

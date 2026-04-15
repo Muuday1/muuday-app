@@ -235,15 +235,24 @@ export default async function DashboardPage({
   const nextBooking = upcomingBookings?.[0]
   const currency = profile.currency || 'BRL'
   const onboardingEvaluation = onboardingState?.evaluation || null
+  const normalizedProfessionalStatus = String(professional.status || '').toLowerCase()
   const onboardingIncomplete = Boolean(onboardingEvaluation && !onboardingEvaluation.summary.canGoLive)
+  const showOnboardingCard = Boolean(
+    onboardingEvaluation &&
+      (onboardingIncomplete ||
+        ['pending_review', 'approved', 'needs_changes', 'rejected'].includes(
+          normalizedProfessionalStatus,
+        )),
+  )
   const shouldAutoOpenOnboarding = searchParams?.openOnboarding === '1'
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
-      {onboardingIncomplete && onboardingEvaluation ? (
+      {showOnboardingCard && onboardingEvaluation ? (
         <ProfessionalOnboardingCard
           professionalId={professionalId}
           tier={String(professional.tier || 'basic')}
+          professionalStatus={String(professional.status || '')}
           initialEvaluation={onboardingEvaluation}
           initialBio={String(professional.bio || '')}
           initialCoverPhotoUrl={String(professional.cover_photo_url || '')}
