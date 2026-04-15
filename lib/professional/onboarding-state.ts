@@ -52,6 +52,21 @@ function isSensitiveCategory(category: string | null | undefined) {
   )
 }
 
+function inferCountryFromTimezone(timezone: string | null | undefined) {
+  const normalized = String(timezone || '').trim().toLowerCase()
+  if (!normalized) return ''
+  if (normalized === 'america/sao_paulo') return 'Brasil'
+  if (normalized === 'europe/london') return 'Reino Unido'
+  if (normalized === 'europe/lisbon') return 'Portugal'
+  if (normalized === 'europe/madrid') return 'Espanha'
+  if (normalized === 'america/new_york' || normalized === 'america/chicago' || normalized === 'america/los_angeles')
+    return 'Estados Unidos'
+  if (normalized === 'europe/paris') return 'Franca'
+  if (normalized === 'europe/berlin') return 'Alemanha'
+  if (normalized === 'europe/rome') return 'Italia'
+  return ''
+}
+
 export async function loadProfessionalOnboardingState(
   supabase: SupabaseClient,
   professionalId: string,
@@ -70,7 +85,7 @@ export async function loadProfessionalOnboardingState(
   snapshot.professional = {
     id: String(professionalRow.id),
     status: String(professionalRow.status || ''),
-    tier: String(professionalRow.tier || ''),
+    tier: String(professionalRow.tier || '').toLowerCase(),
     firstBookingEnabled: Boolean(professionalRow.first_booking_enabled),
     bio: String(professionalRow.bio || ''),
     category: String(professionalRow.category || ''),
@@ -187,6 +202,10 @@ export async function loadProfessionalOnboardingState(
 
   if (!snapshot.account.timezone && normalizedSettings.timezone) {
     snapshot.account.timezone = normalizedSettings.timezone
+  }
+
+  if (!snapshot.account.country && snapshot.account.timezone) {
+    snapshot.account.country = inferCountryFromTimezone(snapshot.account.timezone)
   }
 
   const { count: availabilityRulesCount } = await supabase

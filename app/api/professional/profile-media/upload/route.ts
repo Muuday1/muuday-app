@@ -10,6 +10,17 @@ const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const ALLOWED_KINDS = ['jpg', 'png', 'webp'] as const
 
+function getStorageUploadErrorMessage(error: { message?: string; details?: string; code?: string } | null | undefined) {
+  const text = `${String(error?.code || '')} ${String(error?.message || '')} ${String(error?.details || '')}`.toLowerCase()
+  if (text.includes('bucket') && text.includes('not')) {
+    return 'Bucket professional-profile-media nao encontrado. Configure o bucket antes de enviar fotos.'
+  }
+  if (text.includes('42501') || text.includes('permission denied') || text.includes('row-level security')) {
+    return 'Sem permissao para upload de foto. Ajuste as policies do bucket professional-profile-media.'
+  }
+  return `Falha no upload: ${String(error?.message || 'erro desconhecido')}`
+}
+
 async function ensureProfileMediaBucket(admin: NonNullable<ReturnType<typeof createAdminClient>>) {
   const { data: bucket } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
   if (bucket) {
@@ -82,7 +93,14 @@ export async function POST(request: Request) {
     const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
     const admin = createAdminClient()
     if (admin) {
-      await ensureProfileMediaBucket(admin)
+      try {
+        await ensureProfileMediaBucket(admin)
+      } catch {
+        return NextResponse.json(
+          { error: 'Nao foi possivel validar bucket de fotos no momento. Tente novamente em instantes.' },
+          { status: 503 },
+        )
+      }
 
       const { error: uploadError } = await admin.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
         contentType: signatureValidation.canonicalMimeType,
@@ -91,7 +109,7 @@ export async function POST(request: Request) {
       })
 
       if (uploadError) {
-        return NextResponse.json({ error: `Falha no upload: ${uploadError.message}` }, { status: 500 })
+        return NextResponse.json({ error: getStorageUploadErrorMessage(uploadError) }, { status: 500 })
       }
 
       const { data: publicData } = admin.storage.from(PROFILE_MEDIA_BUCKET).getPublicUrl(filePath)
@@ -111,10 +129,7 @@ export async function POST(request: Request) {
 
     if (uploadError) {
       return NextResponse.json(
-        {
-          error:
-            'Falha no upload da foto. Verifique as policies do bucket professional-profile-media para upload autenticado.',
-        },
+        { error: getStorageUploadErrorMessage(uploadError) },
         { status: 500 },
       )
     }
@@ -126,7 +141,6 @@ export async function POST(request: Request) {
       path: filePath,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro inesperado no upload.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro inesperado no upload da foto.' }, { status: 500 })
   }
 }

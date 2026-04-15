@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
@@ -727,6 +727,17 @@ export function OnboardingTrackerModal({
   const tierLimits = useMemo(() => getTierLimits(normalizedTier), [normalizedTier])
   const minNoticeRange = useMemo(() => getMinNoticeRange(normalizedTier), [normalizedTier])
   const isBasicTier = normalizedTier === 'basic'
+  const refreshTrackerEvaluation = useCallback(async () => {
+    const response = await fetch('/api/professional/onboarding/state', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    const json = (await response.json().catch(() => ({}))) as { evaluation?: ProfessionalOnboardingEvaluation }
+    if (!response.ok || !json.evaluation) return
+    setCurrentEvaluation(json.evaluation)
+    onEvaluationChange?.(json.evaluation)
+  }, [onEvaluationChange])
 
   useEffect(() => {
     if (!open) return
@@ -802,7 +813,7 @@ export function OnboardingTrackerModal({
         supabase
           .from('professional_applications')
           .select(
-            'title,display_name,category,specialty_name,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
+            'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
           )
           .eq('professional_id', professionalId)
           .order('updated_at', { ascending: false })
@@ -899,12 +910,30 @@ export function OnboardingTrackerModal({
         const resolvedDisplayName = String(appRow?.display_name || profileRow?.full_name || '')
         setIdentityDisplayName(resolvedDisplayName)
         setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
-        setIdentityCategory(String(professional?.category || appRow?.category || ''))
-        setIdentitySubcategory(
-          Array.isArray(professional?.subcategories) && professional.subcategories.length > 0
-            ? String(professional.subcategories[0] || '')
-            : String(appRow?.specialty_name || ''),
-        )
+        const taxonomySuggestions =
+          appRow?.taxonomy_suggestions && typeof appRow.taxonomy_suggestions === 'object'
+            ? (appRow.taxonomy_suggestions as Record<string, unknown>)
+            : null
+        const suggestedCategory =
+          String(
+            taxonomySuggestions?.category_slug ||
+              taxonomySuggestions?.category ||
+              appRow?.category ||
+              professional?.category ||
+              '',
+          ).trim()
+        const suggestedSubcategory =
+          String(
+            (Array.isArray(professional?.subcategories) && professional.subcategories.length > 0
+              ? professional.subcategories[0]
+              : '') ||
+              taxonomySuggestions?.subcategory_slug ||
+              taxonomySuggestions?.subcategory ||
+              appRow?.specialty_name ||
+              '',
+          ).trim()
+        setIdentityCategory(suggestedCategory)
+        setIdentitySubcategory(suggestedSubcategory)
         const nextCategoryNames: Record<string, string> = {}
         for (const row of (categoryRows || []) as Array<Record<string, unknown>>) {
           const slug = String(row.slug || '').trim().toLowerCase()
@@ -1024,6 +1053,10 @@ export function OnboardingTrackerModal({
       if (mounted) {
         setLoadingContext(false)
       }
+
+      if (mounted) {
+        await refreshTrackerEvaluation()
+      }
     }
 
     void loadModalContext()
@@ -1031,7 +1064,7 @@ export function OnboardingTrackerModal({
     return () => {
       mounted = false
     }
-  }, [open, professionalId, supabase])
+  }, [open, professionalId, supabase, refreshTrackerEvaluation])
 
   const stageItems = useMemo(() => {
     return UI_STAGE_ORDER.map(id => {
@@ -1254,18 +1287,6 @@ export function OnboardingTrackerModal({
     }
 
     return json
-  }
-
-  async function refreshTrackerEvaluation() {
-    const response = await fetch('/api/professional/onboarding/state', {
-      method: 'GET',
-      credentials: 'include',
-      cache: 'no-store',
-    })
-    const json = (await response.json().catch(() => ({}))) as { evaluation?: ProfessionalOnboardingEvaluation }
-    if (!response.ok || !json.evaluation) return
-    setCurrentEvaluation(json.evaluation)
-    onEvaluationChange?.(json.evaluation)
   }
 
   function handlePhotoDragStart(clientX: number, clientY: number) {
