@@ -117,7 +117,7 @@ export async function loadProfessionalOnboardingState(
         : null,
   }
 
-  snapshot.professional.displayName = String(applicationRow?.display_name || '')
+  snapshot.professional.displayName = String(applicationRow?.display_name || profileRow?.full_name || '')
 
   const { data: settingsRow, error: settingsError } = await supabase
     .from('professional_settings')

@@ -88,6 +88,12 @@ function isMissingAllowMultiSessionColumnError(error: { message?: string; detail
   return haystack.includes('allow_multi_session') && (haystack.includes('column') || haystack.includes('42703'))
 }
 
+function isPermissionError(error: { message?: string; details?: string; code?: string } | null | undefined) {
+  if (!error) return false
+  const haystack = `${String(error.code || '')} ${String(error.message || '')} ${String(error.details || '')}`.toLowerCase()
+  return haystack.includes('42501') || haystack.includes('permission denied') || haystack.includes('row-level security')
+}
+
 async function upsertProfessionalSettingsWithFallback(
   db: ReturnType<typeof createClient> | NonNullable<ReturnType<typeof createAdminClient>>,
   payload: {
@@ -243,22 +249,33 @@ export async function POST(request: Request) {
         .upsert(appPayload, { onConflict: 'user_id' })
 
       if (appError) {
-        if (previousProfessionalRow && !previousProfessionalError) {
-          await db
-            .from('professionals')
-            .update({
-              years_experience: previousProfessionalRow.years_experience,
-              focus_areas: previousProfessionalRow.focus_areas,
-              languages: previousProfessionalRow.languages,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', professionalId)
-        }
+        if (isPermissionError(appError)) {
+          // In environments without service-role key, RLS may block application upsert.
+          // Keep identity save successful and rely on professional/profile fallbacks.
+          console.error('[onboarding/save][identity] professional_applications upsert permission error', {
+            professionalId,
+            userId,
+            code: appError.code,
+            message: appError.message,
+          })
+        } else {
+          if (previousProfessionalRow && !previousProfessionalError) {
+            await db
+              .from('professionals')
+              .update({
+                years_experience: previousProfessionalRow.years_experience,
+                focus_areas: previousProfessionalRow.focus_areas,
+                languages: previousProfessionalRow.languages,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', professionalId)
+          }
 
-        return NextResponse.json(
-          { error: 'Nao foi possivel salvar dados profissionais. Nenhuma alteracao foi aplicada por completo.' },
-          { status: 500 },
-        )
+          return NextResponse.json(
+            { error: 'Nao foi possivel salvar dados profissionais. Nenhuma alteracao foi aplicada por completo.' },
+            { status: 500 },
+          )
+        }
       }
     }
 
