@@ -1,0 +1,142 @@
+{
+  "cases": [
+    {
+      "id": "unauth-state-requires-auth",
+      "description": "GET onboarding state should reject unauthenticated requests",
+      "method": "GET",
+      "path": "/api/professional/onboarding/state",
+      "auth": "none",
+      "expectedStatus": [
+        401
+      ],
+      "requiredJsonPaths": [
+        "error"
+      ]
+    },
+    {
+      "id": "unauth-plan-pricing-requires-auth",
+      "description": "GET plan pricing should reject unauthenticated requests",
+      "method": "GET",
+      "path": "/api/professional/plan-pricing",
+      "auth": "none",
+      "expectedStatus": [
+        401
+      ],
+      "requiredJsonPaths": [
+        "error"
+      ]
+    },
+    {
+      "id": "unauth-credentials-upload-requires-auth",
+      "description": "POST credentials upload should reject unauthenticated requests before file parsing",
+      "method": "POST",
+      "path": "/api/professional/credentials/upload",
+      "auth": "none",
+      "bodyType": "multipart",
+      "multipartFields": [
+        {
+          "name": "file",
+          "value": "placeholder"
+        }
+      ],
+      "expectedStatus": [
+        401
+      ],
+      "requiredJsonPaths": [
+        "error"
+      ]
+    },
+    {
+      "id": "unauth-profile-media-upload-requires-auth",
+      "description": "POST profile media upload should reject unauthenticated requests before file parsing",
+      "method": "POST",
+      "path": "/api/professional/profile-media/upload",
+      "auth": "none",
+      "bodyType": "multipart",
+      "multipartFields": [
+        {
+          "name": "file",
+          "value": "placeholder"
+        }
+      ],
+      "expectedStatus": [
+        401
+      ],
+      "requiredJsonPaths": [
+        "error"
+      ]
+    },
+    {
+      "id": "auth-state-contract",
+      "description": "GET onboarding state should return professionalId + evaluation when authenticated",
+      "method": "GET",
+      "path": "/api/professional/onboarding/state",
+      "auth": "session",
+      "expectedStatus": [
+        200
+      ],
+      "requiredJsonPaths": [
+        "professionalId",
+        "evaluation"
+      ]
+    },
+    {
+      "id": "auth-plan-pricing-contract",
+      "description": "GET plan pricing should return pricing payload (or controlled unavailable error)",
+      "method": "GET",
+      "path": "/api/professional/plan-pricing",
+      "auth": "session",
+      "expectedStatus": [
+        200,
+        503
+      ],
+      "requiredJsonPathsWhenStatus": {
+        "200": [
+          "provider",
+          "currency",
+          "monthlyAmount",
+          "annualAmount",
+          "tier",
+          "region"
+        ],
+        "503": [
+          "error"
+        ]
+      }
+    },
+    {
+      "id": "auth-save-invalid-payload-contract",
+      "description": "POST onboarding save should reject invalid identity payload with 400",
+      "method": "POST",
+      "path": "/api/professional/onboarding/save",
+      "auth": "session",
+      "bodyType": "json",
+      "jsonBody": {
+        "section": "identity"
+      },
+      "expectedStatus": [
+        400
+      ],
+      "requiredJsonPaths": [
+        "error"
+      ]
+    },
+    {
+      "id": "auth-submit-review-requires-terms",
+      "description": "POST submit-review should reject request without accepted terms",
+      "method": "POST",
+      "path": "/api/professional/onboarding/submit-review",
+      "auth": "session",
+      "bodyType": "json",
+      "jsonBody": {
+        "acceptedTerms": false
+      },
+      "expectedStatus": [
+        400
+      ],
+      "requiredJsonPaths": [
+        "error"
+      ]
+    }
+  ]
+}
