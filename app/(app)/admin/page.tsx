@@ -29,6 +29,7 @@ import {
   FolderTree,
 } from 'lucide-react'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
+import { AdminProfessionalIdentityBadge } from '@/components/admin/AdminProfessionalIdentityBadge'
 
 type AdminProfessional = {
   id: string
@@ -527,26 +528,15 @@ export default function AdminPage() {
             <h3 className="font-semibold text-neutral-900 mb-4">Profissionais recentes</h3>
             {professionals.slice(0, 5).map(pro => (
               <div key={pro.id} className="flex items-center justify-between py-3 border-b border-neutral-50 last:border-0">
-                <div className="flex items-center gap-3">
-                  {pro.profiles?.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={pro.profiles.avatar_url}
-                      alt={`Foto de ${pro.profiles?.full_name || 'profissional'}`}
-                      className="h-8 w-8 rounded-full border border-neutral-200 object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
-                      {pro.profiles?.full_name?.charAt(0) || '?'}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900">{pro.profiles?.full_name}</p>
-                    <p className="text-xs text-neutral-400">
-                      {getPrimarySpecialty(pro)} · {getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Preço não definido'}
-                    </p>
-                  </div>
-                </div>
+                <AdminProfessionalIdentityBadge
+                  fullName={pro.profiles?.full_name}
+                  email={pro.profiles?.email}
+                  avatarUrl={pro.profiles?.avatar_url}
+                  subtitle={`${getPrimarySpecialty(pro)} · ${
+                    getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Preço não definido'
+                  }`}
+                  size="sm"
+                />
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[pro.status]}`}>
                   {statusLabels[pro.status]}
                 </span>
@@ -612,28 +602,15 @@ export default function AdminPage() {
                       className="p-5 flex items-center justify-between cursor-pointer hover:bg-neutral-50/50 transition-colors"
                       onClick={() => setExpandedId(isExpanded ? null : pro.id)}
                     >
-                      <div className="flex items-center gap-3">
-                        {pro.profiles?.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={pro.profiles.avatar_url}
-                            alt={`Foto de ${pro.profiles?.full_name || 'profissional'}`}
-                            className="h-10 w-10 rounded-full border border-neutral-200 object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm">
-                            {pro.profiles?.full_name?.charAt(0) || '?'}
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-neutral-900">{pro.profiles?.full_name}</p>
-                          <p className="text-sm text-neutral-500">
-                            {getPrimarySpecialty(pro)} •{' '}
-                            {getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Preço não definido'} •{' '}
-                            {pro.profiles?.email}
-                          </p>
-                        </div>
-                      </div>
+                      <AdminProfessionalIdentityBadge
+                        fullName={pro.profiles?.full_name}
+                        email={pro.profiles?.email}
+                        avatarUrl={pro.profiles?.avatar_url}
+                        subtitle={`${getPrimarySpecialty(pro)} • ${
+                          getVisibleBasePrice(pro) > 0 ? `R$ ${getVisibleBasePrice(pro).toFixed(2)}` : 'Preço não definido'
+                        } • ${pro.profiles?.email || ''}`}
+                        size="sm"
+                      />
                       <div className="flex items-center gap-3">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-medium ${

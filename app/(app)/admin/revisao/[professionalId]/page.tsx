@@ -6,6 +6,7 @@ import { CircleAlert, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { buildProfessionalCredentialFlags } from '@/lib/admin/professional-credential-checks'
 import { AdminReviewDecisionForm } from '@/components/admin/AdminReviewDecisionForm'
+import { AdminProfessionalIdentityBadge } from '@/components/admin/AdminProfessionalIdentityBadge'
 
 function parseResultMessage(resultRaw?: string) {
   if (!resultRaw) return null
@@ -110,28 +111,13 @@ export default async function AdminReviewProfessionalPage({
               <CircleAlert className="h-4 w-4 text-brand-500" />
               <h2 className="font-semibold text-neutral-900">Resumo</h2>
             </div>
-            <div className="flex items-center gap-3">
-              {owner?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={owner.avatar_url}
-                  alt={`Foto de ${owner?.full_name || 'profissional'}`}
-                  className="h-12 w-12 rounded-full border border-neutral-200 object-cover"
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-base font-semibold text-brand-700">
-                  {(owner?.full_name || 'P').charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-neutral-700">
-                  <strong>{owner?.full_name || 'Profissional'}</strong> • {owner?.email || '-'}
-                </p>
-                <p className="text-xs text-neutral-500">
-                  Preço base: {visibleBasePrice > 0 ? `R$ ${visibleBasePrice.toFixed(2)}` : 'Não definido'}
-                </p>
-              </div>
-            </div>
+            <AdminProfessionalIdentityBadge
+              fullName={owner?.full_name}
+              email={owner?.email}
+              avatarUrl={owner?.avatar_url}
+              subtitle={`Preço base: ${visibleBasePrice > 0 ? `R$ ${visibleBasePrice.toFixed(2)}` : 'Não definido'}`}
+              size="md"
+            />
             <p className="mt-1 text-sm text-neutral-600">
               Status atual: <strong>{String(professional.status || 'draft')}</strong> • Tier selecionado:{' '}
               <strong>{String(professional.tier || 'basic')}</strong>

@@ -108,8 +108,7 @@ export async function GET() {
       annualConfigured: Boolean(annualPriceId),
     })
     if (!allowFallbackPricing) {
-      // Pricing fallback is enabled for display to keep onboarding usable while provider pricing is configured.
-      console.warn('[plan-pricing] using fallback display values while provider price ids are missing')
+      return NextResponse.json({ error: 'Preco indisponivel no momento.' }, { status: 503 })
     }
     const fallbackMonthly = PLAN_PRICE_BASE_MINOR_BRL[tier]
     return NextResponse.json({

@@ -752,6 +752,8 @@ export function OnboardingTrackerModal({
     monthlyAmount: number
     annualAmount: number
     provider: string
+    fallback?: boolean
+    mode?: string
   } | null>(null)
   const [pricingError, setPricingError] = useState('')
   const [activeTier, setActiveTier] = useState<PlanTier>(initialTier)
@@ -779,6 +781,7 @@ export function OnboardingTrackerModal({
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
   const [reviewAdjustments, setReviewAdjustments] = useState<ReviewAdjustmentItem[]>([])
+  const [selectedAdjustmentIds, setSelectedAdjustmentIds] = useState<string[]>([])
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
@@ -830,32 +833,28 @@ export function OnboardingTrackerModal({
   }, [openReviewAdjustments])
   const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
 
-  const openAdjustmentIdsByStageAndField = useMemo(() => {
-    const map = new Map<string, string[]>()
-    for (const item of openReviewAdjustments) {
-      const key = `${String(item.stageId)}::${String(item.fieldKey)}`
-      const current = map.get(key) || []
-      current.push(String(item.id))
-      map.set(key, current)
-    }
-    return map
+  useEffect(() => {
+    const openIds = new Set(openReviewAdjustments.map(item => String(item.id)))
+    setSelectedAdjustmentIds(previous => previous.filter(id => openIds.has(id)))
   }, [openReviewAdjustments])
 
   const getResolvedAdjustmentIdsForSection = useCallback(
     (section: string) => {
       const stageIds = SECTION_TO_REVIEW_STAGES[section] || []
       const fieldKeys = SECTION_TO_REVIEW_FIELD_KEYS[section] || []
-      const ids: string[] = []
-      stageIds.forEach(stageId => {
-        fieldKeys.forEach(fieldKey => {
-          const key = `${stageId}::${fieldKey}`
-          const adjustmentIds = openAdjustmentIdsByStageAndField.get(key) || []
-          ids.push(...adjustmentIds)
-        })
-      })
-      return Array.from(new Set(ids))
+      const selectedIdsSet = new Set(selectedAdjustmentIds)
+      const stageIdSet = new Set(stageIds.map(value => String(value)))
+      const fieldKeySet = new Set(fieldKeys.map(value => String(value)))
+      return openReviewAdjustments
+        .filter(
+          item =>
+            selectedIdsSet.has(String(item.id)) &&
+            stageIdSet.has(String(item.stageId)) &&
+            fieldKeySet.has(String(item.fieldKey)),
+        )
+        .map(item => String(item.id))
     },
-    [openAdjustmentIdsByStageAndField],
+    [openReviewAdjustments, selectedAdjustmentIds],
   )
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
@@ -1569,6 +1568,12 @@ export function OnboardingTrackerModal({
     fallbackError: string,
     options?: { autoAdvance?: boolean },
   ) {
+    const resolvedIdsFromPayload = Array.isArray((payload as { resolvedAdjustmentIds?: unknown }).resolvedAdjustmentIds)
+      ? ((payload as { resolvedAdjustmentIds?: unknown }).resolvedAdjustmentIds as unknown[])
+          .map(id => String(id || '').trim())
+          .filter(Boolean)
+      : []
+
     setTrackerRefreshState('saving')
     const response = await fetch('/api/professional/onboarding/save', {
       method: 'POST',
@@ -1593,6 +1598,10 @@ export function OnboardingTrackerModal({
       evaluation: json.evaluation,
       professionalStatus: currentProfessionalStatus,
     })
+    if (resolvedIdsFromPayload.length > 0) {
+      const resolvedSet = new Set(resolvedIdsFromPayload)
+      setSelectedAdjustmentIds(previous => previous.filter(id => !resolvedSet.has(id)))
+    }
     setTrackerRefreshState('saved')
     setTimeout(() => setTrackerRefreshState('idle'), 1200)
     const nextPending = UI_STAGE_ORDER.find(id =>
@@ -2304,14 +2313,35 @@ export function OnboardingTrackerModal({
                   <p className="mt-1 text-xs">
                     Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.
                   </p>
+                  <p className="mt-1 text-[11px] text-amber-800">
+                    Marque os itens que você está corrigindo antes de salvar cada etapa.
+                  </p>
                   {openReviewAdjustments.length > 0 ? (
                     <ul className="mt-2 space-y-1 text-xs">
                       {openReviewAdjustments.map(item => (
                         <li key={item.id} className="rounded-md bg-white/70 px-2 py-1">
-                          <span className="font-semibold">
-                            {REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || item.stageId}
-                          </span>{' '}
-                          • {item.message}
+                          <label className="flex cursor-pointer items-start gap-2">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-3.5 w-3.5 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                              checked={selectedAdjustmentIds.includes(String(item.id))}
+                              onChange={event => {
+                                const adjustmentId = String(item.id)
+                                setSelectedAdjustmentIds(previous => {
+                                  if (event.target.checked) {
+                                    return previous.includes(adjustmentId) ? previous : [...previous, adjustmentId]
+                                  }
+                                  return previous.filter(id => id !== adjustmentId)
+                                })
+                              }}
+                            />
+                            <span>
+                              <span className="font-semibold">
+                                {REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || item.stageId}
+                              </span>{' '}
+                              • {item.message}
+                            </span>
+                          </label>
                         </li>
                       ))}
                     </ul>
@@ -3435,6 +3465,9 @@ export function OnboardingTrackerModal({
                       </button>
                     </div>
                     {pricingError ? <p className="mt-3 text-xs text-neutral-500">{pricingError}</p> : null}
+                    {planPricing?.fallback || planPricing?.provider === 'fallback-test' ? (
+                      <p className="mt-2 text-xs text-amber-700">Modo de teste ativo para preço/plano neste ambiente.</p>
+                    ) : null}
                     {planActionError ? <p className="mt-3 text-sm text-red-700">{planActionError}</p> : null}
                   </div>
                 </div>

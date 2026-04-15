@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import {
   createTermViewProofToken,
@@ -15,6 +16,12 @@ import {
 const payloadSchema = z.object({
   termKey: z.enum(PROFESSIONAL_REQUIRED_TERMS as [ProfessionalTermKey, ...ProfessionalTermKey[]]),
 })
+
+function isMissingTableError(error: { code?: string; message?: string; details?: string } | null | undefined) {
+  if (!error) return false
+  const haystack = `${String(error.code || '')} ${String(error.message || '')} ${String(error.details || '')}`.toLowerCase()
+  return haystack.includes('42p01') || haystack.includes('does not exist')
+}
 
 export async function POST(request: Request) {
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
@@ -42,14 +49,46 @@ export async function POST(request: Request) {
   }
 
   try {
+    const db = createAdminClient() ?? supabase
+    const viewEventId = crypto.randomUUID()
+    const now = new Date()
+    const openedAt = now.toISOString()
+    const expiresAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString()
+    const ip = extractRequestIp(request.headers)
+    const userAgent = request.headers.get('user-agent') || ''
+
+    const { error: viewEventError } = await db.from('professional_term_view_events').insert({
+      id: viewEventId,
+      professional_id: professional.id,
+      opened_by: user.id,
+      term_key: parsed.data.termKey,
+      term_version: PROFESSIONAL_TERMS_VERSION,
+      opened_at: openedAt,
+      expires_at: expiresAt,
+      ip,
+      user_agent: userAgent,
+    })
+
+    if (viewEventError) {
+      if (isMissingTableError(viewEventError)) {
+        return NextResponse.json(
+          { error: 'Base de termos desatualizada. Execute a migration 049 para continuar.' },
+          { status: 500 },
+        )
+      }
+      return NextResponse.json({ error: 'Não foi possível registrar a abertura do termo.' }, { status: 500 })
+    }
+
     const token = createTermViewProofToken({
       userId: user.id,
       professionalId: professional.id,
       termKey: parsed.data.termKey,
       termVersion: PROFESSIONAL_TERMS_VERSION,
-      ip: extractRequestIp(request.headers),
-      userAgent: request.headers.get('user-agent') || '',
+      viewEventId,
+      ip,
+      userAgent,
     })
+
     return NextResponse.json({ ok: true, token, termVersion: PROFESSIONAL_TERMS_VERSION })
   } catch {
     return NextResponse.json({ error: 'Não foi possível preparar a validação do termo.' }, { status: 503 })

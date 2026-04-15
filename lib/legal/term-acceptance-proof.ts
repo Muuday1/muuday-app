@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+﻿import { createHmac, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 
 const DEFAULT_MIN_VIEW_SECONDS = 3
@@ -79,6 +79,7 @@ export function createTermViewProofToken(payload: {
   professionalId: string
   termKey: string
   termVersion: string
+  viewEventId: string
   ip: string | null
   userAgent: string
   issuedAtMs?: number
@@ -93,6 +94,7 @@ export function createTermViewProofToken(payload: {
     professionalId: String(payload.professionalId || ''),
     termKey: String(payload.termKey || ''),
     termVersion: String(payload.termVersion || ''),
+    veid: String(payload.viewEventId || ''),
     ip: String(payload.ip || ''),
     ua: String(payload.userAgent || ''),
     iat: Number(payload.issuedAtMs || Date.now()),
@@ -109,6 +111,7 @@ export function verifyTermViewProofToken(params: {
   expectedProfessionalId: string
   expectedTermKey: string
   expectedTermVersion: string
+  expectedViewEventId?: string
   currentIp: string | null
   currentUserAgent: string
   minViewSeconds?: number
@@ -136,6 +139,7 @@ export function verifyTermViewProofToken(params: {
     professionalId: string
     termKey: string
     termVersion: string
+    veid?: string
     ip: string
     ua: string
     iat: number
@@ -153,6 +157,13 @@ export function verifyTermViewProofToken(params: {
     body.termVersion !== params.expectedTermVersion
   ) {
     return { ok: false as const, reason: 'mismatch' as const }
+  }
+  const viewEventId = String(body.veid || '').trim()
+  if (!viewEventId) {
+    return { ok: false as const, reason: 'missing_view_event' as const }
+  }
+  if (params.expectedViewEventId && params.expectedViewEventId !== viewEventId) {
+    return { ok: false as const, reason: 'view_event_mismatch' as const }
   }
 
   const currentIp = String(params.currentIp || '')
@@ -175,5 +186,6 @@ export function verifyTermViewProofToken(params: {
     return { ok: false as const, reason: 'expired' as const }
   }
 
-  return { ok: true as const }
+  return { ok: true as const, viewEventId }
 }
+

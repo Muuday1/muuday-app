@@ -803,19 +803,33 @@ export async function POST(request: Request) {
     )
 
     if (resolvedAdjustmentIds.length > 0 && changedFieldKeysForSection.length > 0) {
-      await db
+      const { data: candidateRows } = await db
         .from('professional_review_adjustments')
-        .update({
-          status: 'resolved_by_professional',
-          resolved_at: new Date().toISOString(),
-          resolved_by: user.id,
-          resolution_note: `resolved_by_ids:${savedSection}`,
-        })
+        .select('id,field_key')
         .eq('professional_id', professionalId)
         .in('id', resolvedAdjustmentIds)
         .in('stage_id', stageIdsForSection)
-        .in('field_key', changedFieldKeysForSection)
         .in('status', ['open', 'reopened'])
+
+      const changedFieldSet = new Set(changedFieldKeysForSection)
+      const eligibleAdjustmentIds = (candidateRows || [])
+        .filter(row => changedFieldSet.has(String(row.field_key || '')))
+        .map(row => String(row.id || '').trim())
+        .filter(Boolean)
+
+      if (eligibleAdjustmentIds.length > 0) {
+        await db
+          .from('professional_review_adjustments')
+          .update({
+            status: 'resolved_by_professional',
+            resolved_at: new Date().toISOString(),
+            resolved_by: user.id,
+            resolution_note: `resolved_by_ids:${savedSection}`,
+          })
+          .eq('professional_id', professionalId)
+          .in('id', eligibleAdjustmentIds)
+          .in('status', ['open', 'reopened'])
+      }
     }
 
     await recomputeProfessionalVisibility(db, professionalId)

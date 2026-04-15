@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -15,6 +15,12 @@ const payloadSchema = z.object({
   termKey: z.enum(PROFESSIONAL_REQUIRED_TERMS as [ProfessionalTermKey, ...ProfessionalTermKey[]]),
   termViewToken: z.string().min(20),
 })
+
+function isMissingTableError(error: { code?: string; message?: string; details?: string } | null | undefined) {
+  if (!error) return false
+  const haystack = `${String(error.code || '')} ${String(error.message || '')} ${String(error.details || '')}`.toLowerCase()
+  return haystack.includes('42p01') || haystack.includes('does not exist')
+}
 
 export async function POST(request: Request) {
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
@@ -51,7 +57,8 @@ export async function POST(request: Request) {
     currentIp: ip,
     currentUserAgent: userAgent,
   })
-  if (!proofCheck.ok) {
+
+  if (!proofCheck.ok || !proofCheck.viewEventId) {
     return NextResponse.json(
       { error: 'Abra o termo e permaneça na leitura antes de aceitar.' },
       { status: 400 },
@@ -63,6 +70,39 @@ export async function POST(request: Request) {
   const textHash = getProfessionalTermTextHash(termKey)
   if (!textHash) {
     return NextResponse.json({ error: 'Termo não encontrado.' }, { status: 400 })
+  }
+
+  const nowIso = new Date().toISOString()
+  const minOpenedAtIso = new Date(Date.now() - 3000).toISOString()
+  const { data: consumedEvent, error: consumeError } = await db
+    .from('professional_term_view_events')
+    .update({ consumed_at: nowIso })
+    .eq('id', proofCheck.viewEventId)
+    .eq('professional_id', professional.id)
+    .eq('opened_by', user.id)
+    .eq('term_key', termKey)
+    .eq('term_version', PROFESSIONAL_TERMS_VERSION)
+    .is('consumed_at', null)
+    .lte('opened_at', minOpenedAtIso)
+    .gt('expires_at', nowIso)
+    .select('id')
+    .maybeSingle()
+
+  if (consumeError) {
+    if (isMissingTableError(consumeError)) {
+      return NextResponse.json(
+        { error: 'Base de termos desatualizada. Execute a migration 049 para continuar.' },
+        { status: 500 },
+      )
+    }
+    return NextResponse.json({ error: 'Não foi possível validar o comprovante de leitura.' }, { status: 500 })
+  }
+
+  if (!consumedEvent?.id) {
+    return NextResponse.json(
+      { error: 'Comprovante de leitura inválido, expirado ou já utilizado.' },
+      { status: 400 },
+    )
   }
 
   const { error } = await db.from('professional_term_acceptances').upsert(
