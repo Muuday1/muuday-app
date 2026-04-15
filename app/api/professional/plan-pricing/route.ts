@@ -40,6 +40,12 @@ const PRICE_ENV_KEYS: Record<
   },
 }
 
+const PLAN_PRICE_BASE_MINOR_BRL: Record<'basic' | 'professional' | 'premium', number> = {
+  basic: 4999,
+  professional: 9999,
+  premium: 14999,
+}
+
 function readTier(value: string | null | undefined): 'basic' | 'professional' | 'premium' {
   const normalized = String(value || '').toLowerCase()
   if (normalized === 'professional' || normalized === 'premium') return normalized
@@ -57,7 +63,7 @@ export async function GET() {
   }
 
   const [{ data: profile }, { data: professional }] = await Promise.all([
-    supabase.from('profiles').select('role,country').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('role,country,currency').eq('id', user.id).maybeSingle(),
     supabase
       .from('professionals')
       .select('tier,platform_region')
@@ -93,7 +99,16 @@ export async function GET() {
       monthlyConfigured: Boolean(monthlyPriceId),
       annualConfigured: Boolean(annualPriceId),
     })
-    return NextResponse.json({ error: 'Preco indisponivel no momento.' }, { status: 503 })
+    const fallbackMonthly = PLAN_PRICE_BASE_MINOR_BRL[tier]
+    return NextResponse.json({
+      provider: 'fallback-local',
+      currency: String(profile?.currency || (region === 'uk' ? 'GBP' : 'BRL')).toUpperCase(),
+      monthlyAmount: fallbackMonthly,
+      annualAmount: fallbackMonthly * 10,
+      tier,
+      region,
+      fallback: true,
+    })
   }
 
   try {

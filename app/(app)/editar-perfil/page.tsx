@@ -68,6 +68,18 @@ export default function EditarPerfilPage() {
       return
     }
 
+    if (!country.trim()) {
+      setFeedback({ type: 'error', message: 'Informe o país para continuar.' })
+      setSaving(false)
+      return
+    }
+
+    if (!timezone.trim()) {
+      setFeedback({ type: 'error', message: 'Informe o fuso horário para continuar.' })
+      setSaving(false)
+      return
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -154,6 +166,7 @@ export default function EditarPerfilPage() {
               id="country"
               value={country}
               onChange={e => handleCountryChange(e.target.value)}
+              required
               className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-neutral-900 bg-white"
             >
               <option value="">Selecione um país</option>
@@ -174,6 +187,7 @@ export default function EditarPerfilPage() {
               id="timezone"
               value={timezone}
               onChange={e => setTimezone(e.target.value)}
+              required
               className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-neutral-900 bg-white"
             >
               <option value="">Selecione o fuso horário</option>

@@ -473,7 +473,7 @@ export function evaluateOnboardingGates(
       title: 'Pais ou fuso ausente',
       description: 'Pais e fuso precisam estar preenchidos no perfil de conta.',
       stage: 'c1_account_creation',
-      actionHref: '/perfil',
+      actionHref: '/editar-perfil',
     })
   }
 

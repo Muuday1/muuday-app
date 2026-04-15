@@ -705,6 +705,7 @@ export function OnboardingTrackerModal({
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
   const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
   const [submitReviewMessage, setSubmitReviewMessage] = useState('')
+  const photoHealthCheckedRef = useRef(false)
 
   const stagesById = useMemo(() => {
     const map = new Map<string, Stage>()
@@ -1066,6 +1067,30 @@ export function OnboardingTrackerModal({
     }
   }, [open, professionalId, supabase, refreshTrackerEvaluation])
 
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const checkoutState = params.get('planCheckout')
+    if (!checkoutState) return
+
+    if (checkoutState === 'success') {
+      setPlanActionState('saved')
+      setManualCompletedStageIds(previous =>
+        previous.includes('c6_plan_billing_setup_post') ? previous : [...previous, 'c6_plan_billing_setup_post'],
+      )
+      void refreshTrackerEvaluation()
+      setTimeout(() => setPlanActionState('idle'), 2200)
+    } else if (checkoutState === 'cancelled') {
+      setPlanActionState('error')
+      setPlanActionError('Selecao de plano cancelada. Voce pode tentar novamente.')
+    }
+
+    params.delete('planCheckout')
+    const nextQuery = params.toString()
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`
+    window.history.replaceState({}, '', nextUrl)
+  }, [open, refreshTrackerEvaluation])
+
   const stageItems = useMemo(() => {
     return UI_STAGE_ORDER.map(id => {
       const backendStages = UI_STAGE_BACKEND_STAGE_IDS[id]
@@ -1215,6 +1240,18 @@ export function OnboardingTrackerModal({
 
   async function uploadPreparedProfessionalPhoto() {
     if (!pendingPhoto) return coverPhotoUrl
+
+    if (!photoHealthCheckedRef.current) {
+      const healthResponse = await fetch('/api/professional/profile-media/health', {
+        method: 'GET',
+        credentials: 'include',
+      })
+      const healthPayload = (await healthResponse.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      if (!healthResponse.ok || !healthPayload.ok) {
+        throw new Error(healthPayload.error || 'Storage de fotos indisponivel no momento.')
+      }
+      photoHealthCheckedRef.current = true
+    }
 
     const croppedFile = await buildAvatarCropFile(pendingPhoto.file, photoFocusX, photoFocusY, photoZoom)
     const form = new FormData()
@@ -1692,6 +1729,7 @@ export function OnboardingTrackerModal({
         body: JSON.stringify({
           tier: selectedPlanTier,
           billingCycle: selectedPlanCycle,
+          source: 'onboarding_modal',
         }),
       })
 

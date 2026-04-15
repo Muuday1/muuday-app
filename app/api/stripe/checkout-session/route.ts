@@ -10,6 +10,7 @@ import {
 const payloadSchema = z.object({
   tier: z.enum(['basic', 'professional', 'premium']),
   billingCycle: z.enum(['monthly', 'annual']),
+  source: z.enum(['plan_page', 'onboarding_modal']).optional().default('plan_page'),
 })
 
 const PRICE_ENV_KEYS: Record<
@@ -119,6 +120,27 @@ export async function POST(request: NextRequest) {
   const envKey = PRICE_ENV_KEYS[region][parsed.data.tier][parsed.data.billingCycle]
   const priceId = process.env[envKey]
   if (!priceId) {
+    const { data: settings } = await supabase
+      .from('professional_settings')
+      .select('onboarding_finance_bypass')
+      .eq('professional_id', professional.id)
+      .maybeSingle()
+    const financeBypass = Boolean((settings as { onboarding_finance_bypass?: boolean } | null)?.onboarding_finance_bypass)
+
+    if (financeBypass) {
+      await supabase
+        .from('professionals')
+        .update({ tier: parsed.data.tier, updated_at: new Date().toISOString() })
+        .eq('id', professional.id)
+
+      const baseUrl = appBaseUrl(request)
+      const returnUrl =
+        parsed.data.source === 'onboarding_modal'
+          ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=success&mode=test`
+          : `${baseUrl}/planos?checkout=success&mode=test`
+      return NextResponse.json({ url: returnUrl })
+    }
+
     console.error('[stripe] missing price configuration', {
       region,
       tier: parsed.data.tier,
@@ -128,6 +150,14 @@ export async function POST(request: NextRequest) {
   }
 
   const baseUrl = appBaseUrl(request)
+  const successUrl =
+    parsed.data.source === 'onboarding_modal'
+      ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=success`
+      : `${baseUrl}/planos?checkout=success`
+  const cancelUrl =
+    parsed.data.source === 'onboarding_modal'
+      ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=cancelled`
+      : `${baseUrl}/planos?checkout=cancelled`
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
@@ -148,8 +178,8 @@ export async function POST(request: NextRequest) {
       selected_cycle: parsed.data.billingCycle,
       region,
     },
-    success_url: `${baseUrl}/planos?checkout=success`,
-    cancel_url: `${baseUrl}/planos?checkout=cancelled`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
   })
 
   return NextResponse.json({ url: session.url })

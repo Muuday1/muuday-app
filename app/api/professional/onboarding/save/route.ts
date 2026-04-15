@@ -248,7 +248,7 @@ export async function POST(request: Request) {
 
       const { data: previousProfessionalRow, error: previousProfessionalError } = await db
         .from('professionals')
-        .select('years_experience,focus_areas,languages,category')
+        .select('years_experience,focus_areas,languages,category,subcategories')
         .eq('id', professionalId)
         .maybeSingle()
       if (previousProfessionalError) {
@@ -260,27 +260,9 @@ export async function POST(request: Request) {
         })
       }
 
-      const { error: professionalError } = await db
-        .from('professionals')
-        .update({
-          years_experience: payload.data.yearsExperience,
-          focus_areas: payload.data.focusAreas,
-          languages: normalizeLanguages(payload.data.primaryLanguage, payload.data.secondaryLanguages),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', professionalId)
-
-      if (professionalError) {
-        console.error('[onboarding/save][identity] professionals mirror update failed', {
-          professionalId,
-          message: professionalError.message,
-          code: professionalError.code,
-        })
-      }
-
       const { data: existingApplication } = await db
         .from('professional_applications')
-        .select('category')
+        .select('category,specialty_name,taxonomy_suggestions')
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -290,6 +272,52 @@ export async function POST(request: Request) {
           { error: 'Nao foi possivel identificar a categoria profissional. Atualize seu cadastro inicial e tente novamente.' },
           { status: 400 },
         )
+      }
+
+      const previousSubcategories = Array.isArray(previousProfessionalRow?.subcategories)
+        ? previousProfessionalRow.subcategories
+            .map(item => String(item || '').trim())
+            .filter(Boolean)
+        : []
+      const taxonomySuggestions =
+        existingApplication?.taxonomy_suggestions && typeof existingApplication.taxonomy_suggestions === 'object'
+          ? (existingApplication.taxonomy_suggestions as Record<string, unknown>)
+          : null
+      const inferredSubcategory = String(
+        taxonomySuggestions?.subcategory_slug ||
+          taxonomySuggestions?.subcategory ||
+          existingApplication?.specialty_name ||
+          '',
+      ).trim()
+      const mirrorSubcategories =
+        previousSubcategories.length > 0
+          ? previousSubcategories
+          : inferredSubcategory
+            ? [inferredSubcategory]
+            : []
+
+      const professionalMirrorUpdate: Record<string, unknown> = {
+        years_experience: payload.data.yearsExperience,
+        focus_areas: payload.data.focusAreas,
+        languages: normalizeLanguages(payload.data.primaryLanguage, payload.data.secondaryLanguages),
+        category: applicationCategory,
+        updated_at: new Date().toISOString(),
+      }
+      if (mirrorSubcategories.length > 0) {
+        professionalMirrorUpdate.subcategories = mirrorSubcategories
+      }
+
+      const { error: professionalError } = await db
+        .from('professionals')
+        .update(professionalMirrorUpdate)
+        .eq('id', professionalId)
+
+      if (professionalError) {
+        console.error('[onboarding/save][identity] professionals mirror update failed', {
+          professionalId,
+          message: professionalError.message,
+          code: professionalError.code,
+        })
       }
 
       const appPayload = {
@@ -334,6 +362,8 @@ export async function POST(request: Request) {
               years_experience: previousProfessionalRow.years_experience,
               focus_areas: previousProfessionalRow.focus_areas,
               languages: previousProfessionalRow.languages,
+              category: previousProfessionalRow.category,
+              subcategories: previousProfessionalRow.subcategories,
               updated_at: new Date().toISOString(),
             })
             .eq('id', professionalId)

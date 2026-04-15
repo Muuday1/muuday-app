@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, country, role')
+    .select('id, country, timezone, role')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     const { data: profileAfterUpsert } = await supabase
       .from('profiles')
-      .select('country, role')
+      .select('country, timezone, role')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       return redirectWithSession('/buscar')
     }
 
-    if (!profileAfterUpsert?.country) {
+    if (!profileAfterUpsert?.country || !profileAfterUpsert?.timezone) {
       return redirectWithSession('/completar-conta')
     }
 
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     return redirectWithSession('/buscar')
   }
 
-  if (!profile.country) {
+  if (!profile.country || !profile.timezone) {
     return redirectWithSession('/completar-conta')
   }
 
