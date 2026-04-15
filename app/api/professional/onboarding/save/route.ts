@@ -29,7 +29,7 @@ const qualificationSchema = z.object({
 const identitySchema = z.object({
   section: z.literal('identity'),
   title: z.string().optional().default(''),
-  displayName: z.string().trim().min(1).max(160),
+  displayName: z.string().trim().max(160).default(''),
   yearsExperience: z.coerce.number().int().min(0).max(60),
   primaryLanguage: z.string().trim().min(1).max(80),
   secondaryLanguages: z.array(z.string().trim().min(1).max(80)).max(20),
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
     }
 
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+    const { data: profile } = await supabase.from('profiles').select('role,full_name').eq('id', user.id).maybeSingle()
     if (!profile || profile.role !== 'profissional') {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
     }
@@ -172,6 +172,11 @@ export async function POST(request: Request) {
     const userId = String(professional.user_id || user.id)
 
     if (payload.data.section === 'identity') {
+      const effectiveDisplayName = String(payload.data.displayName || profile?.full_name || '').trim()
+      if (!effectiveDisplayName) {
+        return NextResponse.json({ error: 'Informe o nome publico profissional para continuar.' }, { status: 400 })
+      }
+
       const invalidQualification = payload.data.qualifications.find(item => getQualificationValidationMessage(item))
 
       if (invalidQualification) {
@@ -214,7 +219,7 @@ export async function POST(request: Request) {
         user_id: userId,
         professional_id: professionalId,
         title: payload.data.title || null,
-        display_name: payload.data.displayName || null,
+        display_name: effectiveDisplayName,
         years_experience: payload.data.yearsExperience,
         primary_language: payload.data.primaryLanguage || null,
         secondary_languages: payload.data.secondaryLanguages,
