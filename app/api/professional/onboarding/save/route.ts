@@ -274,7 +274,6 @@ export async function POST(request: Request) {
             buffer_time_minutes: safeBufferMinutes,
             confirmation_mode: payload.data.confirmationMode,
             enable_recurring: payload.data.enableRecurring,
-            allow_multi_session: payload.data.allowMultiSession,
             require_session_purpose: payload.data.requireSessionPurpose,
             updated_at: nowIso,
           },

@@ -262,7 +262,7 @@ async function readImageDimensions(file: File) {
   return { previewUrl, ...result }
 }
 
-async function buildAvatarCropFile(file: File, focusX: number, focusY: number) {
+async function buildAvatarCropFile(file: File, focusX: number, focusY: number, zoom: number) {
   const dimensions = await readImageDimensions(file)
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -273,7 +273,8 @@ async function buildAvatarCropFile(file: File, focusX: number, focusY: number) {
     })
 
     const outputSize = 800
-    const scale = Math.max(outputSize / image.naturalWidth, outputSize / image.naturalHeight)
+    const normalizedZoom = clamp(zoom, 1, 2.5)
+    const scale = Math.max(outputSize / image.naturalWidth, outputSize / image.naturalHeight) * normalizedZoom
     const displayedWidth = image.naturalWidth * scale
     const displayedHeight = image.naturalHeight * scale
     const overflowX = Math.max(0, displayedWidth - outputSize)
@@ -290,6 +291,8 @@ async function buildAvatarCropFile(file: File, focusX: number, focusY: number) {
       throw new Error('Nao foi possivel preparar a foto agora.')
     }
 
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, outputSize, outputSize)
     context.drawImage(
       image,
       sourceX,
@@ -311,13 +314,13 @@ async function buildAvatarCropFile(file: File, focusX: number, focusY: number) {
           }
           reject(new Error('Nao foi possivel exportar a foto recortada.'))
         },
-        'image/webp',
+        'image/jpeg',
         0.92,
       )
     })
 
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'avatar'
-    return new File([blob], `${baseName}-avatar.webp`, { type: 'image/webp' })
+    return new File([blob], `${baseName}-avatar.jpg`, { type: 'image/jpeg' })
   } finally {
     URL.revokeObjectURL(dimensions.previewUrl)
   }
@@ -432,6 +435,7 @@ export function OnboardingTrackerModal({
   const [photoUploadError, setPhotoUploadError] = useState('')
   const [photoFocusX, setPhotoFocusX] = useState(50)
   const [photoFocusY, setPhotoFocusY] = useState(50)
+  const [photoZoom, setPhotoZoom] = useState(1)
   const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null)
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<Record<ProfessionalTermKey, boolean>>(() =>
     TERMS_KEYS.reduce(
@@ -443,10 +447,12 @@ export function OnboardingTrackerModal({
   const [termsModalScrolledToEnd, setTermsModalScrolledToEnd] = useState(false)
   const [submitTermsError, setSubmitTermsError] = useState('')
   const dragStateRef = useRef<{ startX: number; startY: number; startFocusX: number; startFocusY: number } | null>(null)
+  const termsModalContentRef = useRef<HTMLDivElement | null>(null)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
   const [identityTitle, setIdentityTitle] = useState('')
   const [identityDisplayName, setIdentityDisplayName] = useState('')
+  const [identityDisplayNameLocked, setIdentityDisplayNameLocked] = useState(false)
   const [identityYearsExperience, setIdentityYearsExperience] = useState('0')
   const [identityPrimaryLanguage, setIdentityPrimaryLanguage] = useState('Portugues')
   const [identitySecondaryLanguages, setIdentitySecondaryLanguages] = useState<string[]>([])
@@ -653,7 +659,9 @@ export function OnboardingTrackerModal({
         setServiceCurrency(resolvedCurrency)
         setProfileTimezone(resolvedTimezone)
         setCoverPhotoUrl(String(profileCurrency.data?.avatar_url || ''))
-        setIdentityDisplayName(String(appRow?.display_name || profileCurrency.data?.full_name || ''))
+        const resolvedDisplayName = String(appRow?.display_name || profileCurrency.data?.full_name || '')
+        setIdentityDisplayName(resolvedDisplayName)
+        setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
         setIdentityTitle(String(appRow?.title || ''))
         setIdentityYearsExperience(String(professional?.years_experience ?? 0))
         setIdentityPrimaryLanguage(String(appRow?.primary_language || 'Portugues'))
@@ -782,6 +790,15 @@ export function OnboardingTrackerModal({
   )
   const currentPlanLabel = PLAN_TIER_LABELS[String(tier || '').toLowerCase()] || 'Básico'
 
+  useEffect(() => {
+    if (!activeTerm || !termsModalContentRef.current) return
+    const element = termsModalContentRef.current
+    const fitsWithoutScroll = element.scrollHeight <= element.clientHeight + 8
+    if (fitsWithoutScroll) {
+      setTermsModalScrolledToEnd(true)
+    }
+  }, [activeTerm])
+
   function toggleMultiValue(value: string, values: string[], setter: (next: string[]) => void) {
     if (values.includes(value)) {
       setter(values.filter(item => item !== value))
@@ -827,6 +844,7 @@ export function OnboardingTrackerModal({
       })
       setPhotoFocusX(50)
       setPhotoFocusY(50)
+      setPhotoZoom(1)
       setPhotoUploadState('idle')
     } catch (error) {
       setPhotoUploadState('error')
@@ -837,7 +855,7 @@ export function OnboardingTrackerModal({
   async function uploadPreparedProfessionalPhoto() {
     if (!pendingPhoto) return coverPhotoUrl
 
-    const croppedFile = await buildAvatarCropFile(pendingPhoto.file, photoFocusX, photoFocusY)
+    const croppedFile = await buildAvatarCropFile(pendingPhoto.file, photoFocusX, photoFocusY, photoZoom)
     const form = new FormData()
     form.append('file', croppedFile)
     const response = await fetch('/api/professional/profile-media/upload', {
@@ -916,8 +934,8 @@ export function OnboardingTrackerModal({
 
   function handlePhotoDragMove(clientX: number, clientY: number) {
     if (!pendingPhoto || !dragStateRef.current) return
-    const previewSize = 224
-    const scale = Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height)
+    const previewSize = 192
+    const scale = Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height) * photoZoom
     const displayedWidth = pendingPhoto.width * scale
     const displayedHeight = pendingPhoto.height * scale
     const overflowX = Math.max(1, displayedWidth - previewSize)
@@ -1509,8 +1527,14 @@ export function OnboardingTrackerModal({
                         type="text"
                         value={identityDisplayName}
                         onChange={event => setIdentityDisplayName(event.target.value)}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                        disabled={identityDisplayNameLocked}
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
                       />
+                      {identityDisplayNameLocked ? (
+                        <p className="mt-1 text-[11px] text-neutral-500">
+                          Esse nome foi definido no cadastro inicial e não pode ser alterado aqui.
+                        </p>
+                      ) : null}
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiência</label>
@@ -1831,7 +1855,7 @@ export function OnboardingTrackerModal({
                         <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
                           <div className="space-y-3">
                             <div
-                              className="relative h-56 w-56 overflow-hidden rounded-full border border-neutral-200 bg-neutral-50"
+                              className="relative h-48 w-48 overflow-hidden rounded-full border border-neutral-200 bg-white"
                               onMouseMove={event => {
                                 if (dragStateRef.current) handlePhotoDragMove(event.clientX, event.clientY)
                               }}
@@ -1857,8 +1881,10 @@ export function OnboardingTrackerModal({
                                 style={
                                   pendingPhoto
                                     ? (() => {
-                                        const previewSize = 224
-                                        const scale = Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height)
+                                        const previewSize = 192
+                                        const scale =
+                                          Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height) *
+                                          photoZoom
                                         const displayedWidth = pendingPhoto.width * scale
                                         const displayedHeight = pendingPhoto.height * scale
                                         const overflowX = Math.max(0, displayedWidth - previewSize)
@@ -1875,7 +1901,7 @@ export function OnboardingTrackerModal({
                               />
                             </div>
                             <p className="text-[11px] text-neutral-500">
-                              Arraste a imagem para reposicionar o centro visível do avatar.
+                              Arraste a imagem para reposicionar o centro. Use o zoom se quiser ajustar também para os lados.
                             </p>
                           </div>
                           <div className="space-y-3">
@@ -1885,13 +1911,23 @@ export function OnboardingTrackerModal({
                                 <li>JPG, PNG ou WEBP</li>
                                 <li>Até 3MB</li>
                                 <li>Mínimo de 320x320 px</li>
+                                <li>Rosto centralizado, sem óculos escuros e com fundo claro ou neutro</li>
                                 <li>O recorte final será quadrado e exibido em formato circular</li>
                               </ul>
                             </div>
                             {pendingPhoto ? (
-                              <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-3 text-xs text-brand-900">
-                                Nova foto pronta para salvar. O upload final acontece quando você clicar em salvar.
-                              </div>
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold text-neutral-700">Zoom</span>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="2.5"
+                                  step="0.05"
+                                  value={photoZoom}
+                                  onChange={event => setPhotoZoom(Number(event.target.value))}
+                                  className="w-full accent-brand-600"
+                                />
+                              </label>
                             ) : null}
                           </div>
                         </div>
@@ -2563,6 +2599,7 @@ export function OnboardingTrackerModal({
                   <h3 className="mt-1 text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
                 </div>
                 <div
+                  ref={termsModalContentRef}
                   className="max-h-[55vh] overflow-y-auto px-5 py-4"
                   onScroll={event => {
                     const element = event.currentTarget
