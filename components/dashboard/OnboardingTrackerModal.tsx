@@ -60,12 +60,15 @@ type OnboardingTrackerModalProps = {
   tier: string
   professionalStatus: string
   onboardingEvaluation: ProfessionalOnboardingEvaluation
+  initialReviewAdjustments: ReviewAdjustmentItem[]
+  initialTermsAcceptanceByKey: Record<string, boolean>
   initialBio: string
   initialCoverPhotoUrl: string
   autoOpen?: boolean
   onTrackerStateChange?: (state: {
     evaluation: ProfessionalOnboardingEvaluation
     professionalStatus: string
+    reviewAdjustments?: ReviewAdjustmentItem[]
   }) => void
 }
 
@@ -712,6 +715,8 @@ export function OnboardingTrackerModal({
   tier,
   professionalStatus,
   onboardingEvaluation,
+  initialReviewAdjustments,
+  initialTermsAcceptanceByKey,
   initialBio,
   initialCoverPhotoUrl,
   autoOpen = false,
@@ -741,13 +746,20 @@ export function OnboardingTrackerModal({
   const [photoFocusY, setPhotoFocusY] = useState(50)
   const [photoZoom, setPhotoZoom] = useState(1)
   const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null)
-  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<Record<ProfessionalTermKey, boolean>>(() =>
-    TERMS_KEYS.reduce(
-      (acc, key) => ({ ...acc, [key]: false }),
-      {} as Record<ProfessionalTermKey, boolean>,
-    ),
+  const bootstrapTermsAcceptance = useMemo(
+    () =>
+      TERMS_KEYS.reduce((acc, key) => {
+        acc[key] = Boolean(initialTermsAcceptanceByKey?.[key])
+        return acc
+      }, {} as Record<ProfessionalTermKey, boolean>),
+    [initialTermsAcceptanceByKey],
   )
-  const [termsHydrated, setTermsHydrated] = useState(false)
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<Record<ProfessionalTermKey, boolean>>(() =>
+    TERMS_KEYS.reduce((acc, key) => ({ ...acc, [key]: Boolean(initialTermsAcceptanceByKey?.[key]) }), {} as Record<ProfessionalTermKey, boolean>),
+  )
+  const [termsHydrated, setTermsHydrated] = useState(
+    TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'),
+  )
   const [activeTermsModalKey, setActiveTermsModalKey] = useState<ProfessionalTermKey | null>(null)
   const [termViewTokensByKey, setTermViewTokensByKey] = useState<
     Partial<Record<ProfessionalTermKey, string>>
@@ -823,7 +835,9 @@ export function OnboardingTrackerModal({
   const [allowMultiSession, setAllowMultiSession] = useState(true)
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
-  const [reviewAdjustments, setReviewAdjustments] = useState<ReviewAdjustmentItem[]>([])
+  const [reviewAdjustments, setReviewAdjustments] = useState<ReviewAdjustmentItem[]>(
+    Array.isArray(initialReviewAdjustments) ? initialReviewAdjustments : [],
+  )
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
@@ -880,6 +894,10 @@ export function OnboardingTrackerModal({
   const minNoticeRange = tierConfig.minNoticeRange
   const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
   const isBasicTier = normalizedTier === 'basic'
+  const hasTrackerBootstrap = useMemo(
+    () => TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'),
+    [initialTermsAcceptanceByKey],
+  )
 
   useEffect(() => {
     onTrackerStateChangeRef.current = onTrackerStateChange
@@ -935,12 +953,14 @@ export function OnboardingTrackerModal({
         onTrackerStateChangeRef.current?.({
           evaluation: json.evaluation,
           professionalStatus: json.professionalStatus,
+          reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
         })
         return { ok: true, termsLoaded }
       }
       onTrackerStateChangeRef.current?.({
         evaluation: json.evaluation,
         professionalStatus: currentProfessionalStatus,
+        reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
       })
       return { ok: true, termsLoaded }
     } catch {
@@ -1016,6 +1036,15 @@ export function OnboardingTrackerModal({
   }, [onboardingEvaluation])
 
   useEffect(() => {
+    setReviewAdjustments(Array.isArray(initialReviewAdjustments) ? initialReviewAdjustments : [])
+  }, [initialReviewAdjustments])
+
+  useEffect(() => {
+    setHasAcceptedTerms(bootstrapTermsAcceptance)
+    setTermsHydrated(TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'))
+  }, [bootstrapTermsAcceptance, initialTermsAcceptanceByKey])
+
+  useEffect(() => {
     setCurrentProfessionalStatus(String(professionalStatus || ''))
   }, [professionalStatus])
 
@@ -1053,13 +1082,18 @@ export function OnboardingTrackerModal({
     async function loadModalContext() {
       let criticalLoaded = false
       setLoadingContext(true)
-      setTermsHydrated(false)
+      if (!hasTrackerBootstrap) {
+        setTermsHydrated(false)
+      }
       setAvailabilityError('')
       setPlanPricing(null)
       setPricingError('')
       try {
+        const criticalUrl = hasTrackerBootstrap
+          ? '/api/professional/onboarding/modal-context?scope=critical&skipTracker=1'
+          : '/api/professional/onboarding/modal-context?scope=critical'
         const criticalResponse = await withTimeout(
-          fetch('/api/professional/onboarding/modal-context?scope=critical', {
+          fetch(criticalUrl, {
             method: 'GET',
             credentials: 'include',
             cache: 'no-store',
@@ -1067,29 +1101,32 @@ export function OnboardingTrackerModal({
           5000,
         )
         const criticalPayload = (await criticalResponse.json().catch(() => ({}))) as ModalContextResponse
-        if (!criticalResponse.ok || !criticalPayload.evaluation) {
+        if (!criticalResponse.ok) {
           throw new Error(criticalPayload.error || 'Não foi possível carregar os dados iniciais do tracker.')
         }
         if (!mounted) return
 
-        setCurrentEvaluation(criticalPayload.evaluation)
-        if (typeof criticalPayload.professionalStatus === 'string') {
-          setCurrentProfessionalStatus(criticalPayload.professionalStatus)
+        if (criticalPayload.evaluation) {
+          setCurrentEvaluation(criticalPayload.evaluation)
+          const nextStatus =
+            typeof criticalPayload.professionalStatus === 'string'
+              ? criticalPayload.professionalStatus
+              : currentProfessionalStatusRef.current
+          if (typeof criticalPayload.professionalStatus === 'string') {
+            setCurrentProfessionalStatus(criticalPayload.professionalStatus)
+          }
           onTrackerStateChangeRef.current?.({
             evaluation: criticalPayload.evaluation,
-            professionalStatus: criticalPayload.professionalStatus,
-          })
-        } else {
-          onTrackerStateChangeRef.current?.({
-            evaluation: criticalPayload.evaluation,
-            professionalStatus: currentProfessionalStatusRef.current,
+            professionalStatus: nextStatus,
+            reviewAdjustments: Array.isArray(criticalPayload.reviewAdjustments)
+              ? criticalPayload.reviewAdjustments
+              : undefined,
           })
         }
 
-        const adjustmentRows = Array.isArray(criticalPayload.reviewAdjustments)
-          ? criticalPayload.reviewAdjustments
-          : []
-        setReviewAdjustments(adjustmentRows)
+        if (Array.isArray(criticalPayload.reviewAdjustments) && criticalPayload.reviewAdjustments.length > 0) {
+          setReviewAdjustments(criticalPayload.reviewAdjustments)
+        }
 
         const critical = (criticalPayload.critical || {}) as ModalContextPayload
         const professional = (critical.professional || null) as Record<string, unknown> | null
@@ -1258,7 +1295,7 @@ export function OnboardingTrackerModal({
             return acc
           }, {} as Record<ProfessionalTermKey, boolean>)
           setHasAcceptedTerms(acceptedTermsMap)
-        } else {
+        } else if (!hasTrackerBootstrap) {
           const legacyTermsAccepted =
             Boolean(settingsRow?.terms_accepted_at) &&
             String(settingsRow?.terms_version || '').trim() === PROFESSIONAL_TERMS_VERSION
@@ -1309,7 +1346,7 @@ export function OnboardingTrackerModal({
     return () => {
       mounted = false
     }
-  }, [open, professionalId, applyOptionalContext])
+  }, [open, professionalId, applyOptionalContext, hasTrackerBootstrap])
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') return
@@ -1601,6 +1638,7 @@ export function OnboardingTrackerModal({
     onTrackerStateChangeRef.current?.({
       evaluation: json.evaluation,
       professionalStatus: nextProfessionalStatus,
+      reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
     })
     setTrackerRefreshState('saved')
     setTimeout(() => setTrackerRefreshState('idle'), 1200)
@@ -2201,9 +2239,11 @@ export function OnboardingTrackerModal({
     setCurrentEvaluation(payload.evaluation)
     const nextStatus = String(payload.professionalStatus || 'pending_review')
     setCurrentProfessionalStatus(nextStatus)
+    setReviewAdjustments([])
     onTrackerStateChangeRef.current?.({
       evaluation: payload.evaluation,
       professionalStatus: nextStatus,
+      reviewAdjustments: [],
     })
     setSubmitReviewState('saved')
     setSubmitReviewMessage(

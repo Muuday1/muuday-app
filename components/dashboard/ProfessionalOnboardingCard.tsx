@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
   REVIEW_ADJUSTMENT_STAGE_LABELS,
@@ -13,6 +13,8 @@ type ProfessionalOnboardingCardProps = {
   tier: string
   professionalStatus: string
   initialEvaluation: ProfessionalOnboardingEvaluation
+  initialReviewAdjustments: ReviewAdjustmentItem[]
+  initialTermsAcceptanceByKey: Record<string, boolean>
   initialBio: string
   initialCoverPhotoUrl: string
   autoOpen?: boolean
@@ -86,6 +88,8 @@ export function ProfessionalOnboardingCard({
   tier,
   professionalStatus,
   initialEvaluation,
+  initialReviewAdjustments,
+  initialTermsAcceptanceByKey,
   initialBio,
   initialCoverPhotoUrl,
   autoOpen = false,
@@ -95,60 +99,15 @@ export function ProfessionalOnboardingCard({
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
-  const [openAdjustments, setOpenAdjustments] = useState<ReviewAdjustmentItem[]>([])
+  const [openAdjustments, setOpenAdjustments] = useState<ReviewAdjustmentItem[]>(
+    Array.isArray(initialReviewAdjustments) ? initialReviewAdjustments : [],
+  )
 
   const trackerViewMode = useMemo(
     () => resolveTrackerViewMode(currentProfessionalStatus),
     [currentProfessionalStatus],
   )
   const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
-
-  const syncTrackerState = useCallback(async () => {
-    const response = await fetch('/api/professional/onboarding/state', {
-      method: 'GET',
-      credentials: 'include',
-      cache: 'no-store',
-    })
-    const payload = (await response.json().catch(() => ({}))) as {
-      professionalStatus?: string
-      evaluation?: ProfessionalOnboardingEvaluation
-      reviewAdjustments?: ReviewAdjustmentItem[]
-    }
-
-    if (!response.ok) {
-      throw new Error('Nao foi possivel atualizar o estado do onboarding.')
-    }
-
-    if (payload.evaluation) {
-      setEvaluation(payload.evaluation)
-    }
-    if (typeof payload.professionalStatus === 'string') {
-      setCurrentProfessionalStatus(payload.professionalStatus)
-    }
-    const items = Array.isArray(payload.reviewAdjustments)
-      ? payload.reviewAdjustments.filter(item => item.status === 'open' || item.status === 'reopened')
-      : []
-    setOpenAdjustments(items)
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadTrackerState() {
-      try {
-        await syncTrackerState()
-      } catch {
-        if (!cancelled && !trackerNeedsAdjustments) {
-          setOpenAdjustments([])
-        }
-      }
-    }
-
-    void loadTrackerState()
-    return () => {
-      cancelled = true
-    }
-  }, [professionalId, syncTrackerState, trackerNeedsAdjustments])
 
   const normalizedStages = useMemo(() => {
     const map = new Map<string, ProfessionalOnboardingEvaluation['stages'][number]>()
@@ -288,12 +247,17 @@ export function ProfessionalOnboardingCard({
         tier={tier}
         professionalStatus={currentProfessionalStatus}
         onboardingEvaluation={evaluation}
+        initialReviewAdjustments={openAdjustments}
+        initialTermsAcceptanceByKey={initialTermsAcceptanceByKey}
         initialBio={initialBio}
         initialCoverPhotoUrl={initialCoverPhotoUrl}
         autoOpen={autoOpen}
         onTrackerStateChange={state => {
           setEvaluation(state.evaluation)
           setCurrentProfessionalStatus(state.professionalStatus)
+          if (Array.isArray(state.reviewAdjustments)) {
+            setOpenAdjustments(state.reviewAdjustments)
+          }
         }}
       />
     </section>

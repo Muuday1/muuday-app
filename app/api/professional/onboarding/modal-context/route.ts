@@ -4,9 +4,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
+import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
 import {
   PROFESSIONAL_REQUIRED_TERMS,
-  PROFESSIONAL_TERMS_VERSION,
 } from '@/lib/legal/professional-terms'
 import { loadPlanConfigMap } from '@/lib/plan-config'
 import { getExchangeRates } from '@/lib/exchange-rates'
@@ -24,6 +24,10 @@ type ContextScope = 'critical' | 'optional'
 
 function normalizeScope(rawValue: string | null): ContextScope {
   return rawValue === 'optional' ? 'optional' : 'critical'
+}
+
+function shouldSkipTrackerBootstrap(rawValue: string | null) {
+  return rawValue === '1' || rawValue === 'true'
 }
 
 async function loadOptionalTaxonomyCached(supabase: ReturnType<typeof createClient>) {
@@ -88,7 +92,9 @@ async function loadOptionalPlanPricingCached(args: {
 
 export async function GET(request: Request) {
   const supabase = createClient()
-  const scope = normalizeScope(new URL(request.url).searchParams.get('scope'))
+  const url = new URL(request.url)
+  const scope = normalizeScope(url.searchParams.get('scope'))
+  const skipTrackerBootstrap = shouldSkipTrackerBootstrap(url.searchParams.get('skipTracker'))
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -166,13 +172,16 @@ export async function GET(request: Request) {
     })
   }
 
-  const onboardingStatePromise = loadProfessionalOnboardingState(supabase, professional.id, {
-    resolveSignedMediaUrls: false,
-  })
+  const onboardingStatePromise = skipTrackerBootstrap
+    ? Promise.resolve(null)
+    : loadProfessionalOnboardingState(supabase, professional.id, {
+        resolveSignedMediaUrls: false,
+      })
+  const trackerMetaPromise = skipTrackerBootstrap
+    ? Promise.resolve(null)
+    : loadProfessionalTrackerMeta(supabase, professional.id)
 
   const [
-    adjustmentsResponse,
-    termAcceptancesResponse,
     servicesResponse,
     settingsResponse,
     availabilityResponse,
@@ -180,18 +189,8 @@ export async function GET(request: Request) {
     credentialsResponse,
     ownerProfileResponse,
     onboardingState,
+    trackerMeta,
   ] = await Promise.all([
-    supabase
-      .from('professional_review_adjustments')
-      .select('id,stage_id,field_key,message,severity,status,created_at,resolved_at')
-      .eq('professional_id', professional.id)
-      .in('status', ['open', 'reopened'])
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('professional_term_acceptances')
-      .select('term_key,term_version,accepted_at')
-      .eq('professional_id', professional.id)
-      .eq('term_version', PROFESSIONAL_TERMS_VERSION),
     supabase
       .from('professional_services')
       .select('id,name,description,price_brl,duration_minutes')
@@ -229,43 +228,28 @@ export async function GET(request: Request) {
       .eq('id', String(professional.user_id || ''))
       .maybeSingle(),
     onboardingStatePromise,
+    trackerMetaPromise,
   ])
 
-  if (!onboardingState) {
+  if (!skipTrackerBootstrap && !onboardingState) {
     return NextResponse.json({ error: 'Nao foi possivel carregar o tracker.' }, { status: 500 })
   }
-
-  const adjustments = (adjustmentsResponse.data || []).map(row => ({
-    id: String(row.id || ''),
-    stageId: String(row.stage_id || ''),
-    fieldKey: String(row.field_key || ''),
-    message: String(row.message || ''),
-    severity: String(row.severity || 'medium'),
-    status: String(row.status || 'open'),
-    createdAt: String(row.created_at || ''),
-    resolvedAt: row.resolved_at ? String(row.resolved_at) : null,
-  }))
-
-  const acceptedTermKeys = new Set(
-    (termAcceptancesResponse.data || [])
-      .map(row => String(row.term_key || ''))
-      .filter(Boolean),
-  )
-  const termsAcceptanceByKey = PROFESSIONAL_REQUIRED_TERMS.reduce<Record<string, boolean>>(
-    (acc, key) => {
-      acc[key] = acceptedTermKeys.has(key)
-      return acc
-    },
-    {},
-  )
+  const termsAcceptanceByKey = trackerMeta?.termsAcceptanceByKey
+    ? trackerMeta.termsAcceptanceByKey
+    : PROFESSIONAL_REQUIRED_TERMS.reduce<Record<string, boolean>>((acc, key) => {
+        acc[key] = false
+        return acc
+      }, {})
 
   return NextResponse.json({
     scope: 'critical',
     professionalId: professional.id,
-    professionalStatus: String(onboardingState.snapshot.professional.status || professional.status || ''),
-    evaluation: onboardingState.evaluation,
-    reviewAdjustments: adjustments,
-    termsAcceptanceByKey,
+    professionalStatus: onboardingState
+      ? String(onboardingState.snapshot.professional.status || professional.status || '')
+      : undefined,
+    evaluation: onboardingState?.evaluation,
+    reviewAdjustments: trackerMeta?.reviewAdjustments || [],
+    termsAcceptanceByKey: skipTrackerBootstrap ? undefined : termsAcceptanceByKey,
     critical: {
       professional,
       services: servicesResponse.data || [],

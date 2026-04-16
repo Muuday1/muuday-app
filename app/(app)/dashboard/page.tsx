@@ -21,6 +21,7 @@ import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-h
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
+import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
 import { ProfessionalOnboardingCard } from '@/components/dashboard/ProfessionalOnboardingCard'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
@@ -136,6 +137,7 @@ export default async function DashboardPage({
     { count: acceptedBookingsCount },
     { data: paymentsMonthRows },
     onboardingState,
+    onboardingTrackerMeta,
   ] = await Promise.all([
     supabase
       .from('professional_settings')
@@ -208,6 +210,7 @@ export default async function DashboardPage({
     loadProfessionalOnboardingState(supabase, professionalId, {
       resolveSignedMediaUrls: false,
     }),
+    loadProfessionalTrackerMeta(supabase, professionalId),
   ])
 
   const pendingConfirmationCount = pendingConfirmationCountRaw || 0
@@ -256,6 +259,8 @@ export default async function DashboardPage({
           tier={String(professional.tier || 'basic')}
           professionalStatus={String(professional.status || '')}
           initialEvaluation={onboardingEvaluation}
+          initialReviewAdjustments={onboardingTrackerMeta.reviewAdjustments}
+          initialTermsAcceptanceByKey={onboardingTrackerMeta.termsAcceptanceByKey}
           initialBio={String(professional.bio || '')}
           initialCoverPhotoUrl={String(professional.cover_photo_url || '')}
           autoOpen={shouldAutoOpenOnboarding}
