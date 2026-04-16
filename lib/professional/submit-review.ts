@@ -27,6 +27,15 @@ export async function submitProfessionalForReview(
     }
   }
 
+  const normalizedStatus = String(onboardingState.snapshot.professional.status || '').toLowerCase()
+  if (normalizedStatus === 'approved') {
+    return {
+      ok: false,
+      code: 'blocked',
+      error: 'Perfil já aprovado. Não é possível reenviar para análise.',
+    }
+  }
+
   if (!onboardingState.evaluation.summary.canSubmitForReview) {
     return {
       ok: false,

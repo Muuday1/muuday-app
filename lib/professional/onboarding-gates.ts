@@ -182,7 +182,12 @@ export function evaluateOnboardingGates(
   const hasSubcategory = uniqueTexts(snapshot.professional.subcategories).length > 0
   const hasSpecialty = snapshot.specialtyCount > 0 || hasSubcategory
   const hasProfileBio = hasText(snapshot.professional.bio)
-  const hasCredibilitySummary = Number(snapshot.professional.yearsExperience ?? 0) >= 0
+  const yearsExperienceValue = snapshot.professional.yearsExperience
+  const hasCredibilitySummary =
+    yearsExperienceValue !== null &&
+    yearsExperienceValue !== undefined &&
+    Number.isFinite(Number(yearsExperienceValue)) &&
+    Number(yearsExperienceValue) >= 0
   const hasPlanSelection = ['basic', 'professional', 'premium'].includes(
     String(snapshot.professional.tier || '').toLowerCase(),
   )

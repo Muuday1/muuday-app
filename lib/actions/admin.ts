@@ -395,7 +395,9 @@ export async function adminReviewProfessionalDecision(
     const { supabase, userId } = await requireAdmin()
     const { data: currentProfessional, error: currentProfessionalError } = await supabase
       .from('professionals')
-      .select('id,user_id,status,updated_at')
+      .select(
+        'id,user_id,status,admin_review_notes,reviewed_by,reviewed_at,first_booking_enabled,first_booking_gate_note,first_booking_gate_updated_at,updated_at',
+      )
       .eq('id', parsed.data.professionalId)
       .maybeSingle()
 
@@ -434,6 +436,22 @@ export async function adminReviewProfessionalDecision(
       professionalUpdatePayload.first_booking_gate_updated_at = nowIso
     }
 
+    const rollbackProfessionalUpdate = async () => {
+      await supabase
+        .from('professionals')
+        .update({
+          status: currentProfessional.status,
+          admin_review_notes: currentProfessional.admin_review_notes ?? null,
+          reviewed_by: currentProfessional.reviewed_by ?? null,
+          reviewed_at: currentProfessional.reviewed_at ?? null,
+          first_booking_enabled: Boolean(currentProfessional.first_booking_enabled),
+          first_booking_gate_note: currentProfessional.first_booking_gate_note ?? null,
+          first_booking_gate_updated_at: currentProfessional.first_booking_gate_updated_at ?? null,
+          updated_at: currentProfessional.updated_at ?? nowIso,
+        })
+        .eq('id', parsed.data.professionalId)
+    }
+
     const { error: updateError } = await supabase
       .from('professionals')
       .update(professionalUpdatePayload)
@@ -444,7 +462,7 @@ export async function adminReviewProfessionalDecision(
     }
 
     if (targetStatus === 'approved') {
-      await supabase
+      const { error: closeAdjustmentsError } = await supabase
         .from('professional_review_adjustments')
         .update({
           status: 'resolved_by_admin',
@@ -454,85 +472,10 @@ export async function adminReviewProfessionalDecision(
         })
         .eq('professional_id', parsed.data.professionalId)
         .in('status', ['open', 'reopened', 'resolved_by_professional'])
-    } else if (targetStatus === 'rejected') {
-      const { data: existingRows, error: existingRowsError } = await supabase
-        .from('professional_review_adjustments')
-        .select('id,stage_id,field_key,status')
-        .eq('professional_id', parsed.data.professionalId)
-        .in('status', ['open', 'reopened', 'resolved_by_professional'])
 
-      if (existingRowsError) {
-        return { success: false, error: 'Nao foi possivel carregar os ajustes existentes.' }
-      }
-
-      const uniqueAdjustments = new Map<string, (typeof structuredAdjustments)[number]>()
-      for (const item of structuredAdjustments) {
-        uniqueAdjustments.set(`${String(item.stageId)}::${String(item.fieldKey)}`, item)
-      }
-
-      const existingByKey = new Map<string, { id: string; status: string }>()
-      for (const row of existingRows || []) {
-        const key = `${String(row.stage_id)}::${String(row.field_key)}`
-        existingByKey.set(key, {
-          id: String(row.id),
-          status: String(row.status || ''),
-        })
-      }
-
-      const rowsToInsert: Array<{
-        professional_id: string
-        stage_id: string
-        field_key: string
-        message: string
-        severity: 'low' | 'medium' | 'high'
-        status: 'open'
-        created_by: string
-      }> = []
-
-      for (const item of Array.from(uniqueAdjustments.values())) {
-        const key = `${String(item.stageId)}::${String(item.fieldKey)}`
-        const existing = existingByKey.get(key)
-
-        if (!existing) {
-          rowsToInsert.push({
-            professional_id: parsed.data.professionalId,
-            stage_id: item.stageId,
-            field_key: item.fieldKey,
-            message: item.message,
-            severity: item.severity,
-            status: 'open',
-            created_by: userId,
-          })
-          continue
-        }
-
-        const nextStatus = existing.status === 'resolved_by_professional' ? 'reopened' : existing.status
-        const { error: updateExistingError } = await supabase
-          .from('professional_review_adjustments')
-          .update({
-            status: nextStatus,
-            message: item.message,
-            severity: item.severity,
-            resolved_at: null,
-            resolved_by: null,
-            resolution_note: null,
-          })
-          .eq('id', existing.id)
-          .eq('professional_id', parsed.data.professionalId)
-
-        if (updateExistingError) {
-          return { success: false, error: 'Nao foi possivel atualizar ajustes estruturados para rejeicao.' }
-        }
-      }
-
-      if (rowsToInsert.length > 0) {
-        const { error: insertAdjustmentsError } = await supabase
-          .from('professional_review_adjustments')
-          .insert(rowsToInsert)
-
-        if (insertAdjustmentsError) {
-          return { success: false, error: 'Nao foi possivel registrar os ajustes estruturados.' }
-        }
+      if (closeAdjustmentsError) {
+        await rollbackProfessionalUpdate()
+        return { success: false, error: 'Nao foi possivel concluir os ajustes antes da aprovacao.' }
       }
     } else {
       const { error: closeExistingError } = await supabase
@@ -541,12 +484,13 @@ export async function adminReviewProfessionalDecision(
           status: 'resolved_by_admin',
           resolved_at: nowIso,
           resolved_by: userId,
-          resolution_note: 'replaced_by_new_round',
+          resolution_note: targetStatus === 'rejected' ? 'replaced_by_rejection_round' : 'replaced_by_new_round',
         })
         .eq('professional_id', parsed.data.professionalId)
         .in('status', ['open', 'reopened', 'resolved_by_professional'])
 
       if (closeExistingError) {
+        await rollbackProfessionalUpdate()
         return { success: false, error: 'Nao foi possivel atualizar os ajustes anteriores.' }
       }
 
@@ -578,6 +522,7 @@ export async function adminReviewProfessionalDecision(
         .insert(rowsToInsert)
 
       if (insertAdjustmentsError) {
+        await rollbackProfessionalUpdate()
         return { success: false, error: 'Nao foi possivel registrar os ajustes estruturados.' }
       }
     }
