@@ -820,6 +820,7 @@ export function OnboardingTrackerModal({
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
   const [contextReloadNonce, setContextReloadNonce] = useState(0)
+  const [serviceReloadGuardUsed, setServiceReloadGuardUsed] = useState(false)
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
     buildDefaultAvailabilityMap(),
   )
@@ -973,6 +974,12 @@ export function OnboardingTrackerModal({
     await refreshTrackerEvaluation()
     setContextReloadNonce(previous => previous + 1)
   }, [refreshTrackerEvaluation])
+
+  useEffect(() => {
+    if (services.length > 0) {
+      setServiceReloadGuardUsed(false)
+    }
+  }, [services])
 
   const applyOptionalContext = useCallback(
     (optional: ModalOptionalContextPayload | null | undefined) => {
@@ -2021,9 +2028,11 @@ export function OnboardingTrackerModal({
   async function saveService() {
     const isEditing = Boolean(editingServiceId)
     const maxServices = tierLimits.services
-    if (!isEditing && services.length === 0 && trackerAdjustmentMode) {
+    if (!isEditing && services.length === 0 && trackerAdjustmentMode && !serviceReloadGuardUsed) {
+      setServiceReloadGuardUsed(true)
       setServiceSaveState('error')
       setServiceError('Não foi possível carregar seus serviços. Recarregue o tracker.')
+      void reloadTrackerContext()
       return
     }
     if (!isEditing && services.length >= maxServices) {
