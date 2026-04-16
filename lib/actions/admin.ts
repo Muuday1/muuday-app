@@ -116,6 +116,12 @@ export async function adminUpdateProfessionalStatus(
       error: 'Use "Revisar detalhes" para solicitar ajustes com itens estruturados.',
     }
   }
+  if (parsed.data.newStatus === 'rejected') {
+    return {
+      success: false,
+      error: 'Use "Revisar detalhes" para rejeitar com ajustes estruturados.',
+    }
+  }
 
   try {
     const { supabase, userId } = await requireAdmin()
@@ -133,9 +139,20 @@ export async function adminUpdateProfessionalStatus(
       return { success: false, error: 'Profissional nao encontrado.' }
     }
 
+    const nowIso = new Date().toISOString()
+    const updatePayload: Record<string, unknown> = {
+      status: parsed.data.newStatus,
+      updated_at: nowIso,
+    }
+    if (parsed.data.newStatus === 'approved') {
+      updatePayload.first_booking_enabled = true
+      updatePayload.first_booking_gate_note = 'admin_enabled_by_approval'
+      updatePayload.first_booking_gate_updated_at = nowIso
+    }
+
     const { error } = await supabase
       .from('professionals')
-      .update({ status: parsed.data.newStatus, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', parsed.data.professionalId)
 
     if (error) {
@@ -150,7 +167,7 @@ export async function adminUpdateProfessionalStatus(
       oldValue: previousProfessional,
       newValue: {
         ...previousProfessional,
-        status: parsed.data.newStatus,
+        ...updatePayload,
       },
     })
     if (!auditResult.success) {
@@ -387,8 +404,10 @@ export async function adminReviewProfessionalDecision(
     }
 
     const structuredAdjustments = parsed.data.adjustments || []
-    if (parsed.data.decision === 'needs_changes' && structuredAdjustments.length === 0) {
-      return { success: false, error: 'Selecione pelo menos um ajuste obrigatorio para solicitar alteracoes.' }
+    const decisionRequiresAdjustments =
+      parsed.data.decision === 'needs_changes' || parsed.data.decision === 'rejected'
+    if (decisionRequiresAdjustments && structuredAdjustments.length === 0) {
+      return { success: false, error: 'Selecione pelo menos um ajuste estruturado para continuar.' }
     }
     const invalidAdjustment = structuredAdjustments.find(
       item => !ALLOWED_REVIEW_ADJUSTMENT_KEYS.has(`${String(item.stageId)}::${String(item.fieldKey)}`),
@@ -399,56 +418,58 @@ export async function adminReviewProfessionalDecision(
 
     const targetStatus = parsed.data.decision
     const nowIso = new Date().toISOString()
+    const professionalUpdatePayload: Record<string, unknown> = {
+      status: targetStatus,
+      admin_review_notes: parsed.data.notes || null,
+      reviewed_by: userId,
+      reviewed_at: nowIso,
+      updated_at: nowIso,
+    }
+    if (targetStatus === 'approved') {
+      professionalUpdatePayload.first_booking_enabled = true
+      professionalUpdatePayload.first_booking_gate_note = 'admin_enabled_by_approval'
+      professionalUpdatePayload.first_booking_gate_updated_at = nowIso
+    }
+
     const { error: updateError } = await supabase
       .from('professionals')
-      .update({
-        status: targetStatus,
-        admin_review_notes: parsed.data.notes || null,
-        reviewed_by: userId,
-        reviewed_at: nowIso,
-        updated_at: nowIso,
-      })
+      .update(professionalUpdatePayload)
       .eq('id', parsed.data.professionalId)
 
     if (updateError) {
       return { success: false, error: updateError.message }
     }
 
-    if (targetStatus === 'needs_changes') {
+    if (targetStatus === 'approved') {
       await supabase
         .from('professional_review_adjustments')
         .update({
-          status: 'reopened',
-          resolved_at: null,
-          resolved_by: null,
-          resolution_note: 'new_adjustments_requested',
+          status: 'resolved_by_admin',
+          resolved_at: nowIso,
+          resolved_by: userId,
+          resolution_note: 'approved',
         })
         .eq('professional_id', parsed.data.professionalId)
-        .in('status', ['open', 'resolved_by_professional'])
+        .in('status', ['open', 'reopened', 'resolved_by_professional'])
+    } else {
+      const { error: closeExistingError } = await supabase
+        .from('professional_review_adjustments')
+        .update({
+          status: 'resolved_by_admin',
+          resolved_at: nowIso,
+          resolved_by: userId,
+          resolution_note: targetStatus === 'rejected' ? 'replaced_by_rejection_round' : 'replaced_by_new_round',
+        })
+        .eq('professional_id', parsed.data.professionalId)
+        .in('status', ['open', 'reopened', 'resolved_by_professional'])
+
+      if (closeExistingError) {
+        return { success: false, error: 'Nao foi possivel atualizar os ajustes anteriores.' }
+      }
 
       const uniqueAdjustments = new Map<string, (typeof structuredAdjustments)[number]>()
       for (const item of structuredAdjustments) {
-        uniqueAdjustments.set(String(item.stageId) + '::' + String(item.fieldKey), item)
-      }
-      const adjustmentEntries = Array.from(uniqueAdjustments.entries())
-      const stageIds = Array.from(
-        new Set(adjustmentEntries.map(([key]) => key.split('::')[0]).filter(Boolean)),
-      ) as string[]
-
-      const { data: existingRows, error: existingRowsError } = await supabase
-        .from('professional_review_adjustments')
-        .select('id,stage_id,field_key')
-        .eq('professional_id', parsed.data.professionalId)
-        .in('status', ['open', 'reopened'])
-        .in('stage_id', stageIds)
-
-      if (existingRowsError) {
-        return { success: false, error: 'Nao foi possivel validar ajustes existentes.' }
-      }
-
-      const existingByKey = new Map<string, string>()
-      for (const row of existingRows || []) {
-        existingByKey.set(String(row.stage_id) + '::' + String(row.field_key), String(row.id))
+        uniqueAdjustments.set(`${String(item.stageId)}::${String(item.fieldKey)}`, item)
       }
 
       const rowsToInsert: Array<{
@@ -459,60 +480,23 @@ export async function adminReviewProfessionalDecision(
         severity: 'low' | 'medium' | 'high'
         status: 'open'
         created_by: string
-      }> = []
+      }> = Array.from(uniqueAdjustments.values()).map(item => ({
+        professional_id: parsed.data.professionalId,
+        stage_id: item.stageId,
+        field_key: item.fieldKey,
+        message: item.message,
+        severity: item.severity,
+        status: 'open',
+        created_by: userId,
+      }))
 
-      for (const [key, item] of adjustmentEntries) {
-        const existingId = existingByKey.get(key)
-        if (existingId) {
-          const { error: updateExistingError } = await supabase
-            .from('professional_review_adjustments')
-            .update({
-              message: item.message,
-              severity: item.severity,
-              status: 'open',
-              resolved_at: null,
-              resolved_by: null,
-              resolution_note: 'updated_by_admin',
-            })
-            .eq('id', existingId)
-
-          if (updateExistingError) {
-            return { success: false, error: 'Nao foi possivel atualizar um ajuste existente.' }
-          }
-          continue
-        }
-
-        rowsToInsert.push({
-          professional_id: parsed.data.professionalId,
-          stage_id: item.stageId,
-          field_key: item.fieldKey,
-          message: item.message,
-          severity: item.severity,
-          status: 'open',
-          created_by: userId,
-        })
-      }
-
-      if (rowsToInsert.length > 0) {
-        const { error: insertAdjustmentsError } = await supabase
-          .from('professional_review_adjustments')
-          .insert(rowsToInsert)
-
-        if (insertAdjustmentsError) {
-          return { success: false, error: 'Nao foi possivel registrar os ajustes estruturados.' }
-        }
-      }
-    } else {
-      await supabase
+      const { error: insertAdjustmentsError } = await supabase
         .from('professional_review_adjustments')
-        .update({
-          status: 'resolved_by_admin',
-          resolved_at: nowIso,
-          resolved_by: userId,
-          resolution_note: targetStatus === 'approved' ? 'approved' : 'closed_by_rejection',
-        })
-        .eq('professional_id', parsed.data.professionalId)
-        .in('status', ['open', 'reopened', 'resolved_by_professional'])
+        .insert(rowsToInsert)
+
+      if (insertAdjustmentsError) {
+        return { success: false, error: 'Nao foi possivel registrar os ajustes estruturados.' }
+      }
     }
 
     const { data: professionalOwner } = await supabase
@@ -549,10 +533,24 @@ export async function adminReviewProfessionalDecision(
               .join('\n\n') || 'Revise os dados enviados e atualize seu perfil.',
           )
         } else {
+          const structuredMessage =
+            structuredAdjustments.length > 0
+              ? structuredAdjustments
+                  .map(item => {
+                    const stageLabel =
+                      REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] ||
+                      item.stageId
+                    return `• ${stageLabel} (${item.fieldKey}): ${item.message}`
+                  })
+                  .join('\n')
+              : ''
           await sendProfileRejectedEmail(
             professionalOwner.email,
             professionalOwner.full_name || 'Profissional',
-            parsed.data.notes || 'Seu perfil precisa de ajustes para publicacao.',
+            [parsed.data.notes || '', structuredMessage]
+              .map(item => item.trim())
+              .filter(Boolean)
+              .join('\n\n') || 'Seu perfil precisa de ajustes para publicacao.',
           )
         }
       } catch {
@@ -568,10 +566,7 @@ export async function adminReviewProfessionalDecision(
       oldValue: currentProfessional,
       newValue: {
         ...currentProfessional,
-        status: targetStatus,
-        admin_review_notes: parsed.data.notes || null,
-        reviewed_by: userId,
-        reviewed_at: nowIso,
+        ...professionalUpdatePayload,
       },
       metadata: {
         decision: targetStatus,

@@ -57,7 +57,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
     setErrorMessage('')
     setSubmitting(decision)
     try {
-      if (decision === 'needs_changes') {
+      if (decision === 'needs_changes' || decision === 'rejected') {
         if (selectedAdjustments.length === 0) {
           setErrorMessage('Selecione ao menos um item de ajuste para continuar.')
           return
@@ -70,7 +70,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
       }
 
       const payloadAdjustments =
-        decision === 'needs_changes'
+        decision === 'needs_changes' || decision === 'rejected'
           ? selectedAdjustments.map(({ stageId, fieldKey, message, severity }) => ({
               stageId,
               fieldKey,
@@ -117,7 +117,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Checklist de ajustes</p>
         <p className="mt-1 text-xs text-neutral-500">
-          Para solicitar ajustes, marque os itens necessários e preencha uma mensagem objetiva para cada um.
+          Para solicitar ajustes ou rejeitar com retorno estruturado, marque os itens necessários e descreva cada ponto.
         </p>
         <div className="mt-3 space-y-3">
           {groupedFields.map(([stageId, fields]) => (

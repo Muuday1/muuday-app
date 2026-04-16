@@ -714,6 +714,7 @@ export function OnboardingTrackerModal({
   const [submitTermsError, setSubmitTermsError] = useState('')
   const dragStateRef = useRef<{ startX: number; startY: number; startFocusX: number; startFocusY: number } | null>(null)
   const termsModalContentRef = useRef<HTMLDivElement | null>(null)
+  const onTrackerStateChangeRef = useRef(onTrackerStateChange)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
   const [identityTitle, setIdentityTitle] = useState('')
@@ -862,6 +863,10 @@ export function OnboardingTrackerModal({
   const minNoticeRange = tierConfig.minNoticeRange
   const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
   const isBasicTier = normalizedTier === 'basic'
+
+  useEffect(() => {
+    onTrackerStateChangeRef.current = onTrackerStateChange
+  }, [onTrackerStateChange])
   const refreshTrackerEvaluation = useCallback(async () => {
     try {
       const response = await withTimeout(
@@ -906,13 +911,13 @@ export function OnboardingTrackerModal({
 
       if (typeof json.professionalStatus === 'string') {
         setCurrentProfessionalStatus(json.professionalStatus)
-        onTrackerStateChange?.({
+        onTrackerStateChangeRef.current?.({
           evaluation: json.evaluation,
           professionalStatus: json.professionalStatus,
         })
         return { ok: true, termsLoaded }
       }
-      onTrackerStateChange?.({
+      onTrackerStateChangeRef.current?.({
         evaluation: json.evaluation,
         professionalStatus: currentProfessionalStatus,
       })
@@ -920,7 +925,7 @@ export function OnboardingTrackerModal({
     } catch {
       return { ok: false, termsLoaded: false }
     }
-  }, [currentProfessionalStatus, onTrackerStateChange])
+  }, [currentProfessionalStatus])
 
   useEffect(() => {
     if (!open) return
@@ -1639,11 +1644,11 @@ export function OnboardingTrackerModal({
       throw new Error(json.error || fallbackError)
     }
 
-    setCurrentEvaluation(json.evaluation)
-    onTrackerStateChange?.({
-      evaluation: json.evaluation,
-      professionalStatus: currentProfessionalStatus,
-    })
+      setCurrentEvaluation(json.evaluation)
+      onTrackerStateChangeRef.current?.({
+        evaluation: json.evaluation,
+        professionalStatus: currentProfessionalStatus,
+      })
     if (resolvedIdsFromPayload.length > 0) {
       const resolvedSet = new Set(resolvedIdsFromPayload)
       setSelectedAdjustmentIds(previous => previous.filter(id => !resolvedSet.has(id)))
@@ -2141,15 +2146,6 @@ export function OnboardingTrackerModal({
     setSubmitReviewMessage('')
     setSubmitTermsError('')
 
-    const pendingStages = stageItems.filter(item => item.id !== 'c8_submit_review' && !item.complete)
-    if (pendingStages.length > 0) {
-      setSubmitReviewState('error')
-      setSubmitReviewMessage(
-        `Finalize as etapas pendentes antes de enviar: ${pendingStages.map(item => item.label).join(', ')}.`,
-      )
-      return
-    }
-
     if (!termsHydrated) {
       setSubmitReviewState('error')
       setSubmitTermsError('Aguarde o carregamento dos termos obrigatórios para enviar.')
@@ -2193,7 +2189,7 @@ export function OnboardingTrackerModal({
     setCurrentEvaluation(payload.evaluation)
     const nextStatus = String(payload.professionalStatus || 'pending_review')
     setCurrentProfessionalStatus(nextStatus)
-    onTrackerStateChange?.({
+    onTrackerStateChangeRef.current?.({
       evaluation: payload.evaluation,
       professionalStatus: nextStatus,
     })
@@ -2366,7 +2362,9 @@ export function OnboardingTrackerModal({
                   <p className="mt-1 text-xs">
                     {openReviewAdjustments.length > 0
                       ? 'Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.'
-                      : 'Ainda não há ajustes estruturados vinculados a este status. Peça ao admin para registrar itens específicos na revisão.'}
+                      : trackerViewMode === 'rejected'
+                        ? 'Não há itens estruturados abertos nesta rodada. Revise os dados do perfil, salve as etapas necessárias e envie novamente para análise.'
+                        : 'Não há itens estruturados abertos no momento. Revise as etapas principais e envie novamente para análise.'}
                   </p>
                   {openReviewAdjustments.length > 0 ? (
                     <p className="mt-1 text-[11px] text-amber-800">

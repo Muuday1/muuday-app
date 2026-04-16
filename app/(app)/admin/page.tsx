@@ -746,14 +746,13 @@ export default function AdminPage() {
                             )}
 
                             {pro.status !== 'rejected' && pro.status !== 'approved' && (
-                              <button
-                                onClick={() => updateProfessionalStatus(pro.id, 'rejected')}
-                                disabled={actionLoading === pro.id}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                              <Link
+                                href={`/admin/revisao/${pro.id}`}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-all"
                               >
                                 <XCircle className="w-4 h-4" />
-                                Rejeitar
-                              </button>
+                                Rejeitar com ajustes
+                              </Link>
                             )}
 
                             {pro.status === 'approved' && (
