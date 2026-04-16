@@ -205,7 +205,9 @@ export default async function DashboardPage({
       .eq('professional_id', professionalId)
       .eq('status', 'captured')
       .gte('created_at', thirtyDaysAgoIso),
-    loadProfessionalOnboardingState(supabase, professionalId),
+    loadProfessionalOnboardingState(supabase, professionalId, {
+      resolveSignedMediaUrls: false,
+    }),
   ])
 
   const pendingConfirmationCount = pendingConfirmationCountRaw || 0

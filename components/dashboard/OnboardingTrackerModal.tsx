@@ -9,8 +9,6 @@ import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-ra
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
   REVIEW_ADJUSTMENT_STAGE_LABELS,
-  SECTION_TO_REVIEW_FIELD_KEYS,
-  SECTION_TO_REVIEW_STAGES,
   type ReviewAdjustmentItem,
 } from '@/lib/professional/review-adjustments'
 import {
@@ -826,7 +824,6 @@ export function OnboardingTrackerModal({
   const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
   const [reviewAdjustments, setReviewAdjustments] = useState<ReviewAdjustmentItem[]>([])
-  const [selectedAdjustmentIds, setSelectedAdjustmentIds] = useState<string[]>([])
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
@@ -878,30 +875,6 @@ export function OnboardingTrackerModal({
     return set
   }, [openReviewAdjustments])
   const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
-
-  useEffect(() => {
-    const openIds = new Set(openReviewAdjustments.map(item => String(item.id)))
-    setSelectedAdjustmentIds(previous => previous.filter(id => openIds.has(id)))
-  }, [openReviewAdjustments])
-
-  const getResolvedAdjustmentIdsForSection = useCallback(
-    (section: string) => {
-      const stageIds = SECTION_TO_REVIEW_STAGES[section] || []
-      const fieldKeys = SECTION_TO_REVIEW_FIELD_KEYS[section] || []
-      const selectedIdsSet = new Set(selectedAdjustmentIds)
-      const stageIdSet = new Set(stageIds.map(value => String(value)))
-      const fieldKeySet = new Set(fieldKeys.map(value => String(value)))
-      return openReviewAdjustments
-        .filter(
-          item =>
-            selectedIdsSet.has(String(item.id)) &&
-            stageIdSet.has(String(item.stageId)) &&
-            fieldKeySet.has(String(item.fieldKey)),
-        )
-        .map(item => String(item.id))
-    },
-    [openReviewAdjustments, selectedAdjustmentIds],
-  )
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
   const minNoticeRange = tierConfig.minNoticeRange
@@ -1117,12 +1090,6 @@ export function OnboardingTrackerModal({
           ? criticalPayload.reviewAdjustments
           : []
         setReviewAdjustments(adjustmentRows)
-        const openIds = new Set(
-          adjustmentRows
-            .filter(item => item.status === 'open' || item.status === 'reopened')
-            .map(item => String(item.id)),
-        )
-        setSelectedAdjustmentIds(previous => previous.filter(id => openIds.has(id)))
 
         const critical = (criticalPayload.critical || {}) as ModalContextPayload
         const professional = (critical.professional || null) as Record<string, unknown> | null
@@ -1600,12 +1567,6 @@ export function OnboardingTrackerModal({
     fallbackError: string,
     options?: { autoAdvance?: boolean },
   ) {
-    const resolvedIdsFromPayload = Array.isArray((payload as { resolvedAdjustmentIds?: unknown }).resolvedAdjustmentIds)
-      ? ((payload as { resolvedAdjustmentIds?: unknown }).resolvedAdjustmentIds as unknown[])
-          .map(id => String(id || '').trim())
-          .filter(Boolean)
-      : []
-
     setTrackerRefreshState('saving')
     const response = await fetch('/api/professional/onboarding/save', {
       method: 'POST',
@@ -1617,6 +1578,8 @@ export function OnboardingTrackerModal({
       ok?: boolean
       error?: string
       evaluation?: ProfessionalOnboardingEvaluation
+      professionalStatus?: string
+      reviewAdjustments?: ReviewAdjustmentItem[]
       service?: ProfessionalServiceItem
       deletedServiceId?: string | null
     }
@@ -1626,15 +1589,19 @@ export function OnboardingTrackerModal({
       throw new Error(json.error || fallbackError)
     }
 
-      setCurrentEvaluation(json.evaluation)
-      onTrackerStateChangeRef.current?.({
-        evaluation: json.evaluation,
-        professionalStatus: currentProfessionalStatus,
-      })
-    if (resolvedIdsFromPayload.length > 0) {
-      const resolvedSet = new Set(resolvedIdsFromPayload)
-      setSelectedAdjustmentIds(previous => previous.filter(id => !resolvedSet.has(id)))
+    setCurrentEvaluation(json.evaluation)
+    if (Array.isArray(json.reviewAdjustments)) {
+      setReviewAdjustments(json.reviewAdjustments)
     }
+    const nextProfessionalStatus =
+      typeof json.professionalStatus === 'string' ? json.professionalStatus : currentProfessionalStatus
+    if (typeof json.professionalStatus === 'string') {
+      setCurrentProfessionalStatus(json.professionalStatus)
+    }
+    onTrackerStateChangeRef.current?.({
+      evaluation: json.evaluation,
+      professionalStatus: nextProfessionalStatus,
+    })
     setTrackerRefreshState('saved')
     setTimeout(() => setTrackerRefreshState('idle'), 1200)
     const nextPending = UI_STAGE_ORDER.find(id =>
@@ -1876,7 +1843,6 @@ export function OnboardingTrackerModal({
       await saveSection(
         {
           section: 'identity',
-          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('identity'),
           title: identityTitle,
           displayName: identityDisplayName,
           yearsExperience: years,
@@ -1924,7 +1890,6 @@ export function OnboardingTrackerModal({
       await saveSection(
         {
           section: 'public_profile',
-          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('public_profile'),
           bio: bio.trim(),
           avatarUrl: nextPhoto.avatarUrl.trim(),
           avatarPath: nextPhoto.avatarPath.trim(),
@@ -1992,7 +1957,6 @@ export function OnboardingTrackerModal({
           section: 'service',
           operation: 'delete',
           serviceId,
-          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('service'),
         },
         'Nao foi possivel remover o servico.',
         { autoAdvance: false },
@@ -2064,7 +2028,6 @@ export function OnboardingTrackerModal({
           section: 'service',
           operation: isEditing ? 'update' : 'create',
           serviceId: isEditing ? editingServiceId : undefined,
-          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('service'),
           name: serviceName.trim(),
           description: serviceDescription.trim(),
           priceBrl: Number(priceBrl.toFixed(2)),
@@ -2121,7 +2084,6 @@ export function OnboardingTrackerModal({
       await saveSection(
         {
           section: 'availability',
-          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('availability'),
           profileTimezone,
           availabilityMap,
           minimumNoticeHours: safeNoticeHours,
@@ -2413,40 +2375,19 @@ export function OnboardingTrackerModal({
                     {openReviewAdjustments.length > 0
                       ? 'Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.'
                       : trackerViewMode === 'rejected'
-                        ? 'Não há itens estruturados abertos nesta rodada. Revise os dados do perfil, salve as etapas necessárias e envie novamente para análise.'
-                        : 'Não há itens estruturados abertos no momento. Revise as etapas principais e envie novamente para análise.'}
+                        ? 'Não há itens estruturados ativos nesta rodada. Se você já concluiu as correções, pode reenviar; se não souber o que ajustar, o time de revisão precisa publicar uma nova lista.'
+                        : 'Não há itens estruturados ativos no momento. Se você já concluiu as correções, pode reenviar; se não souber o que ajustar, o time de revisão precisa publicar uma nova lista.'}
                   </p>
-                  {openReviewAdjustments.length > 0 ? (
-                    <p className="mt-1 text-[11px] text-amber-800">
-                      Marque os itens que você está corrigindo antes de salvar cada etapa.
-                    </p>
-                  ) : null}
                   {openReviewAdjustments.length > 0 ? (
                     <ul className="mt-2 space-y-1 text-xs">
                       {openReviewAdjustments.map(item => (
                         <li key={item.id} className="rounded-md bg-white/70 px-2 py-1">
-                          <label className="flex cursor-pointer items-start gap-2">
-                            <input
-                              type="checkbox"
-                              className="mt-0.5 h-3.5 w-3.5 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                              checked={selectedAdjustmentIds.includes(String(item.id))}
-                              onChange={event => {
-                                const adjustmentId = String(item.id)
-                                setSelectedAdjustmentIds(previous => {
-                                  if (event.target.checked) {
-                                    return previous.includes(adjustmentId) ? previous : [...previous, adjustmentId]
-                                  }
-                                  return previous.filter(id => id !== adjustmentId)
-                                })
-                              }}
-                            />
-                            <span>
-                              <span className="font-semibold">
-                                {REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || item.stageId}
-                              </span>{' '}
-                              • {item.message}
-                            </span>
-                          </label>
+                          <span>
+                            <span className="font-semibold">
+                              {REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || item.stageId}
+                            </span>{' '}
+                            • {item.message}
+                          </span>
                         </li>
                       ))}
                     </ul>

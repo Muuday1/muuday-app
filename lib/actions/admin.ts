@@ -176,6 +176,7 @@ export async function adminUpdateProfessionalStatus(
 
     await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
+    revalidatePath('/dashboard')
     revalidateTag('public-profiles')
     return { success: true }
   } catch (error) {
@@ -251,6 +252,7 @@ export async function adminUpdateFirstBookingGate(
 
     await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
+    revalidatePath('/dashboard')
     revalidateTag('public-profiles')
     return { success: true }
   } catch (error) {
@@ -658,6 +660,7 @@ export async function adminReviewProfessionalDecision(
 
     await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
+    revalidatePath('/dashboard')
     revalidatePath(`/admin/revisao/${parsed.data.professionalId}`)
     revalidateTag('public-profiles')
     return { success: true }

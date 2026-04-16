@@ -49,10 +49,6 @@ export const REVIEW_ADJUSTMENT_PRESET_FIELDS: Array<{
   { stageId: 'c4_services', fieldKey: 'service_price', label: 'Preço / duração' },
   { stageId: 'c5_availability_calendar', fieldKey: 'weekly_schedule', label: 'Agenda semanal' },
   { stageId: 'c5_availability_calendar', fieldKey: 'booking_rules', label: 'Regras de agendamento' },
-  { stageId: 'c5_availability_calendar', fieldKey: 'calendar_sync', label: 'Integração de calendário' },
-  { stageId: 'c6_plan_billing_setup_post', fieldKey: 'plan_selection', label: 'Seleção de plano' },
-  { stageId: 'c6_plan_billing_setup_post', fieldKey: 'plan_terms', label: 'Termos do plano' },
-  { stageId: 'c8_submit_review', fieldKey: 'required_terms', label: 'Termos obrigatórios' },
 ]
 
 export const SECTION_TO_REVIEW_STAGES: Record<string, ReviewAdjustmentStageId[]> = {

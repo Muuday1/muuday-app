@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import {
   REVIEW_ADJUSTMENT_STAGE_LABELS,
@@ -103,38 +103,52 @@ export function ProfessionalOnboardingCard({
   )
   const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
 
-  useEffect(() => {
-    if (!trackerNeedsAdjustments) {
-      setOpenAdjustments([])
-      return
+  const syncTrackerState = useCallback(async () => {
+    const response = await fetch('/api/professional/onboarding/state', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    const payload = (await response.json().catch(() => ({}))) as {
+      professionalStatus?: string
+      evaluation?: ProfessionalOnboardingEvaluation
+      reviewAdjustments?: ReviewAdjustmentItem[]
     }
 
+    if (!response.ok) {
+      throw new Error('Nao foi possivel atualizar o estado do onboarding.')
+    }
+
+    if (payload.evaluation) {
+      setEvaluation(payload.evaluation)
+    }
+    if (typeof payload.professionalStatus === 'string') {
+      setCurrentProfessionalStatus(payload.professionalStatus)
+    }
+    const items = Array.isArray(payload.reviewAdjustments)
+      ? payload.reviewAdjustments.filter(item => item.status === 'open' || item.status === 'reopened')
+      : []
+    setOpenAdjustments(items)
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
-    async function loadAdjustments() {
+
+    async function loadTrackerState() {
       try {
-        const response = await fetch('/api/professional/onboarding/state', {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-store',
-        })
-        const payload = (await response.json().catch(() => ({}))) as {
-          reviewAdjustments?: ReviewAdjustmentItem[]
-        }
-        if (!response.ok || cancelled) return
-        const items = Array.isArray(payload.reviewAdjustments)
-          ? payload.reviewAdjustments.filter(item => item.status === 'open' || item.status === 'reopened')
-          : []
-        setOpenAdjustments(items)
+        await syncTrackerState()
       } catch {
-        if (!cancelled) setOpenAdjustments([])
+        if (!cancelled && !trackerNeedsAdjustments) {
+          setOpenAdjustments([])
+        }
       }
     }
 
-    void loadAdjustments()
+    void loadTrackerState()
     return () => {
       cancelled = true
     }
-  }, [trackerNeedsAdjustments, currentProfessionalStatus, evaluation])
+  }, [professionalId, syncTrackerState, trackerNeedsAdjustments])
 
   const normalizedStages = useMemo(() => {
     const map = new Map<string, ProfessionalOnboardingEvaluation['stages'][number]>()
@@ -204,11 +218,11 @@ export function ProfessionalOnboardingCard({
         : trackerViewMode === 'rejected'
           ? adjustmentCount > 0
             ? `Seu envio foi reprovado nesta rodada. Há ${adjustmentCount} ajuste(s) pendente(s) para reenviar.`
-            : 'Seu envio foi reprovado nesta rodada. Abra o tracker e faça os ajustes solicitados para reenviar.'
+            : 'Seu envio foi reprovado e não há ajustes estruturados ativos neste momento. Se você já concluiu as correções, reenvie no tracker; se não souber o que ajustar, o time de revisão precisa publicar uma nova lista.'
           : trackerViewMode === 'needs_changes'
             ? adjustmentCount > 0
               ? `A equipe de revisão pediu ${adjustmentCount} ajuste(s). Corrija os itens abaixo e envie novamente pelo tracker.`
-              : 'A equipe de revisão pediu ajustes. Abra o tracker para revisar os itens pendentes e reenviar.'
+              : 'A equipe de revisão marcou seu perfil para ajustes, mas não há itens estruturados ativos neste momento. Se você já concluiu as correções, reenvie no tracker; se não souber o que ajustar, o time de revisão precisa publicar uma nova lista.'
             : 'Falta concluir as etapas do onboarding antes da publicação. Continue de onde parou e envie o perfil para análise no fim do fluxo.'
 
   return (

@@ -116,14 +116,6 @@ function isMissingOnConflictConstraint(error: { message?: string; details?: stri
   return haystack.includes('42p10') || haystack.includes('no unique or exclusion constraint matching')
 }
 
-function getResolvedAdjustmentIds(
-  payload: z.infer<typeof payloadSchema>,
-) {
-  return Array.isArray(payload.resolvedAdjustmentIds)
-    ? payload.resolvedAdjustmentIds.filter(Boolean)
-    : []
-}
-
 function normalizeTextForDiff(value: unknown) {
   return String(value || '').trim()
 }
@@ -913,18 +905,16 @@ export async function POST(request: Request) {
     }
 
     const stageIdsForSection = SECTION_TO_REVIEW_STAGES[savedSection] || []
-    const resolvedAdjustmentIds = getResolvedAdjustmentIds(payload.data)
     const allowedFieldKeysForSection = new Set(SECTION_TO_REVIEW_FIELD_KEYS[savedSection] || [])
     const changedFieldKeysForSection = Array.from(resolvedAdjustmentFieldKeys).filter(fieldKey =>
       allowedFieldKeysForSection.has(fieldKey),
     )
 
-    if (resolvedAdjustmentIds.length > 0 && changedFieldKeysForSection.length > 0) {
+    if (stageIdsForSection.length > 0 && changedFieldKeysForSection.length > 0) {
       const { data: candidateRows } = await db
         .from('professional_review_adjustments')
         .select('id,field_key')
         .eq('professional_id', professionalId)
-        .in('id', resolvedAdjustmentIds)
         .in('stage_id', stageIdsForSection)
         .in('status', ['open', 'reopened'])
 
@@ -957,9 +947,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Alteracoes salvas, mas o tracker nao pode ser atualizado.' }, { status: 500 })
     }
 
+    const { data: reviewAdjustments } = await db
+      .from('professional_review_adjustments')
+      .select('id,stage_id,field_key,message,severity,status,created_at,resolved_at')
+      .eq('professional_id', professionalId)
+      .in('status', ['open', 'reopened'])
+      .order('created_at', { ascending: false })
+
     return NextResponse.json({
       ok: true,
       evaluation: onboardingState.evaluation,
+      professionalStatus: String(onboardingState.snapshot.professional.status || ''),
+      reviewAdjustments: (reviewAdjustments || []).map(row => ({
+        id: String(row.id || ''),
+        stageId: String(row.stage_id || ''),
+        fieldKey: String(row.field_key || ''),
+        message: String(row.message || ''),
+        severity: String(row.severity || 'medium'),
+        status: String(row.status || 'open'),
+        createdAt: String(row.created_at || ''),
+        resolvedAt: row.resolved_at ? String(row.resolved_at) : null,
+      })),
       service: mutatedService,
       deletedServiceId,
     })
