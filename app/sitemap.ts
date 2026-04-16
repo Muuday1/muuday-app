@@ -1,6 +1,7 @@
-﻿import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.muuday.com'
+const appUrl = getAppBaseUrl()
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()

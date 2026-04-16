@@ -38,7 +38,6 @@ export const REVIEW_ADJUSTMENT_PRESET_FIELDS: Array<{
 }> = [
   { stageId: 'c2_professional_identity', fieldKey: 'photo', label: 'Foto de perfil' },
   { stageId: 'c2_professional_identity', fieldKey: 'display_name', label: 'Nome público' },
-  { stageId: 'c2_professional_identity', fieldKey: 'taxonomy', label: 'Categoria / subcategoria' },
   { stageId: 'c2_professional_identity', fieldKey: 'focus_tags', label: 'Tags de foco' },
   { stageId: 'c2_professional_identity', fieldKey: 'experience', label: 'Anos de experiência' },
   { stageId: 'c2_professional_identity', fieldKey: 'languages', label: 'Idiomas' },
@@ -61,7 +60,6 @@ export const SECTION_TO_REVIEW_STAGES: Record<string, ReviewAdjustmentStageId[]>
 export const SECTION_TO_REVIEW_FIELD_KEYS: Record<string, string[]> = {
   identity: [
     'display_name',
-    'taxonomy',
     'focus_tags',
     'experience',
     'languages',
@@ -70,5 +68,9 @@ export const SECTION_TO_REVIEW_FIELD_KEYS: Record<string, string[]> = {
   ],
   public_profile: ['photo'],
   service: ['service_title', 'service_description', 'service_price'],
-  availability: ['weekly_schedule', 'booking_rules', 'calendar_sync'],
+  availability: ['weekly_schedule', 'booking_rules'],
 }
+
+export const SUPPORTED_REVIEW_ADJUSTMENT_KEYS = new Set(
+  REVIEW_ADJUSTMENT_PRESET_FIELDS.map(item => `${String(item.stageId)}::${String(item.fieldKey)}`),
+)

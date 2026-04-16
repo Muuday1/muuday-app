@@ -36,6 +36,14 @@ function sanitizeRedirectPath(value?: string) {
   return value
 }
 
+function getClientAppBaseUrl() {
+  const configured = String(process.env.NEXT_PUBLIC_APP_URL || '').trim()
+  if (configured.startsWith('http://') || configured.startsWith('https://')) {
+    return configured.replace(/\/+$/, '')
+  }
+  return typeof window !== 'undefined' ? window.location.origin : ''
+}
+
 export default function SocialAuthButtons({
   redirectPath,
   roleHint = 'usuario',
@@ -55,7 +63,7 @@ export default function SocialAuthButtons({
       return
     }
 
-    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    const callbackUrl = new URL('/auth/callback', getClientAppBaseUrl())
     const safeRedirect = sanitizeRedirectPath(redirectPath)
     if (safeRedirect) callbackUrl.searchParams.set('next', safeRedirect)
     if (roleHint) callbackUrl.searchParams.set('role', roleHint)

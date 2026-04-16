@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { buildProfessionalCredentialFlags } from '@/lib/admin/professional-credential-checks'
 import { AdminReviewDecisionForm } from '@/components/admin/AdminReviewDecisionForm'
 import { AdminProfessionalIdentityBadge } from '@/components/admin/AdminProfessionalIdentityBadge'
+import { AdminReviewRepairButton } from '@/components/admin/AdminReviewRepairButton'
 
 function parseResultMessage(resultRaw?: string) {
   if (!resultRaw) return null
@@ -70,6 +71,12 @@ export default async function AdminReviewProfessionalPage({
     .eq('professional_id', professional.id)
     .order('uploaded_at', { ascending: false })
 
+  const { count: openAdjustmentCount } = await supabase
+    .from('professional_review_adjustments')
+    .select('id', { head: true, count: 'exact' })
+    .eq('professional_id', professional.id)
+    .in('status', ['open', 'reopened'])
+
   const result = parseResultMessage(searchParams?.result)
   const owner = Array.isArray(professional.profiles) ? professional.profiles[0] : professional.profiles
   const semiAuto = buildProfessionalCredentialFlags({ application, credentials })
@@ -78,6 +85,9 @@ export default async function AdminReviewProfessionalPage({
     .map(service => Number(service.price_brl || 0))
   const minServicePrice = activeServicePrices.length > 0 ? Math.min(...activeServicePrices) : 0
   const visibleBasePrice = minServicePrice > 0 ? minServicePrice : Number(professional.session_price_brl || 0)
+  const normalizedStatus = String(professional.status || '').toLowerCase()
+  const isMissingStructuredAdjustments =
+    ['needs_changes', 'rejected'].includes(normalizedStatus) && (openAdjustmentCount || 0) === 0
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
@@ -289,6 +299,9 @@ export default async function AdminReviewProfessionalPage({
         </section>
 
         <aside className="space-y-4">
+          {isMissingStructuredAdjustments ? (
+            <AdminReviewRepairButton professionalId={professional.id} />
+          ) : null}
           <div className="rounded-2xl border border-neutral-200 bg-white p-5">
             <h2 className="mb-3 font-semibold text-neutral-900">Decisão de revisão</h2>
             <AdminReviewDecisionForm

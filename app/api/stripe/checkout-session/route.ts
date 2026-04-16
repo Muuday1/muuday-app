@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 import {
   getStripeClientForRegion,
   resolveStripePlatformRegion,
@@ -48,7 +49,7 @@ const PRICE_ENV_KEYS: Record<
 }
 
 function appBaseUrl(request: NextRequest) {
-  return process.env.NEXT_PUBLIC_APP_URL || `${request.nextUrl.protocol}//${request.nextUrl.host}`
+  return getAppBaseUrl() || `${request.nextUrl.protocol}//${request.nextUrl.host}`
 }
 
 export async function POST(request: NextRequest) {

@@ -6,6 +6,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import { CookieConsentRoot } from '@/components/cookies/CookieConsentRoot'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -19,7 +20,7 @@ const bricolage = Bricolage_Grotesque({
   display: 'swap',
 })
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.muuday.com'
+const appUrl = getAppBaseUrl()
 
 export const viewport: Viewport = {
   width: 'device-width',
