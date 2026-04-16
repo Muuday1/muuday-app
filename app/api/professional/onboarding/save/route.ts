@@ -30,6 +30,7 @@ const qualificationSchema = z.object({
 
 const identitySchema = z.object({
   section: z.literal('identity'),
+  professionalId: z.string().uuid().optional(),
   resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   title: z.string().optional().default(''),
   displayName: z.string().trim().max(160).default(''),
@@ -43,6 +44,7 @@ const identitySchema = z.object({
 
 const publicProfileSchema = z.object({
   section: z.literal('public_profile'),
+  professionalId: z.string().uuid().optional(),
   resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   bio: z.string().trim().min(1).max(500),
   avatarUrl: z.string().url().or(z.literal('')),
@@ -51,6 +53,7 @@ const publicProfileSchema = z.object({
 
 const serviceSchema = z.object({
   section: z.literal('service'),
+  professionalId: z.string().uuid().optional(),
   resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   operation: z.enum(['create', 'update', 'delete']).optional().default('create'),
   serviceId: z.string().uuid().optional(),
@@ -68,6 +71,7 @@ const availabilityDaySchema = z.object({
 
 const availabilitySchema = z.object({
   section: z.literal('availability'),
+  professionalId: z.string().uuid().optional(),
   resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
   profileTimezone: z.string().trim().min(1).max(80),
   availabilityMap: z.record(z.string(), availabilityDaySchema),
@@ -316,9 +320,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
     }
 
-    const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id,user_id,tier')
-    if (!professional?.id) {
+    const { data: primaryProfessional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id,user_id,tier')
+    if (!primaryProfessional?.id) {
       return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
+    }
+    let professional = primaryProfessional
+    const requestedProfessionalId = String(payload.data.professionalId || '').trim()
+    if (requestedProfessionalId && requestedProfessionalId !== String(primaryProfessional.id)) {
+      const { data: requestedProfessional } = await supabase
+        .from('professionals')
+        .select('id,user_id,tier')
+        .eq('id', requestedProfessionalId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (requestedProfessional?.id) {
+        professional = requestedProfessional
+      }
     }
 
     const admin = createAdminClient()

@@ -820,7 +820,6 @@ export function OnboardingTrackerModal({
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
   const [contextReloadNonce, setContextReloadNonce] = useState(0)
-  const [serviceReloadGuardUsed, setServiceReloadGuardUsed] = useState(false)
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
     buildDefaultAvailabilityMap(),
   )
@@ -975,12 +974,6 @@ export function OnboardingTrackerModal({
     setContextReloadNonce(previous => previous + 1)
   }, [refreshTrackerEvaluation])
 
-  useEffect(() => {
-    if (services.length > 0) {
-      setServiceReloadGuardUsed(false)
-    }
-  }, [services])
-
   const applyOptionalContext = useCallback(
     (optional: ModalOptionalContextPayload | null | undefined) => {
       if (!optional) return
@@ -1102,9 +1095,10 @@ export function OnboardingTrackerModal({
       setPlanPricing(null)
       setPricingError('')
       try {
-        const criticalUrl = hasTrackerBootstrap
-          ? '/api/professional/onboarding/modal-context?scope=critical&skipTracker=1'
-          : '/api/professional/onboarding/modal-context?scope=critical'
+        const criticalParams = new URLSearchParams({ scope: 'critical' })
+        if (hasTrackerBootstrap) criticalParams.set('skipTracker', '1')
+        if (professionalId) criticalParams.set('professionalId', professionalId)
+        const criticalUrl = `/api/professional/onboarding/modal-context?${criticalParams.toString()}`
         const criticalResponse = await withTimeout(
           fetch(criticalUrl, {
             method: 'GET',
@@ -1337,8 +1331,10 @@ export function OnboardingTrackerModal({
       }
 
       try {
+        const optionalParams = new URLSearchParams({ scope: 'optional' })
+        if (professionalId) optionalParams.set('professionalId', professionalId)
         const optionalResponse = await withTimeout(
-          fetch('/api/professional/onboarding/modal-context?scope=optional', {
+          fetch(`/api/professional/onboarding/modal-context?${optionalParams.toString()}`, {
             method: 'GET',
             credentials: 'include',
             cache: 'no-store',
@@ -1622,7 +1618,10 @@ export function OnboardingTrackerModal({
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        professionalId,
+      }),
     })
     const json = (await response.json().catch(() => ({}))) as {
       ok?: boolean
@@ -2028,13 +2027,6 @@ export function OnboardingTrackerModal({
   async function saveService() {
     const isEditing = Boolean(editingServiceId)
     const maxServices = tierLimits.services
-    if (!isEditing && services.length === 0 && trackerAdjustmentMode && !serviceReloadGuardUsed) {
-      setServiceReloadGuardUsed(true)
-      setServiceSaveState('error')
-      setServiceError('Não foi possível carregar seus serviços. Recarregue o tracker.')
-      void reloadTrackerContext()
-      return
-    }
     if (!isEditing && services.length >= maxServices) {
       setServiceSaveState('error')
       setServiceError(`Seu plano permite até ${maxServices} serviço(s) ativo(s).`)

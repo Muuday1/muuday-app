@@ -30,6 +30,11 @@ function shouldSkipTrackerBootstrap(rawValue: string | null) {
   return rawValue === '1' || rawValue === 'true'
 }
 
+function normalizeRequestedProfessionalId(rawValue: string | null) {
+  const value = String(rawValue || '').trim()
+  return /^[0-9a-fA-F-]{36}$/.test(value) ? value : ''
+}
+
 async function loadOptionalTaxonomyCached(supabase: ReturnType<typeof createClient>) {
   const admin = createAdminClient()
   const db = admin ?? supabase
@@ -97,6 +102,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const scope = normalizeScope(url.searchParams.get('scope'))
   const skipTrackerBootstrap = shouldSkipTrackerBootstrap(url.searchParams.get('skipTracker'))
+  const requestedProfessionalId = normalizeRequestedProfessionalId(url.searchParams.get('professionalId'))
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -114,13 +120,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
   }
 
-  const { data: professional } = await getPrimaryProfessionalForUser(
+  const { data: primaryProfessional } = await getPrimaryProfessionalForUser(
     supabase,
     user.id,
     'id,user_id,status,tier,category,subcategories,focus_areas,years_experience,cover_photo_url,platform_region',
   )
-  if (!professional?.id) {
+  if (!primaryProfessional?.id) {
     return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
+  }
+  let professional = primaryProfessional
+  if (requestedProfessionalId && requestedProfessionalId !== String(primaryProfessional.id)) {
+    const { data: requestedProfessional } = await supabase
+      .from('professionals')
+      .select('id,user_id,status,tier,category,subcategories,focus_areas,years_experience,cover_photo_url,platform_region')
+      .eq('id', requestedProfessionalId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (requestedProfessional?.id) {
+      professional = requestedProfessional
+    }
   }
 
   if (scope === 'optional') {
