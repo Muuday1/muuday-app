@@ -21,6 +21,15 @@ const OPTIONAL_PLAN_PRICING_CACHE_TTL_SECONDS = 90
 const OPTIONAL_STATIC_CACHE_TTL_SECONDS = 60 * 15
 
 type ContextScope = 'critical' | 'optional'
+type ServicesLoadState = 'loaded' | 'degraded' | 'failed'
+
+type ProfessionalServiceRow = {
+  id: string
+  name: string
+  description: string | null
+  price_brl: number
+  duration_minutes: number
+}
 
 function normalizeScope(rawValue: string | null): ContextScope {
   return rawValue === 'optional' ? 'optional' : 'critical'
@@ -33,6 +42,116 @@ function shouldSkipTrackerBootstrap(rawValue: string | null) {
 function normalizeRequestedProfessionalId(rawValue: string | null) {
   const value = String(rawValue || '').trim()
   return /^[0-9a-fA-F-]{36}$/.test(value) ? value : ''
+}
+
+async function loadProfessionalServicesWithFallback(args: {
+  admin: ReturnType<typeof createAdminClient>
+  supabase: ReturnType<typeof createClient>
+  professionalId: string
+  requestedProfessionalId: string
+}): Promise<{
+  rows: ProfessionalServiceRow[]
+  state: ServicesLoadState
+  errorMessage: string
+}> {
+  const fallbackErrorMessage = 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.'
+  let hadFallback = false
+
+  if (args.admin) {
+    const adminResponse = await args.admin
+      .from('professional_services')
+      .select('id,name,description,price_brl,duration_minutes')
+      .eq('professional_id', args.professionalId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true })
+
+    if (!adminResponse.error) {
+      return {
+        rows: (adminResponse.data || []) as ProfessionalServiceRow[],
+        state: 'loaded',
+        errorMessage: '',
+      }
+    }
+
+    hadFallback = true
+    console.error('[onboarding-modal-context] services load attempt failed', {
+      attempt: 'admin_full',
+      professionalId: args.professionalId,
+      requestedProfessionalId: args.requestedProfessionalId || null,
+      code: adminResponse.error.code,
+      message: adminResponse.error.message,
+      details: adminResponse.error.details,
+      hint: adminResponse.error.hint,
+    })
+  }
+
+  const userResponse = await args.supabase
+    .from('professional_services')
+    .select('id,name,description,price_brl,duration_minutes')
+    .eq('professional_id', args.professionalId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  if (!userResponse.error) {
+    return {
+      rows: (userResponse.data || []) as ProfessionalServiceRow[],
+      state: hadFallback ? 'degraded' : 'loaded',
+      errorMessage: hadFallback
+        ? 'Carregamos seus serviços em modo de contingência. Se notar dados desatualizados, tente recarregar o tracker.'
+        : '',
+    }
+  }
+
+  hadFallback = true
+  console.error('[onboarding-modal-context] services load attempt failed', {
+    attempt: 'user_full',
+    professionalId: args.professionalId,
+    requestedProfessionalId: args.requestedProfessionalId || null,
+    code: userResponse.error.code,
+    message: userResponse.error.message,
+    details: userResponse.error.details,
+    hint: userResponse.error.hint,
+  })
+
+  const minimalResponse = await args.supabase
+    .from('professional_services')
+    .select('id,name,price_brl,duration_minutes')
+    .eq('professional_id', args.professionalId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  if (!minimalResponse.error) {
+    const rows = (minimalResponse.data || []).map((row: any) => ({
+      id: String(row.id || ''),
+      name: String(row.name || ''),
+      description: null,
+      price_brl: Number(row.price_brl || 0),
+      duration_minutes: Number(row.duration_minutes || 0),
+    }))
+
+    return {
+      rows,
+      state: 'degraded',
+      errorMessage:
+        'Carregamos seus serviços em modo reduzido. Alguns detalhes podem aparecer incompletos até a próxima atualização.',
+    }
+  }
+
+  console.error('[onboarding-modal-context] services load attempt failed', {
+    attempt: 'user_minimal',
+    professionalId: args.professionalId,
+    requestedProfessionalId: args.requestedProfessionalId || null,
+    code: minimalResponse.error.code,
+    message: minimalResponse.error.message,
+    details: minimalResponse.error.details,
+    hint: minimalResponse.error.hint,
+  })
+
+  return {
+    rows: [],
+    state: 'failed',
+    errorMessage: fallbackErrorMessage,
+  }
 }
 
 async function loadOptionalTaxonomyCached(supabase: ReturnType<typeof createClient>) {
@@ -202,7 +321,7 @@ export async function GET(request: Request) {
     : loadProfessionalTrackerMeta(supabase, professional.id)
 
   const [
-    servicesResponse,
+    servicesLoadResult,
     settingsResponse,
     availabilityResponse,
     applicationResponse,
@@ -211,12 +330,12 @@ export async function GET(request: Request) {
     onboardingState,
     trackerMeta,
   ] = await Promise.all([
-    db
-      .from('professional_services')
-      .select('id,name,description,price_brl,duration_minutes')
-      .eq('professional_id', professional.id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: true }),
+    loadProfessionalServicesWithFallback({
+      admin,
+      supabase,
+      professionalId: String(professional.id || ''),
+      requestedProfessionalId: requestedProfessionalId || '',
+    }),
     db
       .from('professional_settings')
       .select(
@@ -251,24 +370,6 @@ export async function GET(request: Request) {
     trackerMetaPromise,
   ])
 
-  if (servicesResponse.error) {
-    console.error('[onboarding-modal-context] failed to load professional services', {
-      professionalId: String(professional.id || ''),
-      requestedProfessionalId: requestedProfessionalId || null,
-      code: servicesResponse.error.code,
-      message: servicesResponse.error.message,
-      details: servicesResponse.error.details,
-      hint: servicesResponse.error.hint,
-    })
-    return NextResponse.json(
-      {
-        error: 'Não foi possível carregar seus serviços. Recarregue o tracker.',
-        servicesLoadFailed: true,
-      },
-      { status: 500 },
-    )
-  }
-
   if (!skipTrackerBootstrap && !onboardingState) {
     return NextResponse.json({ error: 'Nao foi possivel carregar o tracker.' }, { status: 500 })
   }
@@ -287,10 +388,12 @@ export async function GET(request: Request) {
       : undefined,
     evaluation: onboardingState?.evaluation,
     reviewAdjustments: trackerMeta?.reviewAdjustments || [],
+    servicesLoadState: servicesLoadResult.state,
+    servicesLoadError: servicesLoadResult.errorMessage,
     termsAcceptanceByKey: skipTrackerBootstrap ? undefined : termsAcceptanceByKey,
     critical: {
       professional,
-      services: servicesResponse.data || [],
+      services: servicesLoadResult.rows || [],
       settings: settingsResponse.data || null,
       availability: availabilityResponse.data || [],
       application: applicationResponse.data || null,

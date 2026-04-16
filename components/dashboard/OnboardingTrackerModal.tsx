@@ -138,6 +138,8 @@ type ModalContextResponse = {
   professionalStatus?: string
   reviewAdjustments?: ReviewAdjustmentItem[]
   termsAcceptanceByKey?: Record<string, boolean>
+  servicesLoadState?: 'loaded' | 'degraded' | 'failed'
+  servicesLoadError?: string
   critical?: ModalContextPayload
   optional?: ModalOptionalContextPayload
   error?: string
@@ -821,6 +823,8 @@ export function OnboardingTrackerModal({
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
   const [contextReloadNonce, setContextReloadNonce] = useState(0)
+  const [servicesLoadState, setServicesLoadState] = useState<'idle' | 'loaded' | 'degraded' | 'failed'>('idle')
+  const [servicesLoadedSuccessfully, setServicesLoadedSuccessfully] = useState(true)
   const [servicesLoadError, setServicesLoadError] = useState('')
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
     buildDefaultAvailabilityMap(),
@@ -897,6 +901,9 @@ export function OnboardingTrackerModal({
   const minNoticeRange = tierConfig.minNoticeRange
   const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
   const isBasicTier = normalizedTier === 'basic'
+  const servicesLoadFailed = servicesLoadState === 'failed'
+  const serviceActionsDisabled =
+    serviceSaveState === 'saving' || servicesLoadState === 'idle' || servicesLoadFailed
   const hasTrackerBootstrap = useMemo(
     () => TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'),
     [initialTermsAcceptanceByKey],
@@ -1096,30 +1103,57 @@ export function OnboardingTrackerModal({
       setAvailabilityError('')
       setPlanPricing(null)
       setPricingError('')
+      setServicesLoadState('idle')
+      setServicesLoadedSuccessfully(false)
       setServicesLoadError('')
       try {
         const criticalParams = new URLSearchParams({ scope: 'critical' })
         if (hasTrackerBootstrap) criticalParams.set('skipTracker', '1')
         if (professionalId) criticalParams.set('professionalId', professionalId)
         const criticalUrl = `/api/professional/onboarding/modal-context?${criticalParams.toString()}`
-        const criticalResponse = await withTimeout(
-          fetch(criticalUrl, {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-store',
-          }),
-          5000,
-        )
-        const criticalPayload = (await criticalResponse.json().catch(() => ({}))) as ModalContextResponse
+        const fetchCriticalContext = async () => {
+          const response = await withTimeout(
+            fetch(criticalUrl, {
+              method: 'GET',
+              credentials: 'include',
+              cache: 'no-store',
+            }),
+            5000,
+          )
+          const payload = (await response.json().catch(() => ({}))) as ModalContextResponse
+          return { response, payload }
+        }
+
+        let { response: criticalResponse, payload: criticalPayload } = await fetchCriticalContext()
+
         if (!criticalResponse.ok) {
           if (criticalPayload.servicesLoadFailed) {
+            setServicesLoadState('failed')
+            setServicesLoadedSuccessfully(false)
             setServicesLoadError(
-              String(criticalPayload.error || 'Não foi possível carregar seus serviços. Recarregue o tracker.'),
+              String(criticalPayload.error || 'Não foi possível carregar seus serviços. Tente novamente em instantes.'),
             )
             setServices([])
           }
           throw new Error(criticalPayload.error || 'Não foi possível carregar os dados iniciais do tracker.')
         }
+
+        const isServicesLoadFailed = (payload: ModalContextResponse) =>
+          payload.servicesLoadState === 'failed' || Boolean(payload.servicesLoadFailed)
+
+        for (let attempt = 0; attempt < 2 && isServicesLoadFailed(criticalPayload); attempt += 1) {
+          const waitMs = attempt === 0 ? 450 : 900
+          await new Promise(resolve => setTimeout(resolve, waitMs))
+          try {
+            const retryResult = await fetchCriticalContext()
+            if (!retryResult.response.ok) break
+            criticalResponse = retryResult.response
+            criticalPayload = retryResult.payload
+          } catch {
+            break
+          }
+        }
+
         if (!mounted) return
 
         if (criticalPayload.evaluation) {
@@ -1153,8 +1187,31 @@ export function OnboardingTrackerModal({
         const credentialRows = Array.isArray(critical.credentials) ? critical.credentials : []
         const profileRow = (critical.profile || null) as ProfileSummary | null
 
-        setServices(existingServices as ProfessionalServiceItem[])
-        setServicesLoadError('')
+        const normalizedServicesLoadState =
+          criticalPayload.servicesLoadState === 'failed'
+            ? 'failed'
+            : criticalPayload.servicesLoadState === 'degraded'
+              ? 'degraded'
+              : criticalPayload.servicesLoadState === 'loaded'
+                ? 'loaded'
+                : criticalPayload.servicesLoadFailed
+                  ? 'failed'
+                  : 'loaded'
+        const nextServicesLoadError = String(
+          criticalPayload.servicesLoadError ||
+            (normalizedServicesLoadState === 'failed' ? 'Não foi possível carregar seus serviços agora.' : ''),
+        ).trim()
+
+        if (normalizedServicesLoadState === 'failed') {
+          setServices([])
+          setServicesLoadedSuccessfully(false)
+          setServicesLoadError(nextServicesLoadError || 'Não foi possível carregar seus serviços agora.')
+        } else {
+          setServices(existingServices as ProfessionalServiceItem[])
+          setServicesLoadedSuccessfully(true)
+          setServicesLoadError(normalizedServicesLoadState === 'degraded' ? nextServicesLoadError : '')
+        }
+        setServicesLoadState(normalizedServicesLoadState)
 
         const defaults = buildDefaultAvailabilityMap()
         for (const row of availabilityRows) {
@@ -1327,6 +1384,12 @@ export function OnboardingTrackerModal({
         criticalLoaded = true
       } catch (error) {
         if (!mounted) return
+        setServicesLoadState(previous =>
+          previous === 'loaded' || previous === 'degraded' ? previous : 'failed',
+        )
+        setServicesLoadError(previous =>
+          previous || 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.',
+        )
         setAvailabilityError(
           error instanceof Error ? error.message : 'Não foi possível carregar os dados iniciais do tracker.',
         )
@@ -1989,6 +2052,11 @@ export function OnboardingTrackerModal({
   }
 
   function beginServiceEdit(service: ProfessionalServiceItem) {
+    if (servicesLoadFailed) {
+      setServiceError('Não foi possível carregar seus serviços. Tente novamente antes de editar.')
+      setServiceSaveState('error')
+      return
+    }
     const selectedCurrency = serviceCurrency || 'BRL'
     const selectedRate = exchangeRates[selectedCurrency] || 1
     const priceInSelectedCurrency =
@@ -2006,6 +2074,11 @@ export function OnboardingTrackerModal({
   }
 
   async function deleteService(serviceId: string) {
+    if (servicesLoadFailed) {
+      setServiceSaveState('error')
+      setServiceError('Não foi possível carregar seus serviços. Tente novamente antes de excluir.')
+      return
+    }
     if (!serviceId || serviceSaveState === 'saving') return
 
     setServiceSaveState('saving')
@@ -2036,6 +2109,11 @@ export function OnboardingTrackerModal({
 
   async function saveService() {
     const isEditing = Boolean(editingServiceId)
+    if (servicesLoadFailed) {
+      setServiceSaveState('error')
+      setServiceError('Não foi possível carregar seus serviços. Tente novamente antes de salvar alterações.')
+      return
+    }
     const maxServices = tierLimits.services
     if (!isEditing && services.length >= maxServices) {
       setServiceSaveState('error')
@@ -3101,15 +3179,26 @@ export function OnboardingTrackerModal({
                       Limite do plano atual: <strong>{tierLimits.services} serviço(s)</strong> ativo(s).
                     </p>
                     <p className="mt-1 text-xs text-neutral-500">
-                      Serviços cadastrados: {services.length}/{tierLimits.services}
+                      Serviços cadastrados:{' '}
+                      {servicesLoadedSuccessfully
+                        ? `${services.length}/${tierLimits.services}`
+                        : 'indisponível durante a sincronização'}
                     </p>
                     <p className="mt-1 text-xs text-neutral-500">Valores exibidos em {serviceCurrency}.</p>
+                    {servicesLoadState === 'degraded' && servicesLoadError ? (
+                      <p className="mt-2 text-xs font-medium text-amber-700">{servicesLoadError}</p>
+                    ) : null}
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <h3 className="mb-3 text-sm font-semibold text-neutral-900">
                       {editingServiceId ? 'Editar serviço' : 'Adicionar serviço'}
                     </h3>
+                    {servicesLoadFailed ? (
+                      <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                        {servicesLoadError || 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.'}
+                      </p>
+                    ) : null}
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div className="md:col-span-2">
                         <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
@@ -3117,6 +3206,7 @@ export function OnboardingTrackerModal({
                           type="text"
                           value={serviceName}
                           onChange={event => setServiceName(event.target.value)}
+                          disabled={serviceActionsDisabled}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
                           maxLength={30}
                           placeholder="Ex.: Consultoria fiscal"
@@ -3129,6 +3219,7 @@ export function OnboardingTrackerModal({
                           rows={4}
                           value={serviceDescription}
                           onChange={event => setServiceDescription(event.target.value)}
+                          disabled={serviceActionsDisabled}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
                           maxLength={120}
                           placeholder="Explique o objetivo, formato e resultado esperado do serviço."
@@ -3143,6 +3234,7 @@ export function OnboardingTrackerModal({
                           step="0.01"
                           value={servicePrice}
                           onChange={event => setServicePrice(event.target.value)}
+                          disabled={serviceActionsDisabled}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
                         />
                       </div>
@@ -3151,6 +3243,7 @@ export function OnboardingTrackerModal({
                         <select
                           value={serviceDuration}
                           onChange={event => setServiceDuration(event.target.value)}
+                          disabled={serviceActionsDisabled}
                           className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
                         >
                           {[30, 45, 50, 60, 75, 90, 120].map(option => (
@@ -3168,7 +3261,7 @@ export function OnboardingTrackerModal({
                       <button
                         type="button"
                         onClick={() => void saveService()}
-                        disabled={serviceSaveState === 'saving'}
+                        disabled={serviceActionsDisabled}
                         className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
                       >
                         {serviceSaveState === 'saving'
@@ -3183,7 +3276,7 @@ export function OnboardingTrackerModal({
                         <button
                           type="button"
                           onClick={resetServiceForm}
-                          disabled={serviceSaveState === 'saving'}
+                          disabled={serviceActionsDisabled}
                           className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
                         >
                           Cancelar edição
@@ -3194,24 +3287,24 @@ export function OnboardingTrackerModal({
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <h3 className="mb-3 text-sm font-semibold text-neutral-900">Serviços ativos</h3>
-                    {services.length === 0 ? (
-                      servicesLoadError ? (
-                        <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                          <p className="text-sm font-medium text-amber-900">
-                            {servicesLoadError}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => void reloadTrackerContext()}
-                            disabled={loadingContext}
-                            className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
-                          >
-                            {loadingContext ? 'Recarregando...' : 'Recarregar'}
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
-                      )
+                    {servicesLoadState === 'idle' ? (
+                      <p className="text-sm text-neutral-500">Sincronizando seus serviços...</p>
+                    ) : servicesLoadFailed ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm text-amber-800">
+                          {servicesLoadError || 'Não foi possível carregar seus serviços agora.'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void reloadTrackerContext()}
+                          disabled={loadingContext}
+                          className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                        >
+                          {loadingContext ? 'Recarregando...' : 'Tentar novamente'}
+                        </button>
+                      </div>
+                    ) : services.length === 0 ? (
+                      <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
                     ) : (
                       <div className="space-y-2">
                         {services.map(service => (
@@ -3226,7 +3319,7 @@ export function OnboardingTrackerModal({
                               <button
                                 type="button"
                                 onClick={() => beginServiceEdit(service)}
-                                disabled={serviceSaveState === 'saving'}
+                                disabled={serviceActionsDisabled}
                                 className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-semibold text-neutral-700 hover:bg-white disabled:opacity-60"
                               >
                                 Editar
@@ -3234,7 +3327,7 @@ export function OnboardingTrackerModal({
                               <button
                                 type="button"
                                 onClick={() => void deleteService(service.id)}
-                                disabled={serviceSaveState === 'saving'}
+                                disabled={serviceActionsDisabled}
                                 className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
                               >
                                 Excluir
