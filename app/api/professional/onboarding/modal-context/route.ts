@@ -251,6 +251,24 @@ export async function GET(request: Request) {
     trackerMetaPromise,
   ])
 
+  if (servicesResponse.error) {
+    console.error('[onboarding-modal-context] failed to load professional services', {
+      professionalId: String(professional.id || ''),
+      requestedProfessionalId: requestedProfessionalId || null,
+      code: servicesResponse.error.code,
+      message: servicesResponse.error.message,
+      details: servicesResponse.error.details,
+      hint: servicesResponse.error.hint,
+    })
+    return NextResponse.json(
+      {
+        error: 'Não foi possível carregar seus serviços. Recarregue o tracker.',
+        servicesLoadFailed: true,
+      },
+      { status: 500 },
+    )
+  }
+
   if (!skipTrackerBootstrap && !onboardingState) {
     return NextResponse.json({ error: 'Nao foi possivel carregar o tracker.' }, { status: 500 })
   }

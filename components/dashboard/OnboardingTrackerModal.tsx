@@ -141,6 +141,7 @@ type ModalContextResponse = {
   critical?: ModalContextPayload
   optional?: ModalOptionalContextPayload
   error?: string
+  servicesLoadFailed?: boolean
 }
 
 type PhotoValidationStatus = 'pass' | 'fail' | 'unknown'
@@ -820,6 +821,7 @@ export function OnboardingTrackerModal({
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
   const [contextReloadNonce, setContextReloadNonce] = useState(0)
+  const [servicesLoadError, setServicesLoadError] = useState('')
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
     buildDefaultAvailabilityMap(),
   )
@@ -1094,6 +1096,7 @@ export function OnboardingTrackerModal({
       setAvailabilityError('')
       setPlanPricing(null)
       setPricingError('')
+      setServicesLoadError('')
       try {
         const criticalParams = new URLSearchParams({ scope: 'critical' })
         if (hasTrackerBootstrap) criticalParams.set('skipTracker', '1')
@@ -1109,6 +1112,12 @@ export function OnboardingTrackerModal({
         )
         const criticalPayload = (await criticalResponse.json().catch(() => ({}))) as ModalContextResponse
         if (!criticalResponse.ok) {
+          if (criticalPayload.servicesLoadFailed) {
+            setServicesLoadError(
+              String(criticalPayload.error || 'Não foi possível carregar seus serviços. Recarregue o tracker.'),
+            )
+            setServices([])
+          }
           throw new Error(criticalPayload.error || 'Não foi possível carregar os dados iniciais do tracker.')
         }
         if (!mounted) return
@@ -1131,7 +1140,7 @@ export function OnboardingTrackerModal({
           })
         }
 
-        if (Array.isArray(criticalPayload.reviewAdjustments) && criticalPayload.reviewAdjustments.length > 0) {
+        if (Array.isArray(criticalPayload.reviewAdjustments)) {
           setReviewAdjustments(criticalPayload.reviewAdjustments)
         }
 
@@ -1145,6 +1154,7 @@ export function OnboardingTrackerModal({
         const profileRow = (critical.profile || null) as ProfileSummary | null
 
         setServices(existingServices as ProfessionalServiceItem[])
+        setServicesLoadError('')
 
         const defaults = buildDefaultAvailabilityMap()
         for (const row of availabilityRows) {
@@ -3185,10 +3195,10 @@ export function OnboardingTrackerModal({
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <h3 className="mb-3 text-sm font-semibold text-neutral-900">Serviços ativos</h3>
                     {services.length === 0 ? (
-                      trackerAdjustmentMode ? (
+                      servicesLoadError ? (
                         <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
                           <p className="text-sm font-medium text-amber-900">
-                            Não foi possível carregar seus serviços. Recarregue o tracker.
+                            {servicesLoadError}
                           </p>
                           <button
                             type="button"
