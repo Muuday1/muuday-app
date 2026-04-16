@@ -2,6 +2,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 
+function hasExplicitAppHostConfig() {
+  const appBaseUrl = String(process.env.APP_BASE_URL || '').trim()
+  const publicAppUrl = String(process.env.NEXT_PUBLIC_APP_URL || '').trim()
+  return Boolean(appBaseUrl || publicAppUrl)
+}
+
 function shouldForceAppHostRedirect(request: NextRequest) {
   if (process.env.NODE_ENV !== 'production') return false
 
@@ -19,6 +25,10 @@ function shouldForceAppHostRedirect(request: NextRequest) {
     '/onboarding-profissional',
     '/agendar',
     '/solicitar',
+    '/planos',
+    '/sessao',
+    '/avaliar',
+    '/buscar-auth',
     '/mensagens',
     '/editar-perfil-profissional',
     '/configuracoes-agendamento',
@@ -33,7 +43,7 @@ function shouldForceAppHostRedirect(request: NextRequest) {
 }
 
 export async function middleware(request: NextRequest) {
-  if (shouldForceAppHostRedirect(request)) {
+  if (shouldForceAppHostRedirect(request) && hasExplicitAppHostConfig()) {
     const appBaseUrl = getAppBaseUrl()
     try {
       const preferredUrl = new URL(appBaseUrl)

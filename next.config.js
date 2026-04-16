@@ -32,6 +32,10 @@ function buildContentSecurityPolicy() {
 }
 
 /** @type {import('next').NextConfig} */
+if (process.env.NODE_ENV === 'production' && !process.env.APP_BASE_URL) {
+  console.warn('[muuday] APP_BASE_URL not set — middleware host redirect is disabled')
+}
+
 const nextConfig = {
   images: {
     remotePatterns: [

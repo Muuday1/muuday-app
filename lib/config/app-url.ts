@@ -1,5 +1,6 @@
 const DEFAULT_DEV_URL = 'http://localhost:3000'
 const DEFAULT_PROD_URL = 'https://muuday-app.vercel.app'
+let didWarnMissingAppBaseUrl = false
 
 function stripWrappingQuotes(value: string): string {
   if (
@@ -52,13 +53,20 @@ export function getAppBaseUrl(): string {
     process.env.APP_BASE_URL,
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.NEXT_PUBLIC_SITE_URL,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
     getPrimaryDomainHost() ? `https://${getPrimaryDomainHost()}` : null,
   ]
+  const hasExplicitBaseUrl = Boolean(
+    normalizeUrl(process.env.APP_BASE_URL) || normalizeUrl(process.env.NEXT_PUBLIC_APP_URL),
+  )
 
   for (const candidate of candidates) {
     const normalized = normalizeUrl(candidate)
     if (normalized) return normalized
+  }
+
+  if (process.env.NODE_ENV === 'production' && !hasExplicitBaseUrl && !didWarnMissingAppBaseUrl) {
+    didWarnMissingAppBaseUrl = true
+    console.warn('[muuday] APP_BASE_URL/NEXT_PUBLIC_APP_URL not set; falling back to default app URL')
   }
 
   return process.env.NODE_ENV === 'development' ? DEFAULT_DEV_URL : DEFAULT_PROD_URL
