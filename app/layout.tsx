@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
+import { AuthHostBridge } from '@/components/auth/AuthHostBridge'
 import { CookieConsentRoot } from '@/components/cookies/CookieConsentRoot'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${jakarta.variable} ${bricolage.variable} min-h-screen flex flex-col bg-[#f6f8fb] font-sans antialiased`}
       >
+        <AuthHostBridge />
         <CookieConsentRoot country={consentCountry} />
         <PostHogProvider>{children}</PostHogProvider>
         <Analytics />
