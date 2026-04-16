@@ -24,7 +24,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
   }
 
-  const onboardingState = await loadProfessionalOnboardingState(supabase, professional.id)
+  const onboardingState = await loadProfessionalOnboardingState(supabase, professional.id, {
+    resolveSignedMediaUrls: false,
+  })
   if (!onboardingState) {
     return NextResponse.json({ error: 'Nao foi possivel carregar o tracker.' }, { status: 500 })
   }

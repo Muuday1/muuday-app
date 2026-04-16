@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-04-14
+Last updated: 2026-04-16
 
 Source baseline: `docs/spec/source-of-truth/part1..part5`
 Canonical status docs: `docs/project/project-status.md` + `docs/handover/current-state.md`
@@ -33,8 +33,9 @@ Canonical status docs: `docs/project/project-status.md` + `docs/handover/current
 
 1. Keep public shell, search, and profile UX stable and coherent.
 2. Refine professional operations UX, especially calendar and scheduling.
-3. Continue copy, PT-BR, and consistency cleanup in lower-traffic surfaces.
-4. Keep documentation, release hygiene, and operational evidence current.
+3. Keep onboarding tracker responsive through critical-first loading and non-blocking optional hydration.
+4. Continue copy, PT-BR, and consistency cleanup in lower-traffic surfaces.
+5. Keep documentation, release hygiene, and operational evidence current.
 
 ## Next
 

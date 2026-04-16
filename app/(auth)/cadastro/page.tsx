@@ -64,9 +64,6 @@ const QUALIFICATION_APPROVED_OPTIONS = [
   'Mestrado',
   'Doutorado',
 ]
-const QUALIFICATION_FILE_MAX_SIZE_BYTES = 2 * 1024 * 1024
-const QUALIFICATION_FILE_MAX_COUNT = 5
-const QUALIFICATION_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
 const PROFESSIONAL_TERM_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as ProfessionalTermKey[]
 
 function buildInitialTermsState(): ProfessionalTermsAccepted {
@@ -87,7 +84,6 @@ type QualificationDraft = {
   registrationNumber: string
   issuer: string
   country: string
-  evidenceFiles: File[]
 }
 
 function normalizeOption(value: string) {
@@ -546,7 +542,6 @@ export default function CadastroPage() {
       registrationNumber: '',
       issuer: '',
       country: '',
-      evidenceFiles: [],
     }
 
     setProfessionalQualifications(prev => [...prev, entry])
@@ -562,29 +557,6 @@ export default function CadastroPage() {
 
   function updateQualificationDraft(id: string, updater: (item: QualificationDraft) => QualificationDraft) {
     setProfessionalQualifications(prev => prev.map(item => (item.id === id ? updater(item) : item)))
-  }
-
-  function addQualificationEvidenceFile(id: string, selectedFile: File | null) {
-    if (!selectedFile) return
-    if (!QUALIFICATION_ALLOWED_TYPES.includes(selectedFile.type)) {
-      setFieldErrors(prev => ({
-        ...prev,
-        professionalQualifications: 'Arquivo inválido. Envie apenas PDF, JPG ou PNG.',
-      }))
-      return
-    }
-    if (selectedFile.size > QUALIFICATION_FILE_MAX_SIZE_BYTES) {
-      setFieldErrors(prev => ({
-        ...prev,
-        professionalQualifications: 'Arquivo excede 2MB. Reduza o tamanho antes de enviar.',
-      }))
-      return
-    }
-    updateQualificationDraft(id, item => {
-      if (item.evidenceFiles.length >= QUALIFICATION_FILE_MAX_COUNT) return item
-      return { ...item, evidenceFiles: [...item.evidenceFiles, selectedFile] }
-    })
-    clearFieldError('professionalQualifications')
   }
 
   function validateStep2(): FieldErrors {
@@ -647,9 +619,6 @@ export default function CadastroPage() {
     if (professionalQualifications.length === 0) {
       nextErrors.professionalQualifications = 'Adicione ao menos uma qualificação/certificado.'
     }
-    if (professionalQualifications.some(item => item.evidenceFiles.length === 0)) {
-      nextErrors.professionalQualifications = 'Envie ao menos um arquivo (PDF/JPG/PNG) para cada qualificação.'
-    }
     for (const item of professionalQualifications) {
       const requiresRegistrationData = isRegistrationQualification(item.name)
       if (requiresRegistrationData) {
@@ -710,9 +679,7 @@ export default function CadastroPage() {
       .concat(otherLanguages)
       .filter(language => language !== professionalPrimaryLanguage)
     const allLanguages = Array.from(new Set([professionalPrimaryLanguage, ...secondaryLanguages].filter(Boolean)))
-    const qualificationFileNames = professionalQualifications.flatMap(item =>
-      item.evidenceFiles.map(file => file.name),
-    )
+    const qualificationFileNames: string[] = []
     const taxonomySuggestionsPayload = {
       subcategory: professionalHeadlineIsCustom
         ? {
@@ -743,7 +710,7 @@ export default function CadastroPage() {
       registration_number: item.registrationNumber || null,
       issuer: item.issuer || null,
       country: item.country || null,
-      evidence_file_names: item.evidenceFiles.map(file => file.name),
+      evidence_file_names: [],
     }))
 
     const supabase = createClient()
@@ -1611,7 +1578,7 @@ export default function CadastroPage() {
           <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
             <h3 className="text-sm font-semibold text-neutral-900">Qualificações e certificados</h3>
             <p className="mt-1 text-xs text-neutral-500">
-              Se não encontrar na lista aprovada, adicione como sugestão para validação do admin.
+              Se não encontrar na lista aprovada, adicione como sugestão para validação do admin. O upload de comprovantes é feito depois do login.
             </p>
 
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1735,31 +1702,11 @@ export default function CadastroPage() {
                       </div>
                     )}
 
-                    <div className="mt-3 flex items-center gap-2">
-                      <label
-                        htmlFor={`qualification-file-${item.id}`}
-                        className="cursor-pointer rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700"
-                      >
-                        Upload
-                      </label>
-                      <input
-                        id={`qualification-file-${item.id}`}
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="hidden"
-                        onChange={event => {
-                          addQualificationEvidenceFile(item.id, event.target.files?.[0] || null)
-                          event.currentTarget.value = ''
-                        }}
-                      />
-                      <span className="text-xs text-neutral-500">PDF/JPG/PNG até 2MB (máx. 5 arquivos)</span>
-                    </div>
-
-                    {item.evidenceFiles.length > 0 && (
-                      <p className="mt-2 text-xs text-neutral-500">
-                        Arquivos: {item.evidenceFiles.map(file => file.name).join(', ')}
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                      <p className="text-xs text-amber-800">
+                        Comprovante documental será solicitado após o login, na etapa de Identidade do tracker profissional.
                       </p>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>

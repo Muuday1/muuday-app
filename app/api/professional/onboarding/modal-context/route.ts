@@ -1,0 +1,279 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
+import {
+  PROFESSIONAL_REQUIRED_TERMS,
+  PROFESSIONAL_TERMS_VERSION,
+} from '@/lib/legal/professional-terms'
+import { loadPlanConfigMap } from '@/lib/plan-config'
+import { getExchangeRates } from '@/lib/exchange-rates'
+import {
+  resolveProfessionalPlanPricing,
+  shouldAllowFallbackPricing,
+} from '@/lib/professional/plan-pricing'
+
+const OPTIONAL_TAXONOMY_CACHE_KEY = 'onboarding-modal:optional-taxonomy:v1'
+const OPTIONAL_PLAN_CONFIG_CACHE_KEY = 'onboarding-modal:optional-plan-config:v1'
+const OPTIONAL_PLAN_PRICING_CACHE_TTL_SECONDS = 90
+const OPTIONAL_STATIC_CACHE_TTL_SECONDS = 60 * 15
+
+type ContextScope = 'critical' | 'optional'
+
+function normalizeScope(rawValue: string | null): ContextScope {
+  return rawValue === 'optional' ? 'optional' : 'critical'
+}
+
+async function loadOptionalTaxonomyCached(supabase: ReturnType<typeof createClient>) {
+  const admin = createAdminClient()
+  const db = admin ?? supabase
+  return getOrSetUpstashJsonCache({
+    key: OPTIONAL_TAXONOMY_CACHE_KEY,
+    ttlSeconds: OPTIONAL_STATIC_CACHE_TTL_SECONDS,
+    version: 'v1',
+    loader: async () => {
+      const [categoriesResponse, subcategoriesResponse] = await Promise.all([
+        db.from('categories').select('slug,name_pt').eq('is_active', true),
+        db.from('subcategories').select('slug,name_pt').eq('is_active', true),
+      ])
+      return {
+        categories: categoriesResponse.data || [],
+        subcategories: subcategoriesResponse.data || [],
+      }
+    },
+  })
+}
+
+async function loadOptionalPlanConfigsCached() {
+  return getOrSetUpstashJsonCache({
+    key: OPTIONAL_PLAN_CONFIG_CACHE_KEY,
+    ttlSeconds: OPTIONAL_STATIC_CACHE_TTL_SECONDS,
+    version: 'v1',
+    loader: async () => loadPlanConfigMap(),
+  })
+}
+
+async function loadOptionalPlanPricingCached(args: {
+  tierRaw: string | null | undefined
+  platformRegionRaw: string | null | undefined
+  countryRaw: string | null | undefined
+  currencyRaw: string | null | undefined
+  allowFallbackPricing: boolean
+}) {
+  const cacheKey = [
+    'onboarding-modal:optional-plan-pricing:v1',
+    String(args.tierRaw || 'basic').toLowerCase(),
+    String(args.platformRegionRaw || 'auto').toLowerCase(),
+    String(args.countryRaw || 'na').toLowerCase(),
+    String(args.currencyRaw || 'brl').toLowerCase(),
+    args.allowFallbackPricing ? 'fallback' : 'strict',
+  ].join(':')
+
+  return getOrSetUpstashJsonCache({
+    key: cacheKey,
+    ttlSeconds: OPTIONAL_PLAN_PRICING_CACHE_TTL_SECONDS,
+    version: 'v1',
+    loader: async () =>
+      resolveProfessionalPlanPricing({
+        tierRaw: args.tierRaw,
+        platformRegionRaw: args.platformRegionRaw,
+        countryRaw: args.countryRaw,
+        currencyRaw: args.currencyRaw,
+        allowFallbackPricing: args.allowFallbackPricing,
+      }),
+  })
+}
+
+export async function GET(request: Request) {
+  const supabase = createClient()
+  const scope = normalizeScope(new URL(request.url).searchParams.get('scope'))
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role,country,currency')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile || profile.role !== 'profissional') {
+    return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
+  }
+
+  const { data: professional } = await getPrimaryProfessionalForUser(
+    supabase,
+    user.id,
+    'id,user_id,status,tier,category,subcategories,focus_areas,years_experience,cover_photo_url,platform_region',
+  )
+  if (!professional?.id) {
+    return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
+  }
+
+  if (scope === 'optional') {
+    const [taxonomyResult, planConfigResult, exchangeRatesResult, settingsResult] = await Promise.allSettled([
+      loadOptionalTaxonomyCached(supabase),
+      loadOptionalPlanConfigsCached(),
+      getExchangeRates(supabase),
+      supabase
+        .from('professional_settings')
+        .select('onboarding_finance_bypass')
+        .eq('professional_id', professional.id)
+        .maybeSingle(),
+    ])
+
+    const taxonomy =
+      taxonomyResult.status === 'fulfilled'
+        ? taxonomyResult.value
+        : { categories: [], subcategories: [] }
+    const planConfigs =
+      planConfigResult.status === 'fulfilled' ? planConfigResult.value : await loadPlanConfigMap()
+    const exchangeRates =
+      exchangeRatesResult.status === 'fulfilled' ? exchangeRatesResult.value : await getExchangeRates()
+    const onboardingFinanceBypass =
+      settingsResult.status === 'fulfilled'
+        ? Boolean(
+            (settingsResult.value.data as { onboarding_finance_bypass?: boolean } | null)
+              ?.onboarding_finance_bypass,
+          )
+        : false
+
+    const allowFallbackPricing = shouldAllowFallbackPricing(onboardingFinanceBypass)
+    const pricingResult = await loadOptionalPlanPricingCached({
+      tierRaw: professional.tier,
+      platformRegionRaw: professional.platform_region,
+      countryRaw: profile.country,
+      currencyRaw: profile.currency,
+      allowFallbackPricing,
+    })
+
+    return NextResponse.json({
+      scope: 'optional',
+      professionalId: professional.id,
+      optional: {
+        categories: taxonomy.categories || [],
+        subcategories: taxonomy.subcategories || [],
+        planConfigs,
+        exchangeRates,
+        planPricing: pricingResult.ok ? pricingResult.data : null,
+        pricingError: pricingResult.ok ? '' : pricingResult.error,
+      },
+    })
+  }
+
+  const onboardingStatePromise = loadProfessionalOnboardingState(supabase, professional.id, {
+    resolveSignedMediaUrls: false,
+  })
+
+  const [
+    adjustmentsResponse,
+    termAcceptancesResponse,
+    servicesResponse,
+    settingsResponse,
+    availabilityResponse,
+    applicationResponse,
+    credentialsResponse,
+    ownerProfileResponse,
+    onboardingState,
+  ] = await Promise.all([
+    supabase
+      .from('professional_review_adjustments')
+      .select('id,stage_id,field_key,message,severity,status,created_at,resolved_at')
+      .eq('professional_id', professional.id)
+      .in('status', ['open', 'reopened'])
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('professional_term_acceptances')
+      .select('term_key,term_version,accepted_at')
+      .eq('professional_id', professional.id)
+      .eq('term_version', PROFESSIONAL_TERMS_VERSION),
+    supabase
+      .from('professional_services')
+      .select('id,name,description,price_brl,duration_minutes')
+      .eq('professional_id', professional.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('professional_settings')
+      .select(
+        'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
+      )
+      .eq('professional_id', professional.id)
+      .maybeSingle(),
+    supabase
+      .from('availability')
+      .select('day_of_week,start_time,end_time,is_active')
+      .eq('professional_id', professional.id),
+    supabase
+      .from('professional_applications')
+      .select(
+        'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
+      )
+      .eq('professional_id', professional.id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('professional_credentials')
+      .select('id,file_name,file_url,scan_status,verified,credential_type')
+      .eq('professional_id', professional.id)
+      .order('uploaded_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('currency,full_name,timezone,avatar_url')
+      .eq('id', String(professional.user_id || ''))
+      .maybeSingle(),
+    onboardingStatePromise,
+  ])
+
+  if (!onboardingState) {
+    return NextResponse.json({ error: 'Nao foi possivel carregar o tracker.' }, { status: 500 })
+  }
+
+  const adjustments = (adjustmentsResponse.data || []).map(row => ({
+    id: String(row.id || ''),
+    stageId: String(row.stage_id || ''),
+    fieldKey: String(row.field_key || ''),
+    message: String(row.message || ''),
+    severity: String(row.severity || 'medium'),
+    status: String(row.status || 'open'),
+    createdAt: String(row.created_at || ''),
+    resolvedAt: row.resolved_at ? String(row.resolved_at) : null,
+  }))
+
+  const acceptedTermKeys = new Set(
+    (termAcceptancesResponse.data || [])
+      .map(row => String(row.term_key || ''))
+      .filter(Boolean),
+  )
+  const termsAcceptanceByKey = PROFESSIONAL_REQUIRED_TERMS.reduce<Record<string, boolean>>(
+    (acc, key) => {
+      acc[key] = acceptedTermKeys.has(key)
+      return acc
+    },
+    {},
+  )
+
+  return NextResponse.json({
+    scope: 'critical',
+    professionalId: professional.id,
+    professionalStatus: String(onboardingState.snapshot.professional.status || professional.status || ''),
+    evaluation: onboardingState.evaluation,
+    reviewAdjustments: adjustments,
+    termsAcceptanceByKey,
+    critical: {
+      professional,
+      services: servicesResponse.data || [],
+      settings: settingsResponse.data || null,
+      availability: availabilityResponse.data || [],
+      application: applicationResponse.data || null,
+      credentials: credentialsResponse.data || [],
+      profile: ownerProfileResponse.data || null,
+    },
+  })
+}

@@ -46,6 +46,11 @@ async function resolveLoginHint(email: string): Promise<AuthLoginHint> {
 export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const redirectParam = searchParams.get('redirect')
+  const safeRedirectPath =
+    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && redirectParam !== '/'
+      ? redirectParam
+      : ''
   const resolvedIdPrefix = idPrefix || 'login'
   const emailId = `${resolvedIdPrefix}-email`
   const passwordId = `${resolvedIdPrefix}-password`
@@ -120,6 +125,9 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
       identifyEventUser(userId, { email: userEmail || email })
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
       destination = resolvePostLoginDestination(profile?.role)
+    }
+    if (safeRedirectPath) {
+      destination = safeRedirectPath
     }
 
     captureEvent('auth_login_succeeded')
@@ -223,7 +231,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
           <span className="text-xs font-medium text-neutral-400">ou entre com</span>
           <div className="h-px flex-1 bg-neutral-200" />
         </div>
-        <SocialAuthButtons roleHint="usuario" compact={compact} />
+        <SocialAuthButtons roleHint="usuario" redirectPath={safeRedirectPath || undefined} compact={compact} />
       </div>
 
       <p className={compact ? 'mt-4 text-center text-xs text-neutral-500' : 'mt-6 text-center text-sm text-neutral-500'}>

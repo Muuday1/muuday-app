@@ -236,22 +236,36 @@ async function isSlotAllowedByExceptions(
     .select('is_available, start_time_local, end_time_local')
     .eq('professional_id', professionalId)
     .eq('date_local', localDate)
-    .limit(1)
-
-  const exception = exceptionRows?.[0] as
-    | { is_available: boolean; start_time_local: string | null; end_time_local: string | null }
-    | undefined
-
-  if (!exception) return true
-  if (!exception.is_available) return false
-  if (!exception.start_time_local || !exception.end_time_local) return false
 
   const slotStartMinutes = getMinutesInTimezone(startUtc, timezone)
   const slotEndMinutes = getMinutesInTimezone(endUtc, timezone)
-  const exceptionStart = hhmmToMinutes(exception.start_time_local)
-  const exceptionEnd = hhmmToMinutes(exception.end_time_local)
+  const exceptions = (exceptionRows || []) as Array<{
+    is_available: boolean
+    start_time_local: string | null
+    end_time_local: string | null
+  }>
 
-  return slotStartMinutes >= exceptionStart && slotEndMinutes <= exceptionEnd
+  if (exceptions.length === 0) return true
+
+  const overlaps = (row: { start_time_local: string | null; end_time_local: string | null }) => {
+    if (!row.start_time_local || !row.end_time_local) return true
+    const start = hhmmToMinutes(row.start_time_local)
+    const end = hhmmToMinutes(row.end_time_local)
+    return slotStartMinutes < end && slotEndMinutes > start
+  }
+
+  const hasBlockedException = exceptions.some(row => row.is_available === false && overlaps(row))
+  if (hasBlockedException) return false
+
+  const allowedWindows = exceptions.filter(row => row.is_available)
+  if (allowedWindows.length === 0) return true
+
+  return allowedWindows.some(window => {
+    if (!window.start_time_local || !window.end_time_local) return false
+    const start = hhmmToMinutes(window.start_time_local)
+    const end = hhmmToMinutes(window.end_time_local)
+    return slotStartMinutes >= start && slotEndMinutes <= end
+  })
 }
 
 async function hasInternalConflict(
@@ -259,6 +273,7 @@ async function hasInternalConflict(
   professionalId: string,
   startUtc: Date,
   endUtc: Date,
+  bufferMinutes: number,
   ignoreBookingId?: string,
 ) {
   const conflictWindowStart = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000).toISOString()
@@ -286,7 +301,9 @@ async function hasInternalConflict(
     const existingEnd = booking.end_time_utc
       ? new Date(String(booking.end_time_utc))
       : new Date(existingStart.getTime() + existingDuration * 60 * 1000)
-    return startUtc < existingEnd && endUtc > existingStart
+    const bufferedExistingStart = new Date(existingStart.getTime() - bufferMinutes * 60 * 1000)
+    const bufferedExistingEnd = new Date(existingEnd.getTime() + bufferMinutes * 60 * 1000)
+    return startUtc < bufferedExistingEnd && endUtc > bufferedExistingStart
   })
 }
 
@@ -570,6 +587,7 @@ export async function offerRequestBooking(input: {
     professional.id,
     proposalStartUtc,
     proposalEndUtc,
+    settings.bufferMinutes,
   )
   if (conflict) {
     return { success: false, error: 'Hor?rio indispon?vel por conflito com outro agendamento.' }
@@ -858,7 +876,13 @@ export async function acceptRequestBooking(
     return { success: false, error: 'Hor?rio bloqueado por indisponibilidade excepcional.' }
   }
 
-  const conflict = await hasInternalConflict(supabase, professional.id, startUtc, endUtc)
+  const conflict = await hasInternalConflict(
+    supabase,
+    professional.id,
+    startUtc,
+    endUtc,
+    settings.bufferMinutes,
+  )
   if (conflict) {
     return { success: false, error: 'Outro agendamento ocupou este hor?rio. Solicite nova proposta.' }
   }
@@ -984,9 +1008,35 @@ export async function acceptRequestBooking(
       })
       .eq('id', booking.id)
 
+    const requestRecoveryPatch = {
+      status: 'open',
+      proposal_start_utc: null,
+      proposal_end_utc: null,
+      proposal_timezone: null,
+      proposal_message: null,
+      proposal_expires_at: null,
+      converted_booking_id: null,
+      accepted_at: null,
+      updated_at: new Date().toISOString(),
+    }
+    const { error: requestRecoveryError } = await supabase
+      .from('request_bookings')
+      .update(requestRecoveryPatch)
+      .eq('id', String(freshRequest.id))
+      .eq('user_id', user.id)
+      .eq('status', currentStatus)
+
+    if (requestRecoveryError && adminSupabase) {
+      await adminSupabase
+        .from('request_bookings')
+        .update(requestRecoveryPatch)
+        .eq('id', String(freshRequest.id))
+        .eq('status', currentStatus)
+    }
+
     return {
       success: false,
-      error: 'Falha ao processar pagamento da proposta. A proposta continua dispon?vel.',
+      error: 'Falha ao processar pagamento da proposta. A solicitação foi reaberta para nova proposta.',
     }
   }
 

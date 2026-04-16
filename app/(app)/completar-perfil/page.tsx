@@ -84,7 +84,7 @@ export default function CompletarPerfilPage() {
     const tagList = tags.split(',').map(t => t.trim()).filter(Boolean)
 
     // Check if professional profile already exists
-    const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+    const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id,status')
 
     const profileData = {
       bio,
@@ -94,22 +94,28 @@ export default function CompletarPerfilPage() {
       years_experience: parseInt(yearsExperience) || 0,
       session_price_brl: parseFloat(priceBrl) || 0,
       session_duration_minutes: duration,
-      status: 'pending_review' as const,
       updated_at: new Date().toISOString(),
     }
 
     let err
     let professionalId = existing?.id || ''
     if (existing) {
+      const normalizedExistingStatus = String((existing as Record<string, unknown>)?.status || 'draft').toLowerCase()
+      const statusForUpdate =
+        normalizedExistingStatus === 'draft' ? 'pending_review' : normalizedExistingStatus
+
       const { error } = await supabase
         .from('professionals')
-        .update(profileData)
+        .update({
+          ...profileData,
+          status: statusForUpdate,
+        })
         .eq('id', existing.id)
       err = error
     } else {
       const { data: inserted, error } = await supabase
         .from('professionals')
-        .insert({ user_id: user.id, ...profileData })
+        .insert({ user_id: user.id, ...profileData, status: 'pending_review' })
         .select('id')
         .single()
       professionalId = inserted?.id || ''

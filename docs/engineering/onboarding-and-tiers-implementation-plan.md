@@ -1,7 +1,7 @@
 # Onboarding, Tiers and Booking - Implementation Plan (14 phases)
 
-Last updated: 2026-04-11
-Status: Active, pre-Wave 3 alignment
+Last updated: 2026-04-16
+Status: Active, stabilization and pre-Wave 3 alignment
 Canonical refs: `docs/spec/source-of-truth/part1-foundations-search-tiers.md`, `docs/spec/source-of-truth/part2-onboarding-booking-lifecycle.md`, `docs/spec/consolidated/master-spec.md`, `docs/project/roadmap.md`
 
 ---
@@ -10,13 +10,13 @@ Canonical refs: `docs/spec/source-of-truth/part1-foundations-search-tiers.md`, `
 
 1. Product is video-only (Agora for now). No in-person delivery.
 2. No service jurisdiction. Professionals can serve globally.
-3. Tier limits:
-   - Basic: `1 service / 1 specialty`
-   - Professional: `5 / 3`
-   - Premium: `10 / 3`
+3. Tier limits are runtime-configurable from `plan_configs` (Admin > Planos), with safe defaults:
+   - Basic: `1 service / 1 specialty / 3 tags / 30-day window`
+   - Professional: `3 / 3 / 4 / 90 days`
+   - Premium: `5 / 3 / 5 / 180 days`
 4. Annual = `10x` monthly.
 5. Basic is paid (`BRL 49.99` and `USD/GBP/EUR 9.99`) with 3-month trial starting at go-live.
-6. `billing_card_for_professional_plan` is required in C6 for review submission and revalidated for first booking acceptance.
+6. C8 `submit_review` depends on onboarding readiness (C2..C6 + terms); payout/billing remains enforced for go-live/financial operations, not as C8 hard blocker.
 
 ---
 
@@ -155,6 +155,7 @@ Deliverables:
 
 Exit criteria:
 1. End-to-end review works without manual workarounds.
+2. `needs_changes` and `rejected` reopen tracker with structured adjustments and explicit field-level resolution.
 
 ## Phase 12 - Security and auth hardening
 
@@ -179,6 +180,7 @@ Deliverables:
 
 Exit criteria:
 1. Main stays green, with only intentional non-critical skips documented.
+2. Onboarding tracker opens on critical data path without waiting for optional payloads.
 
 ## Phase 14 - Sign-off and handover
 
@@ -192,6 +194,20 @@ Deliverables:
 Exit criteria:
 1. Wave 2 formally closed with traceable evidence.
 
+## Phase 15 - Tracker performance and load-path hardening
+
+Objective: keep onboarding modal responsive under partial infra latency/failures.
+
+Deliverables:
+1. `GET /api/professional/onboarding/modal-context?scope=critical|optional` split.
+2. Critical first paint from dashboard + critical scope; optional scope loads in background.
+3. Hot-path loaders skip signed profile-media URL generation when not required.
+4. Optional blocks (`taxonomy`, `plan-config`, `exchange-rates`, `plan-pricing`) use short cache/timeout and never block modal bootstrap.
+
+Exit criteria:
+1. Global tracker spinner ends after critical load.
+2. Optional failure does not block edit/save/submit.
+
 ---
 
 ## Appendix A - Public contracts
@@ -203,9 +219,9 @@ Exit criteria:
 
 ## Appendix B - Canonical tier matrix
 
-1. Basic: 1 service, 1 specialty, 3 tags, 60-day booking window.
-2. Professional: 5 services, 3 specialties, 5 tags, 90 days.
-3. Premium: 10 services, 3 specialties, 10 tags, 180 days.
+1. Basic: 1 service, 1 specialty, 3 tags, 30-day booking window.
+2. Professional: 3 services, 3 specialties, 4 tags, 90 days.
+3. Premium: 5 services, 3 specialties, 5 tags, 180 days.
 
 ## Appendix C - Onboarding stages C1-C9
 

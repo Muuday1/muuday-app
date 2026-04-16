@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
+import { getDefaultPlanConfigMap, type PlanConfigMap } from '@/lib/plan-config'
 
 type BillingCycle = 'monthly' | 'annual'
 type TierId = 'basic' | 'professional' | 'premium'
@@ -15,19 +16,6 @@ const PLAN_PRICES_BRL: Record<TierId, number> = {
   premium: 149.99,
 }
 
-const PLAN_FEATURES: Array<{ label: string; basic: string; professional: string; premium: string }> = [
-  { label: 'Servicos ativos', basic: '1', professional: '5', premium: '10' },
-  { label: 'Especialidades', basic: '1', professional: '3', premium: '3' },
-  { label: 'Tags', basic: '3', professional: '5', premium: '10' },
-  { label: 'Janela de agendamento', basic: '60 dias', professional: '90 dias', premium: '180 dias' },
-  { label: 'Recorrencia + pacotes', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
-  { label: 'Multiplas datas no checkout', basic: 'Sim', professional: 'Sim', premium: 'Sim' },
-  { label: 'Video intro no perfil', basic: 'Nao', professional: 'Sim', premium: 'Sim' },
-  { label: 'WhatsApp no perfil', basic: 'Nao', professional: 'Sim', premium: 'Sim' },
-  { label: 'Redes sociais', basic: 'Nao', professional: 'Ate 2', premium: 'Ate 5' },
-  { label: 'Manual accept', basic: 'Nao', professional: 'Sim', premium: 'Sim' },
-]
-
 function tierLabel(tier: TierId) {
   if (tier === 'basic') return 'Basico'
   if (tier === 'professional') return 'Professional'
@@ -37,6 +25,103 @@ function tierLabel(tier: TierId) {
 function getPrice(tier: TierId, cycle: BillingCycle) {
   const monthly = PLAN_PRICES_BRL[tier]
   return cycle === 'annual' ? monthly * 10 : monthly
+}
+
+function yesNo(value: boolean) {
+  return value ? 'Sim' : 'Não'
+}
+
+function buildPlanFeatures(plans: PlanConfigMap): Array<{ label: string; basic: string; professional: string; premium: string }> {
+  const basic = plans.basic
+  const professional = plans.professional
+  const premium = plans.premium
+
+  return [
+    {
+      label: 'Serviços ativos',
+      basic: String(basic.limits.services),
+      professional: String(professional.limits.services),
+      premium: String(premium.limits.services),
+    },
+    {
+      label: 'Especialidades',
+      basic: String(basic.limits.specialties),
+      professional: String(professional.limits.specialties),
+      premium: String(premium.limits.specialties),
+    },
+    {
+      label: 'Tags de foco',
+      basic: String(basic.limits.tags),
+      professional: String(professional.limits.tags),
+      premium: String(premium.limits.tags),
+    },
+    {
+      label: 'Janela de agendamento',
+      basic: `${basic.limits.bookingWindowDays} dias`,
+      professional: `${professional.limits.bookingWindowDays} dias`,
+      premium: `${premium.limits.bookingWindowDays} dias`,
+    },
+    {
+      label: 'Opções por serviço',
+      basic: String(basic.limits.serviceOptionsPerService),
+      professional: String(professional.limits.serviceOptionsPerService),
+      premium: String(premium.limits.serviceOptionsPerService),
+    },
+    {
+      label: 'Antecedência máxima',
+      basic: `${basic.minNoticeRange.max}h`,
+      professional: `${professional.minNoticeRange.max}h`,
+      premium: `${premium.minNoticeRange.max}h`,
+    },
+    {
+      label: 'Buffer configurável',
+      basic: yesNo(basic.bufferConfig.configurable),
+      professional: yesNo(professional.bufferConfig.configurable),
+      premium: yesNo(premium.bufferConfig.configurable),
+    },
+    {
+      label: 'Valor máximo do buffer',
+      basic: `${basic.bufferConfig.maxMinutes} min`,
+      professional: `${professional.bufferConfig.maxMinutes} min`,
+      premium: `${premium.bufferConfig.maxMinutes} min`,
+    },
+    {
+      label: 'Vídeo no perfil',
+      basic: yesNo(basic.features.includes('video_intro')),
+      professional: yesNo(professional.features.includes('video_intro')),
+      premium: yesNo(premium.features.includes('video_intro')),
+    },
+    {
+      label: 'WhatsApp no perfil',
+      basic: yesNo(basic.features.includes('whatsapp_profile')),
+      professional: yesNo(professional.features.includes('whatsapp_profile')),
+      premium: yesNo(premium.features.includes('whatsapp_profile')),
+    },
+    {
+      label: 'Links sociais',
+      basic: basic.socialLinksLimit > 0 ? `Até ${basic.socialLinksLimit}` : 'Não',
+      professional: professional.socialLinksLimit > 0 ? `Até ${professional.socialLinksLimit}` : 'Não',
+      premium: premium.socialLinksLimit > 0 ? `Até ${premium.socialLinksLimit}` : 'Não',
+    },
+    {
+      label: 'Confirmação manual',
+      basic: yesNo(basic.features.includes('manual_accept')),
+      professional: yesNo(professional.features.includes('manual_accept')),
+      premium: yesNo(premium.features.includes('manual_accept')),
+    },
+    {
+      label: 'Auto-aceite',
+      basic: yesNo(basic.features.includes('auto_accept')),
+      professional: yesNo(professional.features.includes('auto_accept')),
+      premium: yesNo(premium.features.includes('auto_accept')),
+    },
+    {
+      label: 'Exportação PDF',
+      basic: yesNo(basic.features.includes('pdf_export')),
+      professional: yesNo(professional.features.includes('pdf_export')),
+      premium: yesNo(premium.features.includes('pdf_export')),
+    },
+  ]
 }
 
 export default function PlanosPage() {
@@ -54,6 +139,9 @@ export default function PlanosPage() {
   )
   const [currentTier, setCurrentTier] = useState<TierId>('basic')
   const [roleChecked, setRoleChecked] = useState(false)
+  const [planConfigs, setPlanConfigs] = useState<PlanConfigMap>(getDefaultPlanConfigMap())
+
+  const planFeatures = useMemo(() => buildPlanFeatures(planConfigs), [planConfigs])
 
   useEffect(() => {
     let mounted = true
@@ -88,6 +176,23 @@ export default function PlanosPage() {
       mounted = false
     }
   }, [supabase])
+
+  useEffect(() => {
+    let mounted = true
+    void (async () => {
+      const response = await fetch('/api/plan-config', { credentials: 'include' })
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; plans?: PlanConfigMap }
+        | null
+      if (!mounted) return
+      if (payload?.ok && payload.plans) {
+        setPlanConfigs(payload.plans)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   async function handleSelectPlan(tier: TierId) {
     if (loadingTier) return
@@ -210,7 +315,7 @@ export default function PlanosPage() {
             </tr>
           </thead>
           <tbody>
-            {PLAN_FEATURES.map(feature => (
+            {planFeatures.map(feature => (
               <tr key={feature.label} className="border-t border-neutral-100">
                 <td className="px-4 py-3 font-medium text-neutral-800">{feature.label}</td>
                 <td className="px-4 py-3 text-neutral-600">{feature.basic}</td>

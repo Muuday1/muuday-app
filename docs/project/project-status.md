@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-14
+Last updated: 2026-04-16
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -19,6 +19,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 3. Professional signup and admin-reviewed onboarding pipeline are operational.
 4. Dashboard tracker modal is the active professional onboarding experience.
 5. Calendar configuration and sync are being concentrated in `/disponibilidade`.
+6. Onboarding modal now loads via `critical` bootstrap + optional background hydration, reducing open-time blocking.
 
 ## Infrastructure state
 
@@ -36,12 +37,15 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 4. Professional onboarding review pipeline is implemented.
 5. Dashboard onboarding tracker has replaced the old standalone onboarding page.
 6. Public/member PT-BR cleanup and search currency-filter corrections have shipped.
+7. Structured admin review adjustments + per-term legal acceptance flow shipped end-to-end.
+8. Onboarding modal performance split (`modal-context` by scope) shipped with non-blocking optional data.
 
 ## Active gaps
 
 1. Professional operations UX still needs refinement, especially around calendar and scheduling experience.
 2. Financial and compliance hardening needed for Wave 3 remains open.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
+4. Legacy/unmerged feature branch (`feat/landing-page-redesign`) still requires explicit product validation before merge.
 
 ## Blockers
 

@@ -1,15 +1,16 @@
 # Next Steps
 
-Last updated: 2026-04-14
+Last updated: 2026-04-16
 
 Execute in order. Keep changes batchable, validated, and documented.
 
 ## Immediate queue
 
-1. Continue professional operations polish with focus on calendar UX, scheduling rules clarity, and blocker language.
-2. Keep public search, profile, and currency behavior stable under real usage.
-3. Keep onboarding tracker copy and progression consistent as remaining stages are refined.
-4. Close remaining PT-BR copy cleanup on lower-traffic admin/member surfaces.
+1. Run production smoke for onboarding review loop (`admin -> solicitar ajustes -> profissional corrige -> reenviar`) after each publish batch.
+2. Continue professional operations polish with focus on calendar UX and scheduling-rule clarity in `/disponibilidade`.
+3. Keep onboarding tracker copy/progression consistent and avoid reintroducing blocking optional fetches in modal open path.
+4. Close remaining PT-BR cleanup on lower-traffic admin/member surfaces.
+5. Evaluate and either merge or archive `feat/landing-page-redesign` explicitly (do not leave in ambiguous state).
 
 ## Pre-Wave-3 hardening
 

@@ -178,7 +178,7 @@ const slotsSchema = z.array(slotSchema).max(50, 'Máximo 50 horários')
 const professionalDraftSchema = z.object({
   professionalId: z.string().uuid(),
   category: z.enum(VALID_CATEGORIES, { errorMap: () => ({ message: 'Categoria inválida' }) }),
-  bio: z.string().trim().min(20, 'Bio muito curta').max(5000, 'Bio muito longa'),
+  bio: z.string().trim().min(10, 'Bio muito curta').max(5000, 'Bio muito longa'),
   tags: z.array(z.string().trim().min(1).max(50)).max(10, 'Limite de tags excedido'),
   languages: z.array(z.string().trim().min(1).max(50)).min(1, 'Selecione pelo menos um idioma').max(10),
   yearsExperience: z.number().int().min(0).max(60),

@@ -119,15 +119,16 @@ export default function DisponibilidadePage() {
     }
 
     setProfessionalId(professional.id)
-    if (!planConfigs) {
+    let resolvedPlans = planConfigs
+    if (!resolvedPlans) {
       const planResponse = await fetch('/api/plan-config', { credentials: 'include' })
       const planPayload = (await planResponse.json().catch(() => null)) as
         | { ok?: boolean; plans?: PlanConfigMap }
         | null
-      setPlanConfigs(planPayload?.ok && planPayload.plans ? planPayload.plans : getDefaultPlanConfigMap())
+      resolvedPlans = planPayload?.ok && planPayload.plans ? planPayload.plans : getDefaultPlanConfigMap()
+      setPlanConfigs(resolvedPlans)
     }
     const normalizedTier = String(professional.tier || 'basic').toLowerCase()
-    const resolvedPlans = planConfigs || getDefaultPlanConfigMap()
     const tierConfig = getPlanConfigForTier(resolvedPlans, normalizedTier)
     const tierLimits = tierConfig.limits
     const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes

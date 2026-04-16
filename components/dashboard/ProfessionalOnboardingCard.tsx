@@ -1,7 +1,11 @@
 ﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
+import {
+  REVIEW_ADJUSTMENT_STAGE_LABELS,
+  type ReviewAdjustmentItem,
+} from '@/lib/professional/review-adjustments'
 import { OnboardingTrackerModal } from '@/components/dashboard/OnboardingTrackerModal'
 
 type ProfessionalOnboardingCardProps = {
@@ -73,6 +77,10 @@ function resolveTrackerViewMode(status: string): TrackerViewMode {
   return 'editing'
 }
 
+function stageLabelFromAdjustment(stageId: string) {
+  return REVIEW_ADJUSTMENT_STAGE_LABELS[stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || 'Etapa do onboarding'
+}
+
 export function ProfessionalOnboardingCard({
   professionalId,
   tier,
@@ -87,11 +95,46 @@ export function ProfessionalOnboardingCard({
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
+  const [openAdjustments, setOpenAdjustments] = useState<ReviewAdjustmentItem[]>([])
 
   const trackerViewMode = useMemo(
     () => resolveTrackerViewMode(currentProfessionalStatus),
     [currentProfessionalStatus],
   )
+  const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
+
+  useEffect(() => {
+    if (!trackerNeedsAdjustments) {
+      setOpenAdjustments([])
+      return
+    }
+
+    let cancelled = false
+    async function loadAdjustments() {
+      try {
+        const response = await fetch('/api/professional/onboarding/state', {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        const payload = (await response.json().catch(() => ({}))) as {
+          reviewAdjustments?: ReviewAdjustmentItem[]
+        }
+        if (!response.ok || cancelled) return
+        const items = Array.isArray(payload.reviewAdjustments)
+          ? payload.reviewAdjustments.filter(item => item.status === 'open' || item.status === 'reopened')
+          : []
+        setOpenAdjustments(items)
+      } catch {
+        if (!cancelled) setOpenAdjustments([])
+      }
+    }
+
+    void loadAdjustments()
+    return () => {
+      cancelled = true
+    }
+  }, [trackerNeedsAdjustments, currentProfessionalStatus, evaluation])
 
   const normalizedStages = useMemo(() => {
     const map = new Map<string, ProfessionalOnboardingEvaluation['stages'][number]>()
@@ -132,6 +175,8 @@ export function ProfessionalOnboardingCard({
   )
 
   const totalCount = UI_STAGE_ORDER.length
+  const adjustmentCount = openAdjustments.length
+  const adjustmentPreview = openAdjustments.slice(0, 4)
 
   const feedbackMessage =
     result === 'submitted'
@@ -147,7 +192,7 @@ export function ProfessionalOnboardingCard({
       ? 'Perfil em análise'
       : trackerViewMode === 'approved'
         ? 'Perfil aprovado'
-        : trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
+        : trackerNeedsAdjustments
           ? 'Ajustes solicitados no onboarding'
           : 'Complete o onboarding para liberar o perfil'
 
@@ -157,9 +202,13 @@ export function ProfessionalOnboardingCard({
       : trackerViewMode === 'approved'
         ? 'Seu onboarding foi aprovado. Se precisar ajustar dados, use as páginas de configuração do perfil.'
         : trackerViewMode === 'rejected'
-          ? 'Seu envio foi reprovado nesta rodada. Faça os ajustes solicitados no tracker e envie novamente para análise.'
+          ? adjustmentCount > 0
+            ? `Seu envio foi reprovado nesta rodada. Há ${adjustmentCount} ajuste(s) pendente(s) para reenviar.`
+            : 'Seu envio foi reprovado nesta rodada. Abra o tracker e faça os ajustes solicitados para reenviar.'
           : trackerViewMode === 'needs_changes'
-            ? 'A equipe de revisão pediu ajustes. Corrija os itens pendentes e envie novamente pelo tracker.'
+            ? adjustmentCount > 0
+              ? `A equipe de revisão pediu ${adjustmentCount} ajuste(s). Corrija os itens abaixo e envie novamente pelo tracker.`
+              : 'A equipe de revisão pediu ajustes. Abra o tracker para revisar os itens pendentes e reenviar.'
             : 'Falta concluir as etapas do onboarding antes da publicação. Continue de onde parou e envie o perfil para análise no fim do fluxo.'
 
   return (
@@ -175,7 +224,7 @@ export function ProfessionalOnboardingCard({
           <h2 className="font-display text-lg font-bold text-amber-900">{title}</h2>
           <p className="mt-1 text-sm text-amber-800">{description}</p>
         </div>
-        {trackerViewMode === 'editing' || trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected' ? (
+        {trackerViewMode === 'editing' ? (
           <div className="min-w-[210px] rounded-xl border border-amber-200 bg-white/80 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Progresso</p>
             <p className="mt-1 text-2xl font-bold text-amber-950">
@@ -189,10 +238,27 @@ export function ProfessionalOnboardingCard({
               />
             </div>
           </div>
+        ) : trackerNeedsAdjustments ? (
+          <div className="min-w-[210px] rounded-xl border border-amber-200 bg-white/80 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Ajustes pendentes</p>
+            <p className="mt-1 text-2xl font-bold text-amber-950">{adjustmentCount}</p>
+            <p className="mt-1 text-xs text-amber-800">
+              {adjustmentCount === 1 ? 'item para corrigir' : 'itens para corrigir'}
+            </p>
+          </div>
         ) : null}
       </div>
 
-      {trackerViewMode === 'editing' || trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected' ? (
+      {trackerNeedsAdjustments && adjustmentPreview.length > 0 ? (
+        <div className="mt-4 grid gap-2 md:grid-cols-2">
+          {adjustmentPreview.map(item => (
+            <div key={item.id} className="rounded-xl border border-amber-200 bg-white/75 px-3 py-3">
+              <p className="text-sm font-semibold text-amber-950">{stageLabelFromAdjustment(String(item.stageId || ''))}</p>
+              <p className="mt-1 text-xs text-amber-800">{item.message || 'Revise esta etapa no tracker.'}</p>
+            </div>
+          ))}
+        </div>
+      ) : trackerViewMode === 'editing' || trackerNeedsAdjustments ? (
         <div className="mt-4 grid gap-2 md:grid-cols-2">
           {pendingStages.map(stage => (
             <div key={stage.id} className="rounded-xl border border-amber-200 bg-white/75 px-3 py-3">

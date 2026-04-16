@@ -175,22 +175,36 @@ async function isSlotAllowedByExceptions(
     .select('is_available, start_time_local, end_time_local')
     .eq('professional_id', professionalId)
     .eq('date_local', localDate)
-    .limit(1)
-
-  const exception = exceptionRows?.[0] as
-    | { is_available: boolean; start_time_local: string | null; end_time_local: string | null }
-    | undefined
-
-  if (!exception) return true
-  if (!exception.is_available) return false
-  if (!exception.start_time_local || !exception.end_time_local) return false
 
   const slotStartMinutes = getMinutesInTimezone(startUtc, timezone)
   const slotEndMinutes = getMinutesInTimezone(endUtc, timezone)
-  const exceptionStart = hhmmToMinutes(exception.start_time_local)
-  const exceptionEnd = hhmmToMinutes(exception.end_time_local)
+  const exceptions = (exceptionRows || []) as Array<{
+    is_available: boolean
+    start_time_local: string | null
+    end_time_local: string | null
+  }>
 
-  return slotStartMinutes >= exceptionStart && slotEndMinutes <= exceptionEnd
+  if (exceptions.length === 0) return true
+
+  const overlaps = (row: { start_time_local: string | null; end_time_local: string | null }) => {
+    if (!row.start_time_local || !row.end_time_local) return true
+    const start = hhmmToMinutes(row.start_time_local)
+    const end = hhmmToMinutes(row.end_time_local)
+    return slotStartMinutes < end && slotEndMinutes > start
+  }
+
+  const hasBlockedException = exceptions.some(row => row.is_available === false && overlaps(row))
+  if (hasBlockedException) return false
+
+  const allowedWindows = exceptions.filter(row => row.is_available)
+  if (allowedWindows.length === 0) return true
+
+  return allowedWindows.some(window => {
+    if (!window.start_time_local || !window.end_time_local) return false
+    const start = hhmmToMinutes(window.start_time_local)
+    const end = hhmmToMinutes(window.end_time_local)
+    return slotStartMinutes >= start && slotEndMinutes <= end
+  })
 }
 
 async function hasInternalConflict(
@@ -811,25 +825,32 @@ export async function createBooking(data: {
 
   if (paymentError) {
     reportBookingError(paymentError, { paymentAnchorBookingId, bookingType }, 'booking_payment_record_failed')
-    await supabase
-      .from('bookings')
-      .update({
-        status: 'cancelled',
-        metadata: {
-          cancelled_reason: 'payment_capture_failed',
-        },
-      })
-      .eq('id', paymentAnchorBookingId)
+    const cancellationPatch = {
+      status: 'cancelled',
+      metadata: {
+        cancelled_reason: 'payment_capture_failed',
+      },
+    }
 
-    await supabase
-      .from('bookings')
-      .update({
-        status: 'cancelled',
-        metadata: {
-          cancelled_reason: 'parent_payment_capture_failed',
-        },
-      })
-      .eq('parent_booking_id', paymentAnchorBookingId)
+    const bookingIdsToCancel = Array.from(new Set(createdBookingIds.filter(Boolean)))
+    if (bookingIdsToCancel.length > 0) {
+      await supabase
+        .from('bookings')
+        .update(cancellationPatch)
+        .in('id', bookingIdsToCancel)
+    } else {
+      await supabase
+        .from('bookings')
+        .update(cancellationPatch)
+        .eq('id', paymentAnchorBookingId)
+    }
+
+    if (batchBookingGroupId) {
+      await supabase
+        .from('bookings')
+        .update(cancellationPatch)
+        .eq('batch_booking_group_id', batchBookingGroupId)
+    }
 
     return {
       success: false,

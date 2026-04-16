@@ -89,6 +89,59 @@ type ProfileSummary = {
   avatar_url?: string | null
 }
 
+type ModalContextPayload = {
+  professional?: {
+    user_id?: string | null
+    category?: string | null
+    subcategories?: string[] | null
+    focus_areas?: string[] | null
+    years_experience?: number | null
+    tier?: string | null
+    cover_photo_url?: string | null
+  } | null
+  services?: Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }> | null
+  settings?: Record<string, unknown> | null
+  availability?: Array<Record<string, unknown>> | null
+  application?: Record<string, unknown> | null
+  credentials?: Array<Record<string, unknown>> | null
+  profile?: ProfileSummary | null
+}
+
+type ModalOptionalContextPayload = {
+  categories?: Array<Record<string, unknown>> | null
+  subcategories?: Array<Record<string, unknown>> | null
+  planConfigs?: PlanConfigMap
+  exchangeRates?: ExchangeRateMap
+  planPricing?: {
+    currency: string
+    monthlyAmount: number
+    annualAmount: number
+    provider: string
+    fallback?: boolean
+    mode?: string
+  } | null
+  pricingError?: string
+}
+
+type ProfessionalServiceItem = {
+  id: string
+  name: string
+  description: string | null
+  price_brl: number
+  duration_minutes: number
+}
+
+type ModalContextResponse = {
+  scope?: 'critical' | 'optional'
+  evaluation?: ProfessionalOnboardingEvaluation
+  professionalStatus?: string
+  reviewAdjustments?: ReviewAdjustmentItem[]
+  termsAcceptanceByKey?: Record<string, boolean>
+  critical?: ModalContextPayload
+  optional?: ModalOptionalContextPayload
+  error?: string
+}
+
 type PhotoValidationStatus = 'pass' | 'fail' | 'unknown'
 type PhotoValidationChecks = {
   format: PhotoValidationStatus
@@ -643,15 +696,6 @@ function getBlockerCta(blocker: Blocker): BlockerCta | null {
   return blocker.actionHref ? { kind: 'external', label: 'Abrir etapa relacionada', href: blocker.actionHref } : null
 }
 
-function readSettledValue<T>(result: PromiseSettledResult<unknown>) {
-  if (result.status !== 'fulfilled') return null
-  const value = result.value
-  if (value && typeof value === 'object' && 'data' in (value as Record<string, unknown>)) {
-    return ((value as { data: T | null }).data ?? null) as T | null
-  }
-  return (value as T | null) ?? null
-}
-
 async function withTimeout<T>(promiseLike: PromiseLike<T>, timeoutMs: number) {
   const promise = Promise.resolve(promiseLike)
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -742,9 +786,8 @@ export function OnboardingTrackerModal({
   const [serviceDescription, setServiceDescription] = useState('')
   const [servicePrice, setServicePrice] = useState('')
   const [serviceDuration, setServiceDuration] = useState('60')
-  const [services, setServices] = useState<
-    Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }>
-  >([])
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
+  const [services, setServices] = useState<ProfessionalServiceItem[]>([])
   const [serviceSaveState, setServiceSaveState] = useState<SaveState>('idle')
   const [serviceError, setServiceError] = useState('')
   const [serviceCurrency, setServiceCurrency] = useState('BRL')
@@ -787,6 +830,7 @@ export function OnboardingTrackerModal({
   const [currentProfessionalStatus, setCurrentProfessionalStatus] = useState(
     String(professionalStatus || ''),
   )
+  const currentProfessionalStatusRef = useRef(String(professionalStatus || ''))
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
   const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
   const [submitReviewMessage, setSubmitReviewMessage] = useState('')
@@ -867,6 +911,10 @@ export function OnboardingTrackerModal({
   useEffect(() => {
     onTrackerStateChangeRef.current = onTrackerStateChange
   }, [onTrackerStateChange])
+
+  useEffect(() => {
+    currentProfessionalStatusRef.current = String(currentProfessionalStatus || '')
+  }, [currentProfessionalStatus])
   const refreshTrackerEvaluation = useCallback(async () => {
     try {
       const response = await withTimeout(
@@ -927,6 +975,55 @@ export function OnboardingTrackerModal({
     }
   }, [currentProfessionalStatus])
 
+  const applyOptionalContext = useCallback(
+    (optional: ModalOptionalContextPayload | null | undefined) => {
+      if (!optional) return
+
+      if (optional.planConfigs) {
+        setPlanConfigs(optional.planConfigs)
+      }
+
+      const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
+      for (const [codeRaw, rateRaw] of Object.entries(optional.exchangeRates || {})) {
+        const code = String(codeRaw || '').toUpperCase().trim()
+        const rate = Number(rateRaw)
+        if (!code || !Number.isFinite(rate) || rate <= 0) continue
+        normalizedRates[code] = rate
+      }
+      setExchangeRates(normalizedRates)
+
+      const categoryRows = Array.isArray(optional.categories) ? optional.categories : []
+      const subcategoryRows = Array.isArray(optional.subcategories) ? optional.subcategories : []
+
+      const nextCategoryNames: Record<string, string> = {}
+      for (const row of categoryRows) {
+        const slug = String(row.slug || '').trim().toLowerCase()
+        const name = String(row.name_pt || '').trim()
+        if (slug && name) nextCategoryNames[slug] = name
+      }
+      setCategoryNameBySlug(nextCategoryNames)
+
+      const nextSubcategoryNames: Record<string, string> = {}
+      for (const row of subcategoryRows) {
+        const slug = String(row.slug || '').trim().toLowerCase()
+        const name = String(row.name_pt || '').trim()
+        if (slug && name) nextSubcategoryNames[slug] = name
+      }
+      setSubcategoryNameBySlug(nextSubcategoryNames)
+
+      if (optional.planPricing) {
+        setPlanPricing(optional.planPricing)
+        setPricingError('')
+      } else if (optional.pricingError) {
+        setPlanPricing(null)
+        setPricingError(
+          sanitizePricingErrorMessage(String(optional.pricingError || 'Preco indisponivel no momento.')),
+        )
+      }
+    },
+    [],
+  )
+
   useEffect(() => {
     if (!open) return
     if (trackerIsReadOnly) {
@@ -981,115 +1078,65 @@ export function OnboardingTrackerModal({
 
     let mounted = true
     async function loadModalContext() {
+      let criticalLoaded = false
       setLoadingContext(true)
       setTermsHydrated(false)
       setAvailabilityError('')
+      setPlanPricing(null)
+      setPricingError('')
       try {
+        const criticalResponse = await withTimeout(
+          fetch('/api/professional/onboarding/modal-context?scope=critical', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          5000,
+        )
+        const criticalPayload = (await criticalResponse.json().catch(() => ({}))) as ModalContextResponse
+        if (!criticalResponse.ok || !criticalPayload.evaluation) {
+          throw new Error(criticalPayload.error || 'Não foi possível carregar os dados iniciais do tracker.')
+        }
+        if (!mounted) return
 
-      const settledQueries = await Promise.allSettled([
-        withTimeout(
-          supabase
-            .from('professionals')
-            .select('user_id,category,subcategories,focus_areas,years_experience,tier,cover_photo_url')
-            .eq('id', professionalId)
-            .maybeSingle(),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('professional_services')
-            .select('id,name,description,price_brl,duration_minutes')
-            .eq('professional_id', professionalId)
-            .eq('is_active', true)
-            .order('created_at', { ascending: true }),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('professional_settings')
-            .select(
-              'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
-            )
-            .eq('professional_id', professionalId)
-            .maybeSingle(),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('availability')
-            .select('day_of_week,start_time,end_time,is_active')
-            .eq('professional_id', professionalId),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('professional_applications')
-            .select(
-              'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
-            )
-            .eq('professional_id', professionalId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('exchange_rates')
-            .select('code,rate_to_brl')
-            .eq('is_active', true),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('professional_credentials')
-            .select('id,file_name,file_url,scan_status,verified,credential_type')
-            .eq('professional_id', professionalId)
-            .order('uploaded_at', { ascending: false }),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('categories')
-            .select('slug,name_pt')
-            .eq('is_active', true),
-          10000,
-        ),
-        withTimeout(
-          supabase
-            .from('subcategories')
-            .select('slug,name_pt')
-            .eq('is_active', true),
-          10000,
-        ),
-        withTimeout(fetch('/api/plan-config', { credentials: 'include' }).catch(() => null), 8000),
-      ])
-
-      const professional = readSettledValue<any>(settledQueries[0]) || null
-      const existingServices = readSettledValue<any[]>(settledQueries[1]) || []
-      const settingsRow = readSettledValue<any>(settledQueries[2]) || null
-      const availabilityRows = readSettledValue<any[]>(settledQueries[3]) || []
-      const appRow = readSettledValue<any>(settledQueries[4]) || null
-      const ratesRows = readSettledValue<any[]>(settledQueries[5]) || []
-      const credentialRows = readSettledValue<any[]>(settledQueries[6]) || []
-      const categoryRows = readSettledValue<any[]>(settledQueries[7]) || []
-      const subcategoryRows = readSettledValue<any[]>(settledQueries[8]) || []
-      const planConfigResponse = readSettledValue<Response>(settledQueries[9]) || null
-
-      if (mounted) {
-        if (planConfigResponse) {
-          const planConfigPayload = (await planConfigResponse.json().catch(() => null)) as
-            | { ok?: boolean; plans?: PlanConfigMap }
-            | null
-          if (planConfigResponse.ok && planConfigPayload?.ok && planConfigPayload.plans) {
-            setPlanConfigs(planConfigPayload.plans)
-          }
+        setCurrentEvaluation(criticalPayload.evaluation)
+        if (typeof criticalPayload.professionalStatus === 'string') {
+          setCurrentProfessionalStatus(criticalPayload.professionalStatus)
+          onTrackerStateChangeRef.current?.({
+            evaluation: criticalPayload.evaluation,
+            professionalStatus: criticalPayload.professionalStatus,
+          })
+        } else {
+          onTrackerStateChangeRef.current?.({
+            evaluation: criticalPayload.evaluation,
+            professionalStatus: currentProfessionalStatusRef.current,
+          })
         }
 
-        setServices((existingServices || []) as Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }>)
+        const adjustmentRows = Array.isArray(criticalPayload.reviewAdjustments)
+          ? criticalPayload.reviewAdjustments
+          : []
+        setReviewAdjustments(adjustmentRows)
+        const openIds = new Set(
+          adjustmentRows
+            .filter(item => item.status === 'open' || item.status === 'reopened')
+            .map(item => String(item.id)),
+        )
+        setSelectedAdjustmentIds(previous => previous.filter(id => openIds.has(id)))
+
+        const critical = (criticalPayload.critical || {}) as ModalContextPayload
+        const professional = (critical.professional || null) as Record<string, unknown> | null
+        const existingServices = Array.isArray(critical.services) ? critical.services : []
+        const settingsRow = (critical.settings || null) as Record<string, unknown> | null
+        const availabilityRows = Array.isArray(critical.availability) ? critical.availability : []
+        const appRow = (critical.application || null) as Record<string, unknown> | null
+        const credentialRows = Array.isArray(critical.credentials) ? critical.credentials : []
+        const profileRow = (critical.profile || null) as ProfileSummary | null
+
+        setServices(existingServices as ProfessionalServiceItem[])
 
         const defaults = buildDefaultAvailabilityMap()
-        for (const row of (availabilityRows || []) as Array<Record<string, unknown>>) {
+        for (const row of availabilityRows) {
           const day = Number(row.day_of_week)
           if (!(day in defaults)) continue
           defaults[day] = {
@@ -1114,51 +1161,12 @@ export function OnboardingTrackerModal({
         setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
         setIsFinanceBypassEnabled(Boolean(settingsRow?.onboarding_finance_bypass))
 
-        const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
-        for (const row of (ratesRows || []) as Array<Record<string, unknown>>) {
-          const code = String(row.code || '').toUpperCase().trim()
-          const rate = Number(row.rate_to_brl)
-          if (!code || !Number.isFinite(rate) || rate <= 0) continue
-          normalizedRates[code] = rate
-        }
-        setExchangeRates(normalizedRates)
-
-        const primaryProfileUserId = String(professional?.user_id || '').trim()
-        let profileRow: ProfileSummary | null = null
-
-        if (primaryProfileUserId) {
-          const profileByProfessional = await withTimeout(
-            supabase
-              .from('profiles')
-              .select('currency,full_name,timezone,avatar_url')
-              .eq('id', primaryProfileUserId)
-              .maybeSingle(),
-            8000,
-          ).catch(() => null)
-          profileRow = (profileByProfessional?.data as ProfileSummary | null) || null
-        }
-
-        if (!profileRow) {
-          const authUser = await withTimeout(supabase.auth.getUser(), 8000).catch(() => null)
-          const fallbackUserId = String(authUser?.data?.user?.id || '').trim()
-          if (fallbackUserId) {
-            const profileBySession = await withTimeout(
-              supabase
-                .from('profiles')
-                .select('currency,full_name,timezone,avatar_url')
-                .eq('id', fallbackUserId)
-                .maybeSingle(),
-              8000,
-            ).catch(() => null)
-            profileRow = (profileBySession?.data as ProfileSummary | null) || null
-          }
-        }
-
         const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo'
         const resolvedCurrency = String(profileRow?.currency || 'BRL').toUpperCase()
         const resolvedTimezone = String(settingsRow?.timezone || profileRow?.timezone || browserTimezone)
         setServiceCurrency(resolvedCurrency)
         setProfileTimezone(resolvedTimezone)
+
         const professionalTier = String(professional?.tier || '').toLowerCase()
         const normalizedProfessionalTier: PlanTier =
           professionalTier === 'professional' || professionalTier === 'premium'
@@ -1166,53 +1174,40 @@ export function OnboardingTrackerModal({
             : 'basic'
         setActiveTier(normalizedProfessionalTier)
         setSelectedPlanTier(normalizedProfessionalTier)
+
         const avatarUrlCandidate = String(profileRow?.avatar_url || '').trim()
         const profileMediaPath = parseProfileMediaPath(avatarUrlCandidate)
         const professionalMediaPath = parseProfileMediaPath(String(professional?.cover_photo_url || '').trim())
         setCoverPhotoPath(profileMediaPath || professionalMediaPath || '')
         setCoverPhotoUrl(avatarUrlCandidate)
+
         const resolvedDisplayName = String(appRow?.display_name || profileRow?.full_name || '')
         setIdentityDisplayName(resolvedDisplayName)
         setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
+
         const taxonomySuggestions =
           appRow?.taxonomy_suggestions && typeof appRow.taxonomy_suggestions === 'object'
             ? (appRow.taxonomy_suggestions as Record<string, unknown>)
             : null
-        const suggestedCategory =
-          String(
-            taxonomySuggestions?.category_slug ||
-              taxonomySuggestions?.category ||
-              appRow?.category ||
-              professional?.category ||
-              '',
-          ).trim()
-        const suggestedSubcategory =
-          String(
-            (Array.isArray(professional?.subcategories) && professional.subcategories.length > 0
-              ? professional.subcategories[0]
-              : '') ||
-              taxonomySuggestions?.subcategory_slug ||
-              taxonomySuggestions?.subcategory ||
-              appRow?.specialty_name ||
-              '',
-          ).trim()
+        const suggestedCategory = String(
+          taxonomySuggestions?.category_slug ||
+            taxonomySuggestions?.category ||
+            appRow?.category ||
+            professional?.category ||
+            '',
+        ).trim()
+        const suggestedSubcategory = String(
+          (Array.isArray(professional?.subcategories) && professional.subcategories.length > 0
+            ? professional.subcategories[0]
+            : '') ||
+            taxonomySuggestions?.subcategory_slug ||
+            taxonomySuggestions?.subcategory ||
+            appRow?.specialty_name ||
+            '',
+        ).trim()
         setIdentityCategory(suggestedCategory)
         setIdentitySubcategory(suggestedSubcategory)
-        const nextCategoryNames: Record<string, string> = {}
-        for (const row of (categoryRows || []) as Array<Record<string, unknown>>) {
-          const slug = String(row.slug || '').trim().toLowerCase()
-          const name = String(row.name_pt || '').trim()
-          if (slug && name) nextCategoryNames[slug] = name
-        }
-        setCategoryNameBySlug(nextCategoryNames)
 
-        const nextSubcategoryNames: Record<string, string> = {}
-        for (const row of (subcategoryRows || []) as Array<Record<string, unknown>>) {
-          const slug = String(row.slug || '').trim().toLowerCase()
-          const name = String(row.name_pt || '').trim()
-          if (slug && name) nextSubcategoryNames[slug] = name
-        }
-        setSubcategoryNameBySlug(nextSubcategoryNames)
         setIdentityFocusAreas(
           Array.isArray(professional?.focus_areas) && professional.focus_areas.length > 0
             ? professional.focus_areas.map((item: unknown) => String(item))
@@ -1240,6 +1235,7 @@ export function OnboardingTrackerModal({
             ? appRow.target_audiences.map((item: unknown) => String(item))
             : [],
         )
+
         const parsedQualifications = Array.isArray(appRow?.qualifications_structured)
           ? appRow.qualifications_structured.map((item: any) => ({
               id: String(item?.id || crypto.randomUUID()),
@@ -1258,7 +1254,7 @@ export function OnboardingTrackerModal({
           qualificationMap.set(normalizeOption(item.name), item)
         }
 
-        for (const row of (credentialRows || []) as Array<Record<string, unknown>>) {
+        for (const row of credentialRows) {
           const rawFileName = String(row.file_name || '')
           const [label, fileName] = rawFileName.includes('::')
             ? rawFileName.split('::', 2)
@@ -1285,74 +1281,59 @@ export function OnboardingTrackerModal({
             credential_type: row.credential_type ? String(row.credential_type) : null,
           })
         }
-
         setIdentityQualifications(Array.from(qualificationMap.values()))
-      }
 
-      try {
-        const pricingResponse = await withTimeout(
-          fetch('/api/professional/plan-pricing', {
-            method: 'GET',
-            credentials: 'include',
-          }),
-          8000,
-        )
-        if (mounted) {
-          if (pricingResponse.ok) {
-            const pricingJson = (await pricingResponse.json()) as {
-              currency: string
-              monthlyAmount: number
-              annualAmount: number
-              provider: string
-            }
-            setPlanPricing(pricingJson)
-            setPricingError('')
-          } else {
-            const errorBody = await pricingResponse.json().catch(() => ({}))
-            setPlanPricing(null)
-            setPricingError(
-              sanitizePricingErrorMessage(String(errorBody?.error || 'Nao foi possivel carregar precos agora.')),
-            )
-          }
-        }
-      } catch {
-        if (mounted) {
-          setPlanPricing(null)
-          setPricingError('Preco indisponivel no momento.')
-        }
-      }
-
-        if (mounted) {
-          const trackerRefresh = await withTimeout(refreshTrackerEvaluation(), 10000).catch(() => ({
-            ok: false,
-            termsLoaded: false,
-          }))
-
-          if (!trackerRefresh?.termsLoaded) {
-            const legacyTermsAccepted =
-              Boolean(settingsRow?.terms_accepted_at) &&
-              String(settingsRow?.terms_version || '').trim() === PROFESSIONAL_TERMS_VERSION
-            setHasAcceptedTerms(
-              TERMS_KEYS.reduce(
-                (acc, key) => ({ ...acc, [key]: legacyTermsAccepted }),
-                {} as Record<ProfessionalTermKey, boolean>,
-              ),
-            )
-            setTermsHydrated(true)
-          }
-        }
-      } catch (error) {
-        if (mounted) {
-          setAvailabilityError(
-            error instanceof Error
-              ? error.message
-              : 'Não foi possível carregar todos os dados do tracker.',
+        const serverTerms = criticalPayload.termsAcceptanceByKey || {}
+        const hasServerTerms = Object.keys(serverTerms).length > 0
+        if (hasServerTerms) {
+          const acceptedTermsMap = TERMS_KEYS.reduce((acc, key) => {
+            acc[key] = Boolean(serverTerms[key])
+            return acc
+          }, {} as Record<ProfessionalTermKey, boolean>)
+          setHasAcceptedTerms(acceptedTermsMap)
+        } else {
+          const legacyTermsAccepted =
+            Boolean(settingsRow?.terms_accepted_at) &&
+            String(settingsRow?.terms_version || '').trim() === PROFESSIONAL_TERMS_VERSION
+          setHasAcceptedTerms(
+            TERMS_KEYS.reduce(
+              (acc, key) => ({ ...acc, [key]: legacyTermsAccepted }),
+              {} as Record<ProfessionalTermKey, boolean>,
+            ),
           )
         }
+        setTermsHydrated(true)
+        criticalLoaded = true
+      } catch (error) {
+        if (!mounted) return
+        setAvailabilityError(
+          error instanceof Error ? error.message : 'Não foi possível carregar os dados iniciais do tracker.',
+        )
       } finally {
         if (mounted) {
           setLoadingContext(false)
         }
+      }
+
+      if (!criticalLoaded || !mounted) {
+        return
+      }
+
+      try {
+        const optionalResponse = await withTimeout(
+          fetch('/api/professional/onboarding/modal-context?scope=optional', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          3500,
+        )
+        if (!mounted || !optionalResponse.ok) return
+        const optionalPayload = (await optionalResponse.json().catch(() => ({}))) as ModalContextResponse
+        if (!mounted) return
+        applyOptionalContext(optionalPayload.optional)
+      } catch {
+        // Dados opcionais não devem bloquear o tracker.
       }
     }
 
@@ -1361,7 +1342,7 @@ export function OnboardingTrackerModal({
     return () => {
       mounted = false
     }
-  }, [open, professionalId, supabase, refreshTrackerEvaluation])
+  }, [open, professionalId, applyOptionalContext])
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') return
@@ -1636,7 +1617,8 @@ export function OnboardingTrackerModal({
       ok?: boolean
       error?: string
       evaluation?: ProfessionalOnboardingEvaluation
-      service?: { id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }
+      service?: ProfessionalServiceItem
+      deletedServiceId?: string | null
     }
 
     if (!response.ok || !json.ok || !json.evaluation) {
@@ -1973,9 +1955,65 @@ export function OnboardingTrackerModal({
     setActiveStageId('c4_services')
   }
 
+  function resetServiceForm() {
+    setEditingServiceId(null)
+    setServiceName('')
+    setServiceDescription('')
+    setServicePrice('')
+    setServiceDuration('60')
+  }
+
+  function beginServiceEdit(service: ProfessionalServiceItem) {
+    const selectedCurrency = serviceCurrency || 'BRL'
+    const selectedRate = exchangeRates[selectedCurrency] || 1
+    const priceInSelectedCurrency =
+      selectedCurrency === 'BRL'
+        ? Number(service.price_brl || 0)
+        : Number(service.price_brl || 0) * selectedRate
+
+    setEditingServiceId(service.id)
+    setServiceName(service.name || '')
+    setServiceDescription(service.description || '')
+    setServicePrice(priceInSelectedCurrency > 0 ? priceInSelectedCurrency.toFixed(2) : '')
+    setServiceDuration(String(service.duration_minutes || 60))
+    setServiceError('')
+    setServiceSaveState('idle')
+  }
+
+  async function deleteService(serviceId: string) {
+    if (!serviceId || serviceSaveState === 'saving') return
+
+    setServiceSaveState('saving')
+    setServiceError('')
+
+    try {
+      const result = await saveSection(
+        {
+          section: 'service',
+          operation: 'delete',
+          serviceId,
+          resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('service'),
+        },
+        'Nao foi possivel remover o servico.',
+        { autoAdvance: false },
+      )
+      const removedId = String(result.deletedServiceId || serviceId)
+      setServices(prev => prev.filter(item => item.id !== removedId))
+      if (editingServiceId === removedId) {
+        resetServiceForm()
+      }
+      setServiceSaveState('saved')
+      setTimeout(() => setServiceSaveState('idle'), 1500)
+    } catch (error) {
+      setServiceSaveState('error')
+      setServiceError(error instanceof Error ? error.message : 'Não foi possível remover o serviço.')
+    }
+  }
+
   async function saveService() {
+    const isEditing = Boolean(editingServiceId)
     const maxServices = tierLimits.services
-    if (services.length >= maxServices) {
+    if (!isEditing && services.length >= maxServices) {
       setServiceSaveState('error')
       setServiceError(`Seu plano permite até ${maxServices} serviço(s) ativo(s).`)
       return
@@ -2024,26 +2062,39 @@ export function OnboardingTrackerModal({
       const result = await saveSection(
         {
           section: 'service',
+          operation: isEditing ? 'update' : 'create',
+          serviceId: isEditing ? editingServiceId : undefined,
           resolvedAdjustmentIds: getResolvedAdjustmentIdsForSection('service'),
           name: serviceName.trim(),
           description: serviceDescription.trim(),
           priceBrl: Number(priceBrl.toFixed(2)),
           durationMinutes: duration,
         },
-        'Nao foi possivel criar o servico.',
+        isEditing ? 'Nao foi possivel atualizar o servico.' : 'Nao foi possivel criar o servico.',
+        { autoAdvance: false },
       )
+
       if (result.service) {
-        setServices(prev => [...prev, result.service!])
+        if (isEditing) {
+          setServices(prev =>
+            prev.map(item => (item.id === result.service!.id ? result.service! : item)),
+          )
+        } else {
+          setServices(prev => [...prev, result.service!])
+        }
       }
-      setServiceName('')
-      setServiceDescription('')
-      setServicePrice('')
-      setServiceDuration('60')
+      resetServiceForm()
       setServiceSaveState('saved')
       setTimeout(() => setServiceSaveState('idle'), 2000)
     } catch (error) {
       setServiceSaveState('error')
-      setServiceError(error instanceof Error ? error.message : 'Não foi possível criar o serviço.')
+      setServiceError(
+        error instanceof Error
+          ? error.message
+          : isEditing
+            ? 'Não foi possível atualizar o serviço.'
+            : 'Não foi possível criar o serviço.',
+      )
     }
   }
 
@@ -2099,7 +2150,6 @@ export function OnboardingTrackerModal({
 
     try {
       if (selectedPlanTier === String(activeTier || '').toLowerCase()) {
-        await refreshTrackerEvaluation()
         setPlanActionState('saved')
         setManualCompletedStageIds(previous =>
           previous.includes('c6_plan_billing_setup_post')
@@ -3054,7 +3104,9 @@ export function OnboardingTrackerModal({
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Adicionar serviço</h3>
+                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">
+                      {editingServiceId ? 'Editar serviço' : 'Adicionar serviço'}
+                    </h3>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div className="md:col-span-2">
                         <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
@@ -3109,14 +3161,32 @@ export function OnboardingTrackerModal({
 
                     {serviceError ? <p className="mt-3 text-sm font-medium text-red-700">{serviceError}</p> : null}
 
-                    <button
-                      type="button"
-                      onClick={() => void saveService()}
-                      disabled={serviceSaveState === 'saving'}
-                      className="mt-4 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                    >
-                      {serviceSaveState === 'saving' ? 'Salvando...' : serviceSaveState === 'saved' ? 'Salvo' : 'Adicionar serviço'}
-                    </button>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void saveService()}
+                        disabled={serviceSaveState === 'saving'}
+                        className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+                      >
+                        {serviceSaveState === 'saving'
+                          ? 'Salvando...'
+                          : serviceSaveState === 'saved'
+                            ? 'Salvo'
+                            : editingServiceId
+                              ? 'Salvar serviço'
+                              : 'Adicionar serviço'}
+                      </button>
+                      {editingServiceId ? (
+                        <button
+                          type="button"
+                          onClick={resetServiceForm}
+                          disabled={serviceSaveState === 'saving'}
+                          className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+                        >
+                          Cancelar edição
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
@@ -3133,6 +3203,24 @@ export function OnboardingTrackerModal({
                               {formatCurrencyFromBrl(Number(service.price_brl || 0), serviceCurrency, exchangeRates)} ·{' '}
                               {service.duration_minutes} min
                             </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => beginServiceEdit(service)}
+                                disabled={serviceSaveState === 'saving'}
+                                className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-semibold text-neutral-700 hover:bg-white disabled:opacity-60"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void deleteService(service.id)}
+                                disabled={serviceSaveState === 'saving'}
+                                className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                              >
+                                Excluir
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

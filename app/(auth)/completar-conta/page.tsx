@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { COUNTRIES } from '@/lib/utils'
 import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
@@ -10,11 +10,20 @@ import { Loader2 } from 'lucide-react'
 
 export default function CompletarContaPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [country, setCountry] = useState('')
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
   const [currency, setCurrency] = useState('BRL')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const roleParam = searchParams.get('role')
+  const roleHint = roleParam === 'profissional' ? 'profissional' : 'usuario'
+  const nextParam = searchParams.get('next') || ''
+  const safeNextPath =
+    nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && nextParam !== '/'
+      ? nextParam
+      : ''
 
   // Auto-fill timezone and currency when country changes
   useEffect(() => {
@@ -35,14 +44,27 @@ export default function CompletarContaPage() {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
+      setLoading(false)
       router.push('/login')
       return
     }
 
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const currentRole = String(currentProfile?.role || '').toLowerCase()
+    const finalRole =
+      currentRole === 'admin' || currentRole === 'profissional'
+        ? currentRole
+        : roleHint
+
     const { error } = await supabase
       .from('profiles')
       .update({
-        role: 'usuario',
+        role: finalRole,
         country,
         timezone,
         currency,
@@ -63,7 +85,11 @@ export default function CompletarContaPage() {
       sendWelcomeEmailAction(currentUser.email, displayName)
     }
 
-    router.push('/buscar')
+    if (safeNextPath) {
+      router.push(safeNextPath)
+    } else {
+      router.push(finalRole === 'profissional' ? '/dashboard' : '/buscar')
+    }
     router.refresh()
   }
 

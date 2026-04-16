@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-14
+Last updated: 2026-04-16
 
 ## Operational truth
 
@@ -49,6 +49,8 @@ Last updated: 2026-04-14
 3. Search currency switching was fixed to update price filters correctly.
 4. PT-BR mojibake cleanup was applied across main public/search/profile surfaces.
 5. Calendar sync controls were removed from the onboarding modal and concentrated in `/disponibilidade`.
+6. Onboarding modal load path was split into `critical` + `optional` scopes to prevent long blocking spinner on open.
+7. Optional tracker blocks now hydrate in background (`plan-pricing`, taxonomy, plan configs, FX rates) without blocking edits.
 
 ## Open risks
 

@@ -25,6 +25,10 @@ type OnboardingStateResult = {
   evaluation: ProfessionalOnboardingEvaluation
 }
 
+type LoadProfessionalOnboardingStateOptions = {
+  resolveSignedMediaUrls?: boolean
+}
+
 function defaultSnapshot(professionalId: string): ProfessionalOnboardingSnapshot {
   return {
     account: {},
@@ -101,6 +105,7 @@ async function resolveSignedProfileMediaUrl(
 export async function loadProfessionalOnboardingState(
   supabase: SupabaseClient,
   professionalId: string,
+  options?: LoadProfessionalOnboardingStateOptions,
 ): Promise<OnboardingStateResult | null> {
   const { data: professionalRow } = await supabase
     .from('professionals')
@@ -165,13 +170,15 @@ export async function loadProfessionalOnboardingState(
         : String(applicationRow?.primary_language || ''),
   }
 
-  const signedAvatarFromProfilePath = await resolveSignedProfileMediaUrl(profileRow?.avatar_url)
-  const signedAvatarFromProfessionalPath = await resolveSignedProfileMediaUrl(professionalRow.cover_photo_url)
+  if (options?.resolveSignedMediaUrls !== false) {
+    const signedAvatarFromProfilePath = await resolveSignedProfileMediaUrl(profileRow?.avatar_url)
+    const signedAvatarFromProfessionalPath = await resolveSignedProfileMediaUrl(professionalRow.cover_photo_url)
 
-  if (signedAvatarFromProfilePath) {
-    snapshot.account.avatarUrl = signedAvatarFromProfilePath
-  } else if (signedAvatarFromProfessionalPath) {
-    snapshot.account.avatarUrl = signedAvatarFromProfessionalPath
+    if (signedAvatarFromProfilePath) {
+      snapshot.account.avatarUrl = signedAvatarFromProfilePath
+    } else if (signedAvatarFromProfessionalPath) {
+      snapshot.account.avatarUrl = signedAvatarFromProfessionalPath
+    }
   }
 
   if (!snapshot.professional.category) {
@@ -347,7 +354,9 @@ export async function evaluateFirstBookingEligibility(
   const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
   if (hasAcceptedBookings) return { ok: true }
 
-  const onboardingState = await loadProfessionalOnboardingState(supabase, professionalId)
+  const onboardingState = await loadProfessionalOnboardingState(supabase, professionalId, {
+    resolveSignedMediaUrls: false,
+  })
   if (!onboardingState) {
     return {
       ok: false,

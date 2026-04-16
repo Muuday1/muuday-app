@@ -40,7 +40,20 @@ export default async function AgendarPage({
 }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) {
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(searchParams || {})) {
+      if (Array.isArray(value)) {
+        value.forEach(item => {
+          if (typeof item === 'string') query.append(key, item)
+        })
+      } else if (typeof value === 'string') {
+        query.set(key, value)
+      }
+    }
+    const targetPath = `/agendar/${params.id}${query.toString() ? `?${query.toString()}` : ''}`
+    redirect(`/login?redirect=${encodeURIComponent(targetPath)}`)
+  }
 
   const { data: userProfile } = await supabase
     .from('profiles')

@@ -8,11 +8,19 @@ function getBaseUrl() {
   return getAppBaseUrl()
 }
 
+function sanitizeNextPath(value: string | null) {
+  if (!value) return ''
+  if (value === '/') return ''
+  if (!value.startsWith('/') || value.startsWith('//')) return ''
+  return value
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error')
-  const roleHint = 'usuario' as const
+  const roleHint = searchParams.get('role') === 'profissional' ? 'profissional' : 'usuario'
+  const safeNextPath = sanitizeNextPath(searchParams.get('next'))
   const baseUrl = getBaseUrl()
 
   if (oauthError || !code) {
@@ -75,6 +83,19 @@ export async function GET(request: NextRequest) {
     return redirectResponse
   }
 
+  function resolveCompleteAccountPath() {
+    const params = new URLSearchParams()
+    params.set('role', roleHint)
+    if (safeNextPath) params.set('next', safeNextPath)
+    return `/completar-conta?${params.toString()}`
+  }
+
+  function resolveDestinationByRole(role: string | null | undefined) {
+    if (role === 'admin') return '/buscar'
+    if (safeNextPath) return safeNextPath
+    return resolvePostLoginDestination(role)
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, country, timezone, role')
@@ -101,24 +122,16 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    if (profileAfterUpsert?.role === 'admin') {
-      return redirectWithSession('/buscar')
-    }
-
     if (!profileAfterUpsert?.country || !profileAfterUpsert?.timezone) {
-      return redirectWithSession('/completar-conta')
+      return redirectWithSession(resolveCompleteAccountPath())
     }
 
-    return redirectWithSession(resolvePostLoginDestination(profileAfterUpsert.role))
-  }
-
-  if (profile.role === 'admin') {
-    return redirectWithSession('/buscar')
+    return redirectWithSession(resolveDestinationByRole(profileAfterUpsert?.role))
   }
 
   if (!profile.country || !profile.timezone) {
-    return redirectWithSession('/completar-conta')
+    return redirectWithSession(resolveCompleteAccountPath())
   }
 
-  return redirectWithSession(resolvePostLoginDestination(profile.role))
+  return redirectWithSession(resolveDestinationByRole(profile.role))
 }

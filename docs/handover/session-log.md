@@ -2,6 +2,29 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-04-16
+
+### Entry 84 (2026-04-16) — Onboarding modal load-path performance split + hygiene pass
+- Scope executed:
+  - onboarding modal bootstrap split into server scopes:
+    - `GET /api/professional/onboarding/modal-context?scope=critical`
+    - `GET /api/professional/onboarding/modal-context?scope=optional`
+  - `OnboardingTrackerModal` now:
+    - renders from dashboard state immediately,
+    - blocks only on `critical` payload,
+    - hydrates optional blocks in background without global spinner lock.
+  - hot-path optimization in onboarding loaders:
+    - `loadProfessionalOnboardingState(..., { resolveSignedMediaUrls: false })` used in state/save/submit/recompute paths that only need gates/evaluation.
+  - plan-pricing unified through shared helper (`lib/professional/plan-pricing.ts`) and reused by optional modal context.
+- Validation:
+  - `npm run typecheck` -> pass
+  - `npm run lint` -> pass
+  - `npm run build` -> pass
+  - `npm run test:state-machines` -> pass
+- Repository hygiene:
+  - branch audit completed; merged `codex/*` branches identified for cleanup.
+  - `feat/landing-page-redesign` remains intentionally unmerged pending explicit product decision.
+
 ## 2026-04-10
 
 ### Entry 81 (2026-04-10) — Wave 2 final closure (T7 to T12)

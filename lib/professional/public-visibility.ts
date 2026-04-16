@@ -324,7 +324,9 @@ export async function recomputeProfessionalVisibility(
     }
   }
 
-  const onboardingState = await loadProfessionalOnboardingState(supabase, normalizedProfessionalId)
+  const onboardingState = await loadProfessionalOnboardingState(supabase, normalizedProfessionalId, {
+    resolveSignedMediaUrls: false,
+  })
   const isPubliclyVisible = Boolean(onboardingState?.evaluation.summary.canGoLive)
   const visibilityCheckedAt = new Date().toISOString()
 

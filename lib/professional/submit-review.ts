@@ -16,7 +16,9 @@ export async function submitProfessionalForReview(
   supabase: SupabaseClient,
   professionalId: string,
 ): Promise<SubmitProfessionalForReviewResult> {
-  const onboardingState = await loadProfessionalOnboardingState(supabase, professionalId)
+  const onboardingState = await loadProfessionalOnboardingState(supabase, professionalId, {
+    resolveSignedMediaUrls: false,
+  })
   if (!onboardingState) {
     return {
       ok: false,
@@ -58,7 +60,9 @@ export async function submitProfessionalForReview(
 
   await recomputeProfessionalVisibility(supabase, professionalId)
 
-  const refreshedState = await loadProfessionalOnboardingState(supabase, professionalId)
+  const refreshedState = await loadProfessionalOnboardingState(supabase, professionalId, {
+    resolveSignedMediaUrls: false,
+  })
   if (!refreshedState) {
     return {
       ok: false,

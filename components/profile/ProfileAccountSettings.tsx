@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -230,7 +230,7 @@ export function ProfileAccountSettings() {
       <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
         <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
           <Lock className="h-4 w-4 text-brand-500" />
-          <h3 className="font-display font-bold text-neutral-900">Seguran?a</h3>
+          <h3 className="font-display font-bold text-neutral-900">Segurança</h3>
         </div>
         <div className="space-y-4 px-6 py-4">
           <div className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
@@ -239,8 +239,8 @@ export function ProfileAccountSettings() {
             </p>
             <p className="mt-1 text-xs text-neutral-500">
               {hasPasswordProvider
-                ? 'Use este formul?rio para atualizar sua senha de acesso.'
-                : 'Sua conta foi criada com login social. Defina uma senha para tamb?m entrar com e-mail e senha.'}
+                ? 'Use este formulário para atualizar sua senha de acesso.'
+                : 'Sua conta foi criada com login social. Defina uma senha para também entrar com e-mail e senha.'}
             </p>
           </div>
 
@@ -260,7 +260,7 @@ export function ProfileAccountSettings() {
                   if (securityError) setSecurityError('')
                   if (securitySuccess) setSecuritySuccess('')
                 }}
-                placeholder="M?nimo de 8 caracteres"
+                placeholder="Mínimo de 8 caracteres"
                 className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                 aria-invalid={Boolean(securityError)}
                 autoComplete="new-password"
@@ -324,7 +324,7 @@ export function ProfileAccountSettings() {
 
           <div className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-neutral-700">Autentica??o de dois fatores</p>
+              <p className="text-sm font-medium text-neutral-700">Autenticação de dois fatores</p>
               <p className="mt-0.5 text-xs text-neutral-400">Desativado</p>
             </div>
             <span className="rounded-full bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-400">
@@ -349,3 +349,5 @@ export function ProfileAccountSettings() {
     </div>
   )
 }
+
+

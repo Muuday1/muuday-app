@@ -52,10 +52,12 @@ const publicProfileSchema = z.object({
 const serviceSchema = z.object({
   section: z.literal('service'),
   resolvedAdjustmentIds: z.array(z.string().uuid()).optional().default([]),
-  name: z.string().trim().min(1).max(30),
-  description: z.string().trim().min(1).max(120),
-  priceBrl: z.coerce.number().positive().max(50000),
-  durationMinutes: z.coerce.number().int().min(15).max(240),
+  operation: z.enum(['create', 'update', 'delete']).optional().default('create'),
+  serviceId: z.string().uuid().optional(),
+  name: z.string().trim().max(30).optional().default(''),
+  description: z.string().trim().max(120).optional().default(''),
+  priceBrl: z.coerce.number().positive().max(50000).optional(),
+  durationMinutes: z.coerce.number().int().min(15).max(240).optional(),
 })
 
 const availabilityDaySchema = z.object({
@@ -340,7 +342,8 @@ export async function POST(request: Request) {
 
     const savedSection = payload.data.section
     const resolvedAdjustmentFieldKeys = new Set<string>()
-    let createdService: { id: string; name: string; description: string | null; price_brl: number; duration_minutes: number } | null = null
+    let mutatedService: { id: string; name: string; description: string | null; price_brl: number; duration_minutes: number } | null = null
+    let deletedServiceId: string | null = null
     const { data: previousPublicProfileRow } = await db
       .from('professionals')
       .select('bio,cover_photo_url')
@@ -597,44 +600,158 @@ export async function POST(request: Request) {
     }
 
     if (savedSection === 'service') {
-      const { count: activeServicesCount } = await db
-        .from('professional_services')
-        .select('id', { count: 'exact', head: true })
-        .eq('professional_id', professionalId)
-        .eq('is_active', true)
+      const operation = payload.data.operation || 'create'
 
-      if ((activeServicesCount || 0) >= tierLimits.services) {
-        return NextResponse.json(
-          { error: `Seu plano permite até ${tierLimits.services} serviço(s) ativo(s).` },
-          { status: 400 },
-        )
+      if (operation === 'delete') {
+        if (!payload.data.serviceId) {
+          return NextResponse.json({ error: 'Servico invalido para exclusao.' }, { status: 400 })
+        }
+
+        const { data: existingService, error: existingServiceError } = await db
+          .from('professional_services')
+          .select('id')
+          .eq('id', payload.data.serviceId)
+          .eq('professional_id', professionalId)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (existingServiceError) {
+          return NextResponse.json({ error: 'Nao foi possivel validar o servico para exclusao.' }, { status: 500 })
+        }
+        if (!existingService?.id) {
+          return NextResponse.json({ error: 'Servico nao encontrado ou ja removido.' }, { status: 404 })
+        }
+
+        const { error: deactivateError } = await db
+          .from('professional_services')
+          .update({
+            is_active: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', payload.data.serviceId)
+          .eq('professional_id', professionalId)
+          .eq('is_active', true)
+
+        if (deactivateError) {
+          return NextResponse.json({ error: 'Nao foi possivel remover o servico.' }, { status: 500 })
+        }
+
+        deletedServiceId = payload.data.serviceId
+        resolvedAdjustmentFieldKeys.add('service_title')
+        resolvedAdjustmentFieldKeys.add('service_description')
+        resolvedAdjustmentFieldKeys.add('service_price')
+      } else {
+        const serviceName = String(payload.data.name || '').trim()
+        const serviceDescription = String(payload.data.description || '').trim()
+        const servicePriceBrl = Number(payload.data.priceBrl)
+        const serviceDurationMinutes = Number(payload.data.durationMinutes)
+
+        if (!serviceName) {
+          return NextResponse.json({ error: 'Informe um titulo para o servico.' }, { status: 400 })
+        }
+        if (!serviceDescription) {
+          return NextResponse.json({ error: 'Informe uma descricao para o servico.' }, { status: 400 })
+        }
+        if (!Number.isFinite(servicePriceBrl) || servicePriceBrl <= 0) {
+          return NextResponse.json({ error: 'Informe um preco valido para o servico.' }, { status: 400 })
+        }
+        if (!Number.isFinite(serviceDurationMinutes) || serviceDurationMinutes < 15 || serviceDurationMinutes > 240) {
+          return NextResponse.json({ error: 'Duracao invalida. Use entre 15 e 240 minutos.' }, { status: 400 })
+        }
+
+        if (operation === 'update') {
+          if (!payload.data.serviceId) {
+            return NextResponse.json({ error: 'Servico invalido para edicao.' }, { status: 400 })
+          }
+
+          const { data: existingService, error: existingServiceError } = await db
+            .from('professional_services')
+            .select('id,name,description,price_brl,duration_minutes')
+            .eq('id', payload.data.serviceId)
+            .eq('professional_id', professionalId)
+            .eq('is_active', true)
+            .maybeSingle()
+
+          if (existingServiceError) {
+            return NextResponse.json({ error: 'Nao foi possivel validar o servico para edicao.' }, { status: 500 })
+          }
+          if (!existingService?.id) {
+            return NextResponse.json({ error: 'Servico nao encontrado para edicao.' }, { status: 404 })
+          }
+
+          const { data: updated, error: updateError } = await db
+            .from('professional_services')
+            .update({
+              name: serviceName,
+              description: serviceDescription,
+              price_brl: servicePriceBrl,
+              duration_minutes: serviceDurationMinutes,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', payload.data.serviceId)
+            .eq('professional_id', professionalId)
+            .eq('is_active', true)
+            .select('id,name,description,price_brl,duration_minutes')
+            .single()
+
+          if (updateError || !updated) {
+            return NextResponse.json({ error: 'Nao foi possivel atualizar o servico.' }, { status: 500 })
+          }
+
+          mutatedService = updated
+          if (String(existingService.name || '').trim() !== serviceName) {
+            resolvedAdjustmentFieldKeys.add('service_title')
+          }
+          if (String(existingService.description || '').trim() !== serviceDescription) {
+            resolvedAdjustmentFieldKeys.add('service_description')
+          }
+          if (
+            Number(existingService.price_brl || 0) !== servicePriceBrl ||
+            Number(existingService.duration_minutes || 0) !== serviceDurationMinutes
+          ) {
+            resolvedAdjustmentFieldKeys.add('service_price')
+          }
+        } else {
+          const { count: activeServicesCount } = await db
+            .from('professional_services')
+            .select('id', { count: 'exact', head: true })
+            .eq('professional_id', professionalId)
+            .eq('is_active', true)
+
+          if ((activeServicesCount || 0) >= tierLimits.services) {
+            return NextResponse.json(
+              { error: `Seu plano permite até ${tierLimits.services} serviço(s) ativo(s).` },
+              { status: 400 },
+            )
+          }
+
+          const { data: inserted, error } = await db
+            .from('professional_services')
+            .insert({
+              professional_id: professionalId,
+              name: serviceName,
+              service_type: 'one_off',
+              description: serviceDescription,
+              duration_minutes: serviceDurationMinutes,
+              price_brl: servicePriceBrl,
+              enable_recurring: false,
+              enable_monthly: false,
+              is_active: true,
+              is_draft: false,
+              updated_at: new Date().toISOString(),
+            })
+            .select('id,name,description,price_brl,duration_minutes')
+            .single()
+
+          if (error || !inserted) {
+            return NextResponse.json({ error: 'Nao foi possivel criar o servico.' }, { status: 500 })
+          }
+          mutatedService = inserted
+          resolvedAdjustmentFieldKeys.add('service_title')
+          resolvedAdjustmentFieldKeys.add('service_description')
+          resolvedAdjustmentFieldKeys.add('service_price')
+        }
       }
-
-      const { data: inserted, error } = await db
-        .from('professional_services')
-        .insert({
-          professional_id: professionalId,
-          name: payload.data.name,
-          service_type: 'one_off',
-          description: payload.data.description,
-          duration_minutes: payload.data.durationMinutes,
-          price_brl: payload.data.priceBrl,
-          enable_recurring: false,
-          enable_monthly: false,
-          is_active: true,
-          is_draft: false,
-          updated_at: new Date().toISOString(),
-        })
-        .select('id,name,description,price_brl,duration_minutes')
-        .single()
-
-      if (error || !inserted) {
-        return NextResponse.json({ error: 'Nao foi possivel criar o servico.' }, { status: 500 })
-      }
-      createdService = inserted
-      resolvedAdjustmentFieldKeys.add('service_title')
-      resolvedAdjustmentFieldKeys.add('service_description')
-      resolvedAdjustmentFieldKeys.add('service_price')
     }
 
     if (savedSection === 'availability') {
@@ -833,7 +950,9 @@ export async function POST(request: Request) {
     }
 
     await recomputeProfessionalVisibility(db, professionalId)
-    const onboardingState = await loadProfessionalOnboardingState(db, professionalId)
+    const onboardingState = await loadProfessionalOnboardingState(db, professionalId, {
+      resolveSignedMediaUrls: false,
+    })
     if (!onboardingState) {
       return NextResponse.json({ error: 'Alteracoes salvas, mas o tracker nao pode ser atualizado.' }, { status: 500 })
     }
@@ -841,7 +960,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       evaluation: onboardingState.evaluation,
-      service: createdService,
+      service: mutatedService,
+      deletedServiceId,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro inesperado ao salvar esta etapa.'
