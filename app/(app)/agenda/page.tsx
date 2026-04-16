@@ -19,7 +19,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
-import { buildProfessionalWorkspaceAlerts } from '@/lib/professional/workspace-health'
+import { ProfessionalAgendaPage } from '@/components/agenda/ProfessionalAgendaPage'
+import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS, normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { getPlanConfigForTier, loadPlanConfigMap, type PlanConfig } from '@/lib/plan-config'
+import type { BookingSettingsForm } from '@/components/settings/BookingSettingsClient'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 type RequestBookingStatus =
@@ -31,14 +34,20 @@ type RequestBookingStatus =
   | 'cancelled'
   | 'converted'
 
-type AgendaView = 'overview' | 'pending' | 'requests' | 'settings'
+type AgendaView = 'overview' | 'inbox' | 'availability_rules' | 'pending' | 'requests' | 'settings'
+type InboxFilter = 'all' | 'confirmations' | 'requests'
 
 function normalizeView(rawView: string | undefined, isProfessional: boolean): AgendaView {
   if (!isProfessional) return 'overview'
-  const allowed: AgendaView[] = ['overview', 'pending', 'requests', 'settings']
+  const allowed: AgendaView[] = ['overview', 'inbox', 'availability_rules']
   return allowed.includes((rawView || '') as AgendaView)
     ? (rawView as AgendaView)
     : 'overview'
+}
+
+function normalizeInboxFilter(rawFilter: string | undefined): InboxFilter {
+  const allowed: InboxFilter[] = ['all', 'confirmations', 'requests']
+  return allowed.includes((rawFilter || '') as InboxFilter) ? (rawFilter as InboxFilter) : 'all'
 }
 
 function viewLinkClass(activeView: AgendaView, currentView: AgendaView) {
@@ -88,28 +97,6 @@ function getDurationMinutes(startValue: string | null, endValue: string | null) 
   return Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000))
 }
 
-function alertClasses(level: 'info' | 'warning' | 'critical') {
-  if (level === 'critical') {
-    return {
-      wrapper: 'border-red-200 bg-red-50',
-      title: 'text-red-800',
-      description: 'text-red-700',
-    }
-  }
-  if (level === 'warning') {
-    return {
-      wrapper: 'border-amber-200 bg-amber-50',
-      title: 'text-amber-800',
-      description: 'text-amber-700',
-    }
-  }
-  return {
-    wrapper: 'border-blue-200 bg-blue-50',
-    title: 'text-blue-800',
-    description: 'text-blue-700',
-  }
-}
-
 function bookingModeMeta(booking: Record<string, any>) {
   const bookingType = String(booking.booking_type || '')
   if (booking.recurrence_group_id || bookingType.startsWith('recurring')) {
@@ -124,7 +111,7 @@ function bookingModeMeta(booking: Record<string, any>) {
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams?: { view?: string; booking?: string }
+  searchParams?: { view?: string; booking?: string; filter?: string }
 }) {
   const supabase = createClient()
   const {
@@ -152,6 +139,7 @@ export default async function AgendaPage({
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
   const activeView = normalizeView(searchParams?.view, isProfessional)
+  const inboxFilter = normalizeInboxFilter(searchParams?.filter)
 
   if (isProfessional && professionalId) {
     await supabase
@@ -230,39 +218,111 @@ export default async function AgendaPage({
   let professionalSettings: Record<string, any> | null = null
   let activeAvailabilityCount = 0
   let calendarIntegrationConnected = false
-  let acceptedBookingsCount = 0
+  let calendarTimezone = userTimezone
+  let overviewAvailabilityRules: Array<{
+    day_of_week: number
+    start_time: string
+    end_time: string
+    is_active: boolean
+  }> = []
+  let overviewExternalBusySlots: Array<{
+    id: string
+    start_time_utc: string
+    end_time_utc: string
+    provider: string
+  }> = []
+  let professionalBookingRulesPanelProps: {
+    userId: string
+    professionalId: string
+    tier: string
+    initialPlanConfig: PlanConfig
+    initialForm: BookingSettingsForm
+  } | null = null
 
   if (professionalId) {
-    const { data: settings } = await supabase
-      .from('professional_settings')
-      .select(
-        'timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring, buffer_minutes, session_duration_minutes',
-      )
-      .eq('professional_id', professionalId)
-      .maybeSingle()
+    const [settingsResult, availabilityResult, calendarIntegrationResult, externalBusyResult, planConfigMap] =
+      await Promise.all([
+        supabase
+          .from('professional_settings')
+          .select(
+            'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose',
+          )
+          .eq('professional_id', professionalId)
+          .maybeSingle(),
+        supabase
+          .from('availability')
+          .select('day_of_week, start_time, end_time, is_active')
+          .eq('professional_id', professionalId)
+          .eq('is_active', true)
+          .order('day_of_week', { ascending: true }),
+        supabase
+          .from('calendar_integrations')
+          .select('id, sync_enabled')
+          .eq('professional_id', professionalId)
+          .maybeSingle(),
+        supabase
+          .from('external_calendar_busy_slots')
+          .select('id, start_time_utc, end_time_utc, provider')
+          .eq('professional_id', professionalId)
+          .gte('start_time_utc', nowIso)
+          .order('start_time_utc', { ascending: true })
+          .limit(120),
+        loadPlanConfigMap(),
+      ])
 
-    const { count: availabilityCount } = await supabase
-      .from('availability')
-      .select('id', { count: 'exact', head: true })
-      .eq('professional_id', professionalId)
-      .eq('is_active', true)
+    professionalSettings = settingsResult.data as Record<string, any> | null
+    overviewAvailabilityRules =
+      (availabilityResult.data || []).map(row => ({
+        day_of_week: Number(row.day_of_week),
+        start_time: String(row.start_time).slice(0, 5),
+        end_time: String(row.end_time).slice(0, 5),
+        is_active: Boolean(row.is_active),
+      })) || []
+    activeAvailabilityCount = overviewAvailabilityRules.length
+    calendarIntegrationConnected = Boolean(calendarIntegrationResult.data?.sync_enabled)
+    overviewExternalBusySlots =
+      (externalBusyResult.data || []).map(row => ({
+        id: String(row.id),
+        start_time_utc: String(row.start_time_utc),
+        end_time_utc: String(row.end_time_utc),
+        provider: String(row.provider || 'calendar'),
+      })) || []
+    calendarTimezone = String(professionalSettings?.timezone || userTimezone)
 
-    const { data: calendarIntegration } = await supabase
-      .from('calendar_integrations')
-      .select('id, sync_enabled')
-      .eq('professional_id', professionalId)
-      .maybeSingle()
+    const normalizedTier = String(professional?.tier || 'basic').toLowerCase()
+    const tierConfig = getPlanConfigForTier(planConfigMap, normalizedTier)
+    const normalizedSettings = normalizeProfessionalSettingsRow(
+      professionalSettings,
+      profile?.timezone || DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.timezone,
+    )
+    const durationFromProfessional =
+      typeof professional?.session_duration_minutes === 'number'
+        ? professional.session_duration_minutes
+        : normalizedSettings.sessionDurationMinutes
 
-    const { count: acceptedCount } = await supabase
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('professional_id', professionalId)
-      .in('status', ['pending', 'pending_confirmation', 'confirmed', 'completed', 'no_show', 'rescheduled'])
-
-    professionalSettings = settings as Record<string, any> | null
-    activeAvailabilityCount = availabilityCount || 0
-    calendarIntegrationConnected = Boolean(calendarIntegration?.sync_enabled)
-    acceptedBookingsCount = acceptedCount || 0
+    professionalBookingRulesPanelProps = {
+      userId: user.id,
+      professionalId,
+      tier: normalizedTier,
+      initialPlanConfig: tierConfig,
+      initialForm: {
+        timezone: normalizedSettings.timezone,
+        sessionDurationMinutes: durationFromProfessional,
+        bufferMinutes: Math.min(
+          tierConfig.bufferConfig.maxMinutes,
+          Math.max(0, normalizedSettings.bufferMinutes),
+        ),
+        minimumNoticeHours: normalizedSettings.minimumNoticeHours,
+        maxBookingWindowDays: Math.min(
+          tierConfig.limits.bookingWindowDays,
+          Math.max(1, normalizedSettings.maxBookingWindowDays),
+        ),
+        enableRecurring: normalizedSettings.enableRecurring,
+        confirmationMode: normalizedSettings.confirmationMode,
+        cancellationPolicyCode: normalizedSettings.cancellationPolicyCode,
+        requireSessionPurpose: normalizedSettings.requireSessionPurpose,
+      },
+    }
   }
 
   const upcoming = upcomingBookings || []
@@ -294,25 +354,65 @@ export default async function AgendaPage({
     ;(existingReviews || []).forEach((review: any) => reviewedBookingIds.add(review.booking_id))
   }
 
-  const professionalAlerts =
-    isProfessional && professional
-      ? buildProfessionalWorkspaceAlerts({
-          professional,
-          settings: professionalSettings,
-          pendingConfirmations: pendingConfirmations.length,
-          openRequests: activeRequests.length,
-          hasCalendarIntegration: calendarIntegrationConnected,
-          hasActiveAvailability: activeAvailabilityCount > 0,
-          hasAcceptedBookings: acceptedBookingsCount > 0,
-        })
-      : []
+  const shouldShowRequests = !isProfessional
+  const shouldShowUpcoming = true
+  const shouldShowHistory = true
 
-  const shouldShowRequests = !isProfessional || ['overview', 'requests'].includes(activeView)
-  const shouldShowUpcoming = !isProfessional || ['overview', 'pending'].includes(activeView)
-  const shouldShowHistory = !isProfessional || ['overview', 'pending', 'requests'].includes(activeView)
+  const upcomingVisible = upcoming
+  const overviewCalendarBookings = [
+    ...upcoming
+      .map((booking: any) => {
+        const scheduledAt = new Date(String(booking.scheduled_at || ''))
+        const durationMinutes = Number(booking.duration_minutes || 60)
+        const startUtcIso = String(booking.start_time_utc || booking.scheduled_at || '')
+        const endUtcIso =
+          String(booking.end_time_utc || '') ||
+          (Number.isNaN(scheduledAt.getTime())
+            ? ''
+            : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
 
-  const upcomingVisible =
-    isProfessional && activeView === 'pending' ? pendingConfirmations : upcoming
+        if (!startUtcIso || !endUtcIso) return null
+        return {
+          id: String(booking.id),
+          start_utc: startUtcIso,
+          end_utc: endUtcIso,
+          status: String(booking.status || 'pending'),
+        }
+      })
+      .filter(Boolean),
+    ...overviewExternalBusySlots
+      .map(slot =>
+        slot.start_time_utc && slot.end_time_utc
+          ? {
+              id: `external-${slot.id}`,
+              start_utc: slot.start_time_utc,
+              end_utc: slot.end_time_utc,
+              status: `external_${slot.provider}`,
+            }
+          : null,
+      )
+      .filter(Boolean),
+  ] as Array<{ id: string; start_utc: string; end_utc: string; status: string }>
+
+  if (isProfessional && professional && professionalId) {
+    return (
+      <ProfessionalAgendaPage
+        activeView={activeView as 'overview' | 'inbox' | 'availability_rules'}
+        inboxFilter={inboxFilter}
+        userTimezone={userTimezone}
+        pendingConfirmations={pendingConfirmations}
+        upcoming={upcoming}
+        past={past}
+        activeRequests={activeRequests}
+        calendarTimezone={calendarTimezone}
+        activeAvailabilityCount={activeAvailabilityCount}
+        calendarIntegrationConnected={calendarIntegrationConnected}
+        overviewAvailabilityRules={overviewAvailabilityRules}
+        overviewCalendarBookings={overviewCalendarBookings}
+        professionalBookingRulesPanelProps={professionalBookingRulesPanelProps}
+      />
+    )
+  }
 
   return (
     <div className="mx-auto max-w-5xl p-6 md:p-8">
@@ -354,29 +454,6 @@ export default async function AgendaPage({
               <p className="mt-1 text-2xl font-bold text-neutral-900">{activeAvailabilityCount}</p>
             </div>
           </div>
-        </section>
-      )}
-
-      {professionalAlerts.length > 0 && (
-        <section className="mb-6 space-y-3" data-testid="professional-agenda-alerts">
-          {professionalAlerts.map(alert => {
-            const styles = alertClasses(alert.level)
-            return (
-              <div key={alert.id} className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}>
-                <p className={`text-sm font-semibold ${styles.title}`}>{alert.title}</p>
-                <p className={`mt-1 text-xs ${styles.description}`}>{alert.description}</p>
-                {alert.actionHref && alert.actionLabel && (
-                  <Link
-                    href={alert.actionHref}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
-                  >
-                    {alert.actionLabel}
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
-                )}
-              </div>
-            )
-          })}
         </section>
       )}
 
