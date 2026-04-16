@@ -1,9 +1,12 @@
-﻿'use client'
+'use client'
+
+import { useState } from 'react'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
-import { Calendar, ChevronRight, Clock } from 'lucide-react'
+import { Calendar, Clock, Link2, RefreshCcw } from 'lucide-react'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
@@ -29,6 +32,9 @@ type ProfessionalAgendaPageProps = {
   calendarTimezone: string
   activeAvailabilityCount: number
   calendarIntegrationConnected: boolean
+  calendarIntegrationProvider: string
+  calendarIntegrationStatus: 'disconnected' | 'pending' | 'connected' | 'error'
+  calendarIntegrationLastSyncAt: string
   overviewAvailabilityRules: Array<{
     day_of_week: number
     start_time: string
@@ -117,12 +123,19 @@ export function ProfessionalAgendaPage({
   past: _past,
   activeRequests,
   calendarTimezone,
-  activeAvailabilityCount,
+  activeAvailabilityCount: _activeAvailabilityCount,
   calendarIntegrationConnected,
+  calendarIntegrationProvider,
+  calendarIntegrationStatus,
+  calendarIntegrationLastSyncAt,
   overviewAvailabilityRules,
   overviewCalendarBookings,
   professionalBookingRulesPanelProps,
 }: ProfessionalAgendaPageProps) {
+  const router = useRouter()
+  const [calendarSyncState, setCalendarSyncState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [calendarSyncError, setCalendarSyncError] = useState('')
+
   const inboxItems = [
     ...pendingConfirmations.map((booking: BookingRecord) => ({
       kind: 'confirmation' as const,
@@ -150,6 +163,45 @@ export function ProfessionalAgendaPage({
     if (inboxFilter === 'confirmations') return item.kind === 'confirmation'
     return item.kind === 'request'
   })
+
+  const connectionLabel =
+    calendarIntegrationStatus === 'connected'
+      ? `${calendarIntegrationProvider === 'outlook' ? 'Outlook' : calendarIntegrationProvider === 'apple' ? 'Apple' : 'Google'} conectado`
+      : calendarIntegrationStatus === 'pending'
+        ? 'Conexao pendente'
+        : calendarIntegrationStatus === 'error'
+          ? 'Sync com erro'
+          : 'Sem sync externo'
+
+  async function handleSyncNow() {
+    if (!calendarIntegrationConnected || calendarSyncState === 'saving') return
+
+    setCalendarSyncState('saving')
+    setCalendarSyncError('')
+
+    try {
+      const response = await fetch('/api/professional/calendar/sync', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ provider: calendarIntegrationProvider || 'google' }),
+      })
+
+      const result = (await response.json().catch(() => ({}))) as { error?: string }
+      if (!response.ok) {
+        setCalendarSyncState('error')
+        setCalendarSyncError(result.error || 'Nao foi possivel sincronizar o calendario.')
+        return
+      }
+
+      setCalendarSyncState('success')
+      router.refresh()
+      window.setTimeout(() => setCalendarSyncState('idle'), 1800)
+    } catch {
+      setCalendarSyncState('error')
+      setCalendarSyncError('Nao foi possivel sincronizar o calendario.')
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
@@ -187,7 +239,7 @@ export function ProfessionalAgendaPage({
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-neutral-100 bg-white px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Confirmacoes pendentes
@@ -206,190 +258,139 @@ export function ProfessionalAgendaPage({
           </p>
           <p className="mt-2 text-2xl font-bold text-neutral-950">{upcoming.length}</p>
         </div>
-        <div className="rounded-2xl border border-neutral-100 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Sync externo
-          </p>
-          <p className="mt-2 text-2xl font-bold text-neutral-950">
-            {calendarIntegrationConnected ? 'OK' : 'Off'}
-          </p>
-        </div>
       </div>
 
       {activeView === 'overview' ? (
         <div className="space-y-6">
-          <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.45fr)_320px]">
-            <div className="space-y-4 rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                    Visao geral
-                  </p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
-                    Calendario completo em primeiro plano
-                  </h2>
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Acompanhe disponibilidade base, sessoes confirmadas e ocupacoes externas sem sair da agenda.
-                  </p>
-                </div>
-                <div className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
-                  Fuso: {calendarTimezone.replaceAll('_', ' ')}
-                </div>
+          <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+                  Proximas sessoes
+                </p>
+                <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+                  Proximas 5 sessoes
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-neutral-600">
+                  Veja o que ja esta reservado antes de mexer na disponibilidade ou responder novas pendencias.
+                </p>
               </div>
-              <ProfessionalAvailabilityCalendar
-                timezone={calendarTimezone}
-                availabilityRules={overviewAvailabilityRules}
-                bookings={overviewCalendarBookings}
-              />
             </div>
 
-            <aside className="space-y-4">
-              <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                  Proxima acao
-                </p>
-                <h3 className="mt-2 text-lg font-semibold text-neutral-950">
-                  {pendingConfirmations.length > 0
-                    ? `${pendingConfirmations.length} confirmacoes aguardando resposta`
-                    : activeRequests.length > 0
-                      ? `${activeRequests.length} requests abertas`
-                      : 'Agenda sem pendencias imediatas'}
-                </h3>
-                <p className="mt-2 text-sm text-neutral-600">
-                  Use a inbox unica para responder solicitacoes e a aba de regras para ajustar disponibilidade e checkout.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Link
-                    href="/agenda?view=inbox&filter=all"
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600"
-                  >
-                    Abrir pendencias
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="/agenda?view=availability_rules"
-                    className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-brand-300 hover:text-brand-700"
-                  >
-                    Ajustar regras
-                  </Link>
-                </div>
+            {upcoming.length === 0 ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-6 text-sm text-neutral-500">
+                Nenhuma sessao futura agendada no momento.
               </div>
-
-              <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                  Leitura rapida
-                </p>
-                <div className="mt-4 space-y-3 text-sm text-neutral-700">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Disponibilidade base</span>
-                    <strong className="font-semibold text-neutral-950">{activeAvailabilityCount} blocos</strong>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Integracao externa</span>
-                    <strong className="font-semibold text-neutral-950">
-                      {calendarIntegrationConnected ? 'Conectada' : 'Nao conectada'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            </aside>
-          </section>
-
-          <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                    Pendencias
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold text-neutral-950">
-                    Confirmacoes aguardando acao
-                  </h3>
-                </div>
-                <Link
-                  href="/agenda?view=inbox&filter=confirmations"
-                  className="text-xs font-semibold text-brand-700 hover:text-brand-800"
-                >
-                  Ver tudo
-                </Link>
-              </div>
-              {pendingConfirmations.length === 0 ? (
-                <p className="mt-4 text-sm text-neutral-500">Nenhuma confirmacao pendente no momento.</p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {pendingConfirmations.slice(0, 3).map(booking => {
-                    const otherPerson = booking.profiles?.full_name || 'Cliente'
-                    const deadline = getConfirmationDeadline(booking)
-                    return (
-                      <div key={booking.id} className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-neutral-900">{otherPerson}</p>
-                            <p className="mt-1 text-sm text-neutral-500">
-                              {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'EEE, d MMM HH:mm', {
-                                locale: ptBR,
-                              })}
-                            </p>
-                          </div>
-                          {deadline ? (
-                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
-                              {getSlaLabel(deadline)}
-                            </span>
-                          ) : null}
+            ) : (
+              <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-5">
+                {upcoming.slice(0, 5).map(booking => {
+                  const otherPerson = booking.profiles?.full_name || 'Cliente'
+                  const modeMeta = bookingModeMeta(booking)
+                  return (
+                    <div key={booking.id} className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-neutral-900">{otherPerson}</p>
+                          <p className="mt-1 text-sm text-neutral-500">
+                            {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'EEE, d MMM', {
+                              locale: ptBR,
+                            })}
+                          </p>
                         </div>
+                        {modeMeta ? (
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${modeMeta.className}`}>
+                            {modeMeta.label}
+                          </span>
+                        ) : null}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                    Requests
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold text-neutral-950">
-                    Solicitacoes abertas do cliente
-                  </h3>
-                </div>
-                <Link
-                  href="/agenda?view=inbox&filter=requests"
-                  className="text-xs font-semibold text-brand-700 hover:text-brand-800"
-                >
-                  Ver tudo
-                </Link>
-              </div>
-              {activeRequests.length === 0 ? (
-                <p className="mt-4 text-sm text-neutral-500">Nenhuma solicitacao aberta no momento.</p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {activeRequests.slice(0, 3).map(request => {
-                    const otherPerson = request.profiles?.full_name || 'Cliente'
-                    const statusUi = getRequestStatusUi(request.status)
-                    return (
-                      <div key={request.id} className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-neutral-900">{otherPerson}</p>
-                            <p className="mt-1 text-sm text-neutral-500">
-                              {formatInTimeZone(new Date(request.preferred_start_utc), userTimezone, 'EEE, d MMM HH:mm', {
-                                locale: ptBR,
-                              })}
-                            </p>
-                          </div>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusUi.className}`}>
-                            {statusUi.label}
+                      <div className="mt-4 space-y-2 text-sm text-neutral-600">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-neutral-400" />
+                          <span>
+                            {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'HH:mm', {
+                              locale: ptBR,
+                            })}
                           </span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-neutral-400" />
+                          <span>{booking.duration_minutes || 50} min</span>
+                        </div>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </section>
+
+          <section className="space-y-4 rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+                  Visao geral
+                </p>
+                <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+                  Calendario completo em primeiro plano
+                </h2>
+                <p className="mt-2 text-sm text-neutral-600">
+                  Acompanhe disponibilidade base, sessoes confirmadas e ocupacoes externas sem sair da agenda.
+                </p>
+              </div>
+              <div className="flex flex-col items-start gap-2 lg:items-end">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+                    Fuso: {calendarTimezone.replaceAll('_', ' ')}
+                  </span>
+                  <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
+                    {connectionLabel}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {calendarIntegrationConnected ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleSyncNow()}
+                      disabled={calendarSyncState === 'saving'}
+                      className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60"
+                    >
+                      <RefreshCcw className={`h-4 w-4 ${calendarSyncState === 'saving' ? 'animate-spin' : ''}`} />
+                      {calendarSyncState === 'saving' ? 'Sincronizando...' : 'Sincronizar agora'}
+                    </button>
+                  ) : (
+                    <Link
+                      href="/agenda?view=availability_rules#calendar-sync"
+                      className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Conectar calendario
+                    </Link>
+                  )}
+                  <Link
+                    href="/agenda?view=availability_rules#calendar-sync"
+                    className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-brand-300 hover:text-brand-700"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    Gerenciar sync
+                  </Link>
+                </div>
+                {calendarIntegrationLastSyncAt ? (
+                  <p className="text-xs text-neutral-500">
+                    Ultimo sync: {new Date(calendarIntegrationLastSyncAt).toLocaleString('pt-BR', { hour12: false })}
+                  </p>
+                ) : null}
+                {calendarSyncError ? (
+                  <p className="text-xs font-medium text-red-700">{calendarSyncError}</p>
+                ) : null}
+              </div>
+            </div>
+            <ProfessionalAvailabilityCalendar
+              timezone={calendarTimezone}
+              availabilityRules={overviewAvailabilityRules}
+              bookings={overviewCalendarBookings}
+            />
+          </section>
+
         </div>
       ) : null}
 

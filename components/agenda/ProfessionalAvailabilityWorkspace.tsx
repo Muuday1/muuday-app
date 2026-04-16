@@ -531,7 +531,7 @@ export function ProfessionalAvailabilityWorkspace({
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
+        <div id="calendar-sync" className="rounded-2xl border border-neutral-100 bg-white p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-neutral-900">Integrações do calendário</h2>

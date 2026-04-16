@@ -218,6 +218,9 @@ export default async function AgendaPage({
   let professionalSettings: Record<string, any> | null = null
   let activeAvailabilityCount = 0
   let calendarIntegrationConnected = false
+  let calendarIntegrationProvider = 'google'
+  let calendarIntegrationStatus: 'disconnected' | 'pending' | 'connected' | 'error' = 'disconnected'
+  let calendarIntegrationLastSyncAt = ''
   let calendarTimezone = userTimezone
   let overviewAvailabilityRules: Array<{
     day_of_week: number
@@ -257,7 +260,7 @@ export default async function AgendaPage({
           .order('day_of_week', { ascending: true }),
         supabase
           .from('calendar_integrations')
-          .select('id, sync_enabled')
+          .select('id, provider, sync_enabled, connection_status, last_sync_at, last_sync_completed_at')
           .eq('professional_id', professionalId)
           .maybeSingle(),
         supabase
@@ -280,6 +283,21 @@ export default async function AgendaPage({
       })) || []
     activeAvailabilityCount = overviewAvailabilityRules.length
     calendarIntegrationConnected = Boolean(calendarIntegrationResult.data?.sync_enabled)
+    calendarIntegrationProvider = String(calendarIntegrationResult.data?.provider || 'google')
+    const rawConnectionStatus = String(calendarIntegrationResult.data?.connection_status || 'disconnected')
+    calendarIntegrationStatus =
+      rawConnectionStatus === 'connected'
+        ? 'connected'
+        : rawConnectionStatus === 'pending'
+          ? 'pending'
+          : rawConnectionStatus === 'error'
+            ? 'error'
+            : 'disconnected'
+    calendarIntegrationLastSyncAt = String(
+      calendarIntegrationResult.data?.last_sync_completed_at ||
+        calendarIntegrationResult.data?.last_sync_at ||
+        '',
+    )
     overviewExternalBusySlots =
       (externalBusyResult.data || []).map(row => ({
         id: String(row.id),
@@ -407,6 +425,9 @@ export default async function AgendaPage({
         calendarTimezone={calendarTimezone}
         activeAvailabilityCount={activeAvailabilityCount}
         calendarIntegrationConnected={calendarIntegrationConnected}
+        calendarIntegrationProvider={calendarIntegrationProvider}
+        calendarIntegrationStatus={calendarIntegrationStatus}
+        calendarIntegrationLastSyncAt={calendarIntegrationLastSyncAt}
         overviewAvailabilityRules={overviewAvailabilityRules}
         overviewCalendarBookings={overviewCalendarBookings}
         professionalBookingRulesPanelProps={professionalBookingRulesPanelProps}

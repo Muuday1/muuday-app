@@ -41,10 +41,10 @@ type ProfessionalAvailabilityCalendarProps = {
 }
 
 const HOURS_START = 6
-const HOURS_END = 22
+const HOURS_END = 24
 const SLOT_STEP_MINUTES = 30
 const SLOT_ROW_HEIGHT = 24
-const MINUTES_VISIBLE = (HOURS_END - HOURS_START) * 60
+const MIN_VISIBLE_WINDOW_MINUTES = 8 * 60
 
 function parseMinutes(value: string) {
   const [h, m] = value.slice(0, 5).split(':').map(Number)
@@ -79,6 +79,14 @@ function buildLocalBookingIntervals(bookings: BookingSlot[], timezone: string) {
   return map
 }
 
+function roundDownToStep(minutes: number, step: number) {
+  return Math.floor(minutes / step) * step
+}
+
+function roundUpToStep(minutes: number, step: number) {
+  return Math.ceil(minutes / step) * step
+}
+
 export function ProfessionalAvailabilityCalendar({
   timezone,
   availabilityRules,
@@ -98,6 +106,51 @@ export function ProfessionalAvailabilityCalendar({
     [bookings, timezone],
   )
 
+  const visibleRange = useMemo(() => {
+    const fallbackStart = HOURS_START * 60
+    const fallbackEnd = HOURS_END * 60
+    let minMinutes = Number.POSITIVE_INFINITY
+    let maxMinutes = Number.NEGATIVE_INFINITY
+
+    for (const rule of activeRules) {
+      const start = parseMinutes(rule.start_time)
+      const end = parseMinutes(rule.end_time)
+      if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+        minMinutes = Math.min(minMinutes, start)
+        maxMinutes = Math.max(maxMinutes, end)
+      }
+    }
+
+    for (const dayBookings of Array.from(bookingsByDate.values())) {
+      for (const booking of dayBookings) {
+        if (booking.end > booking.start) {
+          minMinutes = Math.min(minMinutes, booking.start)
+          maxMinutes = Math.max(maxMinutes, booking.end)
+        }
+      }
+    }
+
+    if (!Number.isFinite(minMinutes) || !Number.isFinite(maxMinutes)) {
+      return {
+        startMinutes: fallbackStart,
+        endMinutes: fallbackEnd,
+        totalMinutes: fallbackEnd - fallbackStart,
+      }
+    }
+
+    const paddedStart = Math.max(fallbackStart, roundDownToStep(minMinutes - SLOT_STEP_MINUTES, SLOT_STEP_MINUTES))
+    let paddedEnd = Math.min(fallbackEnd, roundUpToStep(maxMinutes + SLOT_STEP_MINUTES, SLOT_STEP_MINUTES))
+    if (paddedEnd - paddedStart < MIN_VISIBLE_WINDOW_MINUTES) {
+      paddedEnd = Math.min(fallbackEnd, paddedStart + MIN_VISIBLE_WINDOW_MINUTES)
+    }
+
+    return {
+      startMinutes: paddedStart,
+      endMinutes: paddedEnd,
+      totalMinutes: paddedEnd - paddedStart,
+    }
+  }, [activeRules, bookingsByDate])
+
   const weekDays = useMemo(() => {
     const start = startOfWeek(cursorDate, { weekStartsOn: 1 })
     return Array.from({ length: 7 }, (_, index) => addDays(start, index))
@@ -115,12 +168,19 @@ export function ProfessionalAvailabilityCalendar({
   const dayList = view === 'month' ? monthDays : visibleDayColumns
 
   const timeSlots = useMemo(() => {
-    const slots: string[] = []
-    for (let hour = HOURS_START; hour <= HOURS_END; hour += 1) {
-      slots.push(`${String(hour).padStart(2, '0')}:00`)
+    const slots: Array<{ label: string; minutes: number }> = []
+    for (
+      let minutes = visibleRange.startMinutes;
+      minutes < visibleRange.endMinutes;
+      minutes += SLOT_STEP_MINUTES
+    ) {
+      slots.push({
+        label: `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`,
+        minutes,
+      })
     }
     return slots
-  }, [])
+  }, [visibleRange.endMinutes, visibleRange.startMinutes])
 
   const periodLabel = useMemo(() => {
     const zonedCursor = toZonedTime(cursorDate, timezone)
@@ -170,9 +230,11 @@ export function ProfessionalAvailabilityCalendar({
     return dayRules.map((rule, index) => {
       const start = parseMinutes(rule.start_time)
       const end = parseMinutes(rule.end_time)
-      const top = ((start - HOURS_START * 60) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
-      const height = ((end - start) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
-      if (height <= 0 || end <= HOURS_START * 60 || start >= HOURS_END * 60) return null
+      const clippedStart = Math.max(start, visibleRange.startMinutes)
+      const clippedEnd = Math.min(end, visibleRange.endMinutes)
+      const top = ((clippedStart - visibleRange.startMinutes) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
+      const height = ((clippedEnd - clippedStart) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
+      if (height <= 0 || clippedEnd <= visibleRange.startMinutes || clippedStart >= visibleRange.endMinutes) return null
       return (
         <div
           key={`${getDateKey(date, timezone)}-avail-${index}`}
@@ -188,9 +250,11 @@ export function ProfessionalAvailabilityCalendar({
     const key = getDateKey(date, timezone)
     const dayBookings = bookingsByDate.get(key) || []
     return dayBookings.map(booking => {
-      const top = ((booking.start - HOURS_START * 60) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
-      const height = ((booking.end - booking.start) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
-      if (height <= 0 || booking.end <= HOURS_START * 60 || booking.start >= HOURS_END * 60) return null
+      const clippedStart = Math.max(booking.start, visibleRange.startMinutes)
+      const clippedEnd = Math.min(booking.end, visibleRange.endMinutes)
+      const top = ((clippedStart - visibleRange.startMinutes) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
+      const height = ((clippedEnd - clippedStart) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
+      if (height <= 0 || clippedEnd <= visibleRange.startMinutes || clippedStart >= visibleRange.endMinutes) return null
       return (
         <div
           key={`booking-${booking.id}`}
@@ -299,8 +363,8 @@ export function ProfessionalAvailabilityCalendar({
 
             <div className="border-r border-neutral-100 bg-white">
               {timeSlots.map(slot => (
-                <div key={slot} className="h-6 border-t border-neutral-100 px-1 text-[10px] text-neutral-500">
-                  {slot}
+                <div key={slot.label} className="h-6 border-t border-neutral-100 px-1 text-[10px] text-neutral-500">
+                  {slot.minutes % 60 === 0 ? slot.label : ''}
                 </div>
               ))}
             </div>
@@ -309,9 +373,9 @@ export function ProfessionalAvailabilityCalendar({
               <div
                 key={`${getDateKey(day, timezone)}-column`}
                 className="relative border-r border-neutral-100 bg-white last:border-r-0"
-                style={{ height: `${(MINUTES_VISIBLE / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT}px` }}
+                style={{ height: `${(visibleRange.totalMinutes / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT}px` }}
               >
-                {Array.from({ length: MINUTES_VISIBLE / SLOT_STEP_MINUTES }).map((_, index) => (
+                {Array.from({ length: visibleRange.totalMinutes / SLOT_STEP_MINUTES }).map((_, index) => (
                   <div key={index} className="h-6 border-t border-neutral-100" />
                 ))}
                 {renderDayAvailabilityBlocks(day)}
