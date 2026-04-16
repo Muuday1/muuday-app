@@ -819,6 +819,7 @@ export function OnboardingTrackerModal({
   const [isFinanceBypassEnabled, setIsFinanceBypassEnabled] = useState(false)
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
+  const [contextReloadNonce, setContextReloadNonce] = useState(0)
   const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
     buildDefaultAvailabilityMap(),
   )
@@ -967,6 +968,11 @@ export function OnboardingTrackerModal({
       return { ok: false, termsLoaded: false }
     }
   }, [currentProfessionalStatus])
+
+  const reloadTrackerContext = useCallback(async () => {
+    await refreshTrackerEvaluation()
+    setContextReloadNonce(previous => previous + 1)
+  }, [refreshTrackerEvaluation])
 
   const applyOptionalContext = useCallback(
     (optional: ModalOptionalContextPayload | null | undefined) => {
@@ -1346,7 +1352,7 @@ export function OnboardingTrackerModal({
     return () => {
       mounted = false
     }
-  }, [open, professionalId, applyOptionalContext, hasTrackerBootstrap])
+  }, [open, professionalId, applyOptionalContext, hasTrackerBootstrap, contextReloadNonce])
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') return
@@ -2015,6 +2021,11 @@ export function OnboardingTrackerModal({
   async function saveService() {
     const isEditing = Boolean(editingServiceId)
     const maxServices = tierLimits.services
+    if (!isEditing && services.length === 0 && trackerAdjustmentMode) {
+      setServiceSaveState('error')
+      setServiceError('Não foi possível carregar seus serviços. Recarregue o tracker.')
+      return
+    }
     if (!isEditing && services.length >= maxServices) {
       setServiceSaveState('error')
       setServiceError(`Seu plano permite até ${maxServices} serviço(s) ativo(s).`)
@@ -3173,7 +3184,23 @@ export function OnboardingTrackerModal({
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                     <h3 className="mb-3 text-sm font-semibold text-neutral-900">Serviços ativos</h3>
                     {services.length === 0 ? (
-                      <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
+                      trackerAdjustmentMode ? (
+                        <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                          <p className="text-sm font-medium text-amber-900">
+                            Não foi possível carregar seus serviços. Recarregue o tracker.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => void reloadTrackerContext()}
+                            disabled={loadingContext}
+                            className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                          >
+                            {loadingContext ? 'Recarregando...' : 'Recarregar'}
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
+                      )
                     ) : (
                       <div className="space-y-2">
                         {services.map(service => (

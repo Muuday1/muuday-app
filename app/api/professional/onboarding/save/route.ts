@@ -712,8 +712,11 @@ export async function POST(request: Request) {
             .eq('is_active', true)
 
           if ((activeServicesCount || 0) >= tierLimits.services) {
+            const currentActiveServices = Number(activeServicesCount || 0)
             return NextResponse.json(
-              { error: `Seu plano permite até ${tierLimits.services} serviço(s) ativo(s).` },
+              {
+                error: `Seu plano permite até ${tierLimits.services} serviço(s). Você já tem ${currentActiveServices} ativo(s). Edite um existente ou exclua antes de criar outro.`,
+              },
               { status: 400 },
             )
           }

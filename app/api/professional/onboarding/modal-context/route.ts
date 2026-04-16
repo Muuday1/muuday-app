@@ -92,6 +92,8 @@ async function loadOptionalPlanPricingCached(args: {
 
 export async function GET(request: Request) {
   const supabase = createClient()
+  const admin = createAdminClient()
+  const db = admin ?? supabase
   const url = new URL(request.url)
   const scope = normalizeScope(url.searchParams.get('scope'))
   const skipTrackerBootstrap = shouldSkipTrackerBootstrap(url.searchParams.get('skipTracker'))
@@ -126,7 +128,7 @@ export async function GET(request: Request) {
       loadOptionalTaxonomyCached(supabase),
       loadOptionalPlanConfigsCached(),
       getExchangeRates(supabase),
-      supabase
+      db
         .from('professional_settings')
         .select('onboarding_finance_bypass')
         .eq('professional_id', professional.id)
@@ -191,24 +193,24 @@ export async function GET(request: Request) {
     onboardingState,
     trackerMeta,
   ] = await Promise.all([
-    supabase
+    db
       .from('professional_services')
       .select('id,name,description,price_brl,duration_minutes')
       .eq('professional_id', professional.id)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
-    supabase
+    db
       .from('professional_settings')
       .select(
         'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
       )
       .eq('professional_id', professional.id)
       .maybeSingle(),
-    supabase
+    db
       .from('availability')
       .select('day_of_week,start_time,end_time,is_active')
       .eq('professional_id', professional.id),
-    supabase
+    db
       .from('professional_applications')
       .select(
         'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
@@ -217,12 +219,12 @@ export async function GET(request: Request) {
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase
+    db
       .from('professional_credentials')
       .select('id,file_name,file_url,scan_status,verified,credential_type')
       .eq('professional_id', professional.id)
       .order('uploaded_at', { ascending: false }),
-    supabase
+    db
       .from('profiles')
       .select('currency,full_name,timezone,avatar_url')
       .eq('id', String(professional.user_id || ''))
