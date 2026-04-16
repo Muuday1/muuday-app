@@ -11,9 +11,8 @@ import type { CalendarProvider } from '@/lib/calendar/types'
 const PROVIDERS = new Set<CalendarProvider>(['google', 'outlook', 'apple'])
 const NONCE_COOKIE_NAME = 'muuday_calendar_oauth_nonce'
 
-function baseRedirect(path: string) {
-  const baseUrl = getAppBaseUrl()
-  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`
+function requestBaseUrl(request: NextRequest) {
+  return request.nextUrl.origin || getAppBaseUrl()
 }
 
 function parseProvider(value: string): CalendarProvider | null {
@@ -32,7 +31,7 @@ export async function GET(
 ) {
   const provider = parseProvider(context.params.provider)
   if (!provider || provider === 'apple') {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=provider'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=provider`)
   }
 
   const code = request.nextUrl.searchParams.get('code')
@@ -40,17 +39,17 @@ export async function GET(
   const oauthError = request.nextUrl.searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=oauth'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=oauth`)
   }
 
   const parsedState = parseAndValidateCalendarOAuthState(state)
   if (!parsedState || parsedState.provider !== provider) {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=state'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=state`)
   }
 
   const nonceCookie = request.cookies.get(NONCE_COOKIE_NAME)?.value || ''
   if (!nonceCookie || nonceCookie !== parsedState.nonce) {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=nonce'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=nonce`)
   }
 
   const supabase = createClient()
@@ -58,20 +57,20 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user || user.id !== parsedState.userId) {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=user'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=user`)
   }
 
   const admin = createAdminClient()
   if (!admin) {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=admin'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=admin`)
   }
 
   const adapter = getCalendarProviderAdapter(provider)
   if (!adapter.exchangeCode) {
-    return NextResponse.redirect(baseRedirect('/dashboard?calendarError=adapter'))
+    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=adapter`)
   }
 
-  const redirectUri = `${getAppBaseUrl()}/api/professional/calendar/callback/${provider}`
+  const redirectUri = `${requestBaseUrl(request)}/api/professional/calendar/callback/${provider}`
 
   try {
     const exchange = await adapter.exchangeCode({ code, redirectUri })
@@ -117,7 +116,7 @@ export async function GET(
     await syncExternalBusySlotsForProfessional(admin, parsedState.professionalId, provider)
 
     const destination = safeRedirectPath(parsedState.redirectPath)
-    const response = NextResponse.redirect(`${getAppBaseUrl()}${destination}?calendarConnected=${provider}`)
+    const response = NextResponse.redirect(`${requestBaseUrl(request)}${destination}?calendarConnected=${provider}`)
     response.cookies.set(NONCE_COOKIE_NAME, '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -139,7 +138,7 @@ export async function GET(
       .eq('professional_id', parsedState.professionalId)
       .eq('provider', provider)
 
-    const response = NextResponse.redirect(baseRedirect('/dashboard?calendarError=callback'))
+    const response = NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=callback`)
     response.cookies.set(NONCE_COOKIE_NAME, '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

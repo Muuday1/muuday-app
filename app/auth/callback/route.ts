@@ -4,7 +4,9 @@ import * as Sentry from '@sentry/nextjs'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 
-function getBaseUrl() {
+function resolveRequestOrigin(request: NextRequest) {
+  const requestOrigin = request.nextUrl.origin
+  if (requestOrigin) return requestOrigin
   return getAppBaseUrl()
 }
 
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
   const oauthError = searchParams.get('error')
   const roleHint = searchParams.get('role') === 'profissional' ? 'profissional' : 'usuario'
   const safeNextPath = sanitizeNextPath(searchParams.get('next'))
-  const baseUrl = getBaseUrl()
+  const baseUrl = resolveRequestOrigin(request)
 
   if (oauthError || !code) {
     Sentry.captureMessage('auth_oauth_callback_invalid_request', {

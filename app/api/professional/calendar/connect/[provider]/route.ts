@@ -25,7 +25,7 @@ function parseProvider(value: string): CalendarProvider | null {
 }
 
 function callbackUrl(request: NextRequest, provider: CalendarProvider) {
-  const baseUrl = getAppBaseUrl()
+  const baseUrl = request.nextUrl.origin || getAppBaseUrl()
   return `${baseUrl}/api/professional/calendar/callback/${provider}`
 }
 

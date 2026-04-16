@@ -15,7 +15,7 @@ function stripWrappingQuotes(value: string): string {
 function normalizeUrl(value: string | null | undefined): string | null {
   if (!value) return null
 
-  const cleaned = stripWrappingQuotes(value.trim()).replace(/\/+$/, '')
+  const cleaned = stripWrappingQuotes(value.trim()).replace(/\s+/g, '').replace(/\/+$/, '')
   if (!cleaned) return null
 
   if (!/^https?:\/\//i.test(cleaned)) {
@@ -29,6 +29,7 @@ function normalizeHost(value: string | null | undefined): string | null {
   if (!value) return null
 
   const cleaned = stripWrappingQuotes(value.trim())
+    .replace(/\s+/g, '')
     .replace(/^https?:\/\//i, '')
     .replace(/^www\./i, '')
     .replace(/\/+$/, '')

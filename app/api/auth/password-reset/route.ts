@@ -42,6 +42,12 @@ function getPublicSupabaseClient() {
   })
 }
 
+function resolveBaseUrlFromRequest(request: NextRequest) {
+  const requestOrigin = request.nextUrl.origin
+  if (requestOrigin) return requestOrigin
+  return getAppBaseUrl()
+}
+
 export async function POST(request: NextRequest) {
   const corsDecision = evaluateCorsRequest(request, PUBLIC_API_CORS_POLICY)
   if (!corsDecision.allowed) {
@@ -70,7 +76,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const redirectTo = `${getAppBaseUrl()}/auth/callback`
+  const redirectTo = `${resolveBaseUrlFromRequest(request)}/auth/callback`
 
   let deliveredByResend = false
   const admin = createAdminClient()

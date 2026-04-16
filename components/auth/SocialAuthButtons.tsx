@@ -37,11 +37,14 @@ function sanitizeRedirectPath(value?: string) {
 }
 
 function getClientAppBaseUrl() {
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
   const configured = String(process.env.NEXT_PUBLIC_APP_URL || '').trim()
   if (configured.startsWith('http://') || configured.startsWith('https://')) {
     return configured.replace(/\/+$/, '')
   }
-  return typeof window !== 'undefined' ? window.location.origin : ''
+  return ''
 }
 
 export default function SocialAuthButtons({

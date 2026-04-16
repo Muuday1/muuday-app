@@ -49,7 +49,7 @@ const PRICE_ENV_KEYS: Record<
 }
 
 function appBaseUrl(request: NextRequest) {
-  return getAppBaseUrl() || `${request.nextUrl.protocol}//${request.nextUrl.host}`
+  return request.nextUrl.origin || getAppBaseUrl()
 }
 
 export async function POST(request: NextRequest) {
