@@ -323,6 +323,7 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
     const db = admin ?? supabase
+    const adjustmentsClient = supabase
     const professionalId = String(professional.id)
     const userId = String(professional.user_id || user.id)
     const normalizedTier = String(professional.tier || '').toLowerCase()
@@ -911,12 +912,19 @@ export async function POST(request: Request) {
     )
 
     if (stageIdsForSection.length > 0 && changedFieldKeysForSection.length > 0) {
-      const { data: candidateRows } = await db
+      const { data: candidateRows, error: candidateRowsError } = await adjustmentsClient
         .from('professional_review_adjustments')
         .select('id,field_key')
         .eq('professional_id', professionalId)
         .in('stage_id', stageIdsForSection)
         .in('status', ['open', 'reopened'])
+
+      if (candidateRowsError) {
+        return NextResponse.json(
+          { error: 'Dados salvos, mas nao foi possivel carregar os ajustes para atualizar o tracker.' },
+          { status: 500 },
+        )
+      }
 
       const changedFieldSet = new Set(changedFieldKeysForSection)
       const eligibleAdjustmentIds = (candidateRows || [])
@@ -925,7 +933,7 @@ export async function POST(request: Request) {
         .filter(Boolean)
 
       if (eligibleAdjustmentIds.length > 0) {
-        await db
+        const { error: resolveError } = await adjustmentsClient
           .from('professional_review_adjustments')
           .update({
             status: 'resolved_by_professional',
@@ -936,6 +944,13 @@ export async function POST(request: Request) {
           .eq('professional_id', professionalId)
           .in('id', eligibleAdjustmentIds)
           .in('status', ['open', 'reopened'])
+
+        if (resolveError) {
+          return NextResponse.json(
+            { error: 'Dados salvos, mas nao foi possivel concluir os ajustes solicitados desta etapa.' },
+            { status: 500 },
+          )
+        }
       }
     }
 
