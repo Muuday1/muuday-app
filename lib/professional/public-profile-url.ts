@@ -40,11 +40,12 @@ export function normalizeProfessionalPublicCode(value?: number | string | null):
 
 export function buildProfessionalProfilePath(input: BuildProfessionalProfilePathInput): string {
   const id = String(input.id || '').trim()
-  const code = normalizeProfessionalPublicCode(input.publicCode)
-
-  if (!code) {
-    return id ? `/profissional/${id}` : '/buscar'
+  if (id) {
+    return `/profissional/${id}`
   }
+
+  const code = normalizeProfessionalPublicCode(input.publicCode)
+  if (!code) return '/buscar'
 
   const slug = slugifyProfessionalName(input.fullName)
   return `/profissional/${slug}-${code}`
