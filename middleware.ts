@@ -13,6 +13,8 @@ function shouldForceAppHostRedirect(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
   const authOrAppPaths = [
+    '/buscar',
+    '/profissional',
     '/login',
     '/cadastro',
     '/auth',
