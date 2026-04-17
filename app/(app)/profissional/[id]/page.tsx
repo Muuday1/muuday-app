@@ -298,7 +298,7 @@ export default async function ProfissionalPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const readClient = ((user ? supabase : createAdminClient()) || supabase) as SupabaseClient
+  const readClient = (createAdminClient() || supabase) as SupabaseClient
 
   let viewerCurrency = 'BRL'
   let viewerTimezone = 'America/Sao_Paulo'
