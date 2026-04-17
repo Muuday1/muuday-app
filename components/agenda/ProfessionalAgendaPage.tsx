@@ -3,12 +3,12 @@
 import { useState } from 'react'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
-import { Calendar, Clock, Link2, RefreshCcw } from 'lucide-react'
+import { Calendar, Clock, Link2 } from 'lucide-react'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
+import { ProfessionalCalendarSyncModal } from '@/components/agenda/ProfessionalCalendarSyncModal'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
 import { ProfessionalAvailabilityWorkspace } from '@/components/agenda/ProfessionalAvailabilityWorkspace'
 import { ProfessionalBookingRulesPanel } from '@/components/agenda/ProfessionalBookingRulesPanel'
@@ -35,6 +35,8 @@ type ProfessionalAgendaPageProps = {
   calendarIntegrationProvider: string
   calendarIntegrationStatus: 'disconnected' | 'pending' | 'connected' | 'error'
   calendarIntegrationLastSyncAt: string
+  calendarIntegrationAccountEmail: string
+  calendarIntegrationLastSyncError: string
   overviewAvailabilityRules: Array<{
     day_of_week: number
     start_time: string
@@ -128,13 +130,13 @@ export function ProfessionalAgendaPage({
   calendarIntegrationProvider,
   calendarIntegrationStatus,
   calendarIntegrationLastSyncAt,
+  calendarIntegrationAccountEmail,
+  calendarIntegrationLastSyncError,
   overviewAvailabilityRules,
   overviewCalendarBookings,
   professionalBookingRulesPanelProps,
 }: ProfessionalAgendaPageProps) {
-  const router = useRouter()
-  const [calendarSyncState, setCalendarSyncState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
-  const [calendarSyncError, setCalendarSyncError] = useState('')
+  const [showCalendarSyncModal, setShowCalendarSyncModal] = useState(false)
 
   const inboxItems = [
     ...pendingConfirmations.map((booking: BookingRecord) => ({
@@ -173,38 +175,22 @@ export function ProfessionalAgendaPage({
           ? 'Sync com erro'
           : 'Sem sync externo'
 
-  async function handleSyncNow() {
-    if (!calendarIntegrationConnected || calendarSyncState === 'saving') return
-
-    setCalendarSyncState('saving')
-    setCalendarSyncError('')
-
-    try {
-      const response = await fetch('/api/professional/calendar/sync', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ provider: calendarIntegrationProvider || 'google' }),
-      })
-
-      const result = (await response.json().catch(() => ({}))) as { error?: string }
-      if (!response.ok) {
-        setCalendarSyncState('error')
-        setCalendarSyncError(result.error || 'Nao foi possivel sincronizar o calendario.')
-        return
-      }
-
-      setCalendarSyncState('success')
-      router.refresh()
-      window.setTimeout(() => setCalendarSyncState('idle'), 1800)
-    } catch {
-      setCalendarSyncState('error')
-      setCalendarSyncError('Nao foi possivel sincronizar o calendario.')
-    }
-  }
-
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
+      <ProfessionalCalendarSyncModal
+        isOpen={showCalendarSyncModal}
+        onClose={() => setShowCalendarSyncModal(false)}
+        initialProvider={calendarIntegrationProvider}
+        initialConnected={calendarIntegrationConnected}
+        initialConnectionStatus={calendarIntegrationStatus}
+        initialAccountEmail={calendarIntegrationAccountEmail}
+        initialLastSyncAt={calendarIntegrationLastSyncAt}
+        initialLastSyncError={calendarIntegrationLastSyncError}
+        premiumProvidersEnabled={Boolean(
+          professionalBookingRulesPanelProps?.initialPlanConfig.features.includes('outlook_sync'),
+        )}
+      />
+
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
@@ -347,40 +333,22 @@ export function ProfessionalAgendaPage({
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {calendarIntegrationConnected ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleSyncNow()}
-                      disabled={calendarSyncState === 'saving'}
-                      className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60"
-                    >
-                      <RefreshCcw className={`h-4 w-4 ${calendarSyncState === 'saving' ? 'animate-spin' : ''}`} />
-                      {calendarSyncState === 'saving' ? 'Sincronizando...' : 'Sincronizar agora'}
-                    </button>
-                  ) : (
-                    <Link
-                      href="/agenda?view=availability_rules#calendar-sync"
-                      className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600"
-                    >
-                      <Link2 className="h-4 w-4" />
-                      Conectar calendario
-                    </Link>
-                  )}
-                  <Link
-                    href="/agenda?view=availability_rules#calendar-sync"
-                    className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-brand-300 hover:text-brand-700"
+                  <button
+                    type="button"
+                    onClick={() => setShowCalendarSyncModal(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600"
                   >
                     <Link2 className="h-4 w-4" />
                     Gerenciar sync
-                  </Link>
+                  </button>
                 </div>
                 {calendarIntegrationLastSyncAt ? (
                   <p className="text-xs text-neutral-500">
                     Ultimo sync: {new Date(calendarIntegrationLastSyncAt).toLocaleString('pt-BR', { hour12: false })}
                   </p>
                 ) : null}
-                {calendarSyncError ? (
-                  <p className="text-xs font-medium text-red-700">{calendarSyncError}</p>
+                {calendarIntegrationLastSyncError ? (
+                  <p className="text-xs font-medium text-red-700">{calendarIntegrationLastSyncError}</p>
                 ) : null}
               </div>
             </div>

@@ -221,6 +221,8 @@ export default async function AgendaPage({
   let calendarIntegrationProvider = 'google'
   let calendarIntegrationStatus: 'disconnected' | 'pending' | 'connected' | 'error' = 'disconnected'
   let calendarIntegrationLastSyncAt = ''
+  let calendarIntegrationAccountEmail = ''
+  let calendarIntegrationLastSyncError = ''
   let calendarTimezone = userTimezone
   let overviewAvailabilityRules: Array<{
     day_of_week: number
@@ -260,7 +262,7 @@ export default async function AgendaPage({
           .order('day_of_week', { ascending: true }),
         supabase
           .from('calendar_integrations')
-          .select('id, provider, sync_enabled, connection_status, last_sync_at, last_sync_completed_at')
+          .select('id, provider, sync_enabled, connection_status, provider_account_email, last_sync_at, last_sync_completed_at, last_sync_error')
           .eq('professional_id', professionalId)
           .maybeSingle(),
         supabase
@@ -298,6 +300,8 @@ export default async function AgendaPage({
         calendarIntegrationResult.data?.last_sync_at ||
         '',
     )
+    calendarIntegrationAccountEmail = String(calendarIntegrationResult.data?.provider_account_email || '')
+    calendarIntegrationLastSyncError = String(calendarIntegrationResult.data?.last_sync_error || '')
     overviewExternalBusySlots =
       (externalBusyResult.data || []).map(row => ({
         id: String(row.id),
@@ -428,6 +432,8 @@ export default async function AgendaPage({
         calendarIntegrationProvider={calendarIntegrationProvider}
         calendarIntegrationStatus={calendarIntegrationStatus}
         calendarIntegrationLastSyncAt={calendarIntegrationLastSyncAt}
+        calendarIntegrationAccountEmail={calendarIntegrationAccountEmail}
+        calendarIntegrationLastSyncError={calendarIntegrationLastSyncError}
         overviewAvailabilityRules={overviewAvailabilityRules}
         overviewCalendarBookings={overviewCalendarBookings}
         professionalBookingRulesPanelProps={professionalBookingRulesPanelProps}
