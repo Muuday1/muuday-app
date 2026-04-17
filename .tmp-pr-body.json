@@ -1,0 +1,30 @@
+## Security Hardening -- Phase 3
+
+Additional hardening: rate limits, CSRF origin validation, and session hardening.
+
+### Changes
+
+- **Rate limiting for calendar endpoints**
+  - calendar/sync -- calendarSync preset (10/min)
+  - calendar/connect -- calendarConnect preset (10/min)
+  - calendar/disconnect -- calendarDisconnect preset (10/min)
+
+- **Rate limiting for onboarding endpoints**
+  - onboarding/open-term -- openTerm preset (20/min)
+  - onboarding/accept-term -- acceptTerm preset (20/min)
+  - onboarding/submit-review -- onboardingSubmitReview preset (5/5min)
+
+- **CSRF origin validation**
+  - New lib/http/csrf.ts -- validates Origin/Referer against APP_BASE_URL
+  - Applied to calendar sync, connect, and disconnect endpoints
+  - Relaxed in development, enforced in production
+
+- **Session hardening**
+  - All authenticated API routes now consistently use getUser() only
+  - No getSession() fallback anywhere in server code
+
+### Validation
+
+- tsc --noEmit passes
+- npm run lint passes
+- npm run test:unit passes
