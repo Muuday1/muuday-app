@@ -26,7 +26,7 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 ## Security practices for this codebase
 
 - **No admin fallbacks in user-facing code**: `createAdminClient()` must never be used as a fallback in server actions or API routes that serve users/professionals. RLS policies are the single source of truth.
-- **Env validation at startup**: `lib/config/env.ts` is loaded via `instrumentation.ts`. Missing critical env vars will fail CI/production builds.
+- **Env validation at startup**: `lib/config/env.ts` is loaded via `instrumentation.ts` **only in Node.js runtime**. Edge runtime skips validation because not all env vars are available there. Missing critical env vars will fail CI/production Node.js builds.
 - **Secret scanning in CI**: Every push and PR runs TruffleHog (`--only-verified`) to catch accidental secret commits.
 - **Workflow hardening**: All GitHub Actions are pinned to SHA hashes and run with minimal `permissions`.
 - **Dependency hygiene**: Run `npm audit` and `npm outdated` regularly. Safe patches are applied immediately; major upgrades (e.g., Next.js) are tracked in `docs/engineering/runbooks/dependency-audit-runbook.md`.
