@@ -30,9 +30,9 @@ const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
 const PROFESSIONAL_PROFILE_FIELDS =
   'id,user_id,public_code,status,category,subcategories,tags,bio,timezone,languages,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,years_experience,social_links,video_intro_url,cover_photo_url,first_booking_enabled,tier,minimum_notice_hours,max_booking_window_days,enable_recurring,whatsapp_number'
 const PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY =
-  `${PROFESSIONAL_PROFILE_FIELDS},is_publicly_visible,profiles!inner(full_name,country,avatar_url,role)` as const
+  `${PROFESSIONAL_PROFILE_FIELDS},is_publicly_visible,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role)` as const
 const PROFESSIONAL_PROFILE_SELECT_LEGACY =
-  `${PROFESSIONAL_PROFILE_FIELDS},profiles!inner(full_name,country,avatar_url,role)` as const
+  `${PROFESSIONAL_PROFILE_FIELDS},profiles!professionals_user_id_fkey(full_name,country,avatar_url,role)` as const
 
 type PublicProfileEmbedded = {
   full_name?: string | null
@@ -450,7 +450,7 @@ export default async function ProfissionalPage({
   const { data: recommendationCandidatesRaw, error: recommendationCandidatesError } = await readClient
     .from('professionals')
     .select(
-      'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!inner(full_name,country,avatar_url,role),category,subcategories',
+      'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role),category,subcategories',
     )
     .eq('status', 'approved')
     .eq('is_publicly_visible', true)
@@ -465,7 +465,7 @@ export default async function ProfissionalPage({
     const fallbackCandidatesResult = await readClient
       .from('professionals')
       .select(
-        'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!inner(full_name,country,avatar_url,role),category,subcategories',
+        'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role),category,subcategories',
       )
       .eq('status', 'approved')
       .eq('profiles.role', 'profissional')
