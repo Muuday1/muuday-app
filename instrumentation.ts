@@ -1,8 +1,7 @@
 export async function register() {
-  // Validate environment variables early (fails fast in CI/production)
-  await import('./lib/config/env')
-
+  // Only validate env vars in Node.js runtime (not Edge, where not all vars are available)
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./lib/config/env')
     await import('./sentry.server.config')
   }
 
