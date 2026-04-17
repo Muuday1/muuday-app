@@ -22,7 +22,6 @@ import {
   loadActiveTaxonomyCatalog,
   loadProfessionalSpecialtyContext,
 } from '@/lib/taxonomy/professional-specialties'
-import { getCachedRuntimeValue } from '@/lib/cache/runtime-cache'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { normalizeCurrency } from '@/lib/public-preferences'
 import {
@@ -524,23 +523,15 @@ export async function BuscarPageContent({
       })
 
       if (candidateIds === null) {
-        const cached = await getCachedRuntimeValue(
-          PUBLIC_SEARCH_BASE_CACHE_KEY,
-          PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
-          () => loadPublicSearchBaseData(readClient),
-        )
-        professionals = cached.professionals
-        specialtyContext = cached.specialtyContext
-        cachedAvailabilityRows = cached.availabilityRows
+        const liveData = await loadPublicSearchBaseData(readClient)
+        professionals = liveData.professionals
+        specialtyContext = liveData.specialtyContext
+        cachedAvailabilityRows = liveData.availabilityRows
       } else {
-        const cached = await getCachedRuntimeValue(
-          variantCacheKey,
-          PUBLIC_SEARCH_BASE_CACHE_TTL_MS,
-          () => loadPublicSearchBaseDataByIds(readClient, candidateIds),
-        )
-        professionals = cached.professionals
-        specialtyContext = cached.specialtyContext
-        cachedAvailabilityRows = cached.availabilityRows
+        const liveData = await loadPublicSearchBaseDataByIds(readClient, candidateIds)
+        professionals = liveData.professionals
+        specialtyContext = liveData.specialtyContext
+        cachedAvailabilityRows = liveData.availabilityRows
       }
     } catch {
       professionals = []
