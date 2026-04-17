@@ -42,6 +42,6 @@ export async function GET() {
   }
 
   await supabase.storage.from(PROFILE_MEDIA_BUCKET).remove([probePath])
-  return NextResponse.json({ ok: true, mode: 'auth-policy' })
+  return NextResponse.json({ ok: true })
 }
 

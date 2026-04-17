@@ -1,6 +1,6 @@
 # RLS Audit Runbook
 
-Last updated: 2026-04-01
+Last updated: 2026-04-17
 
 ## Objective
 
@@ -79,6 +79,32 @@ Expected:
 2. Cross-user read by direct `id` returns no rows / blocked.
 3. Any leak exits with code `1`.
 
+## Step 4 — Code audit for admin fallbacks
+
+Search the codebase for patterns that bypass RLS in user- or professional-facing paths:
+
+- `adminSupabase`
+- `createAdminClient() ?? supabase`
+- `admin ?? supabase`
+
+Acceptable uses of `createAdminClient` must be limited to:
+- Webhooks (`app/api/webhooks/*`)
+- Cron jobs (`app/api/cron/*`)
+- Auth admin flows (`app/api/auth/password-reset`, `app/api/auth/login-hint`)
+- Calendar integrations (`app/api/professional/calendar/*`)
+
+Any other occurrence in `app/api/professional/*` or `lib/actions/*` is a security violation.
+
+## Step 5 — Env and secret hygiene
+
+1. Run `npm run build` locally to confirm `lib/config/env.ts` validation passes.
+2. Run the rotation check:
+   ```bash
+   node scripts/ops/check-secrets-rotation.cjs
+   ```
+3. Review the CI workflow (`.github/workflows/ci.yml`) to ensure the TruffleHog secret-scan step is present and green on the latest push.
+4. Ensure no `.env*` files are tracked in git.
+
 ## Acceptance Criteria
 
 RLS audit is considered complete only when:
@@ -86,4 +112,7 @@ RLS audit is considered complete only when:
 1. Inventory output shows all existing user-data tables with RLS enabled.
 2. Cross-user SQL test passes.
 3. Direct API script passes with at least one executed check for each applicable critical table.
-4. Evidence (query output + command output) is attached to handover.
+4. Code audit confirms zero `createAdminClient` fallbacks in user-facing server actions and API routes.
+5. Build passes with `lib/config/env.ts` validation enabled.
+6. Secret rotation register has zero `overdue` items (or documented exceptions with ticket numbers).
+7. Evidence (query output + command output) is attached to handover.
