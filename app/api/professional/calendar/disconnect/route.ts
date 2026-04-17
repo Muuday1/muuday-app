@@ -4,12 +4,26 @@ import { createClient } from '@/lib/supabase/server'
 import { clearCalendarIntegrationSecrets } from '@/lib/calendar/integration-repo'
 import { resolveAuthenticatedProfessionalContext } from '@/lib/calendar/auth-context'
 import type { CalendarProvider } from '@/lib/calendar/types'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
+import { validateCsrfOrigin } from '@/lib/http/csrf'
 
 const bodySchema = z.object({
   provider: z.enum(['google', 'outlook', 'apple']).optional(),
 })
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const rl = await rateLimit('calendarDisconnect', `calendar-disconnect:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
+  const csrfCheck = validateCsrfOrigin(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
+
   const context = await resolveAuthenticatedProfessionalContext()
   if (!context.ok) {
     return NextResponse.json({ error: context.error }, { status: context.status })

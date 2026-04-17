@@ -1,6 +1,8 @@
 ﻿import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 import { submitProfessionalForReview } from '@/lib/professional/submit-review'
 import {
   PROFESSIONAL_REQUIRED_TERMS,
@@ -8,6 +10,12 @@ import {
 } from '@/lib/legal/professional-terms'
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request as never)
+  const rl = await rateLimit('onboardingSubmitReview', `onboarding-submit-review:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   const supabase = createClient()
   const {
     data: { user },
