@@ -7,6 +7,11 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        httpOnly: true,
+      },
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {

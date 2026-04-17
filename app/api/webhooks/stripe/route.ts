@@ -133,6 +133,22 @@ export async function POST(request: NextRequest) {
       enqueueError = error instanceof Error ? error.message : 'failed to enqueue webhook'
     }
 
+    if (!enqueued) {
+      return withCors(
+        NextResponse.json(
+          {
+            ok: false,
+            webhookEventId: persisted.id,
+            inserted: persisted.inserted,
+            status: persisted.status,
+            enqueued,
+            enqueueError,
+          },
+          { status: 500, headers: rateLimitHeaders },
+        ),
+      )
+    }
+
     return withCors(
       NextResponse.json(
         {
@@ -141,7 +157,6 @@ export async function POST(request: NextRequest) {
           inserted: persisted.inserted,
           status: persisted.status,
           enqueued,
-          enqueueError,
         },
         { status: 202, headers: rateLimitHeaders },
       ),
