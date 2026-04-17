@@ -359,13 +359,12 @@ export default async function ProfissionalPage({
 
   const isOwnProfessional = user ? professional.user_id === user.id : false
   if (!isOwnProfessional) {
-    let isPubliclyVisible: boolean | null =
-      typeof professional.is_publicly_visible === 'boolean' ? professional.is_publicly_visible : null
-
-    if (isPubliclyVisible === null) {
-      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient, [professional])
-      isPubliclyVisible = Boolean(visibilityByProfessionalId.get(String(professional.id))?.canGoLive)
-    }
+    const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(readClient, [professional])
+    const canGoLive = Boolean(visibilityByProfessionalId.get(String(professional.id))?.canGoLive)
+    const isPubliclyVisible =
+      (typeof professional.is_publicly_visible === 'boolean'
+        ? professional.is_publicly_visible
+        : false) || canGoLive
 
     if (!isPubliclyVisible || professional.status !== 'approved') {
       notFound()

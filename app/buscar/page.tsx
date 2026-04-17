@@ -731,6 +731,25 @@ export async function BuscarPageContent({
     return true
   })
 
+  if (readClient && filteredProfessionals.length > 0) {
+    const filteredIds = filteredProfessionals.map((pro: SearchProfessional) => String(pro.id))
+    const { data: liveVisibleRows, error: liveVisibleError } = await readClient
+      .from('professionals')
+      .select('id')
+      .in('id', filteredIds)
+      .eq('status', 'approved')
+      .eq('is_publicly_visible', true)
+
+    if (!liveVisibleError) {
+      const liveVisibleSet = new Set(
+        (liveVisibleRows || []).map(row => String((row as { id?: string | null }).id || '')),
+      )
+      filteredProfessionals = filteredProfessionals.filter((pro: SearchProfessional) =>
+        liveVisibleSet.has(String(pro.id)),
+      )
+    }
+  }
+
   if (readClient && selectedAvailability !== 'qualquer' && filteredProfessionals.length > 0) {
     const ids = filteredProfessionals.map((pro: SearchProfessional) => pro.id)
     const idsSet = new Set(ids)
