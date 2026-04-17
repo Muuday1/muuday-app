@@ -89,6 +89,13 @@ type SearchCandidateRow = {
   professional_id: string
 }
 
+type ProfessionalServiceSearchRow = {
+  professional_id: string
+  price_brl?: number | null
+  duration_minutes?: number | null
+  created_at?: string | null
+}
+
 type SpecialtyContext = Awaited<ReturnType<typeof loadProfessionalSpecialtyContext>>
 
 type PublicSearchBaseData = {
@@ -359,17 +366,40 @@ async function loadPublicSearchBaseDataByIds(
   let specialtyContext: SpecialtyContext = EMPTY_SPECIALTY_CONTEXT
   let availabilityRows: AvailabilityRow[] = []
   if (professionalIds.length > 0) {
-    const [resolvedSpecialtyContext, availabilityResult] = await Promise.all([
+    const [resolvedSpecialtyContext, availabilityResult, servicesResult] = await Promise.all([
       loadProfessionalSpecialtyContext(readClient, professionalIds),
       readClient
         .from('availability')
         .select('professional_id,day_of_week,start_time,end_time')
         .in('professional_id', professionalIds)
         .eq('is_active', true),
+      readClient
+        .from('professional_services')
+        .select('professional_id,price_brl,duration_minutes,created_at')
+        .in('professional_id', professionalIds)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true }),
     ])
 
     specialtyContext = resolvedSpecialtyContext
     availabilityRows = (availabilityResult.data || []) as AvailabilityRow[]
+
+    const primaryServiceByProfessionalId = new Map<string, ProfessionalServiceSearchRow>()
+    ;((servicesResult.data || []) as ProfessionalServiceSearchRow[]).forEach(service => {
+      const professionalId = String(service.professional_id || '').trim()
+      if (!professionalId || primaryServiceByProfessionalId.has(professionalId)) return
+      primaryServiceByProfessionalId.set(professionalId, service)
+    })
+
+    professionals = professionals.map(professional => {
+      const primaryService = primaryServiceByProfessionalId.get(String(professional.id || ''))
+      if (!primaryService) return professional
+      return {
+        ...professional,
+        session_price_brl: Number(primaryService.price_brl || 0),
+        session_duration_minutes: Math.max(1, Number(primaryService.duration_minutes || 60)),
+      }
+    })
   }
 
   return {
@@ -388,9 +418,7 @@ async function fetchSearchCandidateIdsPgTrgm(
       params.selectedCategory ||
       params.selectedSpecialty ||
       params.selectedLanguage !== 'qualquer' ||
-      params.selectedLocation ||
-      params.minPriceBrl !== null ||
-      params.maxPriceBrl !== null,
+      params.selectedLocation,
   )
 
   if (!shouldUsePgSearch) {
@@ -404,8 +432,9 @@ async function fetchSearchCandidateIdsPgTrgm(
       p_specialty: params.selectedSpecialty || null,
       p_language: params.selectedLanguage !== 'qualquer' ? params.selectedLanguage : null,
       p_location: params.selectedLocation || null,
-      p_min_price_brl: params.minPriceBrl,
-      p_max_price_brl: params.maxPriceBrl,
+      // Price filtering is applied after loading the primary active service price.
+      p_min_price_brl: null,
+      p_max_price_brl: null,
       p_limit: 1200,
     })
 
