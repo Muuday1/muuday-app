@@ -1,6 +1,6 @@
 ﻿# Integration: Supabase
 
-Last updated: 2026-03-30
+Last updated: 2026-04-17
 
 ## Purpose
 
@@ -28,7 +28,8 @@ Primary backend platform for:
 
 1. Canonical schema is migration-driven; every new migration must update snapshot and docs in the same task.
 2. Admin client must remain server-only with strict secret handling.
-3. Current production auth smoke run returned signup `unexpected_failure`; apply migration `012-auth-signup-trigger-hardening.sql` before re-testing.
+3. **No admin fallbacks in user-facing code**: as of 2026-04-17, all `adminSupabase` / `createAdminClient()` fallbacks were removed from user- and professional-facing server actions and API routes. RLS policies are the single source of truth. Migration `051-remove-admin-fallbacks-rls-hardening.sql` closes the remaining gaps (notifications, payments trigger, storage policies).
+4. Current production auth smoke run returned signup `unexpected_failure`; apply migration `012-auth-signup-trigger-hardening.sql` before re-testing.
 
 ## Next steps
 

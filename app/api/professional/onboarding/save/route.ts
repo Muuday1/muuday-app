@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
@@ -200,7 +199,7 @@ function availabilityRowsChangedForDiff(previousRows: unknown, nextMap: Record<s
 }
 
 async function upsertProfessionalApplicationWithFallback(
-  db: ReturnType<typeof createClient> | NonNullable<ReturnType<typeof createAdminClient>>,
+  db: ReturnType<typeof createClient>,
   payload: Record<string, unknown>,
 ) {
   let attemptPayload: Record<string, unknown> = { ...payload }
@@ -244,7 +243,7 @@ async function upsertProfessionalApplicationWithFallback(
 }
 
 async function upsertProfessionalSettingsWithFallback(
-  db: ReturnType<typeof createClient> | NonNullable<ReturnType<typeof createAdminClient>>,
+  db: ReturnType<typeof createClient>,
   payload: {
     professional_id: string
     timezone: string
@@ -338,8 +337,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const admin = createAdminClient()
-    const db = admin ?? supabase
+    const db = supabase
     const adjustmentsClient = supabase
     const professionalId = String(professional.id)
     const userId = String(professional.user_id || user.id)

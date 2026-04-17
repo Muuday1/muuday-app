@@ -1,6 +1,5 @@
 ﻿import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { submitProfessionalForReview } from '@/lib/professional/submit-review'
 import {
@@ -33,8 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Aceite os termos obrigatórios antes do envio.' }, { status: 400 })
   }
 
-  const admin = createAdminClient()
-  const db = admin ?? supabase
+  const db = supabase
   const { data: acceptedTermsRows, error: acceptedTermsError } = await db
     .from('professional_term_acceptances')
     .select('term_key')

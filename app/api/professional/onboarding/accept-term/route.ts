@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getProfessionalTermTextHash,
   PROFESSIONAL_REQUIRED_TERMS,
@@ -65,7 +64,6 @@ export async function POST(request: Request) {
     )
   }
 
-  const db = createAdminClient() ?? supabase
   const termKey = parsed.data.termKey
   const textHash = getProfessionalTermTextHash(termKey)
   if (!textHash) {
@@ -74,7 +72,7 @@ export async function POST(request: Request) {
 
   const nowIso = new Date().toISOString()
   const minOpenedAtIso = new Date(Date.now() - 3000).toISOString()
-  const { data: consumedEvent, error: consumeError } = await db
+  const { data: consumedEvent, error: consumeError } = await supabase
     .from('professional_term_view_events')
     .update({ consumed_at: nowIso })
     .eq('id', proofCheck.viewEventId)
@@ -105,7 +103,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const { error } = await db.from('professional_term_acceptances').upsert(
+  const { error } = await supabase.from('professional_term_acceptances').upsert(
     {
       professional_id: professional.id,
       accepted_by: user.id,
