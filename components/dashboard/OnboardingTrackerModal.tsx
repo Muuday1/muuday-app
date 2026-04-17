@@ -204,6 +204,7 @@ const ACTIONABLE_ADJUSTMENT_STAGE_IDS = new Set<string>([
   'c4_services',
   'c5_availability_calendar',
   'c6_plan_billing_setup_post',
+  'c7_payout_receipt',
   'c8_submit_review',
 ])
 

@@ -316,9 +316,7 @@ export async function GET(request: Request) {
     : loadProfessionalOnboardingState(supabase, professional.id, {
         resolveSignedMediaUrls: false,
       })
-  const trackerMetaPromise = skipTrackerBootstrap
-    ? Promise.resolve(null)
-    : loadProfessionalTrackerMeta(supabase, professional.id)
+  const trackerMetaPromise = loadProfessionalTrackerMeta(supabase, professional.id)
 
   const [
     servicesLoadResult,

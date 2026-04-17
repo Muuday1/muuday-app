@@ -25,6 +25,14 @@ type LoginFormProps = {
   idPrefix?: string
 }
 
+function normalizeRole(value: unknown) {
+  const normalized = String(value || '').toLowerCase().trim()
+  if (normalized === 'admin' || normalized === 'profissional' || normalized === 'usuario') {
+    return normalized
+  }
+  return null
+}
+
 async function resolveLoginHint(email: string): Promise<AuthLoginHint> {
   try {
     const response = await fetch('/api/auth/login-hint', {
@@ -123,8 +131,10 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
     let destination = '/buscar-auth'
     if (userId) {
       identifyEventUser(userId, { email: userEmail || email })
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
-      destination = resolvePostLoginDestination(profile?.role)
+      const metadataRole =
+        normalizeRole(signInData.user?.app_metadata?.role) || normalizeRole(signInData.user?.user_metadata?.role)
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle()
+      destination = resolvePostLoginDestination(normalizeRole(profile?.role) || metadataRole)
     }
     if (safeRedirectPath) {
       destination = safeRedirectPath
