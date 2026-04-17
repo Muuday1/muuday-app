@@ -735,10 +735,11 @@ export async function BuscarPageContent({
     const filteredIds = filteredProfessionals.map((pro: SearchProfessional) => String(pro.id))
     const { data: liveVisibleRows, error: liveVisibleError } = await readClient
       .from('professionals')
-      .select('id')
+      .select('id,profiles!professionals_user_id_fkey(role)')
       .in('id', filteredIds)
       .eq('status', 'approved')
       .eq('is_publicly_visible', true)
+      .eq('profiles.role', 'profissional')
 
     if (!liveVisibleError) {
       const liveVisibleSet = new Set(

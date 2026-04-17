@@ -222,7 +222,6 @@ async function loadPublicProfessionalByParam(
           : PROFESSIONAL_PROFILE_SELECT_LEGACY,
       )
       .eq('status', 'approved')
-      .eq('profiles.role', 'profissional')
 
     if (useVisibilityColumn) {
       professionalQuery = professionalQuery.eq('is_publicly_visible', true)
@@ -324,7 +323,6 @@ export default async function ProfissionalPage({
             ? PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY
             : PROFESSIONAL_PROFILE_SELECT_LEGACY,
         )
-        .eq('profiles.role', 'profissional')
 
       if (parsedParam.kind === 'uuid') {
         professionalQuery = professionalQuery.eq('id', parsedParam.id)
