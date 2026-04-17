@@ -279,7 +279,9 @@ async function loadCachedPublicProfessionalByParam(
     },
   )
 
-  return getWithIsrTag()
+  const cached = await getWithIsrTag()
+  if (cached) return cached
+  return loadPublicProfessionalByParam(parsedParam)
 }
 
 export default async function ProfissionalPage({
