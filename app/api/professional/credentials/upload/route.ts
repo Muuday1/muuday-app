@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateFileSignature } from '@/lib/security/file-signature'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const CREDENTIALS_BUCKET = 'professional-credentials'
 const STORAGE_URI_PREFIX = `storage://${CREDENTIALS_BUCKET}/`
@@ -89,6 +91,12 @@ async function resolveProfessionalContext(): Promise<ResolvedProfessionalContext
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request as never)
+    const rl = await rateLimit('credentialsUpload', `credentials-upload:${ip}`)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+    }
+
     const authResult = await resolveProfessionalContext()
     if (!authResult.ok) return authResult.response
 

@@ -53,6 +53,7 @@ async function loadProfessionalServicesWithFallback(args: {
   errorMessage: string
 }> {
   const fallbackErrorMessage = 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.'
+  let hadFallback = false
 
   const userResponse = await args.supabase
     .from('professional_services')
@@ -64,11 +65,14 @@ async function loadProfessionalServicesWithFallback(args: {
   if (!userResponse.error) {
     return {
       rows: (userResponse.data || []) as ProfessionalServiceRow[],
-      state: 'loaded',
-      errorMessage: '',
+      state: hadFallback ? 'degraded' : 'loaded',
+      errorMessage: hadFallback
+        ? 'Carregamos seus serviços em modo de contingência. Se notar dados desatualizados, tente recarregar o tracker.'
+        : '',
     }
   }
 
+  hadFallback = true
   console.error('[onboarding-modal-context] services load attempt failed', {
     attempt: 'user_full',
     professionalId: args.professionalId,

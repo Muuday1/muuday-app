@@ -48,6 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const db = supabase
     const viewEventId = crypto.randomUUID()
     const now = new Date()
     const openedAt = now.toISOString()
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     const ip = extractRequestIp(request.headers)
     const userAgent = request.headers.get('user-agent') || ''
 
-    const { error: viewEventError } = await supabase.from('professional_term_view_events').insert({
+    const { error: viewEventError } = await db.from('professional_term_view_events').insert({
       id: viewEventId,
       professional_id: professional.id,
       opened_by: user.id,

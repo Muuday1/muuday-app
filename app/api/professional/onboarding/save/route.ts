@@ -1,8 +1,11 @@
 ﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 import { getPlanConfigForTier, loadPlanConfigMap } from '@/lib/plan-config'
 import { SECTION_TO_REVIEW_FIELD_KEYS, SECTION_TO_REVIEW_STAGES } from '@/lib/professional/review-adjustments'
@@ -290,6 +293,11 @@ function getQualificationValidationMessage(item: z.infer<typeof qualificationSch
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimit('onboardingSave', `onboarding-save:${getClientIp(request as never)}`)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+    }
+
     const payload = payloadSchema.safeParse(await request.json().catch(() => null))
     if (!payload.success) {
       const firstIssue = payload.error.issues[0]

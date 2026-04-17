@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { PROFESSIONAL_REQUIRED_TERMS, PROFESSIONAL_TERMS_VERSION } from '@/lib/legal/professional-terms'
 import {
   evaluateOnboardingGates,
@@ -87,15 +86,13 @@ function parseProfileMediaPath(value: string | null | undefined) {
 }
 
 async function resolveSignedProfileMediaUrl(
+  supabase: SupabaseClient,
   pathValue: string | null | undefined,
 ) {
   const mediaPath = parseProfileMediaPath(pathValue)
   if (!mediaPath) return ''
 
-  const admin = createAdminClient()
-  if (!admin) return ''
-
-  const { data, error } = await admin.storage
+  const { data, error } = await supabase.storage
     .from(PROFILE_MEDIA_BUCKET)
     .createSignedUrl(mediaPath, PROFILE_MEDIA_SIGNED_URL_EXPIRY_SECONDS)
   if (error || !data?.signedUrl) return ''
@@ -171,8 +168,8 @@ export async function loadProfessionalOnboardingState(
   }
 
   if (options?.resolveSignedMediaUrls !== false) {
-    const signedAvatarFromProfilePath = await resolveSignedProfileMediaUrl(profileRow?.avatar_url)
-    const signedAvatarFromProfessionalPath = await resolveSignedProfileMediaUrl(professionalRow.cover_photo_url)
+    const signedAvatarFromProfilePath = await resolveSignedProfileMediaUrl(supabase, profileRow?.avatar_url)
+    const signedAvatarFromProfessionalPath = await resolveSignedProfileMediaUrl(supabase, professionalRow.cover_photo_url)
 
     if (signedAvatarFromProfilePath) {
       snapshot.account.avatarUrl = signedAvatarFromProfilePath

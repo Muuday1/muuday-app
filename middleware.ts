@@ -72,6 +72,8 @@ export async function middleware(request: NextRequest) {
     response.cookies.set('muuday_country', country, {
       path: '/',
       sameSite: 'lax',
+      secure: true,
+      httpOnly: false, // client-side may read it for UI hints
       maxAge: 60 * 60 * 24 * 30,
     })
   }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { resolveAuthenticatedProfessionalContext } from '@/lib/calendar/auth-context'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 import { createCalendarOAuthState } from '@/lib/calendar/oauth-state'
@@ -50,11 +50,6 @@ export async function GET(
     return NextResponse.json({ error: authContext.error }, { status: authContext.status })
   }
 
-  const admin = createAdminClient()
-  if (!admin) {
-    return NextResponse.json({ error: 'Admin client not configured.' }, { status: 500 })
-  }
-
   const adapter = getCalendarProviderAdapter(provider)
   if (!adapter.getAuthUrl) {
     return NextResponse.json({ error: 'Provider nao suporta OAuth URL.' }, { status: 400 })
@@ -69,7 +64,8 @@ export async function GET(
     redirectPath,
   })
 
-  await upsertCalendarIntegration(admin, {
+  const supabase = createClient()
+  await upsertCalendarIntegration(supabase, {
     professionalId: authContext.professionalId,
     provider,
     authType: 'oauth2',
@@ -120,11 +116,6 @@ export async function POST(
     return NextResponse.json({ error: authContext.error }, { status: authContext.status })
   }
 
-  const admin = createAdminClient()
-  if (!admin) {
-    return NextResponse.json({ error: 'Admin client not configured.' }, { status: 500 })
-  }
-
   const parsed = appleConnectSchema.safeParse(await request.json())
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Dados invalidos.' }, { status: 400 })
@@ -132,7 +123,8 @@ export async function POST(
 
   const payload = parsed.data
 
-  await upsertCalendarIntegration(admin, {
+  const supabase = createClient()
+  await upsertCalendarIntegration(supabase, {
     professionalId: authContext.professionalId,
     provider: 'apple',
     authType: 'caldav',
@@ -146,7 +138,7 @@ export async function POST(
   })
 
   try {
-    const probe = await verifyAndPersistAppleCaldavConnection(admin, {
+    const probe = await verifyAndPersistAppleCaldavConnection(supabase, {
       professionalId: authContext.professionalId,
       providerAccountEmail: payload.accountEmail || payload.username,
       credentials: {
@@ -156,7 +148,7 @@ export async function POST(
       },
     })
 
-    await admin
+    await supabase
       .from('professional_settings')
       .upsert(
         {
@@ -167,7 +159,7 @@ export async function POST(
         { onConflict: 'professional_id' },
       )
 
-    await syncExternalBusySlotsForProfessional(admin, authContext.professionalId, 'apple')
+    await syncExternalBusySlotsForProfessional(supabase, authContext.professionalId, 'apple')
 
     return NextResponse.json({
       success: true,
@@ -179,7 +171,7 @@ export async function POST(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Falha ao conectar Apple CalDAV.'
 
-    await admin
+    await supabase
       .from('calendar_integrations')
       .update({
         connection_status: 'error',

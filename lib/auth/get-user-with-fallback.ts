@@ -1,10 +1,15 @@
 type SupabaseAuthClientLike = {
   auth: {
     getUser: () => Promise<{ data: { user: unknown | null } }>
-    getSession: () => Promise<{ data: { session: { user?: unknown | null } | null } }>
   }
 }
 
+/**
+ * Always use getUser() — never fall back to getSession().
+ * getSession() reads from cookies and can be spoofed; getUser()
+ * validates the JWT with Supabase Auth and is the secure source
+ * of truth for server-side identity.
+ */
 export async function getUserWithSessionFallback<TUser = unknown>(
   supabase: SupabaseAuthClientLike,
 ): Promise<TUser | null> {
@@ -12,12 +17,6 @@ export async function getUserWithSessionFallback<TUser = unknown>(
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (user) return user as TUser
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  return (session?.user as TUser | null) || null
+  return (user as TUser | null) || null
 }
 

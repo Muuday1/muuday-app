@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { resolveAuthenticatedProfessionalContext } from '@/lib/calendar/auth-context'
 import { syncExternalBusySlotsForProfessional } from '@/lib/calendar/sync/service'
 
@@ -14,18 +14,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: context.error }, { status: context.status })
   }
 
-  const admin = createAdminClient()
-  if (!admin) {
-    return NextResponse.json({ error: 'Admin client not configured.' }, { status: 500 })
-  }
-
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})))
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Payload invalido.' }, { status: 400 })
   }
 
+  const supabase = createClient()
   const result = await syncExternalBusySlotsForProfessional(
-    admin,
+    supabase,
     context.professionalId,
     parsed.data.provider,
   )

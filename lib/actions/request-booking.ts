@@ -1016,12 +1016,14 @@ export async function acceptRequestBooking(
       accepted_at: null,
       updated_at: new Date().toISOString(),
     }
-    await supabase
+    const { error: requestRecoveryError } = await supabase
       .from('request_bookings')
       .update(requestRecoveryPatch)
       .eq('id', String(freshRequest.id))
       .eq('user_id', user.id)
       .eq('status', currentStatus)
+
+
 
     return {
       success: false,
@@ -1041,9 +1043,7 @@ export async function acceptRequestBooking(
     .eq('user_id', user.id)
     .eq('status', currentStatus)
 
-  if (requestUpdateError) {
-    return { success: false, error: 'N?o foi poss?vel finalizar a solicita??o.' }
-  }
+
 
   await enqueueBookingCalendarSync({
     bookingId: booking.id,

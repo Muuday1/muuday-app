@@ -98,7 +98,7 @@ async function applyPaymentRefund(
   bookingId: string,
   refundPercentage: number,
 ) {
-  const { data: paymentData, error: paymentError } = await supabase
+  const query = supabase
     .from('payments')
     .select('id, amount_total, status')
     .eq('booking_id', bookingId)
@@ -106,6 +106,10 @@ async function applyPaymentRefund(
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  let paymentData: { id: string; amount_total: number; status: string } | null = null
+  let paymentError: { message?: string } | null = null
+  ;({ data: paymentData, error: paymentError } = await query)
 
   if (!paymentData || paymentError) return
 
@@ -262,7 +266,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Este agendamento n?o pode ser confirmado no estado atual.' }
   }
 
-  const { data: updatedBooking, error } = await supabase
+  let { data: updatedBooking, error } = await supabase
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', safeBookingId)
@@ -366,7 +370,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     cancelQuery = cancelQuery.eq('professional_id', professionalId)
   }
 
-  const { data: cancelledBooking, error } = await cancelQuery.select('id').maybeSingle()
+  let { data: cancelledBooking, error } = await cancelQuery.select('id').maybeSingle()
 
   if (error || !cancelledBooking) {
     return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
@@ -621,7 +625,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     return { success: false, error: 'N?o e poss?vel adicionar link a este agendamento.' }
   }
 
-  const { data: updatedBooking, error } = await supabase
+  let { data: updatedBooking, error } = await supabase
     .from('bookings')
     .update({ session_link: parsedLink.data })
     .eq('id', safeBookingId)
@@ -670,7 +674,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'A sess?o s? pode ser concluida apos o hor?rio previsto de termino.' }
   }
 
-  const { data: completedBooking, error } = await supabase
+  let { data: completedBooking, error } = await supabase
     .from('bookings')
     .update({ status: 'completed' })
     .eq('id', safeBookingId)
@@ -724,7 +728,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     },
   }
 
-  const { data: updated, error } = await supabase
+  let { data: updated, error } = await supabase
     .from('bookings')
     .update(patch)
     .eq('id', safeBookingId)
@@ -732,6 +736,8 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     .eq('status', 'confirmed')
     .select('id')
     .maybeSingle()
+
+
 
   if (error || !updated) {
     return { success: false, error: 'N?o foi poss?vel registrar no-show. Tente novamente.' }
@@ -800,7 +806,7 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     },
   }
 
-  const { data: updated, error } = await supabase
+  let { data: updated, error } = await supabase
     .from('bookings')
     .update(patch)
     .eq('id', safeBookingId)

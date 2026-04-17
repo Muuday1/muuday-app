@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const payloadSchema = z.object({
   bio: z.string().trim().min(1).max(500),
@@ -13,6 +15,12 @@ function fallbackRewrite(input: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const rl = await rateLimit('rewriteBio', `rewrite-bio:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   const supabase = createClient()
   const {
     data: { user },

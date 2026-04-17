@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { clearCalendarIntegrationSecrets } from '@/lib/calendar/integration-repo'
 import { resolveAuthenticatedProfessionalContext } from '@/lib/calendar/auth-context'
 import type { CalendarProvider } from '@/lib/calendar/types'
@@ -15,10 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: context.error }, { status: context.status })
   }
 
-  const admin = createAdminClient()
-  if (!admin) {
-    return NextResponse.json({ error: 'Admin client not configured.' }, { status: 500 })
-  }
+  const supabase = createClient()
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})))
   if (!parsed.success) {
@@ -27,15 +24,15 @@ export async function POST(request: NextRequest) {
 
   const provider = parsed.data.provider as CalendarProvider | undefined
 
-  await clearCalendarIntegrationSecrets(admin, context.professionalId)
+  await clearCalendarIntegrationSecrets(supabase, context.professionalId)
 
-  await admin
+  await supabase
     .from('external_calendar_busy_slots')
     .delete()
     .eq('professional_id', context.professionalId)
 
   if (!provider) {
-    await admin
+    await supabase
       .from('professional_settings')
       .update({
         calendar_sync_provider: null,

@@ -5,7 +5,7 @@ export const runtime = 'nodejs'
 
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -460,8 +460,8 @@ export async function BuscarPageContent({
   isLoggedIn?: boolean
   basePath?: string
 }) {
-  const readClient = createAdminClient()
-  const exchangeRates = await getExchangeRates(readClient || undefined)
+  const readClient = createClient()
+  const exchangeRates = await getExchangeRates(readClient)
 
   const queryText = (searchParams.q || '').trim()
   const selectedCategory = searchParams.categoria || ''
