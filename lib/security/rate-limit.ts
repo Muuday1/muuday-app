@@ -199,6 +199,11 @@ export const RATE_LIMITS = {
   onboardingSubmitReview: { limit: 5, windowSeconds: 300 },
   recomputeVisibility: { limit: 10, windowSeconds: 60 },
   stripeCheckout: { limit: 10, windowSeconds: 60 },
+  calendarSync: { limit: 10, windowSeconds: 60 },
+  calendarConnect: { limit: 10, windowSeconds: 60 },
+  calendarDisconnect: { limit: 10, windowSeconds: 60 },
+  openTerm: { limit: 20, windowSeconds: 60 },
+  acceptTerm: { limit: 20, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(
