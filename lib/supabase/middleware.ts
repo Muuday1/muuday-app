@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 type ProfileRole = 'usuario' | 'profissional' | 'admin'
 
@@ -208,7 +209,7 @@ export async function updateSession(request: NextRequest) {
   if (user && ['/login', '/cadastro'].includes(pathname)) {
     const role = await getProfileRole()
     const url = request.nextUrl.clone()
-    url.pathname = role === 'profissional' ? '/dashboard' : '/buscar-auth'
+    url.pathname = resolvePostLoginDestination(role)
     return applyPendingCookies(NextResponse.redirect(url))
   }
 

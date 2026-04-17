@@ -17,11 +17,19 @@ function sanitizeNextPath(value: string | null) {
   return value
 }
 
+function normalizeRole(value: unknown) {
+  const normalized = String(value || '').toLowerCase().trim()
+  if (normalized === 'admin' || normalized === 'profissional' || normalized === 'usuario') {
+    return normalized
+  }
+  return null
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error')
-  const roleHint = searchParams.get('role') === 'profissional' ? 'profissional' : 'usuario'
+  const roleHint = normalizeRole(searchParams.get('role')) || 'usuario'
   const safeNextPath = sanitizeNextPath(searchParams.get('next'))
   const baseUrl = resolveRequestOrigin(request)
 
@@ -93,10 +101,14 @@ export async function GET(request: NextRequest) {
   }
 
   function resolveDestinationByRole(role: string | null | undefined) {
-    if (role === 'admin') return '/buscar'
     if (safeNextPath) return safeNextPath
     return resolvePostLoginDestination(role)
   }
+
+  const metadataRole =
+    normalizeRole(user.app_metadata?.role) ||
+    normalizeRole((user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role) ||
+    normalizeRole(user.user_metadata?.role)
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -115,7 +127,7 @@ export async function GET(request: NextRequest) {
       id: user.id,
       email: user.email || '',
       full_name: String(fullName),
-      role: roleHint,
+      role: metadataRole || roleHint,
     })
 
     const { data: profileAfterUpsert } = await supabase

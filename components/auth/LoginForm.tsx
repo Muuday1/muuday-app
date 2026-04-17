@@ -120,7 +120,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
       }
     }
 
-    let destination = '/buscar'
+    let destination = '/buscar-auth'
     if (userId) {
       identifyEventUser(userId, { email: userEmail || email })
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
@@ -231,7 +231,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
           <span className="text-xs font-medium text-neutral-400">ou entre com</span>
           <div className="h-px flex-1 bg-neutral-200" />
         </div>
-        <SocialAuthButtons roleHint="usuario" redirectPath={safeRedirectPath || undefined} compact={compact} />
+        <SocialAuthButtons redirectPath={safeRedirectPath || undefined} compact={compact} />
       </div>
 
       <p className={compact ? 'mt-4 text-center text-xs text-neutral-500' : 'mt-6 text-center text-sm text-neutral-500'}>

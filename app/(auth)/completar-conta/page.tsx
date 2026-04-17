@@ -7,6 +7,15 @@ import { COUNTRIES } from '@/lib/utils'
 import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
 import { sendWelcomeEmailAction } from '@/lib/actions/email'
 import { Loader2 } from 'lucide-react'
+import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
+
+function normalizeRole(value: unknown) {
+  const normalized = String(value || '').toLowerCase().trim()
+  if (normalized === 'admin' || normalized === 'profissional' || normalized === 'usuario') {
+    return normalized
+  }
+  return null
+}
 
 export default function CompletarContaPage() {
   const router = useRouter()
@@ -16,9 +25,7 @@ export default function CompletarContaPage() {
   const [currency, setCurrency] = useState('BRL')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  const roleParam = searchParams.get('role')
-  const roleHint = roleParam === 'profissional' ? 'profissional' : 'usuario'
+  const roleHint = normalizeRole(searchParams.get('role')) || 'usuario'
   const nextParam = searchParams.get('next') || ''
   const safeNextPath =
     nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && nextParam !== '/'
@@ -55,11 +62,15 @@ export default function CompletarContaPage() {
       .eq('id', user.id)
       .maybeSingle()
 
-    const currentRole = String(currentProfile?.role || '').toLowerCase()
+    const currentRole = normalizeRole(currentProfile?.role)
+    const metadataRole =
+      normalizeRole(user.app_metadata?.role) ||
+      normalizeRole((user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role) ||
+      normalizeRole(user.user_metadata?.role)
     const finalRole =
       currentRole === 'admin' || currentRole === 'profissional'
         ? currentRole
-        : roleHint
+        : metadataRole || roleHint
 
     const { error } = await supabase
       .from('profiles')
@@ -88,7 +99,7 @@ export default function CompletarContaPage() {
     if (safeNextPath) {
       router.push(safeNextPath)
     } else {
-      router.push(finalRole === 'profissional' ? '/dashboard' : '/buscar')
+      router.push(resolvePostLoginDestination(finalRole))
     }
     router.refresh()
   }

@@ -49,7 +49,7 @@ function getClientAppBaseUrl() {
 
 export default function SocialAuthButtons({
   redirectPath,
-  roleHint = 'usuario',
+  roleHint,
   compact = false,
 }: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null)
