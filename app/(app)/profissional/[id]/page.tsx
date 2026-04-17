@@ -28,7 +28,7 @@ import { isFeatureAvailable } from '@/lib/tier-config'
 const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
 const PROFESSIONAL_PROFILE_FIELDS =
-  'id,user_id,public_code,status,category,subcategories,tags,bio,timezone,languages,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,years_experience,social_links,video_intro_url,cover_photo_url,first_booking_enabled,tier,whatsapp_number'
+  'id,user_id,public_code,status,category,subcategories,tags,bio,languages,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,years_experience,social_links,video_intro_url,cover_photo_url,first_booking_enabled,tier,whatsapp_number'
 const PROFESSIONAL_PROFILE_SELECT_WITH_VISIBILITY =
   `${PROFESSIONAL_PROFILE_FIELDS},is_publicly_visible,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role)` as const
 const PROFESSIONAL_PROFILE_SELECT_LEGACY =
