@@ -8,6 +8,9 @@ import { getCalendarProviderAdapter } from '@/lib/calendar/providers'
 import { syncExternalBusySlotsForProfessional, verifyAndPersistAppleCaldavConnection } from '@/lib/calendar/sync/service'
 import { upsertCalendarIntegration } from '@/lib/calendar/integration-repo'
 import type { CalendarProvider } from '@/lib/calendar/types'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
+import { validateCsrfOrigin } from '@/lib/http/csrf'
 
 const PROVIDERS = new Set<CalendarProvider>(['google', 'outlook', 'apple'])
 const NONCE_COOKIE_NAME = 'muuday_calendar_oauth_nonce'
@@ -33,6 +36,17 @@ export async function GET(
   request: NextRequest,
   context: { params: { provider: string } },
 ) {
+  const ip = getClientIp(request)
+  const rl = await rateLimit('calendarConnect', `calendar-connect:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
+  const csrfCheck = validateCsrfOrigin(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
+
   const provider = parseProvider(context.params.provider)
   if (!provider) {
     return NextResponse.json({ error: 'Provider invalido.' }, { status: 400 })
@@ -99,6 +113,17 @@ export async function POST(
   request: NextRequest,
   context: { params: { provider: string } },
 ) {
+  const ip = getClientIp(request)
+  const rl = await rateLimit('calendarConnect', `calendar-connect:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
+  const csrfCheck = validateCsrfOrigin(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
+
   const provider = parseProvider(context.params.provider)
   if (!provider) {
     return NextResponse.json({ error: 'Provider invalido.' }, { status: 400 })

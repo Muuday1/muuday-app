@@ -9,6 +9,8 @@ import {
 } from '@/lib/legal/professional-terms'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { extractRequestIp, verifyTermViewProofToken } from '@/lib/legal/term-acceptance-proof'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const payloadSchema = z.object({
   termKey: z.enum(PROFESSIONAL_REQUIRED_TERMS as [ProfessionalTermKey, ...ProfessionalTermKey[]]),
@@ -22,6 +24,12 @@ function isMissingTableError(error: { code?: string; message?: string; details?:
 }
 
 export async function POST(request: Request) {
+  const clientIp = getClientIp(request as never)
+  const rl = await rateLimit('acceptTerm', `accept-term:${clientIp}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json({ error: 'Termo inválido.' }, { status: 400 })

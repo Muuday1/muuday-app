@@ -6,6 +6,8 @@ import {
   createTermViewProofToken,
   extractRequestIp,
 } from '@/lib/legal/term-acceptance-proof'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 import {
   PROFESSIONAL_REQUIRED_TERMS,
   PROFESSIONAL_TERMS_VERSION,
@@ -23,6 +25,12 @@ function isMissingTableError(error: { code?: string; message?: string; details?:
 }
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request as never)
+  const rl = await rateLimit('openTerm', `open-term:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json({ error: 'Termo inválido.' }, { status: 400 })
