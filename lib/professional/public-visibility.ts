@@ -191,7 +191,14 @@ export async function recomputeApprovedProfessionalsVisibility(
 
   for (const row of rows || []) {
     const professionalId = asId(row.id)
-    const isPubliclyVisible = Boolean(visibilityByProfessionalId.get(professionalId)?.canGoLive)
+    const visibility = visibilityByProfessionalId.get(professionalId)
+    if (!visibility) {
+      failed += 1
+      failures.push(`${professionalId}:visibility_evaluation_unavailable`)
+      continue
+    }
+
+    const isPubliclyVisible = Boolean(visibility.canGoLive)
     const { error: updateError } = await supabase
       .from('professionals')
       .update({
