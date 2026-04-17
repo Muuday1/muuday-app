@@ -324,7 +324,7 @@ async function loadPublicSearchBaseDataByIds(
     let query = readClient
       .from('professionals')
       .select(
-        'id,user_id,public_code,status,bio,category,subcategories,tags,languages,years_experience,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,tier,first_booking_enabled,cover_photo_url,video_intro_url,whatsapp_number,social_links,profiles!inner(full_name,country,avatar_url,role)',
+        'id,user_id,public_code,status,bio,category,subcategories,tags,languages,years_experience,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,tier,first_booking_enabled,cover_photo_url,video_intro_url,whatsapp_number,social_links,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role)',
       )
       .eq('status', 'approved')
       .eq('profiles.role', 'profissional')
@@ -1073,6 +1073,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Busca
     </PublicPageLayout>
   )
 }
+
 
 
 
