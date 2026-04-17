@@ -84,9 +84,13 @@ function validateEnv() {
     const lines = parsed.error.issues.map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
     const message = `Invalid or missing environment variables:\n${lines.join('\n')}`
 
-    // In CI or production, fail hard so we catch misconfigurations early
-    if (process.env.CI || process.env.VERCEL_ENV === 'production') {
+    // In CI, fail hard so we catch misconfigurations early.
+    // On Vercel production, log as error but do not crash the Edge runtime.
+    if (process.env.CI) {
       throw new Error(message)
+    }
+    if (process.env.VERCEL_ENV === 'production') {
+      console.error(`[env] ${message}`)
     }
 
     // In local development, warn but do not crash so the dev server can still start
@@ -96,10 +100,13 @@ function validateEnv() {
 
   // Cross-field validation: ensure at least one DB connection string is present
   const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_POOLER_URL || process.env.SUPABASE_DB_DIRECT_URL
-  if (!dbUrl && (process.env.CI || process.env.VERCEL_ENV === 'production')) {
+  if (!dbUrl && process.env.CI) {
     throw new Error(
       'Missing database connection string. Set one of: DATABASE_URL, SUPABASE_DB_POOLER_URL, SUPABASE_DB_DIRECT_URL',
     )
+  }
+  if (!dbUrl && process.env.VERCEL_ENV === 'production') {
+    console.error('Missing database connection string. Set one of: DATABASE_URL, SUPABASE_DB_POOLER_URL, SUPABASE_DB_DIRECT_URL')
   }
 
   return parsed.success ? parsed.data : (process.env as unknown as z.infer<typeof envSchema>)
