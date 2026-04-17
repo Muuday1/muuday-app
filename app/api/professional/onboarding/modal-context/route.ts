@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
@@ -45,7 +44,6 @@ function normalizeRequestedProfessionalId(rawValue: string | null) {
 }
 
 async function loadProfessionalServicesWithFallback(args: {
-  admin: ReturnType<typeof createAdminClient>
   supabase: ReturnType<typeof createClient>
   professionalId: string
   requestedProfessionalId: string
@@ -55,35 +53,6 @@ async function loadProfessionalServicesWithFallback(args: {
   errorMessage: string
 }> {
   const fallbackErrorMessage = 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.'
-  let hadFallback = false
-
-  if (args.admin) {
-    const adminResponse = await args.admin
-      .from('professional_services')
-      .select('id,name,description,price_brl,duration_minutes')
-      .eq('professional_id', args.professionalId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: true })
-
-    if (!adminResponse.error) {
-      return {
-        rows: (adminResponse.data || []) as ProfessionalServiceRow[],
-        state: 'loaded',
-        errorMessage: '',
-      }
-    }
-
-    hadFallback = true
-    console.error('[onboarding-modal-context] services load attempt failed', {
-      attempt: 'admin_full',
-      professionalId: args.professionalId,
-      requestedProfessionalId: args.requestedProfessionalId || null,
-      code: adminResponse.error.code,
-      message: adminResponse.error.message,
-      details: adminResponse.error.details,
-      hint: adminResponse.error.hint,
-    })
-  }
 
   const userResponse = await args.supabase
     .from('professional_services')
@@ -95,14 +64,11 @@ async function loadProfessionalServicesWithFallback(args: {
   if (!userResponse.error) {
     return {
       rows: (userResponse.data || []) as ProfessionalServiceRow[],
-      state: hadFallback ? 'degraded' : 'loaded',
-      errorMessage: hadFallback
-        ? 'Carregamos seus serviços em modo de contingência. Se notar dados desatualizados, tente recarregar o tracker.'
-        : '',
+      state: 'loaded',
+      errorMessage: '',
     }
   }
 
-  hadFallback = true
   console.error('[onboarding-modal-context] services load attempt failed', {
     attempt: 'user_full',
     professionalId: args.professionalId,
@@ -155,16 +121,14 @@ async function loadProfessionalServicesWithFallback(args: {
 }
 
 async function loadOptionalTaxonomyCached(supabase: ReturnType<typeof createClient>) {
-  const admin = createAdminClient()
-  const db = admin ?? supabase
   return getOrSetUpstashJsonCache({
     key: OPTIONAL_TAXONOMY_CACHE_KEY,
     ttlSeconds: OPTIONAL_STATIC_CACHE_TTL_SECONDS,
     version: 'v1',
     loader: async () => {
       const [categoriesResponse, subcategoriesResponse] = await Promise.all([
-        db.from('categories').select('slug,name_pt').eq('is_active', true),
-        db.from('subcategories').select('slug,name_pt').eq('is_active', true),
+        supabase.from('categories').select('slug,name_pt').eq('is_active', true),
+        supabase.from('subcategories').select('slug,name_pt').eq('is_active', true),
       ])
       return {
         categories: categoriesResponse.data || [],
@@ -216,8 +180,6 @@ async function loadOptionalPlanPricingCached(args: {
 
 export async function GET(request: Request) {
   const supabase = createClient()
-  const admin = createAdminClient()
-  const db = admin ?? supabase
   const url = new URL(request.url)
   const scope = normalizeScope(url.searchParams.get('scope'))
   const skipTrackerBootstrap = shouldSkipTrackerBootstrap(url.searchParams.get('skipTracker'))
@@ -265,7 +227,7 @@ export async function GET(request: Request) {
       loadOptionalTaxonomyCached(supabase),
       loadOptionalPlanConfigsCached(),
       getExchangeRates(supabase),
-      db
+      supabase
         .from('professional_settings')
         .select('onboarding_finance_bypass')
         .eq('professional_id', professional.id)
@@ -329,23 +291,22 @@ export async function GET(request: Request) {
     trackerMeta,
   ] = await Promise.all([
     loadProfessionalServicesWithFallback({
-      admin,
       supabase,
       professionalId: String(professional.id || ''),
       requestedProfessionalId: requestedProfessionalId || '',
     }),
-    db
+    supabase
       .from('professional_settings')
       .select(
         'timezone,minimum_notice_hours,max_booking_window_days,buffer_minutes,buffer_time_minutes,confirmation_mode,enable_recurring,allow_multi_session,require_session_purpose,calendar_sync_provider,terms_accepted_at,terms_version,onboarding_finance_bypass',
       )
       .eq('professional_id', professional.id)
       .maybeSingle(),
-    db
+    supabase
       .from('availability')
       .select('day_of_week,start_time,end_time,is_active')
       .eq('professional_id', professional.id),
-    db
+    supabase
       .from('professional_applications')
       .select(
         'title,display_name,category,specialty_name,taxonomy_suggestions,focus_areas,years_experience,primary_language,secondary_languages,target_audiences,qualifications_structured',
@@ -354,12 +315,12 @@ export async function GET(request: Request) {
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    db
+    supabase
       .from('professional_credentials')
       .select('id,file_name,file_url,scan_status,verified,credential_type')
       .eq('professional_id', professional.id)
       .order('uploaded_at', { ascending: false }),
-    db
+    supabase
       .from('profiles')
       .select('currency,full_name,timezone,avatar_url')
       .eq('id', String(professional.user_id || ''))

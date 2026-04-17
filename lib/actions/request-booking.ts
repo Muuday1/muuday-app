@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
@@ -112,7 +111,6 @@ function isActiveSlotCollision(error: unknown) {
 
 async function getAuthenticatedContext() {
   const supabase = createClient()
-  const adminSupabase = createAdminClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -128,7 +126,6 @@ async function getAuthenticatedContext() {
 
   return {
     supabase,
-    adminSupabase,
     user,
     profile,
     professionalId: professional?.id ?? null,
@@ -770,7 +767,7 @@ export async function acceptRequestBooking(
   const parsed = requestIdSchema.safeParse(requestId)
   if (!parsed.success) return { success: false, error: 'Solicita??o invalida.' }
 
-  const { supabase, adminSupabase, user, profile } = await getAuthenticatedContext()
+  const { supabase, user, profile } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
@@ -1019,20 +1016,12 @@ export async function acceptRequestBooking(
       accepted_at: null,
       updated_at: new Date().toISOString(),
     }
-    const { error: requestRecoveryError } = await supabase
+    await supabase
       .from('request_bookings')
       .update(requestRecoveryPatch)
       .eq('id', String(freshRequest.id))
       .eq('user_id', user.id)
       .eq('status', currentStatus)
-
-    if (requestRecoveryError && adminSupabase) {
-      await adminSupabase
-        .from('request_bookings')
-        .update(requestRecoveryPatch)
-        .eq('id', String(freshRequest.id))
-        .eq('status', currentStatus)
-    }
 
     return {
       success: false,
@@ -1052,17 +1041,8 @@ export async function acceptRequestBooking(
     .eq('user_id', user.id)
     .eq('status', currentStatus)
 
-  if (requestUpdateError && adminSupabase) {
-    await adminSupabase
-      .from('request_bookings')
-      .update({
-        status: 'converted',
-        accepted_at: new Date().toISOString(),
-        converted_booking_id: booking.id,
-        proposal_expires_at: null,
-      })
-      .eq('id', String(freshRequest.id))
-      .eq('status', currentStatus)
+  if (requestUpdateError) {
+    return { success: false, error: 'N?o foi poss?vel finalizar a solicita??o.' }
   }
 
   await enqueueBookingCalendarSync({

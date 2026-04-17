@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const PROFILE_MEDIA_BUCKET = 'professional-profile-media'
@@ -31,18 +30,6 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: 'Perfil profissional nao encontrado.' }, { status: 404 })
   }
 
-  const admin = createAdminClient()
-  if (admin) {
-    const { data: bucket, error } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
-    if (error || !bucket) {
-      return NextResponse.json(
-        { ok: false, error: mapStorageError(error || { message: 'bucket missing' }) },
-        { status: 503 },
-      )
-    }
-    return NextResponse.json({ ok: true, mode: 'admin' })
-  }
-
   const probePath = `${professional.id}/.health-${Date.now()}.txt`
   const probeContent = new Blob(['ok'], { type: 'text/plain' })
   const uploadResult = await supabase.storage.from(PROFILE_MEDIA_BUCKET).upload(probePath, probeContent, {
@@ -55,6 +42,6 @@ export async function GET() {
   }
 
   await supabase.storage.from(PROFILE_MEDIA_BUCKET).remove([probePath])
-  return NextResponse.json({ ok: true, mode: 'auth-policy' })
+  return NextResponse.json({ ok: true })
 }
 

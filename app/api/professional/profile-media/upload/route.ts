@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateFileSignature } from '@/lib/security/file-signature'
 
@@ -74,40 +73,6 @@ export async function POST(request: Request) {
     }
 
     const filePath = `${professional.id}/${Date.now()}-${randomUUID()}.${signatureValidation.extension}`
-    const admin = createAdminClient()
-
-    if (admin) {
-      const { data: bucket, error: bucketError } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
-      if (bucketError || !bucket) {
-        return NextResponse.json(
-          { error: 'Bucket professional-profile-media nao encontrado ou inacessivel.' },
-          { status: 503 },
-        )
-      }
-      if (Boolean((bucket as { public?: boolean }).public)) {
-        return NextResponse.json(
-          { error: 'Bucket professional-profile-media deve permanecer privado.' },
-          { status: 503 },
-        )
-      }
-
-      const { error: uploadError } = await admin.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
-        contentType: signatureValidation.canonicalMimeType,
-        upsert: false,
-        cacheControl: '3600',
-      })
-
-      if (uploadError) {
-        return NextResponse.json({ error: getStorageUploadErrorMessage(uploadError) }, { status: 500 })
-      }
-
-      const signedUrl = await createProfileMediaSignedUrl(admin.storage.from(PROFILE_MEDIA_BUCKET), filePath)
-
-      return NextResponse.json({
-        signedUrl,
-        path: filePath,
-      })
-    }
 
     const { error: uploadError } = await supabase.storage.from(PROFILE_MEDIA_BUCKET).upload(filePath, bytes, {
       contentType: signatureValidation.canonicalMimeType,

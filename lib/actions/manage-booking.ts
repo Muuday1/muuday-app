@@ -3,7 +3,6 @@
 import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -84,7 +83,6 @@ function getMinutesInTimezone(date: Date, timezone: string) {
 
 async function getAuthenticatedContext() {
   const supabase = createClient()
-  const adminSupabase = createAdminClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -92,16 +90,15 @@ async function getAuthenticatedContext() {
 
   const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
 
-  return { supabase, adminSupabase, user, professionalId: professional?.id ?? null }
+  return { supabase, user, professionalId: professional?.id ?? null }
 }
 
 async function applyPaymentRefund(
   supabase: ReturnType<typeof createClient>,
-  adminSupabase: ReturnType<typeof createAdminClient>,
   bookingId: string,
   refundPercentage: number,
 ) {
-  const query = supabase
+  const { data: paymentData, error: paymentError } = await supabase
     .from('payments')
     .select('id, amount_total, status')
     .eq('booking_id', bookingId)
@@ -109,21 +106,6 @@ async function applyPaymentRefund(
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-
-  let paymentData: { id: string; amount_total: number; status: string } | null = null
-  let paymentError: { message?: string } | null = null
-  ;({ data: paymentData, error: paymentError } = await query)
-
-  if ((!paymentData || paymentError) && adminSupabase) {
-    ;({ data: paymentData, error: paymentError } = await adminSupabase
-      .from('payments')
-      .select('id, amount_total, status')
-      .eq('booking_id', bookingId)
-      .in('status', ['captured', 'partial_refunded'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle())
-  }
 
   if (!paymentData || paymentError) return
 
@@ -156,10 +138,7 @@ async function applyPaymentRefund(
           refunded_at: nowIso,
         }
 
-  let { error } = await supabase.from('payments').update(patch).eq('id', paymentData.id)
-  if (error && adminSupabase) {
-    ;({ error } = await adminSupabase.from('payments').update(patch).eq('id', paymentData.id))
-  }
+  await supabase.from('payments').update(patch).eq('id', paymentData.id)
 }
 
 async function loadAvailabilityRules(
@@ -259,7 +238,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   if (!bookingIdValidation.ok) return bookingIdValidation.result
   const safeBookingId = bookingIdValidation.id
 
-  const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
@@ -283,7 +262,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     return { success: false, error: 'Este agendamento n?o pode ser confirmado no estado atual.' }
   }
 
-  let { data: updatedBooking, error } = await supabase
+  const { data: updatedBooking, error } = await supabase
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', safeBookingId)
@@ -291,17 +270,6 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     .in('status', ['pending', 'pending_confirmation'])
     .select('id')
     .maybeSingle()
-
-  if ((!updatedBooking || error) && adminSupabase) {
-    ;({ data: updatedBooking, error } = await adminSupabase
-      .from('bookings')
-      .update({ status: 'confirmed' })
-      .eq('id', safeBookingId)
-      .eq('professional_id', professionalId)
-      .in('status', ['pending', 'pending_confirmation'])
-      .select('id')
-      .maybeSingle())
-  }
 
   if (error || !updatedBooking) {
     return { success: false, error: 'Erro ao confirmar agendamento. Tente novamente.' }
@@ -333,7 +301,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     normalizedReason = parsedReason.data
   }
 
-  const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
@@ -398,23 +366,13 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     cancelQuery = cancelQuery.eq('professional_id', professionalId)
   }
 
-  let { data: cancelledBooking, error } = await cancelQuery.select('id').maybeSingle()
-  if ((!cancelledBooking || error) && adminSupabase) {
-    let adminQuery = adminSupabase
-      .from('bookings')
-      .update(updateData)
-      .eq('id', safeBookingId)
-      .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-    if (isBookingUser) adminQuery = adminQuery.eq('user_id', user.id)
-    else if (professionalId) adminQuery = adminQuery.eq('professional_id', professionalId)
-    ;({ data: cancelledBooking, error } = await adminQuery.select('id').maybeSingle())
-  }
+  const { data: cancelledBooking, error } = await cancelQuery.select('id').maybeSingle()
 
   if (error || !cancelledBooking) {
     return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
   }
 
-  await applyPaymentRefund(supabase, adminSupabase, safeBookingId, refundDecision.refundPercentage)
+  await applyPaymentRefund(supabase, safeBookingId, refundDecision.refundPercentage)
   await enqueueBookingCalendarSync({
     bookingId: safeBookingId,
     action: 'cancel_booking',
@@ -641,7 +599,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     return { success: false, error: parsedLink.error.issues[0]?.message || 'Link da sess?o inv?lido.' }
   }
 
-  const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
@@ -663,7 +621,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     return { success: false, error: 'N?o e poss?vel adicionar link a este agendamento.' }
   }
 
-  let { data: updatedBooking, error } = await supabase
+  const { data: updatedBooking, error } = await supabase
     .from('bookings')
     .update({ session_link: parsedLink.data })
     .eq('id', safeBookingId)
@@ -671,17 +629,6 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
     .in('status', ['pending', 'pending_confirmation', 'confirmed'])
     .select('id')
     .maybeSingle()
-
-  if ((!updatedBooking || error) && adminSupabase) {
-    ;({ data: updatedBooking, error } = await adminSupabase
-      .from('bookings')
-      .update({ session_link: parsedLink.data })
-      .eq('id', safeBookingId)
-      .eq('professional_id', professionalId)
-      .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-      .select('id')
-      .maybeSingle())
-  }
 
   if (error || !updatedBooking) return { success: false, error: 'Erro ao salvar o link. Tente novamente.' }
 
@@ -694,7 +641,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
   if (!bookingIdValidation.ok) return bookingIdValidation.result
   const safeBookingId = bookingIdValidation.id
 
-  const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
@@ -723,7 +670,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     return { success: false, error: 'A sess?o s? pode ser concluida apos o hor?rio previsto de termino.' }
   }
 
-  let { data: completedBooking, error } = await supabase
+  const { data: completedBooking, error } = await supabase
     .from('bookings')
     .update({ status: 'completed' })
     .eq('id', safeBookingId)
@@ -731,17 +678,6 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
     .eq('status', 'confirmed')
     .select('id')
     .maybeSingle()
-
-  if ((!completedBooking || error) && adminSupabase) {
-    ;({ data: completedBooking, error } = await adminSupabase
-      .from('bookings')
-      .update({ status: 'completed' })
-      .eq('id', safeBookingId)
-      .eq('professional_id', professionalId)
-      .eq('status', 'confirmed')
-      .select('id')
-      .maybeSingle())
-  }
 
   if (error || !completedBooking) {
     return { success: false, error: 'Erro ao concluir agendamento. Tente novamente.' }
@@ -756,7 +692,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
   if (!bookingIdValidation.ok) return bookingIdValidation.result
   const safeBookingId = bookingIdValidation.id
 
-  const { supabase, adminSupabase, user } = await getAuthenticatedContext()
+  const { supabase, user } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
@@ -788,7 +724,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     },
   }
 
-  let { data: updated, error } = await supabase
+  const { data: updated, error } = await supabase
     .from('bookings')
     .update(patch)
     .eq('id', safeBookingId)
@@ -797,36 +733,23 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     .select('id')
     .maybeSingle()
 
-  if ((!updated || error) && adminSupabase) {
-    ;({ data: updated, error } = await adminSupabase
-      .from('bookings')
-      .update(patch)
-      .eq('id', safeBookingId)
-      .eq('user_id', user.id)
-      .eq('status', 'confirmed')
-      .select('id')
-      .maybeSingle())
-  }
-
   if (error || !updated) {
     return { success: false, error: 'N?o foi poss?vel registrar no-show. Tente novamente.' }
   }
 
-  await applyPaymentRefund(supabase, adminSupabase, safeBookingId, 100)
+  await applyPaymentRefund(supabase, safeBookingId, 100)
 
-  if (adminSupabase) {
-    await adminSupabase.from('notifications').insert({
-      user_id: null,
+  await supabase.from('notifications').insert({
+    user_id: null,
+    booking_id: safeBookingId,
+    type: 'ops.professional_no_show',
+    title: 'No-show reportado para profissional',
+    body: 'Um cliente reportou ausencia do profissional. Revisao manual recomendada.',
+    payload: {
       booking_id: safeBookingId,
-      type: 'ops.professional_no_show',
-      title: 'No-show reportado para profissional',
-      body: 'Um cliente reportou ausencia do profissional. Revisao manual recomendada.',
-      payload: {
-        booking_id: safeBookingId,
-        professional_id: booking.professional_id,
-      },
-    })
-  }
+      professional_id: booking.professional_id,
+    },
+  })
 
   await enqueueBookingCalendarSync({
     bookingId: safeBookingId,
@@ -842,7 +765,7 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
   if (!bookingIdValidation.ok) return bookingIdValidation.result
   const safeBookingId = bookingIdValidation.id
 
-  const { supabase, adminSupabase, user, professionalId } = await getAuthenticatedContext()
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
@@ -877,7 +800,7 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     },
   }
 
-  let { data: updated, error } = await supabase
+  const { data: updated, error } = await supabase
     .from('bookings')
     .update(patch)
     .eq('id', safeBookingId)
@@ -885,17 +808,6 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     .eq('status', 'confirmed')
     .select('id')
     .maybeSingle()
-
-  if ((!updated || error) && adminSupabase) {
-    ;({ data: updated, error } = await adminSupabase
-      .from('bookings')
-      .update(patch)
-      .eq('id', safeBookingId)
-      .eq('professional_id', professionalId)
-      .eq('status', 'confirmed')
-      .select('id')
-      .maybeSingle())
-  }
 
   if (error || !updated) {
     return { success: false, error: 'N?o foi poss?vel registrar no-show. Tente novamente.' }
