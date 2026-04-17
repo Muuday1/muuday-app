@@ -95,6 +95,16 @@ Acceptable uses of `createAdminClient` must be limited to:
 
 Any other occurrence in `app/api/professional/*` or `lib/actions/*` is a security violation.
 
+## Step 5 — Env and secret hygiene
+
+1. Run `npm run build` locally to confirm `lib/config/env.ts` validation passes.
+2. Run the rotation check:
+   ```bash
+   node scripts/ops/check-secrets-rotation.cjs
+   ```
+3. Review the CI workflow (`.github/workflows/ci.yml`) to ensure the TruffleHog secret-scan step is present and green on the latest push.
+4. Ensure no `.env*` files are tracked in git.
+
 ## Acceptance Criteria
 
 RLS audit is considered complete only when:
@@ -103,4 +113,6 @@ RLS audit is considered complete only when:
 2. Cross-user SQL test passes.
 3. Direct API script passes with at least one executed check for each applicable critical table.
 4. Code audit confirms zero `createAdminClient` fallbacks in user-facing server actions and API routes.
-5. Evidence (query output + command output) is attached to handover.
+5. Build passes with `lib/config/env.ts` validation enabled.
+6. Secret rotation register has zero `overdue` items (or documented exceptions with ticket numbers).
+7. Evidence (query output + command output) is attached to handover.
