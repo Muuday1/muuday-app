@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 import {
   WAITLIST_API_CORS_POLICY,
   applyCorsHeaders,
@@ -19,19 +20,6 @@ const waitlistSchema = z.object({
   tipo_lead: z.enum(LEAD_TYPES).optional(),
   origem_lead: z.string().trim().max(120, 'origem_lead is too long').optional().or(z.literal('')),
 })
-
-function getClientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) {
-    const firstIp = forwardedFor.split(',')[0]?.trim()
-    if (firstIp) return firstIp
-  }
-
-  const realIp = request.headers.get('x-real-ip')?.trim()
-  if (realIp) return realIp
-
-  return 'unknown'
-}
 
 function buildRateLimitHeaders(rateLimitResult: RateLimitResult): Record<string, string> {
   const headers: Record<string, string> = {

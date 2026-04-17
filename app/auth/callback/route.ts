@@ -10,11 +10,42 @@ function resolveRequestOrigin(request: NextRequest) {
   return getAppBaseUrl()
 }
 
+const ALLOWED_NEXT_PATHS = [
+  '/buscar',
+  '/dashboard',
+  '/agenda',
+  '/perfil',
+  '/configuracoes',
+  '/favoritos',
+  '/completar-perfil',
+  '/onboarding-profissional',
+  '/planos',
+  '/sessao',
+  '/avaliar',
+  '/editar-perfil-profissional',
+  '/configuracoes-agendamento',
+  '/disponibilidade',
+  '/financeiro',
+  '/admin',
+  '/mensagens',
+  '/ajuda',
+  '/sobre',
+] as const
+
+function isAllowedNextPath(value: string | null) {
+  if (!value || value === '/') return false
+  if (!value.startsWith('/') || value.startsWith('//')) return false
+  // Exact match
+  if ((ALLOWED_NEXT_PATHS as readonly string[]).includes(value)) return true
+  // Allow subpaths for known prefixes (e.g. /sessao/123, /agendar/abc)
+  for (const prefix of ALLOWED_NEXT_PATHS) {
+    if (value.startsWith(`${prefix}/`)) return true
+  }
+  return false
+}
+
 function sanitizeNextPath(value: string | null) {
-  if (!value) return ''
-  if (value === '/') return ''
-  if (!value.startsWith('/') || value.startsWith('//')) return ''
-  return value
+  return isAllowedNextPath(value) ? value : ''
 }
 
 function normalizeRole(value: unknown) {

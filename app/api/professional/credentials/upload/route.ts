@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateFileSignature } from '@/lib/security/file-signature'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const CREDENTIALS_BUCKET = 'professional-credentials'
 const STORAGE_URI_PREFIX = `storage://${CREDENTIALS_BUCKET}/`
@@ -59,21 +60,6 @@ function extractStoragePath(fileUrl: string, bucket: string) {
   return null
 }
 
-async function ensureCredentialsBucket(admin: NonNullable<ReturnType<typeof createAdminClient>>) {
-  const { data: bucket } = await admin.storage.getBucket(CREDENTIALS_BUCKET)
-  if (bucket) return
-
-  const { error } = await admin.storage.createBucket(CREDENTIALS_BUCKET, {
-    public: false,
-    fileSizeLimit: String(MAX_FILE_SIZE_BYTES),
-    allowedMimeTypes: Array.from(ALLOWED_TYPES),
-  })
-
-  if (error && !String(error.message || '').toLowerCase().includes('already')) {
-    throw error
-  }
-}
-
 type ResolvedProfessionalContext =
   | {
       ok: true
@@ -105,6 +91,12 @@ async function resolveProfessionalContext(): Promise<ResolvedProfessionalContext
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request as never)
+    const rl = await rateLimit('credentialsUpload', `credentials-upload:${ip}`)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+    }
+
     const authResult = await resolveProfessionalContext()
     if (!authResult.ok) return authResult.response
 
@@ -135,17 +127,10 @@ export async function POST(request: Request) {
     const qualificationName = safeQualificationName(formData.get('qualificationName'))
     const credentialType = resolveCredentialType(formData.get('credentialType'))
 
-    const admin = createAdminClient()
-    if (!admin) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada.' }, { status: 503 })
-    }
-
-    await ensureCredentialsBucket(admin)
-
     const safeBaseName = sanitizeFilename(file.name.replace(/\.[^.]+$/, '')) || 'credential'
     const filePath = `${authResult.professionalId}/${Date.now()}-${randomUUID()}-${safeBaseName}.${signatureValidation.extension}`
 
-    const { error: uploadError } = await admin.storage.from(CREDENTIALS_BUCKET).upload(filePath, bytes, {
+    const { error: uploadError } = await authResult.supabase.storage.from(CREDENTIALS_BUCKET).upload(filePath, bytes, {
       contentType: signatureValidation.canonicalMimeType,
       upsert: false,
       cacheControl: '3600',
@@ -171,7 +156,7 @@ export async function POST(request: Request) {
       .single()
 
     if (insertError) {
-      await admin.storage.from(CREDENTIALS_BUCKET).remove([filePath])
+      await authResult.supabase.storage.from(CREDENTIALS_BUCKET).remove([filePath])
       return NextResponse.json({ error: `Falha ao registrar comprovante: ${insertError.message}` }, { status: 500 })
     }
 
@@ -221,12 +206,9 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: `Falha ao remover comprovante: ${deleteDbError.message}` }, { status: 500 })
     }
 
-    const admin = createAdminClient()
-    if (admin) {
-      const storagePath = extractStoragePath(String(credentialRow.file_url || ''), CREDENTIALS_BUCKET)
-      if (storagePath) {
-        await admin.storage.from(CREDENTIALS_BUCKET).remove([storagePath])
-      }
+    const storagePath = extractStoragePath(String(credentialRow.file_url || ''), CREDENTIALS_BUCKET)
+    if (storagePath) {
+      await authResult.supabase.storage.from(CREDENTIALS_BUCKET).remove([storagePath])
     }
 
     return NextResponse.json({ success: true })

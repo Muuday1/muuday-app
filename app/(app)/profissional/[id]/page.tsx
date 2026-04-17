@@ -2,7 +2,6 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
@@ -211,10 +210,9 @@ function getPublicProfileCacheIdentity(
 async function loadPublicProfessionalByParam(
   parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
 ): Promise<PublicProfessionalRecord | null> {
-  const adminClient = createAdminClient()
-  if (!adminClient) return null
+  const client = createClient()
   const buildQuery = (useVisibilityColumn: boolean) => {
-    let professionalQuery = adminClient
+    let professionalQuery = client
       .from('professionals')
       .select(
         useVisibilityColumn
@@ -250,7 +248,7 @@ async function loadPublicProfessionalByParam(
     }
     normalizedProfessional = fallback.data as unknown as PublicProfessionalRecord | null
     if (normalizedProfessional) {
-      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(adminClient, [normalizedProfessional])
+      const visibilityByProfessionalId = await getPublicVisibilityByProfessionalId(client, [normalizedProfessional])
       const canGoLive = visibilityByProfessionalId.get(String(normalizedProfessional.id))?.canGoLive
       if (!canGoLive) return null
     }
@@ -299,7 +297,7 @@ export default async function ProfissionalPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const readClient = (createAdminClient() || supabase) as SupabaseClient
+  const readClient = supabase
 
   let viewerCurrency = 'BRL'
   let viewerTimezone = 'America/Sao_Paulo'

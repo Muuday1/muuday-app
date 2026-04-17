@@ -192,6 +192,13 @@ export const RATE_LIMITS = {
   authOAuth: { limit: 12, windowSeconds: 300 },
   stripeWebhook: { limit: 120, windowSeconds: 60 },
   supabaseDbWebhook: { limit: 240, windowSeconds: 60 },
+  rewriteBio: { limit: 5, windowSeconds: 60 },
+  profileMediaUpload: { limit: 10, windowSeconds: 60 },
+  credentialsUpload: { limit: 10, windowSeconds: 60 },
+  onboardingSave: { limit: 15, windowSeconds: 60 },
+  onboardingSubmitReview: { limit: 5, windowSeconds: 300 },
+  recomputeVisibility: { limit: 10, windowSeconds: 60 },
+  stripeCheckout: { limit: 10, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(

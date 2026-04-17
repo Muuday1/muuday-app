@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getProfessionalTermTextHash,
   PROFESSIONAL_REQUIRED_TERMS,
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const db = createAdminClient() ?? supabase
+  const db = supabase
   const termKey = parsed.data.termKey
   const textHash = getProfessionalTermTextHash(termKey)
   if (!textHash) {

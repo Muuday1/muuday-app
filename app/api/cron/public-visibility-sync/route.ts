@@ -30,9 +30,11 @@ function normalizeSecret(value: string | undefined | null) {
 }
 
 function safeSecretCompare(left: string, right: string) {
-  const leftBuffer = Buffer.from(left)
-  const rightBuffer = Buffer.from(right)
-  if (leftBuffer.length !== rightBuffer.length) return false
+  // Constant-time comparison: pad both to the same length so that
+  // differing lengths do not produce a short-circuit timing signal.
+  const maxLength = Math.max(left.length, right.length)
+  const leftBuffer = Buffer.alloc(maxLength, left)
+  const rightBuffer = Buffer.alloc(maxLength, right)
   return timingSafeEqual(leftBuffer, rightBuffer)
 }
 
@@ -66,8 +68,10 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const batchSize = Number(request.nextUrl.searchParams.get('batchSize') || 250)
-  const maxBatches = Number(request.nextUrl.searchParams.get('maxBatches') || 20)
+  const rawBatchSize = Number(request.nextUrl.searchParams.get('batchSize') || 250)
+  const rawMaxBatches = Number(request.nextUrl.searchParams.get('maxBatches') || 20)
+  const batchSize = Math.min(Math.max(Number.isFinite(rawBatchSize) && rawBatchSize > 0 ? rawBatchSize : 250, 1), 1000)
+  const maxBatches = Math.min(Math.max(Number.isFinite(rawMaxBatches) && rawMaxBatches > 0 ? rawMaxBatches : 20, 1), 100)
 
   try {
     const result = await runPublicVisibilitySync(admin, { batchSize, maxBatches })

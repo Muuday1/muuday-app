@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 const CREDENTIALS_BUCKET = 'professional-credentials'
 const STORAGE_URI_PREFIX = `storage://${CREDENTIALS_BUCKET}/`
@@ -68,19 +67,6 @@ export async function GET(
   const storagePath = extractStoragePath(fileUrl)
   if (!storagePath) {
     return NextResponse.json({ error: 'Formato de arquivo nao suportado.' }, { status: 422 })
-  }
-
-  const admin = createAdminClient()
-  if (admin) {
-    const { data, error: signedError } = await admin.storage
-      .from(CREDENTIALS_BUCKET)
-      .createSignedUrl(storagePath, 60)
-
-    if (signedError || !data?.signedUrl) {
-      return NextResponse.json({ error: signedError?.message || 'Falha ao assinar URL do arquivo.' }, { status: 500 })
-    }
-
-    return NextResponse.redirect(data.signedUrl)
   }
 
   const { data, error: signedError } = await supabase.storage

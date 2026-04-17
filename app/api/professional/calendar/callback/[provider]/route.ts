@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 import { parseAndValidateCalendarOAuthState } from '@/lib/calendar/oauth-state'
@@ -60,11 +59,6 @@ export async function GET(
     return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=user`)
   }
 
-  const admin = createAdminClient()
-  if (!admin) {
-    return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=admin`)
-  }
-
   const adapter = getCalendarProviderAdapter(provider)
   if (!adapter.exchangeCode) {
     return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=adapter`)
@@ -75,7 +69,7 @@ export async function GET(
   try {
     const exchange = await adapter.exchangeCode({ code, redirectUri })
 
-    await upsertCalendarIntegration(admin, {
+    await upsertCalendarIntegration(supabase, {
       professionalId: parsedState.professionalId,
       provider,
       authType: 'oauth2',
@@ -92,7 +86,7 @@ export async function GET(
       caldavCalendarUrl: null,
     })
 
-    await saveOAuthTokens(admin, {
+    await saveOAuthTokens(supabase, {
       professionalId: parsedState.professionalId,
       token: exchange.token,
       scope: exchange.token.scope || null,
@@ -102,7 +96,7 @@ export async function GET(
       provider,
     })
 
-    await admin
+    await supabase
       .from('professional_settings')
       .upsert(
         {
@@ -113,7 +107,7 @@ export async function GET(
         { onConflict: 'professional_id' },
       )
 
-    await syncExternalBusySlotsForProfessional(admin, parsedState.professionalId, provider)
+    await syncExternalBusySlotsForProfessional(supabase, parsedState.professionalId, provider)
 
     const destination = safeRedirectPath(parsedState.redirectPath)
     const response = NextResponse.redirect(`${requestBaseUrl(request)}${destination}?calendarConnected=${provider}`)
@@ -128,7 +122,7 @@ export async function GET(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'OAuth callback failed.'
 
-    await admin
+    await supabase
       .from('calendar_integrations')
       .update({
         connection_status: 'error',

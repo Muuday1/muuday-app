@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
 
-export async function POST() {
+export async function POST(request: Request) {
+  const ip = getClientIp(request as never)
+  const rl = await rateLimit('recomputeVisibility', `recompute-visibility:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   const supabase = createClient()
   const {
     data: { user },

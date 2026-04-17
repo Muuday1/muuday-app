@@ -7,6 +7,8 @@ import {
   resolveStripePlatformRegion,
   type StripePlatformRegion,
 } from '@/lib/stripe/client'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const payloadSchema = z.object({
   tier: z.enum(['basic', 'professional', 'premium']),
@@ -53,30 +55,21 @@ function appBaseUrl(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const rl = await rateLimit('stripeCheckout', `stripe-checkout:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json({ error: 'Dados invalidos para checkout de plano.' }, { status: 400 })
   }
 
   const supabase = createClient()
-  let {
+  const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  if (!user) {
-    const authorization = request.headers.get('authorization')
-    const bearerToken =
-      authorization && authorization.toLowerCase().startsWith('bearer ')
-        ? authorization.slice(7).trim()
-        : ''
-
-    if (bearerToken) {
-      const {
-        data: { user: bearerUser },
-      } = await supabase.auth.getUser(bearerToken)
-      user = bearerUser ?? null
-    }
-  }
 
   if (!user) {
     return NextResponse.json({ error: 'Faca login para continuar.' }, { status: 401 })

@@ -20,6 +20,14 @@ import {
   evaluateCorsRequest,
 } from '@/lib/http/cors'
 
+// In production, refuse to serve the Inngest endpoint if the signing key is missing.
+// This prevents unauthenticated ingestion of background-job events.
+const inngestSigningKey = process.env.INNGEST_SIGNING_KEY
+const inngestEnv = process.env.VERCEL_ENV || process.env.NODE_ENV
+if (inngestEnv === 'production' && !inngestSigningKey) {
+  throw new Error('INNGEST_SIGNING_KEY is required in production')
+}
+
 const inngestHandler = serve({
   client: inngest,
   functions: [

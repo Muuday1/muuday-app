@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const PROFILE_MEDIA_BUCKET = 'professional-profile-media'
@@ -29,18 +28,6 @@ export async function GET() {
   const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (!professional?.id) {
     return NextResponse.json({ ok: false, error: 'Perfil profissional nao encontrado.' }, { status: 404 })
-  }
-
-  const admin = createAdminClient()
-  if (admin) {
-    const { data: bucket, error } = await admin.storage.getBucket(PROFILE_MEDIA_BUCKET)
-    if (error || !bucket) {
-      return NextResponse.json(
-        { ok: false, error: mapStorageError(error || { message: 'bucket missing' }) },
-        { status: 503 },
-      )
-    }
-    return NextResponse.json({ ok: true, mode: 'admin' })
   }
 
   const probePath = `${professional.id}/.health-${Date.now()}.txt`

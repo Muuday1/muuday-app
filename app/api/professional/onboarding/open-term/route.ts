@@ -1,7 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import {
   createTermViewProofToken,
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const db = createAdminClient() ?? supabase
+    const db = supabase
     const viewEventId = crypto.randomUUID()
     const now = new Date()
     const openedAt = now.toISOString()

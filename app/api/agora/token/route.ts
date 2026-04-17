@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid(),
@@ -16,19 +17,6 @@ function toSafeIso(value: unknown) {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return null
   return parsed.toISOString()
-}
-
-function getClientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) {
-    const firstIp = forwardedFor.split(',')[0]?.trim()
-    if (firstIp) return firstIp
-  }
-
-  const realIp = request.headers.get('x-real-ip')?.trim()
-  if (realIp) return realIp
-
-  return 'unknown'
 }
 
 export async function POST(request: NextRequest) {
