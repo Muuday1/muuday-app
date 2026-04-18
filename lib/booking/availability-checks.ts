@@ -1,5 +1,3 @@
-'use server'
-
 import { formatInTimeZone } from 'date-fns-tz'
 import { createClient } from '@/lib/supabase/server'
 import { hhmmToMinutes, getMinutesInTimezone } from './request-validation'

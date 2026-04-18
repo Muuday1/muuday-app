@@ -1,5 +1,3 @@
-'use server'
-
 import { z } from 'zod'
 import { formatInTimeZone } from 'date-fns-tz'
 
