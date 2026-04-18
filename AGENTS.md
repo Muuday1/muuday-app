@@ -27,10 +27,25 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 
 - **No admin fallbacks in user-facing code**: `createAdminClient()` must never be used as a fallback in server actions or API routes that serve users/professionals. RLS policies are the single source of truth.
 - **Env validation at startup**: `lib/config/env.ts` is loaded via `instrumentation.ts` **only in Node.js runtime**. Edge runtime skips validation because not all env vars are available there. Missing critical env vars will fail CI/production Node.js builds.
+- **CSP with nonces**: Content-Security-Policy is set dynamically in `middleware.ts` with per-request nonces. `script-src` does not allow `'unsafe-inline'` — Next.js hydration scripts receive the nonce automatically.
+- **Secure cookies**: All auth cookies from `createServerClient` explicitly set `secure` (production), `sameSite: 'lax'`, and `httpOnly`. The `muuday_country` cookie also has `secure: true`.
+- **Rate limiting**: Upstash Redis + in-memory fallback. Uses rightmost trusted IP from `X-Forwarded-For` (Vercel-trusted). 20+ presets defined in `lib/security/rate-limit.ts`.
+- **CSRF origin validation**: API routes validate `Origin`/`Referer` against `APP_BASE_URL` / `NEXT_PUBLIC_APP_URL` via `lib/http/csrf.ts`.
+- **Open redirect protection**: OAuth callback whitelists `next` param against `ALLOWED_NEXT_PATHS`.
+- **Webhook resilience**: Stripe webhook returns HTTP 500 (not 202) when Inngest enqueue fails, triggering Stripe's automatic retry.
+- **Constant-time secret comparison**: `safeSecretCompare` pads both inputs to the same length before `timingSafeEqual` to prevent timing attacks.
 - **Secret scanning in CI**: Every push and PR runs TruffleHog (`--only-verified`) to catch accidental secret commits.
 - **Workflow hardening**: All GitHub Actions are pinned to SHA hashes and run with minimal `permissions`.
-- **Dependency hygiene**: Run `npm audit` and `npm outdated` regularly. Safe patches are applied immediately; major upgrades (e.g., Next.js) are tracked in `docs/engineering/runbooks/dependency-audit-runbook.md`.
+- **Dependency hygiene**: `npm audit --audit-level=high` runs in CI. Safe patches are applied immediately; major upgrades are tracked in `docs/engineering/runbooks/dependency-audit-runbook.md`.
 - **Health checks**:
   - `/api/health` — liveness + Supabase connectivity
   - `/api/health/rls` — lightweight runtime RLS sanity check
 - **Secret rotation register**: `docs/engineering/runbooks/secrets-rotation-register.json` tracks rotation cadences. The `secrets-rotation-reminder.yml` workflow runs daily and fails on overdue items.
+
+## CI / DevOps practices
+
+- **Node version**: `.nvmrc` specifies Node 20. `package.json` has `engines.node >=20.0.0`. CI uses `node-version-file: '.nvmrc'`.
+- **Build cache**: `.next/cache` is cached between CI runs via `actions/cache`.
+- **Playwright cache**: Browser binaries cached at `~/.cache/ms-playwright`.
+- **Step order**: Fast feedback first — typecheck → lint → encoding check → unit tests → build → E2E.
+- **npm audit**: Runs with `--audit-level=high` on every CI run; fails the build on high+ CVEs.
