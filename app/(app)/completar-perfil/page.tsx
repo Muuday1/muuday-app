@@ -97,8 +97,8 @@ export default function CompletarPerfilPage() {
       updated_at: new Date().toISOString(),
     }
 
-    let err
-    let professionalId = existing?.id || ''
+    let err: Error | null = null
+    let professionalId = String(existing?.id || '')
     if (existing) {
       const normalizedExistingStatus = String((existing as Record<string, unknown>)?.status || 'draft').toLowerCase()
       const statusForUpdate =
