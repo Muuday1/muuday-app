@@ -26,7 +26,8 @@
     "checkly:test": "checkly test",
     "checkly:deploy": "checkly deploy",
     "checkly:plan": "checkly account plan --output json",
-    "check:encoding": "node scripts/ops/check-mojibake.cjs"
+    "check:encoding": "node scripts/ops/check-mojibake.cjs",
+    "test:smoke": "python scripts/smoke_test.py"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.49.0",
