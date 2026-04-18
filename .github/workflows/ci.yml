@@ -98,8 +98,11 @@ jobs:
       - name: Encoding check
         run: npm run check:encoding
 
-      - name: Unit tests
+      - name: Unit tests (Vitest)
         run: npm run test:unit
+
+      - name: State machine tests
+        run: npm run test:state-machines
 
       - name: Cache Next.js build
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
