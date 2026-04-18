@@ -8,7 +8,7 @@ export async function getPrimaryProfessionalForUser(
   supabase: SupabaseClient,
   userId: string,
   columns = '*',
-): Promise<{ data: Record<string, unknown> | null; error: unknown }> {
+): Promise<{ data: Record<string, any> | null; error: any }> {
   let { data, error } = await supabase
     .from('professionals')
     .select(columns)
