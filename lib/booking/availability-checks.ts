@@ -1,6 +1,7 @@
 import { formatInTimeZone } from 'date-fns-tz'
 import { createClient } from '@/lib/supabase/server'
 import { hhmmToMinutes, getMinutesInTimezone } from './request-validation'
+import { mapLegacyAvailabilityToRules } from './availability-engine'
 
 export async function loadAvailabilityRules(
   supabase: ReturnType<typeof createClient>,
@@ -23,13 +24,7 @@ export async function loadAvailabilityRules(
     .eq('professional_id', professionalId)
     .eq('is_active', true)
 
-  return (legacyAvailabilityRows || []).map((row: Record<string, unknown>) => ({
-    weekday: row.day_of_week,
-    start_time_local: row.start_time,
-    end_time_local: row.end_time,
-    timezone,
-    is_active: true,
-  }))
+  return mapLegacyAvailabilityToRules(legacyAvailabilityRows || [], timezone)
 }
 
 export function isSlotWithinRules(

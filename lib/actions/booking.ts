@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
@@ -9,10 +9,7 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
-import {
-  isSlotWithinWorkingHours,
-  mapLegacyAvailabilityToRules,
-} from '@/lib/booking/availability-engine'
+import { isSlotWithinWorkingHours } from '@/lib/booking/availability-engine'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
@@ -20,6 +17,15 @@ import { createBatchBookingGroup } from '@/lib/booking/batch-booking'
 import { generateRecurrenceSlots } from '@/lib/booking/recurrence-engine'
 import { hasExternalBusyConflict } from '@/lib/booking/external-calendar-conflicts'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
+import {
+  localDateTimeSchema,
+  isActiveSlotCollision,
+} from '@/lib/booking/request-validation'
+import {
+  loadAvailabilityRules,
+  isSlotAllowedByExceptions,
+  hasInternalConflict,
+} from '@/lib/booking/availability-checks'
 
 type BookingCreateResult =
   | { success: true; bookingId: string }
@@ -34,13 +40,6 @@ type SessionSlot = {
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
 const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
-
-type PostgrestLikeError = {
-  code?: string | null
-  message?: string | null
-  details?: string | null
-  hint?: string | null
-}
 
 function reportBookingError(
   error: unknown,
@@ -58,30 +57,6 @@ function reportBookingError(
   })
 }
 
-function isUniqueConstraintError(error: unknown, constraintName: string) {
-  const pgError = error as PostgrestLikeError | null
-  if (!pgError || pgError.code !== '23505') return false
-  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
-  return details.includes(constraintName)
-}
-
-function isActiveSlotCollision(error: unknown) {
-  if (isUniqueConstraintError(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) return true
-  const pgError = error as PostgrestLikeError | null
-  if (!pgError || pgError.code !== '23505') return false
-  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
-  return details.includes('(professional_id, start_time_utc)')
-}
-
-function hhmmToMinutes(value: string) {
-  const [hours, minutes] = value.slice(0, 5).split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-function getMinutesInTimezone(date: Date, timezone: string) {
-  return hhmmToMinutes(formatInTimeZone(date, timezone, 'HH:mm'))
-}
-
 function buildCancellationPolicySnapshot(code: string) {
   return {
     code,
@@ -91,43 +66,13 @@ function buildCancellationPolicySnapshot(code: string) {
   }
 }
 
-function isValidIsoLocalDateTime(value: string) {
-  const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
-  )
-  if (!match) return false
-
-  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw] = match
-  const year = Number(yearRaw)
-  const month = Number(monthRaw)
-  const day = Number(dayRaw)
-  const hour = Number(hourRaw)
-  const minute = Number(minuteRaw)
-  const second = Number(secondRaw || '0')
-
-  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day &&
-    date.getUTCHours() === hour &&
-    date.getUTCMinutes() === minute &&
-    date.getUTCSeconds() === second
-  )
-}
-
-const localDateTimeSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Horï¿½rio invï¿½lido.')
-  .refine(isValidIsoLocalDateTime, 'Horï¿½rio invï¿½lido.')
-
-const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data invï¿½lida.')
+const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.')
 
 const createBookingSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invï¿½lido.'),
+  professionalId: z.string().uuid('Identificador de profissional inválido.'),
   scheduledAt: localDateTimeSchema.optional(),
-  notes: z.string().trim().max(500, 'Observaï¿½ï¿½es muito longas.').optional(),
-  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessï¿½o muito longo.').optional(),
+  notes: z.string().trim().max(500, 'Observações muito longas.').optional(),
+  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessão muito longo.').optional(),
   bookingType: z.enum(['one_off', 'recurring', 'batch']).default('one_off').optional(),
   recurringPeriodicity: z.enum(['weekly', 'biweekly', 'monthly', 'custom_days']).optional(),
   recurringIntervalDays: z.number().int().min(1).max(365).optional(),
@@ -137,110 +82,6 @@ const createBookingSchema = z.object({
   recurringAutoRenew: z.boolean().optional(),
   batchDates: z.array(localDateTimeSchema).min(2).max(20).optional(),
 })
-
-async function loadAvailabilityRules(
-  supabase: ReturnType<typeof createClient>,
-  professionalId: string,
-  timezone: string,
-) {
-  const { data: availabilityRulesRows, error: availabilityRulesError } = await supabase
-    .from('availability_rules')
-    .select('weekday, start_time_local, end_time_local, timezone, is_active')
-    .eq('professional_id', professionalId)
-    .eq('is_active', true)
-
-  if (!availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0) {
-    return availabilityRulesRows
-  }
-
-  const { data: legacyAvailabilityRows } = await supabase
-    .from('availability')
-    .select('day_of_week, start_time, end_time, is_active')
-    .eq('professional_id', professionalId)
-    .eq('is_active', true)
-
-  return mapLegacyAvailabilityToRules(legacyAvailabilityRows || [], timezone)
-}
-
-async function isSlotAllowedByExceptions(
-  supabase: ReturnType<typeof createClient>,
-  professionalId: string,
-  timezone: string,
-  startUtc: Date,
-  endUtc: Date,
-) {
-  const localDate = formatInTimeZone(startUtc, timezone, 'yyyy-MM-dd')
-  const { data: exceptionRows } = await supabase
-    .from('availability_exceptions')
-    .select('is_available, start_time_local, end_time_local')
-    .eq('professional_id', professionalId)
-    .eq('date_local', localDate)
-
-  const slotStartMinutes = getMinutesInTimezone(startUtc, timezone)
-  const slotEndMinutes = getMinutesInTimezone(endUtc, timezone)
-  const exceptions = (exceptionRows || []) as Array<{
-    is_available: boolean
-    start_time_local: string | null
-    end_time_local: string | null
-  }>
-
-  if (exceptions.length === 0) return true
-
-  const overlaps = (row: { start_time_local: string | null; end_time_local: string | null }) => {
-    if (!row.start_time_local || !row.end_time_local) return true
-    const start = hhmmToMinutes(row.start_time_local)
-    const end = hhmmToMinutes(row.end_time_local)
-    return slotStartMinutes < end && slotEndMinutes > start
-  }
-
-  const hasBlockedException = exceptions.some(row => row.is_available === false && overlaps(row))
-  if (hasBlockedException) return false
-
-  const allowedWindows = exceptions.filter(row => row.is_available)
-  if (allowedWindows.length === 0) return true
-
-  return allowedWindows.some(window => {
-    if (!window.start_time_local || !window.end_time_local) return false
-    const start = hhmmToMinutes(window.start_time_local)
-    const end = hhmmToMinutes(window.end_time_local)
-    return slotStartMinutes >= start && slotEndMinutes <= end
-  })
-}
-
-async function hasInternalConflict(
-  supabase: ReturnType<typeof createClient>,
-  professionalId: string,
-  startUtc: Date,
-  endUtc: Date,
-  bufferMinutes: number,
-) {
-  const conflictWindowStart = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000).toISOString()
-  const conflictWindowEnd = new Date(endUtc.getTime() + 24 * 60 * 60 * 1000).toISOString()
-
-  const { data: candidateConflicts } = await supabase
-    .from('bookings')
-    .select('id, scheduled_at, start_time_utc, end_time_utc, duration_minutes')
-    .eq('professional_id', professionalId)
-    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-    .or(
-      `and(start_time_utc.gte.${conflictWindowStart},start_time_utc.lte.${conflictWindowEnd}),and(scheduled_at.gte.${conflictWindowStart},scheduled_at.lte.${conflictWindowEnd})`
-    )
-
-  return (candidateConflicts || []).some((booking: Record<string, unknown>) => {
-    const existingStart = new Date(
-      (booking.start_time_utc as string) || (booking.scheduled_at as string) || '',
-    )
-    if (Number.isNaN(existingStart.getTime())) return false
-
-    const existingDuration = Number(booking.duration_minutes) || 60
-    const existingEnd = booking.end_time_utc
-      ? new Date(String(booking.end_time_utc))
-      : new Date(existingStart.getTime() + existingDuration * 60 * 1000)
-    const bufferedExistingStart = new Date(existingStart.getTime() - bufferMinutes * 60 * 1000)
-    const bufferedExistingEnd = new Date(existingEnd.getTime() + bufferMinutes * 60 * 1000)
-    return startUtc < bufferedExistingEnd && endUtc > bufferedExistingStart
-  })
-}
 
 function parseSlotFromLocalDateTime(
   localDateTime: string,
@@ -273,7 +114,7 @@ export async function createBooking(data: {
 }): Promise<BookingCreateResult> {
   const parsedInput = createBookingSchema.safeParse(data)
   if (!parsedInput.success) {
-    const firstError = parsedInput.error.issues[0]?.message || 'Dados invï¿½lidos para agendamento.'
+    const firstError = parsedInput.error.issues[0]?.message || 'Dados inválidos para agendamento.'
     return { success: false, error: firstError }
   }
 
@@ -302,11 +143,11 @@ export async function createBooking(data: {
     .single()
 
   if (!professional || professional.status !== 'approved') {
-    return { success: false, error: 'Profissional nï¿½o disponï¿½vel.' }
+    return { success: false, error: 'Profissional não disponível.' }
   }
 
   if (professional.user_id === user.id) {
-    return { success: false, error: 'Nï¿½o ï¿½ permitido agendar sessï¿½o com seu prï¿½prio perfil.' }
+    return { success: false, error: 'Não é permitido agendar sessão com seu próprio perfil.' }
   }
 
   const eligibility = await evaluateFirstBookingEligibility(supabase, bookingInput.professionalId)
@@ -339,11 +180,11 @@ export async function createBooking(data: {
 
   const bookingType = bookingInput.bookingType || 'one_off'
   if (bookingType === 'recurring' && !bookingSettings.enableRecurring) {
-    return { success: false, error: 'Este profissional nï¿½o aceita pacotes recorrentes no momento.' }
+    return { success: false, error: 'Este profissional não aceita pacotes recorrentes no momento.' }
   }
 
   if (bookingSettings.requireSessionPurpose && !bookingInput.sessionPurpose?.trim()) {
-    return { success: false, error: 'Informe o objetivo da sessï¿½o antes de continuar.' }
+    return { success: false, error: 'Informe o objetivo da sessão antes de continuar.' }
   }
 
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
@@ -354,17 +195,17 @@ export async function createBooking(data: {
   let batchBookingGroupId: string | null = null
 
   if (bookingType === 'one_off') {
-    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha um horï¿½rio para agendar.' }
+    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha um horário para agendar.' }
     const slot = parseSlotFromLocalDateTime(bookingInput.scheduledAt, userTimezone, durationMinutes)
-    if (!slot) return { success: false, error: 'Horï¿½rio invï¿½lido.' }
+    if (!slot) return { success: false, error: 'Horário inválido.' }
     plannedSessions.push(slot)
   }
 
   if (bookingType === 'recurring') {
-    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha o horï¿½rio base da recorrï¿½ncia.' }
+    if (!bookingInput.scheduledAt) return { success: false, error: 'Escolha o horário base da recorrência.' }
 
     const firstSlot = parseSlotFromLocalDateTime(bookingInput.scheduledAt, userTimezone, durationMinutes)
-    if (!firstSlot) return { success: false, error: 'Horï¿½rio invï¿½lido.' }
+    if (!firstSlot) return { success: false, error: 'Horário inválido.' }
 
     let recurrenceEndDateUtc: Date | null = null
     if (bookingInput.recurringEndDate) {
@@ -399,7 +240,7 @@ export async function createBooking(data: {
 
   if (bookingType === 'batch') {
     if (!bookingInput.batchDates || bookingInput.batchDates.length < 2) {
-      return { success: false, error: 'Selecione ao menos duas datas para mï¿½ltiplos agendamentos.' }
+      return { success: false, error: 'Selecione ao menos duas datas para múltiplos agendamentos.' }
     }
 
     const parsedBatch = bookingInput.batchDates
@@ -407,7 +248,7 @@ export async function createBooking(data: {
       .filter(Boolean) as SessionSlot[]
 
     if (parsedBatch.length !== bookingInput.batchDates.length) {
-      return { success: false, error: 'Uma ou mais datas do pacote estï¿½o invï¿½lidas.' }
+      return { success: false, error: 'Uma ou mais datas do pacote estão inválidas.' }
     }
 
     const batchDecision = createBatchBookingGroup({
@@ -425,7 +266,7 @@ export async function createBooking(data: {
   }
 
   if (plannedSessions.length === 0) {
-    return { success: false, error: 'Nï¿½o foi possï¿½vel montar os horï¿½rios do agendamento.' }
+    return { success: false, error: 'Não foi possível montar os horários do agendamento.' }
   }
 
   const availabilityRules = await loadAvailabilityRules(
@@ -439,7 +280,7 @@ export async function createBooking(data: {
     if (slot.startUtc.getTime() < minimumStartTime) {
       return {
         success: false,
-        error: `Selecione um horï¿½rio com pelo menos ${bookingSettings.minimumNoticeHours} horas de antecedï¿½ncia.`,
+        error: `Selecione um horário com pelo menos ${bookingSettings.minimumNoticeHours} horas de antecedência.`,
       }
     }
 
@@ -459,7 +300,7 @@ export async function createBooking(data: {
       availabilityRules,
     )
     if (!fitsAvailability) {
-      return { success: false, error: 'Um ou mais horï¿½rios nï¿½o estï¿½o disponï¿½veis para este profissional.' }
+      return { success: false, error: 'Um ou mais horários não estão disponíveis para este profissional.' }
     }
 
     const allowedByException = await isSlotAllowedByExceptions(
@@ -470,7 +311,7 @@ export async function createBooking(data: {
       slot.endUtc,
     )
     if (!allowedByException) {
-      return { success: false, error: 'Um ou mais horï¿½rios foram bloqueados por indisponibilidade.' }
+      return { success: false, error: 'Um ou mais horários foram bloqueados por indisponibilidade.' }
     }
 
     const conflict = await hasInternalConflict(
@@ -481,7 +322,7 @@ export async function createBooking(data: {
       bookingSettings.bufferMinutes,
     )
     if (conflict) {
-      return { success: false, error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.' }
+      return { success: false, error: 'Um ou mais horários já foram reservados. Escolha outro horário.' }
     }
     const externalConflict = await hasExternalBusyConflict(
       supabase,
@@ -517,8 +358,8 @@ export async function createBooking(data: {
         success: false,
         error:
           lockResult.reason === 'locked'
-            ? 'Outro cliente acabou de selecionar este horï¿½rio. Escolha outro.'
-            : 'Nï¿½o foi possï¿½vel reservar o horï¿½rio. Tente novamente.',
+            ? 'Outro cliente acabou de selecionar este horário. Escolha outro.'
+            : 'Não foi possível reservar o horário. Tente novamente.',
       }
     }
     acquiredLockIds.push(lockResult.lockId)
@@ -576,10 +417,10 @@ export async function createBooking(data: {
         .single()
 
       if (error || !booking) {
-        if (isActiveSlotCollision(error)) {
+        if (isActiveSlotCollision(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
           return {
             success: false,
-            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
+            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
           }
         }
         reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
@@ -636,10 +477,10 @@ export async function createBooking(data: {
         .single()
 
       if (parentError || !parentBooking) {
-        if (isActiveSlotCollision(parentError)) {
+        if (isActiveSlotCollision(parentError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
           return {
             success: false,
-            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
+            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
           }
         }
         reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
@@ -686,16 +527,16 @@ export async function createBooking(data: {
         .insert(childBookingsPayload.slice(1))
         .select('id')
       if (childError) {
-        if (isActiveSlotCollision(childError)) {
+        if (isActiveSlotCollision(childError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
           await supabase.from('bookings').delete().eq('id', parentBooking.id)
           return {
             success: false,
-            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
+            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
           }
         }
         reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
         await supabase.from('bookings').delete().eq('id', parentBooking.id)
-        return { success: false, error: 'Erro ao criar sessï¿½es recorrentes. Tente novamente.' }
+        return { success: false, error: 'Erro ao criar sessões recorrentes. Tente novamente.' }
       }
 
       const sessionsPayload = plannedSessions.map((slot, index) => ({
@@ -762,10 +603,10 @@ export async function createBooking(data: {
         .select('id')
 
       if (batchInsertError || !batchRows || batchRows.length === 0) {
-        if (isActiveSlotCollision(batchInsertError)) {
+        if (isActiveSlotCollision(batchInsertError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
           return {
             success: false,
-            error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.',
+            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
           }
         }
         reportBookingError(batchInsertError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_batch_insert_failed')
@@ -872,5 +713,3 @@ export async function createBooking(data: {
 
   return { success: true, bookingId }
 }
-
-

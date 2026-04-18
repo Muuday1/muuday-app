@@ -2,30 +2,34 @@ import { z } from 'zod'
 import { formatInTimeZone } from 'date-fns-tz'
 
 export function isValidIsoLocalDateTime(value: string) {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/
+  )
   if (!match) return false
 
-  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw] = match
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw] = match
   const year = Number(yearRaw)
   const month = Number(monthRaw)
   const day = Number(dayRaw)
   const hour = Number(hourRaw)
   const minute = Number(minuteRaw)
+  const second = Number(secondRaw || '0')
 
-  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day &&
     date.getUTCHours() === hour &&
-    date.getUTCMinutes() === minute
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second
   )
 }
 
-const localDateTimeSchema = z
+export const localDateTimeSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Horario preferencial invalido.')
-  .refine(isValidIsoLocalDateTime, 'Horario preferencial invalido.')
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/, 'Horário inválido.')
+  .refine(isValidIsoLocalDateTime, 'Horário inválido.')
 
 export const createRequestSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional invalido.'),
