@@ -1,6 +1,5 @@
 'use server'
 
-import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -20,6 +19,19 @@ import {
   assertRequestBookingTransition,
   type RequestBookingStatus,
 } from '@/lib/booking/request-booking-state-machine'
+import {
+  createRequestSchema,
+  offerRequestSchema,
+  requestIdSchema,
+  isActiveSlotCollision,
+  getMinutesInTimezone,
+} from '@/lib/booking/request-validation'
+import {
+  loadAvailabilityRules,
+  isSlotWithinRules,
+  isSlotAllowedByExceptions,
+  hasInternalConflict,
+} from '@/lib/booking/availability-checks'
 
 type RequestBookingResult =
   | { success: true; requestId: string }
@@ -36,78 +48,7 @@ const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_st
 const REQUEST_BOOKING_FIELDS =
   'id,user_id,professional_id,status,preferred_start_utc,preferred_end_utc,user_timezone,user_message,proposal_start_utc,proposal_end_utc,proposal_timezone,proposal_message,proposal_expires_at,declined_at,cancelled_at,expired_at,created_at,updated_at'
 
-type PostgrestLikeError = {
-  code?: string | null
-  message?: string | null
-  details?: string | null
-  hint?: string | null
-}
 
-function isValidIsoLocalDateTime(value: string) {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
-  if (!match) return false
-
-  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw] = match
-  const year = Number(yearRaw)
-  const month = Number(monthRaw)
-  const day = Number(dayRaw)
-  const hour = Number(hourRaw)
-  const minute = Number(minuteRaw)
-
-  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day &&
-    date.getUTCHours() === hour &&
-    date.getUTCMinutes() === minute
-  )
-}
-
-const localDateTimeSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Horario preferencial invalido.')
-  .refine(isValidIsoLocalDateTime, 'Horario preferencial invalido.')
-
-const createRequestSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional inv?lido.'),
-  preferredStartLocal: localDateTimeSchema,
-  durationMinutes: z.number().int().min(15).max(240).optional(),
-  userMessage: z.string().trim().max(1200, 'Mensagem muito longa.').optional(),
-})
-
-const offerRequestSchema = z.object({
-  requestId: z.string().uuid('Solicita??o invalida.'),
-  proposalStartLocal: localDateTimeSchema,
-  proposalDurationMinutes: z.number().int().min(15).max(240).optional(),
-  proposalMessage: z.string().trim().max(1200, 'Mensagem da proposta muito longa.').optional(),
-})
-
-const requestIdSchema = z.string().uuid('Solicita??o invalida.')
-
-function hhmmToMinutes(value: string) {
-  const [hours, minutes] = value.slice(0, 5).split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-function getMinutesInTimezone(date: Date, timezone: string) {
-  return hhmmToMinutes(formatInTimeZone(date, timezone, 'HH:mm'))
-}
-
-function isUniqueConstraintError(error: unknown, constraintName: string) {
-  const pgError = error as PostgrestLikeError | null
-  if (!pgError || pgError.code !== '23505') return false
-  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
-  return details.includes(constraintName)
-}
-
-function isActiveSlotCollision(error: unknown) {
-  if (isUniqueConstraintError(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) return true
-  const pgError = error as PostgrestLikeError | null
-  if (!pgError || pgError.code !== '23505') return false
-  const details = `${pgError.message || ''} ${pgError.details || ''} ${pgError.hint || ''}`
-  return details.includes('(professional_id, start_time_utc)')
-}
 
 async function getAuthenticatedContext() {
   const supabase = createClient()
@@ -166,142 +107,6 @@ function toRequestBookingStatus(value: unknown): RequestBookingStatus | null {
   if (typeof value !== 'string') return null
   if (!REQUEST_BOOKING_STATUS_SET.has(value)) return null
   return value as RequestBookingStatus
-}
-
-async function loadAvailabilityRules(
-  supabase: ReturnType<typeof createClient>,
-  professionalId: string,
-  timezone: string,
-) {
-  const { data: availabilityRulesRows, error: availabilityRulesError } = await supabase
-    .from('availability_rules')
-    .select('weekday, start_time_local, end_time_local, timezone, is_active')
-    .eq('professional_id', professionalId)
-    .eq('is_active', true)
-
-  if (!availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0) {
-    return availabilityRulesRows
-  }
-
-  const { data: legacyAvailabilityRows } = await supabase
-    .from('availability')
-    .select('day_of_week, start_time, end_time, is_active')
-    .eq('professional_id', professionalId)
-    .eq('is_active', true)
-
-  return (legacyAvailabilityRows || []).map((row: Record<string, unknown>) => ({
-    weekday: row.day_of_week,
-    start_time_local: row.start_time,
-    end_time_local: row.end_time,
-    timezone,
-    is_active: true,
-  }))
-}
-
-function isSlotWithinRules(
-  startUtc: Date,
-  endUtc: Date,
-  timezone: string,
-  rules: Array<Record<string, unknown>>,
-) {
-  const weekdayIso = Number(formatInTimeZone(startUtc, timezone, 'i'))
-  const weekday = weekdayIso % 7
-  const slotStartMinutes = getMinutesInTimezone(startUtc, timezone)
-  const slotEndMinutes = getMinutesInTimezone(endUtc, timezone)
-
-  return rules.some(rule => {
-    if (!rule || Number(rule.weekday) !== weekday) return false
-    const start = String(rule.start_time_local || '').slice(0, 5)
-    const end = String(rule.end_time_local || '').slice(0, 5)
-    if (!start || !end) return false
-    const startMinutes = hhmmToMinutes(start)
-    const endMinutes = hhmmToMinutes(end)
-    return slotStartMinutes >= startMinutes && slotEndMinutes <= endMinutes
-  })
-}
-
-async function isSlotAllowedByExceptions(
-  supabase: ReturnType<typeof createClient>,
-  professionalId: string,
-  timezone: string,
-  startUtc: Date,
-  endUtc: Date,
-) {
-  const localDate = formatInTimeZone(startUtc, timezone, 'yyyy-MM-dd')
-  const { data: exceptionRows } = await supabase
-    .from('availability_exceptions')
-    .select('is_available, start_time_local, end_time_local')
-    .eq('professional_id', professionalId)
-    .eq('date_local', localDate)
-
-  const slotStartMinutes = getMinutesInTimezone(startUtc, timezone)
-  const slotEndMinutes = getMinutesInTimezone(endUtc, timezone)
-  const exceptions = (exceptionRows || []) as Array<{
-    is_available: boolean
-    start_time_local: string | null
-    end_time_local: string | null
-  }>
-
-  if (exceptions.length === 0) return true
-
-  const overlaps = (row: { start_time_local: string | null; end_time_local: string | null }) => {
-    if (!row.start_time_local || !row.end_time_local) return true
-    const start = hhmmToMinutes(row.start_time_local)
-    const end = hhmmToMinutes(row.end_time_local)
-    return slotStartMinutes < end && slotEndMinutes > start
-  }
-
-  const hasBlockedException = exceptions.some(row => row.is_available === false && overlaps(row))
-  if (hasBlockedException) return false
-
-  const allowedWindows = exceptions.filter(row => row.is_available)
-  if (allowedWindows.length === 0) return true
-
-  return allowedWindows.some(window => {
-    if (!window.start_time_local || !window.end_time_local) return false
-    const start = hhmmToMinutes(window.start_time_local)
-    const end = hhmmToMinutes(window.end_time_local)
-    return slotStartMinutes >= start && slotEndMinutes <= end
-  })
-}
-
-async function hasInternalConflict(
-  supabase: ReturnType<typeof createClient>,
-  professionalId: string,
-  startUtc: Date,
-  endUtc: Date,
-  bufferMinutes: number,
-  ignoreBookingId?: string,
-) {
-  const conflictWindowStart = new Date(startUtc.getTime() - 24 * 60 * 60 * 1000).toISOString()
-  const conflictWindowEnd = new Date(endUtc.getTime() + 24 * 60 * 60 * 1000).toISOString()
-
-  let query = supabase
-    .from('bookings')
-    .select('id, scheduled_at, start_time_utc, end_time_utc, duration_minutes')
-    .eq('professional_id', professionalId)
-    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-    .or(
-      `and(start_time_utc.gte.${conflictWindowStart},start_time_utc.lte.${conflictWindowEnd}),and(scheduled_at.gte.${conflictWindowStart},scheduled_at.lte.${conflictWindowEnd})`,
-    )
-
-  if (ignoreBookingId) query = query.neq('id', ignoreBookingId)
-
-  const { data: candidateConflicts } = await query
-
-  return (candidateConflicts || []).some((booking: Record<string, unknown>) => {
-    const existingStart = new Date(
-      (booking.start_time_utc as string) || (booking.scheduled_at as string) || '',
-    )
-    if (Number.isNaN(existingStart.getTime())) return false
-    const existingDuration = Number(booking.duration_minutes) || 60
-    const existingEnd = booking.end_time_utc
-      ? new Date(String(booking.end_time_utc))
-      : new Date(existingStart.getTime() + existingDuration * 60 * 1000)
-    const bufferedExistingStart = new Date(existingStart.getTime() - bufferMinutes * 60 * 1000)
-    const bufferedExistingEnd = new Date(existingEnd.getTime() + bufferMinutes * 60 * 1000)
-    return startUtc < bufferedExistingEnd && endUtc > bufferedExistingStart
-  })
 }
 
 async function professionalCanReceiveRequestBooking(
@@ -943,7 +748,7 @@ export async function acceptRequestBooking(
     .single()
 
   if (bookingInsertError || !booking) {
-    if (isActiveSlotCollision(bookingInsertError)) {
+    if (isActiveSlotCollision(bookingInsertError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
       return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
     }
     return { success: false, error: 'N?o foi poss?vel converter a proposta em agendamento.' }
