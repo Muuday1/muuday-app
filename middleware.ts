@@ -2,6 +2,48 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 
+function generateNonce(): string {
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+  let binary = ''
+  for (let i = 0; i < array.length; i += 1) {
+    binary += String.fromCharCode(array[i])
+  }
+  return btoa(binary)
+}
+
+function buildCspHeader(nonce: string): string {
+  const isProduction = process.env.NODE_ENV === 'production'
+
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'",
+    'https://js.stripe.com',
+    'https://cdn.agora.io',
+    'https://us.i.posthog.com',
+  ]
+
+  if (!isProduction) {
+    scriptSrc.push("'unsafe-eval'")
+  }
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc.join(' ')}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' https://jbbnbbrroifghrshplsq.supabase.co https://ui-avatars.com https://lh3.googleusercontent.com data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://us.i.posthog.com https://*.sentry.io https://*.ingest.us.sentry.io https://api.stripe.com https://*.stripe.com https://*.agora.io wss://*.agora.io",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "worker-src 'self' blob:",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ')
+}
+
 function hasExplicitAppHostConfig() {
   const appBaseUrl = String(process.env.APP_BASE_URL || '').trim()
   const publicAppUrl = String(process.env.NEXT_PUBLIC_APP_URL || '').trim()
@@ -59,6 +101,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = await updateSession(request)
+
+  // Apply CSP with per-request nonce (primary XSS defense)
+  const nonce = generateNonce()
+  response.headers.set('Content-Security-Policy', buildCspHeader(nonce))
 
   const hasCountryCookie = request.cookies.has('muuday_country')
   if (!hasCountryCookie) {

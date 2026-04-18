@@ -1,36 +1,5 @@
 const { withSentryConfig } = require('@sentry/nextjs')
 
-const isProduction = process.env.NODE_ENV === 'production'
-
-function buildContentSecurityPolicy() {
-  const scriptSrc = [
-    "'self'",
-    "'unsafe-inline'",
-    'https://js.stripe.com',
-    'https://cdn.agora.io',
-    'https://us.i.posthog.com',
-  ]
-
-  if (!isProduction) {
-    scriptSrc.push("'unsafe-eval'")
-  }
-
-  return [
-    "default-src 'self'",
-    `script-src ${scriptSrc.join(' ')}`,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' https://jbbnbbrroifghrshplsq.supabase.co https://ui-avatars.com https://lh3.googleusercontent.com data: blob:",
-    "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://us.i.posthog.com https://*.sentry.io https://*.ingest.us.sentry.io https://api.stripe.com https://*.stripe.com https://*.agora.io wss://*.agora.io",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
-    "worker-src 'self' blob:",
-    "frame-ancestors 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "object-src 'none'",
-  ].join('; ')
-}
-
 /** @type {import('next').NextConfig} */
 if (process.env.NODE_ENV === 'production' && !process.env.APP_BASE_URL) {
   console.warn('[muuday] APP_BASE_URL not set — middleware host redirect is disabled')
@@ -70,11 +39,7 @@ const nextConfig = {
           },
           // Prevent cross-origin attacks (isolate browsing context)
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
-          // Content Security Policy - primary XSS defense
-          {
-            key: 'Content-Security-Policy',
-            value: buildContentSecurityPolicy(),
-          },
+          // Note: Content-Security-Policy is set dynamically in middleware.ts with per-request nonces
         ],
       },
     ]
