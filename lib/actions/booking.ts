@@ -27,6 +27,7 @@ import {
   hasInternalConflict,
 } from '@/lib/booking/availability-checks'
 
+
 type BookingCreateResult =
   | { success: true; bookingId: string }
   | { success: false; error: string; reasonCode?: string }
