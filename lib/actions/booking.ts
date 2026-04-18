@@ -484,7 +484,7 @@ export async function createBooking(data: {
       return { success: false, error: 'Um ou mais horï¿½rios jï¿½ foram reservados. Escolha outro horï¿½rio.' }
     }
     const externalConflict = await hasExternalBusyConflict(
-      supabase as any,
+      supabase,
       bookingInput.professionalId,
       slot.startUtc.toISOString(),
       slot.endUtc.toISOString(),
@@ -526,7 +526,7 @@ export async function createBooking(data: {
 
   const sessionCount = plannedSessions.length
   const currency = profile?.currency || 'BRL'
-  const rates = await getExchangeRates(supabase as any)
+  const rates = await getExchangeRates(supabase)
   const priceBrl = Number(professional.session_price_brl) || 0
   const perSessionPriceUserCurrency = roundCurrency(priceBrl * (rates[currency] || 1))
   const totalPriceUserCurrency = roundCurrency(perSessionPriceUserCurrency * sessionCount)

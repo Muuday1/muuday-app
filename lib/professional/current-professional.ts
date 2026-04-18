@@ -8,20 +8,20 @@ export async function getPrimaryProfessionalForUser(
   supabase: SupabaseClient,
   userId: string,
   columns = '*',
-) : Promise<{ data: Record<string, any> | null; error: any }> {
-  let { data, error } = await (supabase
+): Promise<{ data: Record<string, unknown> | null; error: unknown }> {
+  let { data, error } = await supabase
     .from('professionals')
     .select(columns)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(1) as any)
+    .limit(1)
 
   if (error) {
-    const fallback = await (supabase
+    const fallback = await supabase
       .from('professionals')
       .select(columns)
       .eq('user_id', userId)
-      .limit(1) as any)
+      .limit(1)
     data = fallback.data
     error = fallback.error
   }

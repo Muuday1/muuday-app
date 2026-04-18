@@ -527,7 +527,7 @@ export async function rescheduleBooking(
   if (hasConflict) return { success: false, error: 'Este hor?rio ja est? reservado. Escolha outro.' }
 
   const externalConflict = await hasExternalBusyConflict(
-    supabase as any,
+    supabase,
     professional.id,
     scheduledDate.toISOString(),
     endDate.toISOString(),

@@ -396,7 +396,7 @@ export async function offerRequestBooking(input: {
   }
 
   const externalConflict = await hasExternalBusyConflict(
-    supabase as any,
+    supabase,
     professional.id,
     proposalStartUtc.toISOString(),
     proposalEndUtc.toISOString(),
@@ -690,7 +690,7 @@ export async function acceptRequestBooking(
   }
 
   const externalConflict = await hasExternalBusyConflict(
-    supabase as any,
+    supabase,
     professional.id,
     startUtc.toISOString(),
     endUtc.toISOString(),
@@ -704,7 +704,7 @@ export async function acceptRequestBooking(
 
   const userCurrency = profile?.currency || 'BRL'
   const sessionPriceBrl = Number(professional.session_price_brl) || 0
-  const exchangeRates = await getExchangeRates(supabase as any)
+  const exchangeRates = await getExchangeRates(supabase)
   const sessionPriceUserCurrency = roundCurrency(sessionPriceBrl * (exchangeRates[userCurrency] || 1))
   const bookingStatus = settings.confirmationMode === 'manual' ? 'pending_confirmation' : 'confirmed'
   const confirmationDeadlineAt =
