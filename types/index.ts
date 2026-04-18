@@ -36,16 +36,8 @@ export type Professional = {
   created_at: string
 }
 
-export type BookingStatus =
-  | 'draft'
-  | 'pending_payment'
-  | 'pending_confirmation'
-  | 'pending' // legacy compatibility
-  | 'confirmed'
-  | 'completed'
-  | 'cancelled'
-  | 'no_show'
-  | 'rescheduled'
+import type { BookingStatus as BookingStatusFromLib } from '@/lib/booking/types'
+export type BookingStatus = BookingStatusFromLib
 
 export type Booking = {
   id: string
