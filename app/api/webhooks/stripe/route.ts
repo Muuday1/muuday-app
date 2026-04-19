@@ -11,13 +11,7 @@ import {
   createCorsPreflightResponse,
   evaluateCorsRequest,
 } from '@/lib/http/cors'
-
-function getRequestIp(request: NextRequest) {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  const realIp = request.headers.get('x-real-ip')
-  return realIp || 'unknown'
-}
+import { getClientIp } from '@/lib/http/client-ip'
 
 function buildRateLimitHeaders(limitResult: Awaited<ReturnType<typeof rateLimit>>) {
   const headers: Record<string, string> = {
@@ -48,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   const withCors = (response: NextResponse) => applyCorsHeaders(response, corsDecision.headers)
 
-  const ip = getRequestIp(request)
+  const ip = getClientIp(request)
   const rl = await rateLimit('stripeWebhook', ip)
   const rateLimitHeaders = buildRateLimitHeaders(rl)
   if (!rl.allowed) {

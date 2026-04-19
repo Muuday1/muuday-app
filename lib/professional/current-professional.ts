@@ -1,14 +1,31 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ProfessionalRow } from '@/types'
+
+export type { ProfessionalRow }
 
 /**
  * Returns the most recently created professional profile for a given user.
  * This avoids runtime errors when legacy/seed data contains multiple rows.
+ *
+ * The function is generic so callers can opt into type safety by specifying
+ * the expected shape. The default remains Record<string,any> for backward
+ * compatibility with existing callers that select partial columns.
+ *
+ * @example
+ * // Full row, typed
+ * const { data } = await getPrimaryProfessionalForUser<ProfessionalRow>(supabase, userId)
+ *
+ * @example
+ * // Partial columns, caller-defined shape
+ * const { data } = await getPrimaryProfessionalForUser<{ id: string; tier: string }>(
+ *   supabase, userId, 'id, tier'
+ * )
  */
-export async function getPrimaryProfessionalForUser(
+export async function getPrimaryProfessionalForUser<T = Record<string, any>>(
   supabase: SupabaseClient,
   userId: string,
   columns = '*',
-): Promise<{ data: Record<string, any> | null; error: any }> {
+): Promise<{ data: T | null; error: any }> {
   let { data, error } = await supabase
     .from('professionals')
     .select(columns)
@@ -28,7 +45,7 @@ export async function getPrimaryProfessionalForUser(
 
   if (error) return { data: null, error }
   return {
-    data: Array.isArray(data) && data.length > 0 ? (data[0] as Record<string, any>) : null,
+    data: Array.isArray(data) && data.length > 0 ? (data[0] as T) : null,
     error: null,
   }
 }

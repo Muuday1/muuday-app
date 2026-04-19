@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -17,702 +17,78 @@ import {
   type ProfessionalTermKey,
 } from '@/lib/legal/professional-terms'
 
-type Blocker = {
-  code: string
-  title: string
-  description: string
-  actionHref?: string
-}
-
-type Stage = {
-  id: string
-  title: string
-  complete: boolean
-  blockers: Blocker[]
-}
-
-type QualificationStructured = {
-  id: string
-  name: string
-  requires_registration: boolean
-  course_name: string
-  registration_number: string
-  issuer: string
-  country: string
-  evidence_files: Array<{
-    id: string
-    file_name: string
-    file_url: string
-    scan_status: string
-    verified: boolean
-    credential_type: string | null
-  }>
-}
-
-type AvailabilityDayState = {
-  is_available: boolean
-  start_time: string
-  end_time: string
-}
-
-type OnboardingTrackerModalProps = {
-  professionalId: string
-  tier: string
-  professionalStatus: string
-  onboardingEvaluation: ProfessionalOnboardingEvaluation
-  initialReviewAdjustments: ReviewAdjustmentItem[]
-  initialTermsAcceptanceByKey: Record<string, boolean>
-  initialBio: string
-  initialCoverPhotoUrl: string
-  autoOpen?: boolean
-  onTrackerStateChange?: (state: {
-    evaluation: ProfessionalOnboardingEvaluation
-    professionalStatus: string
-    reviewAdjustments?: ReviewAdjustmentItem[]
-  }) => void
-}
-
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-type BillingCycle = 'monthly' | 'annual'
-type PlanTier = 'basic' | 'professional' | 'premium'
-type TrackerViewMode = 'editing' | 'submitted_waiting' | 'approved' | 'needs_changes' | 'rejected'
-type PendingPhoto = {
-  file: File
-  previewUrl: string
-  width: number
-  height: number
-}
-
-type ProfileSummary = {
-  currency?: string | null
-  full_name?: string | null
-  timezone?: string | null
-  avatar_url?: string | null
-}
-
-type ModalContextPayload = {
-  professional?: {
-    user_id?: string | null
-    category?: string | null
-    subcategories?: string[] | null
-    focus_areas?: string[] | null
-    years_experience?: number | null
-    tier?: string | null
-    cover_photo_url?: string | null
-  } | null
-  services?: Array<{ id: string; name: string; description: string | null; price_brl: number; duration_minutes: number }> | null
-  settings?: Record<string, unknown> | null
-  availability?: Array<Record<string, unknown>> | null
-  application?: Record<string, unknown> | null
-  credentials?: Array<Record<string, unknown>> | null
-  profile?: ProfileSummary | null
-}
-
-type ModalOptionalContextPayload = {
-  categories?: Array<Record<string, unknown>> | null
-  subcategories?: Array<Record<string, unknown>> | null
-  planConfigs?: PlanConfigMap
-  exchangeRates?: ExchangeRateMap
-  planPricing?: {
-    currency: string
-    monthlyAmount: number
-    annualAmount: number
-    provider: string
-    fallback?: boolean
-    mode?: string
-  } | null
-  pricingError?: string
-}
-
-type ProfessionalServiceItem = {
-  id: string
-  name: string
-  description: string | null
-  price_brl: number
-  duration_minutes: number
-}
-
-type ModalContextResponse = {
-  scope?: 'critical' | 'optional'
-  evaluation?: ProfessionalOnboardingEvaluation
-  professionalStatus?: string
-  reviewAdjustments?: ReviewAdjustmentItem[]
-  termsAcceptanceByKey?: Record<string, boolean>
-  servicesLoadState?: 'loaded' | 'degraded' | 'failed'
-  servicesLoadError?: string
-  critical?: ModalContextPayload
-  optional?: ModalOptionalContextPayload
-  error?: string
-  servicesLoadFailed?: boolean
-}
-
-type PhotoValidationStatus = 'pass' | 'fail' | 'unknown'
-type PhotoValidationChecks = {
-  format: PhotoValidationStatus
-  size: PhotoValidationStatus
-  minResolution: PhotoValidationStatus
-  faceCentered: PhotoValidationStatus
-  neutralBackground: PhotoValidationStatus
-}
-
-const WEEK_DAYS: Array<{ value: number; label: string }> = [
-  { value: 1, label: 'Seg' },
-  { value: 2, label: 'Ter' },
-  { value: 3, label: 'Qua' },
-  { value: 4, label: 'Qui' },
-  { value: 5, label: 'Sex' },
-  { value: 6, label: 'Sab' },
-  { value: 0, label: 'Dom' },
-]
-
-const TIME_OPTIONS: string[] = []
-for (let h = 6; h <= 23; h += 1) {
-  for (const m of [0, 30]) {
-    TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-  }
-}
-
-const UI_STAGE_ORDER = [
-  'c2_professional_identity',
-  'c4_services',
-  'c5_availability_calendar',
-  'c6_plan_billing_setup_post',
-  'c7_payout_receipt',
-  'c8_submit_review',
-] as const
-
-const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = {
-  c2_professional_identity: 'Identidade',
-  c4_services: 'Serviços',
-  c5_availability_calendar: 'Disponibilidade',
-  c6_plan_billing_setup_post: 'Plano',
-  c7_payout_receipt: 'Financeiro',
-  c8_submit_review: 'Enviar',
-}
-
-const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number], string[]> = {
-  c2_professional_identity: ['c2_basic_identity', 'c3_public_profile'],
-  c4_services: ['c4_service_setup'],
-  c5_availability_calendar: ['c5_availability_calendar'],
-  c6_plan_billing_setup_post: ['c6_plan_billing_setup'],
-  c7_payout_receipt: ['c7_payout_payments'],
-  c8_submit_review: ['c8_submit_review'],
-}
-
-const ACTIONABLE_ADJUSTMENT_STAGE_IDS = new Set<string>([
-  'c2_professional_identity',
-  'c4_services',
-  'c5_availability_calendar',
-  'c6_plan_billing_setup_post',
-  'c7_payout_receipt',
-  'c8_submit_review',
-])
-
-const TERMS_KEYS = PROFESSIONAL_TERMS.map(item => item.key) as ProfessionalTermKey[]
-
-const PLAN_PRICE_BASE_BRL: Record<PlanTier, number> = {
-  basic: 49.99,
-  professional: 99.99,
-  premium: 149.99,
-}
-
-const PLAN_COMPARISON_ROWS: Array<{ label: string; basic: string; professional: string; premium: string }> = [
-  { label: 'Período sem cobrança', basic: '90 dias', professional: '90 dias', premium: '90 dias' },
-  { label: 'Serviços ativos', basic: '1', professional: '3', premium: '5' },
-  { label: 'Especialidades no perfil', basic: '1', professional: '3', premium: '3' },
-  { label: 'Tags de foco', basic: '3', professional: '4', premium: '5' },
-  { label: 'Janela de agendamento', basic: '30 dias', professional: '90 dias', premium: '180 dias' },
-  { label: 'Opções por serviço', basic: '1', professional: '3', premium: '6' },
-  { label: 'Antecedência mínima', basic: '0h a 48h', professional: '0h a 96h', premium: '0h a 168h' },
-  { label: 'Buffer configurável', basic: 'Não (fixo em 15 min)', professional: 'Sim', premium: 'Sim' },
-  { label: 'Confirmação manual', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'Auto-aceite', basic: 'Não', professional: 'Sim', premium: 'Sim' },
-  { label: 'Exportação PDF', basic: 'Não', professional: 'Não', premium: 'Sim' },
-]
-
-const PLAN_ROW_BY_LABEL = PLAN_COMPARISON_ROWS.reduce<
-  Record<string, { label: string; basic: string; professional: string; premium: string }>
->((acc, row) => {
-  acc[row.label] = row
-  return acc
-}, {})
-
-const PLAN_TIER_LABELS: Record<string, string> = {
-  basic: 'Básico',
-  professional: 'Profissional',
-  premium: 'Premium',
-}
-
-function normalizeStageIdForLookup(id: string) {
-  const normalized = String(id || '')
-  if (normalized === 'c1_create_account' || normalized === 'c1_account_creation') return 'c1_account_creation'
-  if (normalized === 'c2_professional_identity' || normalized === 'c2_basic_identity') return 'c2_basic_identity'
-  if (normalized === 'c3_public_profile') return 'c3_public_profile'
-  if (normalized === 'c4_services' || normalized === 'c4_service_setup') return 'c4_service_setup'
-  if (normalized === 'c5_availability_calendar') return 'c5_availability_calendar'
-  if (
-    normalized === 'c6_plan_billing_setup_pre' ||
-    normalized === 'c6_plan_billing_setup_post' ||
-    normalized === 'c6_plan_billing_setup'
-  ) {
-    return 'c6_plan_billing_setup'
-  }
-  if (normalized === 'c7_payout_receipt' || normalized === 'c7_payout_payments') return 'c7_payout_payments'
-  if (normalized === 'c8_submit_review') return 'c8_submit_review'
-  if (normalized === 'c9_go_live') return 'c9_go_live'
-  return normalized
-}
-
-function isValidCoverPhotoUrl(value: string) {
-  if (!value) return true
-  try {
-    const url = new URL(value)
-    return ['http:', 'https:'].includes(url.protocol)
-  } catch {
-    return false
-  }
-}
-
-function parseProfileMediaPath(value: string) {
-  const raw = String(value || '').trim()
-  if (!raw) return ''
-  if (raw.startsWith('http://') || raw.startsWith('https://')) return ''
-  if (raw.startsWith('professional-profile-media/')) {
-    return raw.slice('professional-profile-media/'.length)
-  }
-  return raw
-}
-
-function sanitizePricingErrorMessage(error: string) {
-  if (!error) return 'Preco indisponivel no momento.'
-  const normalized = error.toLowerCase()
-  if (
-    normalized.includes('faca login') ||
-    normalized.includes('sessao invalida') ||
-    normalized.includes('sessao inv')
-  ) {
-    return 'Sua sessao expirou. Entre novamente para continuar.'
-  }
-  if (error.includes('STRIPE_') || error.includes('AIRWALLEX_') || error.includes('PRICE_')) {
-    return 'Preco indisponivel no momento.'
-  }
-  return error
-}
-
-function resolveTrackerViewMode(status: string): TrackerViewMode {
-  const normalized = String(status || '').toLowerCase().trim()
-  if (normalized === 'pending_review') return 'submitted_waiting'
-  if (normalized === 'approved') return 'approved'
-  if (normalized === 'needs_changes') return 'needs_changes'
-  if (normalized === 'rejected') return 'rejected'
-  return 'editing'
-}
-
-const LANGUAGE_OPTIONS = [
-  'Português',
-  'Inglês',
-  'Espanhol',
-  'Francês',
-  'Italiano',
-  'Alemão',
-  'Holandês',
-  'Árabe',
-  'Mandarim',
-  'Japonês',
-  'Coreano',
-  'Hindi',
-  'Russo',
-  'Ucraniano',
-  'Hebraico',
-]
-
-const PROFESSIONAL_TITLES = ['Sr.', 'Sra.', 'Srta.', 'Dr.', 'Dra.', 'Prof.', 'Profa.', 'Prefiro não informar']
-const TARGET_AUDIENCE_OPTIONS = ['Adultos', 'Crianças', 'Casais', 'Empresas', 'Estudantes', 'Imigrantes']
-const QUALIFICATION_APPROVED_OPTIONS = [
-  'Diploma de graduação',
-  'Registro profissional',
-  'Certificação técnica',
-  'Especialização',
-  'Mestrado',
-  'Doutorado',
-]
-const QUALIFICATION_FILE_MAX_SIZE_BYTES = 2 * 1024 * 1024
-const QUALIFICATION_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
-
-function normalizeOption(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
-function isRegistrationQualification(name: string) {
-  return normalizeOption(name) === normalizeOption('Registro profissional')
-}
-
-function inferCredentialType(name: string): 'diploma' | 'license' | 'certification' | 'other' {
-  const normalized = normalizeOption(name)
-  if (normalized.includes('registro')) return 'license'
-  if (normalized.includes('diploma')) return 'diploma'
-  if (
-    normalized.includes('certificacao') ||
-    normalized.includes('especializacao') ||
-    normalized.includes('mestrado') ||
-    normalized.includes('doutorado')
-  ) {
-    return 'certification'
-  }
-  return 'other'
-}
-
-function toKeywords(value: string) {
-  return value
-    .split(',')
-    .map(item => item.trim())
-    .filter(Boolean)
-}
-
-function formatCurrencyFromBrl(amountBrl: number, currency: string, rates: ExchangeRateMap) {
-  const safeCurrency = String(currency || 'BRL').toUpperCase()
-  const rate = rates[safeCurrency] || 1
-  const converted = safeCurrency === 'BRL' ? amountBrl : amountBrl * rate
-  try {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: safeCurrency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(converted)
-  } catch {
-    return `${safeCurrency} ${converted.toFixed(2)}`
-  }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function rgbToHsl(r: number, g: number, b: number) {
-  const rn = r / 255
-  const gn = g / 255
-  const bn = b / 255
-  const max = Math.max(rn, gn, bn)
-  const min = Math.min(rn, gn, bn)
-  const l = (max + min) / 2
-  if (max === min) return { h: 0, s: 0, l }
-  const d = max - min
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-  let h = 0
-  switch (max) {
-    case rn:
-      h = (gn - bn) / d + (gn < bn ? 6 : 0)
-      break
-    case gn:
-      h = (bn - rn) / d + 2
-      break
-    default:
-      h = (rn - gn) / d + 4
-      break
-  }
-  h /= 6
-  return { h, s, l }
-}
-
-function humanizeTaxonomyValue(value: string) {
-  const raw = String(value || '').trim()
-  if (!raw) return ''
-  if (!raw.includes('-')) return raw
-  return raw
-    .split('-')
-    .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-function resolveTaxonomyLabel(value: string, nameBySlug: Record<string, string>) {
-  const raw = String(value || '').trim()
-  if (!raw) return ''
-  const normalized = raw.toLowerCase()
-  return nameBySlug[normalized] || humanizeTaxonomyValue(raw)
-}
-
-function getQualificationValidationMessage(item: QualificationStructured) {
-  const label = item.name.trim() || 'qualificação'
-  if (!item.name.trim()) return 'Informe o nome da qualificação.'
-  if (item.requires_registration) {
-    if (!item.registration_number.trim()) return `Informe o número de registro em "${label}".`
-    if (!item.issuer.trim()) return `Informe o órgão emissor em "${label}".`
-    if (!item.country.trim()) return `Informe o país do registro em "${label}".`
-  } else if (!item.course_name.trim()) {
-    return `Informe o nome do curso ou formação em "${label}".`
-  }
-  if (item.evidence_files.length === 0) return `Envie ao menos um comprovante para "${label}".`
-  return ''
-}
-
-async function readImageDimensions(file: File) {
-  const previewUrl = URL.createObjectURL(file)
-  const result = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight })
-    image.onerror = () => reject(new Error('Nao foi possivel ler a imagem selecionada.'))
-    image.src = previewUrl
-  })
-
-  return { previewUrl, ...result }
-}
-
-async function runPhotoAutoValidation(file: File, width: number, height: number) {
-  const checks: PhotoValidationChecks = {
-    format: ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ? 'pass' : 'fail',
-    size: file.size <= 3 * 1024 * 1024 ? 'pass' : 'fail',
-    minResolution: width >= 320 && height >= 320 ? 'pass' : 'fail',
-    faceCentered: 'unknown',
-    neutralBackground: 'unknown',
-  }
-
-  const previewUrl = URL.createObjectURL(file)
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const next = new Image()
-      next.onload = () => resolve(next)
-      next.onerror = () => reject(new Error('Nao foi possivel ler a imagem para validacao.'))
-      next.src = previewUrl
-    })
-
-    const canvas = document.createElement('canvas')
-    canvas.width = image.naturalWidth
-    canvas.height = image.naturalHeight
-    const context = canvas.getContext('2d')
-    if (context) {
-      context.drawImage(image, 0, 0)
-      const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
-      const step = Math.max(2, Math.floor(Math.min(canvas.width, canvas.height) / 80))
-      let sampled = 0
-      let satAcc = 0
-      let lightAcc = 0
-      for (let y = 0; y < canvas.height; y += step) {
-        for (let x = 0; x < canvas.width; x += step) {
-          const isEdge =
-            x < canvas.width * 0.15 ||
-            x > canvas.width * 0.85 ||
-            y < canvas.height * 0.15 ||
-            y > canvas.height * 0.85
-          if (!isEdge) continue
-          const idx = (y * canvas.width + x) * 4
-          const hsl = rgbToHsl(data[idx] || 0, data[idx + 1] || 0, data[idx + 2] || 0)
-          satAcc += hsl.s
-          lightAcc += hsl.l
-          sampled += 1
-        }
-      }
-      if (sampled > 0) {
-        const avgSat = satAcc / sampled
-        const avgLight = lightAcc / sampled
-        checks.neutralBackground = avgSat <= 0.35 && avgLight >= 0.52 ? 'pass' : 'fail'
-      }
-    }
-
-    type FaceDetectorLike = {
-      detect: (source: CanvasImageSource) => Promise<Array<{ boundingBox?: { x: number; y: number; width: number; height: number } }>>
-    }
-    const FaceDetectorCtor = (window as unknown as { FaceDetector?: new (opts?: unknown) => FaceDetectorLike }).FaceDetector
-    if (FaceDetectorCtor) {
-      try {
-        const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 } as unknown)
-        const faces = await detector.detect(image)
-        if (faces.length === 1 && faces[0]?.boundingBox) {
-          const box = faces[0].boundingBox
-          const centerX = (box.x + box.width / 2) / image.naturalWidth
-          const centerY = (box.y + box.height / 2) / image.naturalHeight
-          checks.faceCentered =
-            Math.abs(centerX - 0.5) <= 0.22 && Math.abs(centerY - 0.45) <= 0.25 ? 'pass' : 'fail'
-        } else {
-          checks.faceCentered = 'fail'
-        }
-      } catch {
-        checks.faceCentered = 'unknown'
-      }
-    }
-  } finally {
-    URL.revokeObjectURL(previewUrl)
-  }
-
-  return checks
-}
-
-async function buildAvatarCropFile(file: File, focusX: number, focusY: number, zoom: number) {
-  const dimensions = await readImageDimensions(file)
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const next = new Image()
-      next.onload = () => resolve(next)
-      next.onerror = () => reject(new Error('Nao foi possivel preparar a imagem para recorte.'))
-      next.src = dimensions.previewUrl
-    })
-
-    const outputSize = 800
-    const normalizedZoom = clamp(zoom, 1, 2.5)
-    const scale = Math.max(outputSize / image.naturalWidth, outputSize / image.naturalHeight) * normalizedZoom
-    const displayedWidth = image.naturalWidth * scale
-    const displayedHeight = image.naturalHeight * scale
-    const overflowX = Math.max(0, displayedWidth - outputSize)
-    const overflowY = Math.max(0, displayedHeight - outputSize)
-    const sourceSize = outputSize / scale
-    const sourceX = overflowX > 0 ? clamp((overflowX * (focusX / 100)) / scale, 0, image.naturalWidth - sourceSize) : 0
-    const sourceY = overflowY > 0 ? clamp((overflowY * (focusY / 100)) / scale, 0, image.naturalHeight - sourceSize) : 0
-
-    const canvas = document.createElement('canvas')
-    canvas.width = outputSize
-    canvas.height = outputSize
-    const context = canvas.getContext('2d')
-    if (!context) {
-      throw new Error('Nao foi possivel preparar a foto agora.')
-    }
-
-    context.fillStyle = '#ffffff'
-    context.fillRect(0, 0, outputSize, outputSize)
-    context.drawImage(
-      image,
-      sourceX,
-      sourceY,
-      sourceSize,
-      sourceSize,
-      0,
-      0,
-      outputSize,
-      outputSize,
-    )
-
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        nextBlob => {
-          if (nextBlob) {
-            resolve(nextBlob)
-            return
-          }
-          reject(new Error('Nao foi possivel exportar a foto recortada.'))
-        },
-        'image/jpeg',
-        0.92,
-      )
-    })
-
-    const baseName = file.name.replace(/\.[^.]+$/, '') || 'avatar'
-    return new File([blob], `${baseName}-avatar.jpg`, { type: 'image/jpeg' })
-  } finally {
-    URL.revokeObjectURL(dimensions.previewUrl)
-  }
-}
-
-function getPlanFeatureHighlights(stageId: string) {
-  if (stageId === 'c2_professional_identity') {
-    const tagsRow = PLAN_ROW_BY_LABEL['Tags de foco']
-    return [
-      `Básico: até ${tagsRow?.basic || '3'} tags de foco`,
-      `Profissional: até ${tagsRow?.professional || '4'} tags de foco`,
-      `Premium: até ${tagsRow?.premium || '5'} tags de foco`,
-    ]
-  }
-
-  if (stageId === 'c4_services') {
-    const servicesRow = PLAN_ROW_BY_LABEL['Serviços ativos']
-    return [
-      `Básico: ${servicesRow?.basic || '1'} serviço ativo`,
-      `Profissional: ${servicesRow?.professional || '3'} serviços ativos`,
-      `Premium: ${servicesRow?.premium || '5'} serviços ativos`,
-    ]
-  }
-
-  if (stageId === 'c5_availability_calendar') {
-    const windowRow = PLAN_ROW_BY_LABEL['Janela de agendamento']
-    return [
-      `Básico: ${windowRow?.basic || '30 dias'} de janela`,
-      `Profissional: ${windowRow?.professional || '90 dias'} de janela`,
-      `Premium: ${windowRow?.premium || '180 dias'} de janela`,
-    ]
-  }
-
-  if (stageId === 'c7_payout_receipt') {
-    const pdfRow = PLAN_ROW_BY_LABEL['Exportação PDF']
-    return [
-      `Básico: exportação em PDF ${pdfRow?.basic || 'Não'}`,
-      `Profissional: exportação em PDF ${pdfRow?.professional || 'Não'}`,
-      `Premium: exportação em PDF ${pdfRow?.premium || 'Sim'}`,
-    ]
-  }
-
-  return []
-}
-
-function buildDefaultAvailabilityMap() {
-  return WEEK_DAYS.reduce<Record<number, AvailabilityDayState>>((acc, day) => {
-    acc[day.value] = { is_available: false, start_time: '09:00', end_time: '18:00' }
-    return acc
-  }, {})
-}
-
-type BlockerCta =
-  | { kind: 'internal'; label: string; stageId: string }
-  | { kind: 'external'; label: string; href: string }
-
-function getBlockerCta(blocker: Blocker): BlockerCta | null {
-  if (blocker.code === 'missing_review_requirements') {
-    return { kind: 'internal', label: 'Revisar pendências do tracker', stageId: 'c8_submit_review' }
-  }
-
-  if (blocker.code === 'missing_credentials') {
-    return { kind: 'internal', label: 'Abrir identidade profissional', stageId: 'c2_professional_identity' }
-  }
-
-  if (blocker.actionHref === '/disponibilidade') {
-    return { kind: 'internal', label: 'Abrir disponibilidade', stageId: 'c5_availability_calendar' }
-  }
-
-  if (blocker.actionHref === '/configuracoes-agendamento') {
-    return { kind: 'external', label: 'Abrir regras de agendamento', href: '/configuracoes-agendamento' }
-  }
-
-  if (blocker.actionHref === '/planos') {
-    return { kind: 'internal', label: 'Abrir plano', stageId: 'c6_plan_billing_setup_post' }
-  }
-
-  if (blocker.actionHref === '/financeiro') {
-    return { kind: 'internal', label: 'Abrir financeiro', stageId: 'c7_payout_receipt' }
-  }
-
-  if (blocker.actionHref === '/configuracoes') {
-    return { kind: 'external', label: 'Abrir configurações da conta', href: '/configuracoes' }
-  }
-
-  if (blocker.actionHref === '/editar-perfil' || blocker.actionHref === '/editar-perfil-profissional') {
-    return { kind: 'internal', label: 'Abrir identidade profissional', stageId: 'c2_professional_identity' }
-  }
-
-  if (blocker.actionHref === '/completar-perfil') {
-    return { kind: 'internal', label: 'Abrir serviços', stageId: 'c4_services' }
-  }
-
-  if (blocker.actionHref === '/onboarding-profissional') {
-    return { kind: 'internal', label: 'Voltar ao tracker', stageId: 'c8_submit_review' }
-  }
-
-  return blocker.actionHref ? { kind: 'external', label: 'Abrir etapa relacionada', href: blocker.actionHref } : null
-}
-
-async function withTimeout<T>(promiseLike: PromiseLike<T>, timeoutMs: number) {
-  const promise = Promise.resolve(promiseLike)
-  let timer: ReturnType<typeof setTimeout> | null = null
-  try {
-    const timeoutPromise = new Promise<T>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('timeout')), timeoutMs)
-    })
-    return await Promise.race([promise, timeoutPromise])
-  } finally {
-    if (timer) clearTimeout(timer)
-  }
-}
+import {
+  type Blocker,
+  type Stage,
+  type QualificationStructured,
+  type AvailabilityDayState,
+  type OnboardingTrackerModalProps,
+  type SaveState,
+  type BillingCycle,
+  type PlanTier,
+  type TrackerViewMode,
+  type PendingPhoto,
+  type ProfileSummary,
+  type ModalContextPayload,
+  type ModalOptionalContextPayload,
+  type ProfessionalServiceItem,
+  type ModalContextResponse,
+  type PhotoValidationChecks,
+  type BlockerCta,
+} from './onboarding-tracker/types'
+
+import {
+  WEEK_DAYS,
+  TIME_OPTIONS,
+  UI_STAGE_ORDER,
+  UI_STAGE_LABELS,
+  UI_STAGE_BACKEND_STAGE_IDS,
+  ACTIONABLE_ADJUSTMENT_STAGE_IDS,
+  TERMS_KEYS,
+  PLAN_PRICE_BASE_BRL,
+  PLAN_COMPARISON_ROWS,
+  PLAN_ROW_BY_LABEL,
+  PLAN_TIER_LABELS,
+  LANGUAGE_OPTIONS,
+  PROFESSIONAL_TITLES,
+  TARGET_AUDIENCE_OPTIONS,
+  QUALIFICATION_APPROVED_OPTIONS,
+  QUALIFICATION_FILE_MAX_SIZE_BYTES,
+  QUALIFICATION_ALLOWED_TYPES,
+} from './onboarding-tracker/constants'
+
+import {
+  normalizeStageIdForLookup,
+  isValidCoverPhotoUrl,
+  parseProfileMediaPath,
+  sanitizePricingErrorMessage,
+  resolveTrackerViewMode,
+  normalizeOption,
+  isRegistrationQualification,
+  inferCredentialType,
+  toKeywords,
+  formatCurrencyFromBrl,
+  clamp,
+  rgbToHsl,
+  humanizeTaxonomyValue,
+  resolveTaxonomyLabel,
+  getQualificationValidationMessage,
+  readImageDimensions,
+  runPhotoAutoValidation,
+  buildAvatarCropFile,
+  getPlanFeatureHighlights,
+  buildDefaultAvailabilityMap,
+  getBlockerCta,
+  withTimeout,
+} from './onboarding-tracker/helpers'
+
+import { PayoutReceiptStage } from './onboarding-tracker/stages/payout-receipt-stage'
+import { SubmitReviewStage } from './onboarding-tracker/stages/submit-review-stage'
+import { TermsModal } from './onboarding-tracker/stages/terms-modal'
+import { PlanSelectionStage } from './onboarding-tracker/stages/plan-selection-stage'
+import { ServicesStage } from './onboarding-tracker/stages/services-stage'
+import { AvailabilityStage } from './onboarding-tracker/stages/availability-stage'
+import { IdentityStage } from './onboarding-tracker/stages/identity-stage'
 
 export function OnboardingTrackerModal({
   professionalId,
@@ -2608,1385 +1984,195 @@ export function OnboardingTrackerModal({
               ) : null}
 
               {(activeStageId === 'c2_professional_identity') && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil</label>
-                    <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
-                      <Upload className="h-3.5 w-3.5" />
-                      Enviar foto
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={event => {
-                          const file = event.target.files?.[0]
-                          if (file) {
-                            void prepareProfessionalPhoto(file)
-                          } else {
-                            setPhotoUploadState('error')
-                            setPhotoUploadError('Não foi possível selecionar a foto. Tente novamente.')
-                          }
-                          event.currentTarget.value = ''
-                        }}
-                      />
-                    </label>
-                    {(pendingPhoto || coverPhotoUrl) ? (
-                      <div className="mt-3">
-                        <div className="grid gap-4 lg:grid-cols-[208px_minmax(0,1fr)] lg:items-start">
-                          <div className="space-y-3">
-                            <div
-                              className="relative h-48 w-48 overflow-hidden rounded-full border border-neutral-200 bg-white"
-                              onMouseMove={event => {
-                                if (dragStateRef.current) handlePhotoDragMove(event.clientX, event.clientY)
-                              }}
-                              onMouseUp={handlePhotoDragEnd}
-                              onMouseLeave={handlePhotoDragEnd}
-                              onTouchMove={event => {
-                                const touch = event.touches[0]
-                                if (touch) handlePhotoDragMove(touch.clientX, touch.clientY)
-                              }}
-                              onTouchEnd={handlePhotoDragEnd}
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={pendingPhoto?.previewUrl || coverPhotoUrl}
-                                alt="Prévia da foto do perfil"
-                                className="absolute select-none object-cover"
-                                draggable={false}
-                                onMouseDown={event => handlePhotoDragStart(event.clientX, event.clientY)}
-                                onTouchStart={event => {
-                                  const touch = event.touches[0]
-                                  if (touch) handlePhotoDragStart(touch.clientX, touch.clientY)
-                                }}
-                                style={
-                                  pendingPhoto
-                                    ? (() => {
-                                        const previewSize = 192
-                                        const scale =
-                                          Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height) *
-                                          photoZoom
-                                        const displayedWidth = pendingPhoto.width * scale
-                                        const displayedHeight = pendingPhoto.height * scale
-                                        const overflowX = Math.max(0, displayedWidth - previewSize)
-                                        const overflowY = Math.max(0, displayedHeight - previewSize)
-                                        return {
-                                          width: `${displayedWidth}px`,
-                                          height: `${displayedHeight}px`,
-                                          left: `${-(overflowX * (photoFocusX / 100))}px`,
-                                          top: `${-(overflowY * (photoFocusY / 100))}px`,
-                                        }
-                                      })()
-                                    : { inset: 0, width: '100%', height: '100%', objectPosition: 'center' }
-                                }
-                              />
-                            </div>
-                            <p className="text-[11px] text-neutral-500">
-                              Arraste a imagem para reposicionar o centro. Use o zoom se quiser ajustar também para os lados.
-                            </p>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                              <p className="text-xs font-semibold text-neutral-800">Validação automática</p>
-                              <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs">
-                                {[
-                                  ['Formato (JPG/PNG/WEBP)', photoValidationChecks.format],
-                                  ['Tamanho (até 3MB)', photoValidationChecks.size],
-                                  ['Resolução mínima (320x320)', photoValidationChecks.minResolution],
-                                  ['Rosto centralizado', photoValidationChecks.faceCentered],
-                                  ['Fundo claro/neutro', photoValidationChecks.neutralBackground],
-                                ].map(([label, status]) => (
-                                  <div key={String(label)} className="flex items-center justify-between gap-2">
-                                    <span className="text-neutral-700">{label}</span>
-                                    <span
-                                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                        status === 'pass'
-                                          ? 'bg-green-100 text-green-700'
-                                          : status === 'fail'
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-neutral-200 text-neutral-600'
-                                      }`}
-                                    >
-                                      {status === 'pass' ? 'ok' : status === 'fail' ? 'falhou' : 'n/a'}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            {pendingPhoto ? (
-                              <label className="block">
-                                <span className="mb-1 block text-xs font-semibold text-neutral-700">Zoom</span>
-                                <input
-                                  type="range"
-                                  min="1"
-                                  max="2.5"
-                                  step="0.05"
-                                  value={photoZoom}
-                                  onChange={event => setPhotoZoom(Number(event.target.value))}
-                                  className="w-full accent-brand-600"
-                                />
-                              </label>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                    {photoUploadState === 'saving' ? (
-                      <p className="mt-2 text-xs text-brand-700">Preparando foto...</p>
-                    ) : null}
-                    {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
-                      <select
-                        value={identityTitle}
-                        onChange={event => setIdentityTitle(event.target.value)}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      >
-                        <option value="">Selecione...</option>
-                        {PROFESSIONAL_TITLES.map(option => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Nome público profissional</label>
-                      <input
-                        type="text"
-                        value={identityDisplayName}
-                        onChange={event => setIdentityDisplayName(event.target.value)}
-                        disabled={identityDisplayNameLocked}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
-                      />
-                      {identityDisplayNameLocked ? (
-                        <p className="mt-1 text-[11px] text-neutral-500">
-                          Esse nome foi definido no cadastro inicial e não pode ser alterado aqui.
-                        </p>
-                      ) : null}
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Categoria principal</label>
-                      <input
-                        type="text"
-                        value={resolveTaxonomyLabel(identityCategory, categoryNameBySlug)}
-                        readOnly
-                        className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Área de atuação específica</label>
-                      <input
-                        type="text"
-                        value={resolveTaxonomyLabel(identitySubcategory, subcategoryNameBySlug)}
-                        readOnly
-                        className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Tags de foco</label>
-                      <div className="flex min-h-11 flex-wrap gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
-                        {identityFocusAreas.length > 0 ? (
-                          identityFocusAreas.map(tag => (
-                            <button
-                              key={tag}
-                              type="button"
-                              onClick={() => removeFocusArea(tag)}
-                              className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-800"
-                            >
-                              {tag} ×
-                            </button>
-                          ))
-                        ) : (
-                          <span className="text-xs text-neutral-500">Nenhuma tag registrada ainda.</span>
-                        )}
-                      </div>
-                      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <input
-                          type="text"
-                          value={focusAreaInput}
-                          onChange={event => {
-                            const nextValue = event.target.value
-                            if (nextValue.endsWith(',')) {
-                              addFocusArea(nextValue)
-                              return
-                            }
-                            setFocusAreaInput(nextValue)
-                          }}
-                          onKeyDown={event => {
-                            if (event.key === 'Enter' || event.key === ',') {
-                              event.preventDefault()
-                              addFocusArea(focusAreaInput)
-                            }
-                            if (event.key === 'Backspace' && !focusAreaInput && identityFocusAreas.length > 0) {
-                              removeFocusArea(identityFocusAreas[identityFocusAreas.length - 1]!)
-                            }
-                          }}
-                          className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                          placeholder={`Adicione tags de foco (${identityFocusAreas.length}/${tierLimits.tags})`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => addFocusArea(focusAreaInput)}
-                          className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
-                        >
-                          Adicionar tag
-                        </button>
-                      </div>
-                      <p className="mt-1 text-[11px] text-neutral-500">
-                        Pressione vírgula ou Enter para adicionar. Clique na tag para remover.
-                      </p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-2 block text-sm font-semibold text-neutral-900">Sobre você</label>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs text-neutral-500">Resumo público exibido no perfil</span>
-                        <span className="text-xs text-neutral-500">{bio.length}/500</span>
-                      </div>
-                      <textarea
-                        value={bio}
-                        onChange={event => setBio(event.target.value.slice(0, 500))}
-                        rows={5}
-                        className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                        placeholder="Descreva sua atuação profissional em linguagem clara e objetiva."
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiência</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={60}
-                        value={identityYearsExperience}
-                        onChange={event => setIdentityYearsExperience(event.target.value)}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-700">Idioma principal</label>
-                      <select
-                        value={identityPrimaryLanguage}
-                        onChange={event => setIdentityPrimaryLanguage(event.target.value)}
-                        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      >
-                        {LANGUAGE_OPTIONS.map(option => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundários</p>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setSecondaryLanguagesOpen(previous => !previous)}
-                        className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2 text-left text-sm text-neutral-700"
-                      >
-                        <span className="truncate">
-                          {identitySecondaryLanguages.length > 0
-                            ? identitySecondaryLanguages.join(', ')
-                            : 'Selecione idiomas secundários'}
-                        </span>
-                        <span className="text-xs text-neutral-400">{secondaryLanguagesOpen ? 'Fechar' : 'Selecionar'}</span>
-                      </button>
-                      {secondaryLanguagesOpen ? (
-                        <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
-                          <div className="grid gap-1">
-                            {LANGUAGE_OPTIONS.filter(item => item !== identityPrimaryLanguage).map(option => (
-                              <button
-                                key={option}
-                                type="button"
-                                onClick={() =>
-                                  toggleMultiValue(option, identitySecondaryLanguages, setIdentitySecondaryLanguages)
-                                }
-                                className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                                  identitySecondaryLanguages.includes(option)
-                                    ? 'bg-brand-50 text-brand-800'
-                                    : 'text-neutral-700 hover:bg-neutral-50'
-                                }`}
-                              >
-                                <span>{option}</span>
-                                <span className="text-xs font-semibold">
-                                  {identitySecondaryLanguages.includes(option) ? 'Selecionado' : 'Selecionar'}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <p className="mb-2 text-xs font-semibold text-neutral-700">Público atendido</p>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setTargetAudiencesOpen(previous => !previous)}
-                        className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2 text-left text-sm text-neutral-700"
-                      >
-                        <span className="truncate">
-                          {identityTargetAudiences.length > 0
-                            ? identityTargetAudiences.join(', ')
-                            : 'Selecione os públicos atendidos'}
-                        </span>
-                        <span className="text-xs text-neutral-400">{targetAudiencesOpen ? 'Fechar' : 'Selecionar'}</span>
-                      </button>
-                      {targetAudiencesOpen ? (
-                        <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
-                          <div className="grid gap-1">
-                            {TARGET_AUDIENCE_OPTIONS.map(option => (
-                              <button
-                                key={option}
-                                type="button"
-                                onClick={() => toggleMultiValue(option, identityTargetAudiences, setIdentityTargetAudiences)}
-                                className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                                  identityTargetAudiences.includes(option)
-                                    ? 'bg-brand-50 text-brand-800'
-                                    : 'text-neutral-700 hover:bg-neutral-50'
-                                }`}
-                              >
-                                <span>{option}</span>
-                                <span className="text-xs font-semibold">
-                                  {identityTargetAudiences.includes(option) ? 'Selecionado' : 'Selecionar'}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Cursos e credenciamentos</h3>
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
-                      <select
-                        value={identityQualificationSelection}
-                        onChange={event => setIdentityQualificationSelection(event.target.value)}
-                        className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                      >
-                        {QUALIFICATION_APPROVED_OPTIONS.map(option => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      <label className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700">
-                        <input
-                          type="checkbox"
-                          checked={identityQualificationCustomEnabled}
-                          onChange={event => setIdentityQualificationCustomEnabled(event.target.checked)}
-                          className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                        />
-                        Informar qualificação fora da lista
-                      </label>
-                      <button
-                        type="button"
-                        onClick={addIdentityQualification}
-                        className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600"
-                      >
-                        Adicionar
-                      </button>
-                    </div>
-                    {identityQualificationCustomEnabled ? (
-                      <input
-                        type="text"
-                        value={identityQualificationCustomName}
-                        onChange={event => setIdentityQualificationCustomName(event.target.value)}
-                        className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                        placeholder="Digite o nome da qualificação"
-                      />
-                    ) : null}
-                    <div className="mt-3 space-y-3">
-                      {identityQualifications.map((item, index) => (
-                        <div key={item.id} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-neutral-900">{item.name}</p>
-                            <button
-                              type="button"
-                              onClick={() => setIdentityQualifications(prev => prev.filter(current => current.id !== item.id))}
-                              className="text-xs font-semibold text-red-600"
-                            >
-                              Remover
-                            </button>
-                          </div>
-                          <label className="mb-2 inline-flex items-center gap-2 text-xs text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={item.requires_registration}
-                              onChange={event =>
-                                setIdentityQualifications(prev =>
-                                  prev.map((current, i) =>
-                                    i === index
-                                      ? { ...current, requires_registration: event.target.checked }
-                                      : current,
-                                  ),
-                                )
-                              }
-                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                            />
-                            Exige número de registro profissional
-                          </label>
-                          {item.requires_registration ? (
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                              <input
-                                type="text"
-                                value={item.registration_number}
-                                onChange={event =>
-                                  setIdentityQualifications(prev =>
-                                    prev.map((current, i) =>
-                                      i === index ? { ...current, registration_number: event.target.value } : current,
-                                    ),
-                                  )
-                                }
-                                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                                placeholder="Número do registro"
-                              />
-                              <input
-                                type="text"
-                                value={item.issuer}
-                                onChange={event =>
-                                  setIdentityQualifications(prev =>
-                                    prev.map((current, i) =>
-                                      i === index ? { ...current, issuer: event.target.value } : current,
-                                    ),
-                                  )
-                                }
-                                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                                placeholder="Órgão emissor"
-                              />
-                              <input
-                                type="text"
-                                value={item.country}
-                                onChange={event =>
-                                  setIdentityQualifications(prev =>
-                                    prev.map((current, i) =>
-                                      i === index ? { ...current, country: event.target.value } : current,
-                                    ),
-                                  )
-                                }
-                                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                                placeholder="País do registro"
-                              />
-                            </div>
-                          ) : (
-                            <input
-                              type="text"
-                              value={item.course_name}
-                              onChange={event =>
-                                setIdentityQualifications(prev =>
-                                  prev.map((current, i) =>
-                                    i === index ? { ...current, course_name: event.target.value } : current,
-                                  ),
-                                )
-                              }
-                              className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                              placeholder="Nome do curso/formação"
-                            />
-                          )}
-
-                          <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-2.5">
-                            <p className="text-[11px] text-neutral-600">
-                              Envie comprovantes (PDF/JPG/PNG até 2MB por arquivo).
-                            </p>
-                            <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-neutral-200 px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
-                              <Upload className="h-3.5 w-3.5" />
-                              Upload comprovante
-                              <input
-                                type="file"
-                                accept="application/pdf,image/jpeg,image/png"
-                                className="hidden"
-                                onChange={event => {
-                                  const file = event.target.files?.[0] || null
-                                  void uploadQualificationDocument(item.id, file)
-                                  event.currentTarget.value = ''
-                                }}
-                              />
-                            </label>
-
-                            {item.evidence_files.length > 0 ? (
-                              <div className="mt-2 space-y-1.5">
-                                {item.evidence_files.map(document => (
-                                  <div
-                                    key={document.id}
-                                    className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5"
-                                  >
-                                    <a
-                                      href={`/api/professional/credentials/download/${document.id}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="truncate text-xs font-medium text-brand-700 hover:text-brand-800"
-                                    >
-                                      {document.file_name}
-                                    </a>
-                                    <div className="flex items-center gap-2">
-                                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
-                                        {document.scan_status === 'clean'
-                                          ? 'limpo'
-                                          : document.scan_status === 'rejected'
-                                            ? 'rejeitado'
-                                            : 'pendente'}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => void removeQualificationDocument(item.id, document.id)}
-                                        className="text-[11px] font-semibold text-red-600"
-                                      >
-                                        Remover
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="mt-2 text-[11px] text-amber-700">
-                                Envie ao menos um arquivo para esta qualificação.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {identityError ? <p className="text-sm font-medium text-red-700">{identityError}</p> : null}
-                  {bioError ? <p className="text-sm font-medium text-red-700">{bioError}</p> : null}
-                  <button
-                    type="button"
-                    onClick={() => void saveIdentityAndPublicProfile()}
-                    disabled={identitySaveState === 'saving' || bioSaveState === 'saving'}
-                    className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                  >
-                    {identitySaveState === 'saving' || bioSaveState === 'saving'
-                      ? 'Salvando...'
-                      : identitySaveState === 'saved' && bioSaveState === 'saved'
-                        ? 'Salvo'
-                        : 'Salvar identidade e perfil'}
-                  </button>
-                </div>
+                <IdentityStage
+                  pendingPhoto={pendingPhoto}
+                  coverPhotoUrl={coverPhotoUrl}
+                  photoZoom={photoZoom}
+                  setPhotoZoom={setPhotoZoom}
+                  photoFocusX={photoFocusX}
+                  photoFocusY={photoFocusY}
+                  photoValidationChecks={photoValidationChecks}
+                  photoUploadState={photoUploadState}
+                  photoUploadError={photoUploadError}
+                  prepareProfessionalPhoto={prepareProfessionalPhoto}
+                  setPhotoUploadState={setPhotoUploadState}
+                  setPhotoUploadError={setPhotoUploadError}
+                  dragStateRef={dragStateRef}
+                  handlePhotoDragMove={handlePhotoDragMove}
+                  handlePhotoDragEnd={handlePhotoDragEnd}
+                  handlePhotoDragStart={handlePhotoDragStart}
+                  identityTitle={identityTitle}
+                  setIdentityTitle={setIdentityTitle}
+                  identityDisplayName={identityDisplayName}
+                  setIdentityDisplayName={setIdentityDisplayName}
+                  identityDisplayNameLocked={identityDisplayNameLocked}
+                  identityCategory={identityCategory}
+                  identitySubcategory={identitySubcategory}
+                  categoryNameBySlug={categoryNameBySlug}
+                  subcategoryNameBySlug={subcategoryNameBySlug}
+                  identityFocusAreas={identityFocusAreas}
+                  focusAreaInput={focusAreaInput}
+                  setFocusAreaInput={setFocusAreaInput}
+                  removeFocusArea={removeFocusArea}
+                  addFocusArea={addFocusArea}
+                  tierLimits={tierLimits}
+                  bio={bio}
+                  setBio={setBio}
+                  identityYearsExperience={identityYearsExperience}
+                  setIdentityYearsExperience={setIdentityYearsExperience}
+                  identityPrimaryLanguage={identityPrimaryLanguage}
+                  setIdentityPrimaryLanguage={setIdentityPrimaryLanguage}
+                  identitySecondaryLanguages={identitySecondaryLanguages}
+                  setIdentitySecondaryLanguages={setIdentitySecondaryLanguages}
+                  toggleMultiValue={toggleMultiValue}
+                  secondaryLanguagesOpen={secondaryLanguagesOpen}
+                  setSecondaryLanguagesOpen={setSecondaryLanguagesOpen}
+                  identityTargetAudiences={identityTargetAudiences}
+                  setIdentityTargetAudiences={setIdentityTargetAudiences}
+                  targetAudiencesOpen={targetAudiencesOpen}
+                  setTargetAudiencesOpen={setTargetAudiencesOpen}
+                  identityQualificationSelection={identityQualificationSelection}
+                  setIdentityQualificationSelection={setIdentityQualificationSelection}
+                  identityQualificationCustomEnabled={identityQualificationCustomEnabled}
+                  setIdentityQualificationCustomEnabled={setIdentityQualificationCustomEnabled}
+                  identityQualificationCustomName={identityQualificationCustomName}
+                  setIdentityQualificationCustomName={setIdentityQualificationCustomName}
+                  identityQualifications={identityQualifications}
+                  setIdentityQualifications={setIdentityQualifications}
+                  addIdentityQualification={addIdentityQualification}
+                  uploadQualificationDocument={uploadQualificationDocument}
+                  removeQualificationDocument={removeQualificationDocument}
+                  identityError={identityError}
+                  bioError={bioError}
+                  identitySaveState={identitySaveState}
+                  bioSaveState={bioSaveState}
+                  saveIdentityAndPublicProfile={saveIdentityAndPublicProfile}
+                />
               )}
 
               {(activeStageId === 'c4_services') && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
-                    <p className="text-sm text-neutral-700">
-                      Limite do plano atual: <strong>{tierLimits.services} serviço(s)</strong> ativo(s).
-                    </p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Serviços cadastrados:{' '}
-                      {servicesLoadedSuccessfully
-                        ? `${services.length}/${tierLimits.services}`
-                        : 'indisponível durante a sincronização'}
-                    </p>
-                    <p className="mt-1 text-xs text-neutral-500">Valores exibidos em {serviceCurrency}.</p>
-                    {servicesLoadState === 'degraded' && servicesLoadError ? (
-                      <p className="mt-2 text-xs font-medium text-amber-700">{servicesLoadError}</p>
-                    ) : null}
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">
-                      {editingServiceId ? 'Editar serviço' : 'Adicionar serviço'}
-                    </h3>
-                    {servicesLoadFailed ? (
-                      <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-                        {servicesLoadError || 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.'}
-                      </p>
-                    ) : null}
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <div className="md:col-span-2">
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
-                        <input
-                          type="text"
-                          value={serviceName}
-                          onChange={event => setServiceName(event.target.value)}
-                          disabled={serviceActionsDisabled}
-                          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                          maxLength={30}
-                          placeholder="Ex.: Consultoria fiscal"
-                        />
-                        <p className="mt-1 text-[11px] text-neutral-500">{serviceName.length}/30</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Descrição</label>
-                        <textarea
-                          rows={4}
-                          value={serviceDescription}
-                          onChange={event => setServiceDescription(event.target.value)}
-                          disabled={serviceActionsDisabled}
-                          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                          maxLength={120}
-                          placeholder="Explique o objetivo, formato e resultado esperado do serviço."
-                        />
-                        <p className="mt-1 text-[11px] text-neutral-500">{serviceDescription.length}/120</p>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Preço por sessão ({serviceCurrency})</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={servicePrice}
-                          onChange={event => setServicePrice(event.target.value)}
-                          disabled={serviceActionsDisabled}
-                          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold text-neutral-700">Duração (minutos)</label>
-                        <select
-                          value={serviceDuration}
-                          onChange={event => setServiceDuration(event.target.value)}
-                          disabled={serviceActionsDisabled}
-                          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                        >
-                          {[30, 45, 50, 60, 75, 90, 120].map(option => (
-                            <option key={option} value={option}>
-                              {option} min
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {serviceError ? <p className="mt-3 text-sm font-medium text-red-700">{serviceError}</p> : null}
-
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void saveService()}
-                        disabled={serviceActionsDisabled}
-                        className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                      >
-                        {serviceSaveState === 'saving'
-                          ? 'Salvando...'
-                          : serviceSaveState === 'saved'
-                            ? 'Salvo'
-                            : editingServiceId
-                              ? 'Salvar serviço'
-                              : 'Adicionar serviço'}
-                      </button>
-                      {editingServiceId ? (
-                        <button
-                          type="button"
-                          onClick={resetServiceForm}
-                          disabled={serviceActionsDisabled}
-                          className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-                        >
-                          Cancelar edição
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <h3 className="mb-3 text-sm font-semibold text-neutral-900">Serviços ativos</h3>
-                    {servicesLoadState === 'idle' ? (
-                      <p className="text-sm text-neutral-500">Sincronizando seus serviços...</p>
-                    ) : servicesLoadFailed ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm text-amber-800">
-                          {servicesLoadError || 'Não foi possível carregar seus serviços agora.'}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => void reloadTrackerContext()}
-                          disabled={loadingContext}
-                          className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
-                        >
-                          {loadingContext ? 'Recarregando...' : 'Tentar novamente'}
-                        </button>
-                      </div>
-                    ) : services.length === 0 ? (
-                      <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {services.map(service => (
-                          <div key={service.id} className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
-                            <p className="text-sm font-semibold text-neutral-900">{service.name}</p>
-                            <p className="text-xs text-neutral-600">{service.description || 'Sem descrição'}</p>
-                            <p className="mt-1 text-xs text-neutral-700">
-                              {formatCurrencyFromBrl(Number(service.price_brl || 0), serviceCurrency, exchangeRates)} ·{' '}
-                              {service.duration_minutes} min
-                            </p>
-                            <div className="mt-2 flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => beginServiceEdit(service)}
-                                disabled={serviceActionsDisabled}
-                                className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-semibold text-neutral-700 hover:bg-white disabled:opacity-60"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void deleteService(service.id)}
-                                disabled={serviceActionsDisabled}
-                                className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <ServicesStage
+                  tierLimits={tierLimits}
+                  services={services}
+                  servicesLoadedSuccessfully={servicesLoadedSuccessfully}
+                  servicesLoadState={servicesLoadState}
+                  servicesLoadError={servicesLoadError}
+                  servicesLoadFailed={servicesLoadFailed}
+                  serviceCurrency={serviceCurrency}
+                  serviceName={serviceName}
+                  setServiceName={setServiceName}
+                  serviceDescription={serviceDescription}
+                  setServiceDescription={setServiceDescription}
+                  servicePrice={servicePrice}
+                  setServicePrice={setServicePrice}
+                  serviceDuration={serviceDuration}
+                  setServiceDuration={setServiceDuration}
+                  editingServiceId={editingServiceId}
+                  serviceActionsDisabled={serviceActionsDisabled}
+                  serviceError={serviceError}
+                  serviceSaveState={serviceSaveState}
+                  saveService={saveService}
+                  resetServiceForm={resetServiceForm}
+                  beginServiceEdit={beginServiceEdit}
+                  deleteService={deleteService}
+                  reloadTrackerContext={reloadTrackerContext}
+                  loadingContext={loadingContext}
+                  exchangeRates={exchangeRates}
+                />
               )}
 
                             
               {(activeStageId === 'c5_availability_calendar') && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4">
-                    <div className="flex flex-col gap-3">
-                      <div className="max-w-2xl">
-                        <h3 className="text-sm font-semibold text-neutral-900">Defina aqui só os seus horários de trabalho</h3>
-                        <p className="mt-1 text-sm text-neutral-700">
-                          Nesta etapa você configura a disponibilidade recorrente da semana. Esses horários representam quando você aceita atender pela Muuday.
-                        </p>
-                        <p className="mt-2 text-xs text-neutral-600">
-                          Bloqueios pontuais, integrações e regras avançadas ficam nas páginas de Calendário e Configurações.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 rounded-lg border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-700">
-                      Fuso configurado do perfil: <strong>{profileTimezone}</strong>. A agenda aplica esse fuso automaticamente, incluindo horário de verão/inverno quando aplicável.
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <h4 className="text-sm font-semibold text-neutral-900">Horas de trabalho por dia</h4>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Ative apenas os dias em que você costuma atender. Você poderá bloquear exceções e indisponibilidades no calendário completo.
-                    </p>
-                    <div className="mt-3 grid grid-cols-1 gap-2.5">
-                      {WEEK_DAYS.map(day => {
-                        const dayState = availabilityMap[day.value]
-                        const isActive = dayState?.is_available
-                        return (
-                          <div
-                            key={day.value}
-                            className={`rounded-xl border px-3 py-3 ${
-                              isActive ? 'border-brand-200 bg-brand-50/30' : 'border-neutral-200 bg-neutral-50'
-                            }`}
-                          >
-                            <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,180px)_1fr] md:items-center">
-                              <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(isActive)}
-                                  onChange={event =>
-                                    setAvailabilityMap(prev => ({
-                                      ...prev,
-                                      [day.value]: {
-                                        ...prev[day.value],
-                                        is_available: event.target.checked,
-                                      },
-                                    }))
-                                  }
-                                  className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                                />
-                                {day.label}
-                              </label>
-                              <div className="grid grid-cols-2 gap-2">
-                                <select
-                                  value={dayState?.start_time || '09:00'}
-                                  disabled={!isActive}
-                                  onChange={event =>
-                                    setAvailabilityMap(prev => ({
-                                      ...prev,
-                                      [day.value]: {
-                                        ...prev[day.value],
-                                        start_time: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                  className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {TIME_OPTIONS.map(option => (
-                                    <option key={`start-${day.value}-${option}`} value={option}>
-                                      Início {option}
-                                    </option>
-                                  ))}
-                                </select>
-                                <select
-                                  value={dayState?.end_time || '18:00'}
-                                  disabled={!isActive}
-                                  onChange={event =>
-                                    setAvailabilityMap(prev => ({
-                                      ...prev,
-                                      [day.value]: {
-                                        ...prev[day.value],
-                                        end_time: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                  className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {TIME_OPTIONS.map(option => (
-                                    <option key={`end-${day.value}-${option}`} value={option}>
-                                      Fim {option}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-                    <h4 className="text-sm font-semibold text-neutral-900">Regras básicas de agendamento</h4>
-                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedência mínima (horas)</label>
-                            <input
-                              type="number"
-                              min={Number(minNoticeRange.min)}
-                              max={Math.min(Number(minNoticeRange.max), 168)}
-                              value={minimumNoticeHours}
-                              onChange={event =>
-                                setMinimumNoticeHours(
-                                  Math.min(
-                                    Math.min(Number(minNoticeRange.max), 168),
-                                    Math.max(
-                                      Number(minNoticeRange.min),
-                                      Number(event.target.value || minNoticeRange.min),
-                                    ),
-                                  ),
-                                )
-                              }
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                            />
-                            <p className="mt-1 text-[11px] text-neutral-500">
-                              Tempo mínimo entre a solicitação e a sessão (ex.: 24h = pedido com 1 dia de antecedência).
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Janela máxima (dias)</label>
-                            <input
-                              type="number"
-                              min={1}
-                              max={Number(tierLimits.bookingWindowDays)}
-                              value={maxBookingWindowDays}
-                              onChange={event =>
-                                setMaxBookingWindowDays(
-                                  Math.min(Number(tierLimits.bookingWindowDays), Math.max(1, Number(event.target.value || 1))),
-                                )
-                              }
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                            />
-                            <p className="mt-1 text-[11px] text-neutral-500">
-                              Limite do plano atual: ate {tierLimits.bookingWindowDays} dias.
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Buffer entre sessões (min)</label>
-                            <input
-                              type="number"
-                              min={0}
-                              max={maxBufferMinutes}
-                              value={bufferMinutes}
-                              onChange={event => {
-                                const next = Math.max(0, Number(event.target.value || 0))
-                                setBufferMinutes(Math.min(maxBufferMinutes, next))
-                              }}
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                            />
-                            <p className="mt-1 text-[11px] text-neutral-500">
-                              Limite atual: {maxBufferMinutes} minutos.
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmação</label>
-                            <select
-                              value={isBasicTier ? 'auto_accept' : confirmationMode}
-                              disabled={isBasicTier}
-                              onChange={event => setConfirmationMode(event.target.value === 'manual' ? 'manual' : 'auto_accept')}
-                              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
-                            >
-                              <option value="auto_accept">Auto-aceite</option>
-                              <option value="manual">Confirmação manual</option>
-                            </select>
-                            {isBasicTier ? (
-                              <p className="mt-1 text-[11px] text-amber-700">
-                                No plano básico, o aceite é automático.
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={enableRecurring}
-                              onChange={event => setEnableRecurring(event.target.checked)}
-                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                            />
-                            Permitir recorrência
-                          </label>
-                          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={allowMultiSession}
-                              onChange={event => setAllowMultiSession(event.target.checked)}
-                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                            />
-                            Permitir múltiplas sessões
-                          </label>
-                          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={requireSessionPurpose}
-                              onChange={event => setRequireSessionPurpose(event.target.checked)}
-                              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
-                            />
-                            Exigir objetivo da sessão
-                          </label>
-                        </div>
-                      </div>
-
-                  {availabilityError ? <p className="text-sm font-medium text-red-700">{availabilityError}</p> : null}
-
-                  <button
-                    type="button"
-                    onClick={() => void saveAvailabilityCalendar()}
-                    disabled={availabilitySaveState === 'saving'}
-                    className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                  >
-                    {availabilitySaveState === 'saving'
-                      ? 'Salvando...'
-                      : availabilitySaveState === 'saved'
-                        ? 'Salvo'
-                        : 'Salvar horas de trabalho'}
-                  </button>
-                </div>
+                <AvailabilityStage
+                  profileTimezone={profileTimezone}
+                  availabilityMap={availabilityMap}
+                  setAvailabilityMap={setAvailabilityMap}
+                  minimumNoticeHours={minimumNoticeHours}
+                  setMinimumNoticeHours={setMinimumNoticeHours}
+                  minNoticeRange={minNoticeRange}
+                  maxBookingWindowDays={maxBookingWindowDays}
+                  setMaxBookingWindowDays={setMaxBookingWindowDays}
+                  tierLimits={tierLimits}
+                  bufferMinutes={bufferMinutes}
+                  setBufferMinutes={setBufferMinutes}
+                  maxBufferMinutes={maxBufferMinutes}
+                  isBasicTier={isBasicTier}
+                  confirmationMode={confirmationMode}
+                  setConfirmationMode={setConfirmationMode}
+                  enableRecurring={enableRecurring}
+                  setEnableRecurring={setEnableRecurring}
+                  allowMultiSession={allowMultiSession}
+                  setAllowMultiSession={setAllowMultiSession}
+                  requireSessionPurpose={requireSessionPurpose}
+                  setRequireSessionPurpose={setRequireSessionPurpose}
+                  availabilityError={availabilityError}
+                  availabilitySaveState={availabilitySaveState}
+                  saveAvailabilityCalendar={saveAvailabilityCalendar}
+                />
               )}
 
               {activeStageId === 'c6_plan_billing_setup_post' ? (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <h3 className="text-base font-semibold text-neutral-900">Escolha o plano da operação</h3>
-                    <p className="mt-1 text-sm text-neutral-700">
-                      Você começa com 90 dias sem cobrança após aprovação e go-live. Escolha o plano que melhor acompanha a evolução do seu perfil, da agenda e da operação financeira.
-                    </p>
-                    <div className="mt-4 inline-flex items-center rounded-xl border border-neutral-200 bg-neutral-50 p-1 text-sm">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPlanCycle('monthly')}
-                        className={`rounded-lg px-3 py-1.5 font-semibold transition ${
-                          selectedPlanCycle === 'monthly' ? 'bg-brand-500 text-white' : 'text-neutral-600'
-                        }`}
-                      >
-                        Mensal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPlanCycle('annual')}
-                        className={`rounded-lg px-3 py-1.5 font-semibold transition ${
-                          selectedPlanCycle === 'annual' ? 'bg-brand-500 text-white' : 'text-neutral-600'
-                        }`}
-                      >
-                        Anual (10x)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 xl:grid-cols-3">
-                    {(['basic', 'professional', 'premium'] as PlanTier[]).map(planTier => {
-                      const monthlyPrice = formatCurrencyFromBrl(
-                        PLAN_PRICE_BASE_BRL[planTier],
-                        displayPlanCurrency,
-                        exchangeRates,
-                      )
-                      const annualPrice = formatCurrencyFromBrl(
-                        PLAN_PRICE_BASE_BRL[planTier] * 10,
-                        displayPlanCurrency,
-                        exchangeRates,
-                      )
-                            const isCurrent = planTier === String(activeTier || '').toLowerCase()
-                      const isSelected = selectedPlanTier === planTier
-
-                      return (
-                        <div
-                          key={planTier}
-                          className={`rounded-2xl border p-4 transition ${
-                            isSelected
-                              ? 'border-brand-500 bg-brand-50/40 shadow-sm'
-                              : 'border-neutral-200 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                                {PLAN_TIER_LABELS[planTier]}
-                              </p>
-                              {isCurrent ? (
-                                <span className="mt-2 inline-flex rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold text-neutral-700">
-                                  Plano atual
-                                </span>
-                              ) : null}
-                            </div>
-                            {isSelected ? (
-                              <span className="rounded-full bg-brand-500 px-2.5 py-1 text-[11px] font-semibold text-white">
-                                Selecionado
-                              </span>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-4">
-                            <p className="text-3xl font-bold text-neutral-900">
-                              {selectedPlanCycle === 'monthly' ? monthlyPrice : annualPrice}
-                            </p>
-                            <p className="mt-1 text-xs text-neutral-500">
-                              {selectedPlanCycle === 'monthly' ? 'por mês' : 'por ano'}
-                            </p>
-                            <p className="mt-2 text-xs text-emerald-700">90 dias sem cobrança após aprovação.</p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPlanTier(planTier)}
-                            className={`mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                              isSelected
-                                ? 'border border-brand-500 bg-white text-brand-700'
-                                : 'border border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:text-neutral-900'
-                            }`}
-                          >
-                            {isCurrent ? 'Manter este plano' : `Selecionar ${PLAN_TIER_LABELS[planTier]}`}
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-neutral-50">
-                        <tr>
-                          <th className="px-4 py-3 text-neutral-700">Recurso</th>
-                          <th className="px-4 py-3 text-neutral-700">Básico</th>
-                          <th className="px-4 py-3 text-neutral-700">Profissional</th>
-                          <th className="px-4 py-3 text-neutral-700">Premium</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {PLAN_COMPARISON_ROWS.map(row => (
-                          <tr key={row.label} className="border-t border-neutral-100">
-                            <td className="px-4 py-3 font-medium text-neutral-800">{row.label}</td>
-                            <td className="px-4 py-3 text-neutral-600">{row.basic}</td>
-                            <td className="px-4 py-3 text-neutral-600">{row.professional}</td>
-                            <td className="px-4 py-3 text-neutral-600">{row.premium}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-sm text-neutral-700">
-                        <p>
-                          Plano selecionado: <strong>{PLAN_TIER_LABELS[selectedPlanTier]}</strong>
-                        </p>
-                        <p className="mt-1 text-xs text-neutral-500">
-                          {selectedPlanCycle === 'monthly'
-                            ? `${formatCurrencyFromBrl(PLAN_PRICE_BASE_BRL[selectedPlanTier], displayPlanCurrency, exchangeRates)} por mês`
-                            : `${formatCurrencyFromBrl(PLAN_PRICE_BASE_BRL[selectedPlanTier] * 10, displayPlanCurrency, exchangeRates)} por ano`}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void savePlanSelection()}
-                        disabled={planActionState === 'saving'}
-                        className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-                      >
-                        {planActionState === 'saving'
-                          ? 'Salvando...'
-                          : selectedPlanTier === String(activeTier || '').toLowerCase()
-                            ? 'Salvar plano'
-                            : 'Salvar plano'}
-                      </button>
-                    </div>
-                    {pricingError ? <p className="mt-3 text-xs text-neutral-500">{pricingError}</p> : null}
-                    {planPricing?.fallback || planPricing?.provider === 'fallback-test' ? (
-                      <p className="mt-2 text-xs text-amber-700">Modo de teste ativo para preço/plano neste ambiente.</p>
-                    ) : null}
-                    {planActionError ? <p className="mt-3 text-sm text-red-700">{planActionError}</p> : null}
-                  </div>
-                </div>
+                <PlanSelectionStage
+                  selectedPlanCycle={selectedPlanCycle}
+                  setSelectedPlanCycle={setSelectedPlanCycle}
+                  selectedPlanTier={selectedPlanTier}
+                  setSelectedPlanTier={setSelectedPlanTier}
+                  activeTier={activeTier}
+                  displayPlanCurrency={displayPlanCurrency}
+                  exchangeRates={exchangeRates}
+                  planActionState={planActionState}
+                  savePlanSelection={savePlanSelection}
+                  pricingError={pricingError}
+                  planPricing={planPricing}
+                  planActionError={planActionError}
+                />
               ) : null}
 
               {activeStageId === 'c7_payout_receipt' ? (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-semibold text-neutral-900">Financeiro</h3>
-                      {isFinanceBypassEnabled ? (
-                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-                          Modo de teste ativo
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-sm text-neutral-700">
-                      {isFinanceBypassEnabled
-                        ? 'Esta etapa ficará para a ativação final. Para perfis de teste, você pode concluir o onboarding sem configurar recebimentos agora.'
-                        : 'Aqui você acompanha o cartão da assinatura e a prontidão de recebimentos. O checkout do plano e os detalhes financeiros continuam nas telas completas.'}
-                    </p>
-                    {isFinanceBypassEnabled ? (
-                      <p className="mt-2 text-xs text-amber-700">
-                        Financeiro será concluído depois. Seu acesso atual está em modo de teste.
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className={`rounded-xl border p-3 ${currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_billing_card') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-                      <p className="text-sm font-semibold text-neutral-900">Cartão da assinatura</p>
-                      <p className="mt-1 text-xs text-neutral-700">
-                        {currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_billing_card')
-                          ? 'Ainda falta adicionar o cartão usado para cobrar o plano.'
-                          : 'Cartão configurado para a cobrança do plano.'}
-                      </p>
-                    </div>
-                    <div className={`rounded-xl border p-3 ${currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_onboarding') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-                      <p className="text-sm font-semibold text-neutral-900">Recebimentos</p>
-                      <p className="mt-1 text-xs text-neutral-700">
-                        {currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_onboarding')
-                          ? 'Conecte a conta financeira para receber pela plataforma.'
-                          : 'Conta de recebimentos conectada.'}
-                      </p>
-                    </div>
-                    <div className={`rounded-xl border p-3 ${currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_kyc') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-                      <p className="text-sm font-semibold text-neutral-900">Validação operacional</p>
-                      <p className="mt-1 text-xs text-neutral-700">
-                        {currentEvaluation.gates.payout_receipt.blockers.some(item => item.code === 'missing_payout_kyc')
-                          ? 'Ainda faltam dados de validação financeira.'
-                          : 'Validação financeira concluída.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {(activeStage?.blockers || []).length > 0 && !isFinanceBypassEnabled ? (
-                    <ul className="space-y-2">
-                      {(activeStage?.blockers || []).map(blocker => (
-                        <li key={blocker.code} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                          <p className="font-semibold">{blocker.title}</p>
-                          <p className="mt-1 text-xs">{blocker.description}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href="/planos"
-                      onClick={() => setOpen(false)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
-                    >
-                      Abrir cobrança do plano
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    <Link
-                      href="/financeiro"
-                      onClick={() => setOpen(false)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300 hover:text-neutral-900"
-                    >
-                      Abrir área financeira
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setActiveStageId('c8_submit_review')}
-                      className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-                    >
-                      Continuar para envio
-                    </button>
-                  </div>
-                </div>
+                <PayoutReceiptStage
+                  isFinanceBypassEnabled={isFinanceBypassEnabled}
+                  payoutReceiptBlockers={currentEvaluation.gates.payout_receipt.blockers}
+                  activeStageBlockers={activeStage?.blockers || []}
+                  onCloseModal={() => setOpen(false)}
+                  onContinue={() => setActiveStageId('c8_submit_review')}
+                />
               ) : null}
 
               {activeStageId === 'c8_submit_review' ? (
-                <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
-                  <div>
-                    <h3 className="text-base font-semibold text-neutral-900">Pronto para enviar seu perfil?</h3>
-                    <p className="mt-1 text-sm text-neutral-700">
-                      Revise as pendências abaixo, aceite os termos obrigatórios e envie o perfil para análise sem sair do tracker.
-                    </p>
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {stageItems
-                      .filter(item => item.id !== 'c8_submit_review' && !item.complete)
-                      .map(item => (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900"
-                      >
-                        <p className="font-semibold">{item.label}</p>
-                        <p className="mt-1 text-xs">{item.blocker?.title || 'Ainda pendente.'}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {stageItems.filter(item => item.id !== 'c8_submit_review' && !item.complete).length === 0 ? (
-                    <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-                      Não há pendências técnicas nas etapas anteriores.
-                    </p>
-                  ) : null}
-                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                    {(() => {
-                      const pendingTerms = termsHydrated
-                        ? PROFESSIONAL_TERMS.filter(term => !hasAcceptedTerms[term.key])
-                        : []
-                      return (
-                        <>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h4 className="text-sm font-semibold text-neutral-900">Termos obrigatórios</h4>
-                        <p className="mt-1 text-xs text-neutral-600">
-                          {!termsHydrated
-                            ? 'Carregando o estado de aceite dos termos...'
-                            : pendingTerms.length > 0
-                            ? 'Leia até o final e aceite cada termo pendente antes de enviar.'
-                            : 'Todos os termos obrigatórios desta versão já foram aceitos.'}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
-                        {termsHydrated ? `${Object.values(hasAcceptedTerms).filter(Boolean).length}/${TERMS_KEYS.length} aceitos` : '...'}
-                      </span>
-                    </div>
-                    {!termsHydrated ? (
-                      <p className="mt-3 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
-                        Validando aceites existentes...
-                      </p>
-                    ) : pendingTerms.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      {pendingTerms.map(term => (
-                        <div key={term.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-neutral-900">{term.shortLabel}</p>
-                            <p className="mt-1 text-xs text-neutral-600">{term.acceptanceLabel}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void openTerm(term.key)}
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
-                            >
-                              Ler e aceitar
-                              <ArrowRight className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    ) : (
-                      <p className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-                        Termos em dia para esta versão.
-                      </p>
-                    )}
-                        </>
-                      )
-                    })()}
-                  </div>
-                  {(activeStage?.blockers || []).length > 0 ? (
-                    <ul className="space-y-2">
-                      {(activeStage?.blockers || []).map(blocker => (
-                        <li key={blocker.code} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                          <p className="font-semibold">{blocker.title}</p>
-                          <p className="mt-1 text-xs">{blocker.description}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {submitReviewMessage ? (
-                    <p className={`text-sm ${submitReviewState === 'error' ? 'text-red-700' : 'text-green-700'}`}>
-                      {submitReviewMessage}
-                    </p>
-                  ) : null}
-                  {submitTermsError ? <p className="text-sm text-red-700">{submitTermsError}</p> : null}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void submitForReview()}
-                      disabled={submitReviewState === 'saving'}
-                      className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {submitReviewState === 'saving' ? 'Enviando...' : 'Enviar para análise'}
-                    </button>
-                    {!currentEvaluation.summary.canSubmitForReview ? (
-                      <span className="text-xs text-amber-700">Se ainda houver pendências, o tracker vai indicar o que precisa ser ajustado.</span>
-                    ) : null}
-                  </div>
-                </div>
+                <SubmitReviewStage
+                  stageItems={stageItems}
+                  termsHydrated={termsHydrated}
+                  hasAcceptedTerms={hasAcceptedTerms}
+                  activeStageBlockers={activeStage?.blockers || []}
+                  submitReviewState={submitReviewState}
+                  submitReviewMessage={submitReviewMessage}
+                  submitTermsError={submitTermsError}
+                  canSubmitForReview={currentEvaluation.summary.canSubmitForReview}
+                  onOpenTerm={openTerm}
+                  onSubmitForReview={submitForReview}
+                />
               ) : null}
                 </>
               )}
             </section>
           </div>
 
-          {activeTerm ? (
-            <div
-              className="fixed inset-0 z-[90] flex items-center justify-center bg-neutral-900/55 p-4"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Leitura de termo"
-            >
-              <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
-                <div className="border-b border-neutral-200 px-5 py-4">
-                  <h3 className="text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
-                </div>
-                <div
-                  ref={termsModalContentRef}
-                  className="max-h-[55vh] overflow-y-auto px-5 py-4"
-                  onScroll={event => {
-                    const element = event.currentTarget
-                    if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
-                      setTermsModalScrolledToEnd(true)
-                    }
-                  }}
-                >
-                  {activeTerm.sections.map(section => (
-                    <section key={section.heading} className="mb-4">
-                      <h4 className="text-sm font-semibold text-neutral-800">{section.heading}</h4>
-                      <p className="mt-1 text-sm leading-6 text-neutral-700">{section.body}</p>
-                    </section>
-                  ))}
-                </div>
-                <div className="flex flex-col gap-2 border-t border-neutral-200 px-5 py-4 sm:flex-row sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTermsModalKey(null)
-                      setTermsModalScrolledToEnd(false)
-                    }}
-                    className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300"
-                  >
-                    Fechar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={acceptActiveTerm}
-                    disabled={!termsModalScrolledToEnd}
-                    className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {termsModalScrolledToEnd ? 'Aceitar termo' : 'Role até o fim para aceitar'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <TermsModal
+            activeTermKey={activeTermsModalKey}
+            termsModalScrolledToEnd={termsModalScrolledToEnd}
+            contentRef={termsModalContentRef}
+            onScroll={event => {
+              const element = event.currentTarget
+              if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
+                setTermsModalScrolledToEnd(true)
+              }
+            }}
+            onClose={() => {
+              setActiveTermsModalKey(null)
+              setTermsModalScrolledToEnd(false)
+            }}
+            onAccept={acceptActiveTerm}
+          />
         </div>
       ) : null}
     </>

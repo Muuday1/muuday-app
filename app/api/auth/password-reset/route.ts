@@ -12,6 +12,7 @@ import {
   createCorsPreflightResponse,
   evaluateCorsRequest,
 } from '@/lib/http/cors'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const requestSchema = z.object({
   email: z.string().email(),
@@ -19,13 +20,6 @@ const requestSchema = z.object({
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
-}
-
-function getRequestIp(request: NextRequest) {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  const realIp = request.headers.get('x-real-ip')
-  return realIp || 'unknown'
 }
 
 function getPublicSupabaseClient() {
@@ -64,7 +58,7 @@ export async function POST(request: NextRequest) {
   }
 
   const email = normalizeEmail(parsed.data.email)
-  const ip = getRequestIp(request)
+  const ip = getClientIp(request)
   const limiter = await rateLimit('auth', `${ip}:${email}`)
 
   if (!limiter.allowed) {

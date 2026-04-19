@@ -8,18 +8,12 @@ import {
   createCorsPreflightResponse,
   evaluateCorsRequest,
 } from '@/lib/http/cors'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const schema = z.object({
   action: z.enum(['login', 'signup', 'oauth_start']),
   email: z.string().email().optional(),
 })
-
-function getRequestIp(request: NextRequest) {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  const realIp = request.headers.get('x-real-ip')
-  return realIp || 'unknown'
-}
 
 function normalizeEmail(email: string | undefined) {
   return (email || '').trim().toLowerCase()
@@ -56,7 +50,7 @@ export async function POST(request: NextRequest) {
     return withCors(NextResponse.json({ error: 'E-mail obrigatório.' }, { status: 400 }))
   }
 
-  const ip = getRequestIp(request)
+  const ip = getClientIp(request)
   const identifier = `${ip}:${email || 'anonymous'}`
   const preset = action === 'login' ? 'authLogin' : action === 'signup' ? 'authSignup' : 'authOAuth'
   const rl = await rateLimit(preset, identifier)

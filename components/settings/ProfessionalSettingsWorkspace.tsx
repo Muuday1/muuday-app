@@ -1,126 +1,24 @@
 ﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { AlertTriangle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import {
-  AlertTriangle,
-  Bell,
-  Briefcase,
-  CalendarClock,
-  Check,
-  ChevronRight,
-  Globe,
-  Lock,
-  Settings,
-  Wallet,
-} from 'lucide-react'
-import { STRIPE_CURRENCIES, ALL_TIMEZONES } from '@/lib/constants'
-import {
-  evaluateProfessionalOnboarding,
-  type ProfessionalOnboardingEvaluation,
-} from '@/lib/professional/onboarding-gates'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
-
-type NotificationPreferences = {
-  booking_emails: boolean
-  session_reminders: boolean
-  news_promotions: boolean
-}
-
-type UserRole = 'usuario' | 'profissional' | 'admin' | null
-
-type ProfessionalWorkspaceSummary = {
-  id: string
-  status: string
-  tier: string
-  firstBookingEnabled: boolean
-  gateNote: string
-  pendingConfirmations: number
-  openRequests: number
-  availabilityCount: number
-  confirmationMode: string
-  minNoticeHours: number
-  maxWindowDays: number
-  serviceCount: number
-  specialtyCount: number
-  billingCardOnFile: boolean
-  payoutOnboardingStarted: boolean
-  payoutKycCompleted: boolean
-}
-
-const DEFAULT_NOTIFICATIONS: NotificationPreferences = {
-  booking_emails: true,
-  session_reminders: true,
-  news_promotions: true,
-}
-
-const NOTIFICATION_ITEMS: {
-  key: keyof NotificationPreferences
-  label: string
-  desc: string
-}[] = [
-  {
-    key: 'booking_emails',
-    label: 'Emails de agendamento',
-    desc: 'Confirmações, cancelamentos, pagamentos e avaliações',
-  },
-  {
-    key: 'session_reminders',
-    label: 'Lembretes de sessão',
-    desc: 'Lembrete 24h e 1h antes da sessão',
-  },
-  {
-    key: 'news_promotions',
-    label: 'Novidades e promoções',
-    desc: 'Atualizações da plataforma, dicas e ofertas',
-  },
-]
-
-function tierLabel(tier: string) {
-  if (tier === 'premium') return 'PREMIUM'
-  if (tier === 'professional') return 'PROFESSIONAL'
-  return 'BASIC'
-}
-
-function professionalAlerts(summary: ProfessionalWorkspaceSummary | null) {
-  if (!summary) return []
-  const alerts: Array<{ id: string; level: 'warning' | 'critical'; title: string; description: string }> = []
-
-  if (summary.status !== 'approved') {
-    alerts.push({
-      id: 'status-not-approved',
-      level: summary.status === 'rejected' || summary.status === 'suspended' ? 'critical' : 'warning',
-      title: 'Conta profissional com restrição operacional',
-      description:
-        summary.status === 'pending_review'
-          ? 'Seu perfil ainda está em revisão. Algumas ações ficam bloqueadas até aprovação.'
-          : 'Seu perfil não está aprovado. Revise dados de perfil e status de compliance.',
-    })
-  }
-
-  if (!summary.firstBookingEnabled) {
-    alerts.push({
-      id: 'first-booking-gate',
-      level: 'warning',
-      title: 'Primeiro agendamento bloqueado',
-      description:
-        summary.gateNote ||
-        'Finalize os requisitos de go-live para liberar o primeiro agendamento.',
-    })
-  }
-
-  if (summary.availabilityCount === 0) {
-    alerts.push({
-      id: 'availability-empty',
-      level: 'critical',
-      title: 'Sem disponibilidade ativa',
-      description: 'Adicione horários de atendimento para receber novos agendamentos.',
-    })
-  }
-
-  return alerts
-}
+import { evaluateProfessionalOnboarding } from '@/lib/professional/onboarding-gates'
+import {
+  DEFAULT_NOTIFICATIONS,
+  tierLabel,
+  professionalAlerts,
+} from './workspace-helpers'
+import type {
+  NotificationPreferences,
+  UserRole,
+  ProfessionalWorkspaceSummary,
+} from './workspace-helpers'
+import { ProfessionalWorkspaceSection } from './professional-workspace-section'
+import { RegionSettings } from './region-settings'
+import { NotificationSettings } from './notification-settings'
+import { SecuritySettings } from './security-settings'
 
 export default function ProfessionalSettingsWorkspace() {
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
@@ -131,7 +29,7 @@ export default function ProfessionalSettingsWorkspace() {
   const [savedField, setSavedField] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [professionalSummary, setProfessionalSummary] = useState<ProfessionalWorkspaceSummary | null>(null)
-  const [onboardingEvaluation, setOnboardingEvaluation] = useState<ProfessionalOnboardingEvaluation | null>(null)
+  const [onboardingEvaluation, setOnboardingEvaluation] = useState<ReturnType<typeof evaluateProfessionalOnboarding> | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -197,9 +95,7 @@ export default function ProfessionalSettingsWorkspace() {
             .eq('is_active', true)
 
           const availabilityBaselineCount =
-            (availabilityRulesCount || 0) > 0
-              ? availabilityRulesCount || 0
-              : availabilityCount || 0
+            (availabilityRulesCount || 0) > 0 ? availabilityRulesCount || 0 : availabilityCount || 0
 
           const { data: settings } = await supabase
             .from('professional_settings')
@@ -230,12 +126,10 @@ export default function ProfessionalSettingsWorkspace() {
             .eq('is_active', true)
 
           const fallbackServiceCount =
-            Number(professional.session_price_brl || 0) > 0 &&
-            Number(professional.session_duration_minutes || 0) > 0
+            Number(professional.session_price_brl || 0) > 0 && Number(professional.session_duration_minutes || 0) > 0
               ? 1
               : 0
-          const resolvedServiceCount =
-            serviceCountError == null ? serviceCount || 0 : fallbackServiceCount
+          const resolvedServiceCount = serviceCountError == null ? serviceCount || 0 : fallbackServiceCount
 
           const { count: specialtyCount } = await supabase
             .from('professional_specialties')
@@ -320,7 +214,6 @@ export default function ProfessionalSettingsWorkspace() {
   }, [supabase])
 
   // Whitelist of fields users are allowed to update on their own profile.
-  // Prevents mass assignment attacks (e.g. setting role to 'admin').
   const EDITABLE_PROFILE_FIELDS = ['currency', 'timezone', 'notification_preferences', 'full_name', 'country']
 
   async function saveField(field: string, value: unknown) {
@@ -369,296 +262,45 @@ export default function ProfessionalSettingsWorkspace() {
       </div>
 
       {showProfessionalWorkspace && (
-        <>
-          {professionalSummary && (
-            <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-                  Plano: {tierLabel(professionalSummary.tier)}
-                </span>
-                <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-                  Status: {professionalSummary.status}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 gap-3 text-sm text-neutral-700 sm:grid-cols-2">
-                  <p>Pendências de confirmação: {professionalSummary.pendingConfirmations}</p>
-                <p>Requests abertos: {professionalSummary.openRequests}</p>
-                <p>Disponibilidade ativa: {professionalSummary.availabilityCount}</p>
-                <p>Confirmação: {professionalSummary.confirmationMode}</p>
-                  <p>Antecedência mínima: {professionalSummary.minNoticeHours}h</p>
-                <p>Janela máxima: {professionalSummary.maxWindowDays} dias</p>
-              </div>
-            </div>
-          )}
-
-          {onboardingEvaluation && (
-            <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="font-display text-lg font-semibold text-neutral-900">
-                  Onboarding C1-C10 (Wave 2)
-                </h2>
-                <Link
-                  href="/onboarding-profissional"
-                  className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-                >
-                  Abrir checklist completo
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {Object.values(onboardingEvaluation.gates).map(gate => (
-                  <div
-                    key={gate.id}
-                    className={`rounded-xl border px-3 py-2 ${
-                      gate.passed
-                        ? 'border-green-200 bg-green-50'
-                        : 'border-amber-200 bg-amber-50'
-                    }`}
-                  >
-                    <p
-                      className={`text-xs font-semibold ${
-                        gate.passed ? 'text-green-800' : 'text-amber-800'
-                      }`}
-                    >
-                      {gate.title}
-                    </p>
-                    <p
-                      className={`mt-1 text-xs ${
-                        gate.passed ? 'text-green-700' : 'text-amber-700'
-                      }`}
-                    >
-                      {gate.passed
-                        ? 'OK'
-                        : gate.blockers[0]?.description || 'Bloqueado por pendências'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {alerts.length > 0 && (
-            <div className="mb-6 space-y-3">
-              {alerts.map(alert => (
-                <div
-                  key={alert.id}
-                  className={`rounded-2xl border px-4 py-3 ${
-                    alert.level === 'critical'
-                      ? 'border-red-200 bg-red-50'
-                      : 'border-amber-200 bg-amber-50'
-                  }`}
-                >
-                  <p
-                    className={`text-sm font-semibold ${
-                      alert.level === 'critical' ? 'text-red-800' : 'text-amber-800'
-                    }`}
-                  >
-                    {alert.title}
-                  </p>
-                  <p
-                    className={`mt-1 text-xs ${
-                      alert.level === 'critical' ? 'text-red-700' : 'text-amber-700'
-                    }`}
-                  >
-                    {alert.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Link
-              href="/editar-perfil-profissional"
-              className="rounded-2xl border border-neutral-100 bg-white p-4 transition hover:border-brand-300"
-            >
-              <div className="mb-2 flex items-center gap-2 text-neutral-800">
-                <Briefcase className="h-4 w-4 text-brand-500" />
-                <p className="text-sm font-semibold">Perfil e servicos</p>
-              </div>
-              <p className="text-xs text-neutral-500">Categoria, bio, idiomas, preço e duração.</p>
-            </Link>
-
-            <Link
-              href="/disponibilidade"
-              className="rounded-2xl border border-neutral-100 bg-white p-4 transition hover:border-brand-300"
-            >
-              <div className="mb-2 flex items-center gap-2 text-neutral-800">
-                <CalendarClock className="h-4 w-4 text-brand-500" />
-                <p className="text-sm font-semibold">Calendário</p>
-              </div>
-              <p className="text-xs text-neutral-500">Agenda semanal, bloqueios e horários ativos.</p>
-            </Link>
-
-            <Link
-              href="/configuracoes-agendamento"
-              className="rounded-2xl border border-neutral-100 bg-white p-4 transition hover:border-brand-300"
-            >
-              <div className="mb-2 flex items-center gap-2 text-neutral-800">
-                <Settings className="h-4 w-4 text-brand-500" />
-                <p className="text-sm font-semibold">Regras de booking</p>
-              </div>
-                    <p className="text-xs text-neutral-500">Notice, janela, recorrência e modo de confirmação.</p>
-            </Link>
-
-            <Link
-              href="/financeiro"
-              className="rounded-2xl border border-neutral-100 bg-white p-4 transition hover:border-brand-300"
-            >
-              <div className="mb-2 flex items-center gap-2 text-neutral-800">
-                <Wallet className="h-4 w-4 text-brand-500" />
-                <p className="text-sm font-semibold">Financeiro</p>
-              </div>
-              <p className="text-xs text-neutral-500">Receitas operacionais (stub Wave 2) e saude financeira.</p>
-            </Link>
-          </div>
-        </>
+        <ProfessionalWorkspaceSection
+          summary={professionalSummary}
+          onboardingEvaluation={onboardingEvaluation}
+          pendingConfirmationsCount={professionalSummary?.pendingConfirmations}
+        />
       )}
 
       <div className="space-y-6">
-        <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-          <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
-            <Globe className="h-4 w-4 text-brand-500" />
-            <h2 className="font-display font-bold text-neutral-900">Idioma e regiao</h2>
-          </div>
-          <div className="divide-y divide-neutral-50">
-            <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
-              <div>
-                <p className="text-sm font-medium text-neutral-700">Idioma</p>
-                <p className="mt-0.5 text-xs text-neutral-400">Portugues (BR)</p>
-              </div>
-              <span className="rounded-full bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-400">
-                Em breve
-              </span>
-            </div>
+        <RegionSettings
+          timezone={timezone}
+          currency={currency}
+          savedField={savedField}
+          onTimezoneChange={value => {
+            setTimezone(value)
+            saveField('timezone', value)
+          }}
+          onCurrencyChange={value => {
+            setCurrency(value)
+            saveField('currency', value)
+          }}
+        />
 
-            <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
-              <div className="mr-4 flex-1">
-                <p className="text-sm font-medium text-neutral-700">Fuso horário</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {savedField === 'timezone' && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-green-600">
-                    <Check className="h-3 w-3" /> Salvo!
-                  </span>
-                )}
-                <select
-                  value={timezone}
-                  onChange={e => {
-                    setTimezone(e.target.value)
-                    saveField('timezone', e.target.value)
-                  }}
-                  className="max-w-[220px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  {ALL_TIMEZONES.map(tz => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+        <NotificationSettings
+          preferences={notifications}
+          onToggle={handleToggle}
+        />
 
-            <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
-              <div className="mr-4 flex-1">
-                <p className="text-sm font-medium text-neutral-700">Moeda preferida</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {savedField === 'currency' && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-green-600">
-                    <Check className="h-3 w-3" /> Salvo!
-                  </span>
-                )}
-                <select
-                  value={currency}
-                  onChange={e => {
-                    setCurrency(e.target.value)
-                    saveField('currency', e.target.value)
-                  }}
-                  className="max-w-[220px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  {STRIPE_CURRENCIES.map(c => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-          <div className="flex items-center justify-between border-b border-neutral-50 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Bell className="h-4 w-4 text-brand-500" />
-              <h2 className="font-display font-bold text-neutral-900">Notificações</h2>
-            </div>
-            {savedField === 'notification_preferences' && (
-              <span className="flex items-center gap-1 text-xs font-medium text-green-600">
-                <Check className="h-3 w-3" /> Salvo!
-              </span>
-            )}
-          </div>
-          <div className="divide-y divide-neutral-50">
-            {NOTIFICATION_ITEMS.map(item => (
-              <div
-                key={item.key}
-                className="flex cursor-pointer items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50"
-                onClick={() => handleToggle(item.key)}
-              >
-                <div className="mr-6 flex-1">
-                  <p className="text-sm font-medium text-neutral-700">{item.label}</p>
-                  <p className="mt-0.5 text-xs text-neutral-400">{item.desc}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.stopPropagation()
-                    handleToggle(item.key)
-                  }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 ${
-                    notifications[item.key] ? 'bg-brand-500' : 'bg-neutral-200'
-                  }`}
-                  aria-label={item.label}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      notifications[item.key] ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-          <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
-            <Lock className="h-4 w-4 text-brand-500" />
-            <h2 className="font-display font-bold text-neutral-900">Segurança</h2>
-          </div>
-          <div className="divide-y divide-neutral-50">
-            <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
-              <p className="text-sm font-medium text-neutral-700">Alterar senha</p>
-              <a
-                href="/recuperar-senha"
-                className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 transition-all hover:text-brand-700"
-              >
-                Alterar <ChevronRight className="h-3 w-3" />
-              </a>
-            </div>
-            <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50">
-              <div>
-                <p className="text-sm font-medium text-neutral-700">Autenticacao de dois fatores</p>
-                <p className="mt-0.5 text-xs text-neutral-400">Desativado</p>
-              </div>
-              <span className="rounded-full bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-400">
-                Em breve
-              </span>
-            </div>
-          </div>
-        </div>
+        <SecuritySettings
+          onOpenPassword={() => { window.location.href = '/recuperar-senha' }}
+          onOpenVisibility={() => { /* TODO */ }}
+          onSignOut={() => {
+            const form = document.createElement('form')
+            form.method = 'post'
+            form.action = '/auth/signout'
+            document.body.appendChild(form)
+            form.submit()
+            document.body.removeChild(form)
+          }}
+        />
       </div>
 
       <div className="mt-8 rounded-2xl border border-red-100 bg-white p-6">
@@ -683,5 +325,3 @@ export default function ProfessionalSettingsWorkspace() {
     </div>
   )
 }
-
-

@@ -9,23 +9,17 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
-import { isSlotWithinWorkingHours } from '@/lib/booking/availability-engine'
+import { validateSlotAvailability } from '@/lib/booking/slot-validation'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 import { createBatchBookingGroup } from '@/lib/booking/batch-booking'
 import { generateRecurrenceSlots } from '@/lib/booking/recurrence-engine'
-import { hasExternalBusyConflict } from '@/lib/booking/external-calendar-conflicts'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import {
   localDateTimeSchema,
   isActiveSlotCollision,
 } from '@/lib/booking/request-validation'
-import {
-  loadAvailabilityRules,
-  isSlotAllowedByExceptions,
-  hasInternalConflict,
-} from '@/lib/booking/availability-checks'
 
 
 type BookingCreateResult =
@@ -270,72 +264,27 @@ export async function createBooking(data: {
     return { success: false, error: 'Não foi possível montar os horários do agendamento.' }
   }
 
-  const availabilityRules = await loadAvailabilityRules(
-    supabase,
-    bookingInput.professionalId,
-    bookingSettings.timezone,
-  )
-
   for (const slot of plannedSessions) {
-    const minimumStartTime = Date.now() + bookingSettings.minimumNoticeHours * 60 * 60 * 1000
-    if (slot.startUtc.getTime() < minimumStartTime) {
-      return {
-        success: false,
-        error: `Selecione um horário com pelo menos ${bookingSettings.minimumNoticeHours} horas de antecedência.`,
-      }
-    }
-
-    const maximumDate = new Date()
-    maximumDate.setDate(maximumDate.getDate() + bookingSettings.maxBookingWindowDays)
-    if (slot.startUtc.getTime() > maximumDate.getTime()) {
-      return {
-        success: false,
-        error: `Agendamentos devem estar dentro de ${bookingSettings.maxBookingWindowDays} dias.`,
-      }
-    }
-
-    const fitsAvailability = isSlotWithinWorkingHours(
-      slot.startUtc,
-      slot.endUtc,
-      bookingSettings,
-      availabilityRules,
-    )
-    if (!fitsAvailability) {
-      return { success: false, error: 'Um ou mais horários não estão disponíveis para este profissional.' }
-    }
-
-    const allowedByException = await isSlotAllowedByExceptions(
+    const validation = await validateSlotAvailability({
       supabase,
-      bookingInput.professionalId,
-      bookingSettings.timezone,
-      slot.startUtc,
-      slot.endUtc,
-    )
-    if (!allowedByException) {
-      return { success: false, error: 'Um ou mais horários foram bloqueados por indisponibilidade.' }
-    }
-
-    const conflict = await hasInternalConflict(
-      supabase,
-      bookingInput.professionalId,
-      slot.startUtc,
-      slot.endUtc,
-      bookingSettings.bufferMinutes,
-    )
-    if (conflict) {
-      return { success: false, error: 'Um ou mais horários já foram reservados. Escolha outro horário.' }
-    }
-    const externalConflict = await hasExternalBusyConflict(
-      supabase,
-      bookingInput.professionalId,
-      slot.startUtc.toISOString(),
-      slot.endUtc.toISOString(),
-    )
-    if (externalConflict) {
-      return {
-        success: false,
-        error: 'Um ou mais horários conflitam com a agenda externa conectada do profissional.',
-      }
+      professionalId: bookingInput.professionalId,
+      startUtc: slot.startUtc,
+      endUtc: slot.endUtc,
+      timezone: bookingSettings.timezone,
+      bufferMinutes: bookingSettings.bufferMinutes,
+      minimumNoticeHours: bookingSettings.minimumNoticeHours,
+      maxBookingWindowDays: bookingSettings.maxBookingWindowDays,
+      errorMessages: {
+        minimumNotice: `Selecione um horário com pelo menos ${bookingSettings.minimumNoticeHours} horas de antecedência.`,
+        maxWindow: `Agendamentos devem estar dentro de ${bookingSettings.maxBookingWindowDays} dias.`,
+        workingHours: 'Um ou mais horários não estão disponíveis para este profissional.',
+        exception: 'Um ou mais horários foram bloqueados por indisponibilidade.',
+        internalConflict: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+        externalConflict: 'Um ou mais horários conflitam com a agenda externa conectada do profissional.',
+      },
+    })
+    if (!validation.valid) {
+      return { success: false, error: validation.error! }
     }
   }
 

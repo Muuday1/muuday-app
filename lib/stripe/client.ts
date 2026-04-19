@@ -38,3 +38,17 @@ export function isStripeConfiguredForRegion(region: StripePlatformRegion): boole
   return Boolean(getStripeClientForRegion(region))
 }
 
+// ─── Resilience helpers (migrated from lib/ops/stripe-resilience.ts) ──────
+
+export function createStripeClientIfConfigured() {
+  const secretKey = process.env.STRIPE_SECRET_KEY
+  if (!secretKey) return null
+  return new Stripe(secretKey, {
+    apiVersion: '2026-03-25.dahlia',
+    typescript: true,
+  })
+}
+
+export function isStripeRuntimeConfigured() {
+  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET)
+}

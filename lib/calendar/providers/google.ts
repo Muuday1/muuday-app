@@ -181,17 +181,24 @@ async function cancelEvent(
   const calendarId = mapCalendarId(input.payload.externalCalendarId || input.integration.external_calendar_id)
   const url = `${GOOGLE_CALENDAR_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(input.externalEventId)}`
 
-  const response = await fetch(url, {
-    method: 'DELETE',
-    headers: {
-      authorization: `Bearer ${token.accessToken}`,
-    },
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${token.accessToken}`,
+      },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
 
-  if (!response.ok && response.status !== 404) {
-    const text = await response.text()
-    throw new Error(`Failed to delete Google event: ${response.status} ${text.slice(0, 400)}`)
+    if (!response.ok && response.status !== 404) {
+      const text = await response.text()
+      throw new Error(`Failed to delete Google event: ${response.status} ${text.slice(0, 400)}`)
+    }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 

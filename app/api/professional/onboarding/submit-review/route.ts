@@ -35,8 +35,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Perfil profissional não encontrado.' }, { status: 404 })
   }
 
-  const body = (await request.json().catch(() => null)) as { acceptedTerms?: boolean } | null
-  if (!body?.acceptedTerms) {
+  let rawBody: unknown
+  try {
+    rawBody = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Payload JSON invalido.' }, { status: 400 })
+  }
+
+  const body = typeof rawBody === 'object' && rawBody !== null
+    ? rawBody as Record<string, unknown>
+    : null
+  if (!body || body.acceptedTerms !== true) {
     return NextResponse.json({ error: 'Aceite os termos obrigatórios antes do envio.' }, { status: 400 })
   }
 

@@ -141,7 +141,14 @@ export async function POST(
     return NextResponse.json({ error: authContext.error }, { status: authContext.status })
   }
 
-  const parsed = appleConnectSchema.safeParse(await request.json())
+  let rawBody: unknown
+  try {
+    rawBody = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Payload JSON invalido.' }, { status: 400 })
+  }
+
+  const parsed = appleConnectSchema.safeParse(rawBody)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Dados invalidos.' }, { status: 400 })
   }
@@ -206,6 +213,6 @@ export async function POST(
       .eq('professional_id', authContext.professionalId)
       .eq('provider', 'apple')
 
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: 'Falha ao conectar Apple CalDAV.' }, { status: 400 })
   }
 }

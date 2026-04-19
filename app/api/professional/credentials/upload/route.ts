@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     })
 
     if (uploadError) {
-      return NextResponse.json({ error: `Falha no upload: ${uploadError.message}` }, { status: 500 })
+      return NextResponse.json({ error: 'Falha no upload do arquivo.' }, { status: 500 })
     }
 
     const dbFileName = `${qualificationName}::${file.name}`
@@ -157,16 +157,15 @@ export async function POST(request: Request) {
 
     if (insertError) {
       await authResult.supabase.storage.from(CREDENTIALS_BUCKET).remove([filePath])
-      return NextResponse.json({ error: `Falha ao registrar comprovante: ${insertError.message}` }, { status: 500 })
+      return NextResponse.json({ error: 'Falha ao registrar comprovante.' }, { status: 500 })
     }
 
     return NextResponse.json({
       credential: inserted,
       downloadUrl: `/api/professional/credentials/download/${inserted.id}`,
     })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro inesperado no upload.'
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Erro inesperado no upload.' }, { status: 500 })
   }
 }
 
@@ -189,7 +188,7 @@ export async function DELETE(request: Request) {
       .maybeSingle()
 
     if (credentialError) {
-      return NextResponse.json({ error: credentialError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erro ao buscar comprovante.' }, { status: 500 })
     }
 
     if (!credentialRow?.id) {
@@ -203,7 +202,7 @@ export async function DELETE(request: Request) {
       .eq('professional_id', authResult.professionalId)
 
     if (deleteDbError) {
-      return NextResponse.json({ error: `Falha ao remover comprovante: ${deleteDbError.message}` }, { status: 500 })
+      return NextResponse.json({ error: 'Falha ao remover comprovante.' }, { status: 500 })
     }
 
     const storagePath = extractStoragePath(String(credentialRow.file_url || ''), CREDENTIALS_BUCKET)
@@ -212,8 +211,7 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro inesperado ao remover comprovante.'
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Erro inesperado ao remover comprovante.' }, { status: 500 })
   }
 }

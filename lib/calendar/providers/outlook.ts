@@ -181,17 +181,24 @@ async function upsertEvent(token: CalendarTokenPayload, input: BookingEventInput
 }
 
 async function cancelEvent(token: CalendarTokenPayload, externalEventId: string) {
-  const response = await fetch(`${GRAPH_BASE}/me/events/${encodeURIComponent(externalEventId)}`, {
-    method: 'DELETE',
-    headers: {
-      authorization: `Bearer ${token.accessToken}`,
-    },
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetch(`${GRAPH_BASE}/me/events/${encodeURIComponent(externalEventId)}`, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${token.accessToken}`,
+      },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
 
-  if (!response.ok && response.status !== 404) {
-    const text = await response.text()
-    throw new Error(`Failed to delete Outlook event: ${response.status} ${text.slice(0, 400)}`)
+    if (!response.ok && response.status !== 404) {
+      const text = await response.text()
+      throw new Error(`Failed to delete Outlook event: ${response.status} ${text.slice(0, 400)}`)
+    }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 

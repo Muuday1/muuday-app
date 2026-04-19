@@ -1012,9 +1012,8 @@ export async function POST(request: Request) {
       service: mutatedService,
       deletedServiceId,
     })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro inesperado ao salvar esta etapa.'
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Erro inesperado ao salvar esta etapa.' }, { status: 500 })
   }
 }
 

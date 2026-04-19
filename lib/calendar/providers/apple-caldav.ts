@@ -33,25 +33,32 @@ async function caldavRequest(input: {
   body?: string
   contentType?: string
 }) {
-  const response = await fetch(input.url, {
-    method: input.method,
-    headers: {
-      authorization: buildBasicAuth(input.credentials.username, input.credentials.appPassword),
-      depth: input.depth || '0',
-      'content-type': input.contentType || 'application/xml; charset=utf-8',
-      prefer: 'return-minimal',
-    },
-    body: input.body,
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetch(input.url, {
+      method: input.method,
+      headers: {
+        authorization: buildBasicAuth(input.credentials.username, input.credentials.appPassword),
+        depth: input.depth || '0',
+        'content-type': input.contentType || 'application/xml; charset=utf-8',
+        prefer: 'return-minimal',
+      },
+      body: input.body,
+      cache: 'no-store',
+      signal: controller.signal,
+    })
 
-  const text = await response.text()
+    const text = await response.text()
 
-  if (!response.ok && response.status !== 207 && response.status !== 404) {
-    throw new Error(`CalDAV request failed (${response.status}): ${text.slice(0, 500)}`)
+    if (!response.ok && response.status !== 207 && response.status !== 404) {
+      throw new Error(`CalDAV request failed (${response.status}): ${text.slice(0, 500)}`)
+    }
+
+    return { status: response.status, text, headers: response.headers }
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  return { status: response.status, text, headers: response.headers }
 }
 
 function extractFirstTag(xml: string, tagNames: string[]): string | null {
@@ -315,33 +322,40 @@ async function upsertCalendarEvent(
     endUtc: input.payload.endUtc,
   })
 
-  const response = await fetch(resourceUrl, {
-    method: 'PUT',
-    headers: {
-      authorization: buildBasicAuth(credentials.username, credentials.appPassword),
-      'content-type': 'text/calendar; charset=utf-8',
-      'if-none-match': '*',
-    },
-    body: icsBody,
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetch(resourceUrl, {
+      method: 'PUT',
+      headers: {
+        authorization: buildBasicAuth(credentials.username, credentials.appPassword),
+        'content-type': 'text/calendar; charset=utf-8',
+        'if-none-match': '*',
+      },
+      body: icsBody,
+      cache: 'no-store',
+      signal: controller.signal,
+    })
 
-  if (!response.ok && response.status !== 412) {
-    const text = await response.text()
-    throw new Error(`Failed to upsert CalDAV event (${response.status}): ${text.slice(0, 500)}`)
-  }
+    if (!response.ok && response.status !== 412) {
+      const text = await response.text()
+      throw new Error(`Failed to upsert CalDAV event (${response.status}): ${text.slice(0, 500)}`)
+    }
 
-  const etag = response.headers.get('etag')
+    const etag = response.headers.get('etag')
 
-  return {
-    externalEventId: uid,
-    externalCalendarId: calendarUrl,
-    eventEtag: etag,
-    eventUrl: resourceUrl,
-    raw: {
-      status: response.status,
-      etag,
-    },
+    return {
+      externalEventId: uid,
+      externalCalendarId: calendarUrl,
+      eventEtag: etag,
+      eventUrl: resourceUrl,
+      raw: {
+        status: response.status,
+        etag,
+      },
+    }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
@@ -351,17 +365,24 @@ async function cancelCalendarEvent(
   externalEventId: string,
 ) {
   const resourceUrl = `${calendarUrl.replace(/\/+$/, '')}/${encodeURIComponent(externalEventId)}.ics`
-  const response = await fetch(resourceUrl, {
-    method: 'DELETE',
-    headers: {
-      authorization: buildBasicAuth(credentials.username, credentials.appPassword),
-    },
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetch(resourceUrl, {
+      method: 'DELETE',
+      headers: {
+        authorization: buildBasicAuth(credentials.username, credentials.appPassword),
+      },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
 
-  if (!response.ok && response.status !== 404) {
-    const text = await response.text()
-    throw new Error(`Failed to delete CalDAV event (${response.status}): ${text.slice(0, 500)}`)
+    if (!response.ok && response.status !== 404) {
+      const text = await response.text()
+      throw new Error(`Failed to delete CalDAV event (${response.status}): ${text.slice(0, 500)}`)
+    }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 

@@ -14,6 +14,39 @@ export type Profile = {
 
 export type ProfessionalStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'suspended'
 
+/**
+ * Raw database row shape for the `professionals` table.
+ * Use this when selecting directly from Supabase with specific columns.
+ */
+export type ProfessionalRow = {
+  id: string
+  public_code: number
+  user_id: string
+  status: ProfessionalStatus
+  bio: string | null
+  category: string
+  subcategories: string[]
+  tags: string[]
+  languages: string[]
+  years_experience: number
+  session_price_brl: number
+  session_duration_minutes: number
+  rating: number
+  total_reviews: number
+  total_bookings: number
+  tier: 'basic' | 'professional' | 'premium'
+  category_id: string | null
+  first_booking_enabled: boolean
+  first_booking_gate_note: string | null
+  first_booking_gate_updated_at: string | null
+  whatsapp_number: string | null
+  cover_photo_url: string | null
+  video_intro_url: string | null
+  social_links: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
 export type Professional = {
   id: string
   user_id: string

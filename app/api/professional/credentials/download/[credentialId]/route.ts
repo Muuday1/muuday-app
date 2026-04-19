@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 const CREDENTIALS_BUCKET = 'professional-credentials'
 const STORAGE_URI_PREFIX = `storage://${CREDENTIALS_BUCKET}/`
@@ -45,14 +46,20 @@ export async function GET(
     return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
   }
 
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  if (!professional?.id) {
+    return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 403 })
+  }
+
   const { data: credential, error } = await supabase
     .from('professional_credentials')
     .select('id,file_url')
     .eq('id', credentialId)
+    .eq('professional_id', professional.id)
     .maybeSingle()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao buscar comprovante.' }, { status: 500 })
   }
 
   if (!credential?.id) {
@@ -74,7 +81,7 @@ export async function GET(
     .createSignedUrl(storagePath, 60)
 
   if (signedError || !data?.signedUrl) {
-    return NextResponse.json({ error: signedError?.message || 'Falha ao assinar URL do arquivo.' }, { status: 500 })
+    return NextResponse.json({ error: 'Falha ao assinar URL do arquivo.' }, { status: 500 })
   }
 
   return NextResponse.redirect(data.signedUrl)

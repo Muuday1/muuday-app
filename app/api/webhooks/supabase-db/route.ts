@@ -10,6 +10,7 @@ import {
   createCorsPreflightResponse,
   evaluateCorsRequest,
 } from '@/lib/http/cors'
+import { getClientIp } from '@/lib/http/client-ip'
 
 const dbWebhookPayloadSchema = z.object({
   type: z.enum(['INSERT', 'UPDATE', 'DELETE']),
@@ -18,13 +19,6 @@ const dbWebhookPayloadSchema = z.object({
   record: z.record(z.string(), z.unknown()).nullable().optional(),
   old_record: z.record(z.string(), z.unknown()).nullable().optional(),
 })
-
-function getRequestIp(request: NextRequest) {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  const realIp = request.headers.get('x-real-ip')
-  return realIp || 'unknown'
-}
 
 function buildRateLimitHeaders(limitResult: Awaited<ReturnType<typeof rateLimit>>) {
   const headers: Record<string, string> = {
@@ -85,7 +79,7 @@ export async function POST(request: NextRequest) {
 
   const withCors = (response: NextResponse) => applyCorsHeaders(response, corsDecision.headers)
 
-  const ip = getRequestIp(request)
+  const ip = getClientIp(request)
   const rl = await rateLimit('supabaseDbWebhook', ip)
   const rateLimitHeaders = buildRateLimitHeaders(rl)
   if (!rl.allowed) {

@@ -16,8 +16,7 @@ import {
   getUserCancellationRefundDecision,
   roundCurrency,
 } from '@/lib/booking/cancellation-policy'
-import { isSlotWithinWorkingHours } from '@/lib/booking/availability-engine'
-import { hasExternalBusyConflict } from '@/lib/booking/external-calendar-conflicts'
+import { validateSlotAvailability } from '@/lib/booking/slot-validation'
 import {
   evaluateRecurringChangeDeadline,
   evaluateRecurringPauseDeadline,
@@ -25,11 +24,6 @@ import {
 } from '@/lib/booking/recurring-deadlines'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import { localDateTimeSchema } from '@/lib/booking/request-validation'
-import {
-  loadAvailabilityRules,
-  isSlotAllowedByExceptions,
-  hasInternalConflict,
-} from '@/lib/booking/availability-checks'
 
 type ActionResult =
   | { success: true }
@@ -400,42 +394,23 @@ export async function rescheduleBooking(
   }
 
   const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60 * 1000)
-  const rules = await loadAvailabilityRules(supabase, professional.id, settings.timezone)
-  const fitsAvailability = isSlotWithinWorkingHours(scheduledDate, endDate, settings, rules)
-  if (!fitsAvailability) {
-    return { success: false, error: 'Este horário não está disponível para este profissional.' }
-  }
-
-  const allowedByException = await isSlotAllowedByExceptions(
+  const validation = await validateSlotAvailability({
     supabase,
-    professional.id,
-    settings.timezone,
-    scheduledDate,
-    endDate,
-  )
-  if (!allowedByException) return { success: false, error: 'Este horário não está disponível.' }
-
-  const hasConflict = await hasInternalConflict(
-    supabase,
-    professional.id,
-    scheduledDate,
-    endDate,
-    settings.bufferMinutes,
-    booking.id,
-  )
-  if (hasConflict) return { success: false, error: 'Este horário já está reservado. Escolha outro.' }
-
-  const externalConflict = await hasExternalBusyConflict(
-    supabase,
-    professional.id,
-    scheduledDate.toISOString(),
-    endDate.toISOString(),
-  )
-  if (externalConflict) {
-    return {
-      success: false,
-      error: 'Este horário conflita com agenda externa conectada do profissional.',
-    }
+    professionalId: professional.id,
+    startUtc: scheduledDate,
+    endUtc: endDate,
+    timezone: settings.timezone,
+    bufferMinutes: settings.bufferMinutes,
+    ignoreBookingId: booking.id,
+    errorMessages: {
+      workingHours: 'Este horário não está disponível para este profissional.',
+      exception: 'Este horário não está disponível.',
+      internalConflict: 'Este horário já está reservado. Escolha outro.',
+      externalConflict: 'Este horário conflita com agenda externa conectada do profissional.',
+    },
+  })
+  if (!validation.valid) {
+    return { success: false, error: validation.error! }
   }
 
   const slotLock = await acquireSlotLock(supabase, {

@@ -1,7 +1,5 @@
 ﻿'use server'
 
-import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { writeAdminAuditLog } from '@/lib/admin/audit-log'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
@@ -16,89 +14,17 @@ import {
   REVIEW_ADJUSTMENT_STAGE_LABELS,
   SUPPORTED_REVIEW_ADJUSTMENT_KEYS,
 } from '@/lib/professional/review-adjustments'
-
-type AdminActionResult =
-  | { success: true }
-  | { success: false; error: string }
-
-const professionalStatusSchema = z.enum([
-  'approved',
-  'rejected',
-  'suspended',
-  'pending_review',
-  'needs_changes',
-  'draft',
-])
-
-const adminUpdateProfessionalStatusInputSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invalido.'),
-  newStatus: professionalStatusSchema,
-})
-
-const adminUpdateFirstBookingGateInputSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invalido.'),
-  enabled: z.boolean(),
-})
-
-const adminReviewActionInputSchema = z.object({
-  reviewId: z.string().uuid('Identificador de avaliacao invalido.'),
-})
-
-const adminRestoreProfessionalAdjustmentsInputSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invalido.'),
-})
-
-const adminProfessionalDecisionInputSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional invalido.'),
-  decision: z.enum(['approved', 'rejected', 'needs_changes']),
-  notes: z.string().trim().max(1200, 'Notas muito longas.').optional(),
-  adjustments: z
-    .array(
-      z.object({
-        stageId: z.string().min(1),
-        fieldKey: z.string().min(1),
-        message: z.string().trim().min(3).max(600),
-        severity: z.enum(['low', 'medium', 'high']),
-      }),
-    )
-    .max(40)
-    .optional(),
-})
-
-const adminToggleReviewVisibilityInputSchema = adminReviewActionInputSchema.extend({
-  visible: z.boolean(),
-})
-
-function getFirstValidationError(error: z.ZodError) {
-  return error.issues[0]?.message || 'Dados invalidos.'
-}
-
-/**
- * Server-side admin role check. Returns the authenticated user ID or throws.
- * This ensures admin mutations are never reliant on client-side RLS alone.
- */
-async function requireAdmin() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('Nao autenticado.')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin') {
-    throw new Error('Acesso negado. Apenas administradores podem executar esta acao.')
-  }
-
-  return { supabase, userId: user.id }
-}
+import {
+  type AdminActionResult,
+  adminUpdateProfessionalStatusInputSchema,
+  adminUpdateFirstBookingGateInputSchema,
+  adminReviewActionInputSchema,
+  adminRestoreProfessionalAdjustmentsInputSchema,
+  adminProfessionalDecisionInputSchema,
+  adminToggleReviewVisibilityInputSchema,
+  getFirstValidationError,
+  requireAdmin,
+} from './admin/shared'
 
 export async function adminUpdateProfessionalStatus(
   professionalId: string,
@@ -610,6 +536,211 @@ export async function adminReviewProfessionalDecision(
     revalidatePath(`/admin/revisao/${parsed.data.professionalId}`)
     revalidateTag('public-profiles')
     return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+  }
+}
+
+export interface AdminDashboardData {
+  stats: {
+    totalUsers: number
+    totalProfessionals: number
+    totalBookings: number
+    totalReviews: number
+    pendingProfessionals: number
+    pendingReviews: number
+  }
+  professionals: Array<{
+    id: string
+    public_code?: number | null
+    user_id: string
+    status: string
+    first_booking_enabled: boolean
+    first_booking_gate_note?: string | null
+    first_booking_gate_updated_at?: string | null
+    bio: string
+    category: string
+    tags: string[]
+    languages: string[]
+    years_experience: number
+    session_price_brl: number
+    session_duration_minutes: number
+    rating: number
+    total_reviews: number
+    total_bookings: number
+    created_at: string
+    admin_review_notes?: string | null
+    reviewed_at?: string | null
+    profiles: {
+      full_name: string
+      email: string
+      country: string
+      timezone: string
+      avatar_url?: string | null
+    }
+  }>
+  professionalSpecialties: Record<string, string[]>
+  professionalCredentialCounts: Record<string, number>
+  professionalMinServicePrice: Record<string, number>
+  reviews: Array<{
+    id: string
+    rating: number
+    comment: string
+    is_visible: boolean
+    created_at: string
+    profiles: { full_name: string }
+    professionals: { id: string; profiles: { full_name: string } }
+  }>
+  bookings: Array<{
+    id: string
+    scheduled_at: string
+    status: string
+    price_brl: number
+    duration_minutes: number
+    user_profile: { full_name: string; email: string }
+    professional_profile: { full_name: string }
+  }>
+}
+
+export async function loadAdminDashboardData(): Promise<{ success: boolean; data?: AdminDashboardData; error?: string }> {
+  try {
+    const { supabase } = await requireAdmin()
+
+    const [usersRes, prosRes, bookingsRes, reviewsRes] = await Promise.all([
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('professionals').select('id, status'),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }),
+      supabase.from('reviews').select('id, is_visible'),
+    ])
+
+    const allPros = prosRes.data || []
+    const allRevs = reviewsRes.data || []
+
+    const stats = {
+      totalUsers: usersRes.count || 0,
+      totalProfessionals: allPros.length,
+      totalBookings: bookingsRes.count || 0,
+      totalReviews: allRevs.length,
+      pendingProfessionals: allPros.filter(p => p.status === 'pending_review').length,
+      pendingReviews: allRevs.filter(r => !r.is_visible).length,
+    }
+
+    const { data: professionalsData } = await supabase
+      .from('professionals')
+      .select('*, profiles!professionals_user_id_fkey(*)')
+      .order('created_at', { ascending: false })
+
+    const resolvedProfessionals = (professionalsData as unknown as AdminDashboardData['professionals']) || []
+    const professionalIds = resolvedProfessionals.map(p => p.id).filter(Boolean)
+
+    let professionalSpecialties: Record<string, string[]> = {}
+    let professionalCredentialCounts: Record<string, number> = {}
+    let professionalMinServicePrice: Record<string, number> = {}
+
+    if (professionalIds.length > 0) {
+      const { data: credentialRows } = await supabase
+        .from('professional_credentials')
+        .select('professional_id')
+        .in('professional_id', professionalIds)
+
+      professionalCredentialCounts = (credentialRows || []).reduce((acc, row: any) => {
+        const pid = String(row.professional_id || '').trim()
+        if (!pid) return acc
+        acc[pid] = (acc[pid] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      const { data: serviceRows } = await supabase
+        .from('professional_services')
+        .select('professional_id,price_brl,is_active')
+        .in('professional_id', professionalIds)
+        .eq('is_active', true)
+
+      professionalMinServicePrice = (serviceRows || []).reduce((acc, row: any) => {
+        const pid = String(row.professional_id || '').trim()
+        const price = Number(row.price_brl || 0)
+        if (!pid || !Number.isFinite(price) || price <= 0) return acc
+        if (!(pid in acc) || price < acc[pid]!) {
+          acc[pid] = price
+        }
+        return acc
+      }, {} as Record<string, number>)
+
+      const { data: linkRows } = await supabase
+        .from('professional_specialties')
+        .select('professional_id,specialty_id')
+        .in('professional_id', professionalIds)
+
+      const specialtyIds = Array.from(
+        new Set((linkRows || []).map((row: any) => String(row.specialty_id || '').trim()).filter(Boolean)),
+      )
+
+      if (specialtyIds.length > 0) {
+        const { data: specialtyRows } = await supabase
+          .from('specialties')
+          .select('id,name_pt')
+          .in('id', specialtyIds)
+          .eq('is_active', true)
+
+        const specialtyById = new Map(
+          (specialtyRows || []).map((row: any) => [String(row.id), String(row.name_pt || '').trim()]),
+        )
+
+        const mapped = (linkRows || []).reduce((acc, row: any) => {
+          const pid = String(row.professional_id || '').trim()
+          const name = specialtyById.get(String(row.specialty_id || '').trim()) || ''
+          if (!pid || !name) return acc
+          if (!acc[pid]) acc[pid] = []
+          if (!acc[pid].includes(name)) {
+            acc[pid].push(name)
+          }
+          return acc
+        }, {} as Record<string, string[]>)
+
+        Object.keys(mapped).forEach(pid => {
+          mapped[pid].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+        })
+
+        professionalSpecialties = mapped
+      }
+    }
+
+    const { data: reviewsData } = await supabase
+      .from('reviews')
+      .select('*, profiles!reviews_user_id_fkey(full_name), professionals!reviews_professional_id_fkey(id, profiles!professionals_user_id_fkey(full_name))')
+      .order('created_at', { ascending: false })
+
+    const { data: bookingsData } = await supabase
+      .from('bookings')
+      .select('id, scheduled_at, status, price_brl, duration_minutes, profiles!bookings_user_id_fkey(full_name, email), professionals!bookings_professional_id_fkey(profiles!professionals_user_id_fkey(full_name))')
+      .order('scheduled_at', { ascending: false })
+      .limit(50)
+
+    const mappedBookings = (bookingsData || []).map((b: Record<string, unknown>) => {
+      const pro = b.professionals as Record<string, unknown> | null
+      return {
+        id: b.id as string,
+        scheduled_at: b.scheduled_at as string,
+        status: b.status as string,
+        price_brl: b.price_brl as number,
+        duration_minutes: b.duration_minutes as number,
+        user_profile: (b.profiles as { full_name: string; email: string }) || { full_name: '-', email: '' },
+        professional_profile: (pro?.profiles as { full_name: string }) || { full_name: '-' },
+      }
+    })
+
+    return {
+      success: true,
+      data: {
+        stats,
+        professionals: resolvedProfessionals,
+        professionalSpecialties,
+        professionalCredentialCounts,
+        professionalMinServicePrice,
+        reviews: (reviewsData as unknown as AdminDashboardData['reviews']) || [],
+        bookings: mappedBookings,
+      },
+    }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
   }

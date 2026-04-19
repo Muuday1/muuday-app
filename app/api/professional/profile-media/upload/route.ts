@@ -20,7 +20,7 @@ function getStorageUploadErrorMessage(error: { message?: string; details?: strin
   if (text.includes('42501') || text.includes('permission denied') || text.includes('row-level security')) {
     return 'Sem permissao para upload de foto. Ajuste as policies do bucket professional-profile-media.'
   }
-  return `Falha no upload: ${String(error?.message || 'erro desconhecido')}`
+  return 'Falha no upload do arquivo.'
 }
 
 async function createProfileMediaSignedUrl(
