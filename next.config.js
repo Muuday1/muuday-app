@@ -11,6 +11,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'jbbnbbrroifghrshplsq.supabase.co' },
       { protocol: 'https', hostname: 'ui-avatars.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 7,

@@ -7,23 +7,23 @@
     --font-sans: 'Inter', system-ui, sans-serif;
     --font-display: 'Space Grotesk', system-ui, sans-serif;
 
-    --mu-section-pad-mobile: 40px;
-    --mu-section-pad-tablet: 56px;
-    --mu-section-pad-desktop: 96px;
-    --mu-shell-max: 1180px;
+    --mu-section-pad-mobile: 48px;
+    --mu-section-pad-tablet: 64px;
+    --mu-section-pad-desktop: 112px;
+    --mu-shell-max: 1200px;
 
     --mu-radius-sm: 6px;
     --mu-radius-md: 8px;
     --mu-radius-lg: 12px;
 
-    --mu-page-bg: #f4f8f5;
+    --mu-page-bg: #f8fafc;
     --mu-surface: #ffffff;
-    --mu-surface-soft: #f0fdf4;
-    --mu-surface-muted: #f8fbf9;
-    --mu-muted: #57534e;
-    --mu-text: #1c1917;
-    --mu-border: #e5e7eb;
-    --mu-border-soft: #e8f0eb;
+    --mu-surface-soft: #f1f5f9;
+    --mu-surface-muted: #f8fafc;
+    --mu-muted: #475569;
+    --mu-text: #0f172a;
+    --mu-border: #e2e8f0;
+    --mu-border-soft: #f1f5f9;
   }
 
   html {
@@ -40,11 +40,11 @@
   }
 
   ::selection {
-    background: rgba(34, 197, 94, 0.18);
+    background: rgba(37, 99, 235, 0.18);
   }
 
   :focus-visible {
-    outline: 2px solid rgba(34, 197, 94, 0.45);
+    outline: 2px solid rgba(37, 99, 235, 0.45);
     outline-offset: 2px;
   }
 }
@@ -83,9 +83,9 @@
 
   .mu-btn-primary {
     border-radius: var(--mu-radius-md);
-    background: #22c55e;
+    background: #2563eb;
     color: #ffffff;
-    padding: 0.68rem 1.4rem;
+    padding: 0.75rem 1.5rem;
     font-size: 0.95rem;
     font-weight: 600;
     line-height: 1.2;
@@ -93,7 +93,7 @@
   }
 
   .mu-btn-primary:hover {
-    background: #16a34a;
+    background: #1d4ed8;
     transform: translateY(-1px);
   }
 
@@ -102,7 +102,7 @@
     border: 1px solid var(--mu-border);
     background: #ffffff;
     color: var(--mu-text);
-    padding: 0.68rem 1.4rem;
+    padding: 0.75rem 1.5rem;
     font-size: 0.95rem;
     font-weight: 600;
     line-height: 1.2;
@@ -110,8 +110,8 @@
   }
 
   .mu-btn-outline:hover {
-    border-color: #22c55e;
-    color: #22c55e;
+    border-color: #2563eb;
+    color: #2563eb;
   }
 
   .scrollbar-hide {

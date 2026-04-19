@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -114,7 +114,6 @@ export function PublicHeader({
         return
       }
 
-      // Safe authenticated fallback: never send logged users to public search.
       setLoggedInHrefClient('/buscar-auth')
     }
 
@@ -172,10 +171,10 @@ export function PublicHeader({
 
   function navItemClass(href: string) {
     const isActive = pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
-    return `whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-medium transition ${
+    return `whitespace-nowrap rounded-md border px-3.5 py-2 text-sm font-medium transition ${
       isActive
-        ? 'border-brand-500 bg-brand-500 text-white'
-        : 'border-brand-100 bg-white text-[var(--mu-text)] hover:border-brand-200 hover:text-brand-700'
+        ? 'border-brand-600 bg-brand-600 text-white'
+        : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600'
     } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30`
   }
 
@@ -187,19 +186,19 @@ export function PublicHeader({
   })
 
   return (
-    <header className="sticky top-0 z-30 border-b border-brand-100 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-2 md:px-8">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-2 md:px-8">
         <div className="flex items-center justify-between gap-4 md:gap-6">
           <Link
             href="/"
             className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-[14px] bg-gradient-to-br from-brand-500 to-brand-600 shadow-[var(--mu-shadow-sm)]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-600">
               <span className="font-display text-sm font-bold text-white">M</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-display text-lg font-bold tracking-tight text-[var(--mu-text)]">muuday</span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-700/80">
+              <span className="font-display text-lg font-bold tracking-tight text-slate-900">muuday</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 vídeo-first
               </span>
             </div>
@@ -218,7 +217,7 @@ export function PublicHeader({
               value="pt-BR"
               onChange={event => handleLanguageChange(event.target.value)}
               disabled={!hasLanguageChoice}
-              className="h-9 rounded-full border border-brand-100 bg-white px-3 py-2 text-xs font-semibold text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar idioma"
             >
               {PUBLIC_LANGUAGE_OPTIONS.map(option => (
@@ -232,7 +231,7 @@ export function PublicHeader({
               <select
                 value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
-                className="h-9 rounded-full border border-brand-100 bg-white px-3 py-2 text-xs font-semibold text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className="h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 aria-label="Selecionar moeda"
               >
                 {PUBLIC_CURRENCY_OPTIONS.map(option => (
@@ -246,7 +245,7 @@ export function PublicHeader({
             {isLoggedInClient ? (
               <Link
                 href={loggedInHrefClient}
-                className="mu-btn-primary !rounded-lg !px-4 !py-2 !text-xs"
+                className="mu-btn-primary !px-4 !py-2 !text-xs"
               >
                 Minha área
               </Link>
@@ -256,13 +255,13 @@ export function PublicHeader({
                   ref={desktopLoginButtonRef}
                   type="button"
                   onClick={() => setAuthMenuOpen(true)}
-                  className="rounded-lg border border-brand-100 bg-white px-4 py-2 text-xs font-semibold text-[var(--mu-text)] transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
                   Login
                 </button>
                 <Link
                   href="/cadastro"
-                  className="mu-btn-primary !rounded-lg !px-4 !py-2 !text-xs"
+                  className="mu-btn-primary !px-4 !py-2 !text-xs"
                 >
                   Criar conta
                 </Link>
@@ -275,7 +274,7 @@ export function PublicHeader({
               value="pt-BR"
               onChange={event => handleLanguageChange(event.target.value)}
               disabled={!hasLanguageChoice}
-              className="h-8 rounded-full border border-brand-100 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="h-8 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label="Selecionar idioma"
             >
               {PUBLIC_LANGUAGE_OPTIONS.map(option => (
@@ -288,7 +287,7 @@ export function PublicHeader({
               <select
                 value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
-                className="h-8 rounded-full border border-brand-100 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className="h-8 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 aria-label="Selecionar moeda"
               >
                 {PUBLIC_CURRENCY_OPTIONS.map(option => (
@@ -301,7 +300,7 @@ export function PublicHeader({
             <button
               type="button"
               onClick={() => setMenuOpen(value => !value)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-100 bg-white text-[var(--mu-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
               aria-expanded={menuOpen}
               aria-controls="public-nav-panel"
@@ -310,20 +309,20 @@ export function PublicHeader({
             </button>
           </div>
         </div>
-        </div>
+      </div>
 
       {menuOpen && (
-          <div id="public-nav-panel" className="border-t border-brand-100 bg-white md:hidden">
+        <div id="public-nav-panel" className="border-t border-slate-200 bg-white md:hidden">
           <nav className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-3">
             {resolvedNavItems.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
-                className={`rounded-lg border px-3.5 py-2.5 text-sm font-medium transition ${
+                className={`rounded-md border px-3.5 py-2.5 text-sm font-medium transition ${
                   pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-brand-100 bg-white text-[var(--mu-text)] hover:border-brand-300 hover:text-brand-700'
+                    ? 'border-brand-600 bg-brand-50 text-brand-700'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600'
                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30`}
               >
                 {item.label}
@@ -334,7 +333,7 @@ export function PublicHeader({
               <Link
                 href={loggedInHrefClient}
                 onClick={() => setMenuOpen(false)}
-                className="mt-1 rounded-lg bg-brand-700 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className="mt-1 rounded-md bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
               >
                 Minha área
               </Link>
@@ -347,14 +346,14 @@ export function PublicHeader({
                     setMenuOpen(false)
                     setAuthMenuOpen(true)
                   }}
-                  className="mt-1 rounded-lg border border-brand-100 bg-white px-4 py-2.5 text-center text-sm font-semibold text-[var(--mu-text)] transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className="mt-1 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
                   Login
                 </button>
                 <Link
                   href="/cadastro"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg bg-brand-700 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className="rounded-md bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                 >
                   Criar conta
                 </Link>
