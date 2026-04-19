@@ -17,14 +17,14 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50:  '#e8f5ee',
-          100: '#c5e8d4',
-          200: '#8fd4b0',
-          400: '#2ea865',
-          500: '#1a8a50',
-          600: '#156e3f',
-          700: '#0f5230',
-          900: '#07200f',
+          50:  '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          900: '#14532d',
         },
         accent: {
           50:  '#fef8ee',
@@ -35,8 +35,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'sans-serif'],
-        display: ['Bricolage Grotesque', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08)',

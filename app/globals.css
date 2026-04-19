@@ -4,28 +4,25 @@
 
 @layer base {
   :root {
-    --font-jakarta: 'Plus Jakarta Sans', sans-serif;
-    --font-bricolage: 'Bricolage Grotesque', sans-serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
 
     --mu-section-pad-mobile: 40px;
     --mu-section-pad-tablet: 56px;
     --mu-section-pad-desktop: 96px;
     --mu-shell-max: 1180px;
 
-    --mu-radius-sm: 12px;
-    --mu-radius-md: 16px;
-    --mu-radius-lg: 20px;
-
-    --mu-shadow-sm: 0 6px 20px rgba(17, 24, 39, 0.06);
-    --mu-shadow-md: 0 12px 28px rgba(17, 24, 39, 0.08);
+    --mu-radius-sm: 6px;
+    --mu-radius-md: 8px;
+    --mu-radius-lg: 12px;
 
     --mu-page-bg: #f4f8f5;
     --mu-surface: #ffffff;
-    --mu-surface-soft: #eef6ee;
+    --mu-surface-soft: #f0fdf4;
     --mu-surface-muted: #f8fbf9;
-    --mu-muted: #5d6f64;
-    --mu-text: #102318;
-    --mu-border: #dceadf;
+    --mu-muted: #57534e;
+    --mu-text: #1c1917;
+    --mu-border: #dcfce7;
     --mu-border-soft: #e8f0eb;
   }
 
@@ -34,7 +31,7 @@
   }
 
   body {
-    font-family: var(--font-jakarta);
+    font-family: var(--font-sans);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -43,18 +40,18 @@
   }
 
   ::selection {
-    background: rgba(26, 138, 80, 0.18);
+    background: rgba(34, 197, 94, 0.18);
   }
 
   :focus-visible {
-    outline: 2px solid rgba(26, 138, 80, 0.45);
+    outline: 2px solid rgba(34, 197, 94, 0.45);
     outline-offset: 2px;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: var(--font-bricolage);
+    font-family: var(--font-display);
   }
 
   .mu-section {
@@ -72,14 +69,12 @@
     border-radius: var(--mu-radius-md);
     border: 1px solid var(--mu-border);
     background: var(--mu-surface);
-    box-shadow: var(--mu-shadow-sm);
   }
 
   .mu-shell-card-lg {
     border-radius: var(--mu-radius-lg);
     border: 1px solid var(--mu-border);
     background: var(--mu-surface);
-    box-shadow: var(--mu-shadow-md);
   }
 
   .mu-copy {
@@ -87,8 +82,8 @@
   }
 
   .mu-btn-primary {
-    border-radius: 999px;
-    background: #1a8a50;
+    border-radius: var(--mu-radius-md);
+    background: #22c55e;
     color: #ffffff;
     padding: 0.68rem 1.4rem;
     font-size: 0.95rem;
@@ -98,12 +93,12 @@
   }
 
   .mu-btn-primary:hover {
-    background: #156e3f;
+    background: #16a34a;
     transform: translateY(-1px);
   }
 
   .mu-btn-outline {
-    border-radius: 999px;
+    border-radius: var(--mu-radius-md);
     border: 1px solid var(--mu-border);
     background: #ffffff;
     color: var(--mu-text);
@@ -115,8 +110,8 @@
   }
 
   .mu-btn-outline:hover {
-    border-color: #1a8a50;
-    color: #1a8a50;
+    border-color: #22c55e;
+    color: #22c55e;
   }
 
   .scrollbar-hide {
