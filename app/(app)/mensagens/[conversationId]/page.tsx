@@ -1,0 +1,90 @@
+export const metadata = { title: 'Conversa | Muuday' }
+
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { getMessages, markConversationAsRead } from '@/lib/actions/chat'
+import { MessageThread } from '@/components/chat/MessageThread'
+
+export default async function ConversationPage({
+  params,
+}: {
+  params: Promise<{ conversationId: string }>
+}) {
+  const { conversationId } = await params
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Verify participant
+  const { data: participant } = await supabase
+    .from('conversation_participants')
+    .select('id, role')
+    .eq('conversation_id', conversationId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!participant) {
+    redirect('/mensagens')
+  }
+
+  // Get conversation and booking info
+  const { data: conversation } = await supabase
+    .from('conversations')
+    .select('id, booking_id')
+    .eq('id', conversationId)
+    .single()
+
+  // Get other participant info
+  const { data: otherParticipant } = await supabase
+    .from('conversation_participants')
+    .select('user_id, role')
+    .eq('conversation_id', conversationId)
+    .neq('user_id', user.id)
+    .maybeSingle()
+
+  const { data: otherProfile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', otherParticipant?.user_id || '')
+    .maybeSingle()
+
+  const otherName = otherProfile?.full_name || 'Usuário'
+
+  // Load messages
+  const messagesResult = await getMessages(conversationId, { limit: 50 })
+  const messages = messagesResult.success ? messagesResult.data.messages : []
+
+  // Mark as read
+  await markConversationAsRead(conversationId)
+
+  return (
+    <div className="mx-auto flex h-[calc(100vh-80px)] max-w-3xl flex-col px-4 py-4 md:h-[calc(100vh-0px)] md:px-8 md:py-6">
+      <div className="mb-4 flex items-center gap-3">
+        <Link
+          href="/mensagens"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <div>
+          <h1 className="font-display text-lg font-bold text-neutral-900">{otherName}</h1>
+          <p className="text-xs text-neutral-500">
+            {otherParticipant?.role === 'professional' ? 'Profissional' : 'Cliente'}
+          </p>
+        </div>
+      </div>
+
+      <MessageThread
+        conversationId={conversationId}
+        initialMessages={messages as any[]}
+        currentUserId={user.id}
+        otherName={otherName}
+        bookingId={conversation?.booking_id || ''}
+      />
+    </div>
+  )
+}
