@@ -42,7 +42,7 @@ export function StaggerItem({
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 30 },
+        hidden: { opacity: 0.01, y: 30 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
       }}
       className={className}

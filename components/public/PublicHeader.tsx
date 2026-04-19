@@ -185,8 +185,16 @@ export function PublicHeader({
     return item
   })
 
+  const isHome = pathname === '/'
+
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+    <header
+      className={`sticky top-0 z-30 transition-colors ${
+        isHome
+          ? 'border-b border-slate-900/10 bg-[#9FE870]/90 backdrop-blur-xl'
+          : 'border-b border-slate-200 bg-white/95 backdrop-blur-xl'
+      }`}
+    >
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-2 md:px-8">
         <div className="flex items-center justify-between gap-4 md:gap-6">
           <Link
@@ -197,8 +205,8 @@ export function PublicHeader({
               <span className="font-display text-sm font-bold text-white">M</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-display text-lg font-bold tracking-tight text-slate-900">muuday</span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <span className={`font-display text-lg font-bold tracking-tight ${isHome ? 'text-slate-900' : 'text-slate-900'}`}>muuday</span>
+              <span className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${isHome ? 'text-slate-700' : 'text-slate-500'}`}>
                 vídeo-first
               </span>
             </div>

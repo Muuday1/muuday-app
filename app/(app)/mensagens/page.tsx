@@ -1,72 +1,99 @@
-﻿export const metadata = { title: 'Mensagens | Muuday' }
+export const metadata = { title: 'Mensagens | Muuday' }
 
 import Link from 'next/link'
+import { MessageCircle, Clock } from 'lucide-react'
+import { formatInTimeZone } from 'date-fns-tz'
+import { ptBR } from 'date-fns/locale'
+import { getConversations } from '@/lib/actions/chat'
 import { createClient } from '@/lib/supabase/server'
-import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
-export default async function MensagensPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profissional?: string }>
-}) {
-  const { profissional } = await searchParams
+export default async function MensagensPage() {
   const supabase = await createClient()
-  const professionalId = (profissional || '').trim()
-  let professionalName = ''
-  let professionalProfileHref = professionalId ? `/profissional/${professionalId}` : '/buscar'
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (professionalId) {
-    const { data: professional } = await supabase
-      .from('professionals')
-      .select('*, profiles!inner(full_name)')
-      .eq('id', professionalId)
-      .eq('profiles.role', 'profissional')
-      .maybeSingle()
-
-    const profile = Array.isArray(professional?.profiles)
-      ? professional?.profiles[0]
-      : professional?.profiles
-
-    professionalName = String(profile?.full_name || '')
-    professionalProfileHref = buildProfessionalProfilePath({
-      id: professional?.id || professionalId,
-      fullName: professionalName,
-      publicCode: professional?.public_code,
-    })
-  }
+  const result = await getConversations()
+  const conversations = result.success ? result.data.conversations : []
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-8">
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8 md:py-8">
+      <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-neutral-900 md:text-3xl">Mensagens</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          O inbox completo entra na Wave 4. Por enquanto, este atalho já preserva o fluxo e o contexto da ação.
-        </p>
-
-        {professionalId ? (
-          <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
-            Conversa iniciada para o profissional:{' '}
-            <span className="font-medium">{professionalName || professionalId}</span>
-          </div>
-        ) : null}
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link
-            href="/buscar"
-            className="rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
-          >
-            Voltar para buscar
-          </Link>
-          {professionalId ? (
-            <Link
-              href={professionalProfileHref}
-              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
-            >
-              Ver perfil
-            </Link>
-          ) : null}
-        </div>
+        <p className="mt-1 text-sm text-neutral-500">Conversas com profissionais e clientes.</p>
       </div>
+
+      {conversations.length === 0 ? (
+        <div className="rounded-2xl border border-neutral-100 bg-white p-12 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-50">
+            <MessageCircle className="h-7 w-7 text-neutral-300" />
+          </div>
+          <p className="font-semibold text-neutral-900">Nenhuma conversa ainda</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            As conversas aparecem quando um agendamento é confirmado.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {conversations.map(conv => {
+            const isLastMessageFromMe = conv.lastMessageSenderId === user?.id
+            const previewText = conv.lastMessageContent
+              ? isLastMessageFromMe
+                ? `Você: ${conv.lastMessageContent}`
+                : conv.lastMessageContent
+              : 'Nenhuma mensagem ainda'
+
+            return (
+              <Link
+                key={conv.id}
+                href={`/mensagens/${conv.id}`}
+                className="flex items-center gap-4 rounded-2xl border border-neutral-100 bg-white p-4 transition hover:shadow-sm"
+              >
+                {/* Avatar */}
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 font-display font-bold text-lg">
+                  {conv.otherParticipantName.charAt(0).toUpperCase()}
+                </div>
+
+                {/* Content */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-neutral-900">
+                      {conv.otherParticipantName}
+                    </p>
+                    {conv.lastMessageSentAt && (
+                      <span className="flex flex-shrink-0 items-center gap-1 text-xs text-neutral-400">
+                        <Clock className="h-3 w-3" />
+                        {formatInTimeZone(
+                          new Date(conv.lastMessageSentAt),
+                          'America/Sao_Paulo',
+                          'd MMM',
+                          { locale: ptBR },
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    className={`mt-0.5 truncate text-sm ${
+                      conv.unreadCount > 0
+                        ? 'font-medium text-neutral-900'
+                        : 'text-neutral-500'
+                    }`}
+                  >
+                    {previewText}
+                  </p>
+                </div>
+
+                {/* Unread badge */}
+                {conv.unreadCount > 0 && (
+                  <div className="flex h-6 min-w-[24px] flex-shrink-0 items-center justify-center rounded-full bg-brand-500 px-1.5 text-xs font-bold text-white">
+                    {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                  </div>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

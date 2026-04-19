@@ -3,9 +3,11 @@ import Link from 'next/link'
 import {
   ArrowRight,
   CalendarCheck,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock,
+  CreditCard,
   Globe,
   MessageCircle,
   Search,
@@ -21,12 +23,23 @@ import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { FaqAccordion } from '@/components/landing/FaqAccordion'
 import { FadeIn } from '@/components/landing/FadeIn'
 import { StaggerContainer, StaggerItem } from '@/components/landing/StaggerContainer'
+import { AnimatedCounter } from '@/components/landing/AnimatedCounter'
+import { BlurBlob } from '@/components/landing/BlurBlob'
+import { DotPattern } from '@/components/landing/DotPattern'
+import { FloatingBadge } from '@/components/landing/FloatingBadge'
+import { GradientBorder } from '@/components/landing/GradientBorder'
+import { IconBox } from '@/components/landing/IconBox'
+import { MagneticButton } from '@/components/landing/MagneticButton'
+import { PulseRing } from '@/components/landing/PulseRing'
+import { ScrollReveal } from '@/components/landing/ScrollReveal'
+import { Sparkle } from '@/components/landing/Sparkle'
+import { WaveDivider } from '@/components/landing/WaveDivider'
 import { SEARCH_CATEGORIES } from '@/lib/search-config'
 
 const STATS = [
-  { value: '100%', label: 'Online por vídeo', icon: Video },
-  { value: '6+', label: 'Áreas de atuação', icon: Globe },
-  { value: '24/7', label: 'Agende quando quiser', icon: Clock },
+  { value: 100, suffix: '%', label: 'Online por vídeo', icon: Video },
+  { value: 6, suffix: '+', label: 'Áreas de atuação', icon: Globe },
+  { value: 24, suffix: '/7', label: 'Agende quando quiser', icon: Clock },
 ]
 
 const ALL_CATEGORIES = SEARCH_CATEGORIES
@@ -55,18 +68,21 @@ const HOW_STEPS = [
     title: 'Busque',
     body: 'Filtros por especialidade, idioma, país e disponibilidade.',
     icon: Search,
+    color: 'green' as const,
   },
   {
     step: '02',
     title: 'Agende',
     body: 'Escolha dia, horário e tipo de sessão. Confirmação instantânea.',
     icon: CalendarCheck,
+    color: 'blue' as const,
   },
   {
     step: '03',
     title: 'Conecte',
     body: 'Videochamada integrada. Sem Zoom, Teams ou WhatsApp.',
     icon: Video,
+    color: 'slate' as const,
   },
 ]
 
@@ -116,55 +132,78 @@ const FAQ_ITEMS = [
   },
 ]
 
+const COUNTRIES = [
+  ['🇵🇹', 'Portugal'],
+  ['🇬🇧', 'Reino Unido'],
+  ['🇩🇪', 'Alemanha'],
+  ['🇫🇷', 'França'],
+  ['🇮🇪', 'Irlanda'],
+  ['🇳🇱', 'Holanda'],
+  ['🇮🇹', 'Itália'],
+  ['🇪🇸', 'Espanha'],
+  ['🇺🇸', 'EUA'],
+  ['🇨🇦', 'Canadá'],
+  ['🇦🇺', 'Austrália'],
+  ['🇯🇵', 'Japão'],
+  ['🇧🇷', 'Brasil'],
+  ['🇨🇭', 'Suíça'],
+  ['🇸🇪', 'Suécia'],
+  ['🇳🇴', 'Noruega'],
+]
+
 function SearchCard() {
   return (
     <div className="relative mx-auto w-full max-w-2xl">
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-        <div className="p-6 md:p-8">
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
-              Profissionais verificados
-            </span>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-500">Você busca</label>
-              <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <Search className="h-5 w-5 text-slate-400" />
-                <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
-                  <option>Qualquer especialidade</option>
-                  {ALL_CATEGORIES.map(c => (
-                    <option key={c.slug} value={c.slug}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+      <GradientBorder borderClassName="p-[2px] rounded-3xl bg-gradient-to-br from-[#9FE870] via-emerald-400 to-brand-500">
+        <div className="overflow-hidden rounded-3xl bg-white">
+          <div className="p-6 md:p-8">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                Profissionais verificados
+              </span>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-slate-500">Que fala</label>
-              <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <Globe className="h-5 w-5 text-slate-400" />
-                <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
-                  <option>Português</option>
-                  <option>English</option>
-                  <option>Español</option>
-                  <option>Français</option>
-                </select>
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-500">Você busca</label>
+                <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/20">
+                  <Search className="h-5 w-5 text-slate-400" />
+                  <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
+                    <option>Qualquer especialidade</option>
+                    {ALL_CATEGORIES.map(c => (
+                      <option key={c.slug} value={c.slug}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <Link
-              href="/buscar"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#9FE870] px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f]"
-            >
-              Buscar profissionais
-              <ArrowRight className="h-5 w-5" />
-            </Link>
+              <div>
+                <label className="text-sm font-medium text-slate-500">Que fala</label>
+                <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/20">
+                  <Globe className="h-5 w-5 text-slate-400" />
+                  <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
+                    <option>Português</option>
+                    <option>English</option>
+                    <option>Español</option>
+                    <option>Français</option>
+                  </select>
+                </div>
+              </div>
+
+              <MagneticButton className="w-full" strength={0.15}>
+                <Link
+                  href="/buscar"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#9FE870] px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-lg hover:shadow-[#9FE870]/25"
+                >
+                  Buscar profissionais
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </MagneticButton>
+            </div>
           </div>
         </div>
-      </div>
+      </GradientBorder>
     </div>
   )
 }
@@ -203,18 +242,26 @@ function ProductMockup() {
           </div>
         </div>
       </div>
-      <div className="absolute -right-4 -top-4 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-        <div className="flex items-center gap-2">
-          <Video className="h-5 w-5 text-accent-600" />
-          <span className="text-xs font-semibold text-slate-900">Sessão ao vivo</span>
+      <FloatingBadge className="absolute -right-4 -top-4" delay={0.5} duration={3.5} yOffset={10}>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-100">
+              <Video className="h-4 w-4 text-accent-600" />
+            </div>
+            <span className="text-xs font-semibold text-slate-900">Sessão ao vivo</span>
+          </div>
         </div>
-      </div>
-      <div className="absolute -bottom-4 -left-4 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-        <div className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-amber-500" />
-          <span className="text-xs font-semibold text-slate-900">4.9 média</span>
+      </FloatingBadge>
+      <FloatingBadge className="absolute -bottom-4 -left-4" delay={1} duration={4} yOffset={12}>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+            </div>
+            <span className="text-xs font-semibold text-slate-900">4.9 média</span>
+          </div>
         </div>
-      </div>
+      </FloatingBadge>
     </div>
   )
 }
@@ -224,10 +271,17 @@ export default async function RootPage() {
     <PublicPageLayout>
       {/* ========== HERO ========== */}
       <section className="relative overflow-hidden bg-[#9FE870]">
-        {/* Decorative blur shapes */}
-        <div className="pointer-events-none absolute -top-20 -right-20 h-96 w-96 rounded-full bg-white/25 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[#2563eb]/10 blur-3xl" />
-        <div className="pointer-events-none absolute top-1/3 right-1/4 h-48 w-48 rounded-full bg-[#a3e635]/30 blur-2xl" />
+        {/* Animated blur blobs */}
+        <BlurBlob className="-top-20 -right-20 h-96 w-96" color="bg-white/30" delay={0} duration={10} />
+        <BlurBlob className="bottom-0 left-0 h-72 w-72" color="bg-[#2563eb]/15" delay={1} duration={12} />
+        <BlurBlob className="top-1/3 right-1/4 h-48 w-48" color="bg-[#a3e635]/40" delay={2} duration={8} />
+        <BlurBlob className="top-10 left-1/4 h-32 w-32" color="bg-white/20" delay={0.5} duration={9} />
+
+        {/* Sparkle decorations */}
+        <Sparkle className="absolute top-20 left-[15%]" size={16} delay={0} />
+        <Sparkle className="absolute top-32 right-[20%]" size={12} delay={1.2} color="#2563eb" />
+        <Sparkle className="absolute bottom-32 left-[25%]" size={14} delay={0.8} />
+        <Sparkle className="absolute top-1/2 right-[10%]" size={10} delay={1.8} color="#fff" />
 
         <div className="mu-shell relative pt-16 pb-8 md:pt-24 md:pb-12 lg:pt-32 lg:pb-16">
           <FadeIn direction="up">
@@ -239,13 +293,15 @@ export default async function RootPage() {
                 Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade.
               </p>
               <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <Link
-                  href="/buscar"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800"
-                >
-                  Encontrar profissionais
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
+                <MagneticButton strength={0.2}>
+                  <Link
+                    href="/buscar"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
+                  >
+                    Encontrar profissionais
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </MagneticButton>
                 <Link
                   href="/registrar-profissional"
                   className="inline-flex items-center justify-center gap-2 text-base font-bold text-slate-900 underline underline-offset-4 transition hover:text-slate-700"
@@ -290,24 +346,24 @@ export default async function RootPage() {
       {/* ========== TRUST STATS ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell">
-          <FadeIn>
+          <ScrollReveal variant="fade">
             <div className="mx-auto max-w-2xl text-center">
               <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">
                 Confiado por brasileiros no mundo todo
               </p>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
-          <StaggerContainer className="mt-10 grid gap-6 sm:grid-cols-3" staggerDelay={0.1}>
-            {STATS.map((stat, i) => {
+          <StaggerContainer className="mt-10 grid gap-6 sm:grid-cols-3" staggerDelay={0.15}>
+            {STATS.map((stat) => {
               const Icon = stat.icon
               return (
                 <StaggerItem key={stat.label}>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#e0f2fe]">
-                      <Icon className="h-7 w-7 text-[#0369a1]" />
-                    </div>
-                    <p className="mt-4 font-display text-4xl font-black text-slate-900">{stat.value}</p>
+                  <div className="group flex flex-col items-center text-center">
+                    <IconBox icon={Icon} size="lg" gradient="blue" />
+                    <p className="mt-4 font-display text-4xl font-black text-slate-900">
+                      <AnimatedCounter target={stat.value} suffix={stat.suffix} duration={2} />
+                    </p>
                     <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
                   </div>
                 </StaggerItem>
@@ -318,9 +374,11 @@ export default async function RootPage() {
       </section>
 
       {/* ========== WHY SECTION (green, bold headline) ========== */}
-      <section className="mu-section bg-[#9FE870]">
-        <div className="mu-shell">
-          <FadeIn>
+      <section className="relative mu-section bg-[#9FE870] overflow-hidden">
+        <DotPattern className="opacity-30" dotColor="#0f172a" spacing={32} dotSize={2} />
+
+        <div className="mu-shell relative">
+          <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Economize tempo e encontre quem entende você
@@ -329,13 +387,15 @@ export default async function RootPage() {
                 Diferente de buscadores genéricos, todos os profissionais da Muuday falam português e entendem a realidade de viver fora do Brasil.
               </p>
               <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <Link
-                  href="/buscar"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800"
-                >
-                  Buscar agora
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
+                <MagneticButton strength={0.15}>
+                  <Link
+                    href="/buscar"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
+                  >
+                    Buscar agora
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </MagneticButton>
                 <Link
                   href="/sobre"
                   className="inline-flex items-center justify-center gap-2 text-base font-bold text-slate-900 underline underline-offset-4 transition hover:text-slate-700"
@@ -344,14 +404,15 @@ export default async function RootPage() {
                 </Link>
               </div>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
           {/* Comparison table style */}
-          <FadeIn delay={0.15}>
-            <div className="mx-auto mt-14 max-w-xl overflow-hidden rounded-3xl bg-white shadow-lg">
+          <ScrollReveal variant="scale" delay={0.15}>
+            <div className="mx-auto mt-14 max-w-xl overflow-hidden rounded-3xl bg-white shadow-xl">
               <div className="flex items-center justify-between bg-slate-900 px-6 py-4">
-                <span className="text-sm font-semibold text-white">Busca tradicional</span>
-                <span className="text-sm font-semibold text-white">Muuday</span>
+                <span className="text-sm font-semibold text-white/70 line-through">Busca tradicional</span>
+                <ArrowRight className="h-4 w-4 text-white/30" />
+                <span className="text-sm font-semibold text-[#9FE870]">Muuday</span>
               </div>
               <div className="divide-y divide-slate-100">
                 {[
@@ -360,47 +421,56 @@ export default async function RootPage() {
                   { traditional: 'Sem contexto da vida no exterior', muuday: 'Profissionais que vivem ou viveram fora' },
                   { traditional: 'Várias ferramentas', muuday: 'Busca, agendamento e vídeo em um só lugar' },
                 ].map((row, i) => (
-                  <div key={i} className="flex items-center gap-4 px-6 py-4">
-                    <span className="flex-1 text-sm text-slate-500 line-through">{row.traditional}</span>
-                    <ArrowRight className="h-4 w-4 text-slate-300" />
+                  <div key={i} className="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50">
+                    <span className="flex-1 text-sm text-slate-400 line-through">{row.traditional}</span>
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#9FE870]">
+                      <ArrowRight className="h-3 w-3 text-slate-900" />
+                    </div>
                     <span className="flex-1 text-right text-sm font-semibold text-slate-900">{row.muuday}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </FadeIn>
+          </ScrollReveal>
         </div>
       </section>
+
+      {/* Wave divider */}
+      <div className="relative h-16 bg-[#9FE870]">
+        <WaveDivider fillColor="#ffffff" flip />
+      </div>
 
       {/* ========== FOR WHO (The account that moves with you style) ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell">
-          <FadeIn>
+          <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Muuday é para quem está longe, mas quer se sentir em casa
               </h2>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
           <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
-            {FOR_WHO.map(item => (
+            {FOR_WHO.map((item, i) => (
               <StaggerItem key={item.title}>
-                <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white transition hover:shadow-xl">
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <Image
-                      src={item.image}
-                      alt={item.title}
-                      width={600}
-                      height={450}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    />
+                <ScrollReveal variant="scale" delay={i * 0.1}>
+                  <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white transition hover:shadow-2xl hover:shadow-slate-900/10 hover:-translate-y-1">
+                    <div className="aspect-[4/3] overflow-hidden">
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        width={600}
+                        height={450}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                      />
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
-                  </div>
-                </div>
+                </ScrollReveal>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -408,42 +478,61 @@ export default async function RootPage() {
       </section>
 
       {/* ========== HOW IT WORKS ========== */}
-      <section className="mu-section bg-[#9FE870]">
-        <div className="mu-shell">
-          <FadeIn>
+      <section className="relative mu-section bg-[#9FE870] overflow-hidden">
+        <DotPattern className="opacity-20" dotColor="#0f172a" spacing={40} dotSize={2} />
+
+        <div className="mu-shell relative">
+          <ScrollReveal variant="slideUp">
             <div className="text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Três passos. Sem complicação.
               </h2>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
-          <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.15}>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
             {HOW_STEPS.map((item, index) => {
               const Icon = item.icon
+              const isLast = index === HOW_STEPS.length - 1
               return (
-                <StaggerItem key={item.step}>
-                  <div className="relative rounded-3xl bg-white p-8 shadow-sm">
+                <ScrollReveal key={item.step} variant="slideUp" delay={index * 0.15}>
+                  <div className="relative rounded-3xl bg-white p-8 shadow-sm transition hover:shadow-xl hover:shadow-slate-900/10 hover:-translate-y-1">
+                    {/* Connector line */}
+                    {!isLast && (
+                      <div className="pointer-events-none absolute top-16 -right-3 hidden h-0.5 w-6 md:block">
+                        <svg className="h-8 w-full" viewBox="0 0 24 8" fill="none">
+                          <path d="M0 4C8 4 16 4 24 4" stroke="#0f172a" strokeWidth="2" strokeDasharray="4 4" opacity="0.2" />
+                          <path d="M20 1L24 4L20 7" stroke="#0f172a" strokeWidth="2" opacity="0.2" />
+                        </svg>
+                      </div>
+                    )}
+
                     <span className="absolute right-6 top-6 font-display text-7xl font-black text-slate-100">
                       {item.step}
                     </span>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                      <Icon className="h-6 w-6" />
-                    </div>
+                    <IconBox icon={Icon} size="md" gradient={item.color} />
                     <h3 className="mt-6 text-xl font-bold text-slate-900">{item.title}</h3>
                     <p className="mt-3 text-sm leading-7 text-slate-600">{item.body}</p>
                   </div>
-                </StaggerItem>
+                </ScrollReveal>
               )
             })}
-          </StaggerContainer>
+          </div>
         </div>
       </section>
 
+      {/* Wave divider */}
+      <div className="relative h-16 bg-[#9FE870]">
+        <WaveDivider fillColor="#ffffff" flip />
+      </div>
+
       {/* ========== CATEGORIES ========== */}
-      <section className="mu-section bg-white">
-        <div className="mu-shell">
-          <FadeIn>
+      <section className="relative mu-section bg-white overflow-hidden">
+        <Sparkle className="absolute top-12 right-[10%]" size={20} delay={0.5} color="#9FE870" />
+        <Sparkle className="absolute bottom-20 left-[8%]" size={14} delay={1.5} color="#2563eb" />
+
+        <div className="mu-shell relative">
+          <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Escolha por especialidade
@@ -452,25 +541,27 @@ export default async function RootPage() {
                 Oito áreas de atuação com profissionais revisados e prontos para atender.
               </p>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
           <StaggerContainer className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" staggerDelay={0.08}>
-            {ALL_CATEGORIES.map(category => (
+            {ALL_CATEGORIES.map((category, i) => (
               <StaggerItem key={category.slug}>
-                <Link
-                  href={`/buscar?categoria=${category.slug}`}
-                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-[#9FE870] hover:shadow-md"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-[#9FE870]">
-                    <span className="text-2xl" aria-hidden="true">{category.icon}</span>
-                  </div>
-                  <h3 className="mt-4 text-base font-bold text-slate-900">{category.name}</h3>
-                  <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{category.description}</p>
-                  <p className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand-600">
-                    Ver profissionais
-                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                  </p>
-                </Link>
+                <ScrollReveal variant="scale" delay={i * 0.05}>
+                  <Link
+                    href={`/buscar?categoria=${category.slug}`}
+                    className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-[#9FE870] hover:shadow-lg hover:shadow-[#9FE870]/10 hover:-translate-y-0.5"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition duration-300 group-hover:bg-[#9FE870] group-hover:scale-110">
+                      <span className="text-2xl" aria-hidden="true">{category.icon}</span>
+                    </div>
+                    <h3 className="mt-4 text-base font-bold text-slate-900">{category.name}</h3>
+                    <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{category.description}</p>
+                    <p className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand-600 transition group-hover:text-slate-900">
+                      Ver profissionais
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                    </p>
+                  </Link>
+                </ScrollReveal>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -480,7 +571,7 @@ export default async function RootPage() {
       {/* ========== TESTIMONIALS (Wise style big cards) ========== */}
       <section className="mu-section bg-[#f2f4f7]">
         <div className="mu-shell">
-          <FadeIn>
+          <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -490,26 +581,28 @@ export default async function RootPage() {
                 O que dizem quem usa
               </h2>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
           <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
-            {TESTIMONIALS.map(t => (
+            {TESTIMONIALS.map((t, i) => (
               <StaggerItem key={t.name}>
-                <div className="flex h-full flex-col rounded-3xl bg-[#9FE870] p-6 md:p-8">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{t.flag}</span>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">{t.name}</p>
-                      <p className="text-xs text-slate-700">{t.role}</p>
+                <ScrollReveal variant="scale" delay={i * 0.1}>
+                  <div className="group flex h-full flex-col rounded-3xl bg-[#9FE870] p-6 md:p-8 transition hover:shadow-xl hover:shadow-[#9FE870]/20 hover:-translate-y-1">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl transition group-hover:scale-110">{t.flag}</span>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{t.name}</p>
+                        <p className="text-xs text-slate-700">{t.role}</p>
+                      </div>
+                    </div>
+                    <p className="mt-4 flex-1 text-base font-medium leading-7 text-slate-800">
+                      &ldquo;{t.text}&rdquo;
+                    </p>
+                    <div className="mt-6 inline-flex items-center self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white transition group-hover:bg-slate-800">
+                      {t.name.split(' ')[0]} no Muuday
                     </div>
                   </div>
-                  <p className="mt-4 flex-1 text-base font-medium leading-7 text-slate-800">
-                    &ldquo;{t.text}&rdquo;
-                  </p>
-                  <div className="mt-6 inline-flex items-center self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white">
-                    {t.name.split(' ')[0]} no Muuday
-                  </div>
-                </div>
+                </ScrollReveal>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -519,7 +612,7 @@ export default async function RootPage() {
       {/* ========== SAFE AT EVERY STEP ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell">
-          <FadeIn>
+          <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Seguro em cada etapa
@@ -527,88 +620,188 @@ export default async function RootPage() {
               <p className="mt-4 text-lg text-slate-600">
                 Seus dados e pagamentos estão protegidos. Cada profissional é verificado antes de entrar na plataforma.
               </p>
-              <Link
-                href="/sobre"
-                className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#9FE870] px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f]"
-              >
-                Conheça nossa segurança
-              </Link>
+              <MagneticButton strength={0.15} className="mt-6 inline-block">
+                <Link
+                  href="/sobre"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#9FE870] px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-lg hover:shadow-[#9FE870]/25"
+                >
+                  Conheça nossa segurança
+                </Link>
+              </MagneticButton>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
-          <FadeIn delay={0.15}>
-            <div className="mx-auto mt-12 max-w-3xl overflow-hidden rounded-3xl bg-[#1a3a1a] px-8 py-16 text-center md:px-16 md:py-20">
+          <ScrollReveal variant="scale" delay={0.15}>
+            <div className="relative mx-auto mt-12 max-w-3xl overflow-hidden rounded-3xl bg-[#1a3a1a] px-8 py-16 text-center md:px-16 md:py-20">
               {/* Concentric circles decoration */}
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10">
                 <div className="h-64 w-64 rounded-full border border-white/20" />
                 <div className="absolute h-48 w-48 rounded-full border border-white/20" />
                 <div className="absolute h-32 w-32 rounded-full border border-white/20" />
               </div>
-              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#9FE870]/20">
-                <Globe className="h-10 w-10 text-[#9FE870]" />
-              </div>
+              <PulseRing ringColor="bg-[#9FE870]" ringCount={3} className="mx-auto">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#9FE870]/20">
+                  <Globe className="h-10 w-10 text-[#9FE870]" />
+                </div>
+              </PulseRing>
               <h3 className="relative mt-6 text-2xl font-bold text-white">Dados protegidos</h3>
               <p className="relative mx-auto mt-2 max-w-md text-sm leading-6 text-white/70">
                 Seus dados pessoais e de pagamento são criptografados e nunca compartilhados com terceiros.
               </p>
             </div>
-          </FadeIn>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ========== WORKS EVERYWHERE ========== */}
+      <section className="mu-section bg-white">
+        <div className="mu-shell">
+          <ScrollReveal variant="slideUp">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+                Muuday funciona em todo lugar
+              </h2>
+              <p className="mt-4 text-lg text-slate-600">
+                Brasileiros em mais de 50 países já usam a plataforma para encontrar e atender especialistas.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal variant="scale" delay={0.15}>
+            <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+              {/* Tabs */}
+              <div className="flex gap-0 overflow-x-auto border-b border-slate-200">
+                {[
+                  { icon: Search, label: 'Buscar' },
+                  { icon: CalendarDays, label: 'Agendar' },
+                  { icon: MessageCircle, label: 'Atender' },
+                  { icon: CreditCard, label: 'Pagar' },
+                ].map((tab, i) => (
+                  <button
+                    key={tab.label}
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold whitespace-nowrap transition ${
+                      i === 0
+                        ? 'border-b-2 border-slate-900 text-slate-900'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Content */}
+              <div className="grid gap-8 p-8 md:p-12 md:grid-cols-2">
+                <div>
+                  <h3 className="font-display text-xl font-bold text-slate-900">
+                    Encontre profissionais brasileiros em 50+ países
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                    Busque por especialidade, idioma e fuso horário. Filtre por vídeo, chat ou presencial. Compare preços e agende em poucos cliques.
+                  </p>
+                  <Link
+                    href="/buscar"
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-600 transition hover:text-brand-700 hover:gap-3"
+                  >
+                    Ver todos os países
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {COUNTRIES.map(([flag, country], i) => (
+                    <ScrollReveal key={country} variant="scale" delay={i * 0.03}>
+                      <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#9FE870] hover:shadow-sm">
+                        <span>{flag}</span>
+                        <span className="font-medium">{country}</span>
+                      </div>
+                    </ScrollReveal>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* ========== FAQ ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell grid gap-12 lg:grid-cols-[0.4fr_0.6fr] lg:items-start">
-          <FadeIn direction="right">
+          <ScrollReveal variant="slideRight">
             <div>
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl">
                 Perguntas frequentes
               </h2>
               <p className="mt-4 text-lg text-slate-600">Ainda com dúvida? Entre em contato conosco.</p>
-              <Link
-                href="/ajuda"
-                className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700"
-              >
-                Fale com a equipe
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <MagneticButton strength={0.15} className="mt-6 inline-block">
+                <Link
+                  href="/ajuda"
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
+                >
+                  Fale com a equipe
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </MagneticButton>
             </div>
-          </FadeIn>
+          </ScrollReveal>
 
-          <FadeIn direction="left" delay={0.15}>
+          <ScrollReveal variant="slideLeft" delay={0.15}>
             <FaqAccordion items={FAQ_ITEMS} />
-          </FadeIn>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* ========== FINAL CTA ========== */}
-      <section className="mu-section bg-[#9FE870]">
-        <div className="mu-shell">
-          <FadeIn>
-            <div className="relative mx-auto max-w-3xl text-center">
-              <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-                Comece agora
-              </h2>
-              <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800">
-                Procure um especialista ou cadastre seu perfil para começar a atender.
-              </p>
-              <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link
-                  href="/buscar"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800"
-                >
-                  Ver especialistas
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-                <Link
-                  href="/cadastro?role=profissional"
-                  className="inline-flex items-center justify-center gap-2 text-base font-bold text-slate-900 underline underline-offset-4 transition hover:text-slate-700"
-                >
-                  Criar perfil profissional
-                </Link>
+      <section className="relative mu-section bg-[#9FE870] overflow-hidden">
+        <DotPattern className="opacity-20" dotColor="#0f172a" spacing={48} dotSize={2} />
+
+        <div className="mu-shell relative">
+          <ScrollReveal variant="scale">
+            <div className="relative mx-auto max-w-4xl overflow-hidden rounded-[2.5rem] bg-slate-900 px-8 py-16 text-center md:px-16 md:py-24">
+              {/* Decorative rings */}
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.08]">
+                <div className="h-80 w-80 rounded-full border border-white/30" />
+                <div className="absolute h-60 w-60 rounded-full border border-white/30" />
+                <div className="absolute h-40 w-40 rounded-full border border-white/30" />
+              </div>
+
+              {/* Sparkles */}
+              <Sparkle className="absolute top-16 left-[20%]" size={14} delay={0.3} color="#9FE870" />
+              <Sparkle className="absolute bottom-20 right-[15%]" size={12} delay={1.5} color="#fff" />
+              <Sparkle className="absolute top-24 right-[25%]" size={10} delay={0.8} color="#9FE870" />
+
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#9FE870] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-900">
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  Sem custo para começar
+                </div>
+
+                <h2 className="mt-6 font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-white md:text-5xl lg:text-6xl">
+                  Comece agora
+                </h2>
+                <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-white/70">
+                  Procure um especialista ou cadastre seu perfil para começar a atender.
+                </p>
+                <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                  <MagneticButton strength={0.2}>
+                    <Link
+                      href="/buscar"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#9FE870] px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-xl hover:shadow-[#9FE870]/25"
+                    >
+                      Ver especialistas
+                      <ArrowRight className="h-5 w-5" />
+                    </Link>
+                  </MagneticButton>
+                  <Link
+                    href="/cadastro?role=profissional"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/20 px-8 py-4 text-base font-bold text-white transition hover:border-white/40 hover:bg-white/5"
+                  >
+                    Criar perfil profissional
+                  </Link>
+                </div>
               </div>
             </div>
-          </FadeIn>
+          </ScrollReveal>
         </div>
       </section>
     </PublicPageLayout>

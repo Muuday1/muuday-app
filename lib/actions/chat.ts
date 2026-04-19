@@ -228,3 +228,126 @@ export async function markConversationAsRead(conversationId: string): Promise<Ch
 
   return { success: true, data: { updated: true } }
 }
+
+/**
+ * Get all conversations for the current user with last message preview and unread count.
+ */
+export async function getConversations(): Promise<
+  ChatResult<{
+    conversations: {
+      id: string
+      bookingId: string
+      otherParticipantName: string
+      otherParticipantId: string
+      otherParticipantRole: string
+      lastMessageContent: string | null
+      lastMessageSentAt: string | null
+      lastMessageSenderId: string | null
+      unreadCount: number
+    }[]
+  }>
+> {
+  const { supabase, userId } = await getAuthenticatedUser()
+
+  // 1. Get all conversations where user is participant
+  const { data: myParticipants } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id, last_read_at')
+    .eq('user_id', userId)
+
+  const conversationIds = myParticipants?.map(p => p.conversation_id) || []
+  if (conversationIds.length === 0) {
+    return { success: true, data: { conversations: [] } }
+  }
+
+  // 2. Get conversation details
+  const { data: conversations } = await supabase
+    .from('conversations')
+    .select('id, booking_id')
+    .in('id', conversationIds)
+
+  // 3. Get other participants
+  const { data: otherParticipants } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id, user_id, role')
+    .in('conversation_id', conversationIds)
+    .neq('user_id', userId)
+
+  const otherUserIds = otherParticipants?.map(p => p.user_id) || []
+
+  // 4. Get profiles for other participants
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', otherUserIds)
+
+  // 5. Get last message for each conversation (individual queries for accuracy)
+  const lastMessages = new Map<
+    string,
+    { content: string; sent_at: string; sender_id: string }
+  >()
+  const unreadCounts = new Map<string, number>()
+
+  await Promise.all(
+    conversationIds.map(async convId => {
+      const { data: lastMsg } = await supabase
+        .from('messages')
+        .select('content, sent_at, sender_id')
+        .eq('conversation_id', convId)
+        .eq('is_deleted', false)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (lastMsg) {
+        lastMessages.set(convId, lastMsg)
+      }
+
+      // Count unread messages
+      const myParticipant = myParticipants?.find(p => p.conversation_id === convId)
+      let unreadQuery = supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', convId)
+        .eq('is_deleted', false)
+
+      if (myParticipant?.last_read_at) {
+        unreadQuery = unreadQuery.gt('sent_at', myParticipant.last_read_at)
+      }
+
+      const { count } = await unreadQuery
+      unreadCounts.set(convId, count || 0)
+    }),
+  )
+
+  // 6. Build result
+  const result = (conversations || [])
+    .map(conv => {
+      const otherParticipant = otherParticipants?.find(p => p.conversation_id === conv.id)
+      const otherProfile = profiles?.find(p => p.id === otherParticipant?.user_id)
+      const lastMsg = lastMessages.get(conv.id) || null
+
+      return {
+        id: conv.id,
+        bookingId: conv.booking_id,
+        otherParticipantName: otherProfile?.full_name || 'Usuário',
+        otherParticipantId: otherParticipant?.user_id || '',
+        otherParticipantRole: otherParticipant?.role || '',
+        lastMessageContent: lastMsg?.content || null,
+        lastMessageSentAt: lastMsg?.sent_at || null,
+        lastMessageSenderId: lastMsg?.sender_id || null,
+        unreadCount: unreadCounts.get(conv.id) || 0,
+      }
+    })
+    .sort((a, b) => {
+      const aTime = a.lastMessageSentAt
+        ? new Date(a.lastMessageSentAt).getTime()
+        : 0
+      const bTime = b.lastMessageSentAt
+        ? new Date(b.lastMessageSentAt).getTime()
+        : 0
+      return bTime - aTime
+    })
+
+  return { success: true, data: { conversations: result } }
+}
