@@ -28,7 +28,7 @@ import { BlurBlob } from '@/components/landing/BlurBlob'
 import { DotPattern } from '@/components/landing/DotPattern'
 import { FloatingBadge } from '@/components/landing/FloatingBadge'
 import { GradientBorder } from '@/components/landing/GradientBorder'
-import { IconBox } from '@/components/landing/IconBox'
+
 import { MagneticButton } from '@/components/landing/MagneticButton'
 import { PulseRing } from '@/components/landing/PulseRing'
 import { ScrollReveal } from '@/components/landing/ScrollReveal'
@@ -360,7 +360,9 @@ export default async function RootPage() {
               return (
                 <StaggerItem key={stat.label}>
                   <div className="group flex flex-col items-center text-center">
-                    <IconBox icon={Icon} size="lg" gradient="blue" />
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
+                      <Icon className="h-8 w-8 text-white" />
+                    </div>
                     <p className="mt-4 font-display text-4xl font-black text-slate-900">
                       <AnimatedCounter target={stat.value} suffix={stat.suffix} duration={2} />
                     </p>
@@ -510,7 +512,13 @@ export default async function RootPage() {
                     <span className="absolute right-6 top-6 font-display text-7xl font-black text-slate-100">
                       {item.step}
                     </span>
-                    <IconBox icon={Icon} size="md" gradient={item.color} />
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg] ${
+                      item.color === 'green' ? 'bg-gradient-to-br from-[#9FE870] to-emerald-500 text-slate-900' :
+                      item.color === 'blue' ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white' :
+                      'bg-gradient-to-br from-slate-800 to-slate-900 text-white'
+                    }`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
                     <h3 className="mt-6 text-xl font-bold text-slate-900">{item.title}</h3>
                     <p className="mt-3 text-sm leading-7 text-slate-600">{item.body}</p>
                   </div>

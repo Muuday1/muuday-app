@@ -2,20 +2,28 @@
 -- Case / Dispute System Foundation (Wave 4)
 -- ============================================
 
-CREATE TYPE case_type AS ENUM (
-  'cancelation_dispute',
-  'no_show_claim',
-  'quality_issue',
-  'refund_request'
-);
+-- Types: safe creation (PostgreSQL has no CREATE TYPE IF NOT EXISTS)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'case_type') THEN
+    CREATE TYPE case_type AS ENUM (
+      'cancelation_dispute',
+      'no_show_claim',
+      'quality_issue',
+      'refund_request'
+    );
+  END IF;
 
-CREATE TYPE case_status AS ENUM (
-  'open',
-  'under_review',
-  'waiting_info',
-  'resolved',
-  'closed'
-);
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'case_status') THEN
+    CREATE TYPE case_status AS ENUM (
+      'open',
+      'under_review',
+      'waiting_info',
+      'resolved',
+      'closed'
+    );
+  END IF;
+END $$;
 
 -- --------------------------------------------
 -- 1) Cases
