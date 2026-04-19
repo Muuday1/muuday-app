@@ -3,11 +3,8 @@ import Link from 'next/link'
 import {
   ArrowRight,
   CalendarCheck,
-  CalendarDays,
   Clock,
-  CreditCard,
   Globe,
-  MessageCircle,
   Search,
   Star,
   Video,
@@ -28,11 +25,8 @@ import { Sparkle } from '@/components/landing/Sparkle'
 import { WaveDivider } from '@/components/landing/WaveDivider'
 import { CategoryCarousel } from '@/components/landing/CategoryCarousel'
 import { TestimonialCarousel } from '@/components/landing/TestimonialCarousel'
-import { TypewriterText } from '@/components/landing/TypewriterText'
-import { AnimatedGradientText } from '@/components/landing/AnimatedGradientText'
 import { ParallaxSection } from '@/components/landing/ParallaxSection'
-import { HeroParticles } from '@/components/landing/HeroParticles'
-import { PersonWithLaptop, WorldMap, FloatingPhone } from '@/components/landing/DecorativeSVGs'
+import { WorksEverywhereTabs } from '@/components/landing/WorksEverywhereTabs'
 import { SEARCH_CATEGORIES, getSpecialtyOptions } from '@/lib/search-config'
 
 const STATS = [
@@ -138,11 +132,11 @@ function SearchCard() {
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-500">Você busca</label>
+                <label className="text-sm font-medium text-slate-500">Qualquer categoria</label>
                 <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/20">
                   <Search className="h-5 w-5 text-slate-400" />
                   <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
-                    <option>Qualquer especialidade</option>
+                    <option>Todas as categorias</option>
                     {ALL_CATEGORIES.map(c => (
                       <option key={c.slug} value={c.slug}>{c.name}</option>
                     ))}
@@ -151,14 +145,14 @@ function SearchCard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-500">Que fala</label>
+                <label className="text-sm font-medium text-slate-500">Especialidade</label>
                 <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/20">
                   <Globe className="h-5 w-5 text-slate-400" />
                   <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
-                    <option>Português</option>
-                    <option>English</option>
-                    <option>Español</option>
-                    <option>Français</option>
+                    <option>Todas as especialidades</option>
+                    {getSpecialtyOptions().map((specialty) => (
+                      <option key={specialty} value={specialty}>{specialty}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -255,23 +249,14 @@ export default async function RootPage() {
         <Sparkle className="absolute bottom-32 left-[25%]" size={14} delay={0.8} />
         <Sparkle className="absolute top-1/2 right-[10%]" size={10} delay={1.8} color="#fff" />
 
-        {/* Interactive particles */}
-        <HeroParticles />
-
         <div className="mu-shell relative pt-16 pb-8 md:pt-24 md:pb-12 lg:pt-32 lg:pb-16">
           <FadeIn direction="up">
             <div className="mx-auto max-w-4xl text-center">
-              <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-tight md:text-7xl lg:text-8xl">
-                <AnimatedGradientText>
-                  Especialistas brasileiros, onde você estiver
-                </AnimatedGradientText>
+              <h1 className="font-display text-4xl font-black uppercase leading-[0.92] tracking-tight text-slate-900 sm:text-5xl md:text-6xl lg:text-7xl">
+                Psicólogos, advogados, contadores, nutricionistas do Brasil
               </h1>
-              <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800 md:text-xl">
-                <TypewriterText
-                  text="Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade."
-                  speed={30}
-                  delay={800}
-                />
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-800 md:text-xl">
+                Psicólogos, advogados, contadores, nutricionistas do Brasil — atendendo você onde quer que esteja. No seu idioma, no seu fuso horário, com segurança.
               </p>
               <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <MagneticButton strength={0.2}>
@@ -311,14 +296,6 @@ export default async function RootPage() {
                 <p className="text-sm font-medium text-slate-800">
                   <span className="font-bold text-slate-900">+200 profissionais</span> ativos
                 </p>
-              </div>
-
-              {/* Decorative SVGs */}
-              <div className="pointer-events-none absolute -right-8 top-1/4 hidden w-32 lg:block">
-                <FloatingPhone className="w-full opacity-30" />
-              </div>
-              <div className="pointer-events-none absolute -left-12 bottom-1/4 hidden w-40 lg:block">
-                <PersonWithLaptop className="w-full opacity-25" />
               </div>
             </div>
           </FadeIn>
@@ -566,12 +543,9 @@ export default async function RootPage() {
 
       {/* ========== WORKS EVERYWHERE ========== */}
       <section className="mu-section bg-white">
-        <div className="mu-shell relative">
-          <div className="pointer-events-none absolute -top-10 left-0 right-0 hidden opacity-40 md:block">
-            <WorldMap className="mx-auto w-full max-w-3xl" />
-          </div>
+        <div className="mu-shell">
           <ScrollReveal variant="slideUp">
-            <div className="relative mx-auto max-w-2xl text-center">
+            <div className="mx-auto max-w-2xl text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Muuday funciona em todo lugar
               </h2>
@@ -582,59 +556,20 @@ export default async function RootPage() {
           </ScrollReveal>
 
           <ScrollReveal variant="scale" delay={0.15}>
-            <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
-              {/* Tabs */}
-              <div className="flex gap-0 overflow-x-auto border-b border-slate-200">
-                {[
-                  { icon: Search, label: 'Buscar' },
-                  { icon: CalendarDays, label: 'Agendar' },
-                  { icon: MessageCircle, label: 'Atender' },
-                  { icon: CreditCard, label: 'Pagar' },
-                ].map((tab, i) => (
-                  <button
-                    key={tab.label}
-                    className={`flex items-center gap-2 px-6 py-4 text-sm font-bold whitespace-nowrap transition ${
-                      i === 0
-                        ? 'border-b-2 border-slate-900 text-slate-900'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <tab.icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Content */}
-              <div className="grid gap-8 p-8 md:p-12 md:grid-cols-2">
-                <div>
-                  <h3 className="font-display text-xl font-bold text-slate-900">
-                    Encontre profissionais brasileiros em 50+ países
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                    Busque por especialidade, idioma e fuso horário. Filtre por vídeo, chat ou presencial. Compare preços e agende em poucos cliques.
-                  </p>
-                  <Link
-                    href="/buscar"
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-600 transition hover:text-brand-700 hover:gap-3"
-                  >
-                    Ver todos os países
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {COUNTRIES.map(([flag, country], i) => (
-                    <ScrollReveal key={country} variant="scale" delay={i * 0.03}>
-                      <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#9FE870] hover:shadow-sm">
-                        <span>{flag}</span>
-                        <span className="font-medium">{country}</span>
-                      </div>
-                    </ScrollReveal>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <WorksEverywhereTabs />
           </ScrollReveal>
+
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            {COUNTRIES.map(([flag, country]) => (
+              <div
+                key={country}
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#9FE870] hover:shadow-sm"
+              >
+                <span>{flag}</span>
+                <span className="font-medium">{country}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

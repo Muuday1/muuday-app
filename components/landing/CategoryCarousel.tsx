@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { SEARCH_CATEGORIES } from '@/lib/search-config'
+import { CategoryIcon } from './CategoryIcon'
 
 const ALL_CATEGORIES = SEARCH_CATEGORIES
 
@@ -32,8 +33,8 @@ export function CategoryCarousel() {
             <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-[#9FE870]/20 animate-ping" style={{ animationDuration: '3s' }} />
               <div className="absolute inset-2 rounded-full bg-[#9FE870]/30 animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#9FE870] to-emerald-500 text-3xl shadow-lg transition group-hover:scale-110">
-                {category.icon}
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#9FE870] to-emerald-500 shadow-lg transition group-hover:scale-110">
+                <CategoryIcon slug={category.slug} className="h-7 w-7 text-white" />
               </div>
             </div>
             <h3 className="mt-5 text-center text-base font-bold text-slate-900">{category.name}</h3>
