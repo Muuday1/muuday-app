@@ -11,13 +11,9 @@ import {
   Globe,
   MessageCircle,
   Search,
-  ShieldCheck,
   Star,
-  Users,
   Video,
   Zap,
-  Headphones,
-  TrendingUp,
 } from 'lucide-react'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { FaqAccordion } from '@/components/landing/FaqAccordion'
@@ -30,15 +26,14 @@ import { FloatingBadge } from '@/components/landing/FloatingBadge'
 import { GradientBorder } from '@/components/landing/GradientBorder'
 
 import { MagneticButton } from '@/components/landing/MagneticButton'
-import { PulseRing } from '@/components/landing/PulseRing'
 import { ScrollReveal } from '@/components/landing/ScrollReveal'
 import { Sparkle } from '@/components/landing/Sparkle'
 import { WaveDivider } from '@/components/landing/WaveDivider'
-import { SEARCH_CATEGORIES } from '@/lib/search-config'
+import { SEARCH_CATEGORIES, getSpecialtyOptions } from '@/lib/search-config'
 
 const STATS = [
   { value: 100, suffix: '%', label: 'Online por vídeo', icon: Video },
-  { value: 6, suffix: '+', label: 'Áreas de atuação', icon: Globe },
+  { value: 50, suffix: '+', label: 'Áreas de atuação', icon: Globe },
   { value: 24, suffix: '/7', label: 'Agende quando quiser', icon: Clock },
 ]
 
@@ -287,7 +282,7 @@ export default async function RootPage() {
           <FadeIn direction="up">
             <div className="mx-auto max-w-4xl text-center">
               <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-tight text-slate-900 md:text-7xl lg:text-8xl">
-                Profissionais brasileiros, no seu fuso, na sua língua
+                Especialistas brasileiros, onde você estiver
               </h1>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800 md:text-xl">
                 Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade.
@@ -534,11 +529,8 @@ export default async function RootPage() {
         <WaveDivider fillColor="#ffffff" flip />
       </div>
 
-      {/* ========== CATEGORIES ========== */}
+      {/* ========== CATEGORIES CAROUSEL ========== */}
       <section className="relative mu-section bg-white overflow-hidden">
-        <Sparkle className="absolute top-12 right-[10%]" size={20} delay={0.5} color="#9FE870" />
-        <Sparkle className="absolute bottom-20 left-[8%]" size={14} delay={1.5} color="#2563eb" />
-
         <div className="mu-shell relative">
           <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
@@ -551,28 +543,63 @@ export default async function RootPage() {
             </div>
           </ScrollReveal>
 
-          <StaggerContainer className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" staggerDelay={0.08}>
-            {ALL_CATEGORIES.map((category, i) => (
-              <StaggerItem key={category.slug}>
-                <ScrollReveal variant="scale" delay={i * 0.05}>
+          <ScrollReveal variant="slideUp" delay={0.15}>
+            <div className="relative mt-12">
+              {/* Carousel container */}
+              <div
+                id="category-carousel"
+                className="flex gap-4 overflow-x-auto scroll-smooth pb-4 pt-2 snap-x snap-mandatory scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {ALL_CATEGORIES.map((category) => (
                   <Link
+                    key={category.slug}
                     href={`/buscar?categoria=${category.slug}`}
-                    className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-[#9FE870] hover:shadow-lg hover:shadow-[#9FE870]/10 hover:-translate-y-0.5"
+                    className="group flex w-[280px] shrink-0 snap-start flex-col rounded-3xl border border-slate-200 bg-white p-8 transition hover:border-[#9FE870] hover:shadow-xl hover:shadow-[#9FE870]/10 hover:-translate-y-1"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition duration-300 group-hover:bg-[#9FE870] group-hover:scale-110">
-                      <span className="text-2xl" aria-hidden="true">{category.icon}</span>
+                    {/* Animated icon with pulse ring */}
+                    <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+                      <div className="absolute inset-0 rounded-full bg-[#9FE870]/20 animate-ping" style={{ animationDuration: '3s' }} />
+                      <div className="absolute inset-2 rounded-full bg-[#9FE870]/30 animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
+                      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#9FE870] to-emerald-500 text-3xl shadow-lg transition group-hover:scale-110">
+                        {category.icon}
+                      </div>
                     </div>
-                    <h3 className="mt-4 text-base font-bold text-slate-900">{category.name}</h3>
-                    <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{category.description}</p>
-                    <p className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand-600 transition group-hover:text-slate-900">
+                    <h3 className="mt-5 text-center text-base font-bold text-slate-900">{category.name}</h3>
+                    <p className="mt-2 flex-1 text-center text-sm leading-6 text-slate-500">{category.description}</p>
+                    <p className="mt-4 inline-flex items-center justify-center gap-1 text-sm font-bold text-brand-600 transition group-hover:text-slate-900">
                       Ver profissionais
                       <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                     </p>
                   </Link>
-                </ScrollReveal>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
+                ))}
+              </div>
+
+              {/* Navigation arrows */}
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('category-carousel')
+                  if (el) el.scrollBy({ left: -300, behavior: 'smooth' })
+                }}
+                className="absolute left-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition hover:border-[#9FE870] md:flex"
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="h-5 w-5 text-slate-700" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('category-carousel')
+                  if (el) el.scrollBy({ left: 300, behavior: 'smooth' })
+                }}
+                className="absolute right-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition hover:border-[#9FE870] md:flex"
+                aria-label="Próximo"
+              >
+                <ChevronRight className="h-5 w-5 text-slate-700" />
+              </button>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -614,50 +641,6 @@ export default async function RootPage() {
               </StaggerItem>
             ))}
           </StaggerContainer>
-        </div>
-      </section>
-
-      {/* ========== SAFE AT EVERY STEP ========== */}
-      <section className="mu-section bg-white">
-        <div className="mu-shell">
-          <ScrollReveal variant="slideUp">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-                Seguro em cada etapa
-              </h2>
-              <p className="mt-4 text-lg text-slate-600">
-                Seus dados e pagamentos estão protegidos. Cada profissional é verificado antes de entrar na plataforma.
-              </p>
-              <MagneticButton strength={0.15} className="mt-6 inline-block">
-                <Link
-                  href="/sobre"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#9FE870] px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-lg hover:shadow-[#9FE870]/25"
-                >
-                  Conheça nossa segurança
-                </Link>
-              </MagneticButton>
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal variant="scale" delay={0.15}>
-            <div className="relative mx-auto mt-12 max-w-3xl overflow-hidden rounded-3xl bg-[#1a3a1a] px-8 py-16 text-center md:px-16 md:py-20">
-              {/* Concentric circles decoration */}
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10">
-                <div className="h-64 w-64 rounded-full border border-white/20" />
-                <div className="absolute h-48 w-48 rounded-full border border-white/20" />
-                <div className="absolute h-32 w-32 rounded-full border border-white/20" />
-              </div>
-              <PulseRing ringColor="bg-[#9FE870]" ringCount={3} className="mx-auto">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#9FE870]/20">
-                  <Globe className="h-10 w-10 text-[#9FE870]" />
-                </div>
-              </PulseRing>
-              <h3 className="relative mt-6 text-2xl font-bold text-white">Dados protegidos</h3>
-              <p className="relative mx-auto mt-2 max-w-md text-sm leading-6 text-white/70">
-                Seus dados pessoais e de pagamento são criptografados e nunca compartilhados com terceiros.
-              </p>
-            </div>
-          </ScrollReveal>
         </div>
       </section>
 
