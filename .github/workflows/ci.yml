@@ -45,7 +45,7 @@ jobs:
 
       - name: Verify no tracked env files
         run: |
-          tracked=$(git ls-files | grep -E '^\.env' || true)
+          tracked=$(git ls-files | grep -E '^\.env' | grep -v '\.example$' || true)
           if [ -n "$tracked" ]; then
             echo "Tracked env files detected:"
             echo "$tracked"
