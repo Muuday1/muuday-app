@@ -1,0 +1,173 @@
+{
+  "version": "1.0",
+  "description": "Muuday Journey Frames Index — Figma Screen Mapping",
+  "last_updated": "2026-04-19",
+  "total_journeys": 13,
+  "total_frames": 47,
+  "journeys": [
+    {
+      "name": "Search & Booking",
+      "file": "frames/search-booking.md",
+      "route_prefix": "/buscar",
+      "priority": "P0",
+      "frame_count": 8,
+      "frames": [
+        {"id": "SB-01", "name": "Search Results", "route": "/buscar", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "SearchBar", "FilterChip", "Card", "Avatar"]},
+        {"id": "SB-02", "name": "Profile Bio Tab", "route": "/profissional/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Tabs", "Avatar", "Card", "Button"]},
+        {"id": "SB-03", "name": "Services Tab", "route": "/profissional/[id]?tab=servicos", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Tabs", "Accordion", "Button"]},
+        {"id": "SB-04", "name": "Slot Selection", "route": "/agendar/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button", "Stepper"]},
+        {"id": "SB-05", "name": "Personal Info", "route": "/agendar/[id]/info", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Select", "Checkbox", "Button"]},
+        {"id": "SB-06", "name": "Checkout", "route": "/agendar/[id]/checkout", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Stepper", "Button"]},
+        {"id": "SB-07", "name": "Payment Processing", "route": "/agendar/[id]/pagamento", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "ProgressBar", "Skeleton"]},
+        {"id": "SB-08", "name": "Confirmation", "route": "/agendar/[id]/confirmacao", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "EmptyState", "Button", "Badge"]}
+      ]
+    },
+    {
+      "name": "Professional Workspace",
+      "file": "frames/professional-workspace.md",
+      "route_prefix": "/dashboard",
+      "priority": "P0",
+      "frame_count": 4,
+      "frames": [
+        {"id": "PW-01", "name": "Dashboard", "route": "/dashboard", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Badge", "Button"]},
+        {"id": "PW-02", "name": "Services Management", "route": "/dashboard/servicos", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Modal", "Button"]},
+        {"id": "PW-03", "name": "Agenda", "route": "/agenda", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Badge", "Button"]},
+        {"id": "PW-04", "name": "Financial Overview", "route": "/financeiro", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Table", "Button"]}
+      ]
+    },
+    {
+      "name": "Profile Edit",
+      "file": "frames/profile-edit.md",
+      "route_prefix": "/editar-perfil",
+      "priority": "P1",
+      "frame_count": 2,
+      "frames": [
+        {"id": "PE-01", "name": "User Edit Profile", "route": "/editar-perfil", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Avatar", "Button", "Tabs"]},
+        {"id": "PE-02", "name": "Professional Edit Profile", "route": "/editar-perfil-profissional", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Avatar", "Button", "Accordion", "Badge"]}
+      ]
+    },
+    {
+      "name": "Settings & Preferences",
+      "file": "frames/settings-preferences.md",
+      "route_prefix": "/configuracoes",
+      "priority": "P1",
+      "frame_count": 2,
+      "frames": [
+        {"id": "SP-01", "name": "User Settings", "route": "/configuracoes", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Select", "Toggle", "Button"]},
+        {"id": "SP-02", "name": "Professional Settings", "route": "/configuracoes", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Badge", "Button"]}
+      ]
+    },
+    {
+      "name": "Session Lifecycle",
+      "file": "frames/session-lifecycle.md",
+      "route_prefix": "/sessao",
+      "priority": "P1",
+      "frame_count": 3,
+      "frames": [
+        {"id": "SL-01", "name": "Pre-join", "route": "/sessao/[id]/lobby", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button", "Avatar"]},
+        {"id": "SL-02", "name": "In-session", "route": "/sessao/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Avatar", "Button", "Card"]},
+        {"id": "SL-03", "name": "Post-session", "route": "/sessao/[id]/review", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button", "Input"]}
+      ]
+    },
+    {
+      "name": "Request Booking",
+      "file": "frames/request-booking.md",
+      "route_prefix": "/solicitar",
+      "priority": "P1",
+      "frame_count": 5,
+      "frames": [
+        {"id": "RB-01", "name": "Profile CTA", "route": "/profissional/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Button", "Badge"]},
+        {"id": "RB-02", "name": "Request Form", "route": "/solicitar/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Select", "Button", "Card"]},
+        {"id": "RB-03", "name": "Pro Response Panel", "route": "/dashboard/solicitacoes", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Button", "Badge"]},
+        {"id": "RB-04", "name": "Negotiation", "route": "/solicitar/[id]/negociar", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Input", "Button"]},
+        {"id": "RB-05", "name": "Success", "route": "/solicitar/[id]/sucesso", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "EmptyState", "Button"]}
+      ]
+    },
+    {
+      "name": "Recurring Booking",
+      "file": "frames/recurring-booking.md",
+      "route_prefix": "/agendar",
+      "priority": "P1",
+      "frame_count": 4,
+      "frames": [
+        {"id": "RC-01", "name": "Type Selection", "route": "/agendar/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button"]},
+        {"id": "RC-02", "name": "Recurring Config", "route": "/agendar/[id]/recorrente", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Select", "Card", "Button", "Stepper"]},
+        {"id": "RC-03", "name": "Slot Selection", "route": "/agendar/[id]/slots", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button", "Badge"]},
+        {"id": "RC-04", "name": "Success", "route": "/agendar/[id]/confirmacao", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "EmptyState", "Button", "Card"]}
+      ]
+    },
+    {
+      "name": "User Onboarding",
+      "file": "frames/user-onboarding.md",
+      "route_prefix": "/cadastro",
+      "priority": "P2",
+      "frame_count": 3,
+      "frames": [
+        {"id": "UO-01", "name": "Signup", "route": "/cadastro", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Button", "Card"]},
+        {"id": "UO-02", "name": "Profile Basics", "route": "/cadastro/perfil", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Select", "Button", "Stepper"]},
+        {"id": "UO-03", "name": "Onboarding Complete", "route": "/cadastro/concluido", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "EmptyState", "Button", "Badge"]}
+      ]
+    },
+    {
+      "name": "Professional Onboarding",
+      "file": "frames/professional-onboarding.md",
+      "route_prefix": "/registrar-profissional",
+      "priority": "P2",
+      "frame_count": 4,
+      "frames": [
+        {"id": "PO-01", "name": "Registration", "route": "/registrar-profissional", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Select", "Button", "Stepper"]},
+        {"id": "PO-02", "name": "Verification", "route": "/registrar-profissional/verificacao", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Button", "Card"]},
+        {"id": "PO-03", "name": "Approval Waiting", "route": "/registrar-profissional/aguardando", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "EmptyState", "Button", "Badge"]},
+        {"id": "PO-04", "name": "First Booking Enabled", "route": "/dashboard", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "EmptyState", "Button", "Badge"]}
+      ]
+    },
+    {
+      "name": "Trust & Safety",
+      "file": "frames/trust-safety.md",
+      "route_prefix": "/reportar",
+      "priority": "P2",
+      "frame_count": 3,
+      "frames": [
+        {"id": "TS-01", "name": "Report Flow", "route": "/reportar", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Select", "Textarea", "Button", "Card"]},
+        {"id": "TS-02", "name": "Dispute Initiation", "route": "/disputa", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Input", "Button", "Card"]},
+        {"id": "TS-03", "name": "Resolution", "route": "/disputa/resolucao", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Badge", "Button"]}
+      ]
+    },
+    {
+      "name": "Admin Operations",
+      "file": "frames/admin-operations.md",
+      "route_prefix": "/admin",
+      "priority": "P2",
+      "frame_count": 3,
+      "frames": [
+        {"id": "AO-01", "name": "Admin Dashboard", "route": "/admin", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Table", "Badge"]},
+        {"id": "AO-02", "name": "Review Queue", "route": "/admin/revisao", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Table", "Badge", "Button"]},
+        {"id": "AO-03", "name": "Decision Panel", "route": "/admin/decisao", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Button", "Modal"]}
+      ]
+    },
+    {
+      "name": "Payments & Billing",
+      "file": "frames/payments-billing.md",
+      "route_prefix": "/financeiro",
+      "priority": "P2",
+      "frame_count": 3,
+      "frames": [
+        {"id": "PB-01", "name": "Transaction List", "route": "/financeiro/transacoes", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Table", "FilterChip", "Pagination"]},
+        {"id": "PB-02", "name": "Payout Dashboard", "route": "/financeiro/saques", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Button", "Badge"]},
+        {"id": "PB-03", "name": "Invoice Detail", "route": "/financeiro/fatura", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Sidebar", "Card", "Table", "Button"]}
+      ]
+    },
+    {
+      "name": "Video Session",
+      "file": "frames/video-session.md",
+      "route_prefix": "/sessao",
+      "priority": "P2",
+      "frame_count": 3,
+      "frames": [
+        {"id": "VS-01", "name": "Session Lobby", "route": "/sessao/[id]/lobby", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button", "Avatar", "ProgressBar"]},
+        {"id": "VS-02", "name": "Active Call", "route": "/sessao/[id]", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Avatar", "Button", "Card"]},
+        {"id": "VS-03", "name": "End Screen", "route": "/sessao/[id]/review", "desktop": "1440x900", "mobile": "375x812", "components": ["Header", "Card", "Button", "Input", "EmptyState"]}
+      ]
+    }
+  ]
+}

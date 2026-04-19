@@ -93,17 +93,17 @@ function GeometricHero() {
         className="absolute inset-0"
         style={{
           backgroundImage:
-            'linear-gradient(to right, rgba(34,197,94,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(34,197,94,0.05) 1px, transparent 1px)',
+            'linear-gradient(to right, rgba(34,197,94,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(34,197,94,0.08) 1px, transparent 1px)',
           backgroundSize: '48px 48px',
         }}
       />
 
       {/* Floating shapes */}
-      <div className="absolute top-8 left-8 h-14 w-14 rotate-12 rounded-lg border border-brand-200" />
-      <div className="absolute top-16 right-16 h-20 w-20 rounded-full border border-brand-200" />
-      <div className="absolute bottom-16 left-16 h-10 w-10 -rotate-12 rounded-md bg-brand-50" />
-      <div className="absolute bottom-24 right-24 h-16 w-24 rotate-6 rounded-lg border border-brand-200" />
-      <div className="absolute top-1/2 left-1/3 h-8 w-8 -translate-y-1/2 rounded-full border-2 border-brand-100" />
+      <div className="absolute top-8 left-8 h-14 w-14 rotate-12 rounded-lg border border-brand-300" />
+      <div className="absolute top-16 right-16 h-20 w-20 rounded-full border border-brand-300" />
+      <div className="absolute bottom-16 left-16 h-10 w-10 -rotate-12 rounded-md bg-brand-100" />
+      <div className="absolute bottom-24 right-24 h-16 w-24 rotate-6 rounded-lg border border-brand-300" />
+      <div className="absolute top-1/2 left-1/3 h-8 w-8 -translate-y-1/2 rounded-full border-2 border-brand-200" />
 
       {/* Central card mockup */}
       <div className="absolute top-1/2 left-1/2 w-56 -translate-x-1/2 -translate-y-1/2">
@@ -135,7 +135,7 @@ function GeometricHero() {
           y1="80"
           x2="200"
           y2="180"
-          stroke="rgba(34,197,94,0.12)"
+          stroke="rgba(34,197,94,0.25)"
           strokeWidth="1"
           strokeDasharray="4 4"
         />
@@ -144,7 +144,7 @@ function GeometricHero() {
           y1="120"
           x2="280"
           y2="200"
-          stroke="rgba(34,197,94,0.12)"
+          stroke="rgba(34,197,94,0.25)"
           strokeWidth="1"
           strokeDasharray="4 4"
         />
@@ -153,7 +153,7 @@ function GeometricHero() {
           y1="320"
           x2="220"
           y2="260"
-          stroke="rgba(34,197,94,0.12)"
+          stroke="rgba(34,197,94,0.25)"
           strokeWidth="1"
           strokeDasharray="4 4"
         />
