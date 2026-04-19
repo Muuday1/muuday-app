@@ -4,8 +4,6 @@ import {
   ArrowRight,
   CalendarCheck,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   CreditCard,
   Globe,
@@ -24,11 +22,17 @@ import { BlurBlob } from '@/components/landing/BlurBlob'
 import { DotPattern } from '@/components/landing/DotPattern'
 import { FloatingBadge } from '@/components/landing/FloatingBadge'
 import { GradientBorder } from '@/components/landing/GradientBorder'
-
 import { MagneticButton } from '@/components/landing/MagneticButton'
 import { ScrollReveal } from '@/components/landing/ScrollReveal'
 import { Sparkle } from '@/components/landing/Sparkle'
 import { WaveDivider } from '@/components/landing/WaveDivider'
+import { CategoryCarousel } from '@/components/landing/CategoryCarousel'
+import { TestimonialCarousel } from '@/components/landing/TestimonialCarousel'
+import { TypewriterText } from '@/components/landing/TypewriterText'
+import { AnimatedGradientText } from '@/components/landing/AnimatedGradientText'
+import { ParallaxSection } from '@/components/landing/ParallaxSection'
+import { HeroParticles } from '@/components/landing/HeroParticles'
+import { PersonWithLaptop, WorldMap, FloatingPhone } from '@/components/landing/DecorativeSVGs'
 import { SEARCH_CATEGORIES, getSpecialtyOptions } from '@/lib/search-config'
 
 const STATS = [
@@ -78,33 +82,6 @@ const HOW_STEPS = [
     body: 'Videochamada integrada. Sem Zoom, Teams ou WhatsApp.',
     icon: Video,
     color: 'slate' as const,
-  },
-]
-
-const TESTIMONIALS = [
-  {
-    name: 'Ana Paula',
-    role: 'Psicóloga em Lisboa',
-    text: 'A Muuday me conectou com brasileiros em Portugal que precisavam de atendimento em português. A plataforma cuida de tudo.',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80',
-    flag: '🇵🇹',
-    country: 'Portugal',
-  },
-  {
-    name: 'Ricardo Mendes',
-    role: 'Nutricionista em Londres',
-    text: 'Finalmente consigo atender clientes do Brasil sem complicação de fuso horário. Tudo ajustado automaticamente.',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
-    flag: '🇬🇧',
-    country: 'Reino Unido',
-  },
-  {
-    name: 'Carolina Dias',
-    role: 'Cliente em Berlim',
-    text: 'Encontrei uma psicóloga brasileira em minutos. Fazer terapia na minha língua, morando na Alemanha, fez toda a diferença.',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80',
-    flag: '🇩🇪',
-    country: 'Alemanha',
   },
 ]
 
@@ -278,14 +255,23 @@ export default async function RootPage() {
         <Sparkle className="absolute bottom-32 left-[25%]" size={14} delay={0.8} />
         <Sparkle className="absolute top-1/2 right-[10%]" size={10} delay={1.8} color="#fff" />
 
+        {/* Interactive particles */}
+        <HeroParticles />
+
         <div className="mu-shell relative pt-16 pb-8 md:pt-24 md:pb-12 lg:pt-32 lg:pb-16">
           <FadeIn direction="up">
             <div className="mx-auto max-w-4xl text-center">
-              <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-tight text-slate-900 md:text-7xl lg:text-8xl">
-                Especialistas brasileiros, onde você estiver
+              <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-tight md:text-7xl lg:text-8xl">
+                <AnimatedGradientText>
+                  Especialistas brasileiros, onde você estiver
+                </AnimatedGradientText>
               </h1>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800 md:text-xl">
-                Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade.
+                <TypewriterText
+                  text="Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade."
+                  speed={30}
+                  delay={800}
+                />
               </p>
               <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <MagneticButton strength={0.2}>
@@ -325,6 +311,14 @@ export default async function RootPage() {
                 <p className="text-sm font-medium text-slate-800">
                   <span className="font-bold text-slate-900">+200 profissionais</span> ativos
                 </p>
+              </div>
+
+              {/* Decorative SVGs */}
+              <div className="pointer-events-none absolute -right-8 top-1/4 hidden w-32 lg:block">
+                <FloatingPhone className="w-full opacity-30" />
+              </div>
+              <div className="pointer-events-none absolute -left-12 bottom-1/4 hidden w-40 lg:block">
+                <PersonWithLaptop className="w-full opacity-25" />
               </div>
             </div>
           </FadeIn>
@@ -448,29 +442,31 @@ export default async function RootPage() {
             </div>
           </ScrollReveal>
 
-          <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
-            {FOR_WHO.map((item, i) => (
-              <StaggerItem key={item.title}>
-                <ScrollReveal variant="scale" delay={i * 0.1}>
-                  <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white transition hover:shadow-2xl hover:shadow-slate-900/10 hover:-translate-y-1">
-                    <div className="aspect-[4/3] overflow-hidden">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        width={600}
-                        height={450}
-                        className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                      />
+          <ParallaxSection speed={0.3}>
+            <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
+              {FOR_WHO.map((item, i) => (
+                <StaggerItem key={item.title}>
+                  <ScrollReveal variant="scale" delay={i * 0.1}>
+                    <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white transition hover:shadow-2xl hover:shadow-slate-900/10 hover:-translate-y-1">
+                      <div className="aspect-[4/3] overflow-hidden">
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          width={600}
+                          height={450}
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
+                      </div>
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
-                    </div>
-                  </div>
-                </ScrollReveal>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
+                  </ScrollReveal>
+                </StaggerItem>
+              ))}
+            </StaggerContainer>
+          </ParallaxSection>
         </div>
       </section>
 
@@ -487,13 +483,14 @@ export default async function RootPage() {
             </div>
           </ScrollReveal>
 
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {HOW_STEPS.map((item, index) => {
-              const Icon = item.icon
-              const isLast = index === HOW_STEPS.length - 1
-              return (
-                <ScrollReveal key={item.step} variant="slideUp" delay={index * 0.15}>
-                  <div className="relative rounded-3xl bg-white p-8 shadow-sm transition hover:shadow-xl hover:shadow-slate-900/10 hover:-translate-y-1">
+          <ParallaxSection speed={0.2}>
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {HOW_STEPS.map((item, index) => {
+                const Icon = item.icon
+                const isLast = index === HOW_STEPS.length - 1
+                return (
+                  <ScrollReveal key={item.step} variant="slideUp" delay={index * 0.15}>
+                    <div className="relative rounded-3xl bg-white p-8 shadow-sm transition hover:shadow-xl hover:shadow-slate-900/10 hover:-translate-y-1">
                     {/* Connector line */}
                     {!isLast && (
                       <div className="pointer-events-none absolute top-16 -right-3 hidden h-0.5 w-6 md:block">
@@ -521,6 +518,7 @@ export default async function RootPage() {
               )
             })}
           </div>
+        </ParallaxSection>
         </div>
       </section>
 
@@ -543,63 +541,7 @@ export default async function RootPage() {
             </div>
           </ScrollReveal>
 
-          <ScrollReveal variant="slideUp" delay={0.15}>
-            <div className="relative mt-12">
-              {/* Carousel container */}
-              <div
-                id="category-carousel"
-                className="flex gap-4 overflow-x-auto scroll-smooth pb-4 pt-2 snap-x snap-mandatory scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {ALL_CATEGORIES.map((category) => (
-                  <Link
-                    key={category.slug}
-                    href={`/buscar?categoria=${category.slug}`}
-                    className="group flex w-[280px] shrink-0 snap-start flex-col rounded-3xl border border-slate-200 bg-white p-8 transition hover:border-[#9FE870] hover:shadow-xl hover:shadow-[#9FE870]/10 hover:-translate-y-1"
-                  >
-                    {/* Animated icon with pulse ring */}
-                    <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
-                      <div className="absolute inset-0 rounded-full bg-[#9FE870]/20 animate-ping" style={{ animationDuration: '3s' }} />
-                      <div className="absolute inset-2 rounded-full bg-[#9FE870]/30 animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
-                      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#9FE870] to-emerald-500 text-3xl shadow-lg transition group-hover:scale-110">
-                        {category.icon}
-                      </div>
-                    </div>
-                    <h3 className="mt-5 text-center text-base font-bold text-slate-900">{category.name}</h3>
-                    <p className="mt-2 flex-1 text-center text-sm leading-6 text-slate-500">{category.description}</p>
-                    <p className="mt-4 inline-flex items-center justify-center gap-1 text-sm font-bold text-brand-600 transition group-hover:text-slate-900">
-                      Ver profissionais
-                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                    </p>
-                  </Link>
-                ))}
-              </div>
-
-              {/* Navigation arrows */}
-              <button
-                type="button"
-                onClick={() => {
-                  const el = document.getElementById('category-carousel')
-                  if (el) el.scrollBy({ left: -300, behavior: 'smooth' })
-                }}
-                className="absolute left-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition hover:border-[#9FE870] md:flex"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="h-5 w-5 text-slate-700" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const el = document.getElementById('category-carousel')
-                  if (el) el.scrollBy({ left: 300, behavior: 'smooth' })
-                }}
-                className="absolute right-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition hover:border-[#9FE870] md:flex"
-                aria-label="Próximo"
-              >
-                <ChevronRight className="h-5 w-5 text-slate-700" />
-              </button>
-            </div>
-          </ScrollReveal>
+          <CategoryCarousel />
         </div>
       </section>
 
@@ -618,37 +560,18 @@ export default async function RootPage() {
             </div>
           </ScrollReveal>
 
-          <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
-            {TESTIMONIALS.map((t, i) => (
-              <StaggerItem key={t.name}>
-                <ScrollReveal variant="scale" delay={i * 0.1}>
-                  <div className="group flex h-full flex-col rounded-3xl bg-[#9FE870] p-6 md:p-8 transition hover:shadow-xl hover:shadow-[#9FE870]/20 hover:-translate-y-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl transition group-hover:scale-110">{t.flag}</span>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{t.name}</p>
-                        <p className="text-xs text-slate-700">{t.role}</p>
-                      </div>
-                    </div>
-                    <p className="mt-4 flex-1 text-base font-medium leading-7 text-slate-800">
-                      &ldquo;{t.text}&rdquo;
-                    </p>
-                    <div className="mt-6 inline-flex items-center self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white transition group-hover:bg-slate-800">
-                      {t.name.split(' ')[0]} no Muuday
-                    </div>
-                  </div>
-                </ScrollReveal>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
+          <TestimonialCarousel />
         </div>
       </section>
 
       {/* ========== WORKS EVERYWHERE ========== */}
       <section className="mu-section bg-white">
-        <div className="mu-shell">
+        <div className="mu-shell relative">
+          <div className="pointer-events-none absolute -top-10 left-0 right-0 hidden opacity-40 md:block">
+            <WorldMap className="mx-auto w-full max-w-3xl" />
+          </div>
           <ScrollReveal variant="slideUp">
-            <div className="mx-auto max-w-2xl text-center">
+            <div className="relative mx-auto max-w-2xl text-center">
               <h2 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
                 Muuday funciona em todo lugar
               </h2>
