@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
+ 
 
 const { createClient } = require('@supabase/supabase-js')
 const { existsSync, readFileSync } = require('fs')

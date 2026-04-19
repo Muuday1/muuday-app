@@ -94,7 +94,7 @@ function validateEnv() {
     }
 
     // In local development, warn but do not crash so the dev server can still start
-    // eslint-disable-next-line no-console
+     
     console.warn(`[env] ${message}`)
   }
 

@@ -7,9 +7,9 @@ type RuntimeCacheStore = Map<string, RuntimeCacheEntry<unknown>>
 type RuntimeCacheInflightStore = Map<string, Promise<unknown>>
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __muudayRuntimeCache: RuntimeCacheStore | undefined
-  // eslint-disable-next-line no-var
+   
   var __muudayRuntimeCacheInflight: RuntimeCacheInflightStore | undefined
 }
 

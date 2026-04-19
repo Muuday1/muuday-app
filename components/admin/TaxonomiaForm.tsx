@@ -73,7 +73,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       sortOrder: maxOrder,
     })
     if (!result.success) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to add subcategory:', result.error)
     }
     setAddItem(null)
@@ -94,7 +94,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       sortOrder: maxOrder,
     })
     if (!result.success) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to add specialty:', result.error)
     }
     setAddItem(null)
@@ -118,7 +118,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       slug: editItem.slug,
     })
     if (!result.success) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to update taxonomy item:', result.error)
     }
     setEditItem(null)
@@ -137,7 +137,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
           : 'specialty'
     const result = await toggleTaxonomyActive(taxonomyType as TaxonomyType, id, currentActive)
     if (!result.success) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to toggle active:', result.error)
     }
     setActionLoading(null)
@@ -157,7 +157,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       sortOrder: maxOrder,
     })
     if (!result.success) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to add service option:', result.error)
     }
     setAddItem(null)
@@ -169,7 +169,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     setActionLoading(id)
     const result = await reviewTagSuggestion(id, status)
     if (!result.success) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to review tag:', result.error)
     }
     setActionLoading(null)

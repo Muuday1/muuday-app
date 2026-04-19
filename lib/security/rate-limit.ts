@@ -81,9 +81,9 @@ type MemoryBucket = {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __muudayRateLimitStore: Map<string, MemoryBucket> | undefined
-  // eslint-disable-next-line no-var
+   
   var __muudayRateLimitFallbackAlerts: Map<string, number> | undefined
 }
 
