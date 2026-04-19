@@ -108,13 +108,12 @@ export async function middleware(request: NextRequest) {
 
   const hasCountryCookie = request.cookies.has('muuday_country')
   if (!hasCountryCookie) {
-    const geoCountry = request.geo?.country
     const headerCountry =
       request.headers.get('x-vercel-ip-country') ||
       request.headers.get('cf-ipcountry') ||
       request.headers.get('x-country-code')
 
-    const country = (geoCountry || headerCountry || 'BR').toUpperCase()
+    const country = (headerCountry || 'BR').toUpperCase()
     response.cookies.set('muuday_country', country, {
       path: '/',
       sameSite: 'lax',

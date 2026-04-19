@@ -34,8 +34,9 @@ function callbackUrl(request: NextRequest, provider: CalendarProvider) {
 
 export async function GET(
   request: NextRequest,
-  context: { params: { provider: string } },
+  context: { params: Promise<{ provider: string }> },
 ) {
+  const { provider: rawProvider } = await context.params
   const ip = getClientIp(request)
   const rl = await rateLimit('calendarConnect', `calendar-connect:${ip}`)
   if (!rl.allowed) {
@@ -47,7 +48,7 @@ export async function GET(
     return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
   }
 
-  const provider = parseProvider(context.params.provider)
+  const provider = parseProvider(rawProvider)
   if (!provider) {
     return NextResponse.json({ error: 'Provider invalido.' }, { status: 400 })
   }
@@ -78,7 +79,7 @@ export async function GET(
     redirectPath,
   })
 
-  const supabase = createClient()
+  const supabase = await createClient()
   await upsertCalendarIntegration(supabase, {
     professionalId: authContext.professionalId,
     provider,
@@ -111,8 +112,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  context: { params: { provider: string } },
+  context: { params: Promise<{ provider: string }> },
 ) {
+  const { provider: rawProvider } = await context.params
   const ip = getClientIp(request)
   const rl = await rateLimit('calendarConnect', `calendar-connect:${ip}`)
   if (!rl.allowed) {
@@ -124,7 +126,7 @@ export async function POST(
     return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
   }
 
-  const provider = parseProvider(context.params.provider)
+  const provider = parseProvider(rawProvider)
   if (!provider) {
     return NextResponse.json({ error: 'Provider invalido.' }, { status: 400 })
   }
@@ -155,7 +157,7 @@ export async function POST(
 
   const payload = parsed.data
 
-  const supabase = createClient()
+  const supabase = await createClient()
   await upsertCalendarIntegration(supabase, {
     professionalId: authContext.professionalId,
     provider: 'apple',

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -44,7 +44,7 @@ function normalizeRequestedProfessionalId(rawValue: string | null) {
 }
 
 async function loadProfessionalServicesWithFallback(args: {
-  supabase: ReturnType<typeof createClient>
+  supabase: Awaited<ReturnType<typeof createClient>>
   professionalId: string
   requestedProfessionalId: string
 }): Promise<{
@@ -124,7 +124,7 @@ async function loadProfessionalServicesWithFallback(args: {
   }
 }
 
-async function loadOptionalTaxonomyCached(supabase: ReturnType<typeof createClient>) {
+async function loadOptionalTaxonomyCached(supabase: Awaited<ReturnType<typeof createClient>>) {
   return getOrSetUpstashJsonCache({
     key: OPTIONAL_TAXONOMY_CACHE_KEY,
     ttlSeconds: OPTIONAL_STATIC_CACHE_TTL_SECONDS,
@@ -183,7 +183,7 @@ async function loadOptionalPlanPricingCached(args: {
 }
 
 export async function GET(request: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const url = new URL(request.url)
   const scope = normalizeScope(url.searchParams.get('scope'))
   const skipTrackerBootstrap = shouldSkipTrackerBootstrap(url.searchParams.get('skipTracker'))

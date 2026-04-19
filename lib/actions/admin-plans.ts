@@ -1,11 +1,11 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { loadPlanConfigMap, type PlanConfigMap } from '@/lib/plan-config'
 import type { TierFeature } from '@/lib/tier-config'
 
 async function requireAdmin() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

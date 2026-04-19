@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Payload invalido.' }, { status: 400 })
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const result = await syncExternalBusySlotsForProfessional(
     supabase,
     context.professionalId,

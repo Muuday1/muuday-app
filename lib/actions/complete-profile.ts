@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -23,7 +23,7 @@ export interface CompleteProfileResult {
 export async function completeProfessionalProfile(
   input: CompleteProfileInput,
 ): Promise<CompleteProfileResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

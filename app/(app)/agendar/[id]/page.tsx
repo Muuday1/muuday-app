@@ -35,14 +35,16 @@ export default async function AgendarPage({
   params,
   searchParams,
 }: {
-  params: { id: string }
-  searchParams?: Record<string, string | string[] | undefined>
+  params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const supabase = createClient()
+  const { id } = await params
+  const { data, hora, sessoes, tipo } = await searchParams
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     const query = new URLSearchParams()
-    for (const [key, value] of Object.entries(searchParams || {})) {
+    for (const [key, value] of Object.entries(await searchParams || {})) {
       if (Array.isArray(value)) {
         value.forEach(item => {
           if (typeof item === 'string') query.append(key, item)
@@ -51,7 +53,7 @@ export default async function AgendarPage({
         query.set(key, value)
       }
     }
-    const targetPath = `/agendar/${params.id}${query.toString() ? `?${query.toString()}` : ''}`
+    const targetPath = `/agendar/${id}${query.toString() ? `?${query.toString()}` : ''}`
     redirect(`/login?redirect=${encodeURIComponent(targetPath)}`)
   }
 
@@ -71,7 +73,7 @@ export default async function AgendarPage({
   const { data: professional } = await supabase
     .from('professionals')
     .select('id,user_id,status,public_code,category,session_duration_minutes,session_price_brl')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!professional || professional.status !== 'approved') {
@@ -197,10 +199,10 @@ export default async function AgendarPage({
     })),
   ]
 
-  const queryTipo = searchParams?.tipo
-  const querySessoes = searchParams?.sessoes
-  const queryData = searchParams?.data
-  const queryHora = searchParams?.hora
+  const queryTipo = tipo
+  const querySessoes = sessoes
+  const queryData = data
+  const queryHora = hora
 
   const initialBookingType = parseInitialBookingType(
     Array.isArray(queryTipo) ? queryTipo[0] : queryTipo

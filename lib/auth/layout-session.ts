@@ -1,4 +1,4 @@
-import { cache } from 'react'
+﻿import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
 
@@ -21,7 +21,7 @@ export const getLayoutSession = cache(async (): Promise<LayoutSession> => {
   }
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const user = await getUserWithSessionFallback<any>(supabase)
 
     if (!user) {

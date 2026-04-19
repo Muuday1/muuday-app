@@ -8,7 +8,7 @@ import {
 import { hasExternalBusyConflict } from './external-calendar-conflicts'
 
 export interface SlotValidationOptions {
-  supabase: ReturnType<typeof createClient>
+  supabase: Awaited<ReturnType<typeof createClient>>
   professionalId: string
   startUtc: Date
   endUtc: Date

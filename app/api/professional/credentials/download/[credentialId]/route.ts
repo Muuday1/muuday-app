@@ -30,14 +30,15 @@ function extractStoragePath(value: string): string | null {
 
 export async function GET(
   _request: NextRequest,
-  context: { params: { credentialId: string } },
+  context: { params: Promise<{ credentialId: string }> },
 ) {
-  const credentialId = String(context.params.credentialId || '').trim()
+  const { credentialId: rawCredentialId } = await context.params
+  const credentialId = String(rawCredentialId || '').trim()
   if (!credentialId) {
     return NextResponse.json({ error: 'credentialId obrigatorio.' }, { status: 400 })
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

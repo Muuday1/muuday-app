@@ -6,7 +6,7 @@ function isFunctionMissingError(error: unknown): boolean {
 }
 
 export async function createBookingWithPaymentAtomic(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   bookingData: {
     user_id: string
     professional_id: string
@@ -74,7 +74,7 @@ export async function createBookingWithPaymentAtomic(
 }
 
 export async function createBatchBookingsWithPaymentAtomic(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   bookings: Array<Record<string, unknown>>,
   paymentData: {
     user_id: string
@@ -108,7 +108,7 @@ export async function createBatchBookingsWithPaymentAtomic(
 }
 
 export async function createRecurringBookingWithPaymentAtomic(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   parent: Record<string, unknown>,
   children: Array<Record<string, unknown>>,
   sessions: Array<Record<string, unknown>>,

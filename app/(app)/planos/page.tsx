@@ -1,15 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getDefaultPlanConfigMap } from '@/lib/plan-config'
 import PlanSelector from '@/components/plans/PlanSelector'
 
 type TierId = 'basic' | 'professional' | 'premium'
 
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function PlanosPage({ searchParams }: PageProps) {
-  const supabase = createClient()
+  const { checkout } = await searchParams
+  const supabase = await createClient()
 
   let currentTier: TierId = 'basic'
   let sessionToken: string | null = null
@@ -62,7 +63,7 @@ export default async function PlanosPage({ searchParams }: PageProps) {
     // Fallback to default plans
   }
 
-  const checkoutParam = String(searchParams.checkout || '')
+  const checkoutParam = String(checkout || '')
   const message =
     checkoutParam === 'success'
       ? 'Pagamento recebido. Seu plano sera atualizado apos confirmacao do webhook.'

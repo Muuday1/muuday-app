@@ -7,10 +7,11 @@ import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-
 export default async function MensagensPage({
   searchParams,
 }: {
-  searchParams?: { profissional?: string }
+  searchParams: Promise<{ profissional?: string }>
 }) {
-  const supabase = createClient()
-  const professionalId = (searchParams?.profissional || '').trim()
+  const { profissional } = await searchParams
+  const supabase = await createClient()
+  const professionalId = (profissional || '').trim()
   let professionalName = ''
   let professionalProfileHref = professionalId ? `/profissional/${professionalId}` : '/buscar'
 

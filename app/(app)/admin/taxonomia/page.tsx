@@ -1,10 +1,10 @@
-import { redirect } from 'next/navigation'
+﻿import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadTaxonomyData } from '@/lib/actions/admin-taxonomy'
 import { TaxonomiaForm } from '@/components/admin/TaxonomiaForm'
 
 export default async function TaxonomiaPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

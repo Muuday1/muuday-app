@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -18,7 +18,7 @@ export interface SignupCatalog {
 }
 
 export async function loadSignupCatalog(): Promise<SignupCatalog> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const catalog = await loadActiveTaxonomyCatalog(supabase)
 
   if (!catalog) {

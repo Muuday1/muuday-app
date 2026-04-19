@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -63,7 +63,7 @@ function extractStoragePath(fileUrl: string, bucket: string) {
 type ResolvedProfessionalContext =
   | {
       ok: true
-      supabase: ReturnType<typeof createClient>
+      supabase: Awaited<ReturnType<typeof createClient>>
       professionalId: string
     }
   | {
@@ -72,7 +72,7 @@ type ResolvedProfessionalContext =
     }
 
 async function resolveProfessionalContext(): Promise<ResolvedProfessionalContext> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -1,4 +1,4 @@
-export const metadata = { title: 'Buscar Profissionais | Muuday' }
+﻿export const metadata = { title: 'Buscar Profissionais | Muuday' }
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -456,27 +456,41 @@ export async function BuscarPageContent({
   isLoggedIn = false,
   basePath = '/buscar',
 }: {
-  searchParams: BuscarSearchParams
+  searchParams: Promise<BuscarSearchParams>
   isLoggedIn?: boolean
   basePath?: string
 }) {
-  const readClient = createClient()
+  const readClient = await createClient()
   const exchangeRates = await getExchangeRates(readClient)
+  const {
+    q,
+    categoria,
+    subcategoria,
+    especialidade,
+    horario,
+    localizacao,
+    idioma,
+    ordenar,
+    pagina,
+    moeda,
+    precoMin,
+    precoMax,
+  } = await searchParams
 
-  const queryText = (searchParams.q || '').trim()
-  const selectedCategory = searchParams.categoria || ''
-  const selectedSubcategory = selectedCategory ? searchParams.subcategoria || '' : ''
+  const queryText = (q || '').trim()
+  const selectedCategory = categoria || ''
+  const selectedSubcategory = selectedCategory ? subcategoria || '' : ''
   const selectedSpecialty =
-    selectedCategory && selectedSubcategory ? searchParams.especialidade || '' : ''
-  const selectedAvailability = searchParams.horario || 'qualquer'
-  const rawSelectedLocation = (searchParams.localizacao || '').trim()
+    selectedCategory && selectedSubcategory ? especialidade || '' : ''
+  const selectedAvailability = horario || 'qualquer'
+  const rawSelectedLocation = (localizacao || '').trim()
   const selectedLocation = rawSelectedLocation ? getCountryDisplayName(rawSelectedLocation) : ''
-  const selectedLanguage = searchParams.idioma || 'qualquer'
-  const selectedSort = searchParams.ordenar || 'relevancia'
-  const selectedPage = String(parsePage(searchParams.pagina))
-  const requestedCurrency = searchParams.moeda || ''
-  const minPrice = parseOptionalNumber(searchParams.precoMin)
-  const maxPrice = parseOptionalNumber(searchParams.precoMax)
+  const selectedLanguage = idioma || 'qualquer'
+  const selectedSort = ordenar || 'relevancia'
+  const selectedPage = String(parsePage(pagina))
+  const requestedCurrency = moeda || ''
+  const minPrice = parseOptionalNumber(precoMin)
+  const maxPrice = parseOptionalNumber(precoMax)
 
   const selectedCurrency = normalizeCurrency(requestedCurrency) || 'BRL'
   const selectedCurrencyRate = exchangeRates[selectedCurrency] || 1
@@ -489,8 +503,8 @@ export async function BuscarPageContent({
     categoria: selectedCategory,
     subcategoria: selectedSubcategory,
     especialidade: selectedSpecialty,
-    precoMin: searchParams.precoMin || '',
-    precoMax: searchParams.precoMax || '',
+    precoMin: precoMin || '',
+    precoMax: precoMax || '',
     horario: selectedAvailability,
     localizacao: selectedLocation,
     idioma: selectedLanguage,
@@ -811,7 +825,7 @@ export async function BuscarPageContent({
   const sortedProfessionals = getSortedProfessionals(baseDisplayProfessionals, selectedSort)
   const totalResults = sortedProfessionals.length
   const totalPages = Math.max(1, Math.ceil(totalResults / PAGE_SIZE))
-  const currentPage = Math.min(parsePage(searchParams.pagina), totalPages)
+  const currentPage = Math.min(parsePage(pagina), totalPages)
   const startIndex = (currentPage - 1) * PAGE_SIZE
   const endIndex = startIndex + PAGE_SIZE
   const pagedProfessionals = sortedProfessionals.slice(startIndex, endIndex)
@@ -1106,7 +1120,7 @@ export async function BuscarPageContent({
   )
 }
 
-export default async function BuscarPage({ searchParams }: { searchParams: BuscarSearchParams }) {
+export default async function BuscarPage({ searchParams }: { searchParams: Promise<BuscarSearchParams> }) {
   return (
     <PublicPageLayout>
       {await BuscarPageContent({ searchParams, isLoggedIn: false, basePath: '/buscar' })}

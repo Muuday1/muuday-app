@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { fromZonedTime } from 'date-fns-tz'
@@ -67,7 +67,7 @@ function validateBookingId(bookingId: string): { ok: true; id: string } | { ok: 
 }
 
 async function getAuthenticatedContext() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -79,7 +79,7 @@ async function getAuthenticatedContext() {
 }
 
 async function applyPaymentRefund(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   bookingId: string,
   refundPercentage: number,
 ) {

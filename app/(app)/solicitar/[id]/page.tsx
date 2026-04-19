@@ -8,12 +8,13 @@ import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-s
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 
 const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
-export default async function SolicitarHorarioPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function SolicitarHorarioPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect(`/login?redirect=/solicitar/${params.id}`)
+  if (!user) redirect(`/login?redirect=/solicitar/${id}`)
 
   const { data: userProfile } = await supabase
     .from('profiles')
@@ -29,7 +30,7 @@ export default async function SolicitarHorarioPage({ params }: { params: { id: s
   const { data: professional } = await supabase
     .from('professionals')
     .select('id,user_id,public_code,status,tier,session_duration_minutes')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!professional || professional.status !== 'approved') {

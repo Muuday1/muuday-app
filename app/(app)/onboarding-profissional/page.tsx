@@ -2,11 +2,12 @@ import { redirect } from 'next/navigation'
 
 export const metadata = { title: 'Onboarding Profissional | Muuday' }
 
-export default function OnboardingProfissionalPage({
+export default async function OnboardingProfissionalPage({
   searchParams,
 }: {
-  searchParams?: { result?: string }
+  searchParams: Promise<{ result?: string }>
 }) {
-  const result = searchParams?.result ? `&result=${encodeURIComponent(searchParams.result)}` : ''
-  redirect(`/dashboard?openOnboarding=1${result}`)
+  const { result } = await searchParams
+  const resultQuery = result ? `&result=${encodeURIComponent(result)}` : ''
+  redirect(`/dashboard?openOnboarding=1${resultQuery}`)
 }

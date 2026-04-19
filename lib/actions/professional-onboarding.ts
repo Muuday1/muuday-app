@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
@@ -11,7 +11,7 @@ const submitProfessionalForReviewInputSchema = z.object({})
 export async function submitProfessionalForReviewAction() {
   submitProfessionalForReviewInputSchema.parse({})
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

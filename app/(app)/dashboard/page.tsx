@@ -90,9 +90,10 @@ function toUiLabel(value?: string | null, dictionary: Record<string, string> = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: { openOnboarding?: string; result?: string }
+  searchParams: Promise<{ openOnboarding?: string; result?: string }>
 }) {
-  const supabase = createClient()
+  const { openOnboarding, result } = await searchParams
+  const supabase = await createClient()
   const user = await getUserWithSessionFallback<{ id: string }>(supabase)
 
   if (!user) redirect('/login')
@@ -249,7 +250,7 @@ export default async function DashboardPage({
           normalizedProfessionalStatus,
         )),
   )
-  const shouldAutoOpenOnboarding = searchParams?.openOnboarding === '1'
+  const shouldAutoOpenOnboarding = openOnboarding === '1'
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
@@ -264,7 +265,7 @@ export default async function DashboardPage({
           initialBio={String(professional.bio || '')}
           initialCoverPhotoUrl={String(professional.cover_photo_url || '')}
           autoOpen={shouldAutoOpenOnboarding}
-          result={searchParams?.result}
+          result={result}
         />
       ) : null}
 

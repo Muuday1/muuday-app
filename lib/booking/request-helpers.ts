@@ -17,7 +17,7 @@ export function toRequestBookingStatus(value: unknown): RequestBookingStatus | n
 }
 
 export async function expireRequestIfNeeded(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   request: Record<string, unknown>,
 ) {
   if (request.status !== 'offered') return request

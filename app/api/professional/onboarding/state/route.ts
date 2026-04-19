@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
 
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

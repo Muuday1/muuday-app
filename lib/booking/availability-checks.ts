@@ -4,7 +4,7 @@ import { hhmmToMinutes, getMinutesInTimezone } from './request-validation'
 import { mapLegacyAvailabilityToRules } from './availability-engine'
 
 export async function loadAvailabilityRules(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   professionalId: string,
   timezone: string,
 ) {
@@ -50,7 +50,7 @@ export function isSlotWithinRules(
 }
 
 export async function isSlotAllowedByExceptions(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   professionalId: string,
   timezone: string,
   startUtc: Date,
@@ -95,7 +95,7 @@ export async function isSlotAllowedByExceptions(
 }
 
 export async function hasInternalConflict(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   professionalId: string,
   startUtc: Date,
   endUtc: Date,

@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
@@ -18,7 +18,7 @@ export interface UpdateUserProfileResult {
 export async function updateUserProfile(
   input: UpdateUserProfileInput,
 ): Promise<UpdateUserProfileResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

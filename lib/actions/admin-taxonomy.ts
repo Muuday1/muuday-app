@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -28,7 +28,7 @@ export async function updateTaxonomyItem(
   id: string,
   data: TaxonomyItemUpdate,
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from(getTableName(type))
@@ -58,7 +58,7 @@ export interface TaxonomyItemInsert {
 export async function insertTaxonomyItem(
   data: TaxonomyItemInsert,
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const table = getTableName(data.type)
   const payload: Record<string, string | number> = {
@@ -90,7 +90,7 @@ export async function toggleTaxonomyActive(
   id: string,
   currentActive: boolean,
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from(getTableName(type))
@@ -113,7 +113,7 @@ export interface TaxonomyData {
 }
 
 export async function loadTaxonomyData(): Promise<{ success: boolean; data?: TaxonomyData; error?: string }> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [cRes, scRes, spRes, soRes, tsRes] = await Promise.all([
     supabase
@@ -160,7 +160,7 @@ export async function reviewTagSuggestion(
   id: string,
   status: 'approved' | 'rejected',
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('tag_suggestions')

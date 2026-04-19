@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import FavoritesList from '@/components/favorites/FavoritesList'
 
@@ -14,7 +14,7 @@ type Professional = {
 }
 
 export default async function FavoritosPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

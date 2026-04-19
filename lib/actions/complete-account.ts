@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeEmailAction } from './email'
@@ -28,7 +28,7 @@ export interface CompleteAccountResult {
 export async function completeAccount(
   input: CompleteAccountInput,
 ): Promise<CompleteAccountResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

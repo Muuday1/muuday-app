@@ -10,8 +10,8 @@ import { createClient } from '@/lib/supabase/server'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 
 export async function PublicPageLayout({ children }: { children: React.ReactNode }) {
-  const acceptLanguage = headers().get('accept-language')
-  const cookieStore = cookies()
+  const acceptLanguage = (await headers()).get('accept-language')
+  const cookieStore = await cookies()
 
   const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
 
@@ -21,7 +21,7 @@ export async function PublicPageLayout({ children }: { children: React.ReactNode
   let isLoggedIn = false
   let loggedInHref = '/buscar-auth'
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

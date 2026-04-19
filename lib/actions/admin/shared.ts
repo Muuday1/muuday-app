@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 
 export type AdminActionResult =
@@ -62,7 +62,7 @@ export function getFirstValidationError(error: z.ZodError) {
  * This ensures admin mutations are never reliant on client-side RLS alone.
  */
 export async function requireAdmin() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

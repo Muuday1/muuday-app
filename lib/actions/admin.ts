@@ -104,7 +104,7 @@ export async function adminUpdateProfessionalStatus(
     await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
     revalidatePath('/dashboard')
-    revalidateTag('public-profiles')
+    revalidateTag('public-profiles', {})
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
@@ -180,7 +180,7 @@ export async function adminUpdateFirstBookingGate(
     await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
     revalidatePath('/admin')
     revalidatePath('/dashboard')
-    revalidateTag('public-profiles')
+    revalidateTag('public-profiles', {})
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
@@ -243,7 +243,7 @@ export async function adminToggleReviewVisibility(
     }
 
     revalidatePath('/admin')
-    revalidateTag('public-profiles')
+    revalidateTag('public-profiles', {})
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
@@ -294,7 +294,7 @@ export async function adminDeleteReview(reviewId: string): Promise<AdminActionRe
     }
 
     revalidatePath('/admin')
-    revalidateTag('public-profiles')
+    revalidateTag('public-profiles', {})
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
@@ -534,7 +534,7 @@ export async function adminReviewProfessionalDecision(
     revalidatePath('/admin')
     revalidatePath('/dashboard')
     revalidatePath(`/admin/revisao/${parsed.data.professionalId}`)
-    revalidateTag('public-profiles')
+    revalidateTag('public-profiles', {})
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }

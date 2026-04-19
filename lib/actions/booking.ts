@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
@@ -114,7 +114,7 @@ export async function createBooking(data: {
   }
 
   const bookingInput = parsedInput.data
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

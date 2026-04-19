@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 /**
@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
  * that sensitive tables are not world-readable.
  */
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const checks: Record<string, 'ok' | 'fail' | 'unknown'> = {}
 
   // bookings: anon/unauthenticated reads should return zero rows or be blocked

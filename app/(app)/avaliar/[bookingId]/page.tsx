@@ -6,8 +6,9 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ReviewForm } from './ReviewForm'
 
-export default async function AvaliarPage({ params }: { params: { bookingId: string } }) {
-  const supabase = createClient()
+export default async function AvaliarPage({ params }: { params: Promise<{ bookingId: string }> }) {
+  const { bookingId } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
@@ -15,7 +16,7 @@ export default async function AvaliarPage({ params }: { params: { bookingId: str
   const { data: booking } = await supabase
     .from('bookings')
     .select('*, professionals(*, profiles(*))')
-    .eq('id', params.bookingId)
+    .eq('id', bookingId)
     .eq('user_id', user.id)
     .single()
 
@@ -30,7 +31,7 @@ export default async function AvaliarPage({ params }: { params: { bookingId: str
   const { data: existingReview } = await supabase
     .from('reviews')
     .select('id, rating, comment, created_at')
-    .eq('booking_id', params.bookingId)
+    .eq('booking_id', bookingId)
     .eq('user_id', user.id)
     .single()
 
@@ -102,7 +103,7 @@ export default async function AvaliarPage({ params }: { params: { bookingId: str
             Sua avaliação ajuda outros usuários a encontrar os melhores profissionais.
           </p>
           <ReviewForm
-            bookingId={params.bookingId}
+            bookingId={bookingId}
             userId={user.id}
             professionalId={professional?.id}
           />

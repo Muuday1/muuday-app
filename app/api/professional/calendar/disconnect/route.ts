@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: context.error }, { status: context.status })
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})))
   if (!parsed.success) {

@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { revalidatePath } from 'next/cache'
@@ -47,7 +47,7 @@ const OFFER_EXPIRATION_HOURS = 24
 const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
 
 async function getAuthenticatedContext() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

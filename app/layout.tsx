@@ -55,16 +55,16 @@ export const metadata: Metadata = {
   },
 }
 
-function resolveCookieConsentCountry() {
-  const cookieStore = cookies()
+async function resolveCookieConsentCountry() {
+  const cookieStore = await cookies()
   const raw = cookieStore.get('muuday_country')?.value || ''
   const normalized = raw.trim().toUpperCase()
   if (/^[A-Z]{2}$/.test(normalized)) return normalized
   return 'BR'
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const consentCountry = resolveCookieConsentCountry()
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const consentCountry = await resolveCookieConsentCountry()
 
   return (
     <html lang="pt-BR">

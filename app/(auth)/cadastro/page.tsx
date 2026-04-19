@@ -10,16 +10,15 @@ function sanitizeRedirectPath(value: string | null) {
 export default async function CadastroPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const { redirect: redirectParam, role: roleParam } = await searchParams
   const catalog = await loadSignupCatalog()
 
-  const redirectParam = searchParams.redirect
   const redirectPath = sanitizeRedirectPath(
     typeof redirectParam === 'string' ? redirectParam : null,
   )
 
-  const roleParam = searchParams.role
   const requestedRole = typeof roleParam === 'string' ? roleParam : ''
 
   return (

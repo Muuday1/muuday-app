@@ -4,7 +4,7 @@ import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-s
 export const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 
 export async function professionalCanReceiveRequestBooking(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   professional: Record<string, any>,
 ): Promise<{ ok: true } | { ok: false; error: string; reasonCode?: string }> {
   if (professional.status !== 'approved') {

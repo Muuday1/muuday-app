@@ -111,9 +111,9 @@ function bookingModeMeta(booking: Record<string, any>) {
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams?: { view?: string; booking?: string; filter?: string }
+  searchParams: Promise<{ view?: string; booking?: string; filter?: string }>
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -138,8 +138,9 @@ export default async function AgendaPage({
   const isProfessional = isProfessionalRole && Boolean(professionalId)
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
-  const activeView = normalizeView(searchParams?.view, isProfessional)
-  const inboxFilter = normalizeInboxFilter(searchParams?.filter)
+  const { view, booking, filter } = await searchParams
+  const activeView = normalizeView(view, isProfessional)
+  const inboxFilter = normalizeInboxFilter(filter)
 
   if (isProfessional && professionalId) {
     await supabase

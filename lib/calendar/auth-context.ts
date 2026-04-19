@@ -2,7 +2,7 @@
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 export async function resolveAuthenticatedProfessionalContext() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

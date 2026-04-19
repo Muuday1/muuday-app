@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -39,7 +39,7 @@ async function upsertPrimaryService(args: {
   durationMinutes: number
   priceBrl: number
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: existingService, error: serviceError } = await supabase
     .from('professional_services')
     .select('id')
@@ -73,7 +73,7 @@ async function upsertPrimaryService(args: {
 }
 
 export async function createProfessionalProfile(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
@@ -160,7 +160,7 @@ export async function createProfessionalProfile(formData: FormData) {
       priceBrl: sessionPriceBrl,
     })
     await recomputeProfessionalVisibility(supabase, professionalId)
-    revalidateTag('public-profiles')
+    revalidateTag('public-profiles', {})
   }
 
   redirect('/perfil')
@@ -192,7 +192,7 @@ const professionalDraftSchema = z.object({
 })
 
 export async function updateAvailability(slots: { day_of_week: number; start_time: string; end_time: string }[]) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado' }
 
@@ -228,7 +228,7 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
   }
 
   await recomputeProfessionalVisibility(supabase, professional.id)
-  revalidateTag('public-profiles')
+  revalidateTag('public-profiles', {})
   return { success: true }
 }
 
@@ -247,7 +247,7 @@ export async function saveProfessionalProfileDraft(input: {
   socialLinks?: string[]
   credentialUrls?: string[]
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -360,6 +360,6 @@ export async function saveProfessionalProfileDraft(input: {
   }
 
   await recomputeProfessionalVisibility(supabase, parsed.data.professionalId)
-  revalidateTag('public-profiles')
+  revalidateTag('public-profiles', {})
   return { success: true as const }
 }

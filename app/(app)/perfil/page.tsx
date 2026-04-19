@@ -1,4 +1,4 @@
-export const metadata = { title: 'Meu Perfil | Muuday' }
+﻿export const metadata = { title: 'Meu Perfil | Muuday' }
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -9,7 +9,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { ProfileAccountSettings } from '@/components/profile/ProfileAccountSettings'
 
 export default async function PerfilPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

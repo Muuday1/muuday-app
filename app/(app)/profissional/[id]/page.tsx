@@ -210,7 +210,7 @@ function getPublicProfileCacheIdentity(
 async function loadPublicProfessionalByParam(
   parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
 ): Promise<PublicProfessionalRecord | null> {
-  const client = createClient()
+  const client = await createClient()
   const buildQuery = (useVisibilityColumn: boolean) => {
     let professionalQuery = client
       .from('professionals')
@@ -286,13 +286,15 @@ export default async function ProfissionalPage({
   params,
   searchParams,
 }: {
-  params: { id: string }
-  searchParams?: { erro?: string }
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ erro?: string }>
 }) {
-  const parsedParam = parseProfessionalProfileParam(params.id)
+  const { id } = await params
+  const { erro } = await searchParams
+  const parsedParam = parseProfessionalProfileParam(id)
   if (parsedParam.kind === 'unknown') notFound()
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -519,7 +521,7 @@ export default async function ProfissionalPage({
         isLoggedIn={Boolean(user)}
         isOwnProfessional={isOwnProfessional}
         firstBookingBlocked={firstBookingBlocked}
-        errorCode={searchParams?.erro}
+        errorCode={erro}
         bookHref={`/agendar/${professional.id}`}
         messageHref={`/mensagens?profissional=${professional.id}`}
         userTimezone={viewerTimezone}

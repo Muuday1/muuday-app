@@ -26,9 +26,10 @@ function safeRedirectPath(path: string | null | undefined) {
 
 export async function GET(
   request: NextRequest,
-  context: { params: { provider: string } },
+  context: { params: Promise<{ provider: string }> },
 ) {
-  const provider = parseProvider(context.params.provider)
+  const { provider: rawProvider } = await context.params
+  const provider = parseProvider(rawProvider)
   if (!provider || provider === 'apple') {
     return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=provider`)
   }
@@ -51,7 +52,7 @@ export async function GET(
     return NextResponse.redirect(`${requestBaseUrl(request)}/dashboard?calendarError=nonce`)
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

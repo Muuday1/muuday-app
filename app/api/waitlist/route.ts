@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { firstname, email, pais_residencia, tipo_lead, origem_lead } = parsed.data
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error: dbError } = await supabase
       .from('waitlist')

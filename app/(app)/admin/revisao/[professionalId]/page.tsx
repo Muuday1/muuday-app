@@ -22,10 +22,12 @@ export default async function AdminReviewProfessionalPage({
   params,
   searchParams,
 }: {
-  params: { professionalId: string }
-  searchParams?: { result?: string }
+  params: Promise<{ professionalId: string }>
+  searchParams: Promise<{ result?: string }>
 }) {
-  const supabase = createClient()
+  const { professionalId } = await params
+  const { result: searchResult } = await searchParams
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -39,7 +41,7 @@ export default async function AdminReviewProfessionalPage({
     .select(
       'id,user_id,status,tier,category,subcategories,tags,bio,session_price_brl,whatsapp_number,cover_photo_url,video_intro_url,social_links,admin_review_notes,created_at,profiles!professionals_user_id_fkey(full_name,email,country,timezone,avatar_url)',
     )
-    .eq('id', params.professionalId)
+    .eq('id', professionalId)
     .maybeSingle()
 
   if (!professional) {
@@ -77,7 +79,7 @@ export default async function AdminReviewProfessionalPage({
     .eq('professional_id', professional.id)
     .in('status', ['open', 'reopened'])
 
-  const result = parseResultMessage(searchParams?.result)
+  const result = parseResultMessage(searchResult)
   const owner = Array.isArray(professional.profiles) ? professional.profiles[0] : professional.profiles
   const semiAuto = buildProfessionalCredentialFlags({ application, credentials })
   const activeServicePrices = (services || [])

@@ -20,9 +20,10 @@ function parseDate(value: unknown) {
 export default async function VideoSessionPage({
   params,
 }: {
-  params: { bookingId: string }
+  params: Promise<{ bookingId: string }>
 }) {
-  const supabase = createClient()
+  const { bookingId } = await params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -35,7 +36,7 @@ export default async function VideoSessionPage({
     .select(
       'id,user_id,professional_id,status,scheduled_at,start_time_utc,end_time_utc,duration_minutes,professionals!bookings_professional_id_fkey(user_id,profiles!professionals_user_id_fkey(full_name)),profiles!bookings_user_id_fkey(full_name)',
     )
-    .eq('id', params.bookingId)
+    .eq('id', bookingId)
     .maybeSingle()
 
   if (!booking) notFound()
@@ -118,7 +119,7 @@ export default async function VideoSessionPage({
           A entrada fica disponivel 20 minutos antes do inicio e ate 4 horas apos o fim da sessao.
         </div>
       ) : (
-        <VideoSession bookingId={params.bookingId} />
+        <VideoSession bookingId={bookingId} />
       )}
     </div>
   )

@@ -1,4 +1,4 @@
-export const metadata = { title: 'Financeiro | Muuday' }
+﻿export const metadata = { title: 'Financeiro | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
 export default async function FinanceiroPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -457,7 +457,7 @@ export async function sendReferralInviteEmailAction(
   // Referral invites are intentionally sent to external emails, but we verify
   // the inviterName matches the caller's profile to prevent impersonation
   const { createClient } = await import('@/lib/supabase/server')
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: callerProfile } = await supabase
     .from('profiles')
     .select('full_name')

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
 
@@ -36,7 +36,7 @@ export async function safe<T>(fn: () => Promise<T>, label: string) {
 
 // Auth guard - ensures only authenticated users can trigger emails + rate limit
 export async function requireAuth(): Promise<string | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -61,7 +61,7 @@ export function parsePayload<T>(schema: z.ZodSchema<T>, payload: unknown): T | n
  * Returns true if the email is allowed, false otherwise.
  */
 export async function assertCallerCanEmailRecipient(callerId: string, recipientEmail: string): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 1. Caller can always email themselves
   const { data: callerProfile } = await supabase
@@ -97,7 +97,7 @@ export type NotifKey = 'booking_emails' | 'session_reminders' | 'news_promotions
 export async function canSend(userId: string | null | undefined, key: NotifKey): Promise<boolean> {
   if (!userId) return true // no user context -> always send (e.g. professional notifications)
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data } = await supabase
       .from('profiles')
       .select('notification_preferences')

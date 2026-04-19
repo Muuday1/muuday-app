@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+﻿import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BuscarPageContent } from '@/app/buscar/page'
 
@@ -22,16 +22,17 @@ export const dynamic = 'force-dynamic'
 export default async function BuscarAuthPage({
   searchParams,
 }: {
-  searchParams: BuscarSearchParams
+  searchParams: Promise<BuscarSearchParams>
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const resolvedSearchParams = await searchParams
   if (!user) {
     const query = new URLSearchParams(
-      Object.entries(searchParams).filter(([, value]) => Boolean(value)) as [string, string][],
+      Object.entries(resolvedSearchParams).filter(([, value]) => Boolean(value)) as [string, string][],
     ).toString()
     redirect(query ? `/buscar?${query}` : '/buscar')
   }
@@ -42,13 +43,13 @@ export default async function BuscarAuthPage({
     .eq('id', user.id)
     .maybeSingle()
 
-  const effectiveParams: BuscarSearchParams = { ...searchParams }
+  const effectiveParams: BuscarSearchParams = { ...resolvedSearchParams }
   if (!effectiveParams.moeda && profile?.currency) {
     effectiveParams.moeda = String(profile.currency).toUpperCase()
   }
 
   return await BuscarPageContent({
-    searchParams: effectiveParams,
+    searchParams: Promise.resolve(effectiveParams),
     isLoggedIn: true,
     basePath: '/buscar-auth',
   })

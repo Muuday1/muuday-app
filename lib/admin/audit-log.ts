@@ -28,7 +28,7 @@ function toJsonValue(input: unknown): JsonValue | null {
 }
 
 export async function writeAdminAuditLog(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   payload: AdminAuditInsert,
 ): Promise<AdminAuditWriteResult> {
   const { error } = await supabase.from('admin_audit_log').insert({

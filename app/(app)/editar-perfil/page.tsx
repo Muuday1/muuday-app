@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import EditProfileForm from '@/components/profile/EditProfileForm'
 
 export default async function EditarPerfilPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

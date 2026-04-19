@@ -5,7 +5,7 @@ import { PROFESSIONAL_TERMS } from '@/lib/legal/professional-terms'
 interface TermsModalProps {
   activeTermKey: string | null
   termsModalScrolledToEnd: boolean
-  contentRef: React.RefObject<HTMLDivElement>
+  contentRef: React.RefObject<HTMLDivElement | null>
   onScroll: (event: React.UIEvent<HTMLDivElement>) => void
   onClose: () => void
   onAccept: () => void

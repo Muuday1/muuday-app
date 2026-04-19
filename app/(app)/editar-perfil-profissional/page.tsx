@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfessionalProfileEditForm } from '@/components/professional/ProfessionalProfileEditForm'
@@ -20,7 +20,7 @@ function socialLinksObjectToArray(value: unknown): string[] {
 }
 
 export default async function EditarPerfilProfissionalPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

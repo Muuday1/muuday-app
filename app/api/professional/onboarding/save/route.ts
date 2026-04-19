@@ -202,7 +202,7 @@ function availabilityRowsChangedForDiff(previousRows: unknown, nextMap: Record<s
 }
 
 async function upsertProfessionalApplicationWithFallback(
-  db: ReturnType<typeof createClient>,
+  db: Awaited<ReturnType<typeof createClient>>,
   payload: Record<string, unknown>,
 ) {
   let attemptPayload: Record<string, unknown> = { ...payload }
@@ -246,7 +246,7 @@ async function upsertProfessionalApplicationWithFallback(
 }
 
 async function upsertProfessionalSettingsWithFallback(
-  db: ReturnType<typeof createClient>,
+  db: Awaited<ReturnType<typeof createClient>>,
   payload: {
     professional_id: string
     timezone: string
@@ -309,7 +309,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
