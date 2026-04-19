@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { LogOut } from 'lucide-react'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { SidebarNav } from '@/components/layout/SidebarNav'
+import { NotificationBell } from '@/components/layout/NotificationBell'
+import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { getLayoutSession } from '@/lib/auth/layout-session'
 
@@ -30,6 +32,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       return [
         { href: '/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
         { href: '/agenda', icon: 'Calendar', label: 'Calendário' },
+        { href: '/mensagens', icon: 'MessageCircle', label: 'Mensagens' },
+        { href: '/servicos', icon: 'Layers', label: 'Serviços' },
+        { href: '/prontuario', icon: 'FileText', label: 'Prontuário' },
         { href: '/financeiro', icon: 'Wallet', label: 'Financeiro' },
         { href: '/configuracoes', icon: 'Settings', label: 'Configurações' },
       ]
@@ -37,7 +42,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return [
       { href: '/buscar-auth', icon: 'Search', label: 'Buscar' },
       { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
+      { href: '/mensagens', icon: 'MessageCircle', label: 'Mensagens' },
       { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
+      { href: '/disputas', icon: 'ShieldAlert', label: 'Disputas' },
       { href: '/perfil', icon: 'User', label: 'Perfil' },
     ]
   })()
@@ -100,6 +107,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <>
+                <NotificationBell />
                 <form action="/auth/signout" method="post">
                   <button
                     type="submit"
@@ -129,6 +137,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </main>
 
       <MobileNav navItems={navItems} />
+      <PwaInstallPrompt />
     </div>
   )
 }

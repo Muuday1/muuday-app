@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart, Wallet } from 'lucide-react'
+import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart, Wallet, MessageCircle, Layers, FileText, ShieldAlert } from 'lucide-react'
 
 type NavItem = {
   href: string
@@ -19,6 +19,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   Heart,
   Wallet,
+  MessageCircle,
+  Layers,
+  FileText,
+  ShieldAlert,
 }
 
 export function SidebarNav({ navItems }: { navItems: NavItem[] }) {
