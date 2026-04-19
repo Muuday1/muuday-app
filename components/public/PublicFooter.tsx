@@ -94,12 +94,12 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/politica-de-cookies" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
+                <Link href="/privacidade" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
                   Privacidade
                 </Link>
               </li>
               <li>
-                <Link href="/politica-de-cookies" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
+                <Link href="/termos-de-uso" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
                   Termos de uso
                 </Link>
               </li>
