@@ -52,6 +52,10 @@ const envSchema = z.object({
   AGORA_APP_ID: optionalString,
   AGORA_APP_CERTIFICATE: optionalString,
 
+  // Push notifications
+  VAPID_PUBLIC_KEY: optionalString,
+  VAPID_PRIVATE_KEY: optionalString,
+
   // OAuth (Calendar sync)
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,

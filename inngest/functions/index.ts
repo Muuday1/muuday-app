@@ -14,6 +14,8 @@ import {
   runStripeSubscriptionRenewalChecks,
   runStripeWeeklyPayoutEligibilityScan,
 } from '@/lib/ops/stripe-resilience'
+import { runReviewReminderSync } from '@/lib/ops/review-reminders'
+import { runNoShowDetection } from '@/lib/ops/no-show-detection'
 import type { CalendarProvider } from '@/lib/calendar/types'
 import { inngest } from '../client'
 
@@ -305,6 +307,54 @@ export const stripeFailedPaymentRetries = inngest.createFunction(
     })
 
     logger.info('Stripe failed payment retries executed.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const sendReviewReminders = inngest.createFunction(
+  {
+    id: 'send-review-reminders',
+    name: 'Send review reminders',
+    triggers: [{ cron: '0 10 * * *' }, { event: 'ops/review-reminders.send.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('run-review-reminder-sync', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for review reminder sync.')
+      }
+      return runReviewReminderSync(admin)
+    })
+
+    logger.info('Review reminders sent.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const autoDetectNoShow = inngest.createFunction(
+  {
+    id: 'auto-detect-no-show',
+    name: 'Auto detect no-show bookings',
+    triggers: [{ cron: '*/5 * * * *' }, { event: 'ops/no-show.detect.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('run-no-show-detection', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for no-show detection.')
+      }
+      return runNoShowDetection(admin)
+    })
+
+    logger.info('No-show detection executed.', {
       trigger: event.name,
       ...result,
     })

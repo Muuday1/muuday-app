@@ -204,6 +204,9 @@ export const RATE_LIMITS = {
   calendarDisconnect: { limit: 10, windowSeconds: 60 },
   openTerm: { limit: 20, windowSeconds: 60 },
   acceptTerm: { limit: 20, windowSeconds: 60 },
+  notificationRead: { limit: 30, windowSeconds: 60 },
+  notificationWrite: { limit: 15, windowSeconds: 60 },
+  messageSend: { limit: 30, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(
