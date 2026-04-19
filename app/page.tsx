@@ -3,20 +3,16 @@ import Link from 'next/link'
 import {
   ArrowRight,
   CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   Globe,
+  MessageCircle,
   Search,
   ShieldCheck,
   Star,
-  Video,
   Users,
-  Clock,
-  MapPin,
-  MessageCircle,
-  Heart,
-  TrendingUp,
-  Briefcase,
-  FileText,
-  ArrowUpRight,
+  Video,
 } from 'lucide-react'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { FaqAccordion } from '@/components/landing/FaqAccordion'
@@ -25,83 +21,63 @@ import { StaggerContainer, StaggerItem } from '@/components/landing/StaggerConta
 import { SEARCH_CATEGORIES } from '@/lib/search-config'
 
 const STATS = [
-  { value: '100%', label: 'online por vídeo' },
-  { value: '6+', label: 'áreas de atuação' },
-  { value: '24/7', label: 'agende a qualquer hora' },
+  { value: '100%', label: 'Online por vídeo', icon: Video },
+  { value: '6+', label: 'Áreas de atuação', icon: Globe },
+  { value: '24/7', label: 'Agende quando quiser', icon: Clock },
 ]
 
-const FEATURES = [
+const ALL_CATEGORIES = SEARCH_CATEGORIES
+
+const FOR_WHO = [
   {
-    icon: Search,
-    title: 'Filtros que fazem sentido',
-    body: 'Busque por especialidade, idioma, país e horário. Sem enrolação.',
-    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&q=80',
+    title: 'Para quem mora fora',
+    body: 'Psicólogos, nutricionistas e coaches que entendem sua realidade de brasileiro no exterior.',
+    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
   },
   {
-    icon: CalendarCheck,
-    title: 'Agende do seu jeito',
-    body: 'Uma sessão, várias, ou recorrente. O fuso horário é ajustado automaticamente.',
-    image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&q=80',
+    title: 'Para quem viaja',
+    body: 'Agende sessões de qualquer lugar. Seu profissional está a um clique, independente do fuso.',
+    image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80',
   },
   {
-    icon: Video,
-    title: 'Videochamada integrada',
-    body: 'Da busca à sessão, tudo acontece aqui. Sem precisar de Zoom, Teams ou WhatsApp.',
-    image: 'https://images.unsplash.com/photo-1573497019236-17f8177b81e8?w=600&q=80',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Profissionais revisados',
-    body: 'Cada perfil é verificado antes de entrar no ar. Você sabe com quem está falando.',
-    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600&q=80',
+    title: 'Para profissionais',
+    body: 'Expanda sua clientela para brasileiros no mundo todo. Defina seus horários e preços.',
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80',
   },
 ]
 
-const HOW_IT_WORKS = [
+const HOW_STEPS = [
   {
     step: '01',
     title: 'Busque',
-    body: 'Use filtros práticos para encontrar quem entende sua situação.',
+    body: 'Filtros por especialidade, idioma, país e disponibilidade.',
     icon: Search,
   },
   {
     step: '02',
     title: 'Agende',
-    body: 'Escolha dia e horário. A confirmação chega na hora.',
+    body: 'Escolha dia, horário e tipo de sessão. Confirmação instantânea.',
     icon: CalendarCheck,
   },
   {
     step: '03',
     title: 'Conecte',
-    body: 'Faça a sessão por vídeo aqui mesmo. Tudo registrado em um só lugar.',
+    body: 'Videochamada integrada. Sem Zoom, Teams ou WhatsApp.',
     icon: Video,
   },
 ]
-
-const ALL_CATEGORIES = SEARCH_CATEGORIES
-
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'saude-mental': <Heart className="h-6 w-6" />,
-  'saude-corpo': <Users className="h-6 w-6" />,
-  'educacao': <TrendingUp className="h-6 w-6" />,
-  'contabilidade': <Briefcase className="h-6 w-6" />,
-  'direito': <FileText className="h-6 w-6" />,
-  'carreira': <TrendingUp className="h-6 w-6" />,
-  'traducao': <MessageCircle className="h-6 w-6" />,
-  'outro': <Star className="h-6 w-6" />,
-}
 
 const TESTIMONIALS = [
   {
     name: 'Ana Paula',
     role: 'Psicóloga em Lisboa',
-    text: 'A Muuday me conectou com brasileiros em Portugal que precisavam de atendimento em português. A plataforma cuida de tudo — agenda, pagamento, videochamada.',
+    text: 'A Muuday me conectou com brasileiros em Portugal que precisavam de atendimento em português. A plataforma cuida de tudo.',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80',
   },
   {
     name: 'Ricardo Mendes',
     role: 'Nutricionista em Londres',
-    text: 'Finalmente consigo atender clientes do Brasil sem complicação de fuso horário. A plataforma ajusta tudo automaticamente.',
+    text: 'Finalmente consigo atender clientes do Brasil sem complicação de fuso horário. Tudo ajustado automaticamente.',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
   },
   {
@@ -115,62 +91,113 @@ const TESTIMONIALS = [
 const FAQ_ITEMS = [
   {
     question: 'Preciso criar conta para pesquisar profissionais?',
-    answer:
-      'Não. Você pode procurar sem cadastro. Só precisa de conta para agendar, salvar favoritos ou mandar mensagem.',
+    answer: 'Não. Você pode procurar sem cadastro. Só precisa de conta para agendar, salvar favoritos ou mandar mensagem.',
   },
   {
     question: 'Os atendimentos são sempre online?',
-    answer:
-      'Sim, todos por videochamada. Assim você pode atender ou ser atendido de qualquer lugar.',
+    answer: 'Sim, todos por videochamada. Assim você pode atender ou ser atendido de qualquer lugar.',
   },
   {
     question: 'Posso agendar recorrência ou várias datas?',
-    answer:
-      'Sim. Uma vez, toda semana, ou várias datas diferentes. Você escolhe.',
+    answer: 'Sim. Uma vez, toda semana, ou várias datas diferentes. Você escolhe.',
   },
   {
     question: 'Como funciona a entrada de profissionais?',
-    answer:
-      'É simples: você cria seu perfil, define serviços e preços, e publica sua disponibilidade. A equipe revisa antes de aprovar.',
+    answer: 'É simples: você cria seu perfil, define serviços e preços, e publica sua disponibilidade. A equipe revisa antes de aprovar.',
   },
 ]
+
+function ProductMockup() {
+  return (
+    <div className="relative mx-auto w-full max-w-md">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        {/* Browser chrome */}
+        <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-3">
+          <div className="h-3 w-3 rounded-full bg-red-400" />
+          <div className="h-3 w-3 rounded-full bg-amber-400" />
+          <div className="h-3 w-3 rounded-full bg-green-400" />
+          <div className="ml-4 flex-1 rounded-md bg-white py-1 px-3 text-xs text-slate-400">muuday.com/buscar</div>
+        </div>
+        {/* Mock content */}
+        <div className="p-4">
+          <div className="flex gap-2">
+            <div className="h-10 flex-1 rounded-lg bg-slate-100" />
+            <div className="h-10 w-24 rounded-lg bg-brand-600" />
+          </div>
+          <div className="mt-4 flex gap-2">
+            <div className="h-8 flex-1 rounded-md bg-slate-100" />
+            <div className="h-8 flex-1 rounded-md bg-slate-100" />
+            <div className="h-8 flex-1 rounded-md bg-slate-100" />
+          </div>
+          <div className="mt-4 space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3">
+                <div className="h-12 w-12 rounded-full bg-slate-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-2/3 rounded bg-slate-200" />
+                  <div className="h-2 w-1/2 rounded bg-slate-100" />
+                </div>
+                <div className="h-8 w-20 rounded-lg bg-accent-500" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Floating elements */}
+      <div className="absolute -right-4 -top-4 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+        <div className="flex items-center gap-2">
+          <Video className="h-5 w-5 text-accent-600" />
+          <span className="text-xs font-semibold text-slate-900">Sessão ao vivo</span>
+        </div>
+      </div>
+      <div className="absolute -bottom-4 -left-4 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+        <div className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-amber-500" />
+          <span className="text-xs font-semibold text-slate-900">4.9 média</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default async function RootPage() {
   return (
     <PublicPageLayout>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-white">
-        {/* Background shapes */}
-        <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] translate-x-1/3 -translate-y-1/4 rounded-full bg-brand-50 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/4 translate-y-1/4 rounded-full bg-accent-50 blur-3xl" />
+      {/* ========== HERO ========== */}
+      <section className="relative overflow-hidden bg-[#9FE870]">
+        {/* Decorative shapes */}
+        <div className="pointer-events-none absolute top-20 right-20 h-64 w-64 rounded-full bg-white/20 blur-2xl" />
+        <div className="pointer-events-none absolute bottom-10 left-10 h-48 w-48 rounded-full bg-[#2563eb]/10 blur-2xl" />
 
-        <div className="mu-shell relative grid gap-8 py-16 lg:grid-cols-2 lg:items-center lg:gap-12 lg:py-24">
+        <div className="mu-shell relative grid gap-10 py-20 lg:grid-cols-2 lg:items-center lg:py-28">
           <FadeIn direction="right">
             <div className="max-w-xl">
-              <p className="inline-flex items-center gap-2 rounded-md bg-brand-50 px-3 py-1.5 text-xs font-semibold tracking-wide text-brand-700">
-                <Globe className="h-3.5 w-3.5" />
+              <p className="text-sm font-semibold uppercase tracking-widest text-slate-900/70">
                 Atendimento em vídeo para quem mora fora
               </p>
-              <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05] tracking-[-0.03em] text-slate-900 md:text-6xl lg:text-7xl">
-                Profissionais brasileiros, no seu fuso, na sua língua.
+              <h1 className="mt-4 font-display text-5xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-6xl lg:text-7xl">
+                Profissionais brasileiros, no seu fuso, na sua língua
               </h1>
-              <p className="mt-5 max-w-[46ch] text-lg leading-8 text-slate-600">
-                Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade — porque também passaram por isso.
+              <p className="mt-6 text-lg leading-8 text-slate-800">
+                Psicólogos, nutricionistas, coaches e outros especialistas que entendem sua realidade.
               </p>
-
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/buscar" className="mu-btn-primary inline-flex items-center justify-center gap-2">
-                  Ver profissionais disponíveis
-                  <ArrowRight className="h-4 w-4" />
+                <Link
+                  href="/buscar"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800"
+                >
+                  Ver profissionais
+                  <ArrowRight className="h-5 w-5" />
                 </Link>
-                <Link href="/registrar-profissional" className="mu-btn-outline inline-flex items-center justify-center gap-2">
-                  Quero atender pela Muuday
-                  <ArrowRight className="h-4 w-4" />
+                <Link
+                  href="/registrar-profissional"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-900 bg-transparent px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-slate-900/10"
+                >
+                  Quero atender
                 </Link>
               </div>
-
-              <div className="mt-10 flex items-center gap-4">
-                <div className="flex -space-x-2">
+              <div className="mt-10 flex items-center gap-3">
+                <div className="flex -space-x-3">
                   {[
                     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
                     'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
@@ -181,139 +208,106 @@ export default async function RootPage() {
                       key={i}
                       src={src}
                       alt=""
-                      width={40}
-                      height={40}
-                      className="h-8 w-8 rounded-full border-2 border-white object-cover"
+                      width={48}
+                      height={48}
+                      className="h-10 w-10 rounded-full border-2 border-[#9FE870] object-cover"
                     />
                   ))}
                 </div>
-                <p className="text-sm text-slate-500">
-                  <span className="font-semibold text-slate-900">+200 profissionais</span> já atendendo
+                <p className="text-sm font-medium text-slate-800">
+                  <span className="font-bold text-slate-900">+200 profissionais</span> ativos
                 </p>
               </div>
             </div>
           </FadeIn>
 
           <FadeIn direction="left" delay={0.2}>
-            <div className="relative">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-100">
-                <Image
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80"
-                  alt="Profissional brasileiro em atendimento por vídeo"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
-              {/* Floating cards */}
-              <div className="absolute -left-4 top-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm md:left-4 md:top-8">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent-100 text-accent-600">
-                    <Video className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">Sessão ao vivo</p>
-                    <p className="text-[10px] text-slate-500">Videochamada HD</p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -right-4 bottom-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm md:right-4 md:bottom-8">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-100 text-brand-600">
-                    <Star className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">4.9 de média</p>
-                    <p className="text-[10px] text-slate-500">+1.000 avaliações</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProductMockup />
           </FadeIn>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="border-y border-slate-200 bg-slate-50">
-        <div className="mu-shell flex flex-wrap items-center justify-center gap-8 py-10 text-center md:gap-16">
-          {STATS.map((stat, i) => (
-            <FadeIn key={stat.label} delay={i * 0.1}>
-              <div className="w-full sm:w-auto">
-                <p className="font-display text-4xl font-bold text-brand-600 md:text-5xl">{stat.value}</p>
-                <p className="mt-1 text-sm font-medium text-slate-500">{stat.label}</p>
-              </div>
-            </FadeIn>
-          ))}
+      {/* ========== STATS ========== */}
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mu-shell flex flex-wrap items-center justify-center gap-6 py-10 md:gap-16">
+          {STATS.map((stat, i) => {
+            const Icon = stat.icon
+            return (
+              <FadeIn key={stat.label} delay={i * 0.1}>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50">
+                    <Icon className="h-5 w-5 text-brand-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-display text-2xl font-bold text-slate-900 md:text-3xl">{stat.value}</p>
+                    <p className="text-sm text-slate-500">{stat.label}</p>
+                  </div>
+                </div>
+              </FadeIn>
+            )
+          })}
         </div>
       </section>
 
-      {/* Features — alternating layout */}
+      {/* ========== FOR WHO (carousel-like cards) ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell">
           <FadeIn>
             <div className="mx-auto max-w-2xl text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">O que você encontra aqui</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.03em] text-slate-900 md:text-5xl">
-                Encontre quem fala a mesma língua — literalmente.
+              <h2 className="font-display text-4xl font-black uppercase tracking-tight text-slate-900 md:text-5xl">
+                Para quem está longe, mas perto
               </h2>
+              <p className="mt-4 text-lg text-slate-600">
+                Muuday conecta brasileiros no exterior com profissionais que entendem sua jornada.
+              </p>
             </div>
           </FadeIn>
 
-          <div className="mt-16 space-y-20">
-            {FEATURES.map((feature, i) => {
-              const Icon = feature.icon
-              const isReversed = i % 2 === 1
-              return (
-                <FadeIn key={feature.title} direction={isReversed ? 'left' : 'right'}>
-                  <div className={`grid items-center gap-8 lg:grid-cols-2 lg:gap-16 ${isReversed ? 'lg:grid-flow-dense' : ''}`}>
-                    <div className={isReversed ? 'lg:col-start-2' : ''}>
-                      <div className="aspect-[4/3] overflow-hidden rounded-xl bg-slate-100">
-                        <Image
-                          src={feature.image}
-                          alt={feature.title}
-                          width={600}
-                          height={450}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <div className={isReversed ? 'lg:col-start-1 lg:row-start-1' : ''}>
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <h3 className="mt-6 text-2xl font-bold text-slate-900">{feature.title}</h3>
-                      <p className="mt-3 text-base leading-7 text-slate-600">{feature.body}</p>
-                    </div>
+          <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
+            {FOR_WHO.map(item => (
+              <StaggerItem key={item.title}>
+                <div className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:shadow-lg">
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      width={600}
+                      height={450}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
                   </div>
-                </FadeIn>
-              )
-            })}
-          </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
+                  </div>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="mu-section bg-slate-50">
+      {/* ========== HOW IT WORKS ========== */}
+      <section className="mu-section bg-[#9FE870]">
         <div className="mu-shell">
           <FadeIn>
             <div className="text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Como funciona</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.03em] text-slate-900 md:text-5xl">
-                Três passos. Nada de complicação.
+              <h2 className="font-display text-4xl font-black uppercase tracking-tight text-slate-900 md:text-5xl">
+                Três passos. Sem complicação.
               </h2>
             </div>
           </FadeIn>
 
-          <StaggerContainer className="mt-16 grid gap-6 md:grid-cols-3" staggerDelay={0.15}>
-            {HOW_IT_WORKS.map(item => {
+          <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.15}>
+            {HOW_STEPS.map(item => {
               const Icon = item.icon
               return (
                 <StaggerItem key={item.step}>
-                  <div className="relative rounded-xl border border-slate-200 bg-white p-8">
-                    <span className="absolute right-6 top-6 font-display text-5xl font-bold text-slate-100">
+                  <div className="relative rounded-2xl bg-white p-8 shadow-sm">
+                    <span className="absolute right-6 top-6 font-display text-6xl font-black text-slate-100">
                       {item.step}
                     </span>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-900 text-white">
                       <Icon className="h-6 w-6" />
                     </div>
                     <h3 className="mt-6 text-xl font-bold text-slate-900">{item.title}</h3>
@@ -326,17 +320,16 @@ export default async function RootPage() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* ========== CATEGORIES ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell">
           <FadeIn>
             <div className="mx-auto max-w-2xl text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Categorias</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.03em] text-slate-900 md:text-5xl">
-                Escolha por especialidade.
+              <h2 className="font-display text-4xl font-black uppercase tracking-tight text-slate-900 md:text-5xl">
+                Escolha por especialidade
               </h2>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                Cada categoria tem profissionais que combinam expertise com a experiência de viver fora do Brasil.
+              <p className="mt-4 text-lg text-slate-600">
+                Oito áreas de atuação com profissionais revisados e prontos para atender.
               </p>
             </div>
           </FadeIn>
@@ -346,16 +339,16 @@ export default async function RootPage() {
               <StaggerItem key={category.slug}>
                 <Link
                   href={`/buscar?categoria=${category.slug}`}
-                  className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 transition hover:border-brand-300 hover:shadow-sm"
+                  className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 transition hover:border-brand-300 hover:shadow-md"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition group-hover:bg-brand-100">
-                    {CATEGORY_ICONS[category.slug] || <Star className="h-5 w-5" />}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition group-hover:bg-brand-100">
+                    <span className="text-2xl" aria-hidden="true">{category.icon}</span>
                   </div>
-                  <h3 className="mt-4 text-base font-semibold text-slate-900">{category.name}</h3>
+                  <h3 className="mt-4 text-base font-bold text-slate-900">{category.name}</h3>
                   <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{category.description}</p>
-                  <p className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600">
+                  <p className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand-600">
                     Ver profissionais
-                    <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                   </p>
                 </Link>
               </StaggerItem>
@@ -364,14 +357,13 @@ export default async function RootPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* ========== TESTIMONIALS ========== */}
       <section className="mu-section bg-slate-50">
         <div className="mu-shell">
           <FadeIn>
             <div className="mx-auto max-w-2xl text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Depoimentos</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.03em] text-slate-900 md:text-5xl">
-                O que dizem quem usa.
+              <h2 className="font-display text-4xl font-black uppercase tracking-tight text-slate-900 md:text-5xl">
+                O que dizem quem usa
               </h2>
             </div>
           </FadeIn>
@@ -379,7 +371,7 @@ export default async function RootPage() {
           <StaggerContainer className="mt-12 grid gap-6 md:grid-cols-3" staggerDelay={0.12}>
             {TESTIMONIALS.map(t => (
               <StaggerItem key={t.name}>
-                <div className="rounded-xl border border-slate-200 bg-white p-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6">
                   <div className="flex items-center gap-3">
                     <Image
                       src={t.avatar}
@@ -389,14 +381,14 @@ export default async function RootPage() {
                       className="h-12 w-12 rounded-full object-cover"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{t.name}</p>
+                      <p className="text-sm font-bold text-slate-900">{t.name}</p>
                       <p className="text-xs text-slate-500">{t.role}</p>
                     </div>
                   </div>
                   <p className="mt-4 text-sm leading-7 text-slate-600">&ldquo;{t.text}&rdquo;</p>
                   <div className="mt-4 flex gap-0.5">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-accent-400 text-accent-400" />
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
                 </div>
@@ -406,22 +398,21 @@ export default async function RootPage() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* ========== FAQ ========== */}
       <section className="mu-section bg-white">
         <div className="mu-shell grid gap-12 lg:grid-cols-[0.4fr_0.6fr] lg:items-start">
           <FadeIn direction="right">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">FAQ</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.03em] text-slate-900 md:text-5xl">
+              <h2 className="font-display text-4xl font-black uppercase tracking-tight text-slate-900 md:text-5xl">
                 Perguntas frequentes
               </h2>
-              <p className="mt-4 text-base leading-7 text-slate-600">Ainda com dúvida? Entre em contato conosco.</p>
+              <p className="mt-4 text-lg text-slate-600">Ainda com dúvida? Entre em contato conosco.</p>
               <Link
                 href="/ajuda"
-                className="mu-btn-outline mt-6 inline-flex items-center gap-1.5 text-sm"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-brand-300 hover:text-brand-600"
               >
                 Fale com a equipe
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </FadeIn>
@@ -432,28 +423,35 @@ export default async function RootPage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* ========== CTA ========== */}
       <section className="mu-section">
         <div className="mu-shell">
           <FadeIn>
-            <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-8 py-16 text-center text-white md:px-16 md:py-20">
-              {/* Background decoration */}
-              <div className="pointer-events-none absolute top-0 right-0 h-64 w-64 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/10" />
-              <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 -translate-x-1/4 translate-y-1/4 rounded-full bg-accent-500/20" />
+            <div className="relative overflow-hidden rounded-3xl bg-brand-600 px-8 py-20 text-center text-white md:px-16 md:py-24">
+              {/* Background decorations */}
+              <div className="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-white/10" />
+              <div className="pointer-events-none absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-accent-400/20" />
+              <div className="pointer-events-none absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/5" />
 
               <div className="relative">
-                <h2 className="mx-auto max-w-2xl font-display text-4xl font-bold tracking-[-0.03em] md:text-5xl">
-                  Comece agora.
+                <h2 className="mx-auto max-w-3xl font-display text-4xl font-black uppercase tracking-tight md:text-5xl lg:text-6xl">
+                  Comece agora
                 </h2>
-                <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-white/90">
+                <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-white/90">
                   Procure um especialista ou cadastre seu perfil para começar a atender.
                 </p>
-                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link href="/buscar" className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-8 py-3.5 text-base font-semibold text-brand-600 transition hover:bg-slate-100">
+                <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                  <Link
+                    href="/buscar"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-8 py-4 text-base font-bold text-brand-600 transition hover:bg-slate-100"
+                  >
                     Ver especialistas
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-5 w-5" />
                   </Link>
-                  <Link href="/cadastro?role=profissional" className="inline-flex items-center justify-center gap-2 rounded-md border border-white/40 bg-white/10 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/20">
+                  <Link
+                    href="/cadastro?role=profissional"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-white/40 bg-white/10 px-8 py-4 text-base font-bold text-white transition hover:bg-white/20"
+                  >
                     Criar perfil profissional
                   </Link>
                 </div>
