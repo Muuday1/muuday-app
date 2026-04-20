@@ -32,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Home' },
   { href: '/buscar', label: 'Buscar profissionais' },
   { href: '/registrar-profissional', label: 'Registrar como profissional' },
+  { href: '/blog', label: 'Blog' },
   { href: '/sobre', label: 'Sobre nós' },
 ]
 

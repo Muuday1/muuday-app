@@ -67,6 +67,11 @@ export function PublicFooter() {
                   Sobre nós
                 </Link>
               </li>
+              <li>
+                <Link href="/blog" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
+                  Blog
+                </Link>
+              </li>
             </ul>
           </div>
 
