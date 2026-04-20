@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/security/rate-limit'
 
 export async function getGuideUsefulCount(guideSlug: string) {
   const supabase = await createClient()
@@ -19,6 +20,9 @@ export async function getGuideUsefulCount(guideSlug: string) {
 
 export async function toggleGuideUseful(guideSlug: string, visitorId: string) {
   const supabase = await createClient()
+
+  const rl = await rateLimit('messageSend', `guide-useful-${visitorId.slice(0, 32)}`)
+  if (!rl.allowed) return { success: false, marked: false, error: 'Muitas ações. Tente novamente em breve.' }
 
   const { data: existing } = await supabase
     .from('guide_feedback')
@@ -61,6 +65,9 @@ export async function submitGuideReport(
   message: string
 ) {
   const supabase = await createClient()
+
+  const rl = await rateLimit('messageSend', `guide-report-${visitorId.slice(0, 32)}`)
+  if (!rl.allowed) return { success: false, error: 'Muitos relatórios. Tente novamente em breve.' }
 
   if (!message.trim()) {
     return { success: false, error: 'Descreva o problema encontrado.' }

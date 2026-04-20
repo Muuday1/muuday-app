@@ -55,6 +55,7 @@ const envSchema = z.object({
   // Push notifications
   VAPID_PUBLIC_KEY: optionalString,
   VAPID_PRIVATE_KEY: optionalString,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: optionalString,
 
   // OAuth (Calendar sync)
   GOOGLE_CLIENT_ID: optionalString,

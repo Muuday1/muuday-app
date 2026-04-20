@@ -32,6 +32,7 @@ export function PushNotificationToggle() {
 
       if (!vapidPublicKey) {
         console.error('VAPID public key not configured')
+        setIsLoading(false)
         return
       }
 
