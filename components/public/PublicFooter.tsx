@@ -56,11 +56,6 @@ export function PublicFooter() {
                   Registrar como profissional
                 </Link>
               </li>
-              <li>
-                <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Central de ajuda
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -70,16 +65,6 @@ export function PublicFooter() {
               <li>
                 <Link href="/sobre" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
                   Sobre nós
-                </Link>
-              </li>
-              <li>
-                <Link href="/sobre" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Carreiras
-                </Link>
-              </li>
-              <li>
-                <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Contato
                 </Link>
               </li>
             </ul>
@@ -110,6 +95,16 @@ export function PublicFooter() {
             <p className="text-sm font-bold uppercase tracking-wider text-slate-900">Suporte</p>
             <ul className="mt-4 space-y-3">
               <li>
+                <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
+                  Central de ajuda
+                </Link>
+              </li>
+              <li>
+                <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
+                  Contato
+                </Link>
+              </li>
+              <li>
                 <button
                   type="button"
                   className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline"
@@ -117,11 +112,6 @@ export function PublicFooter() {
                 >
                   Gerenciar cookies
                 </button>
-              </li>
-              <li>
-                <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  FAQ
-                </Link>
               </li>
             </ul>
           </div>
