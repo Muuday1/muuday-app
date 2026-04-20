@@ -1,51 +1,24 @@
 import Link from 'next/link'
-import { ArrowRight, HelpCircle, MessageCircle, Search } from 'lucide-react'
+import { ArrowRight, Search, UserCircle, BadgeCheck } from 'lucide-react'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { ScrollReveal } from '@/components/landing/ScrollReveal'
-import { FaqAccordion } from '@/components/landing/FaqAccordion'
+import { HELP_COLLECTIONS, getAllArticles } from '@/lib/help-data'
 
-export const metadata = { title: 'Ajuda | Muuday' }
+export const metadata = { title: 'Central de Ajuda | Muuday' }
 
-const FAQ_ITEMS = [
-  {
-    question: 'Posso buscar profissionais sem criar conta?',
-    answer:
-      'Sim. A busca é pública. Você só precisa criar conta para iniciar um agendamento ou enviar solicitação de horário.',
-  },
-  {
-    question: 'Conta de usuário e conta profissional são a mesma coisa?',
-    answer:
-      'Não. São tipos de conta separados, com navegação e permissões diferentes para cada um.',
-  },
-  {
-    question: 'Como funciona o fuso horário?',
-    answer:
-      'Os horários são exibidos no fuso do usuário por padrão. O fuso do profissional aparece durante o agendamento.',
-  },
-  {
-    question: 'Onde vejo pagamentos, reembolsos e recibos?',
-    answer:
-      'Na área de Perfil/Agenda do usuário e na área Financeiro para profissionais, conforme o tipo de conta.',
-  },
-  {
-    question: 'Como funciona a videochamada?',
-    answer:
-      'A sessão acontece diretamente na plataforma Muuday. Você recebe um link na hora do agendamento e pode acessar pelo navegador, sem instalar nada.',
-  },
-  {
-    question: 'Posso cancelar ou remarcar uma sessão?',
-    answer:
-      'Sim. Você pode cancelar ou remarcar seguindo a política de cancelamento definida pelo profissional. O reembolso é processado automaticamente quando aplicável.',
-  },
-]
-
-const QUICK_LINKS = [
-  { icon: Search, label: 'Buscar profissionais', href: '/buscar' },
-  { icon: HelpCircle, label: 'Como funciona', href: '/sobre' },
-  { icon: MessageCircle, label: 'Fale conosco', href: '/sobre' },
+const POPULAR_ARTICLES = [
+  'como-buscar-profissionais',
+  'como-agendar-uma-sessao',
+  'pagamentos-e-reembolsos',
+  'como-criar-seu-perfil',
+  'como-funciona-o-pagamento',
+  'configurar-servicos-e-precos',
 ]
 
 export default async function AjudaPage() {
+  const allArticles = getAllArticles()
+  const popular = POPULAR_ARTICLES.map((slug) => allArticles.find((a) => a.slug === slug)).filter(Boolean)
+
   return (
     <PublicPageLayout>
       {/* Hero */}
@@ -57,58 +30,80 @@ export default async function AjudaPage() {
                 Central de ajuda
               </h1>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800">
-                Respostas rápidas para as dúvidas mais comuns de quem busca ou atende pela Muuday.
+                Encontre respostas, tutoriais e guias para usar a Muuday como usuário ou profissional.
               </p>
             </div>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* Quick links */}
+      {/* Collections */}
       <section className="mu-section bg-white">
         <div className="mu-shell">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {QUICK_LINKS.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#9FE870] hover:shadow-lg hover:shadow-[#9FE870]/10"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#9FE870]/20 transition group-hover:bg-[#9FE870]/30">
-                  <link.icon className="h-6 w-6 text-slate-900" />
-                </div>
-                <span className="text-sm font-bold text-slate-900">{link.label}</span>
-                <ArrowRight className="ml-auto h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-600" />
-              </Link>
+          <ScrollReveal variant="slideUp">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="font-display text-3xl font-black uppercase tracking-tight text-slate-900 md:text-4xl">
+                Escolha seu perfil
+              </h2>
+              <p className="mt-4 text-lg text-slate-600">
+                Selecione a área que melhor descreve você para ver os artigos relevantes.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            {HELP_COLLECTIONS.map((collection, i) => (
+              <ScrollReveal key={collection.slug} variant="scale" delay={i * 0.1}>
+                <Link
+                  href={`/ajuda/c/${collection.slug}`}
+                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-8 transition hover:border-[#9FE870] hover:shadow-xl hover:shadow-[#9FE870]/10 hover:-translate-y-1"
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#9FE870]/20">
+                    <collection.icon className="h-7 w-7 text-slate-900" />
+                  </div>
+                  <h3 className="mt-5 text-xl font-bold text-slate-900">{collection.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{collection.description}</p>
+                  <div className="mt-6 flex items-center gap-2 text-sm font-bold text-slate-900">
+                    {collection.articles.length} artigos
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* Popular articles */}
       <section className="mu-section bg-[#f2f4f7]">
-        <div className="mu-shell grid gap-12 lg:grid-cols-[0.4fr_0.6fr] lg:items-start">
-          <ScrollReveal variant="slideRight">
-            <div>
+        <div className="mu-shell">
+          <ScrollReveal variant="slideUp">
+            <div className="mx-auto max-w-2xl text-center">
               <h2 className="font-display text-3xl font-black uppercase tracking-tight text-slate-900 md:text-4xl">
-                Perguntas frequentes
+                Artigos populares
               </h2>
-              <p className="mt-4 text-lg text-slate-600">
-                Ainda com dúvida? Entre em contato conosco.
-              </p>
-              <Link
-                href="/sobre"
-                className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
-              >
-                Fale com a equipe
-                <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
           </ScrollReveal>
 
-          <ScrollReveal variant="slideLeft" delay={0.15}>
-            <FaqAccordion items={FAQ_ITEMS} />
-          </ScrollReveal>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {popular.map((article, i) => (
+              <ScrollReveal key={article!.slug} variant="scale" delay={i * 0.05}>
+                <Link
+                  href={`/ajuda/a/${article!.slug}`}
+                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-[#9FE870] hover:shadow-lg hover:shadow-[#9FE870]/10"
+                >
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    {article!.collectionTitle}
+                  </span>
+                  <h3 className="mt-3 text-base font-bold text-slate-900">{article!.title}</h3>
+                  <span className="mt-auto pt-4 text-sm font-bold text-brand-600 transition group-hover:text-slate-900">
+                    Ler artigo
+                    <ArrowRight className="ml-1 inline-block h-4 w-4 transition group-hover:translate-x-1" />
+                  </span>
+                </Link>
+              </ScrollReveal>
+            ))}
+          </div>
         </div>
       </section>
     </PublicPageLayout>
