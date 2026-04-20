@@ -336,28 +336,46 @@ export function PublicHeader({
       </div>
 
       {menuOpen && (
-        <div id="public-nav-panel" className="border-t border-slate-200 bg-white md:hidden">
+        <div
+          id="public-nav-panel"
+          className={`border-t md:hidden ${
+            isDarkHeader
+              ? 'border-white/10 bg-[#4a7c2f]'
+              : 'border-slate-200 bg-white'
+          }`}
+        >
           <nav className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-3">
-            {resolvedNavItems.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMenuOpen(false)}
-                className={`rounded-md border px-3.5 py-2.5 text-sm font-medium transition ${
-                  pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
-                    ? 'border-brand-600 bg-brand-50 text-brand-700'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600'
-                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {resolvedNavItems.map(item => {
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`rounded-md border px-3.5 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 ${
+                    isDarkHeader
+                      ? isActive
+                        ? 'border-[#9FE870]/50 bg-[#9FE870]/15 text-white focus-visible:ring-white/30'
+                        : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white focus-visible:ring-white/30'
+                      : isActive
+                        ? 'border-brand-600 bg-brand-50 text-brand-700 focus-visible:ring-brand-500/30'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600 focus-visible:ring-brand-500/30'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
 
             {isLoggedInClient ? (
               <Link
                 href={loggedInHrefClient}
                 onClick={() => setMenuOpen(false)}
-                className="mt-1 rounded-md bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className={`mt-1 rounded-md px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${
+                  isDarkHeader
+                    ? 'bg-[#9FE870] text-slate-900 hover:bg-[#8fd65f] focus-visible:ring-white/30'
+                    : 'bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-500/30'
+                }`}
               >
                 Minha área
               </Link>
@@ -370,14 +388,22 @@ export function PublicHeader({
                     setMenuOpen(false)
                     setAuthMenuOpen(true)
                   }}
-                  className="mt-1 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className={`mt-1 rounded-md border px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${
+                    isDarkHeader
+                      ? 'border-white/20 bg-white/10 text-white hover:bg-white/20 focus-visible:ring-white/30'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600 focus-visible:ring-brand-500/30'
+                  }`}
                 >
                   Login
                 </button>
                 <Link
                   href="/cadastro"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-md bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className={`rounded-md px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${
+                    isDarkHeader
+                      ? 'bg-[#9FE870] text-slate-900 hover:bg-[#8fd65f] focus-visible:ring-white/30'
+                      : 'bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-500/30'
+                  }`}
                 >
                   Criar conta
                 </Link>
