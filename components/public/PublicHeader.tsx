@@ -185,12 +185,12 @@ export function PublicHeader({
     return item
   })
 
-  const isHome = pathname === '/'
+  const isDarkHeader = pathname === '/' || pathname === '/registrar-profissional'
 
   return (
     <header
       className={`sticky top-0 z-30 transition-colors ${
-        isHome
+        isDarkHeader
           ? 'border-b border-white/10 bg-[#4a7c2f] backdrop-blur-xl'
           : 'border-b border-slate-200 bg-white/95 backdrop-blur-xl'
       }`}
@@ -201,7 +201,7 @@ export function PublicHeader({
             href="/"
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
           >
-            <span className={`font-display text-2xl font-black tracking-tight ${isHome ? 'text-white' : 'text-slate-900'}`}>muuday</span>
+            <span className={`font-display text-2xl font-black tracking-tight ${isDarkHeader ? 'text-white' : 'text-slate-900'}`}>muuday</span>
           </Link>
 
           <nav className="hidden flex-1 items-center gap-2 overflow-x-auto md:flex">
@@ -218,7 +218,7 @@ export function PublicHeader({
               onChange={event => handleLanguageChange(event.target.value)}
               disabled={!hasLanguageChoice}
               className={`h-9 rounded-md border px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-                isHome
+                isDarkHeader
                   ? 'border-white/20 bg-white/10 text-white'
                   : 'border-slate-200 bg-white text-slate-700'
               }`}
@@ -260,7 +260,7 @@ export function PublicHeader({
                   type="button"
                   onClick={() => setAuthMenuOpen(true)}
                   className={`rounded-md border px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-                    isHome
+                    isDarkHeader
                       ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
                       : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600'
                   }`}
@@ -270,7 +270,7 @@ export function PublicHeader({
                 <Link
                   href="/cadastro"
                   className={`rounded-md px-4 py-2 text-xs font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-                    isHome
+                    isDarkHeader
                       ? 'bg-[#9FE870] text-slate-900 hover:bg-[#8fd65f]'
                       : 'bg-brand-600 hover:bg-brand-700'
                   }`}
@@ -287,7 +287,7 @@ export function PublicHeader({
               onChange={event => handleLanguageChange(event.target.value)}
               disabled={!hasLanguageChoice}
               className={`h-8 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-                isHome
+                isDarkHeader
                   ? 'border-white/20 bg-white/10 text-white'
                   : 'border-slate-200 bg-white text-slate-700'
               }`}
@@ -304,7 +304,7 @@ export function PublicHeader({
                 value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
                 className={`h-8 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-                  isHome
+                  isDarkHeader
                     ? 'border-white/20 bg-white/10 text-white'
                     : 'border-slate-200 bg-white text-slate-700'
                 }`}
@@ -321,7 +321,7 @@ export function PublicHeader({
               type="button"
               onClick={() => setMenuOpen(value => !value)}
               className={`inline-flex h-9 w-9 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-                isHome
+                isDarkHeader
                   ? 'border-white/20 bg-white/10 text-white'
                   : 'border-slate-200 bg-white text-slate-700'
               }`}
