@@ -226,6 +226,98 @@ export async function resolveCase(
 }
 
 /**
+ * Get a single case by ID.
+ */
+export async function getCaseById(
+  caseId: string,
+): Promise<DisputeResult<{
+  id: string
+  booking_id: string
+  reporter_id: string
+  type: string
+  status: string
+  reason: string
+  resolution: string | null
+  refund_amount: number | null
+  resolved_at: string | null
+  created_at: string
+  reporter_name: string | null
+}>> {
+  const { supabase, userId } = await getAuthenticatedUser()
+
+  const idParsed = caseIdSchema.safeParse(caseId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const { data, error } = await supabase
+    .from('cases')
+    .select('id, booking_id, reporter_id, type, status, reason, resolution, refund_amount, resolved_at, created_at, profiles!cases_reporter_id_fkey(full_name)')
+    .eq('id', idParsed.data)
+    .maybeSingle()
+
+  if (error || !data) {
+    return { success: false, error: 'Caso não encontrado.' }
+  }
+
+  const isAdmin = await requireAdmin(supabase)
+  const canAccess = data.reporter_id === userId || isAdmin.success
+  if (!canAccess) {
+    return { success: false, error: 'Você não tem acesso a este caso.' }
+  }
+
+  return {
+    success: true,
+    data: {
+      ...data,
+      reporter_name: (data as any).profiles?.full_name || null,
+    } as any,
+  }
+}
+
+/**
+ * Get messages for a case.
+ */
+export async function getCaseMessages(
+  caseId: string,
+): Promise<DisputeResult<{ messages: unknown[] }>> {
+  const { supabase, userId } = await getAuthenticatedUser()
+
+  const idParsed = caseIdSchema.safeParse(caseId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const { data: caseRow } = await supabase
+    .from('cases')
+    .select('id, reporter_id')
+    .eq('id', idParsed.data)
+    .maybeSingle()
+
+  if (!caseRow) {
+    return { success: false, error: 'Caso não encontrado.' }
+  }
+
+  const isAdmin = await requireAdmin(supabase)
+  const canAccess = caseRow.reporter_id === userId || isAdmin.success
+  if (!canAccess) {
+    return { success: false, error: 'Você não tem acesso a este caso.' }
+  }
+
+  const { data, error } = await supabase
+    .from('case_messages')
+    .select('id, sender_id, content, created_at, profiles!case_messages_sender_id_fkey(full_name)')
+    .eq('case_id', idParsed.data)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    return { success: false, error: 'Erro ao carregar mensagens.' }
+  }
+
+  return { success: true, data: { messages: data || [] } }
+}
+
+/**
  * List cases for admin or reporter.
  */
 export async function listCases(

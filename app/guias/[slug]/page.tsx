@@ -28,6 +28,7 @@ import { ScrollReveal } from '@/components/landing/ScrollReveal'
 import { BlurBlob } from '@/components/landing/BlurBlob'
 import { Sparkle } from '@/components/landing/Sparkle'
 import { GUIDES, GUIDE_CATEGORIES } from '@/lib/guides-data'
+import { GuideFeedback } from '@/components/guias/GuideFeedback'
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
@@ -195,6 +196,8 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
                 </div>
               </FadeIn>
             )}
+
+            <GuideFeedback guideSlug={guide.slug} />
           </div>
         </div>
       </section>

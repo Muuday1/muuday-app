@@ -8,6 +8,7 @@ import { MagneticButton } from '@/components/landing/MagneticButton'
 import { Sparkle } from '@/components/landing/Sparkle'
 import { DotPattern } from '@/components/landing/DotPattern'
 import { BLOG_ARTICLES, getArticleBySlug, type BlogCategory } from '@/lib/blog-data'
+import { BlogEngagement } from '@/components/blog/BlogEngagement'
 
 export const metadata = { title: 'Blog | Muuday' }
 
@@ -154,6 +155,8 @@ export default async function BlogArticlePage({ params }: PageProps) {
                 })}
               </div>
             </ScrollReveal>
+
+            <BlogEngagement articleSlug={article.slug} />
 
             {/* Author / CTA box */}
             <ScrollReveal variant="scale" delay={0.1}>

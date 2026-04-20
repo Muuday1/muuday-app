@@ -3,7 +3,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 let webPush: typeof import('web-push') | null = null
 
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   webPush = require('web-push')
 } catch {
   // web-push not installed

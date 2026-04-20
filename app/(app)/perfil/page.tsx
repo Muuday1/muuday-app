@@ -3,10 +3,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, SlidersHorizontal } from 'lucide-react'
+import { Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, SlidersHorizontal, Bell } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfileAccountSettings } from '@/components/profile/ProfileAccountSettings'
+import { PushNotificationToggle } from '@/components/push/PushNotificationToggle'
 
 export default async function PerfilPage() {
   const supabase = await createClient()
@@ -272,6 +273,15 @@ export default async function PerfilPage() {
           </div>
         </div>
       )}
+
+      {/* Push Notifications */}
+      <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
+        <h3 className="font-display font-bold text-lg text-neutral-900 mb-4 flex items-center gap-2">
+          <Bell className="w-4 h-4" />
+          Notificações
+        </h3>
+        <PushNotificationToggle />
+      </div>
 
       <ProfileAccountSettings />
     </div>

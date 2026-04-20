@@ -10,7 +10,6 @@ import { env } from '@/lib/config/env'
 let PostHogClient: typeof import('posthog-node').PostHog | null = null
 
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ph = require('posthog-node')
   PostHogClient = ph.PostHog
 } catch {
