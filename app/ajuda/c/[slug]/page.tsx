@@ -9,17 +9,19 @@ export function generateStaticParams() {
   return HELP_COLLECTIONS.map((c) => ({ slug: c.slug }))
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const collection = getCollectionBySlug(params.slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const collection = getCollectionBySlug(slug)
   if (!collection) return { title: 'Ajuda | Muuday' }
   return { title: `${collection.title} | Central de Ajuda | Muuday` }
 }
 
-export default async function CollectionPage({ params }: { params: { slug: string } }) {
-  const collection = getCollectionBySlug(params.slug)
+export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const collection = getCollectionBySlug(slug)
   if (!collection) return notFound()
 
-  const other = HELP_COLLECTIONS.find((c) => c.slug !== params.slug)!
+  const other = HELP_COLLECTIONS.find((c) => c.slug !== slug)!
 
   return (
     <PublicPageLayout>

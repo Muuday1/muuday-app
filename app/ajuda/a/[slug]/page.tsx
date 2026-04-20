@@ -14,19 +14,21 @@ export function generateStaticParams() {
   return getAllArticles().map((a) => ({ slug: a.slug }))
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const article = getArticleBySlug(params.slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const article = getArticleBySlug(slug)
   if (!article) return { title: 'Ajuda | Muuday' }
   return { title: `${article.title} | Central de Ajuda | Muuday` }
 }
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  const article = getArticleBySlug(params.slug)
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const article = getArticleBySlug(slug)
   if (!article) return notFound()
 
-  const collection = getArticleCollection(params.slug)!
+  const collection = getArticleCollection(slug)!
   const collectionArticles = collection.articles
-  const currentIndex = collectionArticles.findIndex((a) => a.slug === params.slug)
+  const currentIndex = collectionArticles.findIndex((a) => a.slug === slug)
   const prev = currentIndex > 0 ? collectionArticles[currentIndex - 1] : null
   const next = currentIndex < collectionArticles.length - 1 ? collectionArticles[currentIndex + 1] : null
 
@@ -74,7 +76,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                         <Link
                           href={`/ajuda/a/${a.slug}`}
                           className={`block rounded-lg px-3 py-2 text-sm transition ${
-                            a.slug === params.slug
+                            a.slug === slug
                               ? 'bg-[#9FE870]/20 font-bold text-slate-900'
                               : 'text-slate-600 hover:bg-white hover:text-slate-900'
                           }`}
