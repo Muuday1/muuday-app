@@ -32,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Home' },
   { href: '/buscar', label: 'Buscar profissionais' },
   { href: '/registrar-profissional', label: 'Registrar como profissional' },
+  { href: '/guias', label: 'Guias' },
   { href: '/blog', label: 'Blog' },
   { href: '/sobre', label: 'Sobre nós' },
 ]
@@ -186,7 +187,7 @@ export function PublicHeader({
     return item
   })
 
-  const isDarkHeader = pathname === '/' || pathname === '/registrar-profissional'
+  const isDarkHeader = pathname === '/' || pathname === '/registrar-profissional' || pathname.startsWith('/guias')
 
   return (
     <header

@@ -418,6 +418,30 @@ export default async function SobrePage() {
         </div>
       </section>
 
+      {/* ========== RESOURCES ========== */}
+      <section className="mu-section bg-white">
+        <div className="mu-shell">
+          <ScrollReveal variant="slideUp">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="font-display text-3xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-4xl">
+                Recursos gratuitos
+              </h2>
+              <p className="mt-4 text-lg text-slate-600">
+                Além da plataforma, criamos guias práticos para ajudar brasileiros no exterior
+                a resolver burocracias e viver melhor.
+              </p>
+              <Link
+                href="/guias"
+                className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
+              >
+                Explorar guias
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* ========== FINAL CTA ========== */}
       <section className="relative mu-section bg-[#9FE870] overflow-hidden">
         <DotPattern className="opacity-20" dotColor="#0f172a" spacing={48} dotSize={2} />

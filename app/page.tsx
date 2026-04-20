@@ -2,8 +2,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
+  BookOpen,
   CalendarCheck,
   Clock,
+  FileText,
   Globe,
   Search,
   Star,
@@ -26,6 +28,7 @@ import { TestimonialCarousel } from '@/components/landing/TestimonialCarousel'
 import { ParallaxSection } from '@/components/landing/ParallaxSection'
 import { WorksEverywhereTabs } from '@/components/landing/WorksEverywhereTabs'
 import { SearchCard } from '@/components/landing/SearchCard'
+import { GUIDES, GUIDE_CATEGORIES } from '@/lib/guides-data'
 
 
 const STATS = [
@@ -537,6 +540,66 @@ export default async function RootPage() {
           <ScrollReveal variant="slideLeft" delay={0.15}>
             <FaqAccordion items={FAQ_ITEMS} />
           </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ========== GUIDES PREVIEW ========== */}
+      <section className="mu-section bg-[#f2f4f7]">
+        <div className="mu-shell">
+          <ScrollReveal variant="slideUp">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-600">
+                <BookOpen className="h-3.5 w-3.5" />
+                Base de conhecimento
+              </span>
+              <h2 className="mt-4 font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-slate-900 md:text-5xl">
+                Guias para brasileiros no exterior
+              </h2>
+              <p className="mt-4 text-lg text-slate-600">
+                De CPF a aposentadoria, de impostos a imoveis. Tudo o que voce precisa saber para viver bem fora do Brasil.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {GUIDES.slice(0, 6).map((guide) => {
+              const cat = GUIDE_CATEGORIES.find((c) => c.id === guide.category)
+              return (
+                <Link
+                  key={guide.slug}
+                  href={`/guias/${guide.slug}`}
+                  className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-[#9FE870] hover:shadow-md"
+                >
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#9FE870]/20 text-slate-900">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-sm font-bold leading-snug text-slate-900 transition group-hover:text-[#4a7c2f]">
+                    {guide.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                    {guide.excerpt}
+                  </p>
+                  <div className="mt-auto flex items-center justify-between pt-4">
+                    <span className="text-xs font-medium text-slate-400">{guide.readTime}</span>
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[#4a7c2f] transition group-hover:gap-2">
+                      Ler
+                      <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/guias"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
+            >
+              Ver todos os {GUIDES.length} guias
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 

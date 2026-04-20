@@ -100,6 +100,11 @@ export function PublicFooter() {
             <p className="text-sm font-bold uppercase tracking-wider text-slate-900">Suporte</p>
             <ul className="mt-4 space-y-3">
               <li>
+                <Link href="/guias" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
+                  Guias
+                </Link>
+              </li>
+              <li>
                 <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
                   Central de ajuda
                 </Link>
