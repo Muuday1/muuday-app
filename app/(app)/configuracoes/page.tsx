@@ -19,9 +19,5 @@ export default async function ConfiguracoesPage() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'profissional') {
-    redirect('/perfil')
-  }
-
   return <ProfessionalSettingsWorkspace />
 }

@@ -16,7 +16,7 @@ export default function GlobalError({
 
   return (
     <html>
-      <body className="bg-[#f6f4ef]">
+      <body className="bg-slate-50">
         <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-6 text-center">
           <h2 className="mb-2 font-display text-2xl font-bold text-slate-900">
             Ocorreu um erro inesperado

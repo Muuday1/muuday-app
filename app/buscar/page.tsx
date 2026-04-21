@@ -940,7 +940,7 @@ export async function BuscarPageContent({
               {pagedProfessionals.map((professional: SearchProfessional) => (
                 <div
                   key={professional.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 md:p-5"
+                  className="group rounded-xl border border-slate-200/80 bg-white p-4 transition-all duration-200 hover:border-[#9FE870]/40 hover:shadow-lg md:p-5"
                 >
                   <Link
                     href={buildProfessionalProfilePath({
@@ -948,10 +948,10 @@ export async function BuscarPageContent({
                       fullName: professional.profiles?.full_name,
                       publicCode: professional.public_code,
                     })}
-                    className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 rounded-2xl"
+                    className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 rounded-xl"
                   >
                     {professional.cover_photo_url ? (
-                      <div className="mb-3 h-20 w-full overflow-hidden rounded-xl border border-slate-200">
+                      <div className="mb-3 h-24 w-full overflow-hidden rounded-lg border border-slate-100">
                         <Image
                           src={professional.cover_photo_url}
                           alt={`Capa de ${professional.profiles?.full_name || 'Profissional'}`}
@@ -959,7 +959,7 @@ export async function BuscarPageContent({
                           height={240}
                           sizes="(max-width: 768px) 100vw, 50vw"
                           quality={70}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
                     ) : null}
@@ -972,21 +972,21 @@ export async function BuscarPageContent({
                           height={56}
                           sizes="56px"
                           quality={70}
-                          className="h-14 w-14 rounded-2xl border border-slate-200 object-cover flex-shrink-0"
+                          className="h-14 w-14 rounded-xl border-2 border-white object-cover shadow-sm flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-[#9FE870] to-[#8ed85f] flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#9FE870] to-[#7bc85a] flex items-center justify-center text-white font-display font-bold text-xl shadow-sm flex-shrink-0">
                           {getNameInitial(professional.profiles?.full_name)}
                         </div>
                       )}
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="font-semibold text-slate-900 leading-tight">
+                          <div className="min-w-0">
+                            <h3 className="font-display font-bold text-slate-900 leading-tight truncate">
                               {professional.profiles?.full_name || 'Profissional'}
                             </h3>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">
                               {getPrimarySpecialty(
                                 professional,
                                 primarySpecialtyByProfessionalId.get(String(professional.id)),
@@ -994,8 +994,8 @@ export async function BuscarPageContent({
                             </p>
                             <ExpandableTags tags={professional.tags || []} />
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-slate-900">
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-display font-bold text-[#3d6b1f]">
                               {formatSearchPrice(
                                 Number(professional.session_price_brl || 0),
                                 selectedCurrency,
@@ -1004,57 +1004,57 @@ export async function BuscarPageContent({
                               )}
                             </p>
                             <p className="text-[11px] text-slate-400">
-                              por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
+                              / {Math.max(1, Number(professional.session_duration_minutes || 60))} min
                             </p>
                           </div>
                         </div>
 
-                        <p className="text-sm text-slate-600 mt-3 line-clamp-2">
+                        <p className="text-sm text-slate-600 mt-3 line-clamp-2 leading-relaxed">
                           {professional.bio || 'Profissional verificado pronto para te atender.'}
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-1.5 mt-3">
                           {professional.tier && professional.tier !== 'basic' ? (
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium ${
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                                 professional.tier === 'premium'
-                                  ? 'bg-amber-50 text-amber-700'
-                                  : 'bg-blue-50 text-blue-700'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-100'
                               }`}
                             >
-                              {professional.tier === 'premium' ? 'Premium' : 'Profissional'}
+                              {professional.tier === 'premium' ? '★ Premium' : 'Profissional'}
                             </span>
                           ) : null}
                           {professional.video_intro_url ? (
-                            <span className="inline-flex items-center gap-1 bg-[#9FE870]/8 text-[#3d6b1f] px-2.5 py-1 rounded-full font-medium">
+                            <span className="inline-flex items-center gap-1 bg-[#9FE870]/10 text-[#3d6b1f] px-2 py-0.5 rounded-md text-[11px] font-semibold border border-[#9FE870]/20">
                               <PlayCircle className="w-3 h-3" />
                               Vídeo
                             </span>
                           ) : null}
                           {professional.tier !== 'basic' && professional.whatsapp_number ? (
-                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-medium">
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-emerald-100">
                               <MessageCircle className="w-3 h-3" />
                               WhatsApp
                             </span>
                           ) : null}
-                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-amber-100">
                             <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                             {Number(professional.rating || 0) > 0
                               ? Number(professional.rating).toFixed(1)
                               : 'Novo'}
                           </span>
-                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-slate-100">
                             <MapPin className="w-3 h-3" />
                             {getCountryDisplayName(professional.profiles?.country)}
                           </span>
                         </div>
 
                         {(professional.languages || []).length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
+                          <div className="flex flex-wrap gap-1 mt-2.5">
                             {(professional.languages || []).map((language: string) => (
                               <span
                                 key={language}
-                                className="text-[11px] bg-[#9FE870]/8 text-[#3d6b1f] px-2 py-1 rounded-full"
+                                className="text-[11px] bg-slate-50 text-slate-500 px-2 py-0.5 rounded-md border border-slate-100"
                               >
                                 {language}
                               </span>

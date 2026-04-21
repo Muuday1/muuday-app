@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   })()
 
   return (
-    <div className="min-h-screen bg-[#f6f4ef] flex">
+    <div className="min-h-screen bg-slate-50 flex">
       <aside className="hidden md:flex w-64 bg-white border-r border-slate-200/80 flex-col fixed h-full z-10">
         <div className="p-6 border-b border-slate-200/80">
           <Link href="/" className="flex items-center gap-2.5">
@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {isLoggedIn ? (
             <>
               <div className="flex items-center gap-3 px-3 py-2 mb-1">
-                <div className="w-8 h-8 rounded-full bg-[#9FE870]/10 flex items-center justify-center text-[#3d6b1f] font-semibold text-sm flex-shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#9FE870]/10 flex items-center justify-center text-[#3d6b1f] font-semibold text-sm flex-shrink-0">
                   {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -112,20 +112,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <button
                     type="submit"
                     aria-label="Sair da conta"
-                    className="h-8 px-2.5 rounded-full border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
+                    className="h-8 px-2.5 rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
                   >
                     <LogOut className="w-4 h-4" />
                     <span className="text-xs font-medium">Sair</span>
                   </button>
                 </form>
-                <div className="w-8 h-8 rounded-full bg-[#9FE870]/10 flex items-center justify-center text-[#3d6b1f] font-semibold text-sm">
+                <div className="w-8 h-8 rounded-md bg-[#9FE870]/10 flex items-center justify-center text-[#3d6b1f] font-semibold text-sm">
                   {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
                 </div>
               </>
             ) : (
               <Link
                 href="/login"
-                className="h-8 px-3 rounded-full bg-[#9FE870] hover:bg-[#8ed85f] text-white text-xs font-semibold transition-all flex items-center"
+                className="h-8 px-3 rounded-md bg-[#9FE870] hover:bg-[#8ed85f] text-white text-xs font-semibold transition-all flex items-center"
               >
                 Login
               </Link>

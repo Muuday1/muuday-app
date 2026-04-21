@@ -1,6 +1,6 @@
 export default function BuscarLoading() {
   return (
-    <div className="min-h-screen bg-[#f6f4ef]">
+    <div className="min-h-screen bg-slate-50">
       {/* Header skeleton */}
       <div className="border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
