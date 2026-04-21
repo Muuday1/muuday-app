@@ -49,6 +49,29 @@
         "RESEND_API_KEY": "${RESEND_API_KEY}"
       }
     },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "@vineethnkrishnan/vercel-mcp@latest"],
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_API_TOKEN}"
+      }
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@modelcontextprotocol/sdk",
+        "-p",
+        "@supabase/mcp-server-supabase@latest",
+        "mcp-server-supabase",
+        "--project-ref",
+        "jbbnbbrroifghrshplsq"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
