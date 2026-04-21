@@ -16,11 +16,11 @@ if (!MANAGEMENT_TOKEN) {
 
 // ─── Design tokens (must match lib/email/resend.ts THEME) ──────────────────
 const T = {
-  primary:       '#1a8a50',
-  primaryLight:  '#e8f5ee',
-  primaryDark:   '#0f5230',
-  primaryMid:    '#1a8a50',
-  pageBg:        '#f6f4ef',
+  primary:       '#22c55e',
+  primaryLight:  '#dcfce7',
+  primaryDark:   '#14532d',
+  primaryMid:    '#22c55e',
+  pageBg:        '#f8fafc',
   cardBg:        '#ffffff',
   footerBg:      '#fafaf8',
   textDark:      '#1e1d18',
