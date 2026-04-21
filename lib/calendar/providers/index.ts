@@ -1,4 +1,4 @@
-﻿import type { CalendarProvider } from '../types'
+import type { CalendarProvider } from '../types'
 import { appleCaldavAdapter } from './apple-caldav'
 import type { CalendarProviderAdapter } from './adapter'
 import { googleCalendarAdapter } from './google'

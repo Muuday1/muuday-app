@@ -1,4 +1,4 @@
-﻿import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 const userEmail = process.env.E2E_USER_EMAIL
 const userPassword = process.env.E2E_USER_PASSWORD

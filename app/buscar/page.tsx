@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Buscar Profissionais | Muuday' }
+export const metadata = { title: 'Buscar Profissionais | Muuday' }
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

@@ -454,6 +454,19 @@ export default function BookingForm({
     setBatchDateTimes(prev => prev.filter(item => item !== dateTime))
   }
 
+  const bookingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function clearBookingTimeout() {
+    if (bookingTimeoutRef.current) {
+      clearTimeout(bookingTimeoutRef.current)
+      bookingTimeoutRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    return () => clearBookingTimeout()
+  }, [])
+
   function handleConfirm() {
     if (!canSubmit) return
     if (bookingType !== 'batch' && (!selectedDate || !selectedTime)) return
@@ -466,52 +479,74 @@ export default function BookingForm({
       batch_sessions_count: bookingType === 'batch' ? batchDateTimes.length : undefined,
     })
 
-    startTransition(async () => {
-      const scheduledAt =
-        selectedDate && selectedTime
-          ? buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
-          : undefined
-      const result = await createBooking({
-        professionalId: professional.id,
-        scheduledAt,
-        notes: sessionPurpose.trim() || undefined,
-        sessionPurpose: sessionPurpose.trim() || undefined,
-        bookingType,
-        recurringSessionsCount:
-          bookingType === 'recurring' && recurringDurationMode === 'occurrences'
-            ? recurringSessionsCount
-            : undefined,
-        recurringOccurrences:
-          bookingType === 'recurring' && recurringDurationMode === 'end_date'
-            ? Math.max(2, resolvedRecurringSessionsCount)
-            : undefined,
-        recurringPeriodicity: bookingType === 'recurring' ? recurringPeriodicity : undefined,
-        recurringIntervalDays:
-          bookingType === 'recurring' && recurringPeriodicity === 'custom_days'
-            ? recurringIntervalDays
-            : undefined,
-        recurringEndDate:
-          bookingType === 'recurring' && recurringDurationMode === 'end_date'
-            ? recurringEndDate
-            : undefined,
-        recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
-        batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
+    clearBookingTimeout()
+    bookingTimeoutRef.current = setTimeout(() => {
+      setBookingResult({
+        success: false,
+        error: 'A solicitação demorou muito. Verifique sua conexão e tente novamente.',
       })
-      setBookingResult(result)
-      if (result.success) {
-        captureEvent('booking_created', {
-          professional_id: professional.id,
-          booking_type: bookingType,
-          confirmation_mode: confirmationMode,
-          recurring_sessions_count:
-            bookingType === 'recurring' ? resolvedRecurringSessionsCount : undefined,
-          batch_sessions_count: bookingType === 'batch' ? batchDateTimes.length : undefined,
+    }, 15000)
+
+    startTransition(async () => {
+      try {
+        const scheduledAt =
+          selectedDate && selectedTime
+            ? buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
+            : undefined
+        const result = await createBooking({
+          professionalId: professional.id,
+          scheduledAt,
+          notes: sessionPurpose.trim() || undefined,
+          sessionPurpose: sessionPurpose.trim() || undefined,
+          bookingType,
+          recurringSessionsCount:
+            bookingType === 'recurring' && recurringDurationMode === 'occurrences'
+              ? recurringSessionsCount
+              : undefined,
+          recurringOccurrences:
+            bookingType === 'recurring' && recurringDurationMode === 'end_date'
+              ? Math.max(2, resolvedRecurringSessionsCount)
+              : undefined,
+          recurringPeriodicity: bookingType === 'recurring' ? recurringPeriodicity : undefined,
+          recurringIntervalDays:
+            bookingType === 'recurring' && recurringPeriodicity === 'custom_days'
+              ? recurringIntervalDays
+              : undefined,
+          recurringEndDate:
+            bookingType === 'recurring' && recurringDurationMode === 'end_date'
+              ? recurringEndDate
+              : undefined,
+          recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
+          batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
         })
-      } else {
+        clearBookingTimeout()
+        setBookingResult(result)
+        if (result.success) {
+          captureEvent('booking_created', {
+            professional_id: professional.id,
+            booking_type: bookingType,
+            confirmation_mode: confirmationMode,
+            recurring_sessions_count:
+              bookingType === 'recurring' ? resolvedRecurringSessionsCount : undefined,
+            batch_sessions_count: bookingType === 'batch' ? batchDateTimes.length : undefined,
+          })
+        } else {
+          captureEvent('booking_create_failed', {
+            professional_id: professional.id,
+            booking_type: bookingType,
+            reason: result.error,
+          })
+        }
+      } catch (error) {
+        clearBookingTimeout()
+        setBookingResult({
+          success: false,
+          error: 'Erro inesperado ao processar agendamento. Tente novamente.',
+        })
         captureEvent('booking_create_failed', {
           professional_id: professional.id,
           booking_type: bookingType,
-          reason: result.error,
+          reason: error instanceof Error ? error.message : 'unknown_exception',
         })
       }
     })

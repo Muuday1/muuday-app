@@ -1,4 +1,4 @@
-﻿export type ReviewAdjustmentSeverity = 'low' | 'medium' | 'high'
+export type ReviewAdjustmentSeverity = 'low' | 'medium' | 'high'
 
 export type ReviewAdjustmentStageId =
   | 'c2_professional_identity'

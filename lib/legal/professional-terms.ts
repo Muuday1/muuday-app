@@ -1,4 +1,4 @@
-﻿export type ProfessionalTermKey =
+export type ProfessionalTermKey =
   | 'platform_terms'
   | 'payment_terms'
   | 'privacy_terms'

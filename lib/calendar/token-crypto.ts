@@ -1,4 +1,4 @@
-﻿import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
 type EncryptedPayloadV1 = {
   v: 1

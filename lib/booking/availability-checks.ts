@@ -111,7 +111,7 @@ export async function hasInternalConflict(
     .eq('professional_id', professionalId)
     .in('status', ['pending', 'pending_confirmation', 'confirmed'])
     .or(
-      `and(start_time_utc.gte.'${conflictWindowStart}',start_time_utc.lte.'${conflictWindowEnd}'),and(scheduled_at.gte.'${conflictWindowStart}',scheduled_at.lte.'${conflictWindowEnd}')`,
+      `and(start_time_utc.gte."${conflictWindowStart}",start_time_utc.lte."${conflictWindowEnd}"),and(scheduled_at.gte."${conflictWindowStart}",scheduled_at.lte."${conflictWindowEnd}")`,
     )
 
   if (ignoreBookingId) query = query.neq('id', ignoreBookingId)

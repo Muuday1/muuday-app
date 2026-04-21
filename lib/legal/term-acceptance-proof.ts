@@ -1,4 +1,4 @@
-﻿import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 
 const DEFAULT_MIN_VIEW_SECONDS = 3

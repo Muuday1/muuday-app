@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { revalidatePath } from 'next/cache'

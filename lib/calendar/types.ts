@@ -1,4 +1,4 @@
-﻿export type CalendarProvider = 'google' | 'outlook' | 'apple'
+export type CalendarProvider = 'google' | 'outlook' | 'apple'
 
 export type CalendarConnectionStatus = 'disconnected' | 'pending' | 'connected' | 'error'
 

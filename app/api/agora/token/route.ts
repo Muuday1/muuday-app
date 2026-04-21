@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token'
 import { createClient } from '@/lib/supabase/server'

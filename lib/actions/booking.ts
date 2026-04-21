@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
@@ -127,6 +127,8 @@ export async function createBooking(data: {
   recurringAutoRenew?: boolean
   batchDates?: string[]
 }): Promise<BookingCreateResult> {
+  Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking started', level: 'info', data })
+
   const parsedInput = createBookingSchema.safeParse(data)
   if (!parsedInput.success) {
     const firstError = parsedInput.error.issues[0]?.message || 'Dados inválidos para agendamento.'
@@ -134,11 +136,17 @@ export async function createBooking(data: {
   }
 
   const bookingInput = parsedInput.data
+  Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking parsed', level: 'info' })
+
   const supabase = await createClient()
+  Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking client created', level: 'info' })
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking user authenticated', level: 'info', data: { userId: user.id } })
 
   const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
@@ -420,6 +428,7 @@ export async function createBooking(data: {
         },
       }
 
+      Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic one_off', level: 'info' })
       const atomic = await createBookingWithPaymentAtomic(supabase, bookingPayload, paymentData)
       if (atomic.ok) {
         bookingId = atomic.bookingId!
@@ -457,6 +466,8 @@ export async function createBooking(data: {
       const recurrencePeriodicity = bookingInput.recurringPeriodicity || 'weekly'
       const recurrenceIntervalDays =
         recurrencePeriodicity === 'custom_days' ? bookingInput.recurringIntervalDays || 1 : null
+
+      Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic recurring', level: 'info' })
 
       const parentPayload = {
         user_id: user.id,
@@ -632,6 +643,7 @@ export async function createBooking(data: {
         return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
       }
     } else {
+      Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic batch', level: 'info' })
       const batchGroupId = batchBookingGroupId || crypto.randomUUID()
 
       const batchPayload = plannedSessions.map((slot, index) => ({
@@ -774,10 +786,12 @@ export async function createBooking(data: {
     ),
   )
 
+  Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking revalidating paths', level: 'info' })
   revalidatePath('/agenda')
   revalidatePath('/dashboard')
 
   logBookingEvent('booking_create_success', { bookingId, bookingType, usedAtomicPath, createdBookingIds })
+  Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking completed', level: 'info', data: { bookingId, bookingType } })
 
   return { success: true, bookingId }
 }

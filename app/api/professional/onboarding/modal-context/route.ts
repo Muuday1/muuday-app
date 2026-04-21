@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'

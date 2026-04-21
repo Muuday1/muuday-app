@@ -1,4 +1,4 @@
-﻿import { randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { signCalendarState, verifyCalendarStateSignature } from './token-crypto'
 import type { CalendarProvider } from './types'
 

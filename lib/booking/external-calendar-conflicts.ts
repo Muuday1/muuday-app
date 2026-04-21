@@ -1,4 +1,4 @@
-﻿import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function hasExternalBusyConflict(
   supabase: SupabaseClient,
@@ -14,7 +14,8 @@ export async function hasExternalBusyConflict(
     .gt('end_time_utc', startUtcIso)
 
   if (error) {
-    throw new Error(`Failed to check external busy conflicts: ${error.message}`)
+    console.error(`[external-calendar-conflicts] Failed to check external busy conflicts: ${error.message}`)
+    return false
   }
 
   return (count || 0) > 0

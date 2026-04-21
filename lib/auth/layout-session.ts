@@ -1,4 +1,4 @@
-﻿import { cache } from 'react'
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
 
