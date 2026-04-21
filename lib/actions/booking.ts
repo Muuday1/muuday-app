@@ -16,7 +16,14 @@ import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { validateSlotAvailability } from '@/lib/booking/slot-validation'
-import { roundCurrency } from '@/lib/booking/cancellation-policy'
+import { roundCurrency, buildCancellationPolicySnapshot } from '@/lib/booking/cancellation-policy'
+import {
+  buildOneOffBookingPayload,
+  buildRecurringParentPayload,
+  buildRecurringChildPayloads,
+  buildRecurringSessionsPayload,
+  buildBatchBookingPayloads,
+} from '@/lib/booking/payload-builders'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 import { createBatchBookingGroup } from '@/lib/booking/batch-booking'
@@ -79,15 +86,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number, context: string): Promi
       setTimeout(() => reject(new Error(`Timeout after ${ms}ms: ${context}`)), ms),
     ),
   ])
-}
-
-function buildCancellationPolicySnapshot(code: string) {
-  return {
-    code,
-    refund_48h_or_more: 100,
-    refund_24h_to_48h: 50,
-    refund_under_24h: 0,
-  }
 }
 
 const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.')
@@ -409,33 +407,20 @@ export async function createBooking(data: {
   try {
     if (bookingType === 'one_off') {
       const firstSlot = plannedSessions[0]
-      const bookingPayload = {
-        user_id: user.id,
-        professional_id: bookingInput.professionalId,
-        scheduled_at: firstSlot.startUtc.toISOString(),
-        start_time_utc: firstSlot.startUtc.toISOString(),
-        end_time_utc: firstSlot.endUtc.toISOString(),
-        timezone_user: userTimezone,
-        timezone_professional: bookingSettings.timezone,
-        duration_minutes: durationMinutes,
-        status: bookingStatus,
-        booking_type: 'one_off' as const,
-        confirmation_mode_snapshot: bookingSettings.confirmationMode,
-        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
-          bookingSettings.cancellationPolicyCode,
-        ),
-        price_brl: priceBrl,
-        price_user_currency: perSessionPriceUserCurrency,
-        price_total: perSessionPriceUserCurrency,
-        user_currency: currency,
-        notes: bookingInput.notes || null,
-        session_purpose: bookingInput.sessionPurpose || null,
-        metadata: {
-          booking_source: 'web_checkout',
-          booking_mode: 'one_off',
-          confirmation_deadline_utc: confirmationDeadlineAt,
-        },
-      }
+      const bookingPayload = buildOneOffBookingPayload({
+        userId: user.id,
+        professionalId: bookingInput.professionalId,
+        slot: firstSlot,
+        userTimezone,
+        bookingSettings,
+        bookingStatus,
+        confirmationDeadlineAt,
+        priceBrl,
+        perSessionPriceUserCurrency,
+        currency,
+        notes: bookingInput.notes,
+        sessionPurpose: bookingInput.sessionPurpose,
+      })
 
       Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic one_off', level: 'info' })
       const atomic = await withTimeout(
@@ -482,83 +467,54 @@ export async function createBooking(data: {
 
       Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic recurring', level: 'info' })
 
-      const parentPayload = {
-        user_id: user.id,
-        professional_id: bookingInput.professionalId,
-        scheduled_at: firstSlot.startUtc.toISOString(),
-        start_time_utc: firstSlot.startUtc.toISOString(),
-        end_time_utc: firstSlot.endUtc.toISOString(),
-        timezone_user: userTimezone,
-        timezone_professional: bookingSettings.timezone,
-        duration_minutes: durationMinutes,
-        status: bookingStatus,
-        booking_type: 'recurring_parent' as const,
-        recurrence_group_id: recurrenceGroupId,
-        recurrence_periodicity: recurrencePeriodicity,
-        recurrence_interval_days: recurrenceIntervalDays,
-        recurrence_end_date: bookingInput.recurringEndDate || null,
-        recurrence_occurrence_index: 1,
-        recurrence_auto_renew: Boolean(bookingInput.recurringAutoRenew),
-        confirmation_mode_snapshot: bookingSettings.confirmationMode,
-        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
-          bookingSettings.cancellationPolicyCode,
-        ),
-        price_brl: roundCurrency(priceBrl * sessionCount),
-        price_user_currency: totalPriceUserCurrency,
-        price_total: totalPriceUserCurrency,
-        user_currency: currency,
-        notes: bookingInput.notes || null,
-        session_purpose: bookingInput.sessionPurpose || null,
-        metadata: {
-          booking_source: 'web_checkout',
-          booking_mode: 'recurring',
-          confirmation_deadline_utc: confirmationDeadlineAt,
-          recurring_frequency: recurrencePeriodicity,
-          recurring_sessions_count: sessionCount,
-          recurring_auto_renew: Boolean(bookingInput.recurringAutoRenew),
-        },
-      }
+      const parentPayload = buildRecurringParentPayload({
+        userId: user.id,
+        professionalId: bookingInput.professionalId,
+        firstSlot,
+        userTimezone,
+        bookingSettings,
+        bookingStatus,
+        confirmationDeadlineAt,
+        priceBrl,
+        totalPriceUserCurrency,
+        perSessionPriceUserCurrency,
+        currency,
+        sessionCount,
+        recurrenceGroupId,
+        recurrencePeriodicity,
+        recurrenceIntervalDays,
+        recurringEndDate: bookingInput.recurringEndDate,
+        recurringAutoRenew: bookingInput.recurringAutoRenew,
+        notes: bookingInput.notes,
+        sessionPurpose: bookingInput.sessionPurpose,
+      })
 
-      const childBookingsPayload = plannedSessions.map((slot, index) => ({
-        user_id: user.id,
-        professional_id: bookingInput.professionalId,
-        scheduled_at: slot.startUtc.toISOString(),
-        start_time_utc: slot.startUtc.toISOString(),
-        end_time_utc: slot.endUtc.toISOString(),
-        timezone_user: userTimezone,
-        timezone_professional: bookingSettings.timezone,
-        duration_minutes: durationMinutes,
-        status: bookingStatus,
-        booking_type: index === 0 ? 'recurring_parent' : 'recurring_child',
-        parent_booking_id: index === 0 ? null : '__PARENT_ID_PLACEHOLDER__',
-        recurrence_group_id: recurrenceGroupId,
-        recurrence_periodicity: recurrencePeriodicity,
-        recurrence_interval_days: recurrenceIntervalDays,
-        recurrence_end_date: bookingInput.recurringEndDate || null,
-        recurrence_occurrence_index: slot.recurrenceOccurrenceIndex || index + 1,
-        recurrence_auto_renew: Boolean(bookingInput.recurringAutoRenew),
-        confirmation_mode_snapshot: bookingSettings.confirmationMode,
-        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
-          bookingSettings.cancellationPolicyCode,
-        ),
-        price_brl: priceBrl,
-        price_user_currency: perSessionPriceUserCurrency,
-        price_total: perSessionPriceUserCurrency,
-        user_currency: currency,
-        notes: bookingInput.notes || null,
-        session_purpose: bookingInput.sessionPurpose || null,
-        metadata: {
-          recurring_session_number: index + 1,
+      const childBookingsPayload = buildRecurringChildPayloads(
+        {
+          userId: user.id,
+          professionalId: bookingInput.professionalId,
+          firstSlot,
+          userTimezone,
+          bookingSettings,
+          bookingStatus,
+          confirmationDeadlineAt,
+          priceBrl,
+          totalPriceUserCurrency,
+          perSessionPriceUserCurrency,
+          currency,
+          sessionCount,
+          recurrenceGroupId,
+          recurrencePeriodicity,
+          recurrenceIntervalDays,
+          recurringEndDate: bookingInput.recurringEndDate,
+          recurringAutoRenew: bookingInput.recurringAutoRenew,
+          notes: bookingInput.notes,
+          sessionPurpose: bookingInput.sessionPurpose,
         },
-      }))
+        plannedSessions,
+      )
 
-      const sessionsPayload = plannedSessions.map((slot, index) => ({
-        parent_booking_id: '__PARENT_ID_PLACEHOLDER__',
-        start_time_utc: slot.startUtc.toISOString(),
-        end_time_utc: slot.endUtc.toISOString(),
-        status: bookingStatus,
-        session_number: index + 1,
-      }))
+      const sessionsPayload = buildRecurringSessionsPayload(plannedSessions, bookingStatus)
 
       const atomicChildren = childBookingsPayload.slice(1).map(child => ({
         ...child,
@@ -663,36 +619,21 @@ export async function createBooking(data: {
       Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic batch', level: 'info' })
       const batchGroupId = batchBookingGroupId || crypto.randomUUID()
 
-      const batchPayload = plannedSessions.map((slot, index) => ({
-        user_id: user.id,
-        professional_id: bookingInput.professionalId,
-        scheduled_at: slot.startUtc.toISOString(),
-        start_time_utc: slot.startUtc.toISOString(),
-        end_time_utc: slot.endUtc.toISOString(),
-        timezone_user: userTimezone,
-        timezone_professional: bookingSettings.timezone,
-        duration_minutes: durationMinutes,
-        status: bookingStatus,
-        booking_type: 'one_off',
-        batch_booking_group_id: batchGroupId,
-        confirmation_mode_snapshot: bookingSettings.confirmationMode,
-        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
-          bookingSettings.cancellationPolicyCode,
-        ),
-        price_brl: priceBrl,
-        price_user_currency: perSessionPriceUserCurrency,
-        price_total: perSessionPriceUserCurrency,
-        user_currency: currency,
-        notes: bookingInput.notes || null,
-        session_purpose: bookingInput.sessionPurpose || null,
-        metadata: {
-          booking_source: 'web_checkout',
-          booking_mode: 'batch',
-          batch_index: index + 1,
-          batch_group_id: batchGroupId,
-          confirmation_deadline_utc: confirmationDeadlineAt,
-        },
-      }))
+      const batchPayload = buildBatchBookingPayloads({
+        userId: user.id,
+        professionalId: bookingInput.professionalId,
+        plannedSessions,
+        userTimezone,
+        bookingSettings,
+        bookingStatus,
+        confirmationDeadlineAt,
+        priceBrl,
+        perSessionPriceUserCurrency,
+        currency,
+        batchBookingGroupId: batchGroupId,
+        notes: bookingInput.notes,
+        sessionPurpose: bookingInput.sessionPurpose,
+      })
 
       const atomic = await withTimeout(
         createBatchBookingsWithPaymentAtomic(supabase, batchPayload, paymentData),

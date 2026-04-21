@@ -28,3 +28,12 @@ export function getProfessionalCancellationRefundDecision(): RefundDecision {
 export function roundCurrency(value: number) {
   return Math.round(value * 100) / 100
 }
+
+export function buildCancellationPolicySnapshot(code: string) {
+  return {
+    code,
+    refund_48h_or_more: 100,
+    refund_24h_to_48h: 50,
+    refund_under_24h: 0,
+  }
+}
