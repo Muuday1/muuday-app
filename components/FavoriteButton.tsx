@@ -14,8 +14,13 @@ export function FavoriteButton({ professionalId }: { professionalId: string }) {
 
   function handleToggle() {
     startTransition(async () => {
-      const result = await toggleFavorite(professionalId)
-      setFavorited(result)
+      try {
+        const result = await toggleFavorite(professionalId)
+        setFavorited(result)
+      } catch {
+        // Fail silently — favoriting is non-critical UX
+        setFavorited(prev => prev)
+      }
     })
   }
 
