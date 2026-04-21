@@ -239,7 +239,7 @@ trackReviewSubmitted(userId, { reviewId, bookingId, professionalId, rating })
 trackPlanUpgraded(userId, { professionalId, fromTier, toTier, billingCycle })
 ```
 
-**Ação necessária**: `npm install posthog-node`
+**Ação necessária**: ✅ `posthog-node` já instalado (`^5.29.2`)
 
 ---
 
@@ -251,8 +251,8 @@ trackPlanUpgraded(userId, { professionalId, fromTier, toTier, billingCycle })
 | Service Worker | ✅ | `public/sw.js` — stale-while-revalidate + cache cleanup |
 | Página offline | ✅ | `app/offline/page.tsx` |
 | Estratégia de cache | ✅ | Stale-while-revalidate para assets estáticos; API routes ignoradas |
-| Ícones | ⏳ | Falta criar `public/assets/icon-192x192.png` e `icon-512x512.png` |
-| Registro no layout | ⏳ | O novo frontend precisa registrar o SW (`navigator.serviceWorker.register('/sw.js')`) |
+| Ícones | ✅ | `public/assets/icon-192x192.png` e `icon-512x512.png` criados |
+| Registro no layout | ✅ | SW registrado via `PwaInstallPrompt` component |
 
 ---
 
@@ -273,7 +273,7 @@ trackPlanUpgraded(userId, { professionalId, fromTier, toTier, billingCycle })
 | Expiração de subscriptions | ✅ | Auto-remove subscriptions com status 410/404 |
 
 **Ações necessárias**:
-1. `npm install web-push`
+1. ✅ `npm install web-push` (`^3.6.7` já instalado)
 2. `npx web-push generate-vapid-keys`
 3. Preencher `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` no `.env.local`
 
@@ -368,7 +368,11 @@ getProfessionalServices(professionalId)
 |------|--------|------------|
 | SMS / WhatsApp notifications | ❌ Não no MVP | Baixa |
 | A/B Testing infrastructure (PostHog experiments) | ⏳ Pendente | Baixa |
-| Blog / CMS headless | ⏳ Pendente | Baixa |
+| Blog / CMS headless | ✅ Implementado | Baixa |
+| Blog (10 artigos) | ✅ | `app/blog/`, `lib/blog-data.ts` |
+| Guias (28 guias) | ✅ | `app/guias/`, `lib/guides-data.ts` |
+| Blog engagement (likes/comments) | ✅ | `lib/actions/blog-engagement.ts` |
+| Guide feedback | ✅ | `lib/actions/guide-feedback.ts` |
 
 ---
 
@@ -416,10 +420,10 @@ getProfessionalServices(professionalId)
 
 ### Antes de deployar qualquer coisa:
 - [ ] Rodar migrations `053` a `058` no Supabase
-- [ ] `npm install posthog-node`
-- [ ] `npm install web-push`
+- [x] ✅ `posthog-node` instalado
+- [x] ✅ `web-push` instalado
 - [ ] `npx web-push generate-vapid-keys` → `.env.local`
-- [ ] Criar ícones PWA: `public/assets/icon-192x192.png` e `icon-512x512.png`
+- [x] ✅ Ícones PWA já criados: `public/assets/icon-192x192.png` e `icon-512x512.png`
 - [ ] Criar flags no dashboard PostHog (opcional, tem fallback)
 
 ### Quando quiser começar a Fase 6:

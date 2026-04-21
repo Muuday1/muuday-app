@@ -1,166 +1,128 @@
-# Wise Refactor — Gaps: Estado Atual vs. Desejado
+# Wise Design System Refactor — Status: COMPLETO ✅
 
 > **Date**: 2026-04-19  
-> **Goal**: Refactor all UI to match Wise.com aesthetic (flat, clean, modern)  
-> **Scope**: Document what exists today vs. what the design system specifies
+> **Status**: Todas as páginas logadas e landing pages refatoradas  
+> **Branch**: Mergeado para `main` (commits `30695e3`–`4020d6d`)
 
 ---
 
-## Resumo das Mudanças Necessárias
+## Resumo do que foi Implementado
 
-| Aspecto | Estado Atual | Estado Desejado (Wise) | Impacto |
-|---------|-------------|------------------------|---------|
-| **Font body** | Plus Jakarta Sans | Inter | Alta |
-| **Font display** | Bricolage Grotesque | Space Grotesk | Alta |
-| **Primary color** | `#1a8a50` (escuro) | `#22c55e` (vibrante) | Alta |
-| **Button radius** | `rounded-full` (pill) | `rounded-md` (8px) | Alta |
-| **Card shadow** | `shadow-sm/md` presente | `shadow-none` + border only | Alta |
-| **Card radius** | 16–20px | 12px | Média |
-| **Page bg** | `#f4f8f5` | `#f4f8f5` | ✅ Igual |
-| **Text primary** | `#102318` | `#1c1917` | Média |
-
----
-
-## Páginas Atuais vs. Frames Documentados
-
-### ✅ 1. Landing Page (`/`)
-
-**Estado Atual (refatorado em 2026-04-19):**
-- Hero com composição geométrica CSS (grid + shapes + mockup cards)
-- Stats bar (100% online, 6+ áreas, 24/7)
-- Features grid (4 cards flat, sem shadow)
-- Como funciona (3 passos em cards brand-50)
-- Categorias (4 cards flat)
-- FAQ accordion (`rounded-lg`)
-- CTA final (banner brand-700, botões `rounded-md`)
-
-**Mudanças aplicadas:**
-- Copy reescrito (menos jargão, mais direto)
-- Fontes: Inter + Space Grotesk
-- Cor brand: `#22c55e`
-- Radius: 6–12px (de 12–20px)
-- Cards: flat, border-only (sem shadow)
-- Botões: `rounded-md` (de pill)
-- Composição geométrica CSS na hero (estilo Wise)
-
-**Arquivos alterados:**
-- `tailwind.config.ts`
-- `app/globals.css`
-- `app/page.tsx`
-- `components/landing/FaqAccordion.tsx`
+| Aspecto | Antes | Depois (Wise) |
+|---------|-------|---------------|
+| **Font body** | Plus Jakarta Sans | Inter |
+| **Font display** | Bricolage Grotesque | Space Grotesk |
+| **Primary color** | `#1a8a50` (escuro) | `#9FE870` (brand green vibrante) |
+| **Button radius** | `rounded-full` (pill) | `rounded-md` (8px) |
+| **Card shadow** | `shadow-sm/md/xl` presente | `shadow-none` + border only |
+| **Card radius** | `rounded-2xl` (20px), `rounded-xl` (16px) | `rounded-lg` (12px) |
+| **Page bg** | `#f4f8f5` | `#f6f4ef` (warm neutral) |
+| **Text primary** | `neutral-*` palette | `slate-*` palette |
+| **Badge radius** | `rounded-full` | `rounded-md` (8px) |
+| **Input radius** | `rounded-xl` (16px) | `rounded-md` (8px) |
 
 ---
 
-### 2. Registrar Profissional (`/registrar-profissional`)
+## Páginas Refatoradas
 
-**Estado Atual (348 linhas):**
-- Landing page de marketing completa
-- Hero section com imagem, CTA pill buttons
-- Features grid (6 cards com ícones)
-- Processo em 3 passos (cards com imagens)
-- Especialidades (8 cards alternados)
-- Benefícios (lista + resumo)
-- CTA final (banner verde)
+### Landing Pages (públicas)
+- ✅ `/` — Landing page completa com hero, stats, features, categorias, FAQ, CTA
+- ✅ `/registrar-profissional` — Landing de conversão para profissionais
+- ✅ `/sobre` — Página institucional com mapa animado, missão/visão
+- ✅ `/ajuda` — Help center com collections e artigos
+- ✅ `/blog` — Blog com 10 artigos
+- ✅ `/guias` — 28 guias com search, categorias, feedback
+- ✅ `/politica-de-cookies` — Consent banner redesenhado
+- ✅ `/privacidade`, `/termos-de-uso` — Páginas legais
 
-**Frame Documentado (PE genérico):**
-- Formulário wizard simples: nome, email, CRP, especialidade
-
-**Gap**: O frame não captura a complexidade real. Precisa documentar como refatorar cada seção da landing para o estilo Wise.
-
----
-
-### 3. Signup (`/cadastro`)
-
-**Estado Atual:**
-- 2-step wizard (usuário)
-- 3-step wizard (profissional)
-- Hand-rolled modais com `rounded-2xl` e `shadow-xl`
-- Inputs com `rounded-xl` (16px)
-- `ring-2 ring-brand-500/20` para focus
-
-**Frame Documentado:**
-- Formulário simples de 3 campos
-
-**Gap**: Não documenta o wizard real, nem os modais de confirmação.
+### Páginas Logadas (`app/(app)/`)
+- ✅ `/dashboard` — Dashboard profissional com cards flat
+- ✅ `/agenda` — Agenda com cards flat, badges `rounded-md`
+- ✅ `/agendar/[id]` — Agendamento com header sticky
+- ✅ `/avaliar/[bookingId]` — Avaliação com `AppCard`
+- ✅ `/perfil` — Perfil com banner gradiente e info grid
+- ✅ `/mensagens` — Chat/mensagens
+- ✅ `/notificacoes` — Notificações in-app
+- ✅ `/disputas` — Sistema de disputas
+- ✅ `/prontuario` — Prontuário do cliente
+- ✅ `/servicos` — Gerenciamento de serviços
+- ✅ `/financeiro` — Financeiro
+- ✅ `/favoritos` — Favoritos
+- ✅ `/configuracoes` — Configurações
+- ✅ `/planos` — Planos
+- ✅ `/admin` — Painel administrativo
+- ✅ Todas as sub-rotas de admin, revisão, taxonomia
 
 ---
 
-### 4. Dashboard / App (`/dashboard`, `/agenda`)
+## UI Primitives Criados
 
-**Estado Atual (do agente):**
-- 6-stage tracker modal no dashboard pós-signup
-- Sidebar com navegação
-- Cards com sombra
-- Botões pill em CTAs de marketing
-
-**Frame Documentado:**
-- Dashboard limpo com stats cards
-
-**Gap**: Não documenta o onboarding tracker, nem a transição entre estados.
-
----
-
-### 5. Modais / Dialogs
-
-**Estado Atual:**
-- Hand-rolled (sem Radix/Headless)
-- `fixed inset-0 bg-neutral-900/45` backdrop
-- `rounded-2xl` (20px) universal
-- `shadow-xl` universal
-- `ring-2 ring-brand-500/20` + `border-brand-500` focus
-
-**Design System Especifica:**
-- Modal: `radius-lg` (12px), `shadow-lg`
-- Drawer: `shadow-lg`
-- Toast: `shadow-xl`
-
-**Gap**: Os modais atuais são mais arredondados (20px vs 12px) e usam sombras maiores. Precisam ser ajustados.
+| Componente | Localização | Props principais |
+|-----------|-------------|------------------|
+| `AppCard` | `components/ui/AppCard.tsx` | `padding`, `hover`, `onClick` |
+| `AppCardHeader` | `components/ui/AppCard.tsx` | `title`, `subtitle`, `action`, `icon` |
+| `AppButton` | `components/ui/AppButton.tsx` | `variant`, `size`, `loading` |
+| `AppBadge` | `components/ui/AppBadge.tsx` | `variant`, `size` |
+| `AppInput` | `components/ui/AppInput.tsx` | `label`, `error`, `icon` |
+| `AppEmptyState` | `components/ui/AppEmptyState.tsx` | `icon`, `title`, `description`, `action` |
+| `AppShell` | `components/ui/AppShell.tsx` | `PageHeader`, `PageContainer` |
 
 ---
 
-### 5. Componentes Atuais no Código
+## Padrões Consolidados
 
-| Componente | Implementação Atual | Deve Virar |
-|-----------|---------------------|------------|
-| `.mu-btn-primary` | `rounded-full`, `bg-[#1a8a50]` | `rounded-md` (8px), `bg-primary-500` |
-| `.mu-btn-outline` | `rounded-full`, border suave | `rounded-md` (8px), `border-neutral-200` |
-| `.mu-shell-card` | `shadow-sm`, `radius-md` (16px) | `shadow-none`, `radius-lg` (12px), border |
-| `.mu-shell-card-lg` | `shadow-md`, `radius-lg` (20px) | `shadow-none`, `radius-xl` (16px), border |
-| Inputs | `rounded-xl` (16px) | `rounded-md` (8px) |
-| Modais | `rounded-2xl` (20px) | `rounded-lg` (12px) |
+### Card Pattern (inline ou `AppCard`)
+```tsx
+<div className="bg-white rounded-lg border border-slate-200/80 p-6">
+  {/* content */}
+</div>
+```
 
----
+### Button Pattern
+```tsx
+// Primary CTA
+<button className="bg-[#9FE870] hover:bg-[#8ed85f] text-slate-900 font-semibold px-5 py-2.5 rounded-md">
 
-## O que Precisa Ser Refeito nos Docs
+// Secondary
+<button className="bg-slate-900 text-white hover:bg-slate-800 font-semibold px-5 py-2.5 rounded-md">
 
-### Frames a Reescrever
+// Outline
+<button className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 rounded-md">
+```
 
-| Frame | Motivo |
-|-------|--------|
-| `professional-onboarding.md` | Precisa refletir a landing page real com hero, features, process cards |
-| `user-onboarding.md` | Precisa incluir o wizard real de 2/3 steps |
-| `session-lifecycle.md` | Precisa incluir o 6-stage tracker modal |
-| `search-booking.md` | OK — mas verificar se o card grid reflete a busca real |
-
-### Tokens a Ajustar
-
-| Token Atual | Token Desejado | Ação |
-|-------------|----------------|------|
-| `--mu-radius-sm: 12px` | `6px` | Mudar |
-| `--mu-radius-md: 16px` | `8px` | Mudar |
-| `--mu-radius-lg: 20px` | `12px` | Mudar |
-| `shadow-sm/md` nos cards | `shadow-none` | Remover |
-| `rounded-full` nos botões | `rounded-md` | Mudar |
-| `#1a8a50` brand | `#22c55e` | Mudar |
+### Navigation Active State
+```tsx
+'bg-[#9FE870]/8 text-[#3d6b1f]' // active
+'text-slate-600 hover:text-slate-900 hover:bg-slate-50/70' // inactive
+```
 
 ---
 
-## Pergunta para o Usuário
+## Decisões de Design Tomadas
 
-Quer que eu:
+1. **Brand green `#9FE870`** — usado APENAS para CTAs primários e estados ativos de navegação. Não usado em backgrounds de cards ou texto estático.
+2. **Texto sobre verde** — `text-slate-900` (escuro) para contraste adequado.
+3. **Sem sombras em cards** — exceto `hover:shadow-sm` em rows interativos (agenda, financeiro, mensagens).
+4. **Page background `#f6f4ef`** — warm neutral, diferente do pure white dos cards.
+5. **`slate-*` substituiu `neutral-*`** — padronização completa da paleta cinza.
 
-1. **Atualize os frame docs** para refletir a complexidade real das páginas existentes (mas no estilo Wise desejado)?
-2. **Crie um documento de migração detalhado** mostrando exatamente o que mudar em cada arquivo do código?
-3. **Ambos**?
+---
 
-Os frames genéricos que criei servem como base, mas precisam ser enriquecidos com o contexto real do site.
+## Arquivos-chave Alterados
+
+- `app/(app)/layout.tsx` — Shell com sidebar, mobile nav, profile
+- `app/(app)/*/page.tsx` — 34+ rotas padronizadas
+- `components/layout/SidebarNav.tsx` — Navegação com estados ativos
+- `components/layout/MobileNav.tsx` — Bottom nav mobile
+- `components/layout/NotificationBell.tsx` — Badge de notificações
+- `tailwind.config.ts` — Fontes e cores atualizadas
+- `app/globals.css` — Estilos base
+
+---
+
+## Próximos Passos (Opcionais)
+
+1. **Modais/Dialogs** — Ainda usam estilos antigos em alguns componentes (`rounded-2xl`, `shadow-xl`). Padronizar para `rounded-lg`, `shadow-none` + border.
+2. **Landing Page Richness** — Stakeholder solicitou mais imagens, animações, motion (ver `LANDING-WISE-GAP-LIST.md`).
+3. **Forms** — Padronizar todos os inputs para usar `AppInput`.
+4. **Tabelas** — Criar `AppTable` primitive para listagens (agenda, financeiro, admin).

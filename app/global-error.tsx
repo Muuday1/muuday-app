@@ -18,15 +18,15 @@ export default function GlobalError({
     <html>
       <body className="bg-[#f6f4ef]">
         <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-6 text-center">
-          <h2 className="mb-2 font-display text-2xl font-bold text-neutral-900">
+          <h2 className="mb-2 font-display text-2xl font-bold text-slate-900">
             Ocorreu um erro inesperado
           </h2>
-          <p className="mb-6 text-sm text-neutral-500">
+          <p className="mb-6 text-sm text-slate-500">
             Nossa equipe foi notificada automaticamente. Tente novamente.
           </p>
           <button
             onClick={() => reset()}
-            className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-brand-600"
+            className="rounded-md bg-[#9FE870] px-5 py-2.5 text-sm font-semibold text-slate-900 transition-all hover:bg-[#8ed85f]"
             type="button"
           >
             Tentar de novo

@@ -850,14 +850,14 @@ export async function BuscarPageContent({
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
       <div className="mb-6">
-        <h1 className="font-display text-3xl font-bold text-neutral-900 md:text-4xl">
+        <h1 className="font-display text-3xl font-bold text-slate-900 md:text-4xl">
           Buscar profissionais
         </h1>
       </div>
 
       <SearchQueryBar key={`query-${queryState.q}`} initialState={queryState} />
 
-      <div className="z-20 mb-4 rounded-2xl border border-neutral-200 bg-white shadow-sm lg:sticky lg:top-24">
+      <div className="z-20 mb-4 rounded-2xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-24">
         <div className="px-3 py-2.5 md:hidden">
           <MobileFiltersDrawer
             initialState={queryState}
@@ -885,7 +885,7 @@ export async function BuscarPageContent({
 
       <section>
         <div className="mb-4">
-          <p className="text-sm font-semibold text-neutral-900">
+          <p className="text-sm font-semibold text-slate-900">
             {hasActiveFilters
               ? `${totalResults} profissionais disponíveis para os filtros selecionados`
               : `${totalResults} profissionais disponíveis`}
@@ -903,20 +903,20 @@ export async function BuscarPageContent({
                 </span>
               ) : null}
               {selectedSpecialty ? (
-                <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-medium text-neutral-700">
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-700">
                   Especialidade: {selectedSpecialty}
                 </span>
               ) : null}
             </div>
           ) : (
-            <p className="mt-1 text-xs text-neutral-500">Sugestões iniciais variadas para te ajudar a começar.</p>
+            <p className="mt-1 text-xs text-slate-500">Sugestões iniciais variadas para te ajudar a começar.</p>
           )}
         </div>
 
         {pagedProfessionals.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white px-6 py-12 text-center">
-            <p className="mb-1 text-base font-semibold text-neutral-900">Nenhum profissional encontrado</p>
-            <p className="mx-auto max-w-md text-sm text-neutral-500">
+          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+            <p className="mb-1 text-base font-semibold text-slate-900">Nenhum profissional encontrado</p>
+            <p className="mx-auto max-w-md text-sm text-slate-500">
               Ajuste categoria, subcategoria, especialidade ou faixa de preço para ver mais resultados.
             </p>
             {hasActiveFilters ? (
@@ -927,7 +927,7 @@ export async function BuscarPageContent({
                       ? `${basePath}?moeda=${encodeURIComponent(queryState.moeda)}`
                       : basePath
                   }
-                  className="rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                  className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
                 >
                   Limpar filtros
                 </Link>
@@ -940,7 +940,7 @@ export async function BuscarPageContent({
               {pagedProfessionals.map((professional: SearchProfessional) => (
                 <div
                   key={professional.id}
-                  className="rounded-2xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 md:p-5"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 md:p-5"
                 >
                   <Link
                     href={buildProfessionalProfilePath({
@@ -948,10 +948,10 @@ export async function BuscarPageContent({
                       fullName: professional.profiles?.full_name,
                       publicCode: professional.public_code,
                     })}
-                    className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 rounded-2xl"
+                    className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 rounded-2xl"
                   >
                     {professional.cover_photo_url ? (
-                      <div className="mb-3 h-20 w-full overflow-hidden rounded-xl border border-neutral-200">
+                      <div className="mb-3 h-20 w-full overflow-hidden rounded-xl border border-slate-200">
                         <Image
                           src={professional.cover_photo_url}
                           alt={`Capa de ${professional.profiles?.full_name || 'Profissional'}`}
@@ -972,10 +972,10 @@ export async function BuscarPageContent({
                           height={56}
                           sizes="56px"
                           quality={70}
-                          className="h-14 w-14 rounded-2xl border border-neutral-200 object-cover flex-shrink-0"
+                          className="h-14 w-14 rounded-2xl border border-slate-200 object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
+                        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-[#9FE870] to-[#8ed85f] flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
                           {getNameInitial(professional.profiles?.full_name)}
                         </div>
                       )}
@@ -983,10 +983,10 @@ export async function BuscarPageContent({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="font-semibold text-neutral-900 leading-tight">
+                            <h3 className="font-semibold text-slate-900 leading-tight">
                               {professional.profiles?.full_name || 'Profissional'}
                             </h3>
-                            <p className="text-xs text-neutral-500 mt-1">
+                            <p className="text-xs text-slate-500 mt-1">
                               {getPrimarySpecialty(
                                 professional,
                                 primarySpecialtyByProfessionalId.get(String(professional.id)),
@@ -995,7 +995,7 @@ export async function BuscarPageContent({
                             <ExpandableTags tags={professional.tags || []} />
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-neutral-900">
+                            <p className="font-semibold text-slate-900">
                               {formatSearchPrice(
                                 Number(professional.session_price_brl || 0),
                                 selectedCurrency,
@@ -1003,17 +1003,17 @@ export async function BuscarPageContent({
                                 exchangeRates,
                               )}
                             </p>
-                            <p className="text-[11px] text-neutral-400">
+                            <p className="text-[11px] text-slate-400">
                               por sessão de {Math.max(1, Number(professional.session_duration_minutes || 60))} min
                             </p>
                           </div>
                         </div>
 
-                        <p className="text-sm text-neutral-600 mt-3 line-clamp-2">
+                        <p className="text-sm text-slate-600 mt-3 line-clamp-2">
                           {professional.bio || 'Profissional verificado pronto para te atender.'}
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
+                        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-slate-500">
                           {professional.tier && professional.tier !== 'basic' ? (
                             <span
                               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium ${
@@ -1026,7 +1026,7 @@ export async function BuscarPageContent({
                             </span>
                           ) : null}
                           {professional.video_intro_url ? (
-                            <span className="inline-flex items-center gap-1 bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
+                            <span className="inline-flex items-center gap-1 bg-[#9FE870]/8 text-[#3d6b1f] px-2.5 py-1 rounded-full font-medium">
                               <PlayCircle className="w-3 h-3" />
                               Vídeo
                             </span>
@@ -1043,7 +1043,7 @@ export async function BuscarPageContent({
                               ? Number(professional.rating).toFixed(1)
                               : 'Novo'}
                           </span>
-                          <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
                             <MapPin className="w-3 h-3" />
                             {getCountryDisplayName(professional.profiles?.country)}
                           </span>
@@ -1054,7 +1054,7 @@ export async function BuscarPageContent({
                             {(professional.languages || []).map((language: string) => (
                               <span
                                 key={language}
-                                className="text-[11px] bg-brand-50 text-brand-700 px-2 py-1 rounded-full"
+                                className="text-[11px] bg-[#9FE870]/8 text-[#3d6b1f] px-2 py-1 rounded-full"
                               >
                                 {language}
                               </span>
@@ -1080,9 +1080,9 @@ export async function BuscarPageContent({
                   href={buildHref(basePath, queryState, { pagina: String(Math.max(1, currentPage - 1)) })}
                   className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
                     currentPage === 1
-                      ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
-                      : 'border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
+                      ? 'pointer-events-none border-slate-100 text-slate-300 bg-slate-50'
+                      : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-50'
+                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20`}
                 >
                   Anterior
                 </Link>
@@ -1093,9 +1093,9 @@ export async function BuscarPageContent({
                     href={buildHref(basePath, queryState, { pagina: String(pageNumber) })}
                     className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-all ${
                       pageNumber === currentPage
-                        ? 'bg-brand-500 border-brand-500 text-white'
-                        : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50'
-                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
+                        ? 'bg-[#9FE870] border-[#9FE870] text-white'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20`}
                   >
                     {pageNumber}
                   </Link>
@@ -1105,9 +1105,9 @@ export async function BuscarPageContent({
                   href={buildHref(basePath, queryState, { pagina: String(Math.min(totalPages, currentPage + 1)) })}
                   className={`px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
                     currentPage === totalPages
-                      ? 'pointer-events-none border-neutral-100 text-neutral-300 bg-neutral-50'
-                      : 'border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20`}
+                      ? 'pointer-events-none border-slate-100 text-slate-300 bg-slate-50'
+                      : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-50'
+                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20`}
                 >
                   Proxima
                 </Link>
