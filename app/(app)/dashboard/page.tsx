@@ -23,6 +23,8 @@ import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
 import { ProfessionalOnboardingCard } from '@/components/dashboard/ProfessionalOnboardingCard'
+import { AppCard, AppCardHeader } from '@/components/ui/AppCard'
+import { PageContainer, PageHeader } from '@/components/ui/AppShell'
 
 const FIRST_BOOKING_RELEVANT_STATUSES = [
   'pending',
@@ -253,7 +255,7 @@ export default async function DashboardPage({
   const shouldAutoOpenOnboarding = openOnboarding === '1'
 
   return (
-    <div className="mx-auto max-w-6xl p-6 md:p-8">
+    <PageContainer maxWidth="xl">
       {showOnboardingCard && onboardingEvaluation ? (
         <ProfessionalOnboardingCard
           professionalId={professionalId}
@@ -270,17 +272,14 @@ export default async function DashboardPage({
       ) : null}
 
       <div className={onboardingIncomplete ? 'pointer-events-none select-none blur-[1px] opacity-80' : ''}>
-      <div className="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500">
-            Veja o que precisa de ação agora e acompanhe agenda, ganhos e saúde da conta.
-          </p>
-        </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Veja o que precisa de ação agora e acompanhe agenda, ganhos e saúde da conta."
+      >
         <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           Plano: {String(professional.tier || 'basic').toUpperCase()}
         </span>
-      </div>
+      </PageHeader>
 
       {alerts.length > 0 && (
         <section className="mb-6 space-y-3" data-testid="professional-alerts">
@@ -310,7 +309,7 @@ export default async function DashboardPage({
       )}
 
       <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="professional-dashboard-cards">
-        <div className={`rounded-lg border p-5 ${pendingConfirmationCount > 0 || openRequestCount > 0 ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200/80 bg-white'}`}>
+        <AppCard className={pendingConfirmationCount > 0 || openRequestCount > 0 ? 'border-amber-200 bg-amber-50/30' : ''}>
           <div className="mb-2 flex items-center gap-2 text-slate-500">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <span className="text-xs font-semibold uppercase tracking-wide">Urgente</span>
@@ -321,9 +320,9 @@ export default async function DashboardPage({
             Resolver agora
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
-        </div>
+        </AppCard>
 
-        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+        <AppCard>
           <div className="mb-2 flex items-center gap-2 text-slate-500">
             <CalendarClock className="h-4 w-4 text-[#9FE870]" />
             <span className="text-xs font-semibold uppercase tracking-wide">Próxima sessão</span>
@@ -346,9 +345,9 @@ export default async function DashboardPage({
             <p className="text-sm text-slate-500">Sem sessões confirmadas no momento.</p>
           )}
           <p className="mt-2 text-xs text-slate-500">Total futuro: {upcomingBookings?.length || 0} sessão(ões)</p>
-        </div>
+        </AppCard>
 
-        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+        <AppCard>
           <div className="mb-2 flex items-center gap-2 text-slate-500">
             <Wallet className="h-4 w-4 text-[#9FE870]" />
             <span className="text-xs font-semibold uppercase tracking-wide">Ganhos</span>
@@ -357,9 +356,9 @@ export default async function DashboardPage({
           <p className="text-xl font-semibold text-slate-900">{formatCurrency(earningsWeek, currency)}</p>
           <p className="mt-2 text-sm text-slate-500">Mês</p>
           <p className="text-lg font-semibold text-slate-900">{formatCurrency(earningsMonth, currency)}</p>
-        </div>
+        </AppCard>
 
-        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+        <AppCard>
           <div className="mb-2 flex items-center gap-2 text-slate-500">
             <ShieldAlert className="h-4 w-4 text-[#9FE870]" />
             <span className="text-xs font-semibold uppercase tracking-wide">Saúde da conta</span>
@@ -368,14 +367,14 @@ export default async function DashboardPage({
           <p className="text-sm text-slate-600">Confirmação: {toUiLabel(professionalSettings?.confirmation_mode, CONFIRMATION_MODE_LABELS)}</p>
           <p className="text-sm text-slate-600">Janela de agenda: {Number(professionalSettings?.max_booking_window_days || 30)} dias</p>
           <p className="text-sm text-slate-600">Exceções futuras: {availabilityExceptionsCount || 0}</p>
-        </div>
+        </AppCard>
       </section>
 
-      <section className="mb-6 rounded-lg border border-slate-200/80 bg-white p-5" data-testid="professional-quick-actions">
-        <div className="mb-4 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-[#9FE870]" />
-          <h2 className="font-display text-lg font-bold text-slate-900">Ações rápidas</h2>
-        </div>
+      <AppCard className="mb-6" data-testid="professional-quick-actions">
+        <AppCardHeader
+          title="Ações rápidas"
+          icon={<Layers className="h-4 w-4 text-[#9FE870]" />}
+        />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Link href="/agenda?view=pending" className={`rounded-md border p-3 text-sm font-medium transition ${pendingConfirmationCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
             Confirmar pendências {pendingConfirmationCount > 0 && `(${pendingConfirmationCount})`}
@@ -409,13 +408,13 @@ export default async function DashboardPage({
             Ver status da conta
           </Link>
         </div>
-      </section>
+      </AppCard>
 
-      <section className="rounded-lg border border-slate-200/80 bg-white p-5" data-testid="professional-upcoming-list">
-        <div className="mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-[#9FE870]" />
-          <h2 className="font-display text-lg font-bold text-slate-900">Próximas sessões</h2>
-        </div>
+      <AppCard data-testid="professional-upcoming-list">
+        <AppCardHeader
+          title="Próximas sessões"
+          icon={<Clock className="h-4 w-4 text-[#9FE870]" />}
+        />
         {!upcomingBookings || upcomingBookings.length === 0 ? (
           <p className="text-sm text-slate-500">Nenhuma sessão agendada para os próximos dias.</p>
         ) : (
@@ -452,16 +451,16 @@ export default async function DashboardPage({
             Ver calendário completo
           </Link>
         </div>
-      </section>
+      </AppCard>
 
       <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+        <AppCard>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Resumo de trabalho (30 dias)</p>
           <p className="mt-2 text-sm text-slate-700">Sessões concluídas: {completedLast30Count || 0}</p>
           <p className="text-sm text-slate-700">Cancelamentos: {cancelledLast30Count || 0}</p>
           <p className="text-sm text-slate-700">Favoritos: {favoritesCount || 0}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+        </AppCard>
+        <AppCard>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Integração de calendário</p>
           <p className="mt-2 text-sm text-slate-700">
             {calendarIntegration?.sync_enabled ? `Conectado (${calendarIntegration.provider || 'google'})` : 'Não conectado'}
@@ -478,9 +477,9 @@ export default async function DashboardPage({
           <Link href="/agenda?view=settings" className="mt-2 inline-flex text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
             Abrir configurações de calendário
           </Link>
-        </div>
+        </AppCard>
       </section>
       </div>
-    </div>
+    </PageContainer>
   )
 }

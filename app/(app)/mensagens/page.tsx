@@ -8,6 +8,7 @@ import { getConversations } from '@/lib/actions/chat'
 import { createClient } from '@/lib/supabase/server'
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
+import { AppCard } from '@/components/ui/AppCard'
 
 export default async function MensagensPage() {
   const supabase = await createClient()
@@ -42,49 +43,50 @@ export default async function MensagensPage() {
               : 'Nenhuma mensagem ainda'
 
             return (
-              <Link
-                key={conv.id}
-                href={`/mensagens/${conv.id}`}
-                className="flex items-center gap-4 rounded-lg border border-slate-200/80 bg-white p-4 transition hover:border-slate-300"
-              >
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 text-[#3d6b1f] font-display font-bold text-lg">
-                  {conv.otherParticipantName.charAt(0).toUpperCase()}
-                </div>
+              <AppCard key={conv.id} hover padding="sm">
+                <Link
+                  href={`/mensagens/${conv.id}`}
+                  className="flex items-center gap-4"
+                >
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 text-[#3d6b1f] font-display font-bold text-lg">
+                    {conv.otherParticipantName.charAt(0).toUpperCase()}
+                  </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-slate-900">
-                      {conv.otherParticipantName}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {conv.otherParticipantName}
+                      </p>
+                      {conv.lastMessageSentAt && (
+                        <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
+                          <Clock className="h-3 w-3" />
+                          {formatInTimeZone(
+                            new Date(conv.lastMessageSentAt),
+                            'America/Sao_Paulo',
+                            'd MMM',
+                            { locale: ptBR },
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={`mt-0.5 truncate text-sm ${
+                        conv.unreadCount > 0
+                          ? 'font-medium text-slate-900'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      {previewText}
                     </p>
-                    {conv.lastMessageSentAt && (
-                      <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
-                        <Clock className="h-3 w-3" />
-                        {formatInTimeZone(
-                          new Date(conv.lastMessageSentAt),
-                          'America/Sao_Paulo',
-                          'd MMM',
-                          { locale: ptBR },
-                        )}
-                      </span>
-                    )}
                   </div>
-                  <p
-                    className={`mt-0.5 truncate text-sm ${
-                      conv.unreadCount > 0
-                        ? 'font-medium text-slate-900'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    {previewText}
-                  </p>
-                </div>
 
-                {conv.unreadCount > 0 && (
-                  <div className="flex h-6 min-w-[24px] flex-shrink-0 items-center justify-center rounded-full bg-[#9FE870] px-1.5 text-xs font-bold text-white">
-                    {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
-                  </div>
-                )}
-              </Link>
+                  {conv.unreadCount > 0 && (
+                    <div className="flex h-6 min-w-[24px] flex-shrink-0 items-center justify-center rounded-full bg-[#9FE870] px-1.5 text-xs font-bold text-white">
+                      {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                    </div>
+                  )}
+                </Link>
+              </AppCard>
             )
           })}
         </div>

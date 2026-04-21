@@ -98,33 +98,37 @@ export default async function FinanceiroPage() {
       </AppCard>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Link
-          href="/agenda"
-          className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300"
-        >
-          <div className="flex items-center gap-3">
-            <Calendar className="w-4 h-4 text-[#9FE870]" />
-            <div>
-              <p className="text-sm font-medium text-slate-900">Ver bookings</p>
-              <p className="text-xs text-slate-500">Acompanhar agenda e status</p>
+        <AppCard hover padding="sm">
+          <Link
+            href="/agenda"
+            className="flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-[#9FE870]" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">Ver bookings</p>
+                <p className="text-xs text-slate-500">Acompanhar agenda e status</p>
+              </div>
             </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-slate-400" />
-        </Link>
+            <ArrowRight className="w-4 h-4 text-slate-400" />
+          </Link>
+        </AppCard>
 
-        <Link
-          href="/configuracoes"
-          className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300"
-        >
-          <div className="flex items-center gap-3">
-            <Receipt className="w-4 h-4 text-[#9FE870]" />
-            <div>
-              <p className="text-sm font-medium text-slate-900">Preferências da conta</p>
-              <p className="text-xs text-slate-500">Moeda, notificações e segurança</p>
+        <AppCard hover padding="sm">
+          <Link
+            href="/configuracoes"
+            className="flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <Receipt className="w-4 h-4 text-[#9FE870]" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">Preferências da conta</p>
+                <p className="text-xs text-slate-500">Moeda, notificações e segurança</p>
+              </div>
             </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-slate-400" />
-        </Link>
+            <ArrowRight className="w-4 h-4 text-slate-400" />
+          </Link>
+        </AppCard>
       </div>
     </PageContainer>
   )

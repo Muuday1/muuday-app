@@ -24,6 +24,8 @@ import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS, normalizeProfessionalSettingsRow
 import { getPlanConfigForTier, loadPlanConfigMap, type PlanConfig } from '@/lib/plan-config'
 import type { BookingSettingsForm } from '@/components/settings/BookingSettingsClient'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { AppCard } from '@/components/ui/AppCard'
+import { PageContainer, PageHeader } from '@/components/ui/AppShell'
 
 type RequestBookingStatus =
   | 'open'
@@ -443,13 +445,11 @@ export default async function AgendaPage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6 md:p-8">
-      <div className="mb-8">
-        <h1 className="mb-1 text-3xl font-bold text-slate-900 font-display">Agenda</h1>
-        <p className="text-slate-500">
-          {isProfessional ? 'Control center das suas sessoes e solicitacoes.' : 'Suas sessoes agendadas'}
-        </p>
-      </div>
+    <PageContainer maxWidth="xl">
+      <PageHeader
+        title="Agenda"
+        subtitle={isProfessional ? 'Control center das suas sessoes e solicitacoes.' : 'Suas sessoes agendadas'}
+      />
 
       {isProfessional && (
         <section className="mb-6">
@@ -469,24 +469,24 @@ export default async function AgendaPage({
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+            <AppCard padding="sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Aguardando confirmação</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">{pendingConfirmations.length}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+            </AppCard>
+            <AppCard padding="sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Solicitações abertas</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">{activeRequests.length}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+            </AppCard>
+            <AppCard padding="sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Disponibilidade ativa</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">{activeAvailabilityCount}</p>
-            </div>
+            </AppCard>
           </div>
         </section>
       )}
 
       {isProfessional && activeView === 'settings' && (
-        <section className="mb-8 rounded-lg border border-slate-200/80 bg-white p-6" data-testid="professional-calendar-control-center">
+        <AppCard className="mb-8" data-testid="professional-calendar-control-center">
           <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-slate-900">
             <Settings className="h-5 w-5 text-[#9FE870]" />
             Calendário e regras de agendamento
@@ -554,7 +554,7 @@ export default async function AgendaPage({
               Business setup
             </Link>
           </div>
-        </section>
+        </AppCard>
       )}
 
       {shouldShowRequests && (
@@ -565,9 +565,9 @@ export default async function AgendaPage({
         </h2>
 
         {activeRequests.length === 0 && closedRequests.length === 0 ? (
-          <div className="rounded-lg border border-slate-200/80 bg-white p-6 text-center">
-            <p className="text-sm font-medium text-slate-700">Nenhuma solicitação de horário no momento.</p>
-          </div>
+          <AppCard>
+            <p className="text-sm font-medium text-slate-700 text-center">Nenhuma solicitação de horário no momento.</p>
+          </AppCard>
         ) : (
           <div className="space-y-3">
             {activeRequests.map((request: any) => {
@@ -592,7 +592,7 @@ export default async function AgendaPage({
                   : null
 
               return (
-                <div key={request.id} className="rounded-lg border border-slate-200/80 bg-white p-5">
+                <AppCard key={request.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-slate-900">{otherPerson || 'Profissional'}</p>
@@ -642,12 +642,12 @@ export default async function AgendaPage({
                       request.preferred_end_utc,
                     )}
                   />
-                </div>
+                </AppCard>
               )
             })}
 
             {closedRequests.length > 0 && (
-              <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+              <AppCard>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Historico de solicitacoes
                 </p>
@@ -679,7 +679,7 @@ export default async function AgendaPage({
                     )
                   })}
                 </div>
-              </div>
+              </AppCard>
             )}
           </div>
         )}
@@ -710,7 +710,7 @@ export default async function AgendaPage({
         )}
 
         {upcomingVisible.length === 0 ? (
-          <div className="rounded-lg border border-slate-200/80 bg-white p-8 text-center">
+          <AppCard padding="lg">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-slate-50/70">
               <Calendar className="h-7 w-7 text-slate-300" />
             </div>
@@ -729,7 +729,7 @@ export default async function AgendaPage({
                 <ChevronRight className="h-4 w-4" />
               </a>
             )}
-          </div>
+          </AppCard>
         ) : (
           <div className="space-y-3">
             {upcomingVisible.map((booking: any) => {
@@ -748,10 +748,7 @@ export default async function AgendaPage({
                     : 'Pendente'
 
               return (
-                <div
-                  key={booking.id}
-                  className="rounded-lg border border-slate-200/80 bg-white p-5 transition-all"
-                >
+                <AppCard key={booking.id}>
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 font-bold text-[#3d6b1f] font-display">
                       {otherPerson?.charAt(0) || '?'}
@@ -822,7 +819,7 @@ export default async function AgendaPage({
                     scheduledAt={booking.scheduled_at}
                     isProfessional={isProfessional}
                   />
-                </div>
+                </AppCard>
               )
             })}
           </div>
@@ -924,7 +921,7 @@ export default async function AgendaPage({
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }
 

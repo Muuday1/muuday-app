@@ -8,6 +8,8 @@ import { COUNTRIES } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfileAccountSettings } from '@/components/profile/ProfileAccountSettings'
 import { PushNotificationToggle } from '@/components/push/PushNotificationToggle'
+import { AppCard } from '@/components/ui/AppCard'
+import { PageContainer } from '@/components/ui/AppShell'
 
 export default async function PerfilPage() {
   const supabase = await createClient()
@@ -58,7 +60,7 @@ export default async function PerfilPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto">
+    <PageContainer maxWidth="md">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-display font-bold text-3xl text-slate-900 mb-1">Meu Perfil</h1>
@@ -83,7 +85,7 @@ export default async function PerfilPage() {
                 <h2 className="font-display font-bold text-xl text-slate-900">{profile?.full_name}</h2>
                 <Link
                   href="/editar-perfil"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3d6b1f] hover:text-[#3d6b1f] bg-[#9FE870]/8 hover:bg-[#9FE870]/10 px-3 py-1.5 rounded-full transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3d6b1f] hover:text-[#3d6b1f] bg-[#9FE870]/8 hover:bg-[#9FE870]/10 px-3 py-1.5 rounded-md transition-all"
                 >
                   <Pencil className="w-3 h-3" />
                   Editar perfil
@@ -145,20 +147,20 @@ export default async function PerfilPage() {
 
       {/* Professional details */}
       {isProfissional && professional && (
-        <div className="bg-white rounded-lg border border-slate-200/80 p-6 mb-6">
+        <AppCard className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display font-bold text-lg text-slate-900">Perfil Profissional</h3>
             <div className="flex items-center gap-2">
               <Link
                 href="/onboarding-profissional"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-all"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-all"
               >
                 Checklist C1-C10
               </Link>
               {professional.bio && (
                 <Link
                   href="/editar-perfil-profissional"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3d6b1f] hover:text-[#3d6b1f] bg-[#9FE870]/8 hover:bg-[#9FE870]/10 px-3 py-1.5 rounded-full transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3d6b1f] hover:text-[#3d6b1f] bg-[#9FE870]/8 hover:bg-[#9FE870]/10 px-3 py-1.5 rounded-md transition-all"
                 >
                   <Pencil className="w-3 h-3" />
                   Editar perfil profissional
@@ -231,12 +233,12 @@ export default async function PerfilPage() {
               </Link>
             </div>
           )}
-        </div>
+        </AppCard>
       )}
 
       {/* Availability link for professionals */}
       {isProfissional && professional && (
-        <div className="bg-white rounded-lg border border-slate-200/80 p-6 mb-6">
+        <AppCard className="mb-6">
           <h3 className="font-display font-bold text-lg text-slate-900 mb-4">Agenda e disponibilidade</h3>
           <div className="space-y-3">
             <Link
@@ -271,20 +273,20 @@ export default async function PerfilPage() {
               <ArrowRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
-        </div>
+        </AppCard>
       )}
 
       {/* Push Notifications */}
-      <div className="bg-white rounded-lg border border-slate-200/80 p-6 mb-6">
+      <AppCard className="mb-6">
         <h3 className="font-display font-bold text-lg text-slate-900 mb-4 flex items-center gap-2">
           <Bell className="w-4 h-4" />
           Notificações
         </h3>
         <PushNotificationToggle />
-      </div>
+      </AppCard>
 
       <ProfileAccountSettings />
-    </div>
+    </PageContainer>
   )
 }
 

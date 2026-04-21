@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale'
 import { ShieldAlert, ArrowRight, Plus, Clock } from 'lucide-react'
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
+import { AppCard } from '@/components/ui/AppCard'
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   open: { label: 'Aberto', className: 'bg-amber-50 text-amber-700' },
@@ -55,28 +56,29 @@ export default async function DisputasPage() {
           {cases.map((c: any) => {
             const status = STATUS_LABELS[c.status] || STATUS_LABELS.open
             return (
-              <Link
-                key={c.id}
-                href={`/disputas/${c.id}`}
-                className="flex items-start justify-between rounded-lg border border-slate-200/80 bg-white p-4 transition hover:border-slate-300"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{TYPE_LABELS[c.type] || c.type}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
-                      {status.label}
+              <AppCard key={c.id} hover padding="sm">
+                <Link
+                  href={`/disputas/${c.id}`}
+                  className="flex items-start justify-between"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{TYPE_LABELS[c.type] || c.type}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-600">{c.reason}</p>
+                    <span className="mt-2 flex items-center gap-1 text-xs text-slate-400">
+                      <Clock className="h-3 w-3" />
+                      {formatInTimeZone(new Date(c.created_at), 'America/Sao_Paulo', 'd MMM yyyy', {
+                        locale: ptBR,
+                      })}
                     </span>
                   </div>
-                  <p className="mt-1 truncate text-sm text-slate-600">{c.reason}</p>
-                  <span className="mt-2 flex items-center gap-1 text-xs text-slate-400">
-                    <Clock className="h-3 w-3" />
-                    {formatInTimeZone(new Date(c.created_at), 'America/Sao_Paulo', 'd MMM yyyy', {
-                      locale: ptBR,
-                    })}
-                  </span>
-                </div>
-                <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-slate-300" />
-              </Link>
+                  <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-slate-300" />
+                </Link>
+              </AppCard>
             )
           })}
         </div>

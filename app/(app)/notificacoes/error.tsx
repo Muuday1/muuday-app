@@ -17,7 +17,7 @@ export default function Error({
           Algo deu errado
         </h2>
         <p className="text-slate-500 text-sm mb-6">
-          Ocorreu um erro inesperado ao carregar seus serviços. Tente novamente.
+          Ocorreu um erro inesperado ao carregar as notificações. Tente novamente.
         </p>
         <button
           onClick={reset}
