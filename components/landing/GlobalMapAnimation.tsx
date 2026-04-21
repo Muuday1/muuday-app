@@ -44,7 +44,7 @@ export function GlobalMapAnimation() {
 
   return (
     <div className="relative mx-auto w-full max-w-4xl">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-slate-900">
+      <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-slate-900">
         {/* Subtle grid background */}
         <div
           className="absolute inset-0 opacity-[0.06]"
@@ -156,8 +156,8 @@ export function GlobalMapAnimation() {
             transition={{ duration: 0.35 }}
             className="absolute bottom-6 left-1/2 -translate-x-1/2"
           >
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-xl">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#9FE870]">
+            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#9FE870]">
                 <MapPin className="h-5 w-5 text-slate-900" />
               </div>
               <div>
@@ -170,7 +170,7 @@ export function GlobalMapAnimation() {
 
         {/* Top stats */}
         <div className="absolute left-6 top-6">
-          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+          <div className="rounded-md border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Brasileiros no exterior
             </p>

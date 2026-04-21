@@ -66,13 +66,13 @@ export default async function ConversationPage({
       <div className="mb-4 flex items-center gap-3">
         <Link
           href="/mensagens"
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-700"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50/70 hover:text-slate-700"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="font-display text-lg font-bold text-neutral-900">{otherName}</h1>
-          <p className="text-xs text-neutral-500">
+          <h1 className="font-display text-lg font-bold text-slate-900">{otherName}</h1>
+          <p className="text-xs text-slate-500">
             {otherParticipant?.role === 'professional' ? 'Profissional' : 'Cliente'}
           </p>
         </div>

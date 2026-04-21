@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Meu Perfil | Muuday' }
+export const metadata = { title: 'Meu Perfil | Muuday' }
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -61,16 +61,16 @@ export default async function PerfilPage() {
     <div className="p-6 md:p-8 max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">Meu Perfil</h1>
-        <p className="text-neutral-500">Gerencie suas informações pessoais</p>
+        <h1 className="font-display font-bold text-3xl text-slate-900 mb-1">Meu Perfil</h1>
+        <p className="text-slate-500">Gerencie suas informações pessoais</p>
       </div>
 
       {/* Profile Card */}
-      <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden mb-6">
+      <div className="bg-white rounded-lg border border-slate-200/80 overflow-hidden mb-6">
         {/* Banner */}
-        <div className="h-24 bg-gradient-to-br from-brand-400 to-brand-600 relative">
+        <div className="h-24 bg-gradient-to-br from-[#9FE870]/80 to-[#8ed85f] relative">
           <div className="absolute -bottom-8 left-6">
-            <div className="w-20 h-20 rounded-2xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-brand-600 font-display font-bold text-2xl">
+            <div className="w-20 h-20 rounded-lg bg-white border-4 border-white flex items-center justify-center text-[#3d6b1f] font-display font-bold text-2xl">
               {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
             </div>
           </div>
@@ -80,16 +80,16 @@ export default async function PerfilPage() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="font-display font-bold text-xl text-neutral-900">{profile?.full_name}</h2>
+                <h2 className="font-display font-bold text-xl text-slate-900">{profile?.full_name}</h2>
                 <Link
                   href="/editar-perfil"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3d6b1f] hover:text-[#3d6b1f] bg-[#9FE870]/8 hover:bg-[#9FE870]/10 px-3 py-1.5 rounded-full transition-all"
                 >
                   <Pencil className="w-3 h-3" />
                   Editar perfil
                 </Link>
               </div>
-              <p className="text-sm text-neutral-500 capitalize flex items-center gap-1.5 mt-0.5">
+              <p className="text-sm text-slate-500 capitalize flex items-center gap-1.5 mt-0.5">
                 <Shield className="w-3.5 h-3.5" />
                 {profile?.role === 'profissional' ? 'Profissional' : profile?.role === 'admin' ? 'Administrador' : 'Utilizador'}
               </p>
@@ -98,7 +98,7 @@ export default async function PerfilPage() {
               <span className={`text-xs font-medium px-3 py-1 rounded-full ${
                 professional.status === 'approved' ? 'bg-green-50 text-green-700' :
                 professional.status === 'pending_review' ? 'bg-amber-50 text-amber-700' :
-                professional.status === 'draft' ? 'bg-neutral-100 text-neutral-500' :
+                professional.status === 'draft' ? 'bg-slate-100 text-slate-500' :
                 'bg-red-50 text-red-600'
               }`}>
                 {professional.status === 'approved' ? 'Aprovado' :
@@ -111,32 +111,32 @@ export default async function PerfilPage() {
 
           {/* Info grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
-              <Mail className="w-4 h-4 text-neutral-400" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/70 rounded-md">
+              <Mail className="w-4 h-4 text-slate-400" />
               <div>
-                <p className="text-xs text-neutral-400">Email</p>
-                <p className="text-sm font-medium text-neutral-700">{profile?.email}</p>
+                <p className="text-xs text-slate-400">Email</p>
+                <p className="text-sm font-medium text-slate-700">{profile?.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
-              <MapPin className="w-4 h-4 text-neutral-400" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/70 rounded-md">
+              <MapPin className="w-4 h-4 text-slate-400" />
               <div>
-                <p className="text-xs text-neutral-400">País</p>
-                <p className="text-sm font-medium text-neutral-700">{countryData?.name || profile?.country || 'Não definido'}</p>
+                <p className="text-xs text-slate-400">País</p>
+                <p className="text-sm font-medium text-slate-700">{countryData?.name || profile?.country || 'Não definido'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
-              <Clock className="w-4 h-4 text-neutral-400" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/70 rounded-md">
+              <Clock className="w-4 h-4 text-slate-400" />
               <div>
-                <p className="text-xs text-neutral-400">Fuso horário</p>
-                <p className="text-sm font-medium text-neutral-700">{profile?.timezone || 'Não definido'}</p>
+                <p className="text-xs text-slate-400">Fuso horário</p>
+                <p className="text-sm font-medium text-slate-700">{profile?.timezone || 'Não definido'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
-              <Globe className="w-4 h-4 text-neutral-400" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/70 rounded-md">
+              <Globe className="w-4 h-4 text-slate-400" />
               <div>
-                <p className="text-xs text-neutral-400">Moeda</p>
-                <p className="text-sm font-medium text-neutral-700">{profile?.currency || 'BRL'}</p>
+                <p className="text-xs text-slate-400">Moeda</p>
+                <p className="text-sm font-medium text-slate-700">{profile?.currency || 'BRL'}</p>
               </div>
             </div>
           </div>
@@ -145,20 +145,20 @@ export default async function PerfilPage() {
 
       {/* Professional details */}
       {isProfissional && professional && (
-        <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
+        <div className="bg-white rounded-lg border border-slate-200/80 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-bold text-lg text-neutral-900">Perfil Profissional</h3>
+            <h3 className="font-display font-bold text-lg text-slate-900">Perfil Profissional</h3>
             <div className="flex items-center gap-2">
               <Link
                 href="/onboarding-profissional"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded-full transition-all"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-all"
               >
                 Checklist C1-C10
               </Link>
               {professional.bio && (
                 <Link
                   href="/editar-perfil-profissional"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-full transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3d6b1f] hover:text-[#3d6b1f] bg-[#9FE870]/8 hover:bg-[#9FE870]/10 px-3 py-1.5 rounded-full transition-all"
                 >
                   <Pencil className="w-3 h-3" />
                   Editar perfil profissional
@@ -170,35 +170,35 @@ export default async function PerfilPage() {
           {professional.bio ? (
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-neutral-400 mb-1">Bio</p>
-                <p className="text-sm text-neutral-700 leading-relaxed">{professional.bio}</p>
+                <p className="text-xs text-slate-400 mb-1">Bio</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{professional.bio}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-neutral-400 mb-1">Especialidade principal</p>
-                  <p className="text-sm font-medium text-neutral-700">
+                  <p className="text-xs text-slate-400 mb-1">Especialidade principal</p>
+                  <p className="text-sm font-medium text-slate-700">
                     {professionalSpecialties[0] || professional.category}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-400 mb-1">Preço por sessão</p>
-                  <p className="text-sm font-medium text-neutral-700">R$ {professional.session_price_brl?.toFixed(2)}</p>
+                  <p className="text-xs text-slate-400 mb-1">Preço por sessão</p>
+                  <p className="text-sm font-medium text-slate-700">R$ {professional.session_price_brl?.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-400 mb-1">Duração da sessão</p>
-                  <p className="text-sm font-medium text-neutral-700">{professional.session_duration_minutes} min</p>
+                  <p className="text-xs text-slate-400 mb-1">Duração da sessão</p>
+                  <p className="text-sm font-medium text-slate-700">{professional.session_duration_minutes} min</p>
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-400 mb-1">Experiência</p>
-                  <p className="text-sm font-medium text-neutral-700">{professional.years_experience} anos</p>
+                  <p className="text-xs text-slate-400 mb-1">Experiência</p>
+                  <p className="text-sm font-medium text-slate-700">{professional.years_experience} anos</p>
                 </div>
               </div>
               {professionalSpecialties.length > 0 && (
                 <div>
-                  <p className="text-xs text-neutral-400 mb-2">Especialidades profissionais</p>
+                  <p className="text-xs text-slate-400 mb-2">Especialidades profissionais</p>
                   <div className="flex flex-wrap gap-2">
                     {professionalSpecialties.map((specialty: string) => (
-                      <span key={specialty} className="text-xs bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full font-medium">
+                      <span key={specialty} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-medium">
                         {specialty}
                       </span>
                     ))}
@@ -207,10 +207,10 @@ export default async function PerfilPage() {
               )}
               {professional.tags?.length > 0 && (
                 <div>
-                  <p className="text-xs text-neutral-400 mb-2">Foco de atuação</p>
+                  <p className="text-xs text-slate-400 mb-2">Foco de atuação</p>
                   <div className="flex flex-wrap gap-2">
                     {professional.tags.map((tag: string) => (
-                      <span key={tag} className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium">
+                      <span key={tag} className="text-xs bg-[#9FE870]/8 text-[#3d6b1f] px-2.5 py-1 rounded-full font-medium">
                         {tag}
                       </span>
                     ))}
@@ -220,12 +220,12 @@ export default async function PerfilPage() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <p className="text-neutral-500 text-sm mb-3">
+              <p className="text-slate-500 text-sm mb-3">
                 Complete seu perfil profissional para começar a receber clientes.
               </p>
               <Link
                 href="/completar-perfil"
-                className="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
+                className="inline-block bg-[#9FE870] hover:bg-[#8ed85f] text-white font-semibold px-5 py-2.5 rounded-md transition-all text-sm"
               >
                 Completar perfil
               </Link>
@@ -236,47 +236,47 @@ export default async function PerfilPage() {
 
       {/* Availability link for professionals */}
       {isProfissional && professional && (
-        <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
-          <h3 className="font-display font-bold text-lg text-neutral-900 mb-4">Agenda e disponibilidade</h3>
+        <div className="bg-white rounded-lg border border-slate-200/80 p-6 mb-6">
+          <h3 className="font-display font-bold text-lg text-slate-900 mb-4">Agenda e disponibilidade</h3>
           <div className="space-y-3">
             <Link
               href="/disponibilidade"
-              className="flex items-center justify-between p-4 bg-brand-50 hover:bg-brand-100 rounded-xl transition-all group"
+              className="flex items-center justify-between p-4 bg-[#9FE870]/8 hover:bg-[#9FE870]/10 rounded-md transition-all group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-brand-500 rounded-xl flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#9FE870] rounded-md flex items-center justify-center">
                   <CalendarClock className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-brand-900">Configurar disponibilidade</p>
-                  <p className="text-xs text-brand-600">Defina os dias e horários de atendimento</p>
+                  <p className="text-sm font-semibold text-[#2d5016]">Configurar disponibilidade</p>
+                  <p className="text-xs text-[#3d6b1f]">Defina os dias e horários de atendimento</p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-brand-500 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-[#9FE870] group-hover:translate-x-0.5 transition-transform" />
             </Link>
 
             <Link
               href="/configuracoes-agendamento"
-              className="flex items-center justify-between p-4 bg-neutral-50 hover:bg-neutral-100 rounded-xl transition-all group"
+              className="flex items-center justify-between p-4 bg-slate-50/70 hover:bg-slate-100 rounded-md transition-all group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-neutral-900 rounded-xl flex items-center justify-center">
+                <div className="w-9 h-9 bg-slate-900 rounded-md flex items-center justify-center">
                   <SlidersHorizontal className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">Regras de agendamento</p>
-                  <p className="text-xs text-neutral-600">Buffer, confirmação, recorrência e antecedência</p>
+                  <p className="text-sm font-semibold text-slate-900">Regras de agendamento</p>
+                  <p className="text-xs text-slate-600">Buffer, confirmação, recorrência e antecedência</p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
       )}
 
       {/* Push Notifications */}
-      <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6">
-        <h3 className="font-display font-bold text-lg text-neutral-900 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-lg border border-slate-200/80 p-6 mb-6">
+        <h3 className="font-display font-bold text-lg text-slate-900 mb-4 flex items-center gap-2">
           <Bell className="w-4 h-4" />
           Notificações
         </h3>

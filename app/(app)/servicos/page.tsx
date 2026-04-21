@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { getProfessionalServices } from '@/lib/actions/professional-services'
 import { ProfessionalServicesManager } from '@/components/professional/ProfessionalServicesManager'
+import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
 export default async function ServicosPage() {
   const supabase = await createClient()
@@ -26,15 +27,15 @@ export default async function ServicosPage() {
   const services = servicesResult.success ? servicesResult.data : []
 
   return (
-    <div className="mx-auto max-w-3xl p-6 md:p-8">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-neutral-900 md:text-3xl">Meus Serviços</h1>
-        <p className="mt-1 text-sm text-neutral-500">Gerencie os serviços que você oferece.</p>
-      </div>
+    <PageContainer maxWidth="md">
+      <PageHeader
+        title="Meus Serviços"
+        subtitle="Gerencie os serviços que você oferece."
+      />
       <ProfessionalServicesManager
         professionalId={professional.id}
         initialServices={services as any[]}
       />
-    </div>
+    </PageContainer>
   )
 }

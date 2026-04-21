@@ -147,9 +147,9 @@ export function IdentityStage({
 }: IdentityStageProps) {
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <label className="mb-2 block text-sm font-semibold text-neutral-900">Foto de perfil</label>
-        <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700 sm:w-auto">
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <label className="mb-2 block text-sm font-semibold text-slate-900">Foto de perfil</label>
+        <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f] sm:w-auto">
           <Upload className="h-3.5 w-3.5" />
           Enviar foto
           <input
@@ -173,7 +173,7 @@ export function IdentityStage({
             <div className="grid gap-4 lg:grid-cols-[208px_minmax(0,1fr)] lg:items-start">
               <div className="space-y-3">
                 <div
-                  className="relative h-48 w-48 overflow-hidden rounded-full border border-neutral-200 bg-white"
+                  className="relative h-48 w-48 overflow-hidden rounded-full border border-slate-200 bg-white"
                   onMouseMove={event => {
                     if (dragStateRef.current) handlePhotoDragMove(event.clientX, event.clientY)
                   }}
@@ -218,13 +218,13 @@ export function IdentityStage({
                     }
                   />
                 </div>
-                <p className="text-[11px] text-neutral-500">
+                <p className="text-[11px] text-slate-500">
                   Arraste a imagem para reposicionar o centro. Use o zoom se quiser ajustar também para os lados.
                 </p>
               </div>
               <div className="space-y-3">
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                  <p className="text-xs font-semibold text-neutral-800">Validação automática</p>
+                <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3">
+                  <p className="text-xs font-semibold text-slate-800">Validação automática</p>
                   <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs">
                     {[
                       ['Formato (JPG/PNG/WEBP)', photoValidationChecks.format],
@@ -234,14 +234,14 @@ export function IdentityStage({
                       ['Fundo claro/neutro', photoValidationChecks.neutralBackground],
                     ].map(([label, status]) => (
                       <div key={String(label)} className="flex items-center justify-between gap-2">
-                        <span className="text-neutral-700">{label}</span>
+                        <span className="text-slate-700">{label}</span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                             status === 'pass'
                               ? 'bg-green-100 text-green-700'
                               : status === 'fail'
                                 ? 'bg-red-100 text-red-700'
-                                : 'bg-neutral-200 text-neutral-600'
+                                : 'bg-slate-200 text-slate-600'
                           }`}
                         >
                           {status === 'pass' ? 'ok' : status === 'fail' ? 'falhou' : 'n/a'}
@@ -252,7 +252,7 @@ export function IdentityStage({
                 </div>
                 {pendingPhoto ? (
                   <label className="block">
-                    <span className="mb-1 block text-xs font-semibold text-neutral-700">Zoom</span>
+                    <span className="mb-1 block text-xs font-semibold text-slate-700">Zoom</span>
                     <input
                       type="range"
                       min="1"
@@ -260,7 +260,7 @@ export function IdentityStage({
                       step="0.05"
                       value={photoZoom}
                       onChange={event => setPhotoZoom(Number(event.target.value))}
-                      className="w-full accent-brand-600"
+                      className="w-full accent-[#8ed85f]"
                     />
                   </label>
                 ) : null}
@@ -269,18 +269,18 @@ export function IdentityStage({
           </div>
         ) : null}
         {photoUploadState === 'saving' ? (
-          <p className="mt-2 text-xs text-brand-700">Preparando foto...</p>
+          <p className="mt-2 text-xs text-[#3d6b1f]">Preparando foto...</p>
         ) : null}
         {photoUploadError ? <p className="mt-2 text-xs font-medium text-red-600">{photoUploadError}</p> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3.5 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Título</label>
           <select
             value={identityTitle}
             onChange={event => setIdentityTitle(event.target.value)}
-            className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           >
             <option value="">Selecione...</option>
             {PROFESSIONAL_TITLES.map(option => (
@@ -291,54 +291,54 @@ export function IdentityStage({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Nome público profissional</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Nome público profissional</label>
           <input
             type="text"
             value={identityDisplayName}
             onChange={event => setIdentityDisplayName(event.target.value)}
             disabled={identityDisplayNameLocked}
-            className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
           />
           {identityDisplayNameLocked ? (
-            <p className="mt-1 text-[11px] text-neutral-500">
+            <p className="mt-1 text-[11px] text-slate-500">
               Esse nome foi definido no cadastro inicial e não pode ser alterado aqui.
             </p>
           ) : null}
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Categoria principal</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Categoria principal</label>
           <input
             type="text"
             value={resolveTaxonomyLabel(identityCategory, categoryNameBySlug)}
             readOnly
-            className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
+            className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Área de atuação específica</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Área de atuação específica</label>
           <input
             type="text"
             value={resolveTaxonomyLabel(identitySubcategory, subcategoryNameBySlug)}
             readOnly
-            className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-sm text-neutral-600"
+            className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
           />
         </div>
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Tags de foco</label>
-          <div className="flex min-h-11 flex-wrap gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Tags de foco</label>
+          <div className="flex min-h-11 flex-wrap gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
             {identityFocusAreas.length > 0 ? (
               identityFocusAreas.map(tag => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => removeFocusArea(tag)}
-                  className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-800"
+                  className="rounded-full border border-[#9FE870]/30 bg-[#9FE870]/8 px-2.5 py-1 text-[11px] font-medium text-[#2d5016]"
                 >
                   {tag} ×
                 </button>
               ))
             ) : (
-              <span className="text-xs text-neutral-500">Nenhuma tag registrada ainda.</span>
+              <span className="text-xs text-slate-500">Nenhuma tag registrada ainda.</span>
             )}
           </div>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -362,52 +362,52 @@ export function IdentityStage({
                   removeFocusArea(identityFocusAreas[identityFocusAreas.length - 1]!)
                 }
               }}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
               placeholder={`Adicione tags de foco (${identityFocusAreas.length}/${tierLimits.tags})`}
             />
             <button
               type="button"
               onClick={() => addFocusArea(focusAreaInput)}
-              className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
             >
               Adicionar tag
             </button>
           </div>
-          <p className="mt-1 text-[11px] text-neutral-500">
+          <p className="mt-1 text-[11px] text-slate-500">
             Pressione vírgula ou Enter para adicionar. Clique na tag para remover.
           </p>
         </div>
         <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-semibold text-neutral-900">Sobre você</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-900">Sobre você</label>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-neutral-500">Resumo público exibido no perfil</span>
-            <span className="text-xs text-neutral-500">{bio.length}/500</span>
+            <span className="text-xs text-slate-500">Resumo público exibido no perfil</span>
+            <span className="text-xs text-slate-500">{bio.length}/500</span>
           </div>
           <textarea
             value={bio}
             onChange={event => setBio(event.target.value.slice(0, 500))}
             rows={5}
-            className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/30"
             placeholder="Descreva sua atuação profissional em linguagem clara e objetiva."
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Anos de experiência</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Anos de experiência</label>
           <input
             type="number"
             min={0}
             max={60}
             value={identityYearsExperience}
             onChange={event => setIdentityYearsExperience(event.target.value)}
-            className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-neutral-700">Idioma principal</label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Idioma principal</label>
           <select
             value={identityPrimaryLanguage}
             onChange={event => setIdentityPrimaryLanguage(event.target.value)}
-            className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           >
             {LANGUAGE_OPTIONS.map(option => (
               <option key={option} value={option}>
@@ -418,23 +418,23 @@ export function IdentityStage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <p className="mb-2 text-xs font-semibold text-neutral-700">Idiomas secundários</p>
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <p className="mb-2 text-xs font-semibold text-slate-700">Idiomas secundários</p>
         <div className="relative">
           <button
             type="button"
             onClick={() => setSecondaryLanguagesOpen(previous => !previous)}
-            className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2 text-left text-sm text-neutral-700"
+            className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700"
           >
             <span className="truncate">
               {identitySecondaryLanguages.length > 0
                 ? identitySecondaryLanguages.join(', ')
                 : 'Selecione idiomas secundários'}
             </span>
-            <span className="text-xs text-neutral-400">{secondaryLanguagesOpen ? 'Fechar' : 'Selecionar'}</span>
+            <span className="text-xs text-slate-400">{secondaryLanguagesOpen ? 'Fechar' : 'Selecionar'}</span>
           </button>
           {secondaryLanguagesOpen ? (
-            <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
+            <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white p-2">
               <div className="grid gap-1">
                 {LANGUAGE_OPTIONS.filter(item => item !== identityPrimaryLanguage).map(option => (
                   <button
@@ -445,8 +445,8 @@ export function IdentityStage({
                     }
                     className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
                       identitySecondaryLanguages.includes(option)
-                        ? 'bg-brand-50 text-brand-800'
-                        : 'text-neutral-700 hover:bg-neutral-50'
+                        ? 'bg-[#9FE870]/8 text-[#2d5016]'
+                        : 'text-slate-700 hover:bg-slate-50/70'
                     }`}
                   >
                     <span>{option}</span>
@@ -461,23 +461,23 @@ export function IdentityStage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <p className="mb-2 text-xs font-semibold text-neutral-700">Público atendido</p>
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <p className="mb-2 text-xs font-semibold text-slate-700">Público atendido</p>
         <div className="relative">
           <button
             type="button"
             onClick={() => setTargetAudiencesOpen(previous => !previous)}
-            className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2 text-left text-sm text-neutral-700"
+            className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700"
           >
             <span className="truncate">
               {identityTargetAudiences.length > 0
                 ? identityTargetAudiences.join(', ')
                 : 'Selecione os públicos atendidos'}
             </span>
-            <span className="text-xs text-neutral-400">{targetAudiencesOpen ? 'Fechar' : 'Selecionar'}</span>
+            <span className="text-xs text-slate-400">{targetAudiencesOpen ? 'Fechar' : 'Selecionar'}</span>
           </button>
           {targetAudiencesOpen ? (
-            <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
+            <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white p-2">
               <div className="grid gap-1">
                 {TARGET_AUDIENCE_OPTIONS.map(option => (
                   <button
@@ -486,8 +486,8 @@ export function IdentityStage({
                     onClick={() => toggleMultiValue(option, identityTargetAudiences, setIdentityTargetAudiences)}
                     className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
                       identityTargetAudiences.includes(option)
-                        ? 'bg-brand-50 text-brand-800'
-                        : 'text-neutral-700 hover:bg-neutral-50'
+                        ? 'bg-[#9FE870]/8 text-[#2d5016]'
+                        : 'text-slate-700 hover:bg-slate-50/70'
                     }`}
                   >
                     <span>{option}</span>
@@ -502,13 +502,13 @@ export function IdentityStage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <h3 className="mb-3 text-sm font-semibold text-neutral-900">Cursos e credenciamentos</h3>
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <h3 className="mb-3 text-sm font-semibold text-slate-900">Cursos e credenciamentos</h3>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
           <select
             value={identityQualificationSelection}
             onChange={event => setIdentityQualificationSelection(event.target.value)}
-            className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
           >
             {QUALIFICATION_APPROVED_OPTIONS.map(option => (
               <option key={option} value={option}>
@@ -516,19 +516,19 @@ export function IdentityStage({
               </option>
             ))}
           </select>
-          <label className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700">
+          <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
             <input
               type="checkbox"
               checked={identityQualificationCustomEnabled}
               onChange={event => setIdentityQualificationCustomEnabled(event.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
             />
             Informar qualificação fora da lista
           </label>
           <button
             type="button"
             onClick={addIdentityQualification}
-            className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600"
+            className="rounded-lg bg-[#9FE870] px-3 py-2 text-xs font-semibold text-white hover:bg-[#8ed85f]"
           >
             Adicionar
           </button>
@@ -538,15 +538,15 @@ export function IdentityStage({
             type="text"
             value={identityQualificationCustomName}
             onChange={event => setIdentityQualificationCustomName(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             placeholder="Digite o nome da qualificação"
           />
         ) : null}
         <div className="mt-3 space-y-3">
           {identityQualifications.map((item, index) => (
-            <div key={item.id} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-neutral-900">{item.name}</p>
+                <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                 <button
                   type="button"
                   onClick={() => setIdentityQualifications(prev => prev.filter(current => current.id !== item.id))}
@@ -555,7 +555,7 @@ export function IdentityStage({
                   Remover
                 </button>
               </div>
-              <label className="mb-2 inline-flex items-center gap-2 text-xs text-neutral-700">
+              <label className="mb-2 inline-flex items-center gap-2 text-xs text-slate-700">
                 <input
                   type="checkbox"
                   checked={item.requires_registration}
@@ -568,7 +568,7 @@ export function IdentityStage({
                       ),
                     )
                   }
-                  className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                  className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
                 />
                 Exige número de registro profissional
               </label>
@@ -584,7 +584,7 @@ export function IdentityStage({
                         ),
                       )
                     }
-                    className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
                     placeholder="Número do registro"
                   />
                   <input
@@ -597,7 +597,7 @@ export function IdentityStage({
                         ),
                       )
                     }
-                    className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
                     placeholder="Órgão emissor"
                   />
                   <input
@@ -610,7 +610,7 @@ export function IdentityStage({
                         ),
                       )
                     }
-                    className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
                     placeholder="País do registro"
                   />
                 </div>
@@ -625,16 +625,16 @@ export function IdentityStage({
                       ),
                     )
                   }
-                  className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                  className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
                   placeholder="Nome do curso/formação"
                 />
               )}
 
-              <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-2.5">
-                <p className="text-[11px] text-neutral-600">
+              <div className="mt-3 rounded-lg border border-dashed border-slate-300 bg-white p-2.5">
+                <p className="text-[11px] text-slate-600">
                   Envie comprovantes (PDF/JPG/PNG até 2MB por arquivo).
                 </p>
-                <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-neutral-200 px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
                   <Upload className="h-3.5 w-3.5" />
                   Upload comprovante
                   <input
@@ -654,18 +654,18 @@ export function IdentityStage({
                     {item.evidence_files.map(document => (
                       <div
                         key={document.id}
-                        className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5"
+                        className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50/70 px-2 py-1.5"
                       >
                         <a
                           href={`/api/professional/credentials/download/${document.id}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="truncate text-xs font-medium text-brand-700 hover:text-brand-800"
+                          className="truncate text-xs font-medium text-[#3d6b1f] hover:text-[#2d5016]"
                         >
                           {document.file_name}
                         </a>
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                             {document.scan_status === 'clean'
                               ? 'limpo'
                               : document.scan_status === 'rejected'
@@ -700,7 +700,7 @@ export function IdentityStage({
         type="button"
         onClick={() => void saveIdentityAndPublicProfile()}
         disabled={identitySaveState === 'saving' || bioSaveState === 'saving'}
-        className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+        className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8ed85f] disabled:opacity-60"
       >
         {identitySaveState === 'saving' || bioSaveState === 'saving'
           ? 'Salvando...'

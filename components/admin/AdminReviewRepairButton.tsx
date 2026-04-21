@@ -29,7 +29,7 @@ export function AdminReviewRepairButton({ professionalId }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
       <p className="text-sm font-semibold text-amber-900">Revisão devolvida sem itens ativos</p>
       <p className="mt-1 text-xs text-amber-800">
         Este perfil está em revisão devolvida, mas não há ajustes estruturados abertos. Você pode restaurar a última
@@ -44,7 +44,7 @@ export function AdminReviewRepairButton({ professionalId }: Props) {
         type="button"
         onClick={() => void handleRepair()}
         disabled={submitting}
-        className="mt-3 inline-flex items-center justify-center rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+        className="mt-3 inline-flex items-center justify-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
       >
         {submitting ? 'Restaurando...' : 'Restaurar última rodada de ajustes'}
       </button>

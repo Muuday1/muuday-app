@@ -22,7 +22,7 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   under_review: { label: 'Em análise', className: 'bg-blue-50 text-blue-700' },
   waiting_info: { label: 'Aguardando informações', className: 'bg-purple-50 text-purple-700' },
   resolved: { label: 'Resolvido', className: 'bg-green-50 text-green-700' },
-  closed: { label: 'Fechado', className: 'bg-neutral-100 text-neutral-500' },
+  closed: { label: 'Fechado', className: 'bg-slate-100 text-slate-500' },
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -57,30 +57,30 @@ export default async function DisputaDetalhePage({
     <div className="mx-auto max-w-3xl p-6 md:p-8">
       <Link
         href="/disputas"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-700"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para disputas
       </Link>
 
       {/* Case header */}
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-5">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
             {status.label}
           </span>
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-slate-400">
             {TYPE_LABELS[caseData.type] || caseData.type}
           </span>
         </div>
 
-        <h1 className="mt-3 font-display text-xl font-bold text-neutral-900 md:text-2xl">
+        <h1 className="mt-3 font-display text-xl font-bold text-slate-900 md:text-2xl">
           Caso #{caseData.id.slice(0, 8)}
         </h1>
 
-        <p className="mt-2 text-sm leading-relaxed text-neutral-700">{caseData.reason}</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-700">{caseData.reason}</p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-neutral-400">
+        <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-400">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             Aberto em{' '}
@@ -100,7 +100,7 @@ export default async function DisputaDetalhePage({
         </div>
 
         {caseData.status === 'resolved' && caseData.resolution && (
-          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4">
+          <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-4">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <p className="text-sm font-semibold text-green-800">Resolução</p>
@@ -116,14 +116,14 @@ export default async function DisputaDetalhePage({
       </div>
 
       {/* Messages */}
-      <div className="rounded-2xl border border-neutral-100 bg-white p-5">
+      <div className="rounded-lg border border-slate-200/80 bg-white p-5">
         <div className="mb-4 flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-neutral-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Mensagens</h2>
+          <MessageCircle className="h-4 w-4 text-slate-500" />
+          <h2 className="font-display text-lg font-bold text-slate-900">Mensagens</h2>
         </div>
 
         {messages.length === 0 ? (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-slate-500">
             Nenhuma mensagem ainda. Use o formulário abaixo para adicionar informações.
           </p>
         ) : (
@@ -135,14 +135,14 @@ export default async function DisputaDetalhePage({
                   key={msg.id}
                   className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                    <User className="h-4 w-4 text-neutral-500" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                    <User className="h-4 w-4 text-slate-500" />
                   </div>
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                    className={`max-w-[80%] rounded-lg px-4 py-2.5 text-sm ${
                       isMe
-                        ? 'bg-brand-500 text-white rounded-br-md'
-                        : 'bg-neutral-50 text-neutral-800 rounded-bl-md'
+                        ? 'bg-[#9FE870] text-white rounded-br-md'
+                        : 'bg-slate-50/70 text-slate-800 rounded-bl-md'
                     }`}
                   >
                     <p className="text-xs opacity-70 mb-1">
@@ -163,7 +163,7 @@ export default async function DisputaDetalhePage({
         )}
 
         {caseData.status !== 'resolved' && caseData.status !== 'closed' && (
-          <div className="mt-6 border-t border-neutral-100 pt-4">
+          <div className="mt-6 border-t border-slate-200/80 pt-4">
             <CaseMessageForm caseId={caseData.id} />
           </div>
         )}

@@ -127,7 +127,7 @@ function getPasswordStrength(password: string) {
   const policy = getPasswordPolicyStatus(password)
 
   if (!password) {
-    return { label: 'Fraca', barClass: 'bg-neutral-200', barWidth: '0%' }
+    return { label: 'Fraca', barClass: 'bg-slate-200', barWidth: '0%' }
   }
   if (policy.passedCount <= 1) {
     return { label: 'Fraca', barClass: 'bg-red-500', barWidth: '33%' }
@@ -807,9 +807,9 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
 
   function inputClass(hasError: boolean) {
     if (hasError) {
-      return 'w-full rounded-xl border border-red-300 bg-red-50/40 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200'
+      return 'w-full rounded-md border border-red-300 bg-red-50/40 px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus-visible:border-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200'
     }
-    return 'w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
+    return 'w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus-visible:border-[#9FE870] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20'
   }
 
   function handleSignupSuccessConfirm() {
@@ -820,11 +820,11 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
 
   return (
     <div>
-      <h1 className="mb-2 font-display text-3xl font-bold text-neutral-900">Criar conta</h1>
-      <p className="mb-6 text-neutral-500">Junte-se à Muuday</p>
+      <h1 className="mb-2 font-display text-3xl font-bold text-slate-900">Criar conta</h1>
+      <p className="mb-6 text-slate-500">Junte-se à Muuday</p>
 
       {redirectPath && role === 'usuario' && (
-        <div className="mb-5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700" role="status">
+        <div className="mb-5 rounded-md border border-[#9FE870]/20 bg-[#9FE870]/8 px-4 py-3 text-sm text-[#3d6b1f]" role="status">
           {getRedirectHint(redirectPath)}
         </div>
       )}
@@ -836,12 +836,12 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
               <div
                 key={i}
                 className={`h-1.5 flex-1 rounded-full transition-all ${
-                  i + 1 <= step ? 'bg-brand-500' : 'bg-neutral-200'
+                  i + 1 <= step ? 'bg-[#9FE870]' : 'bg-slate-200'
                 }`}
               />
             ))}
           </div>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-slate-400">
             Passo {step} de {totalSteps}
             {step === 1 && ' — Escolha seu perfil'}
             {step === 2 && ' — Dados pessoais'}
@@ -852,44 +852,44 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
 
       {step === 1 && (
         <div>
-          <p className="mb-4 text-sm font-medium text-neutral-700">Você é:</p>
+          <p className="mb-4 text-sm font-medium text-slate-700">Você é:</p>
           <div className="mb-6 grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setRole('usuario')}
-              className={`rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${
+              className={`rounded-md border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30 ${
                 role === 'usuario'
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-neutral-200 bg-white hover:border-neutral-300'
+                  ? 'border-[#9FE870] bg-[#9FE870]/8'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
               }`}
               aria-label="Selecionar conta de usuário"
             >
-              <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm">
-                <User className="h-5 w-5 text-brand-600" />
+              <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md bg-white">
+                <User className="h-5 w-5 text-[#3d6b1f]" />
               </div>
-              <div className="text-sm font-semibold text-neutral-900">Sou usuário</div>
-              <div className="mt-0.5 text-xs text-neutral-500">Busco profissionais brasileiros no exterior</div>
+              <div className="text-sm font-semibold text-slate-900">Sou usuário</div>
+              <div className="mt-0.5 text-xs text-slate-500">Busco profissionais brasileiros no exterior</div>
             </button>
             <button
               type="button"
               onClick={() => setRole('profissional')}
-              className={`rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${
+              className={`rounded-md border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30 ${
                 role === 'profissional'
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-neutral-200 bg-white hover:border-neutral-300'
+                  ? 'border-[#9FE870] bg-[#9FE870]/8'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
               }`}
               aria-label="Selecionar conta profissional"
             >
-              <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm">
-                <Briefcase className="h-5 w-5 text-brand-600" />
+              <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md bg-white">
+                <Briefcase className="h-5 w-5 text-[#3d6b1f]" />
               </div>
-              <div className="text-sm font-semibold text-neutral-900">Sou profissional</div>
-              <div className="mt-0.5 text-xs text-neutral-500">Atendo clientes no exterior</div>
+              <div className="text-sm font-semibold text-slate-900">Sou profissional</div>
+              <div className="mt-0.5 text-xs text-slate-500">Atendo clientes no exterior</div>
             </button>
           </div>
           <button
             onClick={goToStep2}
-            className="w-full rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+            className="w-full rounded-md bg-[#9FE870] py-3 font-semibold text-white transition-all hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
           >
             Continuar com e-mail
           </button>
@@ -897,9 +897,9 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           {role === 'usuario' && (
             <>
               <div className="relative my-3 flex items-center gap-3">
-                <div className="h-px flex-1 bg-neutral-200" />
-                <span className="text-xs font-medium text-neutral-400">ou cadastre-se com</span>
-                <div className="h-px flex-1 bg-neutral-200" />
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-medium text-slate-400">ou cadastre-se com</span>
+                <div className="h-px flex-1 bg-slate-200" />
               </div>
               <SocialAuthButtons redirectPath={redirectPath} roleHint="usuario" />
             </>
@@ -911,7 +911,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
         <form onSubmit={role === 'profissional' ? handleContinueProfessionalStep : handleSignUp} className="space-y-4" noValidate>
           {role === 'profissional' && (
             <div>
-              <label htmlFor="signup-title" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              <label htmlFor="signup-title" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Título
               </label>
               <select
@@ -937,7 +937,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           )}
 
           <div>
-            <label htmlFor="signup-fullname" className="mb-1.5 block text-sm font-medium text-neutral-700">Nome completo</label>
+            <label htmlFor="signup-fullname" className="mb-1.5 block text-sm font-medium text-slate-700">Nome completo</label>
             <input
               id="signup-fullname"
               type="text"
@@ -955,7 +955,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="signup-country" className="mb-1.5 block text-sm font-medium text-neutral-700">
+            <label htmlFor="signup-country" className="mb-1.5 block text-sm font-medium text-slate-700">
               {role === 'usuario' ? 'País onde você mora' : 'País (base de operação)'}
             </label>
             <select
@@ -980,7 +980,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="signup-timezone" className="mb-1.5 block text-sm font-medium text-neutral-700">Fuso horário</label>
+            <label htmlFor="signup-timezone" className="mb-1.5 block text-sm font-medium text-slate-700">Fuso horário</label>
             <select
               id="signup-timezone"
               value={timezone}
@@ -1002,9 +1002,9 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="signup-currency" className="mb-1.5 block text-sm font-medium text-neutral-700">
+            <label htmlFor="signup-currency" className="mb-1.5 block text-sm font-medium text-slate-700">
               Moeda preferida
-              <span className="ml-1 text-xs font-normal text-neutral-400">(você pode alterar depois)</span>
+              <span className="ml-1 text-xs font-normal text-slate-400">(você pode alterar depois)</span>
             </label>
             <select
               id="signup-currency"
@@ -1027,7 +1027,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-neutral-700">E-mail</label>
+            <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-slate-700">E-mail</label>
             <input
               id="signup-email"
               type="email"
@@ -1045,7 +1045,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-neutral-700">Senha</label>
+            <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-slate-700">Senha</label>
             <div className="relative">
               <input
                 id="signup-password"
@@ -1065,23 +1065,23 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
               <button
                 type="button"
                 onClick={() => setShowPassword(prev => !prev)}
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 transition-colors hover:text-neutral-700"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 transition-colors hover:text-slate-700"
                 aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
             <div className="mt-2">
-              <div className="h-1.5 w-full rounded-full bg-neutral-200">
+              <div className="h-1.5 w-full rounded-full bg-slate-200">
                 <div
                   className={`h-1.5 rounded-full transition-all ${passwordStrength.barClass}`}
                   style={{ width: passwordStrength.barWidth }}
                 />
               </div>
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Força da senha: <span className="font-semibold">{passwordStrength.label}</span>
               </p>
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Requisitos: 7+ caracteres, número e símbolo.
               </p>
             </div>
@@ -1089,7 +1089,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="signup-confirm-password" className="mb-1.5 block text-sm font-medium text-neutral-700">Confirmar senha</label>
+            <label htmlFor="signup-confirm-password" className="mb-1.5 block text-sm font-medium text-slate-700">Confirmar senha</label>
             <div className="relative">
               <input
                 id="signup-confirm-password"
@@ -1108,7 +1108,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(prev => !prev)}
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 transition-colors hover:text-neutral-700"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 transition-colors hover:text-slate-700"
                 aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -1118,7 +1118,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
               <p className="font-semibold">{error}</p>
               {showForgotPasswordLink ? (
                 <p className="mt-1 text-xs">
@@ -1149,14 +1149,14 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                 setError('')
                 setFieldErrors({})
               }}
-              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl border border-neutral-200 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="flex items-center justify-center gap-1.5 flex-1 rounded-md border border-slate-200 py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             >
               <ArrowLeft className="h-4 w-4" /> Voltar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#9FE870] py-3 font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             >
               {role === 'profissional' ? (
                 'Continuar'
@@ -1175,7 +1175,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
       {step === 3 && role === 'profissional' && (
         <form onSubmit={handleSignUp} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="professional-headline" className="mb-1.5 block text-sm font-medium text-neutral-700">
+            <label htmlFor="professional-headline" className="mb-1.5 block text-sm font-medium text-slate-700">
               Área de atuação específica
             </label>
             <input
@@ -1199,7 +1199,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             </datalist>
             {fieldErrors.professionalHeadline && <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalHeadline}</p>}
             {shouldShowCustomSubcategoryPrompt && (
-              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 Não encontrou na lista aprovada?
                 <button
                   type="button"
@@ -1219,7 +1219,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             <div>
               <label
                 htmlFor="professional-headline-validation-message"
-                className="mb-1.5 block text-sm font-medium text-neutral-700"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
               >
                 Mensagem para validação da área
               </label>
@@ -1242,7 +1242,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           )}
 
           <div>
-            <label htmlFor="professional-category" className="mb-1.5 block text-sm font-medium text-neutral-700">
+            <label htmlFor="professional-category" className="mb-1.5 block text-sm font-medium text-slate-700">
               Categoria principal
             </label>
             <input
@@ -1262,7 +1262,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           <div>
-            <label htmlFor="professional-specialty-name" className="mb-1.5 block text-sm font-medium text-neutral-700">
+            <label htmlFor="professional-specialty-name" className="mb-1.5 block text-sm font-medium text-slate-700">
               Especialidade
             </label>
             <input
@@ -1288,7 +1288,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
               <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalSpecialtyName}</p>
             )}
             {shouldShowCustomSpecialtyPrompt && (
-              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 Não encontrou na lista aprovada?
                 <button
                   type="button"
@@ -1308,7 +1308,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             <div>
               <label
                 htmlFor="professional-specialty-validation-message"
-                className="mb-1.5 block text-sm font-medium text-neutral-700"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
               >
                 Mensagem para validação da especialidade
               </label>
@@ -1331,8 +1331,8 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           )}
 
           <div>
-            <label htmlFor="professional-focus-areas" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Foco de atuação <span className="text-neutral-400">(opcional)</span>
+            <label htmlFor="professional-focus-areas" className="mb-1.5 block text-sm font-medium text-slate-700">
+              Foco de atuação <span className="text-slate-400">(opcional)</span>
             </label>
             <input
               id="professional-focus-areas"
@@ -1360,13 +1360,13 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
               {professionalFocusTags.map(tag => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+                  className="inline-flex items-center gap-1 rounded-full bg-[#9FE870]/8 px-3 py-1 text-xs font-medium text-[#3d6b1f]"
                 >
                   {tag}
                   <button
                     type="button"
                     onClick={() => removeFocusTag(tag)}
-                    className="rounded-full p-0.5 hover:bg-brand-100"
+                    className="rounded-full p-0.5 hover:bg-[#9FE870]/10"
                     aria-label={`Remover tag ${tag}`}
                   >
                     <X className="h-3 w-3" />
@@ -1374,15 +1374,15 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                 </span>
               ))}
             </div>
-            <p className="mt-1 text-xs text-neutral-500">Plano Básico permite até {basicTagsLimit} tags nesta etapa.</p>
+            <p className="mt-1 text-xs text-slate-500">Plano Básico permite até {basicTagsLimit} tags nesta etapa.</p>
             {fieldErrors.professionalFocusAreas && (
               <p className="mt-1 text-xs text-red-600">{fieldErrors.professionalFocusAreas}</p>
             )}
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">Público atendido</label>
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-neutral-200 bg-white p-3 md:grid-cols-3">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Público atendido</label>
+            <div className="grid grid-cols-2 gap-2 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-3">
               {TARGET_AUDIENCE_OPTIONS.map(option => {
                 const selected = professionalTargetAudiences.includes(option)
                 return (
@@ -1392,8 +1392,8 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                     onClick={() => toggleTargetAudience(option)}
                     className={`rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
                       selected
-                        ? 'border border-brand-200 bg-brand-50 text-brand-700'
-                        : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                        ? 'border border-[#9FE870]/30 bg-[#9FE870]/8 text-[#3d6b1f]'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50/70'
                     }`}
                   >
                     {option}
@@ -1401,12 +1401,12 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                 )
               })}
             </div>
-            <p className="mt-1 text-xs text-neutral-500">Toque em cada opção para marcar/desmarcar.</p>
+            <p className="mt-1 text-xs text-slate-500">Toque em cada opção para marcar/desmarcar.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label htmlFor="professional-primary-language" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              <label htmlFor="professional-primary-language" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Idioma principal de atendimento
               </label>
               <select
@@ -1432,13 +1432,13 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Idiomas secundários</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Idiomas secundários</label>
               <div
                 id="professional-secondary-languages"
-                className={`grid grid-cols-2 gap-2 rounded-xl border p-3 md:grid-cols-3 ${
+                className={`grid grid-cols-2 gap-2 rounded-md border p-3 md:grid-cols-3 ${
                   fieldErrors.professionalSecondaryLanguages
                     ? 'border-red-300 bg-red-50/40'
-                    : 'border-neutral-200 bg-white'
+                    : 'border-slate-200 bg-white'
                 }`}
               >
                 {PROFESSIONAL_LANGUAGE_OPTIONS.filter(option => option !== professionalPrimaryLanguage).map(option => {
@@ -1450,8 +1450,8 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                       onClick={() => toggleSecondaryLanguage(option)}
                       className={`rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
                         selected
-                          ? 'border border-brand-200 bg-brand-50 text-brand-700'
-                          : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                          ? 'border border-[#9FE870]/30 bg-[#9FE870]/8 text-[#3d6b1f]'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50/70'
                       }`}
                     >
                       {option}
@@ -1463,8 +1463,8 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                   onClick={() => toggleSecondaryLanguage(OTHER_LANGUAGE_OPTION)}
                   className={`rounded-lg px-3 py-2 text-left text-xs font-medium transition ${
                     professionalSecondaryLanguages.includes(OTHER_LANGUAGE_OPTION)
-                      ? 'border border-brand-200 bg-brand-50 text-brand-700'
-                      : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                      ? 'border border-[#9FE870]/30 bg-[#9FE870]/8 text-[#3d6b1f]'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50/70'
                   }`}
                 >
                   {OTHER_LANGUAGE_OPTION}
@@ -1478,7 +1478,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
 
           {professionalSecondaryLanguages.includes(OTHER_LANGUAGE_OPTION) && (
             <div>
-              <label htmlFor="professional-other-languages" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              <label htmlFor="professional-other-languages" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Outros idiomas
               </label>
               <input
@@ -1492,13 +1492,13 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                 placeholder="Ex.: Sueco, Dinamarquês"
                 className={inputClass(Boolean(fieldErrors.professionalSecondaryLanguages))}
               />
-              <p className="mt-1 text-xs text-neutral-500">Separe por vírgula.</p>
+              <p className="mt-1 text-xs text-slate-500">Separe por vírgula.</p>
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label htmlFor="professional-years" className="mb-1.5 block text-sm font-medium text-neutral-700">
+              <label htmlFor="professional-years" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Anos de experiência
               </label>
               <input
@@ -1521,9 +1521,9 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             </div>
           </div>
 
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-            <h3 className="text-sm font-semibold text-neutral-900">Qualificações e certificados</h3>
-            <p className="mt-1 text-xs text-neutral-500">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Qualificações e certificados</h3>
+            <p className="mt-1 text-xs text-slate-500">
               Se não encontrar na lista aprovada, adicione como sugestão para validação do admin. O upload de comprovantes é feito depois do login.
             </p>
 
@@ -1543,7 +1543,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
               <button
                 type="button"
                 onClick={addQualificationDraft}
-                className="rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+                className="rounded-md bg-[#9FE870] px-4 py-3 text-sm font-semibold text-white hover:bg-[#8ed85f]"
               >
                 Adicionar qualificação
               </button>
@@ -1577,9 +1577,9 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             {professionalQualifications.length > 0 && (
               <div className="mt-4 space-y-3">
                 {professionalQualifications.map(item => (
-                  <div key={item.id} className="rounded-xl border border-neutral-200 bg-white p-3">
+                  <div key={item.id} className="rounded-md border border-slate-200 bg-white p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-neutral-900">{item.name}</p>
+                      <p className="text-sm font-medium text-slate-900">{item.name}</p>
                       <button
                         type="button"
                         onClick={() => removeQualificationDraft(item.id)}
@@ -1663,30 +1663,30 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             )}
           </div>
 
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-            <h3 className="text-sm font-semibold text-neutral-900">Termos obrigatorios antes do envio</h3>
-            <p className="mt-1 text-xs text-neutral-600">
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Termos obrigatorios antes do envio</h3>
+            <p className="mt-1 text-xs text-slate-600">
               Para enviar o cadastro, abra cada termo, leia ate o fim e clique em aceitar.
             </p>
             <div className="mt-3 space-y-2">
               {PROFESSIONAL_TERMS.map(term => {
                 const accepted = professionalTermsAccepted[term.key]
                 return (
-                  <div key={term.key} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                  <div key={term.key} className="rounded-md border border-slate-200 bg-slate-50/70 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <label className="inline-flex items-start gap-2 text-sm text-neutral-700">
+                      <label className="inline-flex items-start gap-2 text-sm text-slate-700">
                         <input
                           type="checkbox"
                           checked={accepted}
                           onChange={() => toggleTermsCheckbox(term.key)}
-                          className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]"
                         />
                         <span>{term.shortLabel}</span>
                       </label>
                       <button
                         type="button"
                         onClick={() => openTermsModal(term.key)}
-                        className="text-xs font-semibold text-brand-700 underline"
+                        className="text-xs font-semibold text-[#3d6b1f] underline"
                       >
                         Abrir termo
                       </button>
@@ -1701,7 +1701,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
               <p className="font-semibold">{error}</p>
               {showForgotPasswordLink ? (
                 <p className="mt-1 text-xs">
@@ -1732,14 +1732,14 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                 setError('')
                 setFieldErrors({})
               }}
-              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl border border-neutral-200 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="flex items-center justify-center gap-1.5 flex-1 rounded-md border border-slate-200 py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             >
               <ArrowLeft className="h-4 w-4" /> Voltar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#9FE870] py-3 font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             >
               {loading ? (
                 <>
@@ -1752,11 +1752,11 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
           </div>
         </form>
       )}
-      <p className="mt-6 text-center text-sm text-neutral-500">
+      <p className="mt-6 text-center text-sm text-slate-500">
         Já tem uma conta?{' '}
         <Link
           href={redirectPath ? `/login?redirect=${encodeURIComponent(redirectPath)}` : '/login'}
-          className="font-medium text-brand-600 hover:text-brand-700"
+          className="font-medium text-[#3d6b1f] hover:text-[#3d6b1f]"
         >
           Entrar
         </Link>
@@ -1764,15 +1764,15 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
 
       {activeTerm ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/55 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Leitura de termo"
         >
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
-            <div className="border-b border-neutral-200 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{activeTerm.version}</p>
-              <h3 className="mt-1 text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
+          <div className="w-full max-w-2xl rounded-lg bg-white">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{activeTerm.version}</p>
+              <h3 className="mt-1 text-lg font-semibold text-slate-900">{activeTerm.title}</h3>
             </div>
             <div
               className="max-h-[55vh] overflow-y-auto px-5 py-4"
@@ -1785,16 +1785,16 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             >
               {activeTerm.sections.map(section => (
                 <section key={section.heading} className="mb-4">
-                  <h4 className="text-sm font-semibold text-neutral-800">{section.heading}</h4>
-                  <p className="mt-1 text-sm leading-6 text-neutral-700">{section.body}</p>
+                  <h4 className="text-sm font-semibold text-slate-800">{section.heading}</h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">{section.body}</p>
                 </section>
               ))}
             </div>
-            <div className="flex flex-col gap-2 border-t border-neutral-200 px-5 py-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setActiveTermsModalKey(null)}
-                className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+                className="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50/70"
               >
                 Fechar
               </button>
@@ -1802,7 +1802,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
                 type="button"
                 disabled={!termsModalScrolledToEnd}
                 onClick={acceptTermsFromModal}
-                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:bg-brand-600"
+                className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#8ed85f]"
               >
                 Li ate o fim e aceito
               </button>
@@ -1813,35 +1813,35 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
 
       {showSignupSuccessModal ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Confirmação de cadastro"
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-lg bg-white p-6">
             {role === 'profissional' ? (
               <>
-                <h2 className="font-display text-xl font-bold text-neutral-900">Cadastro enviado para analise</h2>
-                <p className="mt-2 text-sm text-neutral-600">
+                <h2 className="font-display text-xl font-bold text-slate-900">Cadastro enviado para analise</h2>
+                <p className="mt-2 text-sm text-slate-600">
                   Recebemos seus dados profissionais. Nossa equipe vai revisar as informacoes e validar sua especialidade.
                 </p>
-                <p className="mt-2 text-sm text-neutral-600">
+                <p className="mt-2 text-sm text-slate-600">
                   Voce recebera um e-mail em{' '}
-                  <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span> quando for aprovado para completar as demais informacoes e finalizar a ativacao da conta profissional.
+                  <span className="font-semibold text-slate-800">{signupSuccessEmail || email}</span> quando for aprovado para completar as demais informacoes e finalizar a ativacao da conta profissional.
                 </p>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className="mt-2 text-xs text-slate-500">
                   Dica: verifique tambem sua caixa de spam e promocoes para nao perder o e-mail de aprovacao.
                 </p>
               </>
             ) : (
               <>
-                <h2 className="font-display text-xl font-bold text-neutral-900">{AUTH_MESSAGES.signup.successTitle}</h2>
-                <p className="mt-2 text-sm text-neutral-600">
+                <h2 className="font-display text-xl font-bold text-slate-900">{AUTH_MESSAGES.signup.successTitle}</h2>
+                <p className="mt-2 text-sm text-slate-600">
                   Enviamos um e-mail para{' '}
-                  <span className="font-semibold text-neutral-800">{signupSuccessEmail || email}</span>.
+                  <span className="font-semibold text-slate-800">{signupSuccessEmail || email}</span>.
                   {` ${AUTH_MESSAGES.signup.successDescription}`}
                 </p>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className="mt-2 text-xs text-slate-500">
                   Se nao encontrar, confira tambem a pasta de spam/lixo eletronico.
                 </p>
               </>
@@ -1849,7 +1849,7 @@ export default function SignupForm({ initialCatalog, redirectPath, requestedRole
             <button
               type="button"
               onClick={handleSignupSuccessConfirm}
-              className="mt-5 w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+              className="mt-5 w-full rounded-md bg-[#9FE870] py-2.5 text-sm font-semibold text-white transition hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             >
               OK
             </button>

@@ -25,16 +25,16 @@ export function TierLockedOverlay({
   return (
     <div className="relative">
       <div className="pointer-events-none select-none blur-sm opacity-60">{children}</div>
-      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl border border-neutral-200 bg-white/70 p-4">
+      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg border border-slate-200 bg-white/70 p-4">
         <div className="text-center">
-          <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900/90 text-white">
+          <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/90 text-white">
             <Lock className="h-4 w-4" />
           </div>
-          <p className="text-xs font-semibold text-neutral-800">Disponível no plano {TIER_LABELS[requiredTier]}</p>
-          <p className="mt-1 text-[11px] text-neutral-600">{featureName}</p>
+          <p className="text-xs font-semibold text-slate-800">Disponível no plano {TIER_LABELS[requiredTier]}</p>
+          <p className="mt-1 text-[11px] text-slate-600">{featureName}</p>
           <Link
             href={plansHref}
-            className="mt-3 inline-flex items-center justify-center rounded-full bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+            className="mt-3 inline-flex items-center justify-center rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
           >
             Ver planos
           </Link>

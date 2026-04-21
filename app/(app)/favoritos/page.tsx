@@ -1,6 +1,7 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import FavoritesList from '@/components/favorites/FavoritesList'
+import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
 type Professional = {
   id: string
@@ -52,13 +53,13 @@ export default async function FavoritosPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
-      <div className="mb-6">
-        <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">Favoritos</h1>
-        <p className="text-neutral-500">Seus profissionais salvos</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Favoritos"
+        subtitle="Seus profissionais salvos"
+      />
 
       <FavoritesList initialProfessionals={professionals} userCurrency={userCurrency} />
-    </div>
+    </PageContainer>
   )
 }

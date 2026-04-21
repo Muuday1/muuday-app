@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Financeiro | Muuday' }
+export const metadata = { title: 'Financeiro | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -6,6 +6,8 @@ import { Wallet, Calendar, Receipt, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { AppCard } from '@/components/ui/AppCard'
+import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
 export default async function FinanceiroPage() {
   const supabase = await createClient()
@@ -62,70 +64,68 @@ export default async function FinanceiroPage() {
   const activeBookings = (bookings || []).length
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Financeiro</h1>
-        <p className="text-neutral-500">
-          Acompanhe ganhos, pagamentos pendentes e volume de agendamentos em um unico painel.
-        </p>
+    <PageContainer maxWidth="lg">
+      <PageHeader
+        title="Financeiro"
+        subtitle="Acompanhe ganhos, pagamentos pendentes e volume de agendamentos em um único painel."
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
+        <AppCard>
+          <p className="mb-1 text-xs text-slate-500">Total capturado</p>
+          <p className="text-2xl font-semibold text-slate-900">{formatCurrency(grossTotal, currency)}</p>
+        </AppCard>
+        <AppCard>
+          <p className="mb-1 text-xs text-slate-500">Pagamentos pendentes</p>
+          <p className="text-2xl font-semibold text-slate-900">{pendingPayments.length}</p>
+        </AppCard>
+        <AppCard>
+          <p className="mb-1 text-xs text-slate-500">Bookings ativos</p>
+          <p className="text-2xl font-semibold text-slate-900">{activeBookings}</p>
+        </AppCard>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-          <p className="text-xs text-neutral-500 mb-1">Total capturado</p>
-          <p className="text-2xl font-semibold text-neutral-900">{formatCurrency(grossTotal, currency)}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-          <p className="text-xs text-neutral-500 mb-1">Pagamentos pendentes</p>
-          <p className="text-2xl font-semibold text-neutral-900">{pendingPayments.length}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-          <p className="text-xs text-neutral-500 mb-1">Bookings ativos</p>
-          <p className="text-2xl font-semibold text-neutral-900">{activeBookings}</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-neutral-100 p-5 mb-6">
+      <AppCard className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <Wallet className="w-4 h-4 text-brand-500" />
-          <h2 className="font-semibold text-neutral-900">Proximos recursos</h2>
+          <Wallet className="w-4 h-4 text-[#9FE870]" />
+          <h2 className="font-semibold text-slate-900">Próximos recursos</h2>
         </div>
-        <ul className="text-sm text-neutral-600 space-y-2">
-          <li>Historico detalhado por booking (bruto, taxas e liquido).</li>
+        <ul className="text-sm text-slate-600 space-y-2">
+          <li>Histórico detalhado por booking (bruto, taxas e líquido).</li>
           <li>Payouts semanais e falhas de saque com tratamento operacional.</li>
-          <li>Consolidacao com ledger interno para reconciliacao.</li>
+          <li>Consolidação com ledger interno para reconciliação.</li>
         </ul>
-      </div>
+      </AppCard>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Link
           href="/agenda"
-          className="bg-white rounded-2xl border border-neutral-100 p-4 flex items-center justify-between hover:shadow-sm transition-all"
+          className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300"
         >
           <div className="flex items-center gap-3">
-            <Calendar className="w-4 h-4 text-brand-500" />
+            <Calendar className="w-4 h-4 text-[#9FE870]" />
             <div>
-              <p className="text-sm font-medium text-neutral-900">Ver bookings</p>
-              <p className="text-xs text-neutral-500">Acompanhar agenda e status</p>
+              <p className="text-sm font-medium text-slate-900">Ver bookings</p>
+              <p className="text-xs text-slate-500">Acompanhar agenda e status</p>
             </div>
           </div>
-          <ArrowRight className="w-4 h-4 text-neutral-400" />
+          <ArrowRight className="w-4 h-4 text-slate-400" />
         </Link>
 
         <Link
           href="/configuracoes"
-          className="bg-white rounded-2xl border border-neutral-100 p-4 flex items-center justify-between hover:shadow-sm transition-all"
+          className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300"
         >
           <div className="flex items-center gap-3">
-            <Receipt className="w-4 h-4 text-brand-500" />
+            <Receipt className="w-4 h-4 text-[#9FE870]" />
             <div>
-              <p className="text-sm font-medium text-neutral-900">Preferencias da conta</p>
-              <p className="text-xs text-neutral-500">Moeda, notificacoes e seguranca</p>
+              <p className="text-sm font-medium text-slate-900">Preferências da conta</p>
+              <p className="text-xs text-slate-500">Moeda, notificações e segurança</p>
             </div>
           </div>
-          <ArrowRight className="w-4 h-4 text-neutral-400" />
+          <ArrowRight className="w-4 h-4 text-slate-400" />
         </Link>
       </div>
-    </div>
+    </PageContainer>
   )
 }

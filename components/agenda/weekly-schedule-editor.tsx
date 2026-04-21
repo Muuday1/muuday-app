@@ -24,12 +24,12 @@ export function WeeklyScheduleEditor({
         return (
           <div
             key={day.value}
-            className={`rounded-2xl border transition-all ${
+            className={`rounded-lg border transition-all ${
               isEnabled
                 ? hasError
-                  ? 'border-red-200 shadow-sm'
-                  : 'border-brand-100 shadow-sm'
-                : 'border-neutral-100'
+                  ? 'border-red-200'
+                  : 'border-[#9FE870]/20'
+                : 'border-slate-200/80'
             }`}
           >
             {/* Day header row */}
@@ -39,8 +39,8 @@ export function WeeklyScheduleEditor({
                 type="button"
                 onClick={() => onToggleDay(day.value)}
                 aria-label={isEnabled ? `Desativar ${day.label}` : `Ativar ${day.label}`}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
-                  isEnabled ? 'bg-brand-500' : 'bg-neutral-200'
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#9FE870] focus:ring-offset-2 ${
+                  isEnabled ? 'bg-[#9FE870]' : 'bg-slate-200'
                 }`}
               >
                 <span
@@ -53,13 +53,13 @@ export function WeeklyScheduleEditor({
               {/* Day name */}
               <div className="min-w-0 flex-1">
                 <p className={`text-sm font-semibold transition-colors ${
-                  isEnabled ? 'text-neutral-900' : 'text-neutral-400'
+                  isEnabled ? 'text-slate-900' : 'text-slate-400'
                 }`}>
                   <span className="hidden sm:inline">{day.label}</span>
                   <span className="sm:hidden">{day.short}</span>
                 </p>
                 {!isEnabled && (
-                  <p className="hidden text-xs text-neutral-300 sm:block">Indisponível</p>
+                  <p className="hidden text-xs text-slate-300 sm:block">Indisponível</p>
                 )}
               </div>
 
@@ -67,12 +67,12 @@ export function WeeklyScheduleEditor({
               {isEnabled && (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <div className="flex items-center gap-2">
-                    <label className="hidden whitespace-nowrap text-xs text-neutral-400 sm:block">De</label>
+                    <label className="hidden whitespace-nowrap text-xs text-slate-400 sm:block">De</label>
                     <select
                       value={dayData.start_time}
                       onChange={e => onUpdateTime(day.value, 'start_time', e.target.value)}
-                      className={`rounded-xl border bg-white px-3 py-1.5 text-sm transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
-                        hasError ? 'border-red-300 text-red-600' : 'border-neutral-200 text-neutral-700'
+                      className={`rounded-md border bg-white px-3 py-1.5 text-sm transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20 ${
+                        hasError ? 'border-red-300 text-red-600' : 'border-slate-200 text-slate-700'
                       }`}
                     >
                       {TIME_OPTIONS.map(t => (
@@ -81,15 +81,15 @@ export function WeeklyScheduleEditor({
                     </select>
                   </div>
 
-                  <span className="text-sm text-neutral-300">-</span>
+                  <span className="text-sm text-slate-300">-</span>
 
                   <div className="flex items-center gap-2">
-                    <label className="hidden whitespace-nowrap text-xs text-neutral-400 sm:block">Até</label>
+                    <label className="hidden whitespace-nowrap text-xs text-slate-400 sm:block">Até</label>
                     <select
                       value={dayData.end_time}
                       onChange={e => onUpdateTime(day.value, 'end_time', e.target.value)}
-                      className={`rounded-xl border bg-white px-3 py-1.5 text-sm transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
-                        hasError ? 'border-red-300 text-red-600' : 'border-neutral-200 text-neutral-700'
+                      className={`rounded-md border bg-white px-3 py-1.5 text-sm transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20 ${
+                        hasError ? 'border-red-300 text-red-600' : 'border-slate-200 text-slate-700'
                       }`}
                     >
                       {TIME_OPTIONS.map(t => (
@@ -102,7 +102,7 @@ export function WeeklyScheduleEditor({
 
               {/* Disabled state placeholder */}
               {!isEnabled && (
-                <span className="text-xs font-medium text-neutral-300">Inativo</span>
+                <span className="text-xs font-medium text-slate-300">Inativo</span>
               )}
             </div>
 

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -30,13 +30,13 @@ export function SearchBookingCtas({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Link
           href={bookHref}
-          className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className="inline-flex items-center justify-center rounded-md bg-[#9FE870] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
         >
           {bookLabel}
         </Link>
         <Link
           href={messageHref}
-          className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
         >
           {messageLabel}
         </Link>
@@ -53,7 +53,7 @@ export function SearchBookingCtas({
             setPendingAction('book')
             setOpen(true)
           }}
-          className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className="inline-flex items-center justify-center rounded-md bg-[#9FE870] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
         >
           {bookLabel}
         </button>
@@ -63,7 +63,7 @@ export function SearchBookingCtas({
             setPendingAction('message')
             setOpen(true)
           }}
-          className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
         >
           {messageLabel}
         </button>

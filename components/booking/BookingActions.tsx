@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState, useTransition } from 'react'
 import {
@@ -161,7 +161,7 @@ export default function BookingActions({
     <div className="mt-3 space-y-2">
       {feedback && (
         <div
-          className={`animate-in fade-in flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium ${
+          className={`animate-in fade-in flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium ${
             feedback.type === 'success'
               ? 'border-green-100 bg-green-50 text-green-700'
               : 'border-red-100 bg-red-50 text-red-700'
@@ -181,7 +181,7 @@ export default function BookingActions({
           <button
             onClick={handleConfirm}
             disabled={isPending}
-            className="flex items-center gap-1.5 rounded-xl bg-green-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-600 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-green-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-600 disabled:opacity-50"
           >
             {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Confirmar
@@ -189,7 +189,7 @@ export default function BookingActions({
           <button
             onClick={() => setShowCancelConfirm(true)}
             disabled={isPending}
-            className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
           >
             <X className="h-3.5 w-3.5" />
             Cancelar
@@ -203,7 +203,7 @@ export default function BookingActions({
             <button
               onClick={() => setShowLinkInput(true)}
               disabled={isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-50"
             >
               <Link2 className="h-3.5 w-3.5" />
               Adicionar link
@@ -215,7 +215,7 @@ export default function BookingActions({
               <button
                 onClick={handleComplete}
                 disabled={isPending}
-                className="flex items-center gap-1.5 rounded-xl bg-green-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-600 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-green-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-green-600 disabled:opacity-50"
               >
                 {isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -227,7 +227,7 @@ export default function BookingActions({
               <button
                 onClick={handleUserNoShow}
                 disabled={isPending}
-                className="flex items-center gap-1.5 rounded-xl bg-neutral-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-neutral-700 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-slate-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-slate-700 disabled:opacity-50"
               >
                 <Flag className="h-3.5 w-3.5" />
                 Cliente no-show
@@ -237,7 +237,7 @@ export default function BookingActions({
             <button
               onClick={() => setShowCancelConfirm(true)}
               disabled={isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
             >
               <X className="h-3.5 w-3.5" />
               Cancelar
@@ -253,7 +253,7 @@ export default function BookingActions({
               <button
                 onClick={() => setShowReschedule(prev => !prev)}
                 disabled={isPending}
-                className="flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-50"
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Remarcar
@@ -261,7 +261,7 @@ export default function BookingActions({
               <button
                 onClick={() => setShowCancelConfirm(true)}
                 disabled={isPending}
-                className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
               >
                 <X className="h-3.5 w-3.5" />
                 Cancelar
@@ -273,7 +273,7 @@ export default function BookingActions({
             <button
               onClick={handleProfessionalNoShow}
               disabled={isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-neutral-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-neutral-700 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-slate-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-slate-700 disabled:opacity-50"
             >
               <Flag className="h-3.5 w-3.5" />
               Reportar no-show profissional
@@ -289,12 +289,12 @@ export default function BookingActions({
             value={linkValue}
             onChange={e => setLinkValue(e.target.value)}
             placeholder="https://meet.google.com/..."
-            className="flex-1 rounded-xl border border-neutral-200 px-3 py-1.5 text-xs transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+            className="flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
           />
           <button
             onClick={handleAddLink}
             disabled={isPending || !linkValue.trim()}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-50"
           >
             {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Salvar
@@ -304,7 +304,7 @@ export default function BookingActions({
               setShowLinkInput(false)
               setLinkValue(sessionLink || '')
             }}
-            className="px-2 py-1.5 text-xs text-neutral-500 transition-colors hover:text-neutral-700"
+            className="px-2 py-1.5 text-xs text-slate-500 transition-colors hover:text-slate-700"
           >
             Cancelar
           </button>
@@ -312,19 +312,19 @@ export default function BookingActions({
       )}
 
       {showReschedule && (
-        <div className="space-y-2 rounded-xl border border-brand-100 bg-brand-50 p-3">
-          <p className="text-xs font-semibold text-brand-700">Nova data e horário</p>
+        <div className="space-y-2 rounded-md border border-[#9FE870]/20 bg-[#9FE870]/8 p-3">
+          <p className="text-xs font-semibold text-[#3d6b1f]">Nova data e horário</p>
           <input
             type="datetime-local"
             value={rescheduleAt}
             onChange={e => setRescheduleAt(e.target.value)}
-            className="w-full rounded-xl border border-brand-200 bg-white px-3 py-2 text-xs transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+            className="w-full rounded-md border border-[#9FE870]/30 bg-white px-3 py-2 text-xs transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
           />
           <div className="flex items-center gap-2">
             <button
               onClick={handleReschedule}
               disabled={isPending || !rescheduleAt}
-              className="flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-50"
             >
               {isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -335,7 +335,7 @@ export default function BookingActions({
             </button>
             <button
               onClick={() => setShowReschedule(false)}
-              className="px-2 py-1.5 text-xs text-neutral-600 transition-colors hover:text-neutral-800"
+              className="px-2 py-1.5 text-xs text-slate-600 transition-colors hover:text-slate-800"
             >
               Fechar
             </button>
@@ -344,20 +344,20 @@ export default function BookingActions({
       )}
 
       {showCancelConfirm && (
-        <div className="space-y-2 rounded-xl border border-red-100 bg-red-50 p-3">
+        <div className="space-y-2 rounded-md border border-red-100 bg-red-50 p-3">
           <p className="text-xs font-semibold text-red-700">Tem certeza que deseja cancelar?</p>
           <input
             type="text"
             value={cancelReason}
             onChange={e => setCancelReason(e.target.value)}
             placeholder="Motivo do cancelamento (opcional)"
-            className="w-full rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-300"
+            className="w-full rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-300"
           />
           <div className="flex items-center gap-2">
             <button
               onClick={handleCancel}
               disabled={isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
             >
               {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
               Sim, cancelar
@@ -368,7 +368,7 @@ export default function BookingActions({
                 setCancelReason('')
               }}
               disabled={isPending}
-              className="px-2 py-1.5 text-xs text-neutral-500 transition-colors hover:text-neutral-700"
+              className="px-2 py-1.5 text-xs text-slate-500 transition-colors hover:text-slate-700"
             >
               Voltar
             </button>

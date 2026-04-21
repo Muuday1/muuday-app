@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -156,12 +156,12 @@ export function ProfileAccountSettings() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-neutral-100 p-6 animate-pulse">
-        <div className="h-5 w-28 bg-neutral-200 rounded mb-4" />
+      <div className="bg-white rounded-lg border border-slate-200/80 p-6 animate-pulse">
+        <div className="h-5 w-28 bg-slate-200 rounded mb-4" />
         <div className="space-y-3">
-          <div className="h-16 bg-neutral-100 rounded-xl" />
-          <div className="h-16 bg-neutral-100 rounded-xl" />
-          <div className="h-16 bg-neutral-100 rounded-xl" />
+          <div className="h-16 bg-slate-100 rounded-md" />
+          <div className="h-16 bg-slate-100 rounded-md" />
+          <div className="h-16 bg-slate-100 rounded-md" />
         </div>
       </div>
     )
@@ -169,24 +169,24 @@ export function ProfileAccountSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-        <h3 className="font-display font-bold text-lg text-neutral-900 mb-4">Conta</h3>
+      <div className="bg-white rounded-lg border border-slate-200/80 p-6">
+        <h3 className="font-display font-bold text-lg text-slate-900 mb-4">Conta</h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-neutral-50">
+          <div className="flex items-center justify-between py-2 border-b border-slate-100/80">
             <div>
-              <p className="text-sm font-medium text-neutral-700">Membro desde</p>
-              <p className="text-xs text-neutral-400">{memberSince}</p>
+              <p className="text-sm font-medium text-slate-700">Membro desde</p>
+              <p className="text-xs text-slate-400">{memberSince}</p>
             </div>
           </div>
         </div>
       </div>
 
 
-      <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-        <div className="flex items-center justify-between border-b border-neutral-50 px-6 py-4">
+      <div className="overflow-hidden rounded-lg border border-slate-200/80 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-100/80 px-6 py-4">
           <div className="flex items-center gap-3">
-            <Bell className="h-4 w-4 text-brand-500" />
-            <h3 className="font-display font-bold text-neutral-900">Notificações</h3>
+            <Bell className="h-4 w-4 text-[#9FE870]" />
+            <h3 className="font-display font-bold text-slate-900">Notificações</h3>
           </div>
           {savedField === 'notification_preferences' && (
             <span className="flex items-center gap-1 text-xs font-medium text-green-600">
@@ -194,16 +194,16 @@ export function ProfileAccountSettings() {
             </span>
           )}
         </div>
-        <div className="divide-y divide-neutral-50">
+        <div className="divide-y divide-slate-100/80">
           {NOTIFICATION_ITEMS.map(item => (
             <div
               key={item.key}
-              className="flex cursor-pointer items-center justify-between px-6 py-4 transition-colors hover:bg-neutral-50/50"
+              className="flex cursor-pointer items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/70/50"
               onClick={() => handleToggle(item.key)}
             >
               <div className="mr-6 flex-1">
-                <p className="text-sm font-medium text-neutral-700">{item.label}</p>
-                <p className="mt-0.5 text-xs text-neutral-400">{item.description}</p>
+                <p className="text-sm font-medium text-slate-700">{item.label}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{item.description}</p>
               </div>
               <button
                 type="button"
@@ -211,8 +211,8 @@ export function ProfileAccountSettings() {
                   e.stopPropagation()
                   handleToggle(item.key)
                 }}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 ${
-                  notifications[item.key] ? 'bg-brand-500' : 'bg-neutral-200'
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#9FE870] focus:ring-offset-1 ${
+                  notifications[item.key] ? 'bg-[#9FE870]' : 'bg-slate-200'
                 }`}
                 aria-label={item.label}
               >
@@ -227,17 +227,17 @@ export function ProfileAccountSettings() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-        <div className="flex items-center gap-3 border-b border-neutral-50 px-6 py-4">
-          <Lock className="h-4 w-4 text-brand-500" />
-          <h3 className="font-display font-bold text-neutral-900">Segurança</h3>
+      <div className="overflow-hidden rounded-lg border border-slate-200/80 bg-white">
+        <div className="flex items-center gap-3 border-b border-slate-100/80 px-6 py-4">
+          <Lock className="h-4 w-4 text-[#9FE870]" />
+          <h3 className="font-display font-bold text-slate-900">Segurança</h3>
         </div>
         <div className="space-y-4 px-6 py-4">
-          <div className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
-            <p className="text-sm font-medium text-neutral-700">
+          <div className="rounded-md border border-slate-200/80 bg-slate-50/70 p-3">
+            <p className="text-sm font-medium text-slate-700">
               {hasPasswordProvider ? 'Alterar senha' : 'Definir senha para login com e-mail'}
             </p>
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-xs text-slate-500">
               {hasPasswordProvider
                 ? 'Use este formulário para atualizar sua senha de acesso.'
                 : 'Sua conta foi criada com login social. Defina uma senha para também entrar com e-mail e senha.'}
@@ -246,7 +246,7 @@ export function ProfileAccountSettings() {
 
           <form onSubmit={handleUpdatePassword} className="space-y-3" noValidate>
             <div>
-              <label htmlFor="profile-new-password" className="mb-1 block text-sm font-medium text-neutral-700">
+              <label htmlFor="profile-new-password" className="mb-1 block text-sm font-medium text-slate-700">
                 Nova senha
               </label>
               <input
@@ -261,14 +261,14 @@ export function ProfileAccountSettings() {
                   if (securitySuccess) setSecuritySuccess('')
                 }}
                 placeholder="Mínimo de 8 caracteres"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/30"
                 aria-invalid={Boolean(securityError)}
                 autoComplete="new-password"
               />
             </div>
 
             <div>
-              <label htmlFor="profile-confirm-password" className="mb-1 block text-sm font-medium text-neutral-700">
+              <label htmlFor="profile-confirm-password" className="mb-1 block text-sm font-medium text-slate-700">
                 Confirmar nova senha
               </label>
               <input
@@ -283,21 +283,21 @@ export function ProfileAccountSettings() {
                   if (securitySuccess) setSecuritySuccess('')
                 }}
                 placeholder="Repita a nova senha"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/30"
                 aria-invalid={Boolean(securityError)}
                 autoComplete="new-password"
               />
             </div>
 
             {securityError ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600" role="alert">
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600" role="alert">
                 {securityError}
               </div>
             ) : null}
 
             {securitySuccess ? (
               <div
-                className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700"
+                className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700"
                 role="status"
               >
                 {securitySuccess}
@@ -308,39 +308,39 @@ export function ProfileAccountSettings() {
               <button
                 type="submit"
                 disabled={securityLoading}
-                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#9FE870]/30"
               >
                 {securityLoading ? 'Salvando...' : hasPasswordProvider ? 'Atualizar senha' : 'Definir senha'}
               </button>
 
               <a
                 href="/recuperar-senha"
-                className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 transition-all hover:text-brand-700"
+                className="rounded-full bg-[#9FE870]/8 px-3 py-1.5 text-xs font-medium text-[#3d6b1f] transition-all hover:text-[#3d6b1f]"
               >
                 Esqueci minha senha
               </a>
             </div>
           </form>
 
-          <div className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3">
+          <div className="flex items-center justify-between rounded-md border border-slate-200/80 bg-white px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-neutral-700">Autenticação de dois fatores</p>
-              <p className="mt-0.5 text-xs text-neutral-400">Desativado</p>
+              <p className="text-sm font-medium text-slate-700">Autenticação de dois fatores</p>
+              <p className="mt-0.5 text-xs text-slate-400">Desativado</p>
             </div>
-            <span className="rounded-full bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-400">
+            <span className="rounded-full bg-slate-50/70 px-3 py-1.5 text-xs font-medium text-slate-400">
               Em breve
             </span>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-red-100 bg-white p-6">
+      <div className="rounded-lg border border-red-100 bg-white p-6">
         <h3 className="mb-2 font-display font-bold text-red-700">Zona de risco</h3>
-        <p className="mb-4 text-sm text-neutral-500">Ações irreversíveis para sua conta.</p>
+        <p className="mb-4 text-sm text-slate-500">Ações irreversíveis para sua conta.</p>
         <form action="/auth/signout" method="post">
           <button
             type="submit"
-            className="inline-flex rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
+            className="inline-flex rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
           >
             Sair da conta
           </button>

@@ -1,4 +1,4 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadPlanConfigMap } from '@/lib/plan-config'
 import { AdminPlanConfigForm } from '@/components/admin/AdminPlanConfigForm'

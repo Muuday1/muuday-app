@@ -37,12 +37,12 @@ export function CaseMessageForm({ caseId }: { caseId: string }) {
         placeholder="Adicione uma mensagem..."
         maxLength={2000}
         rows={2}
-        className="flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm transition focus:border-brand-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-200"
+        className="flex-1 rounded-md border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm transition focus:border-[#9FE870]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#9FE870]/30"
       />
       <button
         type="submit"
         disabled={isSubmitting || !content.trim()}
-        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870] text-white transition hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Enviar mensagem"
       >
         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

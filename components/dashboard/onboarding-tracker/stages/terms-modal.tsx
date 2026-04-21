@@ -25,14 +25,14 @@ export function TermsModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-neutral-900/55 p-4"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/55 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Leitura de termo"
     >
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
-        <div className="border-b border-neutral-200 px-5 py-4">
-          <h3 className="text-lg font-semibold text-neutral-900">{activeTerm.title}</h3>
+      <div className="w-full max-w-2xl rounded-lg bg-white">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h3 className="text-lg font-semibold text-slate-900">{activeTerm.title}</h3>
         </div>
         <div
           ref={contentRef}
@@ -41,16 +41,16 @@ export function TermsModal({
         >
           {activeTerm.sections.map(section => (
             <section key={section.heading} className="mb-4">
-              <h4 className="text-sm font-semibold text-neutral-800">{section.heading}</h4>
-              <p className="mt-1 text-sm leading-6 text-neutral-700">{section.body}</p>
+              <h4 className="text-sm font-semibold text-slate-800">{section.heading}</h4>
+              <p className="mt-1 text-sm leading-6 text-slate-700">{section.body}</p>
             </section>
           ))}
         </div>
-        <div className="flex flex-col gap-2 border-t border-neutral-200 px-5 py-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-neutral-300"
+            className="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300"
           >
             Fechar
           </button>
@@ -58,7 +58,7 @@ export function TermsModal({
             type="button"
             onClick={onAccept}
             disabled={!termsModalScrolledToEnd}
-            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {termsModalScrolledToEnd ? 'Aceitar termo' : 'Role até o fim para aceitar'}
           </button>

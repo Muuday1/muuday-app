@@ -1,4 +1,4 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
 import ProfessionalSettingsWorkspace from '@/components/settings/ProfessionalSettingsWorkspace'

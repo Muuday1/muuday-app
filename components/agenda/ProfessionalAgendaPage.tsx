@@ -60,8 +60,8 @@ type ProfessionalAgendaPageProps = {
 
 function viewLinkClass(activeView: AgendaView, currentView: AgendaView) {
   return activeView === currentView
-    ? 'bg-brand-500 text-white border-brand-500'
-    : 'bg-white text-neutral-600 border-neutral-200 hover:border-brand-300 hover:text-brand-700'
+    ? 'bg-[#9FE870] text-white border-[#9FE870]'
+    : 'bg-white text-slate-600 border-slate-200 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
 }
 
 function getConfirmationDeadline(booking: Record<string, any>): Date | null {
@@ -86,13 +86,13 @@ function getSlaLabel(deadline: Date): string {
 
 function getRequestStatusUi(status: string) {
   const map: Record<string, { label: string; className: string }> = {
-    open: { label: 'Aberta', className: 'bg-neutral-100 text-neutral-700' },
+    open: { label: 'Aberta', className: 'bg-slate-100 text-slate-700' },
     offered: { label: 'Proposta enviada', className: 'bg-amber-50 text-amber-700' },
     accepted: { label: 'Aceita', className: 'bg-green-50 text-green-700' },
     converted: { label: 'Convertida', className: 'bg-green-50 text-green-700' },
     declined: { label: 'Recusada', className: 'bg-red-50 text-red-700' },
-    expired: { label: 'Expirada', className: 'bg-neutral-100 text-neutral-500' },
-    cancelled: { label: 'Cancelada', className: 'bg-neutral-100 text-neutral-500' },
+    expired: { label: 'Expirada', className: 'bg-slate-100 text-slate-500' },
+    cancelled: { label: 'Cancelada', className: 'bg-slate-100 text-slate-500' },
   }
   return map[status] || map.open
 }
@@ -193,13 +193,13 @@ export function ProfessionalAgendaPage({
 
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Agenda profissional
           </p>
-          <h1 className="mt-2 font-display text-3xl font-bold text-neutral-950">
+          <h1 className="mt-2 font-display text-3xl font-bold text-slate-950">
             Operacao de agenda mais clara e mais rapida de navegar
           </h1>
-          <p className="mt-2 max-w-3xl text-sm text-neutral-600">
+          <p className="mt-2 max-w-3xl text-sm text-slate-600">
             O calendario completo fica na frente, as pendencias viram uma inbox unica e as regras ficam concentradas em uma unica area de edicao.
           </p>
         </div>
@@ -226,45 +226,45 @@ export function ProfessionalAgendaPage({
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-neutral-100 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Confirmacoes pendentes
           </p>
-          <p className="mt-2 text-2xl font-bold text-neutral-950">{pendingConfirmations.length}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{pendingConfirmations.length}</p>
         </div>
-        <div className="rounded-2xl border border-neutral-100 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Requests em aberto
           </p>
-          <p className="mt-2 text-2xl font-bold text-neutral-950">{activeRequests.length}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{activeRequests.length}</p>
         </div>
-        <div className="rounded-2xl border border-neutral-100 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Proximas sessoes
           </p>
-          <p className="mt-2 text-2xl font-bold text-neutral-950">{upcoming.length}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{upcoming.length}</p>
         </div>
       </div>
 
       {activeView === 'overview' ? (
         <div className="space-y-6">
-          <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className="rounded-lg border border-slate-200 bg-white p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Proximas sessoes
                 </p>
-                <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+                <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
                   Proximas 5 sessoes
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm text-neutral-600">
+                <p className="mt-2 max-w-2xl text-sm text-slate-600">
                   Veja o que ja esta reservado antes de mexer na disponibilidade ou responder novas pendencias.
                 </p>
               </div>
             </div>
 
             {upcoming.length === 0 ? (
-              <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-6 text-sm text-neutral-500">
+              <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-sm text-slate-500">
                 Nenhuma sessao futura agendada no momento.
               </div>
             ) : (
@@ -273,11 +273,11 @@ export function ProfessionalAgendaPage({
                   const otherPerson = booking.profiles?.full_name || 'Cliente'
                   const modeMeta = bookingModeMeta(booking)
                   return (
-                    <div key={booking.id} className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4">
+                    <div key={booking.id} className="rounded-lg border border-slate-200/80 bg-slate-50/70 px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-neutral-900">{otherPerson}</p>
-                          <p className="mt-1 text-sm text-neutral-500">
+                          <p className="truncate font-semibold text-slate-900">{otherPerson}</p>
+                          <p className="mt-1 text-sm text-slate-500">
                             {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'EEE, d MMM', {
                               locale: ptBR,
                             })}
@@ -289,9 +289,9 @@ export function ProfessionalAgendaPage({
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-4 space-y-2 text-sm text-neutral-600">
+                      <div className="mt-4 space-y-2 text-sm text-slate-600">
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-neutral-400" />
+                          <Calendar className="h-4 w-4 text-slate-400" />
                           <span>
                             {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'HH:mm', {
                               locale: ptBR,
@@ -299,7 +299,7 @@ export function ProfessionalAgendaPage({
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-neutral-400" />
+                          <Clock className="h-4 w-4 text-slate-400" />
                           <span>{booking.duration_minutes || 50} min</span>
                         </div>
                       </div>
@@ -310,25 +310,25 @@ export function ProfessionalAgendaPage({
             )}
           </section>
 
-          <section className="space-y-4 rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Visao geral
                 </p>
-                <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+                <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
                   Calendario completo em primeiro plano
                 </h2>
-                <p className="mt-2 text-sm text-neutral-600">
+                <p className="mt-2 text-sm text-slate-600">
                   Acompanhe disponibilidade base, sessoes confirmadas e ocupacoes externas sem sair da agenda.
                 </p>
               </div>
               <div className="flex flex-col items-start gap-2 lg:items-end">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                     Fuso: {calendarTimezone.replaceAll('_', ' ')}
                   </span>
-                  <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
+                  <span className="rounded-full bg-[#9FE870]/8 px-3 py-1 text-xs font-medium text-[#3d6b1f]">
                     {connectionLabel}
                   </span>
                 </div>
@@ -336,14 +336,14 @@ export function ProfessionalAgendaPage({
                   <button
                     type="button"
                     onClick={() => setShowCalendarSyncModal(true)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600"
+                    className="inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f]"
                   >
                     <Link2 className="h-4 w-4" />
                     Gerenciar sync
                   </button>
                 </div>
                 {calendarIntegrationLastSyncAt ? (
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-slate-500">
                     Ultimo sync: {new Date(calendarIntegrationLastSyncAt).toLocaleString('pt-BR', { hour12: false })}
                   </p>
                 ) : null}
@@ -364,13 +364,13 @@ export function ProfessionalAgendaPage({
 
       {activeView === 'inbox' ? (
         <div className="space-y-6">
-          <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className="rounded-lg border border-slate-200 bg-white p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Pendencias
                 </p>
-                <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+                <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
                   Inbox unica de confirmacoes e requests
                 </h2>
               </div>
@@ -379,8 +379,8 @@ export function ProfessionalAgendaPage({
                   href="/agenda?view=inbox&filter=all"
                   className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
                     inboxFilter === 'all'
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand-300 hover:text-brand-700'
+                      ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                   }`}
                 >
                   Todas
@@ -389,8 +389,8 @@ export function ProfessionalAgendaPage({
                   href="/agenda?view=inbox&filter=confirmations"
                   className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
                     inboxFilter === 'confirmations'
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand-300 hover:text-brand-700'
+                      ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                   }`}
                 >
                   Confirmacoes
@@ -399,8 +399,8 @@ export function ProfessionalAgendaPage({
                   href="/agenda?view=inbox&filter=requests"
                   className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
                     inboxFilter === 'requests'
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand-300 hover:text-brand-700'
+                      ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                   }`}
                 >
                   Requests
@@ -410,8 +410,8 @@ export function ProfessionalAgendaPage({
           </section>
 
           {filteredInboxItems.length === 0 ? (
-            <div className="rounded-2xl border border-neutral-100 bg-white p-8 text-center">
-              <p className="font-semibold text-neutral-900">Nenhuma pendencia neste filtro.</p>
+            <div className="rounded-lg border border-slate-200/80 bg-white p-8 text-center">
+              <p className="font-semibold text-slate-900">Nenhuma pendencia neste filtro.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -423,14 +423,14 @@ export function ProfessionalAgendaPage({
                   const slaLabel = confirmationDeadline ? getSlaLabel(confirmationDeadline) : null
 
                   return (
-                    <div key={booking.id} className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
+                    <div key={booking.id} className="rounded-lg border border-slate-200/80 bg-white p-5">
                       <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 font-display font-bold text-brand-600">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 font-display font-bold text-[#3d6b1f]">
                           {otherPerson?.charAt(0) || '?'}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-semibold text-neutral-900">{otherPerson || 'Cliente'}</p>
+                            <p className="font-semibold text-slate-900">{otherPerson || 'Cliente'}</p>
                             <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
                               Confirmacao pendente
                             </span>
@@ -440,7 +440,7 @@ export function ProfessionalAgendaPage({
                               </span>
                             ) : null}
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+                          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3.5 w-3.5" />
                               {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'EEE, d MMM HH:mm', {
@@ -488,11 +488,11 @@ export function ProfessionalAgendaPage({
                     : null
 
                 return (
-                  <div key={request.id} className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
+                  <div key={request.id} className="rounded-lg border border-slate-200/80 bg-white p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-neutral-900">{otherPerson || 'Cliente'}</p>
-                        <p className="mt-1 text-xs text-neutral-500">
+                        <p className="font-semibold text-slate-900">{otherPerson || 'Cliente'}</p>
+                        <p className="mt-1 text-xs text-slate-500">
                           Preferencia enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso nao definido'}
                         </p>
                       </div>
@@ -501,14 +501,14 @@ export function ProfessionalAgendaPage({
                       </span>
                     </div>
 
-                    <div className="mt-3 space-y-1 text-sm text-neutral-600">
+                    <div className="mt-3 space-y-1 text-sm text-slate-600">
                       <p>
-                        <span className="font-medium text-neutral-700">Janela preferida:</span>{' '}
+                        <span className="font-medium text-slate-700">Janela preferida:</span>{' '}
                         {preferredWindowLabel} ({userTimezone.replaceAll('_', ' ')})
                       </p>
                       {proposalWindowLabel ? (
                         <p>
-                          <span className="font-medium text-neutral-700">Proposta:</span> {proposalWindowLabel}
+                          <span className="font-medium text-slate-700">Proposta:</span> {proposalWindowLabel}
                           {request.proposal_timezone
                             ? ` (${String(request.proposal_timezone).replaceAll('_', ' ')})`
                             : ''}

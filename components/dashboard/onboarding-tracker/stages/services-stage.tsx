@@ -66,24 +66,24 @@ export function ServicesStage({
 }: ServicesStageProps) {
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
-        <p className="text-sm text-neutral-700">
+      <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
+        <p className="text-sm text-slate-700">
           Limite do plano atual: <strong>{tierLimits.services} serviço(s)</strong> ativo(s).
         </p>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-slate-500">
           Serviços cadastrados:{' '}
           {servicesLoadedSuccessfully
             ? `${services.length}/${tierLimits.services}`
             : 'indisponível durante a sincronização'}
         </p>
-        <p className="mt-1 text-xs text-neutral-500">Valores exibidos em {serviceCurrency}.</p>
+        <p className="mt-1 text-xs text-slate-500">Valores exibidos em {serviceCurrency}.</p>
         {servicesLoadState === 'degraded' && servicesLoadError ? (
           <p className="mt-2 text-xs font-medium text-amber-700">{servicesLoadError}</p>
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <h3 className="mb-3 text-sm font-semibold text-neutral-900">
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <h3 className="mb-3 text-sm font-semibold text-slate-900">
           {editingServiceId ? 'Editar serviço' : 'Adicionar serviço'}
         </h3>
         {servicesLoadFailed ? (
@@ -93,33 +93,33 @@ export function ServicesStage({
         ) : null}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Título</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Título</label>
             <input
               type="text"
               value={serviceName}
               onChange={event => setServiceName(event.target.value)}
               disabled={serviceActionsDisabled}
-              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
               maxLength={30}
               placeholder="Ex.: Consultoria fiscal"
             />
-            <p className="mt-1 text-[11px] text-neutral-500">{serviceName.length}/30</p>
+            <p className="mt-1 text-[11px] text-slate-500">{serviceName.length}/30</p>
           </div>
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Descrição</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Descrição</label>
             <textarea
               rows={4}
               value={serviceDescription}
               onChange={event => setServiceDescription(event.target.value)}
               disabled={serviceActionsDisabled}
-              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
               maxLength={120}
               placeholder="Explique o objetivo, formato e resultado esperado do serviço."
             />
-            <p className="mt-1 text-[11px] text-neutral-500">{serviceDescription.length}/120</p>
+            <p className="mt-1 text-[11px] text-slate-500">{serviceDescription.length}/120</p>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Preço por sessão ({serviceCurrency})</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Preço por sessão ({serviceCurrency})</label>
             <input
               type="number"
               min={0}
@@ -127,16 +127,16 @@ export function ServicesStage({
               value={servicePrice}
               onChange={event => setServicePrice(event.target.value)}
               disabled={serviceActionsDisabled}
-              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Duração (minutos)</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Duração (minutos)</label>
             <select
               value={serviceDuration}
               onChange={event => setServiceDuration(event.target.value)}
               disabled={serviceActionsDisabled}
-              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
             >
               {[30, 45, 50, 60, 75, 90, 120].map(option => (
                 <option key={option} value={option}>
@@ -154,7 +154,7 @@ export function ServicesStage({
             type="button"
             onClick={() => void saveService()}
             disabled={serviceActionsDisabled}
-            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+            className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8ed85f] disabled:opacity-60"
           >
             {serviceSaveState === 'saving'
               ? 'Salvando...'
@@ -169,7 +169,7 @@ export function ServicesStage({
               type="button"
               onClick={resetServiceForm}
               disabled={serviceActionsDisabled}
-              className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50/70 disabled:opacity-60"
             >
               Cancelar edição
             </button>
@@ -177,10 +177,10 @@ export function ServicesStage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <h3 className="mb-3 text-sm font-semibold text-neutral-900">Serviços ativos</h3>
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <h3 className="mb-3 text-sm font-semibold text-slate-900">Serviços ativos</h3>
         {servicesLoadState === 'idle' ? (
-          <p className="text-sm text-neutral-500">Sincronizando seus serviços...</p>
+          <p className="text-sm text-slate-500">Sincronizando seus serviços...</p>
         ) : servicesLoadFailed ? (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-amber-800">
@@ -196,14 +196,14 @@ export function ServicesStage({
             </button>
           </div>
         ) : services.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nenhum serviço ativo ainda.</p>
+          <p className="text-sm text-slate-500">Nenhum serviço ativo ainda.</p>
         ) : (
           <div className="space-y-2">
             {services.map(service => (
-              <div key={service.id} className="rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
-                <p className="text-sm font-semibold text-neutral-900">{service.name}</p>
-                <p className="text-xs text-neutral-600">{service.description || 'Sem descrição'}</p>
-                <p className="mt-1 text-xs text-neutral-700">
+              <div key={service.id} className="rounded-lg border border-slate-200/80 bg-slate-50/70 px-3 py-2">
+                <p className="text-sm font-semibold text-slate-900">{service.name}</p>
+                <p className="text-xs text-slate-600">{service.description || 'Sem descrição'}</p>
+                <p className="mt-1 text-xs text-slate-700">
                   {formatCurrencyFromBrl(Number(service.price_brl || 0), serviceCurrency, exchangeRates)} ·{' '}
                   {service.duration_minutes} min
                 </p>
@@ -212,7 +212,7 @@ export function ServicesStage({
                     type="button"
                     onClick={() => beginServiceEdit(service)}
                     disabled={serviceActionsDisabled}
-                    className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-semibold text-neutral-700 hover:bg-white disabled:opacity-60"
+                    className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-white disabled:opacity-60"
                   >
                     Editar
                   </button>

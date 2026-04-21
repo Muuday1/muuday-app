@@ -219,12 +219,12 @@ export default async function AgendarPage({
   return (
     <div className="min-h-screen">
       {/* Page header */}
-      <div className="bg-white border-b border-neutral-100 px-6 md:px-8 py-5">
+      <div className="bg-white border-b border-slate-200/80 px-6 md:px-8 py-5">
         <div className="max-w-4xl mx-auto">
-          <h1 className="font-display font-bold text-2xl text-neutral-900">
+          <h1 className="font-display font-bold text-2xl text-slate-900">
             Agendar sessão
           </h1>
-          <p className="text-sm text-neutral-500 mt-0.5">
+          <p className="text-sm text-slate-500 mt-0.5">
             {profProfile?.full_name}
             {category ? ` · ${category.icon} ${category.name}` : ''}
             {' · '}

@@ -83,7 +83,7 @@ export default function GuiasList() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar guias: CPF, passaporte, impostos, INSS..."
-              className="w-full rounded-2xl border-0 bg-white/80 py-4 pl-12 pr-4 text-slate-900 shadow-lg shadow-slate-900/5 backdrop-blur-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4a7c2f]"
+              className="w-full rounded-lg border-0 bg-white/80 py-4 pl-12 pr-4 text-slate-900 backdrop-blur-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4a7c2f]"
             />
           </div>
         </div>
@@ -161,9 +161,9 @@ export default function GuiasList() {
                   <StaggerItem key={guide.slug}>
                     <Link
                       href={`/guias/${guide.slug}`}
-                      className="group flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-[#9FE870] hover:shadow-md"
+                      className="group flex h-full flex-col rounded-lg border border-slate-200 bg-white p-6 transition hover:border-[#9FE870]"
                     >
-                      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#9FE870]/20 text-slate-900">
+                      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-[#9FE870]/20 text-slate-900">
                         <Icon className="h-6 w-6" />
                       </div>
                       <h3 className="text-base font-bold leading-snug text-slate-900 transition group-hover:text-[#4a7c2f]">

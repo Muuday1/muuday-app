@@ -1,4 +1,4 @@
-﻿import { cookies, headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import {
   normalizeCurrency,
   PUBLIC_CURRENCY_COOKIE,

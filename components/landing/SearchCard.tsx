@@ -16,8 +16,8 @@ export function SearchCard() {
 
   return (
     <div className="relative mx-auto w-full max-w-2xl">
-      <GradientBorder borderClassName="p-[2px] rounded-3xl bg-gradient-to-br from-[#9FE870] via-emerald-400 to-brand-500">
-        <div className="overflow-hidden rounded-3xl bg-white">
+      <GradientBorder borderClassName="p-[2px] rounded-lg bg-gradient-to-br from-[#9FE870] via-emerald-400 to-[#9FE870]">
+        <div className="overflow-hidden rounded-lg bg-white">
           <div className="p-6 md:p-8">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
@@ -31,7 +31,7 @@ export function SearchCard() {
             <div className="mt-6 space-y-4">
               <div>
                 <label className="text-sm font-medium text-slate-500">Você busca</label>
-                <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/20">
+                <div className="mt-2 flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 transition focus-within:border-[#9FE870]/40 focus-within:ring-2 focus-within:ring-[#9FE870]/20">
                   <Search className="h-5 w-5 text-slate-400" />
                   <select
                     className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none"
@@ -48,7 +48,7 @@ export function SearchCard() {
 
               <div>
                 <label className="text-sm font-medium text-slate-500">Especialidade</label>
-                <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-500/20">
+                <div className="mt-2 flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 transition focus-within:border-[#9FE870]/40 focus-within:ring-2 focus-within:ring-[#9FE870]/20">
                   <Globe className="h-5 w-5 text-slate-400" />
                   <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
                     <option value="">Todas as especialidades</option>
@@ -62,7 +62,7 @@ export function SearchCard() {
               <MagneticButton className="w-full" strength={0.15}>
                 <Link
                   href="/buscar"
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#9FE870] px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-lg hover:shadow-[#9FE870]/25"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#9FE870] px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f]/25"
                 >
                   Buscar profissionais
                   <ArrowRight className="h-5 w-5" />

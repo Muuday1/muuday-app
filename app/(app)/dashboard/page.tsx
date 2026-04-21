@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Dashboard | Muuday' }
+export const metadata = { title: 'Dashboard | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -272,12 +272,12 @@ export default async function DashboardPage({
       <div className={onboardingIncomplete ? 'pointer-events-none select-none blur-[1px] opacity-80' : ''}>
       <div className="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-neutral-900">Dashboard</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="font-display text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-sm text-slate-500">
             Veja o que precisa de ação agora e acompanhe agenda, ganhos e saúde da conta.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           Plano: {String(professional.tier || 'basic').toUpperCase()}
         </span>
       </div>
@@ -287,7 +287,7 @@ export default async function DashboardPage({
           {alerts.map(alert => {
             const styles = alertStyles(alert.level)
             return (
-              <div key={alert.id} className={`rounded-2xl border px-4 py-3 ${styles.wrapper}`}>
+              <div key={alert.id} className={`rounded-lg border px-4 py-3 ${styles.wrapper}`}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${styles.title}`}>{alert.title}</p>
@@ -296,7 +296,7 @@ export default async function DashboardPage({
                   {alert.actionHref && alert.actionLabel && (
                     <Link
                       href={alert.actionHref}
-                      className={`inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${styles.button}`}
+                      className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-xs font-semibold transition ${styles.button}`}
                     >
                       {alert.actionLabel}
                       <ArrowRight className="h-3.5 w-3.5" />
@@ -310,30 +310,30 @@ export default async function DashboardPage({
       )}
 
       <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="professional-dashboard-cards">
-        <div className={`rounded-2xl border p-5 ${pendingConfirmationCount > 0 || openRequestCount > 0 ? 'border-amber-200 bg-amber-50/30' : 'border-neutral-100 bg-white'}`}>
-          <div className="mb-2 flex items-center gap-2 text-neutral-500">
+        <div className={`rounded-lg border p-5 ${pendingConfirmationCount > 0 || openRequestCount > 0 ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200/80 bg-white'}`}>
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <span className="text-xs font-semibold uppercase tracking-wide">Urgente</span>
           </div>
-          <p className="text-sm text-neutral-700">{pendingConfirmationCount} pendência(s) de confirmação manual</p>
-          <p className="mt-1 text-sm text-neutral-700">{openRequestCount} solicitação(ões) de horário em aberto</p>
-          <Link href="/agenda?view=pending" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800">
+          <p className="text-sm text-slate-700">{pendingConfirmationCount} pendência(s) de confirmação manual</p>
+          <p className="mt-1 text-sm text-slate-700">{openRequestCount} solicitação(ões) de horário em aberto</p>
+          <Link href="/agenda?view=pending" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
             Resolver agora
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <div className="mb-2 flex items-center gap-2 text-neutral-500">
-            <CalendarClock className="h-4 w-4 text-brand-500" />
+        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
+            <CalendarClock className="h-4 w-4 text-[#9FE870]" />
             <span className="text-xs font-semibold uppercase tracking-wide">Próxima sessão</span>
           </div>
           {nextBooking ? (
             <>
-              <p className="text-sm font-semibold text-neutral-900">
+              <p className="text-sm font-semibold text-slate-900">
                 {(nextBooking as Record<string, any>)?.profiles?.full_name || 'Cliente'}
               </p>
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-slate-500">
                 {formatInTimeZone(
                   new Date(String((nextBooking as Record<string, any>).scheduled_at)),
                   userTimezone,
@@ -343,53 +343,53 @@ export default async function DashboardPage({
               </p>
             </>
           ) : (
-            <p className="text-sm text-neutral-500">Sem sessões confirmadas no momento.</p>
+            <p className="text-sm text-slate-500">Sem sessões confirmadas no momento.</p>
           )}
-          <p className="mt-2 text-xs text-neutral-500">Total futuro: {upcomingBookings?.length || 0} sessão(ões)</p>
+          <p className="mt-2 text-xs text-slate-500">Total futuro: {upcomingBookings?.length || 0} sessão(ões)</p>
         </div>
 
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <div className="mb-2 flex items-center gap-2 text-neutral-500">
-            <Wallet className="h-4 w-4 text-brand-500" />
+        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
+            <Wallet className="h-4 w-4 text-[#9FE870]" />
             <span className="text-xs font-semibold uppercase tracking-wide">Ganhos</span>
           </div>
-          <p className="text-sm text-neutral-500">Semana</p>
-          <p className="text-xl font-semibold text-neutral-900">{formatCurrency(earningsWeek, currency)}</p>
-          <p className="mt-2 text-sm text-neutral-500">Mês</p>
-          <p className="text-lg font-semibold text-neutral-900">{formatCurrency(earningsMonth, currency)}</p>
+          <p className="text-sm text-slate-500">Semana</p>
+          <p className="text-xl font-semibold text-slate-900">{formatCurrency(earningsWeek, currency)}</p>
+          <p className="mt-2 text-sm text-slate-500">Mês</p>
+          <p className="text-lg font-semibold text-slate-900">{formatCurrency(earningsMonth, currency)}</p>
         </div>
 
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <div className="mb-2 flex items-center gap-2 text-neutral-500">
-            <ShieldAlert className="h-4 w-4 text-brand-500" />
+        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
+            <ShieldAlert className="h-4 w-4 text-[#9FE870]" />
             <span className="text-xs font-semibold uppercase tracking-wide">Saúde da conta</span>
           </div>
-          <p className="text-sm text-neutral-600">Status: {toUiLabel(professional.status, PROFESSIONAL_STATUS_LABELS)}</p>
-          <p className="text-sm text-neutral-600">Confirmação: {toUiLabel(professionalSettings?.confirmation_mode, CONFIRMATION_MODE_LABELS)}</p>
-          <p className="text-sm text-neutral-600">Janela de agenda: {Number(professionalSettings?.max_booking_window_days || 30)} dias</p>
-          <p className="text-sm text-neutral-600">Exceções futuras: {availabilityExceptionsCount || 0}</p>
+          <p className="text-sm text-slate-600">Status: {toUiLabel(professional.status, PROFESSIONAL_STATUS_LABELS)}</p>
+          <p className="text-sm text-slate-600">Confirmação: {toUiLabel(professionalSettings?.confirmation_mode, CONFIRMATION_MODE_LABELS)}</p>
+          <p className="text-sm text-slate-600">Janela de agenda: {Number(professionalSettings?.max_booking_window_days || 30)} dias</p>
+          <p className="text-sm text-slate-600">Exceções futuras: {availabilityExceptionsCount || 0}</p>
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5" data-testid="professional-quick-actions">
+      <section className="mb-6 rounded-lg border border-slate-200/80 bg-white p-5" data-testid="professional-quick-actions">
         <div className="mb-4 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-brand-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Ações rápidas</h2>
+          <Layers className="h-4 w-4 text-[#9FE870]" />
+          <h2 className="font-display text-lg font-bold text-slate-900">Ações rápidas</h2>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Link href="/agenda?view=pending" className={`rounded-xl border p-3 text-sm font-medium transition ${pendingConfirmationCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-neutral-200 text-neutral-700 hover:border-brand-300 hover:text-brand-700'}`}>
+          <Link href="/agenda?view=pending" className={`rounded-md border p-3 text-sm font-medium transition ${pendingConfirmationCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
             Confirmar pendências {pendingConfirmationCount > 0 && `(${pendingConfirmationCount})`}
           </Link>
-          <Link href="/agenda?view=requests" className={`rounded-xl border p-3 text-sm font-medium transition ${openRequestCount > 0 ? 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100' : 'border-neutral-200 text-neutral-700 hover:border-brand-300 hover:text-brand-700'}`}>
+          <Link href="/agenda?view=requests" className={`rounded-md border p-3 text-sm font-medium transition ${openRequestCount > 0 ? 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
             Responder solicitações {openRequestCount > 0 && `(${openRequestCount})`}
           </Link>
-          <Link href="/disponibilidade" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+          <Link href="/disponibilidade" className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
             Atualizar disponibilidade
           </Link>
-          <Link href="/configuracoes-agendamento" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+          <Link href="/configuracoes-agendamento" className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
             Ajustar regras de agendamento
           </Link>
-          <Link href="/editar-perfil-profissional" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+          <Link href="/editar-perfil-profissional" className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
             Editar serviço e perfil
           </Link>
           <Link
@@ -398,33 +398,33 @@ export default async function DashboardPage({
               fullName: profile.full_name,
               publicCode: professional.public_code,
             })}
-            className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+            className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
           >
             Visualizar perfil público
           </Link>
-          <Link href="/financeiro" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+          <Link href="/financeiro" className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
             Revisar financeiro
           </Link>
-          <Link href="/configuracoes" className="rounded-xl border border-neutral-200 p-3 text-sm font-medium text-neutral-700 hover:border-brand-300 hover:text-brand-700">
+          <Link href="/configuracoes" className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
             Ver status da conta
           </Link>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-5" data-testid="professional-upcoming-list">
+      <section className="rounded-lg border border-slate-200/80 bg-white p-5" data-testid="professional-upcoming-list">
         <div className="mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-brand-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Próximas sessões</h2>
+          <Clock className="h-4 w-4 text-[#9FE870]" />
+          <h2 className="font-display text-lg font-bold text-slate-900">Próximas sessões</h2>
         </div>
         {!upcomingBookings || upcomingBookings.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nenhuma sessão agendada para os próximos dias.</p>
+          <p className="text-sm text-slate-500">Nenhuma sessão agendada para os próximos dias.</p>
         ) : (
           <div className="space-y-2">
             {upcomingBookings.map((booking: Record<string, any>) => (
-              <div key={booking.id} className="flex flex-col gap-2 rounded-xl border border-neutral-100 p-3 md:flex-row md:items-center md:justify-between">
+              <div key={booking.id} className="flex flex-col gap-2 rounded-md border border-slate-200/80 p-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">{booking.profiles?.full_name || 'Cliente'}</p>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-sm font-semibold text-slate-900">{booking.profiles?.full_name || 'Cliente'}</p>
+                  <p className="text-xs text-slate-500">
                     {formatInTimeZone(new Date(String(booking.scheduled_at)), userTimezone, "EEE, d MMM 'às' HH:mm", {
                       locale: ptBR,
                     })}{' '}
@@ -432,12 +432,12 @@ export default async function DashboardPage({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                     {toUiLabel(booking.status, BOOKING_STATUS_LABELS)}
                   </span>
                   <Link
                     href={`/agenda?booking=${booking.id}`}
-                    className="inline-flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#8ed85f]"
                   >
                     Abrir
                     <ArrowRight className="h-3 w-3" />
@@ -448,25 +448,25 @@ export default async function DashboardPage({
           </div>
         )}
         <div className="mt-4 text-right">
-          <Link href="/agenda" className="text-xs font-semibold text-brand-700 hover:text-brand-800">
+          <Link href="/agenda" className="text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
             Ver calendário completo
           </Link>
         </div>
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Resumo de trabalho (30 dias)</p>
-          <p className="mt-2 text-sm text-neutral-700">Sessões concluídas: {completedLast30Count || 0}</p>
-          <p className="text-sm text-neutral-700">Cancelamentos: {cancelledLast30Count || 0}</p>
-          <p className="text-sm text-neutral-700">Favoritos: {favoritesCount || 0}</p>
+        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Resumo de trabalho (30 dias)</p>
+          <p className="mt-2 text-sm text-slate-700">Sessões concluídas: {completedLast30Count || 0}</p>
+          <p className="text-sm text-slate-700">Cancelamentos: {cancelledLast30Count || 0}</p>
+          <p className="text-sm text-slate-700">Favoritos: {favoritesCount || 0}</p>
         </div>
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Integração de calendário</p>
-          <p className="mt-2 text-sm text-neutral-700">
+        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Integração de calendário</p>
+          <p className="mt-2 text-sm text-slate-700">
             {calendarIntegration?.sync_enabled ? `Conectado (${calendarIntegration.provider || 'google'})` : 'Não conectado'}
           </p>
-          <p className="text-sm text-neutral-700">
+          <p className="text-sm text-slate-700">
             Último sync:{' '}
             {calendarIntegration?.last_sync_at
               ? formatInTimeZone(new Date(String(calendarIntegration.last_sync_at)), userTimezone, 'd MMM HH:mm', {
@@ -474,8 +474,8 @@ export default async function DashboardPage({
                 })
               : 'nunca'}
           </p>
-          <p className="mt-1 text-sm text-neutral-700">Slots ativos: {activeAvailabilityCount || 0}</p>
-          <Link href="/agenda?view=settings" className="mt-2 inline-flex text-xs font-semibold text-brand-700 hover:text-brand-800">
+          <p className="mt-1 text-sm text-slate-700">Slots ativos: {activeAvailabilityCount || 0}</p>
+          <Link href="/agenda?view=settings" className="mt-2 inline-flex text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
             Abrir configurações de calendário
           </Link>
         </div>

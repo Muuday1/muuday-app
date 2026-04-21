@@ -175,18 +175,18 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
     <div className="mx-auto max-w-6xl p-6 md:p-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-neutral-900">Planos Muuday</h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <h1 className="font-display text-3xl font-bold text-slate-900">Planos Muuday</h1>
+          <p className="mt-1 text-sm text-slate-600">
             Trial de 3 meses apos aprovacao de go-live. Plano anual custa 10x o mensal.
           </p>
         </div>
-        <div className="inline-flex items-center rounded-xl border border-neutral-200 bg-white p-1 text-sm">
+        <div className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-sm">
           <button
             type="button"
             onClick={() => setBillingCycle('monthly')}
             className={cn(
               'rounded-lg px-3 py-1.5 font-semibold transition',
-              billingCycle === 'monthly' ? 'bg-brand-500 text-white' : 'text-neutral-600',
+              billingCycle === 'monthly' ? 'bg-[#9FE870] text-white' : 'text-slate-600',
             )}
           >
             Mensal
@@ -196,7 +196,7 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
             onClick={() => setBillingCycle('annual')}
             className={cn(
               'rounded-lg px-3 py-1.5 font-semibold transition',
-              billingCycle === 'annual' ? 'bg-brand-500 text-white' : 'text-neutral-600',
+              billingCycle === 'annual' ? 'bg-[#9FE870] text-white' : 'text-slate-600',
             )}
           >
             Anual (10x)
@@ -205,7 +205,7 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
       </div>
 
       {message ? (
-        <div className="mb-5 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700">
+        <div className="mb-5 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
           {message}
         </div>
       ) : null}
@@ -215,10 +215,10 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
           const price = getPrice(tier, billingCycle)
           const isCurrent = tier === currentTier
           return (
-            <div key={tier} className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{tierLabel(tier)}</p>
-              <p className="mt-2 text-3xl font-bold text-neutral-900">{formatCurrency(price, 'BRL')}</p>
-              <p className="mt-1 text-xs text-neutral-500">
+            <div key={tier} className="rounded-lg border border-slate-200 bg-white p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{tierLabel(tier)}</p>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{formatCurrency(price, 'BRL')}</p>
+              <p className="mt-1 text-xs text-slate-500">
                 {billingCycle === 'annual' ? 'cobranca anual' : 'cobranca mensal'}
               </p>
               <button
@@ -226,10 +226,10 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
                 onClick={() => handleSelectPlan(tier)}
                 disabled={isCurrent || Boolean(loadingTier)}
                 className={cn(
-                  'mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
+                  'mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition',
                   isCurrent
-                    ? 'cursor-not-allowed border border-neutral-200 bg-neutral-100 text-neutral-500'
-                    : 'bg-brand-500 text-white hover:bg-brand-600',
+                    ? 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-500'
+                    : 'bg-[#9FE870] text-white hover:bg-[#8ed85f]',
                 )}
               >
                 {loadingTier === tier ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -240,49 +240,49 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50">
+          <thead className="bg-slate-50/70">
             <tr>
-              <th className="px-4 py-3 text-neutral-700">Recurso</th>
-              <th className="px-4 py-3 text-neutral-700">Basico</th>
-              <th className="px-4 py-3 text-neutral-700">Professional</th>
-              <th className="px-4 py-3 text-neutral-700">Premium</th>
+              <th className="px-4 py-3 text-slate-700">Recurso</th>
+              <th className="px-4 py-3 text-slate-700">Basico</th>
+              <th className="px-4 py-3 text-slate-700">Professional</th>
+              <th className="px-4 py-3 text-slate-700">Premium</th>
             </tr>
           </thead>
           <tbody>
             {planFeatures.map(feature => (
-              <tr key={feature.label} className="border-t border-neutral-100">
-                <td className="px-4 py-3 font-medium text-neutral-800">{feature.label}</td>
-                <td className="px-4 py-3 text-neutral-600">{feature.basic}</td>
-                <td className="px-4 py-3 text-neutral-600">{feature.professional}</td>
-                <td className="px-4 py-3 text-neutral-600">{feature.premium}</td>
+              <tr key={feature.label} className="border-t border-slate-200/80">
+                <td className="px-4 py-3 font-medium text-slate-800">{feature.label}</td>
+                <td className="px-4 py-3 text-slate-600">{feature.basic}</td>
+                <td className="px-4 py-3 text-slate-600">{feature.professional}</td>
+                <td className="px-4 py-3 text-slate-600">{feature.premium}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600">
-        <p className="mb-2 font-semibold text-neutral-800">FAQ rapido</p>
+      <div className="mt-5 rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
+        <p className="mb-2 font-semibold text-slate-800">FAQ rapido</p>
         <ul className="space-y-2">
           <li className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 text-brand-500" />
+            <Check className="mt-0.5 h-4 w-4 text-[#9FE870]" />
             Upgrade e imediato apos confirmacao do webhook.
           </li>
           <li className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 text-brand-500" />
+            <Check className="mt-0.5 h-4 w-4 text-[#9FE870]" />
             Downgrade para Basico entra no proximo ciclo de cobranca.
           </li>
           <li className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 text-brand-500" />
+            <Check className="mt-0.5 h-4 w-4 text-[#9FE870]" />
             Trial de 3 meses comeca apos aprovacao e go-live.
           </li>
         </ul>
         <button
           type="button"
           onClick={() => router.push('/dashboard')}
-          className="mt-4 rounded-xl border border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+          className="mt-4 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
         >
           Voltar para dashboard
         </button>

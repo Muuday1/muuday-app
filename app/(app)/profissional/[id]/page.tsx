@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Profissional | Muuday' }
+export const metadata = { title: 'Profissional | Muuday' }
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
@@ -510,7 +510,7 @@ export default async function ProfissionalPage({
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
       <Link
         href="/buscar"
-        className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-neutral-500 transition-colors hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+        className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-slate-500 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
       >
         <ArrowLeft className="h-4 w-4" /> Voltar à busca
       </Link>
@@ -534,9 +534,9 @@ export default async function ProfissionalPage({
         viewerCurrency={viewerCurrency}
         topSections={
           <>
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               <div
-                className="relative h-28 bg-gradient-to-br from-brand-400 to-brand-600"
+                className="relative h-28 bg-gradient-to-br from-[#9FE870]/80 to-[#8ed85f]"
                 style={
                   professional.cover_photo_url
                     ? {
@@ -557,10 +557,10 @@ export default async function ProfissionalPage({
                       sizes="96px"
                       quality={75}
                       priority
-                      className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-sm"
+                      className="h-24 w-24 rounded-lg border-4 border-white bg-white object-cover"
                     />
                   ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-white text-3xl font-bold text-brand-600 shadow-sm">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-lg border-4 border-white bg-white text-3xl font-bold text-[#3d6b1f]">
                       {getNameInitial(profile?.full_name)}
                     </div>
                   )}
@@ -570,8 +570,8 @@ export default async function ProfissionalPage({
               <div className="px-6 pb-6 pt-14">
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                   <div>
-                    <h1 className="font-display text-2xl font-bold text-neutral-900">{profile?.full_name}</h1>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+                    <h1 className="font-display text-2xl font-bold text-slate-900">{profile?.full_name}</h1>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                       <span>{primarySpecialty}</span>
                       {Number(professional.years_experience || 0) > 0 ? (
                         <span>• {Number(professional.years_experience)} anos de experiência</span>
@@ -596,7 +596,7 @@ export default async function ProfissionalPage({
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50/70 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
                             >
                               {link.label}
                               <ExternalLink className="h-3 w-3" />
@@ -635,12 +635,12 @@ export default async function ProfissionalPage({
 
                 {((professional.tags || []) as string[]).length > 0 ? (
                   <div className="mt-4">
-                    <p className="mb-1 text-[11px] text-neutral-400">Foco de atuação</p>
+                    <p className="mb-1 text-[11px] text-slate-400">Foco de atuação</p>
                     <div className="flex flex-wrap gap-2">
                       {((professional.tags || []) as string[]).map((tag: string) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
+                          className="rounded-full bg-[#9FE870]/8 px-2.5 py-1 text-xs font-medium text-[#3d6b1f]"
                         >
                           {tag}
                         </span>
@@ -658,20 +658,20 @@ export default async function ProfissionalPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-3 font-display text-lg font-semibold text-neutral-900">Sobre mim</h2>
-              <p className="whitespace-pre-line leading-relaxed text-neutral-600">
+            <div className="rounded-lg border border-slate-200 bg-white p-6">
+              <h2 className="mb-3 font-display text-lg font-semibold text-slate-900">Sobre mim</h2>
+              <p className="whitespace-pre-line leading-relaxed text-slate-600">
                 {professional.bio || 'Sem descrição.'}
               </p>
             </div>
 
             {videoEmbedUrl ? (
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
-                  <PlayCircle className="h-5 w-5 text-brand-500" />
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
+                  <PlayCircle className="h-5 w-5 text-[#9FE870]" />
                   Vídeo de apresentação
                 </h2>
-                <div className="overflow-hidden rounded-xl border border-neutral-200">
+                <div className="overflow-hidden rounded-md border border-slate-200">
                   <iframe
                     src={videoEmbedUrl}
                     title="Vídeo de apresentação do profissional"
@@ -684,13 +684,13 @@ export default async function ProfissionalPage({
             ) : null}
 
             {(professional.languages || []).length > 0 ? (
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
-                  <Globe className="h-4 w-4 text-neutral-400" /> Idiomas
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
+                  <Globe className="h-4 w-4 text-slate-400" /> Idiomas
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {(professional.languages || []).map((language: string) => (
-                    <span key={language} className="rounded-full bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">
+                    <span key={language} className="rounded-full bg-slate-50/70 px-3 py-1.5 text-sm text-slate-700">
                       {language}
                     </span>
                   ))}
@@ -700,66 +700,66 @@ export default async function ProfissionalPage({
           </>
         }
       >
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Rating</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Rating</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Avaliação média</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">
+            <div className="rounded-md border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+              <p className="text-xs text-slate-500">Avaliação média</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">
                 {Number(professional.rating || 0) > 0 ? Number(professional.rating).toFixed(1) : 'Novo'}
               </p>
             </div>
-            <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Total de avaliações</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">{professional.total_reviews || 0}</p>
+            <div className="rounded-md border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+              <p className="text-xs text-slate-500">Total de avaliações</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{professional.total_reviews || 0}</p>
             </div>
-            <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-              <p className="text-xs text-neutral-500">Sessões concluídas</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">{professional.total_bookings || 0}</p>
+            <div className="rounded-md border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+              <p className="text-xs text-slate-500">Sessões concluídas</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{professional.total_bookings || 0}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Comentários</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Comentários</h2>
           {reviews && reviews.length > 0 ? (
             <div className="space-y-4">
               {reviews.map((review: any) => (
-                <div key={review.id} className="border-b border-neutral-50 pb-4 last:border-0 last:pb-0">
+                <div key={review.id} className="border-b border-slate-100/80 pb-4 last:border-0 last:pb-0">
                   <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-600">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
                       {getNameInitial(review.profiles?.full_name, 'U')}
                     </div>
-                    <span className="text-sm font-medium text-neutral-700">{review.profiles?.full_name}</span>
+                    <span className="text-sm font-medium text-slate-700">{review.profiles?.full_name}</span>
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: 5 }).map((_, index) => (
                         <Star
                           key={index}
                           className={`h-3 w-3 ${
-                            index < review.rating ? 'fill-accent-500 text-accent-500' : 'text-neutral-200'
+                            index < review.rating ? 'fill-accent-500 text-accent-500' : 'text-slate-200'
                           }`}
                         />
                       ))}
                     </div>
                   </div>
-                  <p className="ml-9 text-sm text-neutral-600">{review.comment || 'Sem comentário.'}</p>
+                  <p className="ml-9 text-sm text-slate-600">{review.comment || 'Sem comentário.'}</p>
                   {review.professional_response ? (
-                    <div className="ml-9 mt-2 border-l-2 border-brand-200 pl-3">
-                      <p className="mb-0.5 text-xs font-medium text-brand-700">Resposta do profissional</p>
-                      <p className="text-sm text-neutral-600">{review.professional_response}</p>
+                    <div className="ml-9 mt-2 border-l-2 border-[#9FE870]/30 pl-3">
+                      <p className="mb-0.5 text-xs font-medium text-[#3d6b1f]">Resposta do profissional</p>
+                      <p className="text-sm text-slate-600">{review.professional_response}</p>
                     </div>
                   ) : null}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-neutral-500">Este profissional ainda não recebeu comentários públicos.</p>
+            <p className="text-sm text-slate-500">Este profissional ainda não recebeu comentários públicos.</p>
           )}
         </div>
 
         {recommendations.length > 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
               Pessoas que você também pode gostar
             </h2>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
@@ -779,7 +779,7 @@ export default async function ProfissionalPage({
                       fullName: item.profiles?.full_name,
                       publicCode: item.public_code,
                     })}
-                    className="min-w-[220px] max-w-[220px] rounded-xl border border-neutral-200 bg-white p-3 transition hover:border-neutral-300 hover:shadow-sm"
+                    className="min-w-[220px] max-w-[220px] rounded-md border border-slate-200 bg-white p-3 transition hover:border-slate-300"
                   >
                     <div className="flex items-start gap-2">
                       {item.profiles?.avatar_url ? (
@@ -790,30 +790,30 @@ export default async function ProfissionalPage({
                           height={44}
                           sizes="44px"
                           quality={68}
-                          className="h-11 w-11 rounded-xl border border-neutral-200 object-cover"
+                          className="h-11 w-11 rounded-md border border-slate-200 object-cover"
                         />
                       ) : (
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-sm font-bold text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-[#9FE870]/80 to-[#8ed85f] text-sm font-bold text-white">
                           {getNameInitial(item.profiles?.full_name)}
                         </div>
                       )}
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-neutral-900">
+                        <p className="truncate text-sm font-semibold text-slate-900">
                           {item.profiles?.full_name || 'Profissional'}
                         </p>
-                        <p className="mt-0.5 line-clamp-1 text-xs text-neutral-500">{itemSpecialty}</p>
-                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-neutral-500">
+                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{itemSpecialty}</p>
+                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-500">
                           <MapPin className="h-3 w-3" /> {getCountryDisplayName(item.profiles?.country)}
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-neutral-900">
+                      <p className="text-sm font-semibold text-slate-900">
                         {formatCurrency(item.session_price_brl, viewerCurrency)}
                       </p>
-                      <p className="text-[11px] text-neutral-400">
+                      <p className="text-[11px] text-slate-400">
                         {Math.max(1, Number(item.session_duration_minutes || 60))} min
                       </p>
                     </div>

@@ -1,4 +1,4 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadAdminDashboardData } from '@/lib/actions/admin'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
@@ -22,9 +22,9 @@ export default async function AdminPage() {
   if (!result.success || !result.data) {
     return (
       <div className="p-6 md:p-8 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl border border-red-200 p-12 text-center">
-          <h1 className="font-display font-bold text-2xl text-neutral-900 mb-2">Erro ao carregar dados</h1>
-          <p className="text-neutral-500">{result.error || 'Não foi possível carregar o painel administrativo.'}</p>
+        <div className="bg-white rounded-lg border border-red-200 p-12 text-center">
+          <h1 className="font-display font-bold text-2xl text-slate-900 mb-2">Erro ao carregar dados</h1>
+          <p className="text-slate-500">{result.error || 'Não foi possível carregar o painel administrativo.'}</p>
         </div>
       </div>
     )

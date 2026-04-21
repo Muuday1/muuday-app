@@ -147,16 +147,16 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
   }
 
   const titleClass = compact
-    ? 'font-display font-bold text-2xl leading-tight text-neutral-900 mb-1'
-    : 'font-display font-bold text-3xl text-neutral-900 mb-2'
-  const subtitleClass = compact ? 'text-sm text-neutral-500 mb-4' : 'text-neutral-500 mb-8'
+    ? 'font-display font-bold text-2xl leading-tight text-slate-900 mb-1'
+    : 'font-display font-bold text-3xl text-slate-900 mb-2'
+  const subtitleClass = compact ? 'text-sm text-slate-500 mb-4' : 'text-slate-500 mb-8'
   const formSpacingClass = compact ? 'space-y-3' : 'space-y-4'
   const inputClass = compact
-    ? 'w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
-    : 'w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 transition-all focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20'
+    ? 'w-full px-3.5 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-900 placeholder-slate-400 transition-all focus-visible:border-[#9FE870] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20'
+    : 'w-full px-4 py-3 rounded-md border border-slate-200 bg-white text-slate-900 placeholder-slate-400 transition-all focus-visible:border-[#9FE870] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20'
   const submitClass = compact
-    ? 'w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-sm text-white font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30'
-    : 'w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30'
+    ? 'w-full bg-[#9FE870] hover:bg-[#8ed85f] disabled:opacity-60 text-sm text-white font-semibold py-2.5 rounded-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30'
+    : 'w-full bg-[#9FE870] hover:bg-[#8ed85f] disabled:opacity-60 text-white font-semibold py-3 rounded-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30'
   const dividerClass = compact ? 'relative flex items-center gap-2 my-4' : 'relative flex items-center gap-3 my-6'
 
   return (
@@ -166,7 +166,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
 
       <form onSubmit={handleLogin} className={formSpacingClass} noValidate>
         <div>
-          <label htmlFor={emailId} className="mb-1 block text-sm font-medium text-neutral-700">
+          <label htmlFor={emailId} className="mb-1 block text-sm font-medium text-slate-700">
             E-mail
           </label>
           <input
@@ -184,12 +184,12 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
 
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <label htmlFor={passwordId} className="block text-sm font-medium text-neutral-700">
+            <label htmlFor={passwordId} className="block text-sm font-medium text-slate-700">
               Senha
             </label>
             <Link
               href={email.trim() ? `/recuperar-senha?email=${encodeURIComponent(email.trim())}` : '/recuperar-senha'}
-              className="rounded-md text-sm font-medium text-brand-600 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+              className="rounded-md text-sm font-medium text-[#3d6b1f] hover:text-[#3d6b1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
             >
               Esqueceu a senha?
             </Link>
@@ -208,7 +208,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
             <p>{error}</p>
             {showRecoveryHint ? (
               <p className="mt-1 text-xs">
@@ -237,18 +237,18 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
 
       <div className={compact ? 'mt-4' : 'mt-6'}>
         <div className={dividerClass}>
-          <div className="h-px flex-1 bg-neutral-200" />
-          <span className="text-xs font-medium text-neutral-400">ou entre com</span>
-          <div className="h-px flex-1 bg-neutral-200" />
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs font-medium text-slate-400">ou entre com</span>
+          <div className="h-px flex-1 bg-slate-200" />
         </div>
         <SocialAuthButtons redirectPath={safeRedirectPath || undefined} compact={compact} />
       </div>
 
-      <p className={compact ? 'mt-4 text-center text-xs text-neutral-500' : 'mt-6 text-center text-sm text-neutral-500'}>
+      <p className={compact ? 'mt-4 text-center text-xs text-slate-500' : 'mt-6 text-center text-sm text-slate-500'}>
         Ainda não é membro?{' '}
         <Link
           href="/cadastro"
-          className="rounded-md font-medium text-brand-600 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+          className="rounded-md font-medium text-[#3d6b1f] hover:text-[#3d6b1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
         >
           Criar conta
         </Link>

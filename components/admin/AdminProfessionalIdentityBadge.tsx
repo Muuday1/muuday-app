@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 
 type AdminProfessionalIdentityBadgeProps = {
   fullName?: string | null
@@ -26,17 +26,17 @@ export function AdminProfessionalIdentityBadge({
         <img
           src={avatarUrl}
           alt={`Foto de ${safeName}`}
-          className={`${avatarSizeClass} rounded-full border border-neutral-200 object-cover`}
+          className={`${avatarSizeClass} rounded-full border border-slate-200 object-cover`}
         />
       ) : (
-        <div className={`${avatarSizeClass} rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm`}>
+        <div className={`${avatarSizeClass} rounded-full bg-[#9FE870]/10 flex items-center justify-center text-[#3d6b1f] font-bold text-sm`}>
           {initial}
         </div>
       )}
       <div>
-        <p className="font-medium text-neutral-900">{safeName}</p>
-        {subtitle ? <p className="text-sm text-neutral-500">{subtitle}</p> : null}
-        {!subtitle && email ? <p className="text-sm text-neutral-500">{email}</p> : null}
+        <p className="font-medium text-slate-900">{safeName}</p>
+        {subtitle ? <p className="text-sm text-slate-500">{subtitle}</p> : null}
+        {!subtitle && email ? <p className="text-sm text-slate-500">{email}</p> : null}
       </div>
     </div>
   )

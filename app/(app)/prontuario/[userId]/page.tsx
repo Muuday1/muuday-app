@@ -59,38 +59,38 @@ export default async function ProntuarioClientePage({
       <div className="mb-6">
         <Link
           href="/prontuario"
-          className="mb-3 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-700"
+          className="mb-3 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar para prontuários
         </Link>
-        <h1 className="font-display text-2xl font-bold text-neutral-900 md:text-3xl">
+        <h1 className="font-display text-2xl font-bold text-slate-900 md:text-3xl">
           {clientProfile.data?.full_name || 'Cliente'}
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">Prontuário e histórico de sessões.</p>
+        <p className="mt-1 text-sm text-slate-500">Prontuário e histórico de sessões.</p>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-5">
         <div className="mb-4 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-brand-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Registro geral</h2>
+          <FileText className="h-4 w-4 text-[#9FE870]" />
+          <h2 className="font-display text-lg font-bold text-slate-900">Registro geral</h2>
         </div>
         <ClientRecordForm userId={userId} initialNotes={record?.notes || ''} />
       </div>
 
-      <div className="rounded-2xl border border-neutral-100 bg-white p-5">
+      <div className="rounded-lg border border-slate-200/80 bg-white p-5">
         <div className="mb-4 flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-brand-500" />
-          <h2 className="font-display text-lg font-bold text-neutral-900">Notas de sessão</h2>
+          <Calendar className="h-4 w-4 text-[#9FE870]" />
+          <h2 className="font-display text-lg font-bold text-slate-900">Notas de sessão</h2>
         </div>
 
         {notes.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nenhuma nota de sessão registrada.</p>
+          <p className="text-sm text-slate-500">Nenhuma nota de sessão registrada.</p>
         ) : (
           <div className="mb-4 space-y-3">
             {notes.map((note: any) => (
-              <div key={note.id} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
-                <p className="text-xs text-neutral-400">
+              <div key={note.id} className="rounded-md border border-slate-200/80 bg-slate-50/70 p-3">
+                <p className="text-xs text-slate-400">
                   {formatInTimeZone(
                     new Date(note.created_at),
                     'America/Sao_Paulo',
@@ -98,7 +98,7 @@ export default async function ProntuarioClientePage({
                     { locale: ptBR },
                   )}
                 </p>
-                <p className="mt-1 text-sm text-neutral-700">{note.notes}</p>
+                <p className="mt-1 text-sm text-slate-700">{note.notes}</p>
               </div>
             ))}
           </div>

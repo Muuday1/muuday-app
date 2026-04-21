@@ -115,71 +115,71 @@ export function ProfessionalProfileEditForm({ initialData }: ProfessionalProfile
       <div className="mb-8">
         <Link
           href="/perfil"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-700"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-700"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar ao perfil
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl font-bold text-neutral-900">Editar perfil profissional</h1>
-            <p className="mt-1 text-neutral-500">
+            <h1 className="font-display text-3xl font-bold text-slate-900">Editar perfil profissional</h1>
+            <p className="mt-1 text-slate-500">
               Atualize seu perfil público e envie para revisão quando terminar.
             </p>
           </div>
-          <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700">
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
             Plano {tier === 'premium' ? 'Premium' : tier === 'professional' ? 'Professional' : 'Basic'}
           </span>
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Categoria principal</h2>
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+        <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Categoria principal</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
               type="button"
               onClick={() => setCategory(cat.slug)}
-              className={`rounded-xl border-2 p-3 text-center transition-all ${
+              className={`rounded-md border-2 p-3 text-center transition-all ${
                 category === cat.slug
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-neutral-200 bg-white hover:border-neutral-300'
+                  ? 'border-[#9FE870] bg-[#9FE870]/8'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
               }`}
             >
               <div className="mb-1 text-2xl">{cat.icon}</div>
-              <div className="text-xs font-medium text-neutral-700">{cat.name}</div>
+              <div className="text-xs font-medium text-slate-700">{cat.name}</div>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-1 font-display text-lg font-semibold text-neutral-900">Sobre você</h2>
-        <p className="mb-4 text-sm text-neutral-500">Descreva sua experiência e seu foco de atuação.</p>
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+        <h2 className="mb-1 font-display text-lg font-semibold text-slate-900">Sobre você</h2>
+        <p className="mb-4 text-sm text-slate-500">Descreva sua experiência e seu foco de atuação.</p>
         <textarea
           value={bio}
           onChange={event => setBio(event.target.value)}
           rows={5}
           placeholder="Ex.: Psicóloga clínica com foco em ansiedade, burnout e regulação emocional."
-          className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          className="w-full resize-none rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
         />
-        <p className="mt-2 text-xs text-neutral-400">{bio.length}/5000 caracteres (mínimo 20)</p>
+        <p className="mt-2 text-xs text-slate-400">{bio.length}/5000 caracteres (mínimo 20)</p>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-1 font-display text-lg font-semibold text-neutral-900">Foco de atuação</h2>
-        <p className="mb-4 text-sm text-neutral-500">Separe as tags por vírgula.</p>
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+        <h2 className="mb-1 font-display text-lg font-semibold text-slate-900">Foco de atuação</h2>
+        <p className="mb-4 text-sm text-slate-500">Separe as tags por vírgula.</p>
         <input
           type="text"
           value={tags}
           onChange={event => setTags(event.target.value)}
           placeholder="ansiedade, liderança, carreira"
-          className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
         />
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Idiomas de atendimento</h2>
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+        <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Idiomas de atendimento</h2>
         <div className="flex flex-wrap gap-2">
           {LANGUAGE_OPTIONS.map(lang => (
             <button
@@ -188,8 +188,8 @@ export function ProfessionalProfileEditForm({ initialData }: ProfessionalProfile
               onClick={() => toggleLanguage(lang)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
                 languages.includes(lang)
-                  ? 'bg-brand-500 text-white'
-                  : 'border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                  ? 'bg-[#9FE870] text-white'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
               {languages.includes(lang) && <Check className="mr-1 inline h-3.5 w-3.5" />}
@@ -204,36 +204,36 @@ export function ProfessionalProfileEditForm({ initialData }: ProfessionalProfile
         requiredTier="professional"
         featureName="Vídeo de apresentação e links sociais"
       >
-        <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Diferenciais públicos</h2>
+        <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Diferenciais públicos</h2>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">URL do vídeo de apresentação</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">URL do vídeo de apresentação</label>
               <input
                 type="url"
                 value={videoIntroUrl}
                 onChange={event => setVideoIntroUrl(event.target.value)}
                 placeholder="https://youtube.com/... ou https://vimeo.com/..."
-                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Links sociais (1 por linha)</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Links sociais (1 por linha)</label>
               <textarea
                 value={socialLinksInput}
                 onChange={event => setSocialLinksInput(event.target.value)}
                 rows={4}
                 placeholder="https://instagram.com/...\nhttps://linkedin.com/in/..."
-                className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                className="w-full resize-none rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
               />
             </div>
           </div>
         </div>
       </TierLockedOverlay>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-1 font-display text-lg font-semibold text-neutral-900">Credenciais e certificados</h2>
-        <p className="mb-4 text-sm text-neutral-500">
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+        <h2 className="mb-1 font-display text-lg font-semibold text-slate-900">Credenciais e certificados</h2>
+        <p className="mb-4 text-sm text-slate-500">
           Adicione URLs dos documentos para validação administrativa (1 por linha).
         </p>
         <textarea
@@ -241,39 +241,39 @@ export function ProfessionalProfileEditForm({ initialData }: ProfessionalProfile
           onChange={event => setCredentialUrlsInput(event.target.value)}
           rows={4}
           placeholder="https://.../diploma.pdf"
-          className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          className="w-full resize-none rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
         />
       </div>
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-6">
-        <h2 className="mb-4 font-display text-lg font-semibold text-neutral-900">Formato da sessão</h2>
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-6">
+        <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Formato da sessão</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">Preço da sessão (BRL)</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Preço da sessão (BRL)</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">R$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">R$</span>
               <input
                 type="number"
                 value={priceBrl}
                 onChange={event => setPriceBrl(event.target.value)}
                 min="10"
                 step="1"
-                className="w-full rounded-xl border border-neutral-200 bg-white py-3 pl-12 pr-4 text-neutral-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                className="w-full rounded-md border border-slate-200 bg-white py-3 pl-12 pr-4 text-slate-900 transition-all focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
               />
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">Duração da sessão</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Duração da sessão</label>
             <div className="grid grid-cols-5 gap-2">
               {DURATION_OPTIONS.map(option => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setDuration(option)}
-                  className={`rounded-xl py-2 text-sm font-medium transition-all ${
+                  className={`rounded-md py-2 text-sm font-medium transition-all ${
                     duration === option
-                      ? 'bg-brand-500 text-white'
-                      : 'border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300'
+                      ? 'bg-[#9FE870] text-white'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
                   {option}m
@@ -284,32 +284,32 @@ export function ProfessionalProfileEditForm({ initialData }: ProfessionalProfile
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+      <div className="mb-6 rounded-lg border border-amber-100 bg-amber-50 p-4">
         <p className="text-sm text-amber-700">
           Ao salvar, seu perfil volta para revisão administrativa antes de aparecer na busca.
         </p>
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
       ) : null}
 
       {success ? (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           <Check className="h-4 w-4" />
           Perfil atualizado com sucesso. Redirecionando...
         </div>
       ) : null}
 
       {!hasVideoIntroFeature || !hasSocialLinksFeature ? (
-        <div className="mb-4 rounded-2xl border border-brand-100 bg-brand-50 p-4">
-          <p className="inline-flex items-center gap-2 text-sm text-brand-700">
+        <div className="mb-4 rounded-lg border border-[#9FE870]/20 bg-[#9FE870]/8 p-4">
+          <p className="inline-flex items-center gap-2 text-sm text-[#3d6b1f]">
             <ShieldCheck className="h-4 w-4" />
             Alguns diferenciais estão disponíveis apenas no plano Professional ou Premium.
           </p>
           <Link
             href="/planos"
-            className="mt-2 inline-flex text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
+            className="mt-2 inline-flex text-sm font-semibold text-[#3d6b1f] underline-offset-2 hover:underline"
           >
             Ver planos
           </Link>
@@ -320,7 +320,7 @@ export function ProfessionalProfileEditForm({ initialData }: ProfessionalProfile
         type="button"
         onClick={handleSave}
         disabled={saving || !canSave}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 font-semibold text-white transition-all hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-[#9FE870] py-3 font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {saving ? (
           <>

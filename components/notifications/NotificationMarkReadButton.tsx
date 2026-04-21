@@ -17,7 +17,7 @@ export function NotificationMarkReadButton({ notificationId }: { notificationId:
     <button
       onClick={handleClick}
       disabled={isPending}
-      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 transition hover:border-brand-300 hover:text-brand-600 disabled:opacity-50"
+      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-[#9FE870]/40 hover:text-[#3d6b1f] disabled:opacity-50"
       aria-label="Marcar como lida"
       title="Marcar como lida"
     >

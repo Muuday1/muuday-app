@@ -21,7 +21,7 @@ const sizeMap = {
 
 const gradientMap = {
   green: 'from-[#9FE870] to-emerald-500 text-slate-900',
-  blue: 'from-brand-500 to-brand-700 text-white',
+  blue: 'from-[#9FE870]/80 to-[#3d6b1f] text-white',
   slate: 'from-slate-800 to-slate-900 text-white',
   orange: 'from-amber-400 to-orange-500 text-slate-900',
 }
@@ -39,7 +39,7 @@ export function IconBox({
 
   return (
     <motion.div
-      className={`flex items-center justify-center rounded-2xl bg-gradient-to-br ${grad} shadow-lg ${sizes.box} ${className}`}
+      className={`flex items-center justify-center rounded-lg bg-gradient-to-br ${grad} ${sizes.box} ${className}`}
       whileHover={animate ? { scale: 1.1, rotate: 5 } : undefined}
       whileTap={animate ? { scale: 0.95 } : undefined}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}

@@ -12,9 +12,9 @@ export function EarningsCalculator() {
   const yearlyRevenue = monthlyRevenue * 12
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 md:p-8">
+    <div className="rounded-lg border border-slate-200 bg-white p-6 md:p-8">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#9FE870]/20">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#9FE870]/20">
           <TrendingUp className="h-5 w-5 text-slate-900" />
         </div>
         <h3 className="text-lg font-bold text-slate-900">Quanto você pode ganhar?</h3>
@@ -70,7 +70,7 @@ export function EarningsCalculator() {
         </div>
 
         {/* Result */}
-        <div className="rounded-xl bg-slate-900 p-5 text-center">
+        <div className="rounded-md bg-slate-900 p-5 text-center">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Receita estimada</p>
           <p className="mt-1 font-display text-3xl font-black text-[#9FE870]">
             R$ {monthlyRevenue.toLocaleString('pt-BR')}

@@ -88,25 +88,25 @@ export function PushNotificationToggle() {
 
   if (!isSupported) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-neutral-50 p-4">
-        <BellOff className="h-5 w-5 text-neutral-400" />
+      <div className="flex items-center gap-3 rounded-md border border-slate-200/80 bg-slate-50/70 p-4">
+        <BellOff className="h-5 w-5 text-slate-400" />
         <div>
-          <p className="text-sm font-medium text-neutral-700">Notificações push não suportadas</p>
-          <p className="text-xs text-neutral-500">Seu navegador não suporta notificações push.</p>
+          <p className="text-sm font-medium text-slate-700">Notificações push não suportadas</p>
+          <p className="text-xs text-slate-500">Seu navegador não suporta notificações push.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white p-4">
+    <div className="flex items-center justify-between rounded-md border border-slate-200/80 bg-white p-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#9FE870]/8 text-[#3d6b1f]">
           <Bell className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-sm font-medium text-neutral-900">Notificações push</p>
-          <p className="text-xs text-neutral-500">
+          <p className="text-sm font-medium text-slate-900">Notificações push</p>
+          <p className="text-xs text-slate-500">
             {isSubscribed ? 'Você recebe notificações push.' : 'Ative para receber notificações no dispositivo.'}
           </p>
         </div>
@@ -114,10 +114,10 @@ export function PushNotificationToggle() {
       <button
         onClick={isSubscribed ? handleUnsubscribe : handleSubscribe}
         disabled={isLoading}
-        className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+        className={`inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-xs font-semibold transition ${
           isSubscribed
-            ? 'border border-neutral-200 bg-white text-neutral-700 hover:border-red-300 hover:text-red-700'
-            : 'bg-brand-500 text-white hover:bg-brand-600'
+            ? 'border border-slate-200 bg-white text-slate-700 hover:border-red-300 hover:text-red-700'
+            : 'bg-[#9FE870] text-white hover:bg-[#8ed85f]'
         } disabled:opacity-50`}
       >
         {isLoading ? (

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Lock } from 'lucide-react'
@@ -237,9 +237,9 @@ export default function ProfessionalSettingsWorkspace() {
     return (
       <div className="mx-auto max-w-3xl p-6 md:p-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 rounded bg-neutral-200" />
-          <div className="h-32 rounded-2xl bg-neutral-100" />
-          <div className="h-48 rounded-2xl bg-neutral-100" />
+          <div className="h-8 w-48 rounded bg-slate-200" />
+          <div className="h-32 rounded-lg bg-slate-100" />
+          <div className="h-48 rounded-lg bg-slate-100" />
         </div>
       </div>
     )
@@ -251,10 +251,10 @@ export default function ProfessionalSettingsWorkspace() {
   return (
     <div className="mx-auto max-w-3xl p-6 md:p-8">
       <div className="mb-8">
-        <h1 className="mb-1 font-display text-3xl font-bold text-neutral-900">
+        <h1 className="mb-1 font-display text-3xl font-bold text-slate-900">
           {showProfessionalWorkspace ? 'Configurações do negócio' : 'Configurações'}
         </h1>
-        <p className="text-neutral-500">
+        <p className="text-slate-500">
           {showProfessionalWorkspace
             ? 'Controle de perfil, serviços, regras de agendamento e status operacional.'
             : 'Personalize sua experiência na Muuday'}
@@ -303,13 +303,13 @@ export default function ProfessionalSettingsWorkspace() {
         />
       </div>
 
-      <div className="mt-8 rounded-2xl border border-red-100 bg-white p-6">
+      <div className="mt-8 rounded-lg border border-red-100 bg-white p-6">
         <h3 className="mb-2 font-display font-bold text-red-700">Zona de risco</h3>
-        <p className="mb-4 text-sm text-neutral-500">Acoes irreversiveis para sua conta.</p>
+        <p className="mb-4 text-sm text-slate-500">Acoes irreversiveis para sua conta.</p>
         <form action="/auth/signout" method="post">
           <button
             type="submit"
-            className="inline-flex rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
+            className="inline-flex rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
           >
             Sair da conta
           </button>

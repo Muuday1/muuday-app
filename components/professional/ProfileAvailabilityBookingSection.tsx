@@ -284,10 +284,10 @@ export function ProfileAvailabilityBookingSection({
       <div className="min-w-0 space-y-6">
         {topSections}
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-neutral-900">
-              <Calendar className="h-5 w-5 text-brand-500" />
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
+              <Calendar className="h-5 w-5 text-[#9FE870]" />
               Disponibilidade
             </h2>
             <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ export function ProfileAvailabilityBookingSection({
                   setSelectedDuration(Number(event.target.value))
                   setSelectedTime(null)
                 }}
-                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
                 aria-label="Escolher duração da sessão"
               >
                 {durationOptions.map(duration => (
@@ -307,15 +307,15 @@ export function ProfileAvailabilityBookingSection({
                 ))}
               </select>
 
-              <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-neutral-50 p-1 text-xs">
+              <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/70 p-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setTimezoneMode('user')}
                   className={cn(
                     'rounded-md px-2 py-1 font-medium transition-colors',
                     timezoneMode === 'user'
-                      ? 'bg-white text-brand-700 shadow-sm'
-                      : 'text-neutral-500 hover:text-neutral-700',
+                      ? 'bg-white text-[#3d6b1f]'
+                      : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
                   Meu fuso
@@ -326,8 +326,8 @@ export function ProfileAvailabilityBookingSection({
                   className={cn(
                     'rounded-md px-2 py-1 font-medium transition-colors',
                     timezoneMode === 'professional'
-                      ? 'bg-white text-brand-700 shadow-sm'
-                      : 'text-neutral-500 hover:text-neutral-700',
+                      ? 'bg-white text-[#3d6b1f]'
+                      : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
                   Fuso profissional
@@ -343,8 +343,8 @@ export function ProfileAvailabilityBookingSection({
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
                 bookingType === 'one_off'
-                  ? 'border-brand-500 bg-brand-50 text-brand-700'
-                  : 'border-neutral-200 text-neutral-600 hover:border-brand-300',
+                  ? 'border-[#9FE870] bg-[#9FE870]/8 text-[#3d6b1f]'
+                  : 'border-slate-200 text-slate-600 hover:border-[#9FE870]/40',
               )}
             >
               Sessão única
@@ -359,8 +359,8 @@ export function ProfileAvailabilityBookingSection({
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
                 bookingType === 'recurring'
-                  ? 'border-brand-500 bg-brand-50 text-brand-700'
-                  : 'border-neutral-200 text-neutral-600 hover:border-brand-300',
+                  ? 'border-[#9FE870] bg-[#9FE870]/8 text-[#3d6b1f]'
+                  : 'border-slate-200 text-slate-600 hover:border-[#9FE870]/40',
                 !enableRecurring && 'cursor-not-allowed opacity-50',
               )}
             >
@@ -370,7 +370,7 @@ export function ProfileAvailabilityBookingSection({
               <select
                 value={recurringSessionsCount}
                 onChange={event => setRecurringSessionsCount(Number(event.target.value))}
-                className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
                 aria-label="Quantidade de sessões recorrentes"
               >
                 {recurringSessionOptions.map(option => (
@@ -381,7 +381,7 @@ export function ProfileAvailabilityBookingSection({
               </select>
             ) : null}
             {!enableRecurring ? (
-              <span className="text-xs text-neutral-500">Recorrência indisponível para este profissional.</span>
+              <span className="text-xs text-slate-500">Recorrência indisponível para este profissional.</span>
             ) : null}
           </div>
 
@@ -392,12 +392,12 @@ export function ProfileAvailabilityBookingSection({
                 setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
               }}
               disabled={!canGoPrev}
-              className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
               aria-label="Mês anterior"
             >
-              <ChevronLeft className="h-4 w-4 text-neutral-600" />
+              <ChevronLeft className="h-4 w-4 text-slate-600" />
             </button>
-            <span className="font-display text-sm font-semibold text-neutral-900">
+            <span className="font-display text-sm font-semibold text-slate-900">
               {MONTH_NAMES_PT[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </span>
             <button
@@ -406,16 +406,16 @@ export function ProfileAvailabilityBookingSection({
                 setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
               }}
               disabled={!canGoNext}
-              className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
               aria-label="Próximo mês"
             >
-              <ChevronRight className="h-4 w-4 text-neutral-600" />
+              <ChevronRight className="h-4 w-4 text-slate-600" />
             </button>
           </div>
 
           <div className="mb-2 grid grid-cols-7">
             {DAY_NAMES_PT_SHORT.map(day => (
-              <div key={day} className="py-1 text-center text-xs font-medium text-neutral-400">
+              <div key={day} className="py-1 text-center text-xs font-medium text-slate-400">
                 {day}
               </div>
             ))}
@@ -438,18 +438,18 @@ export function ProfileAvailabilityBookingSection({
                   }}
                   disabled={!available}
                   className={cn(
-                    'relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-medium transition-all',
+                    'relative flex h-9 w-full items-center justify-center rounded-md text-sm font-medium transition-all',
                     isSelected
-                      ? 'bg-brand-500 text-white shadow-sm'
+                      ? 'bg-[#9FE870] text-white'
                       : available
-                        ? 'cursor-pointer text-neutral-800 hover:bg-brand-50 hover:text-brand-700'
-                        : 'cursor-not-allowed text-neutral-300',
-                    isToday && !isSelected && 'ring-1 ring-brand-300',
+                        ? 'cursor-pointer text-slate-800 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]'
+                        : 'cursor-not-allowed text-slate-300',
+                    isToday && !isSelected && 'ring-1 ring-[#9FE870]/40',
                   )}
                 >
                   {date.getDate()}
                   {available && !isSelected ? (
-                    <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-brand-400" />
+                    <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#9FE870]/40" />
                   ) : null}
                 </button>
               )
@@ -458,12 +458,12 @@ export function ProfileAvailabilityBookingSection({
 
           {selectedDate ? (
             <div className="mt-5">
-              <p className="mb-3 text-sm text-neutral-500">
+              <p className="mb-3 text-sm text-slate-500">
                 {DAY_NAMES_PT_FULL[selectedDate.getDay()]},{' '}
                 {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
               </p>
               {timeSlots.length === 0 ? (
-                <p className="text-sm text-neutral-400">Nenhum horário disponível para esta data.</p>
+                <p className="text-sm text-slate-400">Nenhum horário disponível para esta data.</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {timeSlots.map(time => (
@@ -471,10 +471,10 @@ export function ProfileAvailabilityBookingSection({
                       key={time}
                       onClick={() => setSelectedTime(time)}
                       className={cn(
-                        'rounded-xl border px-3 py-2.5 text-sm font-medium transition-all',
+                        'rounded-md border px-3 py-2.5 text-sm font-medium transition-all',
                         selectedTime === time
-                          ? 'border-brand-500 bg-brand-500 text-white shadow-sm'
-                          : 'border-neutral-200 bg-white text-neutral-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700',
+                          ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]',
                       )}
                     >
                       {time}
@@ -490,20 +490,20 @@ export function ProfileAvailabilityBookingSection({
       </div>
 
       <div className="min-w-0">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm md:sticky md:top-24">
-          <div className="mb-4 border-b border-neutral-100 pb-4 text-center">
-            <p className="text-3xl font-bold text-neutral-900">{selectedPriceText}</p>
-            <p className="mt-1 text-sm text-neutral-500">por sessão de {selectedDuration} min</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-6 md:sticky md:top-24">
+          <div className="mb-4 border-b border-slate-200/80 pb-4 text-center">
+            <p className="text-3xl font-bold text-slate-900">{selectedPriceText}</p>
+            <p className="mt-1 text-sm text-slate-500">por sessão de {selectedDuration} min</p>
             {bookingType === 'recurring' ? (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-slate-500">
                 pacote recorrente de {recurringSessionsCount} sessões
               </p>
             ) : null}
           </div>
 
           {selectedDate && selectedTime ? (
-            <div className="mb-4 rounded-xl border border-neutral-100 bg-neutral-50 p-3 text-xs text-neutral-600">
-              <p className="font-semibold text-neutral-700">Horário selecionado</p>
+            <div className="mb-4 rounded-md border border-slate-200/80 bg-slate-50/70 p-3 text-xs text-slate-600">
+              <p className="font-semibold text-slate-700">Horário selecionado</p>
               <p className="mt-1">
                 {selectedDate.toLocaleDateString('pt-BR')} às {selectedTime} ({timezoneLabel(userTimezone)})
               </p>
@@ -520,18 +520,18 @@ export function ProfileAvailabilityBookingSection({
               <button
                 type="button"
                 disabled
-                className="w-full cursor-not-allowed rounded-xl bg-neutral-100 py-3 text-sm font-semibold text-neutral-400"
+                className="w-full cursor-not-allowed rounded-md bg-slate-100 py-3 text-sm font-semibold text-slate-400"
               >
                 Agendar sessão
               </button>
               <button
                 type="button"
                 disabled
-                className="w-full cursor-not-allowed rounded-xl border border-neutral-200 bg-neutral-50 py-3 text-sm font-semibold text-neutral-400"
+                className="w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50/70 py-3 text-sm font-semibold text-slate-400"
               >
                 Mandar mensagem
               </button>
-              <p className="text-center text-xs text-neutral-500">
+              <p className="text-center text-xs text-slate-500">
                 Não é possível agendar sessão com o próprio perfil.
               </p>
             </div>
@@ -540,11 +540,11 @@ export function ProfileAvailabilityBookingSection({
               <button
                 type="button"
                 disabled
-                className="w-full cursor-not-allowed rounded-xl bg-neutral-100 py-3 text-sm font-semibold text-neutral-400"
+                className="w-full cursor-not-allowed rounded-md bg-slate-100 py-3 text-sm font-semibold text-slate-400"
               >
                 Agendamento indisponível
               </button>
-              <p className="text-center text-xs text-neutral-500">
+              <p className="text-center text-xs text-slate-500">
                 Este profissional ainda não foi liberado para aceitar o primeiro agendamento.
               </p>
             </div>
@@ -560,7 +560,7 @@ export function ProfileAvailabilityBookingSection({
 
           {errorCode === 'auto-agendamento' ? (
             <div
-              className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700"
+              className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700"
               role="alert"
             >
               Não é permitido agendar sessão com o próprio perfil profissional.
@@ -569,14 +569,14 @@ export function ProfileAvailabilityBookingSection({
 
           {errorCode === 'primeiro-agendamento-bloqueado' ? (
             <div
-              className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700"
+              className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700"
               role="alert"
             >
               Este profissional ainda não está habilitado para aceitar o primeiro agendamento.
             </div>
           ) : null}
 
-          <div className="mt-4 space-y-2 border-t border-neutral-100 pt-4 text-xs text-neutral-600">
+          <div className="mt-4 space-y-2 border-t border-slate-200/80 pt-4 text-xs text-slate-600">
             <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
               Cancelamento gratuito até 24h antes

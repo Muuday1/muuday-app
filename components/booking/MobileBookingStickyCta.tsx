@@ -46,16 +46,16 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
 
   return (
     <>
-      <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-lg border-t border-neutral-100 px-4 py-3 flex items-center justify-between gap-3 safe-area-bottom">
+      <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-4 py-3 flex items-center justify-between gap-3 safe-area-bottom">
         <div>
-          <p className="text-lg font-bold text-neutral-900">{priceText}</p>
-          <p className="text-xs text-neutral-500">{durationText}</p>
+          <p className="text-lg font-bold text-slate-900">{priceText}</p>
+          <p className="text-xs text-slate-500">{durationText}</p>
         </div>
 
         {isLoggedIn ? (
           <Link
             href={bookHref}
-            className="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+            className="bg-[#9FE870] hover:bg-[#8ed85f] text-white font-semibold px-6 py-3 rounded-md text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
           >
             <Calendar className="w-4 h-4" />
             Agendar
@@ -64,7 +64,7 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+            className="bg-[#9FE870] hover:bg-[#8ed85f] text-white font-semibold px-6 py-3 rounded-md text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             aria-label="Entrar para agendar"
           >
             <Calendar className="w-4 h-4" />
@@ -74,19 +74,19 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
       </div>
 
       {!isLoggedIn && open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-xl font-bold text-neutral-900">Continue para agendar</h3>
-                <p className="mt-1 text-sm text-neutral-500">
+                <h3 className="font-display text-xl font-bold text-slate-900">Continue para agendar</h3>
+                <p className="mt-1 text-sm text-slate-500">
                   Crie uma conta de usuário para continuar com o agendamento.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
                 aria-label="Fechar modal"
               >
                 <X className="h-4 w-4" />
@@ -96,13 +96,13 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
             <div className="space-y-2">
               <Link
                 href={buildAuthLink(bookHref, 'signup')}
-                className="block w-full rounded-xl bg-brand-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className="block w-full rounded-md bg-[#9FE870] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
               >
                 Criar conta (recomendado)
               </Link>
               <Link
                 href={buildAuthLink(bookHref, 'login')}
-                className="block w-full rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="block w-full rounded-md border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
               >
                 Já tenho conta - entrar
               </Link>

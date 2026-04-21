@@ -101,15 +101,15 @@ export default function SocialAuthButtons({
           type="button"
           onClick={() => handleSocialLogin(provider.id)}
           disabled={loadingProvider !== null}
-          className={`w-full rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-60 ${
+          className={`w-full rounded-md border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30 disabled:cursor-not-allowed disabled:opacity-60 ${
             compact
-              ? 'flex items-center justify-center gap-2 px-3 py-2.5 hover:bg-neutral-50'
-              : 'flex items-center justify-center gap-3 px-4 py-3 hover:bg-neutral-50'
+              ? 'flex items-center justify-center gap-2 px-3 py-2.5 hover:bg-slate-50/70'
+              : 'flex items-center justify-center gap-3 px-4 py-3 hover:bg-slate-50/70'
           }`}
           aria-label={provider.label}
         >
           {loadingProvider === provider.id ? (
-            <Loader2 className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} animate-spin text-neutral-400`} />
+            <Loader2 className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} animate-spin text-slate-400`} />
           ) : (
             <span className={compact ? 'scale-90' : undefined}>{provider.icon}</span>
           )}

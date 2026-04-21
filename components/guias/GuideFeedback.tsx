@@ -79,7 +79,7 @@ export function GuideFeedback({ guideSlug }: { guideSlug: string }) {
 
   return (
     <ScrollReveal variant="slideUp">
-      <div className="mt-12 rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
+      <div className="mt-12 rounded-lg border border-slate-200 bg-white p-6 md:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="font-display text-lg font-bold uppercase tracking-tight text-slate-900">
@@ -126,7 +126,7 @@ export function GuideFeedback({ guideSlug }: { guideSlug: string }) {
 
         {/* Report modal */}
         {showReport && (
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-5">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-bold text-slate-900">Reportar problema</h4>
               <button
@@ -149,7 +149,7 @@ export function GuideFeedback({ guideSlug }: { guideSlug: string }) {
                 required
                 maxLength={2000}
                 rows={4}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
+                className="w-full rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
               />
               <div className="flex items-center gap-3">
                 <button

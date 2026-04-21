@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
@@ -530,42 +530,42 @@ export default function BookingForm({
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
           <CheckCircle2 className="h-10 w-10 text-green-500" />
         </div>
-        <h2 className="mb-2 text-2xl font-bold text-neutral-900 font-display">
+        <h2 className="mb-2 text-2xl font-bold text-slate-900 font-display">
           {confirmationMode === 'manual' ? 'Solicitação enviada' : 'Sessão confirmada'}
         </h2>
-        <p className="mb-1 text-neutral-500">
+        <p className="mb-1 text-slate-500">
           {bookingType === 'recurring' ? 'Seu pacote de sessões' : 'Sua sessão'} com{' '}
-          <span className="font-semibold text-neutral-700">{profileName}</span> foi criado.
+          <span className="font-semibold text-slate-700">{profileName}</span> foi criado.
         </p>
         {bookingType === 'batch' ? (
-          <p className="mb-1 text-sm text-neutral-500">
+          <p className="mb-1 text-sm text-slate-500">
             {batchDateTimes.length} sessões avulsas agendadas no mesmo checkout.
           </p>
         ) : (
           <>
-            <p className="mb-1 text-sm text-neutral-500">
+            <p className="mb-1 text-sm text-slate-500">
               {dateLabel} às {selectedTime} ({timezoneLabel(userTimezone)})
             </p>
             {selectedTimeInProfessionalTimezone && (
-              <p className="mb-6 text-xs text-neutral-500">
+              <p className="mb-6 text-xs text-slate-500">
                 Horário no fuso do profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
               </p>
             )}
           </>
         )}
         {bookingType === 'recurring' && (
-          <p className="mb-6 text-xs text-neutral-500">
+          <p className="mb-6 text-xs text-slate-500">
             Pacote recorrente com {resolvedRecurringSessionsCount} sessões (mesmo dia e horário).
           </p>
         )}
 
         {confirmationMode === 'manual' ? (
-          <div className="mb-8 w-full rounded-xl border border-amber-100 bg-amber-50 p-4 text-left text-sm text-amber-700">
+          <div className="mb-8 w-full rounded-md border border-amber-100 bg-amber-50 p-4 text-left text-sm text-amber-700">
             <p className="mb-1 font-semibold">Aguardando confirmação do profissional</p>
             <p>Se não houver resposta dentro do prazo, o sistema cancela e reembolsa automaticamente.</p>
           </div>
         ) : (
-          <div className="mb-8 w-full rounded-xl border border-green-100 bg-green-50 p-4 text-left text-sm text-green-700">
+          <div className="mb-8 w-full rounded-md border border-green-100 bg-green-50 p-4 text-left text-sm text-green-700">
             <p className="mb-1 font-semibold">Sessão confirmada</p>
             <p>Você receberá notificações e lembretes por email e no app.</p>
           </div>
@@ -574,13 +574,13 @@ export default function BookingForm({
         <div className="flex w-full flex-col gap-3 sm:flex-row">
           <Link
             href="/agenda"
-            className="flex-1 rounded-xl bg-brand-500 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-brand-600"
+            className="flex-1 rounded-md bg-[#9FE870] py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[#8ed85f]"
           >
             Ver minha agenda
           </Link>
           <Link
             href="/buscar"
-            className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-center text-sm font-semibold text-neutral-700 transition-all hover:bg-neutral-50"
+            className="flex-1 rounded-md border border-slate-200 bg-white py-3 text-center text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50/70"
           >
             Buscar mais profissionais
           </Link>
@@ -593,7 +593,7 @@ export default function BookingForm({
     <div className="mx-auto max-w-4xl p-6 md:p-8">
       <Link
         href={profileHref}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-700"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-700"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar ao perfil
@@ -601,36 +601,36 @@ export default function BookingForm({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
-          <div className="rounded-2xl border border-neutral-100 bg-white p-6">
-            <h2 className="mb-3 text-lg font-semibold text-neutral-900 font-display">Tipo de agendamento</h2>
+          <div className="rounded-lg border border-slate-200/80 bg-white p-6">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900 font-display">Tipo de agendamento</h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setBookingType('one_off')}
                 className={cn(
-                  'rounded-xl border px-4 py-3 text-left text-sm transition-all',
+                  'rounded-md border px-4 py-3 text-left text-sm transition-all',
                   bookingType === 'one_off'
-                    ? 'border-brand-400 bg-brand-50 text-brand-700'
-                    : 'border-neutral-200 text-neutral-700 hover:border-brand-300',
+                    ? 'border-[#9FE870]/60 bg-[#9FE870]/8 text-[#3d6b1f]'
+                    : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40',
                 )}
               >
                 <p className="font-semibold">Sessão única</p>
-                  <p className="mt-0.5 text-xs text-neutral-500">1 sessão com pagamento único.</p>
+                  <p className="mt-0.5 text-xs text-slate-500">1 sessão com pagamento único.</p>
                 </button>
               <button
                 type="button"
                 onClick={() => canUseRecurring && setBookingType('recurring')}
                 disabled={!canUseRecurring}
                 className={cn(
-                  'rounded-xl border px-4 py-3 text-left text-sm transition-all',
+                  'rounded-md border px-4 py-3 text-left text-sm transition-all',
                   bookingType === 'recurring'
-                    ? 'border-brand-400 bg-brand-50 text-brand-700'
-                    : 'border-neutral-200 text-neutral-700 hover:border-brand-300',
+                    ? 'border-[#9FE870]/60 bg-[#9FE870]/8 text-[#3d6b1f]'
+                    : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40',
                   !canUseRecurring && 'cursor-not-allowed opacity-50',
                 )}
               >
                 <p className="font-semibold">Recorrente</p>
-                <p className="mt-0.5 text-xs text-neutral-500">
+                <p className="mt-0.5 text-xs text-slate-500">
                   {!enableRecurring
                     ? 'Este profissional não oferece pacote recorrente.'
                     : recurringFlagEnabled === false
@@ -642,28 +642,28 @@ export default function BookingForm({
                 type="button"
                 onClick={() => setBookingType('batch')}
                 className={cn(
-                  'rounded-xl border px-4 py-3 text-left text-sm transition-all',
+                  'rounded-md border px-4 py-3 text-left text-sm transition-all',
                   bookingType === 'batch'
-                    ? 'border-brand-400 bg-brand-50 text-brand-700'
-                    : 'border-neutral-200 text-neutral-700 hover:border-brand-300',
+                    ? 'border-[#9FE870]/60 bg-[#9FE870]/8 text-[#3d6b1f]'
+                    : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40',
                 )}
               >
                 <p className="font-semibold">Várias datas</p>
-                <p className="mt-0.5 text-xs text-neutral-500">
+                <p className="mt-0.5 text-xs text-slate-500">
                   Escolha datas avulsas e reserve todas de uma vez.
                 </p>
               </button>
             </div>
 
             {bookingType === 'recurring' && (
-              <div className="mt-4 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+              <div className="mt-4 space-y-3 rounded-md border border-slate-200 bg-slate-50/70 p-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-600">Periodicidade</label>
+                    <label className="mb-1 block text-xs font-semibold text-slate-600">Periodicidade</label>
                     <select
                       value={recurringPeriodicity}
                       onChange={e => setRecurringPeriodicity(e.target.value as 'weekly' | 'biweekly' | 'monthly' | 'custom_days')}
-                      className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
                     >
                       <option value="weekly">Semanal</option>
                       <option value="biweekly">Quinzenal</option>
@@ -674,24 +674,24 @@ export default function BookingForm({
 
                   {recurringPeriodicity === 'custom_days' ? (
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-neutral-600">Intervalo (dias)</label>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">Intervalo (dias)</label>
                       <input
                         type="number"
                         min={1}
                         max={30}
                         value={recurringIntervalDays}
                         onChange={e => setRecurringIntervalDays(Math.max(1, Number(e.target.value || 1)))}
-                        className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
                       />
                     </div>
                   ) : null}
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-neutral-600">Duração</label>
+                    <label className="mb-1 block text-xs font-semibold text-slate-600">Duração</label>
                     <select
                       value={recurringDurationMode}
                       onChange={e => setRecurringDurationMode(e.target.value as 'occurrences' | 'end_date')}
-                      className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
                     >
                       <option value="occurrences">Por ocorrências</option>
                       <option value="end_date">Até data final</option>
@@ -701,11 +701,11 @@ export default function BookingForm({
 
                 {recurringDurationMode === 'occurrences' ? (
                   <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-neutral-700">Quantidade de sessões:</label>
+                    <label className="text-sm font-medium text-slate-700">Quantidade de sessões:</label>
                     <select
                       value={recurringSessionsCount}
                       onChange={e => setRecurringSessionsCount(Number(e.target.value))}
-                      className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                      className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
                     >
                       {RECURRING_SESSION_OPTIONS.map(option => (
                         <option key={option} value={option}>
@@ -716,14 +716,14 @@ export default function BookingForm({
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-neutral-700">Data final:</label>
+                    <label className="text-sm font-medium text-slate-700">Data final:</label>
                     <input
                       type="date"
                       value={recurringEndDate}
                       onChange={e => setRecurringEndDate(e.target.value)}
-                      className="rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                      className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
                     />
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-xs text-slate-500">
                       {resolvedRecurringSessionsCount > 0
                         ? `${resolvedRecurringSessionsCount} sessão(ões) dentro da janela`
                         : 'Escolha uma data final válida'}
@@ -731,12 +731,12 @@ export default function BookingForm({
                   </div>
                 )}
 
-                <label className="flex items-center gap-2 text-xs text-neutral-600">
+                <label className="flex items-center gap-2 text-xs text-slate-600">
                   <input
                     type="checkbox"
                     checked={recurringAutoRenew}
                     onChange={e => setRecurringAutoRenew(e.target.checked)}
-                    className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
+                    className="h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/50"
                   />
                   Renovar automaticamente após o término deste pacote
                 </label>
@@ -744,27 +744,27 @@ export default function BookingForm({
             )}
 
             {bookingType === 'batch' ? (
-              <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
+              <div className="mt-4 rounded-md border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600">
                 Selecione data e horário e clique em <strong>Adicionar ao lote</strong>. Para concluir, escolha ao menos 2 sessões.
               </div>
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-neutral-100 bg-white p-6">
+          <div className="rounded-lg border border-slate-200/80 bg-white p-6">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 font-display">
-                <Calendar className="h-5 w-5 text-brand-500" />
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 font-display">
+                <Calendar className="h-5 w-5 text-[#9FE870]" />
                 Escolha a data
               </h2>
-              <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-neutral-50 p-1 text-xs">
+              <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/70 p-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setTimezoneMode('user')}
                   className={cn(
                     'rounded-md px-2 py-1 font-medium transition-colors',
                     timezoneMode === 'user'
-                      ? 'bg-white text-brand-700 shadow-sm'
-                      : 'text-neutral-500 hover:text-neutral-700',
+                      ? 'bg-white text-[#3d6b1f]'
+                      : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
                   Ver no meu fuso
@@ -775,17 +775,17 @@ export default function BookingForm({
                   className={cn(
                     'rounded-md px-2 py-1 font-medium transition-colors',
                     timezoneMode === 'professional'
-                      ? 'bg-white text-brand-700 shadow-sm'
-                      : 'text-neutral-500 hover:text-neutral-700',
+                      ? 'bg-white text-[#3d6b1f]'
+                      : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
                   Ver no fuso do profissional
                 </button>
               </div>
             </div>
-            <p className="mb-5 text-xs text-neutral-500">
+            <p className="mb-5 text-xs text-slate-500">
               Fuso atual de visualização:{' '}
-              <span className="font-medium text-neutral-700">
+              <span className="font-medium text-slate-700">
                 {timezoneMode === 'user'
                   ? timezoneLabel(userTimezone)
                   : timezoneLabel(professionalTimezone)}
@@ -796,27 +796,27 @@ export default function BookingForm({
               <button
                 onClick={prevMonth}
                 disabled={!canGoPrev}
-                className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
                 aria-label="Mês anterior"
               >
-                <ChevronLeft className="h-4 w-4 text-neutral-600" />
+                <ChevronLeft className="h-4 w-4 text-slate-600" />
               </button>
-              <span className="text-sm font-semibold text-neutral-900 font-display">
+              <span className="text-sm font-semibold text-slate-900 font-display">
                 {MONTH_NAMES_PT[currentMonth.getMonth()]} {currentMonth.getFullYear()}
               </span>
               <button
                 onClick={nextMonth}
                 disabled={!canGoNext}
-                className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
                 aria-label="Próximo mês"
               >
-                <ChevronRight className="h-4 w-4 text-neutral-600" />
+                <ChevronRight className="h-4 w-4 text-slate-600" />
               </button>
             </div>
 
             <div className="mb-2 grid grid-cols-7">
               {DAY_NAMES_PT_SHORT.map(day => (
-                <div key={day} className="py-1 text-center text-xs font-medium text-neutral-400">
+                <div key={day} className="py-1 text-center text-xs font-medium text-slate-400">
                   {day}
                 </div>
               ))}
@@ -836,20 +836,20 @@ export default function BookingForm({
                     onClick={() => handleDateSelect(date)}
                     disabled={!available}
                     className={cn(
-                      'relative flex h-9 w-full items-center justify-center rounded-xl text-sm font-medium transition-all',
+                      'relative flex h-9 w-full items-center justify-center rounded-md text-sm font-medium transition-all',
                       isSelected
-                        ? 'bg-brand-500 text-white shadow-sm'
+                        ? 'bg-[#9FE870] text-white'
                         : available
-                          ? 'cursor-pointer text-neutral-800 hover:bg-brand-50 hover:text-brand-700'
-                          : 'cursor-not-allowed text-neutral-300',
-                      isToday && !isSelected && 'ring-1 ring-brand-300',
+                          ? 'cursor-pointer text-slate-800 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]'
+                          : 'cursor-not-allowed text-slate-300',
+                      isToday && !isSelected && 'ring-1 ring-[#9FE870]/40',
                     )}
                     aria-label={date.toLocaleDateString('pt-BR')}
                     aria-pressed={isSelected}
                   >
                     {date.getDate()}
                     {available && !isSelected && (
-                      <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-brand-400" />
+                      <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#9FE870]/40" />
                     )}
                   </button>
                 )
@@ -857,30 +857,30 @@ export default function BookingForm({
             </div>
 
             {availability.length === 0 && (
-              <p className="mt-4 py-2 text-center text-sm text-neutral-400">
+              <p className="mt-4 py-2 text-center text-sm text-slate-400">
                 Este profissional ainda não configurou disponibilidade.
               </p>
             )}
           </div>
 
           {selectedDate && (
-            <div className="rounded-2xl border border-neutral-100 bg-white p-6">
-              <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-neutral-900 font-display">
-                <Clock className="h-5 w-5 text-brand-500" />
+            <div className="rounded-lg border border-slate-200/80 bg-white p-6">
+              <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-slate-900 font-display">
+                <Clock className="h-5 w-5 text-[#9FE870]" />
                 Horários disponíveis
               </h2>
-              <p className="mb-5 text-sm text-neutral-400">
+              <p className="mb-5 text-sm text-slate-400">
                 {DAY_NAMES_PT_FULL[selectedDate.getDay()]},{' '}
                 {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
               </p>
 
               {timeSlots.length === 0 ? (
                 <div className="py-6 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-50">
-                    <Clock className="h-6 w-6 text-neutral-300" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-slate-50/70">
+                    <Clock className="h-6 w-6 text-slate-300" />
                   </div>
-                  <p className="text-sm font-medium text-neutral-600">Nenhum horário disponível</p>
-                  <p className="mt-1 text-xs text-neutral-400">
+                  <p className="text-sm font-medium text-slate-600">Nenhum horário disponível</p>
+                  <p className="mt-1 text-xs text-slate-400">
                     Todos os horários desta data já foram reservados.
                   </p>
                 </div>
@@ -901,10 +901,10 @@ export default function BookingForm({
                         }
                       }}
                       className={cn(
-                        'rounded-xl border px-3 py-2.5 text-sm font-medium transition-all',
+                        'rounded-md border px-3 py-2.5 text-sm font-medium transition-all',
                         selectedTime === time
-                          ? 'border-brand-500 bg-brand-500 text-white shadow-sm'
-                          : 'border-neutral-200 bg-white text-neutral-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700',
+                          ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]',
                       )}
                     >
                       {renderSlotLabel(time)}
@@ -916,10 +916,10 @@ export default function BookingForm({
           )}
 
           {selectedDate && selectedTime && (
-            <div className="rounded-2xl border border-neutral-100 bg-white p-6">
-              <label className="mb-3 block text-sm font-semibold text-neutral-900 font-display">
+            <div className="rounded-lg border border-slate-200/80 bg-white p-6">
+              <label className="mb-3 block text-sm font-semibold text-slate-900 font-display">
                 Objetivo da sessão{' '}
-                <span className="font-normal text-neutral-400">
+                <span className="font-normal text-slate-400">
                   {requireSessionPurpose ? '(obrigatório)' : '(opcional)'}
                 </span>
               </label>
@@ -929,18 +929,18 @@ export default function BookingForm({
                 placeholder="Descreva brevemente o que você quer trabalhar nesta sessão."
                 rows={3}
                 maxLength={500}
-                className="w-full resize-none rounded-xl border border-neutral-200 p-3 text-sm text-neutral-700 placeholder-neutral-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="w-full resize-none rounded-md border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
               />
-              <p className="mt-1 text-right text-xs text-neutral-400">{sessionPurpose.length}/500</p>
+              <p className="mt-1 text-right text-xs text-slate-400">{sessionPurpose.length}/500</p>
             </div>
           )}
 
           {bookingType === 'batch' && (
-            <div className="rounded-2xl border border-neutral-100 bg-white p-6">
-              <h2 className="mb-3 text-lg font-semibold text-neutral-900 font-display">
+            <div className="rounded-lg border border-slate-200/80 bg-white p-6">
+              <h2 className="mb-3 text-lg font-semibold text-slate-900 font-display">
                 Lote de sessões avulsas
               </h2>
-              <p className="mb-3 text-xs text-neutral-500">
+              <p className="mb-3 text-xs text-slate-500">
                 Selecione uma data e um horário e adicione ao lote. Você precisa de pelo menos 2 sessões.
               </p>
               <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -949,15 +949,15 @@ export default function BookingForm({
                   onClick={addCurrentSelectionToBatch}
                   disabled={!selectedDate || !selectedTime}
                   className={cn(
-                    'rounded-xl px-4 py-2 text-xs font-semibold transition',
+                    'rounded-md px-4 py-2 text-xs font-semibold transition',
                     selectedDate && selectedTime
-                      ? 'bg-brand-500 text-white hover:bg-brand-600'
-                      : 'cursor-not-allowed bg-neutral-100 text-neutral-400',
+                      ? 'bg-[#9FE870] text-white hover:bg-[#8ed85f]'
+                      : 'cursor-not-allowed bg-slate-100 text-slate-400',
                   )}
                 >
                   Adicionar ao lote
                 </button>
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-slate-500">
                   {batchDateTimes.length} sessão(ões) adicionada(s)
                 </span>
               </div>
@@ -966,18 +966,18 @@ export default function BookingForm({
                   {batchSlotsPreview.map(item => (
                     <li
                       key={item.value}
-                      className="flex items-center justify-between rounded-xl border border-neutral-200 px-3 py-2 text-xs"
+                      className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs"
                     >
                       <div>
-                        <p className="font-medium text-neutral-800">{item.userDateTime}</p>
-                        <p className="text-neutral-500">
+                        <p className="font-medium text-slate-800">{item.userDateTime}</p>
+                        <p className="text-slate-500">
                           Profissional: {item.professionalDateTime} ({timezoneLabel(professionalTimezone)})
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => removeBatchDate(item.value)}
-                        className="rounded-lg border border-neutral-200 px-2 py-1 text-[11px] font-semibold text-neutral-600 hover:border-red-200 hover:text-red-600"
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-red-200 hover:text-red-600"
                       >
                         Remover
                       </button>
@@ -985,21 +985,21 @@ export default function BookingForm({
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-neutral-500">Nenhuma sessão adicionada ao lote ainda.</p>
+                <p className="text-xs text-slate-500">Nenhuma sessão adicionada ao lote ainda.</p>
               )}
             </div>
           )}
         </div>
 
         <div className="lg:col-span-1">
-          <div className="sticky top-6 rounded-2xl border border-neutral-100 bg-white p-6">
-            <div className="mb-4 flex items-center gap-3 border-b border-neutral-100 pb-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-lg font-bold text-white font-display">
+          <div className="sticky top-6 rounded-lg border border-slate-200/80 bg-white p-6">
+            <div className="mb-4 flex items-center gap-3 border-b border-slate-200/80 pb-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#9FE870]/80 to-[#8ed85f] text-lg font-bold text-white font-display">
                 {profileName.charAt(0)}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-neutral-900">{profileName}</p>
-                <p className="mt-0.5 text-xs text-neutral-400">
+                <p className="truncate text-sm font-semibold text-slate-900">{profileName}</p>
+                <p className="mt-0.5 text-xs text-slate-400">
                   {professional.session_duration_minutes} min • {priceFormatted}
                 </p>
               </div>
@@ -1007,11 +1007,11 @@ export default function BookingForm({
 
             <div className="mb-5 space-y-3">
               <div className="flex items-start gap-2.5 text-sm">
-                <Calendar className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-400" />
+                <Calendar className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                 <div>
-                  <p className="mb-0.5 text-xs text-neutral-400">Data</p>
+                  <p className="mb-0.5 text-xs text-slate-400">Data</p>
                   {selectedDate ? (
-                    <p className="font-medium text-neutral-800">
+                    <p className="font-medium text-slate-800">
                       {selectedDate.toLocaleDateString('pt-BR', {
                         weekday: 'short',
                         day: 'numeric',
@@ -1019,24 +1019,24 @@ export default function BookingForm({
                       })}
                     </p>
                   ) : (
-                    <p className="italic text-neutral-400">Não selecionada</p>
+                    <p className="italic text-slate-400">Não selecionada</p>
                   )}
                 </div>
               </div>
 
               <div className="flex items-start gap-2.5 text-sm">
-                <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-400" />
+                <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                 <div>
-                  <p className="mb-0.5 text-xs text-neutral-400">Horário</p>
+                  <p className="mb-0.5 text-xs text-slate-400">Horário</p>
                   {selectedTime ? (
-                    <p className="font-medium text-neutral-800">
+                    <p className="font-medium text-slate-800">
                       {selectedTime} ({timezoneLabel(userTimezone)})
                     </p>
                   ) : (
-                    <p className="italic text-neutral-400">Não selecionado</p>
+                    <p className="italic text-slate-400">Não selecionado</p>
                   )}
                   {selectedTimeInProfessionalTimezone && (
-                    <p className="mt-0.5 text-xs text-neutral-500">
+                    <p className="mt-0.5 text-xs text-slate-500">
                       Profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
                     </p>
                   )}
@@ -1044,40 +1044,40 @@ export default function BookingForm({
               </div>
 
               <div className="flex items-start gap-2.5 text-sm">
-                <Globe className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-400" />
+                <Globe className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                 <div>
-                  <p className="mb-0.5 text-xs text-neutral-400">Fuso padrão do checkout</p>
-                  <p className="text-xs font-medium leading-snug text-neutral-800">
+                  <p className="mb-0.5 text-xs text-slate-400">Fuso padrão do checkout</p>
+                  <p className="text-xs font-medium leading-snug text-slate-800">
                     {timezoneLabel(userTimezone)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mb-5 rounded-xl bg-neutral-50 p-4">
+            <div className="mb-5 rounded-md bg-slate-50/70 p-4">
               <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="text-neutral-500">
+                <span className="text-slate-500">
                   Sessão ({professional.session_duration_minutes} min) x {totalSessions}
                 </span>
-                <span className="font-semibold text-neutral-800">{priceFormatted}</span>
+                <span className="font-semibold text-slate-800">{priceFormatted}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-500">Taxa de serviço</span>
+                <span className="text-slate-500">Taxa de serviço</span>
                 <span className="font-medium text-green-600">Grátis</span>
               </div>
-              <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3">
-                <span className="font-semibold text-neutral-900">Total</span>
-                <span className="text-lg font-bold text-neutral-900">{totalPriceFormatted}</span>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+                <span className="font-semibold text-slate-900">Total</span>
+                <span className="text-lg font-bold text-slate-900">{totalPriceFormatted}</span>
               </div>
             </div>
 
-            <div className="mb-4 rounded-xl border border-neutral-200 p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            <div className="mb-4 rounded-md border border-slate-200 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                 Política de cancelamento
               </p>
               <div className="space-y-1.5">
                 {PLATFORM_CANCELLATION_POLICY.map(item => (
-                  <p key={item} className="text-xs text-neutral-500">
+                  <p key={item} className="text-xs text-slate-500">
                     • {item}
                   </p>
                 ))}
@@ -1085,28 +1085,28 @@ export default function BookingForm({
             </div>
 
             {bookingResult && !bookingResult.success && (
-              <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <p>{bookingResult.error}</p>
               </div>
             )}
 
-            <div className="mb-4 space-y-2 rounded-xl border border-neutral-200 p-3">
-              <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-600">
+            <div className="mb-4 space-y-2 rounded-md border border-slate-200 p-3">
+              <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-600">
                 <input
                   type="checkbox"
                   checked={acceptPolicy}
                   onChange={e => setAcceptPolicy(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/50"
                 />
                 <span>Li e concordo com a política de cancelamento e reembolso.</span>
               </label>
-              <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-600">
+              <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-600">
                 <input
                   type="checkbox"
                   checked={acceptTimezone}
                   onChange={e => setAcceptTimezone(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-400"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/50"
                 />
                 <span>Confirmo que revisei data e horário nos fusos corretos.</span>
               </label>
@@ -1116,10 +1116,10 @@ export default function BookingForm({
               onClick={handleConfirm}
               disabled={!canSubmit}
               className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all',
+                'flex w-full items-center justify-center gap-2 rounded-md py-3 text-sm font-semibold transition-all',
                 canSubmit
-                  ? 'bg-brand-500 text-white shadow-sm hover:bg-brand-600 hover:shadow-md'
-                  : 'cursor-not-allowed bg-neutral-100 text-neutral-400',
+                  ? 'bg-[#9FE870] text-white hover:bg-[#8ed85f]'
+                  : 'cursor-not-allowed bg-slate-100 text-slate-400',
               )}
             >
               {isPending ? (
@@ -1136,15 +1136,15 @@ export default function BookingForm({
             </button>
 
             <div className="mt-4 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs text-neutral-400">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
                 Sessão por vídeo (Agora)
               </div>
-              <div className="flex items-center gap-2 text-xs text-neutral-400">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
                 Lembretes por email e notificações no app
               </div>
-              <div className="flex items-center gap-2 text-xs text-neutral-400">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
                 <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
                 Proteção contra conflito de agenda
               </div>

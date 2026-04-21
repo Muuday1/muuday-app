@@ -93,10 +93,10 @@ export function CookieConsentRoot({ country }: Props) {
 
       {!isCustomize ? (
         /* Compact bottom strip */
-        <div className="mx-3 mb-3 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 sm:mx-4 sm:mb-4">
+        <div className="mx-3 mb-3 rounded-lg border border-slate-200 bg-white sm:mx-4 sm:mb-4">
           <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#9FE870]/20">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#9FE870]/20">
                 <Cookie className="h-5 w-5 text-slate-900" />
               </div>
               <div>
@@ -144,7 +144,7 @@ export function CookieConsentRoot({ country }: Props) {
               </button>
               <button
                 type="button"
-                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#9FE870] px-5 text-xs font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-lg hover:shadow-[#9FE870]/25"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#9FE870] px-5 text-xs font-bold text-slate-900 transition hover:bg-[#8fd65f]/25"
                 onClick={() =>
                   saveConsent({
                     ...defaultConsentForCountry(country),
@@ -161,7 +161,7 @@ export function CookieConsentRoot({ country }: Props) {
         </div>
       ) : (
         /* Expanded customize panel */
-        <div className="mx-3 mb-3 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 sm:mx-auto sm:mb-6 sm:max-w-xl">
+        <div className="mx-3 mb-3 rounded-lg border border-slate-200 bg-white sm:mx-auto sm:mb-6 sm:max-w-xl">
           <div className="flex items-start justify-between gap-4 p-5">
             <div>
               <p className="font-display text-lg font-bold text-slate-900">Cookies e privacidade</p>
@@ -190,7 +190,7 @@ export function CookieConsentRoot({ country }: Props) {
 
           <div className="mt-3 space-y-3 p-5 pt-0">
             {/* Necessary - always on */}
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between gap-4 rounded-md border border-slate-200 bg-slate-50 p-4">
               <div>
                 <p className="text-sm font-bold text-slate-900">Necessários</p>
                 <p className="text-xs text-slate-500">Essenciais para o funcionamento do site.</p>
@@ -198,7 +198,7 @@ export function CookieConsentRoot({ country }: Props) {
               <span className="rounded-full bg-[#9FE870] px-3 py-1 text-xs font-bold text-slate-900">Sempre ativo</span>
             </div>
 
-            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 transition hover:border-[#9FE870]">
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-md border border-slate-200 p-4 transition hover:border-[#9FE870]">
               <div>
                 <p className="text-sm font-bold text-slate-900">Analytics</p>
                 <p className="text-xs text-slate-500">Mede uso para melhorar o produto.</p>
@@ -212,7 +212,7 @@ export function CookieConsentRoot({ country }: Props) {
               />
             </label>
 
-            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 transition hover:border-[#9FE870]">
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-md border border-slate-200 p-4 transition hover:border-[#9FE870]">
               <div>
                 <p className="text-sm font-bold text-slate-900">Marketing</p>
                 <p className="text-xs text-slate-500">Ajuda a medir e personalizar campanhas.</p>
@@ -240,7 +240,7 @@ export function CookieConsentRoot({ country }: Props) {
             </button>
             <button
               type="button"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-[#9FE870] px-5 text-sm font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-lg hover:shadow-[#9FE870]/25"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-[#9FE870] px-5 text-sm font-bold text-slate-900 transition hover:bg-[#8fd65f]/25"
               onClick={() => saveConsent(draft)}
             >
               Salvar preferências

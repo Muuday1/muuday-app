@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Search } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -71,12 +71,12 @@ export function SearchQueryBar({ initialState }: SearchQueryBarProps) {
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm md:p-4">
-      <label className="mb-1.5 block text-xs font-medium text-neutral-500" htmlFor="buscar-query-input">
+    <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+      <label className="mb-1.5 block text-xs font-medium text-slate-500" htmlFor="buscar-query-input">
         Buscar profissionais
       </label>
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           id="buscar-query-input"
           type="text"
@@ -84,10 +84,10 @@ export function SearchQueryBar({ initialState }: SearchQueryBarProps) {
           placeholder="Nome, especialidade ou palavra-chave"
           onChange={event => setQueryText(event.target.value)}
           onBlur={event => applyQuery(event.target.value)}
-          className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm text-neutral-900 placeholder-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+          className="w-full rounded-md border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
         />
       </div>
-      <div className="mt-1.5 h-4 text-[11px] text-neutral-400" aria-live="polite">
+      <div className="mt-1.5 h-4 text-[11px] text-slate-400" aria-live="polite">
         {isPending ? 'Atualizando resultados...' : ''}
       </div>
     </div>

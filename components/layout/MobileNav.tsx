@@ -37,7 +37,7 @@ export function MobileNav({
   const mobileItems = navItems.slice(0, 5)
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-neutral-100 safe-area-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200/80 safe-area-bottom">
       <div className="flex items-center justify-around px-2 py-2">
         {mobileItems.map(({ href, icon, label }) => {
           const Icon = iconMap[icon] || LayoutDashboard
@@ -48,17 +48,17 @@ export function MobileNav({
               key={href}
               href={href}
               prefetch={false}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-[60px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-all min-w-[60px] ${
                 isActive
-                  ? 'text-brand-600'
-                  : 'text-neutral-400 hover:text-neutral-600'
+                  ? 'text-[#3d6b1f]'
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               {isActive && (
-                <div className="absolute -top-2 w-8 h-0.5 bg-brand-500 rounded-full" />
+                <div className="absolute -top-2 w-8 h-0.5 bg-[#9FE870] rounded-full" />
               )}
-              <Icon className={`w-5 h-5 ${isActive ? 'text-brand-500' : ''}`} />
-              <span className={`text-[10px] font-medium ${isActive ? 'text-brand-600' : ''}`}>
+              <Icon className={`w-5 h-5 ${isActive ? 'text-[#9FE870]' : ''}`} />
+              <span className={`text-[10px] font-medium ${isActive ? 'text-[#3d6b1f]' : ''}`}>
                 {label}
               </span>
             </Link>

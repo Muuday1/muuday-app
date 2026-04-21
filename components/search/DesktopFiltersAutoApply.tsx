@@ -139,7 +139,7 @@ export function DesktopFiltersAutoApply({
     <div className="hidden md:block p-3 md:p-4">
       <div className="grid grid-cols-2 lg:grid-cols-6 xl:grid-cols-12 gap-2.5 items-end">
         <div className="lg:col-span-2 xl:col-span-2">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Categoria</label>
+          <label className="block text-[11px] font-medium text-slate-500 mb-1">Categoria</label>
           <select
             value={state.categoria}
             onChange={event =>
@@ -150,7 +150,7 @@ export function DesktopFiltersAutoApply({
                 especialidade: '',
               })
             }
-            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
           >
             <option value="">Todas as categorias</option>
             {categoryOptions.map(category => (
@@ -162,7 +162,7 @@ export function DesktopFiltersAutoApply({
         </div>
 
         <div className="lg:col-span-2 xl:col-span-2">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Subcategoria</label>
+          <label className="block text-[11px] font-medium text-slate-500 mb-1">Subcategoria</label>
           <select
             value={state.subcategoria}
             disabled={!state.categoria}
@@ -173,7 +173,7 @@ export function DesktopFiltersAutoApply({
                 especialidade: '',
               })
             }
-            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
           >
             <option value="">
               {state.categoria ? 'Todas as subcategorias' : 'Selecione uma categoria'}
@@ -187,12 +187,12 @@ export function DesktopFiltersAutoApply({
         </div>
 
         <div className="lg:col-span-2 xl:col-span-2">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Especialidade</label>
+          <label className="block text-[11px] font-medium text-slate-500 mb-1">Especialidade</label>
           <select
             value={state.especialidade}
             disabled={!state.subcategoria}
             onChange={event => applyState({ ...state, especialidade: event.target.value })}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
           >
             <option value="">
               {state.subcategoria ? 'Todas as especialidades' : 'Selecione uma subcategoria'}
@@ -205,7 +205,7 @@ export function DesktopFiltersAutoApply({
           </select>
         </div>
 
-        <div className="lg:col-span-2 xl:col-span-2 rounded-xl border border-neutral-200 bg-white px-2.5 py-1.5">
+        <div className="lg:col-span-2 xl:col-span-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
           <PriceRangeSlider
             minLimit={0}
             maxLimit={priceMax}
@@ -229,11 +229,11 @@ export function DesktopFiltersAutoApply({
         </div>
 
         <div className="lg:col-span-1 xl:col-span-1">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Horário</label>
+          <label className="block text-[11px] font-medium text-slate-500 mb-1">Horário</label>
           <select
             value={state.horario}
             onChange={event => applyState({ ...state, horario: event.target.value })}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
           >
             {AVAILABILITY_WINDOWS.map(window => (
               <option key={window.value} value={window.value}>
@@ -244,14 +244,14 @@ export function DesktopFiltersAutoApply({
         </div>
 
         <div className="lg:col-span-1 xl:col-span-1">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1 flex items-center gap-1">
+          <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center gap-1">
             <Languages className="w-3 h-3" />
             Idioma
           </label>
           <select
             value={state.idioma}
             onChange={event => applyState({ ...state, idioma: event.target.value })}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
           >
             <option value="qualquer">Qualquer</option>
             {languageOptions.map(language => (
@@ -263,11 +263,11 @@ export function DesktopFiltersAutoApply({
         </div>
 
         <div className="lg:col-span-2 xl:col-span-2">
-          <label className="block text-[11px] font-medium text-neutral-500 mb-1">Ordenar</label>
+          <label className="block text-[11px] font-medium text-slate-500 mb-1">Ordenar</label>
           <select
             value={state.ordenar}
             onChange={event => applyState({ ...state, ordenar: event.target.value })}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
           >
             <option value="relevancia">Relevância</option>
             <option value="melhor-avaliacao">Melhor avaliação</option>
@@ -278,7 +278,7 @@ export function DesktopFiltersAutoApply({
         </div>
       </div>
 
-      <div className="mt-2 h-4 text-[11px] text-neutral-400">
+      <div className="mt-2 h-4 text-[11px] text-slate-400">
         {isPending ? 'Atualizando resultados...' : ''}
       </div>
     </div>

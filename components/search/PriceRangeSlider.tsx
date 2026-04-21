@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -203,8 +203,8 @@ export function PriceRangeSlider({
   return (
     <div className="w-full">
       <div className={cn('mb-1 flex items-center justify-between gap-2', compact && 'mb-0.5')}>
-        <span className={cn('text-xs font-medium text-neutral-500', compact && 'text-[11px]')}>Preço</span>
-        <span className={cn('text-xs font-semibold text-neutral-800', compact && 'text-[11px]')} aria-live="polite">
+        <span className={cn('text-xs font-medium text-slate-500', compact && 'text-[11px]')}>Preço</span>
+        <span className={cn('text-xs font-semibold text-slate-800', compact && 'text-[11px]')} aria-live="polite">
           {display}
         </span>
       </div>
@@ -212,7 +212,7 @@ export function PriceRangeSlider({
       <div className={cn('relative', compact ? 'h-8' : 'h-10')}>
         <div
           ref={trackRef}
-          className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-neutral-200"
+          className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200"
           style={{ touchAction: 'none' }}
           onPointerDown={event => {
             event.preventDefault()
@@ -233,7 +233,7 @@ export function PriceRangeSlider({
         />
 
         <div
-          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-brand-500"
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-[#9FE870]"
           style={{ left: `${minPercent}%`, width: `${Math.max(0, maxPercent - minPercent)}%` }}
           aria-hidden="true"
         />
@@ -253,7 +253,7 @@ export function PriceRangeSlider({
           }}
           onKeyDown={event => handleKeyDown('min', event.key)}
           className={cn(
-            'absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
+            'absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20',
             activeThumb === 'min' ? 'z-30' : 'z-20',
           )}
           style={{ left: `${minPercent}%`, touchAction: 'none' }}
@@ -274,7 +274,7 @@ export function PriceRangeSlider({
           }}
           onKeyDown={event => handleKeyDown('max', event.key)}
           className={cn(
-            'absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20',
+            'absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-300 bg-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20',
             activeThumb === 'max' ? 'z-30' : 'z-20',
           )}
           style={{ left: `${maxPercent}%`, touchAction: 'none' }}

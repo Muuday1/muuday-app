@@ -38,7 +38,7 @@ export function BookingFlowAnimation() {
   return (
     <div className="mx-auto w-full max-w-sm">
       {/* Phone frame */}
-      <div className="relative overflow-hidden rounded-[2rem] border-4 border-slate-900 bg-slate-900 shadow-2xl">
+      <div className="relative overflow-hidden rounded-[2rem] border-4 border-slate-900 bg-slate-900">
         {/* Notch */}
         <div className="absolute left-1/2 top-0 z-20 h-6 w-32 -translate-x-1/2 rounded-b-xl bg-slate-900" />
 
@@ -78,13 +78,13 @@ export function BookingFlowAnimation() {
                   className="space-y-3"
                 >
                   {/* Search bar */}
-                  <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5">
+                  <div className="flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2.5">
                     <div className="h-4 w-4 rounded-full bg-slate-300" />
                     <span className="text-xs text-slate-400">Buscar psicólogos...</span>
                   </div>
 
                   {/* Pro card */}
-                  <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                  <div className="relative overflow-hidden rounded-md border border-slate-200 bg-white p-3">
                     <div className="flex gap-3">
                       <div className="h-12 w-12 rounded-full bg-[#9FE870]" />
                       <div className="flex-1">
@@ -140,7 +140,7 @@ export function BookingFlowAnimation() {
                       key={svc.name}
                       animate={svc.highlight ? { borderColor: ['#e2e8f0', '#9FE870', '#e2e8f0'] } : {}}
                       transition={{ repeat: Infinity, duration: 2, delay: 0.3 }}
-                      className={`rounded-xl border-2 p-3 ${svc.highlight ? 'border-[#9FE870] bg-[#9FE870]/5' : 'border-slate-200'}`}
+                      className={`rounded-md border-2 p-3 ${svc.highlight ? 'border-[#9FE870] bg-[#9FE870]/5' : 'border-slate-200'}`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
@@ -183,7 +183,7 @@ export function BookingFlowAnimation() {
                         key={d}
                         animate={i === 1 ? { backgroundColor: ['#ffffff', '#9FE870', '#ffffff'], borderColor: ['#e2e8f0', '#9FE870', '#e2e8f0'] } : {}}
                         transition={{ repeat: Infinity, duration: 2.5, delay: 0.5 }}
-                        className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl border-2 ${i === 1 ? 'border-[#9FE870]' : 'border-slate-200'}`}
+                        className={`flex h-14 w-14 flex-col items-center justify-center rounded-md border-2 ${i === 1 ? 'border-[#9FE870]' : 'border-slate-200'}`}
                       >
                         <span className="text-[10px] text-slate-500">{d}</span>
                         <span className="text-sm font-bold text-slate-900">{15 + i}</span>
@@ -206,7 +206,7 @@ export function BookingFlowAnimation() {
                   </div>
 
                   {/* Recurrence toggle */}
-                  <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
                     <Repeat className="h-4 w-4 text-slate-500" />
                     <span className="text-xs font-medium text-slate-700">Agendar recorrente (toda semana)</span>
                     <div className="ml-auto h-5 w-9 rounded-full bg-[#9FE870]" />
@@ -237,7 +237,7 @@ export function BookingFlowAnimation() {
                   <p className="text-sm font-bold text-slate-900">Confirme e pague</p>
 
                   {/* Summary */}
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
                     <div className="flex justify-between text-xs">
                       <span className="text-slate-500">Serviço</span>
                       <span className="font-bold text-slate-900">Consulta inicial</span>
@@ -263,7 +263,7 @@ export function BookingFlowAnimation() {
                         key={m}
                         animate={i === 0 ? { borderColor: ['#e2e8f0', '#9FE870', '#e2e8f0'] } : {}}
                         transition={{ repeat: Infinity, duration: 2.5, delay: 0.5 }}
-                        className={`flex items-center gap-2 rounded-xl border-2 p-3 ${i === 0 ? 'border-[#9FE870]' : 'border-slate-200'}`}
+                        className={`flex items-center gap-2 rounded-md border-2 p-3 ${i === 0 ? 'border-[#9FE870]' : 'border-slate-200'}`}
                       >
                         <div className={`h-4 w-4 rounded-full border-2 ${i === 0 ? 'border-[#9FE870] bg-[#9FE870]' : 'border-slate-300'}`} />
                         <CreditCard className="h-4 w-4 text-slate-500" />
@@ -275,7 +275,7 @@ export function BookingFlowAnimation() {
                   <motion.div
                     animate={{ scale: [1, 1.03, 1] }}
                     transition={{ repeat: Infinity, duration: 2, delay: 1 }}
-                    className="mt-2 rounded-xl bg-[#9FE870] py-3 text-center text-sm font-bold text-slate-900"
+                    className="mt-2 rounded-md bg-[#9FE870] py-3 text-center text-sm font-bold text-slate-900"
                   >
                     Confirmar pagamento
                   </motion.div>

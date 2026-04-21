@@ -27,7 +27,7 @@ export function NotificationBell() {
   return (
     <Link
       href="/notificacoes"
-      className="relative flex items-center justify-center w-9 h-9 rounded-full border border-neutral-200 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition-all"
+      className="relative flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50/70 transition-all"
       aria-label="Notificações"
     >
       <Bell className="w-4 h-4" />

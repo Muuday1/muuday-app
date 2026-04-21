@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState } from 'react'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
@@ -185,9 +185,9 @@ export function ProfessionalOnboardingCard({
             : 'Falta concluir as etapas do onboarding antes da publicação. Continue de onde parou e envie o perfil para análise no fim do fluxo.'
 
   return (
-    <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+    <section className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-5">
       {feedbackMessage ? (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-white/80 px-4 py-3 text-sm text-amber-900">
+        <div className="mb-4 rounded-md border border-amber-200 bg-white/80 px-4 py-3 text-sm text-amber-900">
           {feedbackMessage}
         </div>
       ) : null}
@@ -198,7 +198,7 @@ export function ProfessionalOnboardingCard({
           <p className="mt-1 text-sm text-amber-800">{description}</p>
         </div>
         {trackerViewMode === 'editing' ? (
-          <div className="min-w-[210px] rounded-xl border border-amber-200 bg-white/80 px-4 py-3">
+          <div className="min-w-[210px] rounded-md border border-amber-200 bg-white/80 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Progresso</p>
             <p className="mt-1 text-2xl font-bold text-amber-950">
               {completedCount}/{totalCount}
@@ -212,7 +212,7 @@ export function ProfessionalOnboardingCard({
             </div>
           </div>
         ) : trackerNeedsAdjustments ? (
-          <div className="min-w-[210px] rounded-xl border border-amber-200 bg-white/80 px-4 py-3">
+          <div className="min-w-[210px] rounded-md border border-amber-200 bg-white/80 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Ajustes pendentes</p>
             <p className="mt-1 text-2xl font-bold text-amber-950">{adjustmentCount}</p>
             <p className="mt-1 text-xs text-amber-800">
@@ -225,7 +225,7 @@ export function ProfessionalOnboardingCard({
       {trackerNeedsAdjustments && adjustmentPreview.length > 0 ? (
         <div className="mt-4 grid gap-2 md:grid-cols-2">
           {adjustmentPreview.map(item => (
-            <div key={item.id} className="rounded-xl border border-amber-200 bg-white/75 px-3 py-3">
+            <div key={item.id} className="rounded-md border border-amber-200 bg-white/75 px-3 py-3">
               <p className="text-sm font-semibold text-amber-950">{stageLabelFromAdjustment(String(item.stageId || ''))}</p>
               <p className="mt-1 text-xs text-amber-800">{item.message || 'Revise esta etapa no tracker.'}</p>
             </div>
@@ -234,7 +234,7 @@ export function ProfessionalOnboardingCard({
       ) : trackerViewMode === 'editing' || trackerNeedsAdjustments ? (
         <div className="mt-4 grid gap-2 md:grid-cols-2">
           {pendingStages.map(stage => (
-            <div key={stage.id} className="rounded-xl border border-amber-200 bg-white/75 px-3 py-3">
+            <div key={stage.id} className="rounded-md border border-amber-200 bg-white/75 px-3 py-3">
               <p className="text-sm font-semibold text-amber-950">{stage.title}</p>
               <p className="mt-1 text-xs text-amber-800">{stage.description}</p>
             </div>

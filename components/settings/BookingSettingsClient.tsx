@@ -146,32 +146,32 @@ export function BookingSettingsClient({
       <div className="mb-8">
         <Link
           href="/perfil"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-600 transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors mb-4"
         >
           <ChevronLeft className="w-4 h-4" />
           Voltar ao perfil
         </Link>
-        <h1 className="font-display font-bold text-3xl text-neutral-900 mb-1">
+        <h1 className="font-display font-bold text-3xl text-slate-900 mb-1">
           Configurações de agendamento
         </h1>
-        <p className="text-neutral-500">
+        <p className="text-slate-500">
           Defina as regras usadas no checkout: fuso, janela de agenda, confirmação e recorrência.
         </p>
       </div>
 
-      <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6 text-sm text-brand-700">
+      <div className="bg-[#9FE870]/8 border border-[#9FE870]/20 rounded-md px-4 py-3 mb-6 text-sm text-[#3d6b1f]">
         O seu plano atual é <strong>{tier.toUpperCase()}</strong>. Algumas opções abaixo variam por tier.
       </div>
 
-      <div className="bg-white rounded-2xl border border-neutral-100 p-6 space-y-6">
+      <div className="bg-white rounded-lg border border-slate-200/80 p-6 space-y-6">
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
             Fuso horário padrão
           </label>
           <select
             value={form.timezone}
             onChange={e => setForm(prev => ({ ...prev, timezone: e.target.value }))}
-            className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
           >
             {ALL_TIMEZONES.map(timezone => (
               <option key={timezone.value} value={timezone.value}>
@@ -183,7 +183,7 @@ export function BookingSettingsClient({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Duração padrão da sessão
             </label>
             <select
@@ -194,7 +194,7 @@ export function BookingSettingsClient({
                   sessionDurationMinutes: Number(e.target.value),
                 }))
               }
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
             >
               {DURATION_OPTIONS.map(option => (
                 <option key={option} value={option}>
@@ -205,11 +205,11 @@ export function BookingSettingsClient({
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Buffer entre sessões
             </label>
             {bufferConfig.configurable ? null : (
-              <p className="mb-2 text-xs text-neutral-500">
+              <p className="mb-2 text-xs text-slate-500">
                 No plano Basic o buffer é fixo em 15 minutos.
               </p>
             )}
@@ -222,7 +222,7 @@ export function BookingSettingsClient({
                 }))
               }
               disabled={!bufferConfig.configurable}
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-neutral-50"
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20 disabled:cursor-not-allowed disabled:bg-slate-50/70"
             >
               {BUFFER_OPTIONS.map(option => (
                 <option key={option} value={option}>
@@ -235,7 +235,7 @@ export function BookingSettingsClient({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Antecedência mínima ({minNoticeLabel})
             </label>
             <select
@@ -246,7 +246,7 @@ export function BookingSettingsClient({
                   minimumNoticeHours: Number(e.target.value),
                 }))
               }
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
             >
               {allowedMinNoticeOptions.map(option => (
                 <option key={option} value={option}>
@@ -257,7 +257,7 @@ export function BookingSettingsClient({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Janela máxima de agendamento
             </label>
             <select
@@ -268,7 +268,7 @@ export function BookingSettingsClient({
                   maxBookingWindowDays: Number(e.target.value),
                 }))
               }
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20"
             >
               {allowedMaxWindowOptions.map(option => (
                 <option key={option} value={option}>
@@ -280,48 +280,48 @@ export function BookingSettingsClient({
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+          <label className="flex items-start gap-3 rounded-md border border-slate-200 bg-white px-4 py-3">
             <input
               type="checkbox"
               checked={form.enableRecurring}
               onChange={e => setForm(prev => ({ ...prev, enableRecurring: e.target.checked }))}
-              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500/30"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/30"
             />
             <span>
-              <span className="block text-sm font-medium text-neutral-900">Permitir recorrência</span>
-              <span className="mt-0.5 block text-xs text-neutral-500">
+              <span className="block text-sm font-medium text-slate-900">Permitir recorrência</span>
+              <span className="mt-0.5 block text-xs text-slate-500">
                 Clientes podem criar pacotes recorrentes no mesmo dia/horário.
               </span>
             </span>
           </label>
 
-          <label className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+          <label className="flex items-start gap-3 rounded-md border border-slate-200 bg-white px-4 py-3">
             <input
               type="checkbox"
               checked={form.requireSessionPurpose}
               onChange={e =>
                 setForm(prev => ({ ...prev, requireSessionPurpose: e.target.checked }))
               }
-              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500/30"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/30"
             />
             <span>
-              <span className="block text-sm font-medium text-neutral-900">
+              <span className="block text-sm font-medium text-slate-900">
                 Exigir objetivo da sessão
               </span>
-              <span className="mt-0.5 block text-xs text-neutral-500">
+              <span className="mt-0.5 block text-xs text-slate-500">
                 Solicita contexto do cliente antes da confirmação.
               </span>
             </span>
           </label>
         </div>
 
-        <div className="relative rounded-xl border border-neutral-200 bg-white px-4 py-3">
+        <div className="relative rounded-md border border-slate-200 bg-white px-4 py-3">
           {tier === 'basic' ? (
-            <p className="mb-2 text-xs text-neutral-500">
+            <p className="mb-2 text-xs text-slate-500">
               No plano Basic o aceite é automático. Faça upgrade para confirmação manual.
             </p>
           ) : null}
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
             Modo de confirmação
           </label>
           <select
@@ -333,16 +333,16 @@ export function BookingSettingsClient({
               }))
             }
             disabled={tier === 'basic'}
-            className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-neutral-50"
+            className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-[#9FE870] focus:outline-none focus:ring-2 focus:ring-[#9FE870]/20 disabled:cursor-not-allowed disabled:bg-slate-50/70"
           >
             <option value="auto_accept">Aceite automático</option>
             <option value="manual">Confirmação manual</option>
           </select>
         </div>
 
-        <div className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
+        <div className="rounded-md border border-slate-200/80 bg-slate-50/70 px-4 py-3 text-xs text-slate-600">
           <div className="flex items-start gap-2">
-            <CalendarClock className="mt-0.5 h-4 w-4 text-neutral-500" />
+            <CalendarClock className="mt-0.5 h-4 w-4 text-slate-500" />
             <p>
               Essas regras são usadas no checkout e no cálculo de slots. Mudanças aqui impactam
               imediatamente novas reservas.
@@ -352,7 +352,7 @@ export function BookingSettingsClient({
       </div>
 
       {errorMessage ? (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
           <p>{errorMessage}</p>
         </div>
@@ -362,7 +362,7 @@ export function BookingSettingsClient({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-md bg-[#9FE870] px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {saving ? (
           <>
@@ -379,7 +379,7 @@ export function BookingSettingsClient({
         )}
       </button>
 
-      <div className="mt-3 text-center text-xs text-neutral-500">
+      <div className="mt-3 text-center text-xs text-slate-500">
         Default de fallback: timezone {DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.timezone}
       </div>
     </div>

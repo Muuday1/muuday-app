@@ -63,7 +63,7 @@ export function PublicBookingAuthModal({
       <div className="space-y-2">
         <Link
           href={bookHref}
-          className="block w-full rounded-xl bg-brand-500 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className="block w-full rounded-md bg-[#9FE870] py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
         >
           <span className="inline-flex items-center justify-center gap-2">
             <Calendar className="h-4 w-4" /> Agendar sessão
@@ -73,7 +73,7 @@ export function PublicBookingAuthModal({
         {requestEnabled ? (
           <Link
             href={requestHref}
-            className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-center text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+            className="block w-full rounded-md border border-[#9FE870]/30 bg-[#9FE870]/8 py-3 text-center text-sm font-semibold text-[#3d6b1f] transition-all hover:bg-[#9FE870]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
           >
             <span className="inline-flex items-center justify-center gap-2">
               <MessageCircle className="h-4 w-4" /> Mandar mensagem
@@ -83,7 +83,7 @@ export function PublicBookingAuthModal({
           <button
             type="button"
             disabled
-            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 py-3 text-sm font-semibold text-neutral-400"
+            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50/70 py-3 text-sm font-semibold text-slate-400"
           >
             <MessageCircle className="h-4 w-4" /> Envio de mensagem indisponível no momento
           </button>
@@ -98,7 +98,7 @@ export function PublicBookingAuthModal({
         <button
           type="button"
           onClick={() => setPendingAction('book')}
-          className="block w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          className="block w-full rounded-md bg-[#9FE870] py-3 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
           aria-label="Entrar para agendar sessão"
         >
           <span className="inline-flex items-center justify-center gap-2">
@@ -110,7 +110,7 @@ export function PublicBookingAuthModal({
           <button
             type="button"
             onClick={() => setPendingAction('request')}
-            className="block w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-sm font-semibold text-brand-700 transition-all hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+            className="block w-full rounded-md border border-[#9FE870]/30 bg-[#9FE870]/8 py-3 text-sm font-semibold text-[#3d6b1f] transition-all hover:bg-[#9FE870]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
             aria-label="Entrar para mandar mensagem"
           >
             <span className="inline-flex items-center justify-center gap-2">
@@ -121,7 +121,7 @@ export function PublicBookingAuthModal({
           <button
             type="button"
             disabled
-            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 py-3 text-sm font-semibold text-neutral-400"
+            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50/70 py-3 text-sm font-semibold text-slate-400"
           >
             <MessageCircle className="h-4 w-4" /> Envio de mensagem indisponível no momento
           </button>
@@ -129,21 +129,21 @@ export function PublicBookingAuthModal({
       </div>
 
       {pendingAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4" role="dialog" aria-modal="true" aria-label="Autenticação para continuar">
-          <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4" role="dialog" aria-modal="true" aria-label="Autenticação para continuar">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-xl font-bold text-neutral-900">
+                <h3 className="font-display text-xl font-bold text-slate-900">
                   {isRequestAction ? 'Continue para mandar mensagem' : 'Continue para agendar'}
                 </h3>
-                <p className="mt-1 text-sm text-neutral-500">
+                <p className="mt-1 text-sm text-slate-500">
                   Crie uma conta de usuário para continuar.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setPendingAction(null)}
-                className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
                 aria-label="Fechar modal"
               >
                 <X className="h-4 w-4" />
@@ -153,13 +153,13 @@ export function PublicBookingAuthModal({
             <div className="space-y-2">
               <Link
                 href={buildAuthLink(nextTarget, 'signup')}
-                className="block w-full rounded-xl bg-brand-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className="block w-full rounded-md bg-[#9FE870] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#8ed85f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
               >
                 Criar conta (recomendado)
               </Link>
               <Link
                 href={buildAuthLink(nextTarget, 'login')}
-                className="block w-full rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                className="block w-full rounded-md border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
               >
                 Já tenho conta - entrar
               </Link>

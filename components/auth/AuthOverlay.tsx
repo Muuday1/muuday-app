@@ -109,7 +109,7 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
   const content =
     resolvedVariant === 'modal' ? (
       <div
-        className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-neutral-900/50 px-4 py-6"
+        className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-900/50 px-4 py-6"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel || 'Login'}
@@ -120,7 +120,7 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
         <div
           ref={surfaceRef}
           id={overlayId}
-          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-white/40 bg-white/85 p-4 shadow-xl backdrop-blur md:max-h-none md:overflow-visible md:p-5"
+          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-white/40 bg-white/85 p-4 backdrop-blur md:max-h-none md:overflow-visible md:p-5"
         >
           {children}
         </div>
@@ -138,7 +138,7 @@ export function AuthOverlay({ open, onClose, variant, anchorEl, ariaLabel, child
             <div
               ref={surfaceRef}
               id={overlayId}
-              className="pointer-events-auto w-[440px] max-w-[calc(100vw-24px)] rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl"
+              className="pointer-events-auto w-[440px] max-w-[calc(100vw-24px)] rounded-lg border border-slate-200 bg-white p-5"
               style={{ left, top, position: 'fixed' }}
               role="dialog"
               aria-modal="false"

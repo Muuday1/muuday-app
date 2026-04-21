@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -248,7 +248,7 @@ export function ProfessionalAvailabilityWorkspace({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#9FE870]" />
       </div>
     )
   }
@@ -256,17 +256,17 @@ export function ProfessionalAvailabilityWorkspace({
   if (accessDenied) {
     return (
       <div className="p-6 md:p-8 max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl border border-neutral-100 p-8 text-center">
-          <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white rounded-lg border border-slate-200/80 p-8 text-center">
+          <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-6 h-6 text-red-500" />
           </div>
-          <h2 className="font-display font-bold text-xl text-neutral-900 mb-2">Acesso restrito</h2>
-          <p className="text-neutral-500 text-sm mb-6">
+          <h2 className="font-display font-bold text-xl text-slate-900 mb-2">Acesso restrito</h2>
+          <p className="text-slate-500 text-sm mb-6">
             Esta página é exclusiva para profissionais com perfil completo.
           </p>
           <Link
             href="/completar-perfil"
-            className="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
+            className="inline-block bg-[#9FE870] hover:bg-[#8ed85f] text-white font-semibold px-5 py-2.5 rounded-md transition-all text-sm"
           >
             Completar perfil profissional
           </Link>
@@ -285,44 +285,44 @@ export function ProfessionalAvailabilityWorkspace({
         <div className="mb-8">
           <Link
             href="/perfil"
-            className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-neutral-600"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-600"
           >
             <ChevronLeft className="w-4 h-4" />
             Voltar ao perfil
           </Link>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="mb-1 font-display text-3xl font-bold text-neutral-900">Calendário e disponibilidade</h1>
-              <p className="text-neutral-500">
+              <h1 className="mb-1 font-display text-3xl font-bold text-slate-900">Calendário e disponibilidade</h1>
+              <p className="text-slate-500">
                 Defina seus horários recorrentes de trabalho e concentre aqui as integrações do seu calendário.
               </p>
             </div>
             {activeDaysCount > 0 ? (
-              <span className="flex-shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+              <span className="flex-shrink-0 rounded-full bg-[#9FE870]/8 px-3 py-1.5 text-xs font-medium text-[#3d6b1f]">
                 {activeDaysCount} {activeDaysCount === 1 ? 'dia ativo' : 'dias ativos'}
               </span>
             ) : null}
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 rounded-[28px] border border-neutral-200 bg-white px-6 py-6 shadow-sm">
+        <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white px-6 py-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                 Regras e disponibilidades
               </p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+              <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
                 Disponibilidade semanal e integrações de agenda
               </h2>
-              <p className="mt-2 max-w-2xl text-sm text-neutral-600">
+              <p className="mt-2 max-w-2xl text-sm text-slate-600">
                 Edite seus blocos recorrentes, acompanhe ocupações externas e mantenha a agenda operacional em um único fluxo.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+              <span className="rounded-full bg-[#9FE870]/8 px-3 py-1.5 text-xs font-medium text-[#3d6b1f]">
                 {activeDaysCount} {activeDaysCount === 1 ? 'dia ativo' : 'dias ativos'}
               </span>
-              <span className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-700">
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
                 Fuso {calendarTimezone.replaceAll('_', ' ')}
               </span>
             </div>
@@ -330,37 +330,37 @@ export function ProfessionalAvailabilityWorkspace({
         </div>
       )}
 
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
-        <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-600" />
-        <div className="space-y-1 text-sm text-brand-700">
+      <div className="mb-6 flex items-start gap-3 rounded-md border border-[#9FE870]/20 bg-[#9FE870]/8 px-4 py-3">
+        <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#3d6b1f]" />
+        <div className="space-y-1 text-sm text-[#3d6b1f]">
           <p>Os horários abaixo representam sua disponibilidade recorrente de trabalho na Muuday.</p>
           <p>Compromissos pontuais fora da plataforma e períodos ocupados pelas integrações aparecem no calendário completo logo abaixo.</p>
         </div>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
-          <p className="text-xs text-neutral-500">Buffer ativo</p>
-          <p className="text-sm font-semibold text-neutral-900">{bufferMinutes} min</p>
+        <div className="rounded-md border border-slate-200/80 bg-white px-4 py-3">
+          <p className="text-xs text-slate-500">Buffer ativo</p>
+          <p className="text-sm font-semibold text-slate-900">{bufferMinutes} min</p>
         </div>
-        <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
-          <p className="text-xs text-neutral-500">Janela máxima</p>
-          <p className="text-sm font-semibold text-neutral-900">{maxWindowDays} dias</p>
+        <div className="rounded-md border border-slate-200/80 bg-white px-4 py-3">
+          <p className="text-xs text-slate-500">Janela máxima</p>
+          <p className="text-sm font-semibold text-slate-900">{maxWindowDays} dias</p>
         </div>
-        <div className="rounded-xl border border-neutral-100 bg-white px-4 py-3">
-          <p className="text-xs text-neutral-500">Status de sync</p>
-          <p className="text-sm font-semibold text-neutral-900">
+        <div className="rounded-md border border-slate-200/80 bg-white px-4 py-3">
+          <p className="text-xs text-slate-500">Status de sync</p>
+          <p className="text-sm font-semibold text-slate-900">
             {calendarConnected ? 'Conectado' : 'Não conectado'}
           </p>
         </div>
       </div>
 
       <div className="mb-6">
-        <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-          <h2 className="text-base font-semibold text-neutral-900">
+        <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+          <h2 className="text-base font-semibold text-slate-900">
             {variant === 'standalone' ? 'Regras de agendamento' : 'Contexto operacional'}
           </h2>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-slate-500">
             {variant === 'standalone'
               ? 'Ajuste buffer, confirmação, janela máxima e outras regras fora do editor semanal.'
               : 'As regras detalhadas ficam logo abaixo, mas estes números já resumem o impacto operacional atual.'}
@@ -368,23 +368,23 @@ export function ProfessionalAvailabilityWorkspace({
           {variant === 'standalone' ? (
             <Link
               href="/configuracoes-agendamento"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:border-neutral-300 hover:text-neutral-900"
+              className="mt-4 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:border-slate-300 hover:text-slate-900"
             >
               Ajustar regras de agendamento
             </Link>
           ) : (
-            <div className="mt-4 space-y-2 rounded-xl border border-neutral-100 bg-neutral-50 p-4 text-sm text-neutral-700">
+            <div className="mt-4 space-y-2 rounded-md border border-slate-200/80 bg-slate-50/70 p-4 text-sm text-slate-700">
               <div className="flex items-center justify-between gap-3">
                 <span>Buffer ativo</span>
-                <strong className="font-semibold text-neutral-900">{bufferMinutes} min</strong>
+                <strong className="font-semibold text-slate-900">{bufferMinutes} min</strong>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span>Janela máxima</span>
-                <strong className="font-semibold text-neutral-900">{maxWindowDays} dias</strong>
+                <strong className="font-semibold text-slate-900">{maxWindowDays} dias</strong>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span>Sync externo</span>
-                <strong className="font-semibold text-neutral-900">
+                <strong className="font-semibold text-slate-900">
                   {calendarConnected ? 'Conectado' : 'Não conectado'}
                 </strong>
               </div>
@@ -399,15 +399,15 @@ export function ProfessionalAvailabilityWorkspace({
         onUpdateTime={updateTime}
       />
 
-      <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-5">
+      <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-5">
         <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-neutral-900">Calendário completo</h2>
-            <p className="mt-1 text-sm text-neutral-500">
+            <h2 className="text-base font-semibold text-slate-900">Calendário completo</h2>
+            <p className="mt-1 text-sm text-slate-500">
               Use esta visão para acompanhar a sua disponibilidade base, sessões já marcadas e ocupações vindas dos calendários conectados.
             </p>
           </div>
-          <div className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+          <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
             Fuso: {calendarTimezone}
           </div>
         </div>
@@ -427,7 +427,7 @@ export function ProfessionalAvailabilityWorkspace({
 
       {/* Error message */}
       {saveStatus === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 mb-4 flex items-center gap-2">
+        <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-600 mb-4 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {errorMessage}
         </div>
@@ -435,7 +435,7 @@ export function ProfessionalAvailabilityWorkspace({
 
       {/* Success message */}
       {saveStatus === 'success' && (
-        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 mb-4 flex items-center gap-2">
+        <div className="bg-green-50 border border-green-200 rounded-md px-4 py-3 text-sm text-green-700 mb-4 flex items-center gap-2">
           <Check className="w-4 h-4 flex-shrink-0" />
           Horas de trabalho salvas com sucesso!
         </div>
@@ -446,7 +446,7 @@ export function ProfessionalAvailabilityWorkspace({
         type="button"
         onClick={handleSave}
         disabled={saveStatus === 'saving' || hasErrors || !professionalId}
-        className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all text-sm"
+        className="w-full flex items-center justify-center gap-2 bg-[#9FE870] hover:bg-[#8ed85f] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-md transition-all text-sm"
       >
         {saveStatus === 'saving' ? (
           <>

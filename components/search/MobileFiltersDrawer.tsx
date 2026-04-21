@@ -155,15 +155,15 @@ export function MobileFiltersDrawer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+        className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
         aria-label="Refinar busca"
         aria-expanded={open}
         aria-controls="mobile-filters-drawer"
       >
-        <SlidersHorizontal className="w-4 h-4 text-brand-500" />
+        <SlidersHorizontal className="w-4 h-4 text-[#9FE870]" />
         Refinar
         {hasActiveFilters ? (
-          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" aria-hidden="true" />
+          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#9FE870]" aria-hidden="true" />
         ) : null}
       </button>
 
@@ -178,20 +178,20 @@ export function MobileFiltersDrawer({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-neutral-900/45"
+            className="absolute inset-0 bg-slate-900/45"
             aria-label="Fechar filtros"
           />
 
-          <div className="absolute right-0 top-0 h-full w-[88%] max-w-sm overflow-y-auto bg-white p-4 shadow-xl">
+          <div className="absolute right-0 top-0 h-full w-[88%] max-w-sm overflow-y-auto bg-white p-4">
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
-                <SlidersHorizontal className="w-4 h-4 text-brand-500" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                <SlidersHorizontal className="w-4 h-4 text-[#9FE870]" />
                 Refinar
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
@@ -200,7 +200,7 @@ export function MobileFiltersDrawer({
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Categoria</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Categoria</label>
                 <select
                   value={state.categoria}
                   onChange={event =>
@@ -211,7 +211,7 @@ export function MobileFiltersDrawer({
                       especialidade: '',
                     })
                   }
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  className="w-full px-3 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
                 >
                   <option value="">Todas as categorias</option>
                   {categoryOptions.map(category => (
@@ -223,7 +223,7 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Subcategoria</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Subcategoria</label>
                 <select
                   value={state.subcategoria}
                   disabled={!state.categoria}
@@ -234,7 +234,7 @@ export function MobileFiltersDrawer({
                       especialidade: '',
                     })
                   }
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  className="w-full px-3 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-800 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
                 >
                   <option value="">
                     {state.categoria ? 'Todas as subcategorias' : 'Selecione uma categoria'}
@@ -248,12 +248,12 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Especialidade</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Especialidade</label>
                 <select
                   value={state.especialidade}
                   disabled={!state.subcategoria}
                   onChange={event => applyState({ ...state, especialidade: event.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  className="w-full px-3 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-800 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
                 >
                   <option value="">
                     {state.subcategoria ? 'Todas as especialidades' : 'Selecione uma subcategoria'}
@@ -266,7 +266,7 @@ export function MobileFiltersDrawer({
                 </select>
               </div>
 
-              <div className="rounded-2xl border border-neutral-200 bg-white px-3 py-2.5">
+              <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
                 <PriceRangeSlider
                   minLimit={0}
                   maxLimit={priceMax}
@@ -289,11 +289,11 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Horário disponível</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Horário disponível</label>
                 <select
                   value={state.horario}
                   onChange={event => applyState({ ...state, horario: event.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  className="w-full px-3 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
                 >
                   {AVAILABILITY_WINDOWS.map(window => (
                     <option key={window.value} value={window.value}>
@@ -304,14 +304,14 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-slate-500 mb-1.5 flex items-center gap-1.5">
                   <Languages className="w-3.5 h-3.5" />
                   Idioma
                 </label>
                 <select
                   value={state.idioma}
                   onChange={event => applyState({ ...state, idioma: event.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  className="w-full px-3 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
                 >
                   <option value="qualquer">Qualquer idioma</option>
                   {languageOptions.map(language => (
@@ -323,11 +323,11 @@ export function MobileFiltersDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">Ordenar</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Ordenar</label>
                 <select
                   value={state.ordenar}
                   onChange={event => applyState({ ...state, ordenar: event.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-500"
+                  className="w-full px-3 py-2.5 rounded-md border border-slate-200 bg-white text-sm text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 focus-visible:border-[#9FE870]"
                 >
                   <option value="relevancia">Relevância</option>
                   <option value="melhor-avaliacao">Melhor avaliação</option>
@@ -340,11 +340,11 @@ export function MobileFiltersDrawer({
               <div className="flex items-center justify-between gap-2 pt-1">
                 <Link
                   href={clearHref}
-                  className="inline-flex items-center rounded-xl bg-neutral-100 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+                  className="inline-flex items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
                 >
                   Limpar filtros
                 </Link>
-                <span className="text-xs text-neutral-400" aria-live="polite">
+                <span className="text-xs text-slate-400" aria-live="polite">
                   {isPending ? 'Atualizando...' : 'Atualização automática'}
                 </span>
               </div>

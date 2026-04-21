@@ -206,31 +206,31 @@ export function ProfessionalCalendarSyncModal({
           : 'Sem conexão'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/45 p-4" role="dialog" aria-modal="true">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[28px] border border-neutral-200 bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" role="dialog" aria-modal="true">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg border border-slate-200 bg-white p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Sync do calendário
             </p>
-            <h2 className="mt-2 font-display text-2xl font-bold text-neutral-950">
+            <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
               Integrações do calendário
             </h2>
-            <p className="mt-2 max-w-2xl text-sm text-neutral-600">
+            <p className="mt-2 max-w-2xl text-sm text-slate-600">
               Conecte Google, Outlook ou Apple para importar ocupações externas e evitar conflitos de agenda.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-neutral-200 p-2 text-neutral-500 transition-all hover:border-neutral-300 hover:text-neutral-800"
+            className="rounded-md border border-slate-200 p-2 text-slate-500 transition-all hover:border-slate-300 hover:text-slate-800"
             aria-label="Fechar"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-4 inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+        <div className="mt-4 inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
           {connectionBadgeLabel}
         </div>
 
@@ -248,10 +248,10 @@ export function ProfessionalCalendarSyncModal({
                   setCalendarProvider(provider)
                   setCalendarSyncError('')
                 }}
-                className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${
+                className={`rounded-md border px-3 py-2 text-sm font-semibold transition-all ${
                   selected
-                    ? 'border-brand-500 bg-brand-500 text-white'
-                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-brand-300 hover:text-brand-700'
+                    ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                 } ${locked ? 'cursor-not-allowed opacity-50' : ''}`}
               >
                 {provider === 'google' ? 'Google' : provider === 'outlook' ? 'Outlook' : 'Apple'}
@@ -261,7 +261,7 @@ export function ProfessionalCalendarSyncModal({
           })}
         </div>
 
-        <div className="mt-5 space-y-2 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4 text-sm text-neutral-700">
+        <div className="mt-5 space-y-2 rounded-lg border border-slate-200/80 bg-slate-50/70 px-4 py-4 text-sm text-slate-700">
           <p>
             Conta conectada: <strong>{calendarProviderAccountEmail || 'nenhuma informada ainda'}</strong>
           </p>
@@ -281,21 +281,21 @@ export function ProfessionalCalendarSyncModal({
               value={appleCaldavUsername}
               onChange={event => setAppleCaldavUsername(event.target.value)}
               placeholder="Apple ID"
-              className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
             />
             <input
               type="password"
               value={appleCaldavPassword}
               onChange={event => setAppleCaldavPassword(event.target.value)}
               placeholder="App-specific password"
-              className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
             />
             <input
               type="url"
               value={appleCaldavServerUrl}
               onChange={event => setAppleCaldavServerUrl(event.target.value)}
               placeholder="Servidor CalDAV (opcional)"
-              className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
             />
           </div>
         ) : null}
@@ -309,7 +309,7 @@ export function ProfessionalCalendarSyncModal({
             type="button"
             onClick={() => void connectCalendarProvider()}
             disabled={calendarSyncState === 'saving'}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-600 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:opacity-60"
           >
             <Link2 className="h-4 w-4" />
             {calendarSyncState === 'saving' ? 'Conectando...' : 'Conectar calendário'}
@@ -318,7 +318,7 @@ export function ProfessionalCalendarSyncModal({
             type="button"
             onClick={() => void runCalendarSyncNow()}
             disabled={calendarSyncState === 'saving' || !calendarConnected}
-            className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-neutral-300 hover:text-neutral-900 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:border-slate-300 hover:text-slate-900 disabled:opacity-60"
           >
             <RefreshCcw className={`h-4 w-4 ${calendarSyncState === 'saving' ? 'animate-spin' : ''}`} />
             Sincronizar agora
@@ -327,7 +327,7 @@ export function ProfessionalCalendarSyncModal({
             type="button"
             onClick={() => void disconnectCalendarProvider()}
             disabled={calendarSyncState === 'saving' || !calendarConnected}
-            className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:border-neutral-300 hover:text-neutral-900 disabled:opacity-60"
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all hover:border-slate-300 hover:text-slate-900 disabled:opacity-60"
           >
             Desconectar
           </button>

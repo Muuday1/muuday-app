@@ -1,4 +1,4 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getDefaultPlanConfigMap } from '@/lib/plan-config'
 import PlanSelector from '@/components/plans/PlanSelector'
 

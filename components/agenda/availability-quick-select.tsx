@@ -8,8 +8,8 @@ interface AvailabilityQuickSelectProps {
 
 export function AvailabilityQuickSelect({ onChange }: AvailabilityQuickSelectProps) {
   return (
-    <div className="mb-6 rounded-2xl border border-neutral-100 bg-white px-5 py-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">Atalhos</p>
+    <div className="mb-6 rounded-lg border border-slate-200/80 bg-white px-5 py-4">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Atalhos</p>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -25,7 +25,7 @@ export function AvailabilityQuickSelect({ onChange }: AvailabilityQuickSelectPro
               return next
             })
           }}
-          className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm text-neutral-600 transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+          className="rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-all hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]"
         >
           Segunda a Sexta
         </button>
@@ -40,14 +40,14 @@ export function AvailabilityQuickSelect({ onChange }: AvailabilityQuickSelectPro
               return next
             })
           }}
-          className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm text-neutral-600 transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+          className="rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-all hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]"
         >
           Todos os dias
         </button>
         <button
           type="button"
           onClick={() => onChange(() => buildDefaultState())}
-          className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm text-neutral-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          className="rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
         >
           Limpar tudo
         </button>

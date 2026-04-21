@@ -59,26 +59,26 @@ export function AvailabilityStage({
 }: AvailabilityStageProps) {
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4">
+      <div className="rounded-md border border-[#9FE870]/20 bg-[#9FE870]/8/60 p-4">
         <div className="flex flex-col gap-3">
           <div className="max-w-2xl">
-            <h3 className="text-sm font-semibold text-neutral-900">Defina aqui só os seus horários de trabalho</h3>
-            <p className="mt-1 text-sm text-neutral-700">
+            <h3 className="text-sm font-semibold text-slate-900">Defina aqui só os seus horários de trabalho</h3>
+            <p className="mt-1 text-sm text-slate-700">
               Nesta etapa você configura a disponibilidade recorrente da semana. Esses horários representam quando você aceita atender pela Muuday.
             </p>
-            <p className="mt-2 text-xs text-neutral-600">
+            <p className="mt-2 text-xs text-slate-600">
               Bloqueios pontuais, integrações e regras avançadas ficam nas páginas de Calendário e Configurações.
             </p>
           </div>
         </div>
-        <div className="mt-3 rounded-lg border border-neutral-200 bg-white/90 px-3 py-2 text-xs text-neutral-700">
+        <div className="mt-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 text-xs text-slate-700">
           Fuso configurado do perfil: <strong>{profileTimezone}</strong>. A agenda aplica esse fuso automaticamente, incluindo horário de verão/inverno quando aplicável.
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <h4 className="text-sm font-semibold text-neutral-900">Horas de trabalho por dia</h4>
-        <p className="mt-1 text-xs text-neutral-500">
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <h4 className="text-sm font-semibold text-slate-900">Horas de trabalho por dia</h4>
+        <p className="mt-1 text-xs text-slate-500">
           Ative apenas os dias em que você costuma atender. Você poderá bloquear exceções e indisponibilidades no calendário completo.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-2.5">
@@ -88,12 +88,12 @@ export function AvailabilityStage({
             return (
               <div
                 key={day.value}
-                className={`rounded-xl border px-3 py-3 ${
-                  isActive ? 'border-brand-200 bg-brand-50/30' : 'border-neutral-200 bg-neutral-50'
+                className={`rounded-md border px-3 py-3 ${
+                  isActive ? 'border-[#9FE870]/30 bg-[#9FE870]/8/30' : 'border-slate-200 bg-slate-50/70'
                 }`}
               >
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,180px)_1fr] md:items-center">
-                  <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
+                  <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-800">
                     <input
                       type="checkbox"
                       checked={Boolean(isActive)}
@@ -106,7 +106,7 @@ export function AvailabilityStage({
                           },
                         }))
                       }
-                      className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                      className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
                     />
                     {day.label}
                   </label>
@@ -123,7 +123,7 @@ export function AvailabilityStage({
                           },
                         }))
                       }
-                      className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {TIME_OPTIONS.map(option => (
                         <option key={`start-${day.value}-${option}`} value={option}>
@@ -143,7 +143,7 @@ export function AvailabilityStage({
                           },
                         }))
                       }
-                      className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {TIME_OPTIONS.map(option => (
                         <option key={`end-${day.value}-${option}`} value={option}>
@@ -159,11 +159,11 @@ export function AvailabilityStage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
-        <h4 className="text-sm font-semibold text-neutral-900">Regras básicas de agendamento</h4>
+      <div className="rounded-md border border-slate-200 bg-white p-3.5">
+        <h4 className="text-sm font-semibold text-slate-900">Regras básicas de agendamento</h4>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Antecedência mínima (horas)</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Antecedência mínima (horas)</label>
             <input
               type="number"
               min={Number(minNoticeRange.min)}
@@ -180,15 +180,15 @@ export function AvailabilityStage({
                   ),
                 )
               }
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
-            <p className="mt-1 text-[11px] text-neutral-500">
+            <p className="mt-1 text-[11px] text-slate-500">
               Tempo mínimo entre a solicitação e a sessão (ex.: 24h = pedido com 1 dia de antecedência).
             </p>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Janela máxima (dias)</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Janela máxima (dias)</label>
             <input
               type="number"
               min={1}
@@ -199,15 +199,15 @@ export function AvailabilityStage({
                   Math.min(Number(tierLimits.bookingWindowDays), Math.max(1, Number(event.target.value || 1))),
                 )
               }
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
-            <p className="mt-1 text-[11px] text-neutral-500">
+            <p className="mt-1 text-[11px] text-slate-500">
               Limite do plano atual: ate {tierLimits.bookingWindowDays} dias.
             </p>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Buffer entre sessões (min)</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Buffer entre sessões (min)</label>
             <input
               type="number"
               min={0}
@@ -217,20 +217,20 @@ export function AvailabilityStage({
                 const next = Math.max(0, Number(event.target.value || 0))
                 setBufferMinutes(Math.min(maxBufferMinutes, next))
               }}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
-            <p className="mt-1 text-[11px] text-neutral-500">
+            <p className="mt-1 text-[11px] text-slate-500">
               Limite atual: {maxBufferMinutes} minutos.
             </p>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-700">Modo de confirmação</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Modo de confirmação</label>
             <select
               value={isBasicTier ? 'auto_accept' : confirmationMode}
               disabled={isBasicTier}
               onChange={event => setConfirmationMode(event.target.value === 'manual' ? 'manual' : 'auto_accept')}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
             >
               <option value="auto_accept">Auto-aceite</option>
               <option value="manual">Confirmação manual</option>
@@ -242,30 +242,30 @@ export function AvailabilityStage({
             ) : null}
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={enableRecurring}
               onChange={event => setEnableRecurring(event.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
             />
             Permitir recorrência
           </label>
-          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={allowMultiSession}
               onChange={event => setAllowMultiSession(event.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
             />
             Permitir múltiplas sessões
           </label>
-          <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={requireSessionPurpose}
               onChange={event => setRequireSessionPurpose(event.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
             />
             Exigir objetivo da sessão
           </label>
@@ -278,7 +278,7 @@ export function AvailabilityStage({
         type="button"
         onClick={() => void saveAvailabilityCalendar()}
         disabled={availabilitySaveState === 'saving'}
-        className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+        className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8ed85f] disabled:opacity-60"
       >
         {availabilitySaveState === 'saving'
           ? 'Salvando...'

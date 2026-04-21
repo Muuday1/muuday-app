@@ -1,12 +1,14 @@
 export const metadata = { title: 'Notificações | Muuday' }
 
 import Link from 'next/link'
-import { Bell, CheckCheck, Clock, ArrowRight } from 'lucide-react'
+import { Bell, Clock, ArrowRight } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { getNotifications } from '@/lib/actions/notifications'
 import { NotificationMarkReadButton } from '@/components/notifications/NotificationMarkReadButton'
 import { MarkAllReadButton } from '@/components/notifications/MarkAllReadButton'
+import { AppEmptyState } from '@/components/ui/AppEmptyState'
+import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
 export default async function NotificacoesPage({
   searchParams,
@@ -22,60 +24,56 @@ export default async function NotificacoesPage({
   const notifications = result.success ? result.data.notifications : []
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8 md:py-8">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-neutral-900 md:text-3xl">Notificações</h1>
-          <p className="mt-1 text-sm text-neutral-500">Acompanhe atualizações da sua conta e sessões.</p>
-        </div>
+    <PageContainer maxWidth="md">
+      <PageHeader title="Notificações" subtitle="Acompanhe atualizações da sua conta e sessões.">
         <div className="flex items-center gap-2">
           <Link
             href="/notificacoes"
-            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+            className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
               unreadOnly !== '1'
-                ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand-300'
+                ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40'
             }`}
           >
             Todas
           </Link>
           <Link
             href="/notificacoes?unreadOnly=1"
-            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+            className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
               unreadOnly === '1'
-                ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand-300'
+                ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40'
             }`}
           >
             Não lidas
           </Link>
           <MarkAllReadButton />
         </div>
-      </div>
+      </PageHeader>
 
       {notifications.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-100 bg-white p-12 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-50">
-            <Bell className="h-7 w-7 text-neutral-300" />
-          </div>
-          <p className="font-semibold text-neutral-900">Nenhuma notificação</p>
-          <p className="mt-1 text-sm text-neutral-500">
-            {unreadOnly === '1' ? 'Você leu todas as notificações.' : 'Novas notificações aparecerão aqui.'}
-          </p>
-        </div>
+        <AppEmptyState
+          icon={Bell}
+          title="Nenhuma notificação"
+          description={
+            unreadOnly === '1'
+              ? 'Você leu todas as notificações.'
+              : 'Novas notificações aparecerão aqui.'
+          }
+        />
       ) : (
         <div className="space-y-2">
           {notifications.map((n: any) => (
             <div
               key={n.id}
-              className={`flex items-start gap-4 rounded-2xl border p-4 transition ${
+              className={`flex items-start gap-4 rounded-lg border p-4 transition ${
                 n.read_at
-                  ? 'border-neutral-100 bg-white/60 opacity-70'
-                  : 'border-neutral-100 bg-white shadow-sm'
+                  ? 'border-slate-200/80 bg-white/60 opacity-70'
+                  : 'border-slate-200/80 bg-white'
               }`}
             >
               <div
-                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md ${
                   n.type === 'booking_confirmed'
                     ? 'bg-green-50 text-green-600'
                     : n.type === 'booking_cancelled'
@@ -83,17 +81,17 @@ export default async function NotificacoesPage({
                       : n.type === 'reminder'
                         ? 'bg-amber-50 text-amber-600'
                         : n.type === 'message'
-                          ? 'bg-brand-50 text-brand-600'
-                          : 'bg-neutral-50 text-neutral-500'
+                          ? 'bg-[#9FE870]/8 text-[#3d6b1f]'
+                          : 'bg-slate-50/70 text-slate-500'
                 }`}
               >
                 <Bell className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-neutral-900">{n.title}</p>
-                <p className="mt-0.5 text-sm text-neutral-600">{n.body}</p>
+                <p className="text-sm font-medium text-slate-900">{n.title}</p>
+                <p className="mt-0.5 text-sm text-slate-600">{n.body}</p>
                 <div className="mt-2 flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-xs text-neutral-400">
+                  <span className="flex items-center gap-1 text-xs text-slate-400">
                     <Clock className="h-3 w-3" />
                     {formatInTimeZone(new Date(n.created_at), 'America/Sao_Paulo', 'd MMM yyyy HH:mm', {
                       locale: ptBR,
@@ -102,7 +100,7 @@ export default async function NotificacoesPage({
                   {n.action_url && (
                     <Link
                       href={n.action_url}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]"
                     >
                       Abrir
                       <ArrowRight className="h-3 w-3" />
@@ -115,6 +113,6 @@ export default async function NotificacoesPage({
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

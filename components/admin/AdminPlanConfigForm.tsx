@@ -37,7 +37,7 @@ function numberInput(
   value: number,
   onChange: (next: number) => void,
   min = 0,
-  className = 'w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900',
+  className = 'w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900',
 ) {
   return (
     <input
@@ -90,20 +90,20 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
         <div>
           <Link
             href="/admin"
-            className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-700"
+            className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700"
           >
             <ChevronLeft className="h-4 w-4" />
             Voltar ao admin
           </Link>
-          <h1 className="font-display text-2xl font-bold text-neutral-900">Admin &gt; Planos</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="font-display text-2xl font-bold text-slate-900">Admin &gt; Planos</h1>
+          <p className="text-sm text-slate-500">
             Ajuste limites e recursos por tier sem alterar código.
           </p>
         </div>
         <button
           onClick={handleSave}
           disabled={saveState === 'saving'}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {saveState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {saveState === 'saved' ? 'Salvo' : saveState === 'saving' ? 'Salvando...' : 'Salvar'}
@@ -111,7 +111,7 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
       </div>
 
       {errorMessage ? (
-        <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
         </p>
       ) : null}
@@ -121,10 +121,10 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
           <button
             key={tier.key}
             onClick={() => setActiveTier(tier.key)}
-            className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+            className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
               activeTier === tier.key
-                ? 'bg-brand-500 text-white'
-                : 'border border-neutral-200 bg-white text-neutral-600 hover:border-brand-300 hover:text-brand-700'
+                ? 'bg-[#9FE870] text-white'
+                : 'border border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
             }`}
           >
             {tier.label}
@@ -132,47 +132,47 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
         ))}
       </div>
 
-      <div className="rounded-2xl border border-neutral-100 bg-white p-5">
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Configuração do plano {TIERS.find(t => t.key === activeTier)?.label}</h2>
+      <div className="rounded-lg border border-slate-200/80 bg-white p-5">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Configuração do plano {TIERS.find(t => t.key === activeTier)?.label}</h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Serviços ativos
             <div className="mt-1">
               {numberInput(tierConfig.limits.services, next => updateTier(d => { d.limits.services = Math.max(0, Math.floor(next)) }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Tags de foco
             <div className="mt-1">
               {numberInput(tierConfig.limits.tags, next => updateTier(d => { d.limits.tags = Math.max(0, Math.floor(next)) }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Especialidades
             <div className="mt-1">
               {numberInput(tierConfig.limits.specialties, next => updateTier(d => { d.limits.specialties = Math.max(0, Math.floor(next)) }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Opções por serviço
             <div className="mt-1">
               {numberInput(tierConfig.limits.serviceOptionsPerService, next => updateTier(d => { d.limits.serviceOptionsPerService = Math.max(0, Math.floor(next)) }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Janela máxima (dias)
             <div className="mt-1">
               {numberInput(tierConfig.limits.bookingWindowDays, next => updateTier(d => { d.limits.bookingWindowDays = Math.max(1, Math.floor(next)) }), 1)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Limite de links sociais
             <div className="mt-1">
               {numberInput(tierConfig.socialLinksLimit, next => updateTier(d => { d.socialLinksLimit = Math.max(0, Math.floor(next)) }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Bio estendida (caracteres)
             <div className="mt-1">
               {numberInput(tierConfig.extendedBioLimit, next => updateTier(d => { d.extendedBioLimit = Math.max(0, Math.floor(next)) }), 0)}
@@ -181,7 +181,7 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Antecedência mínima (h)
             <div className="mt-1">
               {numberInput(tierConfig.minNoticeRange.min, next => updateTier(d => {
@@ -190,13 +190,13 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
               }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Antecedência máxima (h)
             <div className="mt-1">
               {numberInput(tierConfig.minNoticeRange.max, next => updateTier(d => { d.minNoticeRange.max = Math.max(d.minNoticeRange.min, Math.floor(next)) }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Buffer máximo (min)
             <div className="mt-1">
               {numberInput(tierConfig.bufferConfig.maxMinutes, next => updateTier(d => {
@@ -204,7 +204,7 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
               }), 0)}
             </div>
           </label>
-          <label className="text-sm text-neutral-700">
+          <label className="text-sm text-slate-700">
             Buffer padrão (min)
             <div className="mt-1">
               {numberInput(tierConfig.bufferConfig.defaultMinutes, next => updateTier(d => {
@@ -213,22 +213,22 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
               }), 0)}
             </div>
           </label>
-          <label className="mt-6 inline-flex items-center gap-2 text-sm text-neutral-700">
+          <label className="mt-6 inline-flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={tierConfig.bufferConfig.configurable}
               onChange={event => updateTier(d => { d.bufferConfig.configurable = event.target.checked })}
-              className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500/30"
+              className="h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/30"
             />
             Buffer configurável pelo profissional
           </label>
         </div>
 
         <div className="mt-6">
-          <p className="mb-2 text-sm font-medium text-neutral-700">Recursos habilitados</p>
+          <p className="mb-2 text-sm font-medium text-slate-700">Recursos habilitados</p>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {FEATURE_OPTIONS.map(feature => (
-              <label key={feature.key} className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700">
+              <label key={feature.key} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
                 <input
                   type="checkbox"
                   checked={tierConfig.features.includes(feature.key)}
@@ -241,7 +241,7 @@ export function AdminPlanConfigForm({ initialPlans }: AdminPlanConfigFormProps) 
                       }
                     })
                   }
-                  className="h-4 w-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500/30"
+                  className="h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/30"
                 />
                 {feature.label}
               </label>

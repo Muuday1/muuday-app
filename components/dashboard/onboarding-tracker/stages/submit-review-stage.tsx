@@ -44,10 +44,10 @@ export function SubmitReviewStage({
   const acceptedCount = Object.values(hasAcceptedTerms).filter(Boolean).length
 
   return (
-    <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="space-y-4 rounded-md border border-slate-200 bg-white p-4">
       <div>
-        <h3 className="text-base font-semibold text-neutral-900">Pronto para enviar seu perfil?</h3>
-        <p className="mt-1 text-sm text-neutral-700">
+        <h3 className="text-base font-semibold text-slate-900">Pronto para enviar seu perfil?</h3>
+        <p className="mt-1 text-sm text-slate-700">
           Revise as pendências abaixo, aceite os termos obrigatórios e envie o perfil para análise sem sair do tracker.
         </p>
       </div>
@@ -58,7 +58,7 @@ export function SubmitReviewStage({
           .map(item => (
             <div
               key={item.id}
-              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900"
+              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900"
             >
               <p className="font-semibold">{item.label}</p>
               <p className="mt-1 text-xs">{item.blocker?.title || 'Ainda pendente.'}</p>
@@ -72,11 +72,11 @@ export function SubmitReviewStage({
         </p>
       ) : null}
 
-      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+      <div className="rounded-md border border-slate-200 bg-slate-50/70 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h4 className="text-sm font-semibold text-neutral-900">Termos obrigatórios</h4>
-            <p className="mt-1 text-xs text-neutral-600">
+            <h4 className="text-sm font-semibold text-slate-900">Termos obrigatórios</h4>
+            <p className="mt-1 text-xs text-slate-600">
               {!termsHydrated
                 ? 'Carregando o estado de aceite dos termos...'
                 : pendingTerms.length > 0
@@ -84,28 +84,28 @@ export function SubmitReviewStage({
                   : 'Todos os termos obrigatórios desta versão já foram aceitos.'}
             </p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
             {termsHydrated ? `${acceptedCount}/${TERMS_KEYS.length} aceitos` : '...'}
           </span>
         </div>
 
         {!termsHydrated ? (
-          <p className="mt-3 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
+          <p className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
             Validando aceites existentes...
           </p>
         ) : pendingTerms.length > 0 ? (
           <div className="mt-3 space-y-2">
             {pendingTerms.map(term => (
-              <div key={term.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div key={term.key} className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">{term.shortLabel}</p>
-                  <p className="mt-1 text-xs text-neutral-600">{term.acceptanceLabel}</p>
+                  <p className="text-sm font-semibold text-slate-900">{term.shortLabel}</p>
+                  <p className="mt-1 text-xs text-slate-600">{term.acceptanceLabel}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void onOpenTerm(term.key)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]"
                   >
                     Ler e aceitar
                     <ArrowRight className="h-3 w-3" />
@@ -145,7 +145,7 @@ export function SubmitReviewStage({
           type="button"
           onClick={() => void onSubmitForReview()}
           disabled={submitReviewState === 'saving'}
-          className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitReviewState === 'saving' ? 'Enviando...' : 'Enviar para análise'}
         </button>

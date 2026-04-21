@@ -101,7 +101,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
           Nota geral (opcional)
         </span>
         <textarea
@@ -109,20 +109,20 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
           onChange={event => setNotes(event.target.value)}
           rows={4}
           maxLength={1200}
-          className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+          className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
           placeholder="Resumo geral para o profissional (opcional)."
         />
       </label>
 
-      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-600">Checklist de ajustes</p>
-        <p className="mt-1 text-xs text-neutral-500">
+      <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Checklist de ajustes</p>
+        <p className="mt-1 text-xs text-slate-500">
           Para solicitar ajustes ou rejeitar com retorno estruturado, marque os itens necessários e descreva cada ponto.
         </p>
         <div className="mt-3 space-y-3">
           {groupedFields.map(([stageId, fields]) => (
-            <div key={stageId} className="rounded-lg border border-neutral-200 bg-white p-3">
-              <p className="text-xs font-semibold text-neutral-700">
+            <div key={stageId} className="rounded-lg border border-slate-200 bg-white p-3">
+              <p className="text-xs font-semibold text-slate-700">
                 {REVIEW_ADJUSTMENT_STAGE_LABELS[stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] ||
                   stageId}
               </p>
@@ -133,15 +133,15 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
                     null
                   if (!draft) return null
                   return (
-                    <div key={`${field.stageId}:${field.fieldKey}`} className="rounded-lg border border-neutral-200 p-2">
-                      <label className="flex items-center gap-2 text-sm font-medium text-neutral-800">
+                    <div key={`${field.stageId}:${field.fieldKey}`} className="rounded-lg border border-slate-200 p-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
                         <input
                           type="checkbox"
                           checked={draft.selected}
                           onChange={event =>
                             updateDraft(field.stageId, field.fieldKey, { selected: event.target.checked })
                           }
-                          className="h-4 w-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
+                          className="h-4 w-4 rounded border-slate-300 text-[#3d6b1f] focus:ring-[#9FE870]"
                         />
                         {field.label}
                       </label>
@@ -154,7 +154,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
                             }
                             rows={2}
                             maxLength={600}
-                            className="w-full rounded-lg border border-neutral-200 px-2.5 py-2 text-xs text-neutral-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-300"
+                            className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
                             placeholder="Descreva exatamente o ajuste necessário."
                           />
                           <select
@@ -164,7 +164,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
                                 severity: event.target.value as DraftAdjustment['severity'],
                               })
                             }
-                            className="w-full rounded-lg border border-neutral-200 px-2.5 py-2 text-xs text-neutral-700"
+                            className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs text-slate-700"
                           >
                             <option value="low">Baixa prioridade</option>
                             <option value="medium">Média prioridade</option>
@@ -189,7 +189,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
         type="button"
         onClick={() => void submitDecision('approved')}
         disabled={Boolean(submitting)}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
       >
         Aprovar
       </button>
@@ -197,7 +197,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
         type="button"
         onClick={() => void submitDecision('needs_changes')}
         disabled={Boolean(submitting)}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60"
       >
         Solicitar ajustes
       </button>
@@ -205,7 +205,7 @@ export function AdminReviewDecisionForm({ professionalId, defaultNotes }: Props)
         type="button"
         onClick={() => void submitDecision('rejected')}
         disabled={Boolean(submitting)}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
       >
         Rejeitar
       </button>

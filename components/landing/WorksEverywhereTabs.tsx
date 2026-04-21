@@ -43,7 +43,7 @@ export function WorksEverywhereTabs() {
   const tab = TABS.find((t) => t.key === active)!
 
   return (
-    <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+    <div className="mt-10 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
       {/* Tabs */}
       <div className="flex gap-0 overflow-x-auto border-b border-slate-200">
         {TABS.map((t) => (
@@ -71,7 +71,7 @@ export function WorksEverywhereTabs() {
         </div>
         <div className="space-y-3">
           {tab.features.map((feat) => (
-            <div key={feat} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div key={feat} className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3">
               <CheckCircle className="h-5 w-5 shrink-0 text-[#9FE870]" />
               <span className="text-sm font-medium text-slate-700">{feat}</span>
             </div>

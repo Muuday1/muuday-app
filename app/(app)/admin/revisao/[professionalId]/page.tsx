@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Revisão de profissional | Muuday' }
+export const metadata = { title: 'Revisão de profissional | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -47,8 +47,8 @@ export default async function AdminReviewProfessionalPage({
   if (!professional) {
     return (
       <div className="mx-auto max-w-4xl p-6 md:p-8">
-        <h1 className="text-xl font-bold text-neutral-900">Profissional não encontrado</h1>
-        <p className="mt-2 text-sm text-neutral-600">Verifique o identificador e tente novamente.</p>
+        <h1 className="text-xl font-bold text-slate-900">Profissional não encontrado</h1>
+        <p className="mt-2 text-sm text-slate-600">Verifique o identificador e tente novamente.</p>
       </div>
     )
   }
@@ -95,12 +95,12 @@ export default async function AdminReviewProfessionalPage({
     <div className="mx-auto max-w-6xl p-6 md:p-8">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-neutral-900">Revisão de perfil profissional</h1>
-          <p className="mt-1 text-sm text-neutral-500">Ações: Aprovar, Rejeitar ou Solicitar ajustes.</p>
+          <h1 className="font-display text-2xl font-bold text-slate-900">Revisão de perfil profissional</h1>
+          <p className="mt-1 text-sm text-slate-500">Ações: Aprovar, Rejeitar ou Solicitar ajustes.</p>
         </div>
         <Link
           href="/admin"
-          className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+          className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
         >
           Voltar para Admin
         </Link>
@@ -108,7 +108,7 @@ export default async function AdminReviewProfessionalPage({
 
       {result ? (
         <div
-          className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+          className={`mb-4 rounded-md border px-4 py-3 text-sm ${
             result.ok ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
           }`}
         >
@@ -118,10 +118,10 @@ export default async function AdminReviewProfessionalPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="space-y-4 lg:col-span-2">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
             <div className="mb-3 flex items-center gap-2">
-              <CircleAlert className="h-4 w-4 text-brand-500" />
-              <h2 className="font-semibold text-neutral-900">Resumo</h2>
+              <CircleAlert className="h-4 w-4 text-[#9FE870]" />
+              <h2 className="font-semibold text-slate-900">Resumo</h2>
             </div>
             <AdminProfessionalIdentityBadge
               fullName={owner?.full_name}
@@ -130,23 +130,23 @@ export default async function AdminReviewProfessionalPage({
               subtitle={`Preço base: ${visibleBasePrice > 0 ? `R$ ${visibleBasePrice.toFixed(2)}` : 'Não definido'}`}
               size="md"
             />
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="mt-1 text-sm text-slate-600">
               Status atual: <strong>{String(professional.status || 'draft')}</strong> • Tier selecionado:{' '}
               <strong>{String(professional.tier || 'basic')}</strong>
             </p>
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="mt-1 text-sm text-slate-600">
               Categoria: <strong>{String(professional.category || '-')}</strong>
             </p>
           </div>
 
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-            <h2 className="mb-3 font-semibold text-neutral-900">Perfil público</h2>
-            <p className="text-sm text-neutral-700">{professional.bio || 'Sem bio informada.'}</p>
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 font-semibold text-slate-900">Perfil público</h2>
+            <p className="text-sm text-slate-700">{professional.bio || 'Sem bio informada.'}</p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <p className="text-xs text-neutral-500">WhatsApp: {professional.whatsapp_number || '-'}</p>
-              <p className="text-xs text-neutral-500">Cover: {professional.cover_photo_url ? 'Sim' : 'Não'}</p>
-              <p className="text-xs text-neutral-500">Vídeo intro: {professional.video_intro_url ? 'Sim' : 'Não'}</p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-slate-500">WhatsApp: {professional.whatsapp_number || '-'}</p>
+              <p className="text-xs text-slate-500">Cover: {professional.cover_photo_url ? 'Sim' : 'Não'}</p>
+              <p className="text-xs text-slate-500">Vídeo intro: {professional.video_intro_url ? 'Sim' : 'Não'}</p>
+              <p className="text-xs text-slate-500">
                 Links sociais:{' '}
                 {professional.social_links && typeof professional.social_links === 'object'
                   ? Object.keys(professional.social_links as Record<string, string>).length
@@ -156,27 +156,27 @@ export default async function AdminReviewProfessionalPage({
           </div>
 
           {application ? (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <h2 className="mb-3 font-semibold text-neutral-900">Dados estruturados do cadastro</h2>
+            <div className="rounded-lg border border-slate-200 bg-white p-5">
+              <h2 className="mb-3 font-semibold text-slate-900">Dados estruturados do cadastro</h2>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <p className="text-xs text-neutral-600">Headline: {application.headline || '-'}</p>
-                <p className="text-xs text-neutral-600">Categoria: {application.category || '-'}</p>
-                <p className="text-xs text-neutral-600">Especialidade: {application.specialty_name || '-'}</p>
-                <p className="text-xs text-neutral-600">Idioma principal: {application.primary_language || '-'}</p>
+                <p className="text-xs text-slate-600">Headline: {application.headline || '-'}</p>
+                <p className="text-xs text-slate-600">Categoria: {application.category || '-'}</p>
+                <p className="text-xs text-slate-600">Especialidade: {application.specialty_name || '-'}</p>
+                <p className="text-xs text-slate-600">Idioma principal: {application.primary_language || '-'}</p>
               </div>
-              <p className="mt-2 text-xs text-neutral-600">
+              <p className="mt-2 text-xs text-slate-600">
                 Público atendido:{' '}
                 {Array.isArray(application.target_audiences) && application.target_audiences.length > 0
                   ? application.target_audiences.join(', ')
                   : '-'}
               </p>
-              <p className="mt-1 text-xs text-neutral-600">
+              <p className="mt-1 text-xs text-slate-600">
                 Idiomas secundários:{' '}
                 {Array.isArray(application.secondary_languages) && application.secondary_languages.length > 0
                   ? application.secondary_languages.join(', ')
                   : '-'}
               </p>
-              <p className="mt-1 text-xs text-neutral-600">
+              <p className="mt-1 text-xs text-slate-600">
                 Outros idiomas:{' '}
                 {Array.isArray(application.other_languages) && application.other_languages.length > 0
                   ? application.other_languages.join(', ')
@@ -185,39 +185,39 @@ export default async function AdminReviewProfessionalPage({
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-            <h2 className="mb-3 font-semibold text-neutral-900">Serviços</h2>
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 font-semibold text-slate-900">Serviços</h2>
             {!services || services.length === 0 ? (
-              <p className="text-sm text-neutral-500">Nenhum serviço cadastrado.</p>
+              <p className="text-sm text-slate-500">Nenhum serviço cadastrado.</p>
             ) : (
               <div className="space-y-2">
                 {services.map(service => (
-                  <div key={`${service.name}-${service.duration_minutes}`} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
-                    <p className="text-sm font-semibold text-neutral-800">{service.name}</p>
-                    <p className="mt-1 text-xs text-neutral-500">
+                  <div key={`${service.name}-${service.duration_minutes}`} className="rounded-md border border-slate-200/80 bg-slate-50/70 p-3">
+                    <p className="text-sm font-semibold text-slate-800">{service.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">
                       {service.duration_minutes || 60} min • R$ {Number(service.price_brl || 0).toFixed(2)} •{' '}
                       {service.is_active ? 'Ativo' : 'Inativo'}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-600">{service.description || 'Sem descrição.'}</p>
+                    <p className="mt-1 text-xs text-slate-600">{service.description || 'Sem descrição.'}</p>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
             <div className="mb-3 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-brand-500" />
-              <h2 className="font-semibold text-neutral-900">Credenciais enviadas</h2>
+              <FileText className="h-4 w-4 text-[#9FE870]" />
+              <h2 className="font-semibold text-slate-900">Credenciais enviadas</h2>
             </div>
             {!credentials || credentials.length === 0 ? (
-              <p className="text-sm text-neutral-500">Sem credenciais anexadas.</p>
+              <p className="text-sm text-slate-500">Sem credenciais anexadas.</p>
             ) : (
               <ul className="space-y-2">
                 {credentials.map(item => (
-                  <li key={item.id} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+                  <li key={item.id} className="rounded-md border border-slate-200/80 bg-slate-50/70 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-neutral-800">
+                      <p className="text-sm font-medium text-slate-800">
                         {item.file_name || item.credential_type || 'Documento'}
                       </p>
                       <div className="flex items-center gap-1">
@@ -234,18 +234,18 @@ export default async function AdminReviewProfessionalPage({
                               ? 'bg-green-50 text-green-700'
                               : item.scan_status === 'rejected'
                                 ? 'bg-red-50 text-red-700'
-                                : 'bg-neutral-100 text-neutral-700'
+                                : 'bg-slate-100 text-slate-700'
                           }`}
                         >
                           {item.scan_status || 'pending_scan'}
                         </span>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 text-xs text-slate-500">
                       Enviado em {new Date(item.uploaded_at || professional.created_at).toLocaleString('pt-BR')}
                     </p>
                     {item.scan_checked_at ? (
-                      <p className="mt-1 text-xs text-neutral-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Scan em {new Date(item.scan_checked_at).toLocaleString('pt-BR')}
                       </p>
                     ) : null}
@@ -253,7 +253,7 @@ export default async function AdminReviewProfessionalPage({
                       href={`/api/professional/credentials/download/${item.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-flex text-xs font-semibold text-brand-700 hover:text-brand-800"
+                      className="mt-2 inline-flex text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]"
                     >
                       Abrir arquivo
                     </a>
@@ -263,20 +263,20 @@ export default async function AdminReviewProfessionalPage({
             )}
           </div>
 
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
             <div className="mb-3 flex items-center gap-2">
-              <CircleAlert className="h-4 w-4 text-brand-500" />
-              <h2 className="font-semibold text-neutral-900">Análise semi-automática (flags)</h2>
+              <CircleAlert className="h-4 w-4 text-[#9FE870]" />
+              <h2 className="font-semibold text-slate-900">Análise semi-automática (flags)</h2>
             </div>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-slate-500">
               Esta análise gera alertas para suporte da decisão do admin. Não reprova automaticamente.
             </p>
-            <p className="mt-2 text-xs text-neutral-600">
+            <p className="mt-2 text-xs text-slate-600">
               Total: <strong>{semiAuto.summary.total}</strong> • Alto: <strong>{semiAuto.summary.high}</strong> • Médio:{' '}
               <strong>{semiAuto.summary.medium}</strong> • Baixo: <strong>{semiAuto.summary.low}</strong>
             </p>
             {semiAuto.flags.length === 0 ? (
-              <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+              <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
                 Nenhuma inconsistência automática encontrada nesta revisão.
               </p>
             ) : (
@@ -284,12 +284,12 @@ export default async function AdminReviewProfessionalPage({
                 {semiAuto.flags.map(flag => (
                   <li
                     key={flag.code}
-                    className={`rounded-xl border px-3 py-2 text-xs ${
+                    className={`rounded-md border px-3 py-2 text-xs ${
                       flag.severity === 'high'
                         ? 'border-red-200 bg-red-50 text-red-700'
                         : flag.severity === 'medium'
                           ? 'border-amber-200 bg-amber-50 text-amber-700'
-                          : 'border-neutral-200 bg-neutral-50 text-neutral-700'
+                          : 'border-slate-200 bg-slate-50/70 text-slate-700'
                     }`}
                   >
                     <span className="font-semibold uppercase">{flag.severity}</span> • {flag.message}
@@ -304,8 +304,8 @@ export default async function AdminReviewProfessionalPage({
           {isMissingStructuredAdjustments ? (
             <AdminReviewRepairButton professionalId={professional.id} />
           ) : null}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-            <h2 className="mb-3 font-semibold text-neutral-900">Decisão de revisão</h2>
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 font-semibold text-slate-900">Decisão de revisão</h2>
             <AdminReviewDecisionForm
               professionalId={professional.id}
               defaultNotes={String(professional.admin_review_notes || '')}

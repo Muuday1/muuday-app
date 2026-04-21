@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Agenda | Muuday' }
+export const metadata = { title: 'Agenda | Muuday' }
 
 import Link from 'next/link'
 import {
@@ -52,8 +52,8 @@ function normalizeInboxFilter(rawFilter: string | undefined): InboxFilter {
 
 function viewLinkClass(activeView: AgendaView, currentView: AgendaView) {
   return activeView === currentView
-    ? 'bg-brand-500 text-white border-brand-500'
-    : 'bg-white text-neutral-600 border-neutral-200 hover:border-brand-300 hover:text-brand-700'
+    ? 'bg-[#9FE870] text-white border-[#9FE870]'
+    : 'bg-white text-slate-600 border-slate-200 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
 }
 
 function getConfirmationDeadline(booking: Record<string, any>): Date | null {
@@ -78,13 +78,13 @@ function getSlaLabel(deadline: Date): string {
 
 function getRequestStatusUi(status: string) {
   const map: Record<string, { label: string; className: string }> = {
-    open: { label: 'Aberta', className: 'bg-neutral-100 text-neutral-700' },
+    open: { label: 'Aberta', className: 'bg-slate-100 text-slate-700' },
     offered: { label: 'Proposta enviada', className: 'bg-amber-50 text-amber-700' },
     accepted: { label: 'Aceita', className: 'bg-green-50 text-green-700' },
     converted: { label: 'Convertida', className: 'bg-green-50 text-green-700' },
     declined: { label: 'Recusada', className: 'bg-red-50 text-red-700' },
-    expired: { label: 'Expirada', className: 'bg-neutral-100 text-neutral-500' },
-    cancelled: { label: 'Cancelada', className: 'bg-neutral-100 text-neutral-500' },
+    expired: { label: 'Expirada', className: 'bg-slate-100 text-slate-500' },
+    cancelled: { label: 'Cancelada', className: 'bg-slate-100 text-slate-500' },
   }
   return map[status] || map.open
 }
@@ -445,8 +445,8 @@ export default async function AgendaPage({
   return (
     <div className="mx-auto max-w-5xl p-6 md:p-8">
       <div className="mb-8">
-        <h1 className="mb-1 text-3xl font-bold text-neutral-900 font-display">Agenda</h1>
-        <p className="text-neutral-500">
+        <h1 className="mb-1 text-3xl font-bold text-slate-900 font-display">Agenda</h1>
+        <p className="text-slate-500">
           {isProfessional ? 'Control center das suas sessoes e solicitacoes.' : 'Suas sessoes agendadas'}
         </p>
       </div>
@@ -454,78 +454,78 @@ export default async function AgendaPage({
       {isProfessional && (
         <section className="mb-6">
           <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="professional-agenda-view-switcher">
-            <Link href="/agenda?view=overview" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'overview')}`}>
+            <Link href="/agenda?view=overview" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'overview')}`}>
               Visao geral
             </Link>
-            <Link href="/agenda?view=pending" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'pending')}`}>
+            <Link href="/agenda?view=pending" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'pending')}`}>
               Pendencias
             </Link>
-            <Link href="/agenda?view=requests" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'requests')}`}>
+            <Link href="/agenda?view=requests" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'requests')}`}>
               Requests
             </Link>
-            <Link href="/agenda?view=settings" className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'settings')}`}>
+            <Link href="/agenda?view=settings" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'settings')}`}>
               Regras e calendário
             </Link>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-neutral-100 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Aguardando confirmação</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">{pendingConfirmations.length}</p>
+            <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Aguardando confirmação</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{pendingConfirmations.length}</p>
             </div>
-            <div className="rounded-2xl border border-neutral-100 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Solicitações abertas</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">{activeRequests.length}</p>
+            <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Solicitações abertas</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{activeRequests.length}</p>
             </div>
-            <div className="rounded-2xl border border-neutral-100 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Disponibilidade ativa</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">{activeAvailabilityCount}</p>
+            <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Disponibilidade ativa</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{activeAvailabilityCount}</p>
             </div>
           </div>
         </section>
       )}
 
       {isProfessional && activeView === 'settings' && (
-        <section className="mb-8 rounded-2xl border border-neutral-100 bg-white p-6" data-testid="professional-calendar-control-center">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-neutral-900">
-            <Settings className="h-5 w-5 text-brand-500" />
+        <section className="mb-8 rounded-lg border border-slate-200/80 bg-white p-6" data-testid="professional-calendar-control-center">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-slate-900">
+            <Settings className="h-5 w-5 text-[#9FE870]" />
             Calendário e regras de agendamento
           </h2>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Modo de confirmação</p>
-              <p className="mt-1 text-sm font-medium text-neutral-800">
+            <div className="rounded-md bg-slate-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Modo de confirmação</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
                 {professionalSettings?.confirmation_mode === 'manual' ? 'Manual (SLA 24h)' : 'Aceite automática'}
               </p>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Antecedência mínima</p>
-              <p className="mt-1 text-sm font-medium text-neutral-800">
+            <div className="rounded-md bg-slate-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Antecedência mínima</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
                 {Number(professionalSettings?.minimum_notice_hours || 24)}h
               </p>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Janela máxima</p>
-              <p className="mt-1 text-sm font-medium text-neutral-800">
+            <div className="rounded-md bg-slate-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Janela máxima</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
                 {Number(professionalSettings?.max_booking_window_days || 30)} dias
               </p>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Fuso profissional</p>
-              <p className="mt-1 text-sm font-medium text-neutral-800">
+            <div className="rounded-md bg-slate-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fuso profissional</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
                 {String(professionalSettings?.timezone || userTimezone).replaceAll('_', ' ')}
               </p>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Calendário externo</p>
-              <p className="mt-1 text-sm font-medium text-neutral-800">
+            <div className="rounded-md bg-slate-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Calendário externo</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
                 {calendarIntegrationConnected ? 'Conectado' : 'Não conectado'}
               </p>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recorrência</p>
-              <p className="mt-1 text-sm font-medium text-neutral-800">
+            <div className="rounded-md bg-slate-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recorrência</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">
                 {professionalSettings?.enable_recurring ? 'Ativa' : 'Desativada'}
               </p>
             </div>
@@ -534,21 +534,21 @@ export default async function AgendaPage({
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href="/disponibilidade"
-              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
             >
               <CalendarDays className="h-4 w-4" />
               Ajustar disponibilidade
             </Link>
             <Link
               href="/configuracoes-agendamento"
-              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
             >
               <Layers className="h-4 w-4" />
               Regras avancadas
             </Link>
             <Link
               href="/configuracoes"
-              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
             >
               <Settings className="h-4 w-4" />
               Business setup
@@ -559,14 +559,14 @@ export default async function AgendaPage({
 
       {shouldShowRequests && (
         <div className="mb-8" data-testid="agenda-requests-section">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
-          <MessageCircle className="h-5 w-5 text-brand-500" />
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 font-display">
+          <MessageCircle className="h-5 w-5 text-[#9FE870]" />
           Solicitações de horário
         </h2>
 
         {activeRequests.length === 0 && closedRequests.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-100 bg-white p-6 text-center">
-            <p className="text-sm font-medium text-neutral-700">Nenhuma solicitação de horário no momento.</p>
+          <div className="rounded-lg border border-slate-200/80 bg-white p-6 text-center">
+            <p className="text-sm font-medium text-slate-700">Nenhuma solicitação de horário no momento.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -592,11 +592,11 @@ export default async function AgendaPage({
                   : null
 
               return (
-                <div key={request.id} className="rounded-2xl border border-neutral-100 bg-white p-5">
+                <div key={request.id} className="rounded-lg border border-slate-200/80 bg-white p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-neutral-900">{otherPerson || 'Profissional'}</p>
-                      <p className="mt-1 text-xs text-neutral-500">
+                      <p className="font-semibold text-slate-900">{otherPerson || 'Profissional'}</p>
+                      <p className="mt-1 text-xs text-slate-500">
                         Preferência enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso não definido'}
                       </p>
                     </div>
@@ -605,14 +605,14 @@ export default async function AgendaPage({
                     </span>
                   </div>
 
-                  <div className="mt-3 space-y-1 text-sm text-neutral-600">
+                  <div className="mt-3 space-y-1 text-sm text-slate-600">
                     <p>
-                      <span className="font-medium text-neutral-700">Janela preferida:</span>{' '}
+                      <span className="font-medium text-slate-700">Janela preferida:</span>{' '}
                       {preferredWindowLabel} ({userTimezone.replaceAll('_', ' ')})
                     </p>
                     {proposalWindowLabel && (
                       <p>
-                        <span className="font-medium text-neutral-700">Proposta:</span> {proposalWindowLabel}
+                        <span className="font-medium text-slate-700">Proposta:</span> {proposalWindowLabel}
                         {request.proposal_timezone
                           ? ` (${String(request.proposal_timezone).replaceAll('_', ' ')})`
                           : ''}
@@ -627,7 +627,7 @@ export default async function AgendaPage({
                       </p>
                     )}
                     {request.user_message && (
-                      <p className="text-xs text-neutral-500">Mensagem: {request.user_message}</p>
+                      <p className="text-xs text-slate-500">Mensagem: {request.user_message}</p>
                     )}
                   </div>
 
@@ -647,8 +647,8 @@ export default async function AgendaPage({
             })}
 
             {closedRequests.length > 0 && (
-              <div className="rounded-2xl border border-neutral-100 bg-white p-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Historico de solicitacoes
                 </p>
                 <div className="space-y-2">
@@ -658,12 +658,12 @@ export default async function AgendaPage({
                       : request.professionals?.profiles?.full_name
                     const statusUi = getRequestStatusUi(request.status)
                     return (
-                      <div key={request.id} className="flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2">
+                      <div key={request.id} className="flex items-center justify-between rounded-md bg-slate-50/70 px-3 py-2">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-neutral-700">
+                          <p className="truncate text-sm font-medium text-slate-700">
                             {otherPerson || 'Profissional'}
                           </p>
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-xs text-slate-500">
                             {formatInTimeZone(
                               new Date(request.preferred_start_utc),
                               userTimezone,
@@ -688,13 +688,13 @@ export default async function AgendaPage({
 
       {shouldShowUpcoming && (
         <div className="mb-8" data-testid="agenda-upcoming-section">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
-          <Calendar className="h-5 w-5 text-brand-500" />
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 font-display">
+          <Calendar className="h-5 w-5 text-[#9FE870]" />
             {isProfessional && activeView === 'pending' ? 'Pendências de confirmação' : 'Próximas sessões'}
         </h2>
 
         {isProfessional && pendingConfirmations.length > 0 && (
-          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700" />
               <div className="min-w-0">
@@ -710,12 +710,12 @@ export default async function AgendaPage({
         )}
 
         {upcomingVisible.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-100 bg-white p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-50">
-              <Calendar className="h-7 w-7 text-neutral-300" />
+          <div className="rounded-lg border border-slate-200/80 bg-white p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-slate-50/70">
+              <Calendar className="h-7 w-7 text-slate-300" />
             </div>
-            <p className="mb-1 font-semibold text-neutral-900">Nenhuma sessão agendada</p>
-            <p className="mb-4 text-sm text-neutral-500">
+            <p className="mb-1 font-semibold text-slate-900">Nenhuma sessão agendada</p>
+            <p className="mb-4 text-sm text-slate-500">
               {isProfessional
                 ? 'Não há sessões no contexto selecionado.'
                 : 'Encontre um profissional e agende sua primeira sessão.'}
@@ -723,7 +723,7 @@ export default async function AgendaPage({
             {!isProfessional && (
               <a
                 href="/buscar"
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-brand-600"
+                className="inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f]"
               >
                 Buscar profissional
                 <ChevronRight className="h-4 w-4" />
@@ -750,15 +750,15 @@ export default async function AgendaPage({
               return (
                 <div
                   key={booking.id}
-                  className="rounded-2xl border border-neutral-100 bg-white p-5 transition-all hover:shadow-sm"
+                  className="rounded-lg border border-slate-200/80 bg-white p-5 transition-all"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 font-bold text-brand-600 font-display">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 font-bold text-[#3d6b1f] font-display">
                       {otherPerson?.charAt(0) || '?'}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-neutral-900">{otherPerson || 'Profissional'}</p>
-                      <div className="mt-1.5 flex items-center gap-3 text-sm text-neutral-500">
+                      <p className="font-semibold text-slate-900">{otherPerson || 'Profissional'}</p>
+                      <div className="mt-1.5 flex items-center gap-3 text-sm text-slate-500">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
                           {formatInTimeZone(
@@ -802,7 +802,7 @@ export default async function AgendaPage({
                       {['pending_confirmation', 'confirmed'].includes(booking.status) ? (
                         <Link
                           href={`/sessao/${booking.id}`}
-                          className="flex items-center gap-1.5 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-600"
+                          className="flex items-center gap-1.5 rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#8ed85f]"
                         >
                           <Video className="h-3.5 w-3.5" />
                           Entrar na sessão
@@ -811,7 +811,7 @@ export default async function AgendaPage({
                     </div>
                   </div>
                   {slaLabel && (
-                    <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    <div className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                       Prazo de confirmação: {confirmationDeadline?.toLocaleString('pt-BR', { hour12: false })}
                     </div>
                   )}
@@ -832,8 +832,8 @@ export default async function AgendaPage({
 
       {shouldShowHistory && past.length > 0 && (
         <div>
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-neutral-900 font-display">
-            <Clock className="h-5 w-5 text-neutral-400" />
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 font-display">
+            <Clock className="h-5 w-5 text-slate-400" />
             Historico
           </h2>
           <div className="space-y-2">
@@ -845,7 +845,7 @@ export default async function AgendaPage({
               const statusConfig: Record<string, { label: string; className: string }> = {
                 completed: { label: 'Concluido', className: 'bg-green-50 text-green-700' },
                 cancelled: { label: 'Cancelado', className: 'bg-red-50 text-red-600' },
-                no_show: { label: 'Não compareceu', className: 'bg-neutral-100 text-neutral-500' },
+                no_show: { label: 'Não compareceu', className: 'bg-slate-100 text-slate-500' },
                 confirmed: { label: 'Confirmado (passado)', className: 'bg-amber-50 text-amber-700' },
                 pending_confirmation: {
                   label: 'Aguardando confirma??o',
@@ -861,14 +861,14 @@ export default async function AgendaPage({
                 !reviewedBookingIds.has(booking.id)
 
               return (
-                <div key={booking.id} className="rounded-xl border border-neutral-100 bg-white p-4 opacity-80">
+                <div key={booking.id} className="rounded-md border border-slate-200/80 bg-white p-4 opacity-80">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-neutral-50 text-sm font-bold text-neutral-400 font-display">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-slate-50/70 text-sm font-bold text-slate-400 font-display">
                       {otherPerson?.charAt(0) || '?'}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-neutral-700">{otherPerson || 'Profissional'}</p>
-                      <p className="mt-0.5 text-xs text-neutral-400">
+                      <p className="text-sm font-medium text-slate-700">{otherPerson || 'Profissional'}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">
                         {formatInTimeZone(new Date(booking.scheduled_at), userTimezone, 'd MMM yyyy', {
                           locale: ptBR,
                         })}
@@ -892,7 +892,7 @@ export default async function AgendaPage({
                         </Link>
                       )}
                       {!canReview && booking.status === 'completed' && !isProfessional && (
-                        <span className="text-xs font-medium text-neutral-300">Avaliado</span>
+                        <span className="text-xs font-medium text-slate-300">Avaliado</span>
                       )}
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>
                         {status.label}
@@ -911,7 +911,7 @@ export default async function AgendaPage({
                       />
                       <Link
                         href={`/sessao/${booking.id}`}
-                        className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:border-brand-300 hover:text-brand-700"
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
                       >
                         <Video className="h-3.5 w-3.5" />
                         Abrir sessão

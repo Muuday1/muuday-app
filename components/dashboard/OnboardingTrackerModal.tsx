@@ -1742,35 +1742,35 @@ export function OnboardingTrackerModal({
 
       {open ? (
         <div
-          className="fixed inset-0 z-[80] flex items-end bg-neutral-900/45 sm:items-center sm:justify-center sm:px-4 sm:py-5"
+          className="fixed inset-0 z-[80] flex items-end bg-slate-900/45 sm:items-center sm:justify-center sm:px-4 sm:py-5"
           role="dialog"
           aria-modal="true"
           aria-label="Tracker de onboarding profissional"
         >
-          <div className="grid h-[100dvh] w-full max-w-full grid-cols-1 overflow-hidden bg-white sm:h-[92vh] sm:max-h-[940px] sm:max-w-[1120px] sm:rounded-2xl sm:border sm:border-neutral-200 md:grid-cols-[250px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
-            <aside className="border-b border-neutral-100 bg-neutral-50 p-3.5 md:border-b-0 md:border-r">
+          <div className="grid h-[100dvh] w-full max-w-full grid-cols-1 overflow-hidden bg-white sm:h-[92vh] sm:max-h-[940px] sm:max-w-[1120px] sm:rounded-lg sm:border sm:border-slate-200 md:grid-cols-[250px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
+            <aside className="border-b border-slate-200/80 bg-slate-50/70 p-3.5 md:border-b-0 md:border-r">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-[13px] font-semibold tracking-tight text-neutral-900">Tracker de onboarding</h3>
+                <h3 className="text-[13px] font-semibold tracking-tight text-slate-900">Tracker de onboarding</h3>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-md px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-200"
+                  className="rounded-md px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200"
                 >
                   Fechar
                 </button>
               </div>
 
-              <div className="mb-3 rounded-xl border border-neutral-200 bg-white p-3">
+              <div className="mb-3 rounded-md border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Progresso</p>
-                    <p className="mt-1 text-lg font-semibold text-neutral-900">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Progresso</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">
                       {stageCompletionSummary.completed} de {stageCompletionSummary.total} etapas concluídas
                     </p>
                   </div>
-                  {trackerRefreshState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin text-neutral-500" /> : null}
+                  {trackerRefreshState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : null}
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-200">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                   <div
                     className="h-full rounded-full bg-emerald-500 transition-all"
                     style={{ width: `${Math.round((stageCompletionSummary.completed / Math.max(1, stageCompletionSummary.total)) * 100)}%` }}
@@ -1793,7 +1793,7 @@ export function OnboardingTrackerModal({
                       disabled={trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id))}
                       className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                         isActive
-                          ? 'border-brand-300 bg-brand-50 text-brand-800'
+                          ? 'border-[#9FE870]/40 bg-[#9FE870]/8 text-[#2d5016]'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900'
@@ -1818,9 +1818,9 @@ export function OnboardingTrackerModal({
                         setActiveStageId(item.id)
                       }}
                       disabled={trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id))}
-                      className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+                      className={`w-full rounded-md border px-3 py-3 text-left transition ${
                         isActive
-                          ? 'border-brand-300 bg-brand-50 text-brand-800 shadow-sm'
+                          ? 'border-[#9FE870]/40 bg-[#9FE870]/8 text-[#2d5016]'
                           : item.complete
                             ? 'border-green-200 bg-green-50 text-green-800'
                             : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100/60'
@@ -1833,7 +1833,7 @@ export function OnboardingTrackerModal({
                               ? 'border-green-400 bg-green-100 text-green-700'
                               : item.blocker
                                 ? 'border-amber-300 bg-amber-100 text-amber-700'
-                                : 'border-neutral-300 bg-white text-neutral-500'
+                                : 'border-slate-300 bg-white text-slate-500'
                           }`}
                         >
                           {item.complete ? (
@@ -1846,7 +1846,7 @@ export function OnboardingTrackerModal({
                         </span>
                         <div className="min-w-0">
                           <p className="text-[13px] font-semibold leading-4">{item.label}</p>
-                          <p className="mt-1 text-[11px] text-neutral-500">
+                          <p className="mt-1 text-[11px] text-slate-500">
                             {item.complete ? 'Concluida' : item.blocker?.title || 'Pendente'}
                           </p>
                         </div>
@@ -1858,8 +1858,8 @@ export function OnboardingTrackerModal({
             </aside>
 
             <section className="overflow-y-auto p-4 md:p-5">
-              <div className="mb-4 border-b border-neutral-100 pb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
+              <div className="mb-4 border-b border-slate-200/80 pb-3">
+                <h2 className="text-lg font-semibold tracking-tight text-slate-900">
                   {trackerViewMode === 'submitted_waiting'
                     ? 'Onboarding concluído'
                     : trackerViewMode === 'approved'
@@ -1884,7 +1884,7 @@ export function OnboardingTrackerModal({
               </div>
 
               {trackerNeedsAdjustments ? (
-                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                   <p className="font-semibold">
                     {trackerViewMode === 'rejected' ? 'Perfil reprovado para esta rodada.' : 'Ajustes solicitados pelo time de revisão.'}
                   </p>
@@ -1913,7 +1913,7 @@ export function OnboardingTrackerModal({
               ) : null}
 
               {loadingContext ? (
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+                <div className="rounded-md border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600">
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Carregando dados do tracker...
@@ -1922,8 +1922,8 @@ export function OnboardingTrackerModal({
               ) : null}
 
               {trackerIsReadOnly ? (
-                <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
-                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900">
+                <div className="space-y-4 rounded-md border border-slate-200 bg-white p-4">
+                  <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-blue-900">
                     <p className="text-sm font-semibold">
                       {trackerViewMode === 'approved' ? 'Perfil aprovado e ativo.' : 'Perfil enviado para análise.'}
                     </p>
@@ -1935,28 +1935,28 @@ export function OnboardingTrackerModal({
                   </div>
                 </div>
               ) : !stageIsEditable ? (
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+                <div className="rounded-md border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-700">
                   Esta etapa não possui ajustes pendentes nesta rodada. Foque apenas nas etapas destacadas e depois envie novamente.
                 </div>
               ) : (
                 <>
               {getPlanFeatureHighlights(activeStageId).length > 0 ? (
-                <div className="mb-4 rounded-xl border border-brand-100 bg-brand-50/50 p-3">
+                <div className="mb-4 rounded-md border border-[#9FE870]/20 bg-[#9FE870]/8/50 p-3">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Planos nesta etapa</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Planos nesta etapa</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {getPlanFeatureHighlights(activeStageId).map(item => (
                           <span
                             key={item}
-                            className="inline-flex items-center rounded-full border border-brand-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-brand-800"
+                            className="inline-flex items-center rounded-full border border-[#9FE870]/30 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#2d5016]"
                           >
                             {item}
                           </span>
                         ))}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-700">
+                    <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700">
                       <p>
                         Plano atual: <strong>{currentPlanLabel}</strong>
                       </p>
@@ -1973,7 +1973,7 @@ export function OnboardingTrackerModal({
                       <button
                         type="button"
                         onClick={() => setActiveStageId('c6_plan_billing_setup_post')}
-                        className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:text-brand-800"
+                        className="inline-flex items-center gap-1 font-semibold text-[#3d6b1f] hover:text-[#2d5016]"
                       >
                         Ver planos desta etapa
                         <ArrowRight className="h-3 w-3" />

@@ -51,7 +51,7 @@ export function TestimonialCarouselPro({ items }: TestimonialCarouselProProps) {
       >
         {items.map((t) => (
           <div key={t.name} className="w-full shrink-0 px-4">
-            <div className="flex h-full flex-col rounded-3xl bg-[#9FE870] p-8 md:p-10">
+            <div className="flex h-full flex-col rounded-lg bg-[#9FE870] p-8 md:p-10">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900">
                   <Quote className="h-4 w-4 text-[#9FE870]" />
@@ -94,7 +94,7 @@ export function TestimonialCarouselPro({ items }: TestimonialCarouselProProps) {
       <button
         type="button"
         onClick={() => go('prev')}
-        className="absolute left-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition hover:border-[#9FE870] md:flex"
+        className="absolute left-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white transition hover:border-[#9FE870] md:flex"
         aria-label="Anterior"
       >
         <ChevronLeft className="h-5 w-5 text-slate-700" />
@@ -102,7 +102,7 @@ export function TestimonialCarouselPro({ items }: TestimonialCarouselProProps) {
       <button
         type="button"
         onClick={() => go('next')}
-        className="absolute right-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition hover:border-[#9FE870] md:flex"
+        className="absolute right-0 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white transition hover:border-[#9FE870] md:flex"
         aria-label="Próximo"
       >
         <ChevronRight className="h-5 w-5 text-slate-700" />
