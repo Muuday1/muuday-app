@@ -72,6 +72,15 @@ function logBookingEvent(
   })
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, context: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms: ${context}`)), ms),
+    ),
+  ])
+}
+
 function buildCancellationPolicySnapshot(code: string) {
   return {
     code,
@@ -429,7 +438,11 @@ export async function createBooking(data: {
       }
 
       Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking calling atomic one_off', level: 'info' })
-      const atomic = await createBookingWithPaymentAtomic(supabase, bookingPayload, paymentData)
+      const atomic = await withTimeout(
+        createBookingWithPaymentAtomic(supabase, bookingPayload, paymentData),
+        8000,
+        'createBookingWithPaymentAtomic one_off',
+      )
       if (atomic.ok) {
         bookingId = atomic.bookingId!
         paymentAnchorBookingId = atomic.bookingId!
@@ -557,12 +570,16 @@ export async function createBooking(data: {
         parent_booking_id: undefined,
       }))
 
-      const atomic = await createRecurringBookingWithPaymentAtomic(
-        supabase,
-        parentPayload,
-        atomicChildren,
-        atomicSessions,
-        paymentData,
+      const atomic = await withTimeout(
+        createRecurringBookingWithPaymentAtomic(
+          supabase,
+          parentPayload,
+          atomicChildren,
+          atomicSessions,
+          paymentData,
+        ),
+        10000,
+        'createRecurringBookingWithPaymentAtomic',
       )
 
       if (atomic.ok) {
@@ -677,7 +694,11 @@ export async function createBooking(data: {
         },
       }))
 
-      const atomic = await createBatchBookingsWithPaymentAtomic(supabase, batchPayload, paymentData)
+      const atomic = await withTimeout(
+        createBatchBookingsWithPaymentAtomic(supabase, batchPayload, paymentData),
+        10000,
+        'createBatchBookingsWithPaymentAtomic',
+      )
 
       if (atomic.ok) {
         bookingId = atomic.bookingIds[0]

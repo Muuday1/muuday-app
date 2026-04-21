@@ -53,6 +53,17 @@ jobs:
           fi
           echo "No tracked env files found."
 
+      - name: Verify no UTF-8 BOM in source files
+        run: |
+          bom_files=$(find . -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) ! -path './node_modules/*' ! -path './.next/*' ! -path './.git/*' -exec sh -c 'head -c3 "$1" | od -An -tx1 | grep -q "ef bb bf" && echo "$1"' _ {} \;)
+          if [ -n "$bom_files" ]; then
+            echo "UTF-8 BOM detected in the following files:"
+            echo "$bom_files"
+            echo "Fix with: sed -i '1s/^\\xEF\\xBB\\xBF//' <file>"
+            exit 1
+          fi
+          echo "No UTF-8 BOM found."
+
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
         with:
