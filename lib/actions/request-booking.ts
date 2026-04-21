@@ -14,6 +14,7 @@ import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
 import { validateSlotAvailability } from '@/lib/booking/slot-validation'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
+import { createBookingWithPaymentAtomic } from '@/lib/booking/transaction-operations'
 import {
   assertRequestBookingTransition,
 } from '@/lib/booking/request-booking-state-machine'
@@ -180,6 +181,7 @@ export async function createRequestBooking(input: {
   }
 
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   revalidatePath(`/profissional/${professional.id}`)
   return { success: true, requestId: request.id }
 }
@@ -342,6 +344,7 @@ export async function offerRequestBooking(input: {
   }
 
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -385,6 +388,7 @@ export async function declineRequestBookingByProfessional(
 
   if (error) return { success: false, error: 'Não foi possível recusar a solicitação.' }
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -591,46 +595,17 @@ export async function acceptRequestBooking(
       ? new Date(Date.now() + OFFER_EXPIRATION_HOURS * 60 * 60 * 1000).toISOString()
       : null
 
-  const { data: booking, error: bookingInsertError } = await supabase
-    .from('bookings')
-    .insert({
-      user_id: user.id,
-      professional_id: professional.id,
-      scheduled_at: startUtc.toISOString(),
-      start_time_utc: startUtc.toISOString(),
-      end_time_utc: endUtc.toISOString(),
-      timezone_user: freshRequest.user_timezone,
-      timezone_professional: settings.timezone,
-      duration_minutes: Math.max(15, Math.round((endUtc.getTime() - startUtc.getTime()) / 60000)),
-      status: bookingStatus,
-      booking_type: 'one_off',
-      confirmation_mode_snapshot: settings.confirmationMode,
-      cancellation_policy_snapshot: {
-        code: settings.cancellationPolicyCode,
-        refund_48h_or_more: 100,
-        refund_24h_to_48h: 50,
-        refund_under_24h: 0,
-      },
-      price_brl: sessionPriceBrl,
-      price_user_currency: sessionPriceUserCurrency,
-      price_total: sessionPriceUserCurrency,
-      user_currency: userCurrency,
-      notes: freshRequest.user_message || null,
-      session_purpose: freshRequest.user_message || null,
-      metadata: {
-        booking_source: 'request_booking_accept',
-        request_booking_id: freshRequest.id,
-        confirmation_deadline_utc: confirmationDeadlineAt,
-      },
-    })
-    .select('id')
-    .single()
+  const cancellationPolicySnapshot = {
+    code: settings.cancellationPolicyCode,
+    refund_48h_or_more: 100,
+    refund_24h_to_48h: 50,
+    refund_under_24h: 0,
+  }
 
-  if (bookingInsertError || !booking) {
-    if (isActiveSlotCollision(bookingInsertError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
-      return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
-    }
-    return { success: false, error: 'Não foi possível converter a proposta em agendamento.' }
+  const bookingMetadata = {
+    booking_source: 'request_booking_accept',
+    request_booking_id: freshRequest.id,
+    confirmation_deadline_utc: confirmationDeadlineAt,
   }
 
   const paymentMetadata = {
@@ -649,70 +624,143 @@ export async function acceptRequestBooking(
     }
   }
 
-  const { error: paymentError } = await supabase.from('payments').insert({
-    booking_id: booking.id,
+  const bookingPayload = {
     user_id: user.id,
     professional_id: professional.id,
-    provider: 'legacy',
+    scheduled_at: startUtc.toISOString(),
+    start_time_utc: startUtc.toISOString(),
+    end_time_utc: endUtc.toISOString(),
+    timezone_user: freshRequest.user_timezone,
+    timezone_professional: settings.timezone,
+    duration_minutes: Math.max(15, Math.round((endUtc.getTime() - startUtc.getTime()) / 60000)),
+    status: bookingStatus,
+    booking_type: 'one_off',
+    confirmation_mode_snapshot: settings.confirmationMode,
+    cancellation_policy_snapshot: cancellationPolicySnapshot,
+    price_brl: sessionPriceBrl,
+    price_user_currency: sessionPriceUserCurrency,
+    price_total: sessionPriceUserCurrency,
+    user_currency: userCurrency,
+    notes: freshRequest.user_message || null,
+    session_purpose: freshRequest.user_message || null,
+    metadata: bookingMetadata,
+  }
+
+  const paymentData = {
+    provider: 'legacy' as const,
     amount_total: sessionPriceUserCurrency,
     currency: userCurrency,
-    status: 'captured',
+    status: 'captured' as const,
     metadata: paymentMetadata,
     captured_at: new Date().toISOString(),
-  })
+  }
 
-  if (paymentError) {
-    Sentry.captureException(paymentError, {
-      tags: { area: 'request_booking_accept', flow: 'payment' },
-      extra: {
-        requestBookingId: freshRequest.id,
-        bookingId: booking.id,
-        professionalId: professional.id,
-      },
+  let bookingId: string
+  let usedAtomicPath = false
+
+  const atomic = await createBookingWithPaymentAtomic(supabase, bookingPayload, paymentData)
+  if (atomic.ok) {
+    bookingId = atomic.bookingId!
+    usedAtomicPath = true
+    Sentry.captureMessage('request_booking_accept_atomic_success', {
+      level: 'info',
+      tags: { area: 'request_booking_accept', flow: 'atomic' },
+      extra: { requestBookingId: freshRequest.id, bookingId, usedAtomicPath },
     })
-    Sentry.captureMessage('request_booking_payment_record_failed', {
-      level: 'error',
-      tags: { area: 'request_booking_accept', flow: 'payment' },
-      extra: {
-        requestBookingId: freshRequest.id,
-        bookingId: booking.id,
-      },
+  } else if (atomic.fallback) {
+    Sentry.captureMessage('request_booking_accept_atomic_fallback', {
+      level: 'info',
+      tags: { area: 'request_booking_accept', flow: 'atomic_fallback' },
+      extra: { requestBookingId: freshRequest.id, reason: atomic.error?.message },
     })
-    await supabase
+
+    const { data: booking, error: bookingInsertError } = await supabase
       .from('bookings')
-      .update({
-        status: 'cancelled',
-        metadata: {
-          cancelled_reason: 'payment_capture_failed',
-          request_booking_id: freshRequest.id,
+      .insert(bookingPayload)
+      .select('id')
+      .single()
+
+    if (bookingInsertError || !booking) {
+      if (isActiveSlotCollision(bookingInsertError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+        return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
+      }
+      return { success: false, error: 'Não foi possível converter a proposta em agendamento.' }
+    }
+
+    const { error: paymentError } = await supabase.from('payments').insert({
+      booking_id: booking.id,
+      user_id: user.id,
+      professional_id: professional.id,
+      provider: paymentData.provider,
+      amount_total: paymentData.amount_total,
+      currency: paymentData.currency,
+      status: paymentData.status,
+      metadata: paymentData.metadata,
+      captured_at: paymentData.captured_at,
+    })
+
+    if (paymentError) {
+      Sentry.captureException(paymentError, {
+        tags: { area: 'request_booking_accept', flow: 'payment' },
+        extra: {
+          requestBookingId: freshRequest.id,
+          bookingId: booking.id,
+          professionalId: professional.id,
         },
       })
-      .eq('id', booking.id)
+      Sentry.captureMessage('request_booking_payment_record_failed', {
+        level: 'error',
+        tags: { area: 'request_booking_accept', flow: 'payment' },
+        extra: {
+          requestBookingId: freshRequest.id,
+          bookingId: booking.id,
+        },
+      })
+      await supabase
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          metadata: {
+            cancelled_reason: 'payment_capture_failed',
+            request_booking_id: freshRequest.id,
+          },
+        })
+        .eq('id', booking.id)
 
-    const requestRecoveryPatch = {
-      status: 'open',
-      proposal_start_utc: null,
-      proposal_end_utc: null,
-      proposal_timezone: null,
-      proposal_message: null,
-      proposal_expires_at: null,
-      converted_booking_id: null,
-      accepted_at: null,
-      updated_at: new Date().toISOString(),
+      const requestRecoveryPatch = {
+        status: 'open',
+        proposal_start_utc: null,
+        proposal_end_utc: null,
+        proposal_timezone: null,
+        proposal_message: null,
+        proposal_expires_at: null,
+        converted_booking_id: null,
+        accepted_at: null,
+        updated_at: new Date().toISOString(),
+      }
+      await supabase
+        .from('request_bookings')
+        .update(requestRecoveryPatch)
+        .eq('id', String(freshRequest.id))
+        .eq('user_id', user.id)
+        .eq('status', currentStatus)
+
+      return {
+        success: false,
+        error: 'Falha ao processar pagamento da proposta. A solicitação foi reaberta para nova proposta.',
+      }
     }
-    const { error: requestRecoveryError } = await supabase
-      .from('request_bookings')
-      .update(requestRecoveryPatch)
-      .eq('id', String(freshRequest.id))
-      .eq('user_id', user.id)
-      .eq('status', currentStatus)
 
-
-
-    return {
-      success: false,
-      error: 'Falha ao processar pagamento da proposta. A solicitação foi reaberta para nova proposta.',
+    bookingId = booking.id
+  } else {
+    Sentry.captureException(atomic.error, {
+      tags: { area: 'request_booking_accept', flow: 'atomic' },
+      extra: { requestBookingId: freshRequest.id },
+    })
+    if (isActiveSlotCollision(atomic.error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+      return { success: false, error: 'Outro agendamento ocupou este horario. Solicite nova proposta.' }
     }
+    return { success: false, error: 'Não foi possível converter a proposta em agendamento.' }
   }
 
   const { error: requestUpdateError } = await supabase
@@ -720,7 +768,7 @@ export async function acceptRequestBooking(
     .update({
       status: 'converted',
       accepted_at: new Date().toISOString(),
-      converted_booking_id: booking.id,
+      converted_booking_id: bookingId,
       proposal_expires_at: null,
     })
     .eq('id', String(freshRequest.id))
@@ -730,11 +778,12 @@ export async function acceptRequestBooking(
 
 
   await enqueueBookingCalendarSync({
-    bookingId: booking.id,
+    bookingId: bookingId,
     action: 'upsert_booking',
     source: 'request-booking.accept',
   })
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   revalidatePath(`/profissional/${professional.id}`)
-  return { success: true, bookingId: booking.id }
+  return { success: true, bookingId: bookingId }
 }

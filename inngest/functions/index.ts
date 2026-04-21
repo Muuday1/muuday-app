@@ -16,6 +16,8 @@ import {
 } from '@/lib/ops/stripe-resilience'
 import { runReviewReminderSync } from '@/lib/ops/review-reminders'
 import { runNoShowDetection } from '@/lib/ops/no-show-detection'
+import { runSlotLockCleanup } from '@/lib/ops/slot-lock-cleanup'
+import { runPendingPaymentTimeout } from '@/lib/ops/pending-payment-timeout'
 import type { CalendarProvider } from '@/lib/calendar/types'
 import { inngest } from '../client'
 
@@ -355,6 +357,54 @@ export const autoDetectNoShow = inngest.createFunction(
     })
 
     logger.info('No-show detection executed.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const cleanupExpiredSlotLocks = inngest.createFunction(
+  {
+    id: 'cleanup-expired-slot-locks',
+    name: 'Cleanup expired slot locks',
+    triggers: [{ cron: '*/15 * * * *' }, { event: 'ops/slot-locks.cleanup.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('run-slot-lock-cleanup', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for slot lock cleanup.')
+      }
+      return runSlotLockCleanup(admin)
+    })
+
+    logger.info('Expired slot locks cleaned up.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const cancelStalePendingPayments = inngest.createFunction(
+  {
+    id: 'cancel-stale-pending-payments',
+    name: 'Cancel stale pending payment bookings',
+    triggers: [{ cron: '*/10 * * * *' }, { event: 'ops/pending-payment-timeout.run.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('run-pending-payment-timeout', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for pending payment timeout.')
+      }
+      return runPendingPaymentTimeout(admin)
+    })
+
+    logger.info('Stale pending payment bookings cancelled.', {
       trigger: event.name,
       ...result,
     })

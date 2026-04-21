@@ -23,6 +23,7 @@ import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
 import { ProfessionalOnboardingCard } from '@/components/dashboard/ProfessionalOnboardingCard'
+import BookingRealtimeListener from '@/components/agenda/BookingRealtimeListener'
 import { AppCard, AppCardHeader } from '@/components/ui/AppCard'
 import { PageContainer, PageHeader } from '@/components/ui/AppShell'
 
@@ -256,6 +257,7 @@ export default async function DashboardPage({
 
   return (
     <PageContainer maxWidth="xl">
+      <BookingRealtimeListener />
       {showOnboardingCard && onboardingEvaluation ? (
         <ProfessionalOnboardingCard
           professionalId={professionalId}

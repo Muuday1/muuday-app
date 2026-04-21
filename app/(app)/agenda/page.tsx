@@ -20,6 +20,7 @@ import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
 import { ProfessionalAgendaPage } from '@/components/agenda/ProfessionalAgendaPage'
+import BookingRealtimeListener from '@/components/agenda/BookingRealtimeListener'
 import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS, normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { getPlanConfigForTier, loadPlanConfigMap, type PlanConfig } from '@/lib/plan-config'
 import type { BookingSettingsForm } from '@/components/settings/BookingSettingsClient'
@@ -421,7 +422,9 @@ export default async function AgendaPage({
 
   if (isProfessional && professional && professionalId) {
     return (
-      <ProfessionalAgendaPage
+      <>
+        <BookingRealtimeListener />
+        <ProfessionalAgendaPage
         activeView={activeView as 'overview' | 'inbox' | 'availability_rules'}
         inboxFilter={inboxFilter}
         userTimezone={userTimezone}
@@ -441,11 +444,13 @@ export default async function AgendaPage({
         overviewCalendarBookings={overviewCalendarBookings}
         professionalBookingRulesPanelProps={professionalBookingRulesPanelProps}
       />
+      </>
     )
   }
 
   return (
     <PageContainer maxWidth="xl">
+      <BookingRealtimeListener />
       <PageHeader
         title="Agenda"
         subtitle={isProfessional ? 'Control center das suas sessoes e solicitacoes.' : 'Suas sessoes agendadas'}
@@ -796,7 +801,7 @@ export default async function AgendaPage({
                           {slaLabel}
                         </span>
                       )}
-                      {['pending_confirmation', 'confirmed'].includes(booking.status) ? (
+                      {booking.status === 'confirmed' ? (
                         <Link
                           href={`/sessao/${booking.id}`}
                           className="flex items-center gap-1.5 rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#8ed85f]"
@@ -897,7 +902,7 @@ export default async function AgendaPage({
                     </div>
                   </div>
 
-                  {['pending', 'pending_confirmation', 'confirmed'].includes(booking.status) ? (
+                  {booking.status === 'confirmed' ? (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <BookingActions
                         bookingId={booking.id}

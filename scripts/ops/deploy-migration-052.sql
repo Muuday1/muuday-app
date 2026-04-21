@@ -1,11 +1,23 @@
--- ============================================
--- Atomic booking transactions via PostgreSQL functions
--- ============================================
--- Goals:
--- - Eliminate manual rollback in createBooking (one_off, recurring, batch)
--- - Ensure bookings + payments + sessions are committed atomically
--- - Return structured results compatible with existing app code
--- ============================================
+-- ============================================================
+-- Deploy: Migration 052 — Atomic Booking Transactions
+-- ============================================================
+-- Purpose: Deploy atomic PostgreSQL functions for booking creation
+--          to eliminate race conditions between bookings + payments.
+--
+-- Prerequisites:
+--   - Migration 026 (payments trigger) must already be applied
+--   - Tables: bookings, payments, booking_sessions must exist
+--
+-- How to run:
+--   1. Open Supabase SQL Editor (https://supabase.com/dashboard)
+--   2. Paste this entire file
+--   3. Click "Run"
+--   4. Verify with: SELECT proname FROM pg_proc WHERE proname LIKE 'create_%_booking%';
+--
+-- Rollback: See rollback-migration-052.sql
+-- ============================================================
+
+BEGIN;
 
 -- --------------------------------------------
 -- 1) Atomic one_off booking + payment
@@ -180,7 +192,6 @@ DECLARE
   v_child_id UUID;
   v_session_id UUID;
 BEGIN
-  -- Insert parent booking
   INSERT INTO bookings (
     user_id, professional_id, scheduled_at, start_time_utc, end_time_utc,
     timezone_user, timezone_professional, duration_minutes, status, booking_type,
@@ -217,10 +228,8 @@ BEGIN
   )
   RETURNING bookings.id INTO v_parent_id;
 
-  -- Delete any old children for this parent (idempotent re-creation)
   DELETE FROM bookings WHERE parent_booking_id = v_parent_id;
 
-  -- Insert child bookings
   FOR c IN SELECT jsonb_array_elements(p_children)
   LOOP
     INSERT INTO bookings (
@@ -263,7 +272,6 @@ BEGIN
     v_child_ids := array_append(v_child_ids, v_child_id);
   END LOOP;
 
-  -- Insert booking sessions
   FOR s IN SELECT jsonb_array_elements(p_sessions)
   LOOP
     INSERT INTO booking_sessions (
@@ -280,7 +288,6 @@ BEGIN
     v_session_ids := array_append(v_session_ids, v_session_id);
   END LOOP;
 
-  -- Insert payment anchored to parent
   INSERT INTO payments (
     booking_id, user_id, professional_id, provider,
     amount_total, currency, status, metadata, captured_at
@@ -301,3 +308,5 @@ $$;
 GRANT EXECUTE ON FUNCTION public.create_booking_with_payment TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.create_batch_bookings_with_payment TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.create_recurring_booking_with_payment TO authenticated, service_role;
+
+COMMIT;

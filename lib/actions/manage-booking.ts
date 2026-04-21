@@ -178,6 +178,7 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     source: 'booking.confirm',
   })
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -276,6 +277,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     source: 'booking.cancel',
   })
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -464,6 +466,7 @@ export async function rescheduleBooking(
     source: 'booking.reschedule',
   })
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -511,6 +514,7 @@ export async function addSessionLink(bookingId: string, link: string): Promise<A
   if (error || !updatedBooking) return { success: false, error: 'Erro ao salvar o link. Tente novamente.' }
 
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -562,6 +566,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
   }
 
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -635,6 +640,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
     source: 'booking.no_show_professional',
   })
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -697,5 +703,6 @@ export async function markUserNoShow(bookingId: string): Promise<ActionResult> {
     source: 'booking.no_show_user',
   })
   revalidatePath('/agenda')
+  revalidatePath('/dashboard')
   return { success: true }
 }

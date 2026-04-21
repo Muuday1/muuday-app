@@ -4,7 +4,13 @@ import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import * as Sentry from '@sentry/nextjs'
+import {
+  createBookingWithPaymentAtomic,
+  createBatchBookingsWithPaymentAtomic,
+  createRecurringBookingWithPaymentAtomic,
+} from '@/lib/booking/transaction-operations'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
@@ -47,6 +53,20 @@ function reportBookingError(
   })
   Sentry.captureMessage(message, {
     level: 'error',
+    tags: { area: 'booking_create' },
+    extra: context,
+  })
+}
+
+function logBookingEvent(
+  message: string,
+  context: Record<string, unknown>,
+) {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[booking] ${message}`, context)
+  }
+  Sentry.captureMessage(message, {
+    level: 'info',
     tags: { area: 'booking_create' },
     extra: context,
   })
@@ -330,111 +350,149 @@ export async function createBooking(data: {
   let bookingId: string | null = null
   let paymentAnchorBookingId: string | null = null
   let createdBookingIds: string[] = []
+  let usedAtomicPath = false
+
+  const paymentMetadata = {
+    capturedBy: 'legacy_booking_flow',
+    confirmationMode: bookingSettings.confirmationMode,
+    bookingType,
+    sessionsCount: sessionCount,
+    recurrenceGroupId,
+    batchBookingGroupId,
+  }
+
+  const paymentData = {
+    user_id: user.id,
+    professional_id: bookingInput.professionalId,
+    provider: 'legacy' as const,
+    amount_total: totalPriceUserCurrency,
+    currency,
+    status: 'captured' as const,
+    metadata: paymentMetadata,
+    captured_at: new Date().toISOString(),
+  }
+
+  try {
+    assertNoSensitivePaymentPayload(paymentMetadata, 'payments.metadata.createBooking')
+  } catch (error) {
+    reportBookingError(
+      error,
+      { paymentAnchorBookingId: null, bookingType },
+      'booking_payment_sensitive_metadata_blocked',
+    )
+    for (const lockId of acquiredLockIds) {
+      await releaseSlotLock(supabase, lockId)
+    }
+    return {
+      success: false,
+      error: 'Erro interno ao preparar pagamento.',
+    }
+  }
 
   try {
     if (bookingType === 'one_off') {
       const firstSlot = plannedSessions[0]
-      const { data: booking, error } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          professional_id: bookingInput.professionalId,
-          scheduled_at: firstSlot.startUtc.toISOString(),
-          start_time_utc: firstSlot.startUtc.toISOString(),
-          end_time_utc: firstSlot.endUtc.toISOString(),
-          timezone_user: userTimezone,
-          timezone_professional: bookingSettings.timezone,
-          duration_minutes: durationMinutes,
-          status: bookingStatus,
-          booking_type: 'one_off',
-          confirmation_mode_snapshot: bookingSettings.confirmationMode,
-          cancellation_policy_snapshot: buildCancellationPolicySnapshot(
-            bookingSettings.cancellationPolicyCode,
-          ),
-          price_brl: priceBrl,
-          price_user_currency: perSessionPriceUserCurrency,
-          price_total: perSessionPriceUserCurrency,
-          user_currency: currency,
-          notes: bookingInput.notes || null,
-          session_purpose: bookingInput.sessionPurpose || null,
-          metadata: {
-            booking_source: 'web_checkout',
-            booking_mode: 'one_off',
-            confirmation_deadline_utc: confirmationDeadlineAt,
-          },
-        })
-        .select('id')
-        .single()
+      const bookingPayload = {
+        user_id: user.id,
+        professional_id: bookingInput.professionalId,
+        scheduled_at: firstSlot.startUtc.toISOString(),
+        start_time_utc: firstSlot.startUtc.toISOString(),
+        end_time_utc: firstSlot.endUtc.toISOString(),
+        timezone_user: userTimezone,
+        timezone_professional: bookingSettings.timezone,
+        duration_minutes: durationMinutes,
+        status: bookingStatus,
+        booking_type: 'one_off' as const,
+        confirmation_mode_snapshot: bookingSettings.confirmationMode,
+        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
+          bookingSettings.cancellationPolicyCode,
+        ),
+        price_brl: priceBrl,
+        price_user_currency: perSessionPriceUserCurrency,
+        price_total: perSessionPriceUserCurrency,
+        user_currency: currency,
+        notes: bookingInput.notes || null,
+        session_purpose: bookingInput.sessionPurpose || null,
+        metadata: {
+          booking_source: 'web_checkout',
+          booking_mode: 'one_off',
+          confirmation_deadline_utc: confirmationDeadlineAt,
+        },
+      }
 
-      if (error || !booking) {
-        if (isActiveSlotCollision(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
-          return {
-            success: false,
-            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+      const atomic = await createBookingWithPaymentAtomic(supabase, bookingPayload, paymentData)
+      if (atomic.ok) {
+        bookingId = atomic.bookingId!
+        paymentAnchorBookingId = atomic.bookingId!
+        createdBookingIds = [atomic.bookingId!]
+        usedAtomicPath = true
+        logBookingEvent('booking_create_atomic_success', { bookingId, bookingType: 'one_off' })
+      } else if (atomic.fallback) {
+        logBookingEvent('booking_create_atomic_fallback', { bookingType: 'one_off', reason: atomic.error?.message })
+        const { data: booking, error } = await supabase
+          .from('bookings')
+          .insert(bookingPayload)
+          .select('id')
+          .single()
+
+        if (error || !booking) {
+          if (isActiveSlotCollision(error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+            return {
+              success: false,
+              error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+            }
           }
+          reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
+          return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
         }
-        reportBookingError(error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_insert_failed')
+        bookingId = booking.id
+        paymentAnchorBookingId = booking.id
+        createdBookingIds = [booking.id]
+      } else {
+        reportBookingError(atomic.error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_atomic_insert_failed')
         return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
       }
-      bookingId = booking.id
-      paymentAnchorBookingId = booking.id
-      createdBookingIds = [booking.id]
     } else if (bookingType === 'recurring') {
       const firstSlot = plannedSessions[0]
       const recurrencePeriodicity = bookingInput.recurringPeriodicity || 'weekly'
       const recurrenceIntervalDays =
         recurrencePeriodicity === 'custom_days' ? bookingInput.recurringIntervalDays || 1 : null
 
-      const { data: parentBooking, error: parentError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          professional_id: bookingInput.professionalId,
-          scheduled_at: firstSlot.startUtc.toISOString(),
-          start_time_utc: firstSlot.startUtc.toISOString(),
-          end_time_utc: firstSlot.endUtc.toISOString(),
-          timezone_user: userTimezone,
-          timezone_professional: bookingSettings.timezone,
-          duration_minutes: durationMinutes,
-          status: bookingStatus,
-          booking_type: 'recurring_parent',
-          recurrence_group_id: recurrenceGroupId,
-          recurrence_periodicity: recurrencePeriodicity,
-          recurrence_interval_days: recurrenceIntervalDays,
-          recurrence_end_date: bookingInput.recurringEndDate || null,
-          recurrence_occurrence_index: 1,
-          recurrence_auto_renew: Boolean(bookingInput.recurringAutoRenew),
-          confirmation_mode_snapshot: bookingSettings.confirmationMode,
-          cancellation_policy_snapshot: buildCancellationPolicySnapshot(
-            bookingSettings.cancellationPolicyCode,
-          ),
-          price_brl: roundCurrency(priceBrl * sessionCount),
-          price_user_currency: totalPriceUserCurrency,
-          price_total: totalPriceUserCurrency,
-          user_currency: currency,
-          notes: bookingInput.notes || null,
-          session_purpose: bookingInput.sessionPurpose || null,
-          metadata: {
-            booking_source: 'web_checkout',
-            booking_mode: 'recurring',
-            confirmation_deadline_utc: confirmationDeadlineAt,
-            recurring_frequency: recurrencePeriodicity,
-            recurring_sessions_count: sessionCount,
-            recurring_auto_renew: Boolean(bookingInput.recurringAutoRenew),
-          },
-        })
-        .select('id')
-        .single()
-
-      if (parentError || !parentBooking) {
-        if (isActiveSlotCollision(parentError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
-          return {
-            success: false,
-            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
-          }
-        }
-        reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
-        return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
+      const parentPayload = {
+        user_id: user.id,
+        professional_id: bookingInput.professionalId,
+        scheduled_at: firstSlot.startUtc.toISOString(),
+        start_time_utc: firstSlot.startUtc.toISOString(),
+        end_time_utc: firstSlot.endUtc.toISOString(),
+        timezone_user: userTimezone,
+        timezone_professional: bookingSettings.timezone,
+        duration_minutes: durationMinutes,
+        status: bookingStatus,
+        booking_type: 'recurring_parent' as const,
+        recurrence_group_id: recurrenceGroupId,
+        recurrence_periodicity: recurrencePeriodicity,
+        recurrence_interval_days: recurrenceIntervalDays,
+        recurrence_end_date: bookingInput.recurringEndDate || null,
+        recurrence_occurrence_index: 1,
+        recurrence_auto_renew: Boolean(bookingInput.recurringAutoRenew),
+        confirmation_mode_snapshot: bookingSettings.confirmationMode,
+        cancellation_policy_snapshot: buildCancellationPolicySnapshot(
+          bookingSettings.cancellationPolicyCode,
+        ),
+        price_brl: roundCurrency(priceBrl * sessionCount),
+        price_user_currency: totalPriceUserCurrency,
+        price_total: totalPriceUserCurrency,
+        user_currency: currency,
+        notes: bookingInput.notes || null,
+        session_purpose: bookingInput.sessionPurpose || null,
+        metadata: {
+          booking_source: 'web_checkout',
+          booking_mode: 'recurring',
+          confirmation_deadline_utc: confirmationDeadlineAt,
+          recurring_frequency: recurrencePeriodicity,
+          recurring_sessions_count: sessionCount,
+          recurring_auto_renew: Boolean(bookingInput.recurringAutoRenew),
+        },
       }
 
       const childBookingsPayload = plannedSessions.map((slot, index) => ({
@@ -448,7 +506,7 @@ export async function createBooking(data: {
         duration_minutes: durationMinutes,
         status: bookingStatus,
         booking_type: index === 0 ? 'recurring_parent' : 'recurring_child',
-        parent_booking_id: index === 0 ? null : parentBooking.id,
+        parent_booking_id: index === 0 ? null : '__PARENT_ID_PLACEHOLDER__',
         recurrence_group_id: recurrenceGroupId,
         recurrence_periodicity: recurrencePeriodicity,
         recurrence_interval_days: recurrenceIntervalDays,
@@ -470,49 +528,109 @@ export async function createBooking(data: {
         },
       }))
 
-      // keep parent row, replace recurrence children
-      await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
-      const { data: childRows, error: childError } = await supabase
-        .from('bookings')
-        .insert(childBookingsPayload.slice(1))
-        .select('id')
-      if (childError) {
-        if (isActiveSlotCollision(childError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
-          await supabase.from('bookings').delete().eq('id', parentBooking.id)
-          return {
-            success: false,
-            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
-          }
-        }
-        reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
-        await supabase.from('bookings').delete().eq('id', parentBooking.id)
-        return { success: false, error: 'Erro ao criar sessões recorrentes. Tente novamente.' }
-      }
-
       const sessionsPayload = plannedSessions.map((slot, index) => ({
-        parent_booking_id: parentBooking.id,
+        parent_booking_id: '__PARENT_ID_PLACEHOLDER__',
         start_time_utc: slot.startUtc.toISOString(),
         end_time_utc: slot.endUtc.toISOString(),
         status: bookingStatus,
         session_number: index + 1,
       }))
 
-      const { error: sessionsError } = await supabase.from('booking_sessions').insert(sessionsPayload)
-      if (sessionsError) {
-        reportBookingError(sessionsError, { parentBookingId: parentBooking.id, bookingType }, 'booking_sessions_insert_failed')
-        await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
-        await supabase.from('bookings').delete().eq('id', parentBooking.id)
-        return { success: false, error: 'Erro ao criar estrutura de pacote recorrente.' }
-      }
+      const atomicChildren = childBookingsPayload.slice(1).map(child => ({
+        ...child,
+        parent_booking_id: undefined,
+      }))
 
-      bookingId = parentBooking.id
-      paymentAnchorBookingId = parentBooking.id
-      createdBookingIds = [
-        parentBooking.id,
-        ...((childRows || [])
-          .map(row => String((row as Record<string, unknown>).id))
-          .filter(Boolean)),
-      ]
+      const atomicSessions = sessionsPayload.map(s => ({
+        ...s,
+        parent_booking_id: undefined,
+      }))
+
+      const atomic = await createRecurringBookingWithPaymentAtomic(
+        supabase,
+        parentPayload,
+        atomicChildren,
+        atomicSessions,
+        paymentData,
+      )
+
+      if (atomic.ok) {
+        bookingId = atomic.parentBookingId!
+        paymentAnchorBookingId = atomic.parentBookingId!
+        createdBookingIds = [
+          atomic.parentBookingId!,
+          ...(atomic.childBookingIds || []),
+        ]
+        usedAtomicPath = true
+        logBookingEvent('booking_create_atomic_success', { bookingId, bookingType: 'recurring' })
+      } else if (atomic.fallback) {
+        logBookingEvent('booking_create_atomic_fallback', { bookingType: 'recurring', reason: atomic.error?.message })
+        const { data: parentBooking, error: parentError } = await supabase
+          .from('bookings')
+          .insert(parentPayload)
+          .select('id')
+          .single()
+
+        if (parentError || !parentBooking) {
+          if (isActiveSlotCollision(parentError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+            return {
+              success: false,
+              error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+            }
+          }
+          reportBookingError(parentError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_parent_insert_failed')
+          return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
+        }
+
+        const childrenWithParentId = childBookingsPayload.slice(1).map(child => ({
+          ...child,
+          parent_booking_id: parentBooking.id,
+        }))
+
+        await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
+        const { data: childRows, error: childError } = await supabase
+          .from('bookings')
+          .insert(childrenWithParentId)
+          .select('id')
+
+        if (childError) {
+          if (isActiveSlotCollision(childError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+            await supabase.from('bookings').delete().eq('id', parentBooking.id)
+            return {
+              success: false,
+              error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+            }
+          }
+          reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
+          await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          return { success: false, error: 'Erro ao criar sessões recorrentes. Tente novamente.' }
+        }
+
+        const sessionsWithParentId = sessionsPayload.map(s => ({
+          ...s,
+          parent_booking_id: parentBooking.id,
+        }))
+
+        const { error: sessionsError } = await supabase.from('booking_sessions').insert(sessionsWithParentId)
+        if (sessionsError) {
+          reportBookingError(sessionsError, { parentBookingId: parentBooking.id, bookingType }, 'booking_sessions_insert_failed')
+          await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
+          await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          return { success: false, error: 'Erro ao criar estrutura de pacote recorrente.' }
+        }
+
+        bookingId = parentBooking.id
+        paymentAnchorBookingId = parentBooking.id
+        createdBookingIds = [
+          parentBooking.id,
+          ...((childRows || [])
+            .map(row => String((row as Record<string, unknown>).id))
+            .filter(Boolean)),
+        ]
+      } else {
+        reportBookingError(atomic.error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_recurring_atomic_insert_failed')
+        return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
+      }
     } else {
       const batchGroupId = batchBookingGroupId || crypto.randomUUID()
 
@@ -547,27 +665,41 @@ export async function createBooking(data: {
         },
       }))
 
-      const { data: batchRows, error: batchInsertError } = await supabase
-        .from('bookings')
-        .insert(batchPayload)
-        .select('id')
+      const atomic = await createBatchBookingsWithPaymentAtomic(supabase, batchPayload, paymentData)
 
-      if (batchInsertError || !batchRows || batchRows.length === 0) {
-        if (isActiveSlotCollision(batchInsertError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
-          return {
-            success: false,
-            error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+      if (atomic.ok) {
+        bookingId = atomic.bookingIds[0]
+        paymentAnchorBookingId = atomic.bookingIds[0]
+        createdBookingIds = atomic.bookingIds
+        usedAtomicPath = true
+        logBookingEvent('booking_create_atomic_success', { bookingId, bookingType: 'batch', count: atomic.bookingIds.length })
+      } else if (atomic.fallback) {
+        logBookingEvent('booking_create_atomic_fallback', { bookingType: 'batch', reason: atomic.error?.message })
+        const { data: batchRows, error: batchInsertError } = await supabase
+          .from('bookings')
+          .insert(batchPayload)
+          .select('id')
+
+        if (batchInsertError || !batchRows || batchRows.length === 0) {
+          if (isActiveSlotCollision(batchInsertError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+            return {
+              success: false,
+              error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+            }
           }
+          reportBookingError(batchInsertError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_batch_insert_failed')
+          return { success: false, error: 'Erro ao criar agendamentos em lote. Tente novamente.' }
         }
-        reportBookingError(batchInsertError, { professionalId: bookingInput.professionalId, bookingType }, 'booking_batch_insert_failed')
+
+        bookingId = String(batchRows[0].id)
+        paymentAnchorBookingId = String(batchRows[0].id)
+        createdBookingIds = (batchRows || [])
+          .map(row => String((row as Record<string, unknown>).id))
+          .filter(Boolean)
+      } else {
+        reportBookingError(atomic.error, { professionalId: bookingInput.professionalId, bookingType }, 'booking_batch_atomic_insert_failed')
         return { success: false, error: 'Erro ao criar agendamentos em lote. Tente novamente.' }
       }
-
-      bookingId = String(batchRows[0].id)
-      paymentAnchorBookingId = String(batchRows[0].id)
-      createdBookingIds = (batchRows || [])
-        .map(row => String((row as Record<string, unknown>).id))
-        .filter(Boolean)
     }
   } finally {
     for (const lockId of acquiredLockIds) {
@@ -579,75 +711,56 @@ export async function createBooking(data: {
     return { success: false, error: 'Erro ao finalizar agendamento.' }
   }
 
-  const paymentMetadata = {
-    capturedBy: 'legacy_booking_flow',
-    confirmationMode: bookingSettings.confirmationMode,
-    bookingType,
-    sessionsCount: sessionCount,
-    recurrenceGroupId,
-    batchBookingGroupId,
-  }
+  if (!usedAtomicPath) {
+    const { error: paymentError } = await supabase.from('payments').insert({
+      booking_id: paymentAnchorBookingId,
+      user_id: user.id,
+      professional_id: bookingInput.professionalId,
+      provider: paymentData.provider,
+      amount_total: paymentData.amount_total,
+      currency: paymentData.currency,
+      status: paymentData.status,
+      metadata: paymentData.metadata,
+      captured_at: paymentData.captured_at,
+    })
 
-  try {
-    assertNoSensitivePaymentPayload(paymentMetadata, 'payments.metadata.createBooking')
-  } catch (error) {
-    reportBookingError(
-      error,
-      { paymentAnchorBookingId, bookingType },
-      'booking_payment_sensitive_metadata_blocked',
-    )
-    return {
-      success: false,
-      error: 'Erro interno ao preparar pagamento.',
+    if (paymentError) {
+      reportBookingError(paymentError, { paymentAnchorBookingId, bookingType, usedAtomicPath }, 'booking_payment_record_failed')
+      logBookingEvent('booking_create_payment_failed', { paymentAnchorBookingId, bookingType, usedAtomicPath, error: paymentError.message })
+      const cancellationPatch = {
+        status: 'cancelled',
+        metadata: {
+          cancelled_reason: 'payment_capture_failed',
+        },
+      }
+
+      const bookingIdsToCancel = Array.from(new Set(createdBookingIds.filter(Boolean)))
+      if (bookingIdsToCancel.length > 0) {
+        await supabase
+          .from('bookings')
+          .update(cancellationPatch)
+          .in('id', bookingIdsToCancel)
+      } else {
+        await supabase
+          .from('bookings')
+          .update(cancellationPatch)
+          .eq('id', paymentAnchorBookingId)
+      }
+
+      if (batchBookingGroupId) {
+        await supabase
+          .from('bookings')
+          .update(cancellationPatch)
+          .eq('batch_booking_group_id', batchBookingGroupId)
+      }
+
+      return {
+        success: false,
+        error: 'Falha ao processar pagamento. Nenhum agendamento foi confirmado.',
+      }
     }
   }
 
-  const { error: paymentError } = await supabase.from('payments').insert({
-    booking_id: paymentAnchorBookingId,
-    user_id: user.id,
-    professional_id: bookingInput.professionalId,
-    provider: 'legacy',
-    amount_total: totalPriceUserCurrency,
-    currency,
-    status: 'captured',
-    metadata: paymentMetadata,
-    captured_at: new Date().toISOString(),
-  })
-
-  if (paymentError) {
-    reportBookingError(paymentError, { paymentAnchorBookingId, bookingType }, 'booking_payment_record_failed')
-    const cancellationPatch = {
-      status: 'cancelled',
-      metadata: {
-        cancelled_reason: 'payment_capture_failed',
-      },
-    }
-
-    const bookingIdsToCancel = Array.from(new Set(createdBookingIds.filter(Boolean)))
-    if (bookingIdsToCancel.length > 0) {
-      await supabase
-        .from('bookings')
-        .update(cancellationPatch)
-        .in('id', bookingIdsToCancel)
-    } else {
-      await supabase
-        .from('bookings')
-        .update(cancellationPatch)
-        .eq('id', paymentAnchorBookingId)
-    }
-
-    if (batchBookingGroupId) {
-      await supabase
-        .from('bookings')
-        .update(cancellationPatch)
-        .eq('batch_booking_group_id', batchBookingGroupId)
-    }
-
-    return {
-      success: false,
-      error: 'Falha ao processar pagamento. Nenhum agendamento foi confirmado.',
-    }
-  }
   const bookingIdsForCalendarSync = Array.from(
     new Set(createdBookingIds.length ? createdBookingIds : [bookingId]),
   )
@@ -660,6 +773,11 @@ export async function createBooking(data: {
       }),
     ),
   )
+
+  revalidatePath('/agenda')
+  revalidatePath('/dashboard')
+
+  logBookingEvent('booking_create_success', { bookingId, bookingType, usedAtomicPath, createdBookingIds })
 
   return { success: true, bookingId }
 }

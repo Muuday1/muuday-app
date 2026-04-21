@@ -11,6 +11,11 @@ import {
   stripeSubscriptionRenewalChecks,
   stripeWeeklyPayoutEligibilityScan,
   syncBookingReminders,
+  syncPublicVisibilityFlags,
+  sendReviewReminders,
+  autoDetectNoShow,
+  cleanupExpiredSlotLocks,
+  cancelStalePendingPayments,
 } from '@/inngest/functions'
 import {
   INTERNAL_API_CORS_POLICY,
@@ -33,6 +38,7 @@ const inngestHandler = serve({
   functions: [
     syncBookingReminders,
     releaseRecurringReservedSlots,
+    syncPublicVisibilityFlags,
     syncExternalCalendarIntegrations,
     processCalendarBookingSync,
     processSupabasePaymentsChange,
@@ -40,6 +46,10 @@ const inngestHandler = serve({
     stripeWeeklyPayoutEligibilityScan,
     stripeSubscriptionRenewalChecks,
     stripeFailedPaymentRetries,
+    sendReviewReminders,
+    autoDetectNoShow,
+    cleanupExpiredSlotLocks,
+    cancelStalePendingPayments,
   ],
 })
 
