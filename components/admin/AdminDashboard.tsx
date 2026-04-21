@@ -12,6 +12,7 @@ import {
 } from '@/lib/actions/admin'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 import { AdminProfessionalIdentityBadge } from '@/components/admin/AdminProfessionalIdentityBadge'
+import { AppTable, AppTableHeader, AppTableBody, AppTableRow, AppTableHeadCell, AppTableCell } from '@/components/ui/AppTable'
 import {
   Shield,
   CheckCircle,
@@ -628,64 +629,60 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
               <p className="text-slate-500">Nenhum agendamento encontrado.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-slate-200/80 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200/80 bg-slate-50/70/50">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Utilizador</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Profissional</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Data</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Preço</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100/80">
-                    {bookings.map(booking => {
-                      const bookingStatusColors: Record<string, string> = {
-                        pending: 'bg-amber-50 text-amber-700',
-                        confirmed: 'bg-green-50 text-green-700',
-                        completed: 'bg-green-50 text-green-700',
-                        cancelled: 'bg-red-50 text-red-700',
-                        no_show: 'bg-slate-100 text-slate-600',
-                      }
-                      const bookingStatusLabels: Record<string, string> = {
-                        pending: 'Pendente',
-                        confirmed: 'Confirmado',
-                        completed: 'Concluído',
-                        cancelled: 'Cancelado',
-                        no_show: 'Não compareceu',
-                      }
-                      return (
-                        <tr key={booking.id} className="hover:bg-slate-50/70/50 transition-colors">
-                          <td className="px-5 py-4">
-                            <p className="font-medium text-slate-900">{booking.user_profile?.full_name || '-'}</p>
-                            <p className="text-xs text-slate-400">{booking.user_profile?.email || ''}</p>
-                          </td>
-                          <td className="px-5 py-4 text-slate-700">
-                            {booking.professional_profile?.full_name || '-'}
-                          </td>
-                          <td className="px-5 py-4 text-slate-700 whitespace-nowrap">
-                            {new Date(booking.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                            <span className="text-slate-400 ml-1">
-                              {new Date(booking.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${bookingStatusColors[booking.status] || 'bg-slate-100 text-slate-600'}`}>
-                              {bookingStatusLabels[booking.status] || booking.status}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-right font-medium text-slate-900 whitespace-nowrap">
-                            R$ {booking.price_brl?.toFixed(2) || '0.00'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AppTable>
+              <AppTableHeader>
+                <AppTableRow>
+                  <AppTableHeadCell>Utilizador</AppTableHeadCell>
+                  <AppTableHeadCell>Profissional</AppTableHeadCell>
+                  <AppTableHeadCell>Data</AppTableHeadCell>
+                  <AppTableHeadCell>Status</AppTableHeadCell>
+                  <AppTableHeadCell align="right">Preço</AppTableHeadCell>
+                </AppTableRow>
+              </AppTableHeader>
+              <AppTableBody>
+                {bookings.map(booking => {
+                  const bookingStatusColors: Record<string, string> = {
+                    pending: 'bg-amber-50 text-amber-700',
+                    confirmed: 'bg-green-50 text-green-700',
+                    completed: 'bg-green-50 text-green-700',
+                    cancelled: 'bg-red-50 text-red-700',
+                    no_show: 'bg-slate-100 text-slate-600',
+                  }
+                  const bookingStatusLabels: Record<string, string> = {
+                    pending: 'Pendente',
+                    confirmed: 'Confirmado',
+                    completed: 'Concluído',
+                    cancelled: 'Cancelado',
+                    no_show: 'Não compareceu',
+                  }
+                  return (
+                    <AppTableRow key={booking.id}>
+                      <AppTableCell>
+                        <p className="font-medium text-slate-900">{booking.user_profile?.full_name || '-'}</p>
+                        <p className="text-xs text-slate-400">{booking.user_profile?.email || ''}</p>
+                      </AppTableCell>
+                      <AppTableCell className="text-slate-700">
+                        {booking.professional_profile?.full_name || '-'}
+                      </AppTableCell>
+                      <AppTableCell className="text-slate-700 whitespace-nowrap">
+                        {new Date(booking.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <span className="text-slate-400 ml-1">
+                          {new Date(booking.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </AppTableCell>
+                      <AppTableCell>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${bookingStatusColors[booking.status] || 'bg-slate-100 text-slate-600'}`}>
+                          {bookingStatusLabels[booking.status] || booking.status}
+                        </span>
+                      </AppTableCell>
+                      <AppTableCell align="right" className="font-medium text-slate-900 whitespace-nowrap">
+                        R$ {booking.price_brl?.toFixed(2) || '0.00'}
+                      </AppTableCell>
+                    </AppTableRow>
+                  )
+                })}
+              </AppTableBody>
+            </AppTable>
           )}
         </div>
       )}

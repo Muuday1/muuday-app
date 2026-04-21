@@ -929,7 +929,7 @@ export default function BookingForm({
                 placeholder="Descreva brevemente o que você quer trabalhar nesta sessão."
                 rows={3}
                 maxLength={500}
-                className="w-full resize-none rounded-md border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
+                className="w-full resize-none rounded-lg border border-slate-200/80 bg-slate-50/30 p-3.5 text-sm text-slate-700 placeholder:text-slate-400 transition-all hover:border-slate-300 focus:border-[#9FE870] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#9FE870]/15"
               />
               <p className="mt-1 text-right text-xs text-slate-400">{sessionPurpose.length}/500</p>
             </div>
@@ -1054,7 +1054,7 @@ export default function BookingForm({
               </div>
             </div>
 
-            <div className="mb-5 rounded-md bg-slate-50/70 p-4">
+            <div className="mb-5 rounded-lg bg-slate-50/60 p-4 border border-slate-100">
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="text-slate-500">
                   Sessão ({professional.session_duration_minutes} min) x {totalSessions}
@@ -1071,7 +1071,7 @@ export default function BookingForm({
               </div>
             </div>
 
-            <div className="mb-4 rounded-md border border-slate-200 p-3">
+            <div className="mb-4 rounded-lg border border-slate-200/80 bg-slate-50/30 p-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                 Política de cancelamento
               </p>
@@ -1085,13 +1085,13 @@ export default function BookingForm({
             </div>
 
             {bookingResult && !bookingResult.success && (
-              <div className="mb-4 flex items-start gap-2 rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50/70 p-3 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <p>{bookingResult.error}</p>
               </div>
             )}
 
-            <div className="mb-4 space-y-2 rounded-md border border-slate-200 p-3">
+            <div className="mb-4 space-y-2 rounded-lg border border-slate-200/80 bg-slate-50/30 p-3">
               <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-600">
                 <input
                   type="checkbox"
@@ -1116,7 +1116,7 @@ export default function BookingForm({
               onClick={handleConfirm}
               disabled={!canSubmit}
               className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-md py-3 text-sm font-semibold transition-all',
+                'flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all active:scale-[0.98]',
                 canSubmit
                   ? 'bg-[#9FE870] text-white hover:bg-[#8ed85f]'
                   : 'cursor-not-allowed bg-slate-100 text-slate-400',

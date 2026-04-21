@@ -8,6 +8,7 @@ import {
 import { formatCurrencyFromBrl } from '../helpers'
 import type { BillingCycle, PlanTier, SaveState } from '../types'
 import type { ExchangeRateMap } from '@/lib/exchange-rates'
+import { AppTable, AppTableHeader, AppTableBody, AppTableRow, AppTableHeadCell, AppTableCell } from '@/components/ui/AppTable'
 
 interface PlanSelectionStageProps {
   selectedPlanCycle: BillingCycle
@@ -135,28 +136,26 @@ export function PlanSelectionStage({
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50/70">
-            <tr>
-              <th className="px-4 py-3 text-slate-700">Recurso</th>
-              <th className="px-4 py-3 text-slate-700">Básico</th>
-              <th className="px-4 py-3 text-slate-700">Profissional</th>
-              <th className="px-4 py-3 text-slate-700">Premium</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PLAN_COMPARISON_ROWS.map(row => (
-              <tr key={row.label} className="border-t border-slate-200/80">
-                <td className="px-4 py-3 font-medium text-slate-800">{row.label}</td>
-                <td className="px-4 py-3 text-slate-600">{row.basic}</td>
-                <td className="px-4 py-3 text-slate-600">{row.professional}</td>
-                <td className="px-4 py-3 text-slate-600">{row.premium}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AppTable>
+        <AppTableHeader>
+          <AppTableRow>
+            <AppTableHeadCell>Recurso</AppTableHeadCell>
+            <AppTableHeadCell>Básico</AppTableHeadCell>
+            <AppTableHeadCell>Profissional</AppTableHeadCell>
+            <AppTableHeadCell>Premium</AppTableHeadCell>
+          </AppTableRow>
+        </AppTableHeader>
+        <AppTableBody>
+          {PLAN_COMPARISON_ROWS.map(row => (
+            <AppTableRow key={row.label}>
+              <AppTableCell className="font-medium text-slate-800">{row.label}</AppTableCell>
+              <AppTableCell className="text-slate-600">{row.basic}</AppTableCell>
+              <AppTableCell className="text-slate-600">{row.professional}</AppTableCell>
+              <AppTableCell className="text-slate-600">{row.premium}</AppTableCell>
+            </AppTableRow>
+          ))}
+        </AppTableBody>
+      </AppTable>
 
       <div className="rounded-md border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

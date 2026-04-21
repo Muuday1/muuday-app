@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Loader2 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
+import { AppTable, AppTableHeader, AppTableBody, AppTableRow, AppTableHeadCell, AppTableCell } from '@/components/ui/AppTable'
 import { getDefaultPlanConfigMap, type PlanConfigMap } from '@/lib/plan-config'
 
 type BillingCycle = 'monthly' | 'annual'
@@ -240,28 +241,26 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50/70">
-            <tr>
-              <th className="px-4 py-3 text-slate-700">Recurso</th>
-              <th className="px-4 py-3 text-slate-700">Basico</th>
-              <th className="px-4 py-3 text-slate-700">Professional</th>
-              <th className="px-4 py-3 text-slate-700">Premium</th>
-            </tr>
-          </thead>
-          <tbody>
-            {planFeatures.map(feature => (
-              <tr key={feature.label} className="border-t border-slate-200/80">
-                <td className="px-4 py-3 font-medium text-slate-800">{feature.label}</td>
-                <td className="px-4 py-3 text-slate-600">{feature.basic}</td>
-                <td className="px-4 py-3 text-slate-600">{feature.professional}</td>
-                <td className="px-4 py-3 text-slate-600">{feature.premium}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AppTable>
+        <AppTableHeader>
+          <AppTableRow>
+            <AppTableHeadCell>Recurso</AppTableHeadCell>
+            <AppTableHeadCell>Básico</AppTableHeadCell>
+            <AppTableHeadCell>Professional</AppTableHeadCell>
+            <AppTableHeadCell>Premium</AppTableHeadCell>
+          </AppTableRow>
+        </AppTableHeader>
+        <AppTableBody>
+          {planFeatures.map(feature => (
+            <AppTableRow key={feature.label}>
+              <AppTableCell className="font-medium text-slate-800">{feature.label}</AppTableCell>
+              <AppTableCell className="text-slate-600">{feature.basic}</AppTableCell>
+              <AppTableCell className="text-slate-600">{feature.professional}</AppTableCell>
+              <AppTableCell className="text-slate-600">{feature.premium}</AppTableCell>
+            </AppTableRow>
+          ))}
+        </AppTableBody>
+      </AppTable>
 
       <div className="mt-5 rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
         <p className="mb-2 font-semibold text-slate-800">FAQ rapido</p>
