@@ -23,3 +23,13 @@ build.out
 artifacts/ops/*.local.json
 
 .tmp/
+
+# Temporary / scratch files (never commit)
+tmp_*
+tmp-*
+test_write_verify.txt
+*.tmp.py
+
+# Screenshot exports (use artifacts/ instead)
+landing-*.png
+wise-reference-*.png
