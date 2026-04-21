@@ -5,6 +5,8 @@ import { redirect, notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ReviewForm } from './ReviewForm'
+import { AppCard } from '@/components/ui/AppCard'
+import { PageContainer } from '@/components/ui/AppShell'
 
 export default async function AvaliarPage({ params }: { params: Promise<{ bookingId: string }> }) {
   const { bookingId } = await params
@@ -45,7 +47,7 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
   })
 
   return (
-    <div className="p-6 md:p-8 max-w-2xl mx-auto">
+    <PageContainer maxWidth="sm">
       {/* Back */}
       <Link
         href="/agenda"
@@ -56,7 +58,7 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
       </Link>
 
       {/* Professional summary card */}
-      <div className="bg-white rounded-lg border border-slate-200/80 p-5 mb-6 flex items-center gap-4">
+      <AppCard className="mb-6 flex items-center gap-4">
         <div className="w-14 h-14 rounded-md bg-[#9FE870] flex items-center justify-center text-white font-display font-bold text-xl flex-shrink-0">
           {professionalInitial}
         </div>
@@ -64,11 +66,11 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
           <p className="font-semibold text-slate-900">{professionalName}</p>
           <p className="text-sm text-slate-400 mt-0.5">Sessão em {scheduledDate}</p>
         </div>
-      </div>
+      </AppCard>
 
       {existingReview ? (
         /* Already reviewed state */
-        <div className="bg-white rounded-lg border border-slate-200/80 p-8 text-center">
+        <AppCard className="p-8 text-center">
           <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">✅</span>
           </div>
@@ -80,7 +82,7 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
           </p>
           {existingReview.comment && (
             <blockquote className="mt-4 bg-slate-50/70 rounded-md p-4 text-sm text-slate-600 italic text-left">
-              "{existingReview.comment}"
+              &ldquo;{existingReview.comment}&rdquo;
             </blockquote>
           )}
           <p className="text-xs text-slate-300 mt-4">
@@ -92,10 +94,10 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
           >
             Voltar à agenda
           </Link>
-        </div>
+        </AppCard>
       ) : (
         /* Review form */
-        <div className="bg-white rounded-lg border border-slate-200/80 p-6">
+        <AppCard>
           <h1 className="font-display font-bold text-2xl text-slate-900 mb-1">
             Como foi a sessão?
           </h1>
@@ -107,8 +109,8 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
             userId={user.id}
             professionalId={professional?.id}
           />
-        </div>
+        </AppCard>
       )}
-    </div>
+    </PageContainer>
   )
 }
