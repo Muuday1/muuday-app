@@ -27,7 +27,7 @@ export function AppBadge({ children, variant = 'default', size = 'md', className
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border font-semibold',
+        'inline-flex items-center gap-1 rounded-md border font-semibold',
         variants[variant],
         sizes[size],
         className
