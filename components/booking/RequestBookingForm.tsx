@@ -48,13 +48,17 @@ export default function RequestBookingForm({
     if (!preferredStartLocal) return
 
     startTransition(async () => {
-      const response = await createRequestBooking({
-        professionalId,
-        preferredStartLocal,
-        durationMinutes,
-        userMessage: message.trim() || undefined,
-      })
-      setResult(response)
+      try {
+        const response = await createRequestBooking({
+          professionalId,
+          preferredStartLocal,
+          durationMinutes,
+          userMessage: message.trim() || undefined,
+        })
+        setResult(response)
+      } catch {
+        setResult({ success: false, error: 'Erro inesperado ao enviar solicitação. Tente novamente.' })
+      }
     })
   }
 

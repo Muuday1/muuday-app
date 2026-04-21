@@ -9,8 +9,13 @@ export function MarkAllReadButton() {
 
   function handleClick() {
     startTransition(async () => {
-      await markAllNotificationsAsRead()
-      window.location.reload()
+      try {
+        await markAllNotificationsAsRead()
+        window.location.reload()
+      } catch {
+        // Fail silently — refresh will show current state
+        window.location.reload()
+      }
     })
   }
 

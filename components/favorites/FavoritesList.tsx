@@ -40,16 +40,21 @@ export default function FavoritesList({ initialProfessionals, userCurrency }: Fa
     setRemovingId(professionalId)
 
     startTransition(async () => {
-      const result = await removeFavorite(professionalId)
-      if (!result.success) {
-        setFeedback({ type: 'error', message: result.error || 'Erro ao remover favorito.' })
-        setRemovingId(null)
-        return
-      }
+      try {
+        const result = await removeFavorite(professionalId)
+        if (!result.success) {
+          setFeedback({ type: 'error', message: result.error || 'Erro ao remover favorito.' })
+          setRemovingId(null)
+          return
+        }
 
-      setProfessionals(prev => prev.filter(p => p.id !== professionalId))
-      setFeedback({ type: 'success', message: 'Profissional removido dos favoritos.' })
-      setRemovingId(null)
+        setProfessionals(prev => prev.filter(p => p.id !== professionalId))
+        setFeedback({ type: 'success', message: 'Profissional removido dos favoritos.' })
+        setRemovingId(null)
+      } catch {
+        setFeedback({ type: 'error', message: 'Erro inesperado. Tente novamente.' })
+        setRemovingId(null)
+      }
     })
   }
 

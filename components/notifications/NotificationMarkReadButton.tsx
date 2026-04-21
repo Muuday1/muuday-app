@@ -9,7 +9,11 @@ export function NotificationMarkReadButton({ notificationId }: { notificationId:
 
   function handleClick() {
     startTransition(async () => {
-      await markNotificationAsRead(notificationId)
+      try {
+        await markNotificationAsRead(notificationId)
+      } catch {
+        // Fail silently — marking read is non-critical
+      }
     })
   }
 
