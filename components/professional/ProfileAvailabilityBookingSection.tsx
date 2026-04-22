@@ -10,6 +10,7 @@ import {
   hasUtcBookingConflict,
   hasUtcExternalConflict,
 } from '@/lib/booking/slot-filtering'
+import { generateTimeSlots } from '@/components/booking/booking-form-helpers'
 
 type AvailabilitySlot = {
   id: string
@@ -104,23 +105,6 @@ function addDaysToIsoDate(isoDate: string, daysToAdd: number) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(
     date.getUTCDate(),
   ).padStart(2, '0')}`
-}
-
-function generateTimeSlots(startTime: string, endTime: string, durationMinutes: number) {
-  const slots: string[] = []
-  const [sh, sm] = startTime.split(':').map(Number)
-  const [eh, em] = endTime.split(':').map(Number)
-  let current = sh * 60 + sm
-  const end = eh * 60 + em
-
-  while (current + durationMinutes <= end) {
-    const h = Math.floor(current / 60)
-    const m = current % 60
-    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-    current += durationMinutes
-  }
-
-  return slots
 }
 
 function timezoneLabel(value: string) {
