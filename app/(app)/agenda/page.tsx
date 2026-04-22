@@ -147,20 +147,23 @@ export default async function AgendaPage({
   const activeView = normalizeView(view, isProfessional)
   const inboxFilter = normalizeInboxFilter(filter)
 
-  if (isProfessional && professionalId) {
-    await supabase
-      .from('request_bookings')
-      .update({ status: 'expired', expired_at: nowIso })
-      .eq('professional_id', professionalId)
-      .eq('status', 'offered')
-      .lt('proposal_expires_at', nowIso)
-  } else {
-    await supabase
-      .from('request_bookings')
-      .update({ status: 'expired', expired_at: nowIso })
-      .eq('user_id', user.id)
-      .eq('status', 'offered')
-      .lt('proposal_expires_at', nowIso)
+  const expireQuery = isProfessional && professionalId
+    ? supabase
+        .from('request_bookings')
+        .update({ status: 'expired', expired_at: nowIso })
+        .eq('professional_id', professionalId)
+        .eq('status', 'offered')
+        .lt('proposal_expires_at', nowIso)
+    : supabase
+        .from('request_bookings')
+        .update({ status: 'expired', expired_at: nowIso })
+        .eq('user_id', user.id)
+        .eq('status', 'offered')
+        .lt('proposal_expires_at', nowIso)
+
+  const { error: expireError } = await expireQuery
+  if (expireError) {
+    console.error('[agenda] failed to expire stale offers:', expireError.message)
   }
 
   const upcomingQuery =
@@ -383,11 +386,16 @@ export default async function AgendaPage({
 
   const reviewedBookingIds = new Set<string>()
   if (!isProfessional && completedBookingIds.length > 0) {
-    const { data: existingReviews } = await supabase
+    const { data: existingReviews, error: reviewsError } = await supabase
       .from('reviews')
       .select('booking_id')
       .in('booking_id', completedBookingIds)
       .eq('user_id', user.id)
+
+    if (reviewsError) {
+      console.error('[agenda] failed to load existing reviews:', reviewsError.message)
+    }
+
     ;(existingReviews || []).forEach((review: any) => reviewedBookingIds.add(review.booking_id))
   }
 

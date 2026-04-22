@@ -15,12 +15,16 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
   if (!user) redirect('/login')
 
   // Fetch the booking with professional details
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
     .eq('id', bookingId)
     .eq('user_id', user.id)
     .single()
+
+  if (bookingError) {
+    console.error('[avaliar] failed to load booking:', bookingError.message)
+  }
 
   if (!booking) notFound()
 
@@ -30,12 +34,16 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
   }
 
   // Check if review already exists
-  const { data: existingReview } = await supabase
+  const { data: existingReview, error: reviewError } = await supabase
     .from('reviews')
     .select('id, rating, comment, created_at')
     .eq('booking_id', bookingId)
     .eq('user_id', user.id)
     .single()
+
+  if (reviewError && !reviewError.message?.includes('0 rows')) {
+    console.error('[avaliar] failed to load existing review:', reviewError.message)
+  }
 
   const professional = booking.professionals as any
   const professionalName = professional?.profiles?.full_name || 'Profissional'
