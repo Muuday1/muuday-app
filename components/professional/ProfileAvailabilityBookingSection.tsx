@@ -18,9 +18,23 @@ type ExistingBooking = {
   duration_minutes: number
 }
 
+type AvailabilityException = {
+  date_local: string
+  is_available: boolean
+  start_time_local: string | null
+  end_time_local: string | null
+}
+
+type ExternalCalendarBusySlot = {
+  start_utc: string
+  end_utc: string
+}
+
 type ProfileAvailabilityBookingSectionProps = {
   availability: AvailabilitySlot[]
   existingBookings: ExistingBooking[]
+  availabilityExceptions?: AvailabilityException[]
+  externalCalendarBusySlots?: ExternalCalendarBusySlot[]
   isLoggedIn: boolean
   isOwnProfessional: boolean
   firstBookingBlocked: boolean
@@ -111,6 +125,8 @@ function timezoneLabel(value: string) {
 export function ProfileAvailabilityBookingSection({
   availability,
   existingBookings,
+  availabilityExceptions = [],
+  externalCalendarBusySlots = [],
   isLoggedIn,
   isOwnProfessional,
   firstBookingBlocked,
@@ -180,6 +196,21 @@ export function ProfileAvailabilityBookingSection({
           const slotUserDate = formatInTimeZone(slotUtc, userTimezone, 'yyyy-MM-dd')
           const slotUserDateObj = fromIsoDateToLocalDate(slotUserDate)
           if (slotUserDateObj < today || slotUserDateObj > maxDate) continue
+
+          const [slotH, slotM] = rawSlot.split(':').map(Number)
+          const slotStartMinutes = slotH * 60 + slotM
+          const slotEndMinutes = slotStartMinutes + selectedDuration
+          const isBlockedByException = availabilityExceptions.some(exc => {
+            if (exc.date_local !== professionalDate) return false
+            if (exc.start_time_local === null || exc.end_time_local === null) return true
+            const [excStartH, excStartM] = exc.start_time_local.split(':').map(Number)
+            const [excEndH, excEndM] = exc.end_time_local.split(':').map(Number)
+            const excStartMinutes = excStartH * 60 + excStartM
+            const excEndMinutes = excEndH * 60 + excEndM
+            return slotStartMinutes < excEndMinutes && slotEndMinutes > excStartMinutes
+          })
+          if (isBlockedByException) continue
+
           const slotUserTime = formatInTimeZone(slotUtc, userTimezone, 'HH:mm')
           const existingSlots = map.get(slotUserDate) || []
           existingSlots.push(slotUserTime)
@@ -195,6 +226,7 @@ export function ProfileAvailabilityBookingSection({
     return map
   }, [
     availability,
+    availabilityExceptions,
     maxBookingWindowDays,
     maxDate,
     minNoticeTimestamp,
@@ -226,7 +258,7 @@ export function ProfileAvailabilityBookingSection({
     const candidateSlots = slotsByUserDate.get(selectedDateStr) || []
     if (candidateSlots.length === 0) return []
 
-    const blockedRanges = existingBookings
+    const bookingBlockedRanges = existingBookings
       .map(booking => {
         const bookingStart = new Date(booking.scheduled_at)
         if (Number.isNaN(bookingStart.getTime())) return null
@@ -241,6 +273,23 @@ export function ProfileAvailabilityBookingSection({
       })
       .filter((range): range is { startMinutes: number; endMinutes: number } => Boolean(range))
 
+    const externalBlockedRanges = externalCalendarBusySlots
+      .map(slot => {
+        const slotStart = new Date(slot.start_utc)
+        if (Number.isNaN(slotStart.getTime())) return null
+        const slotDateStr = formatInTimeZone(slotStart, userTimezone, 'yyyy-MM-dd')
+        if (slotDateStr !== selectedDateStr) return null
+        const slotStartStr = formatInTimeZone(slotStart, userTimezone, 'HH:mm')
+        const slotEnd = new Date(slot.end_utc)
+        const slotEndStr = formatInTimeZone(slotEnd, userTimezone, 'HH:mm')
+        const [startH, startM] = slotStartStr.split(':').map(Number)
+        const [endH, endM] = slotEndStr.split(':').map(Number)
+        return { startMinutes: startH * 60 + startM, endMinutes: endH * 60 + endM }
+      })
+      .filter((range): range is { startMinutes: number; endMinutes: number } => Boolean(range))
+
+    const blockedRanges = [...bookingBlockedRanges, ...externalBlockedRanges]
+
     return candidateSlots.filter(time => {
       const [slotH, slotM] = time.split(':').map(Number)
       const slotStartMinutes = slotH * 60 + slotM
@@ -249,7 +298,7 @@ export function ProfileAvailabilityBookingSection({
         range => slotStartMinutes < range.endMinutes && slotEndMinutes > range.startMinutes,
       )
     })
-  }, [existingBookings, selectedDate, selectedDuration, slotsByUserDate, userTimezone])
+  }, [existingBookings, externalCalendarBusySlots, selectedDate, selectedDuration, slotsByUserDate, userTimezone])
 
   const selectedTimeInProfessionalTimezone = useMemo(() => {
     if (!selectedDate || !selectedTime) return null

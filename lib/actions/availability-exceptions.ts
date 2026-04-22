@@ -60,13 +60,15 @@ export async function addAvailabilityException(
   let startTimeLocal: string | null = null
   let endTimeLocal: string | null = null
 
-  if (isAvailable) {
+  const hasTimeRange = Boolean(options.startTimeLocal && options.endTimeLocal)
+
+  if (isAvailable || hasTimeRange) {
     const timeSchema = z.string().regex(/^\d{2}:\d{2}$/, 'Horário inválido. Use HH:MM.')
     const startParsed = timeSchema.safeParse(options.startTimeLocal)
     const endParsed = timeSchema.safeParse(options.endTimeLocal)
 
     if (!startParsed.success || !endParsed.success) {
-      return { success: false, error: 'Horários de início e fim são obrigatórios para slots disponíveis.' }
+      return { success: false, error: 'Horários de início e fim são obrigatórios para blocos de horário ou slots disponíveis.' }
     }
     startTimeLocal = startParsed.data
     endTimeLocal = endParsed.data

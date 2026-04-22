@@ -79,6 +79,18 @@ type ExistingBookingRow = {
   duration_minutes: number
 }
 
+type AvailabilityExceptionRow = {
+  date_local: string
+  is_available: boolean
+  start_time_local: string | null
+  end_time_local: string | null
+}
+
+type ExternalCalendarBusySlotRow = {
+  start_utc: string
+  end_utc: string
+}
+
 function getCountryDisplayName(countryCodeOrName?: string | null) {
   if (!countryCodeOrName) return 'Online'
   const normalized = countryCodeOrName.trim()
@@ -384,6 +396,18 @@ export default async function ProfissionalPage({
     .eq('professional_id', professional.id)
     .in('status', ['pending_confirmation', 'confirmed'])
 
+  const { data: availabilityExceptions } = await readClient
+    .from('availability_exceptions')
+    .select('date_local,is_available,start_time_local,end_time_local')
+    .eq('professional_id', professional.id)
+    .eq('is_available', false)
+
+  const { data: externalCalendarBusySlots } = await readClient
+    .from('external_calendar_busy_slots')
+    .select('start_utc,end_utc')
+    .eq('professional_id', professional.id)
+    .gte('end_utc', new Date().toISOString())
+
   const { data: reviews } = await readClient
     .from('reviews')
     .select('id,rating,comment,professional_response,profiles(full_name)')
@@ -518,6 +542,12 @@ export default async function ProfissionalPage({
       <ProfileAvailabilityBookingSection
         availability={(availability || []) as AvailabilitySlotRow[]}
         existingBookings={(existingBookings || []) as ExistingBookingRow[]}
+        availabilityExceptions={
+          (availabilityExceptions || []) as AvailabilityExceptionRow[]
+        }
+        externalCalendarBusySlots={
+          (externalCalendarBusySlots || []) as ExternalCalendarBusySlotRow[]
+        }
         isLoggedIn={Boolean(user)}
         isOwnProfessional={isOwnProfessional}
         firstBookingBlocked={firstBookingBlocked}
