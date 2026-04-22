@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart, Wallet, MessageCircle, Layers, FileText, ShieldAlert } from 'lucide-react'
+import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart, Wallet, MessageCircle, Layers, FileText, ShieldAlert, Bell } from 'lucide-react'
 
 type NavItem = {
   href: string
@@ -23,14 +23,17 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Layers,
   FileText,
   ShieldAlert,
+  Bell,
 }
 
 export function SidebarNav({
   navItems,
   unreadMessageCount = 0,
+  unreadNotificationCount = 0,
 }: {
   navItems: NavItem[]
   unreadMessageCount?: number
+  unreadNotificationCount?: number
 }) {
   const pathname = usePathname()
 
@@ -39,7 +42,8 @@ export function SidebarNav({
       {navItems.map(({ href, icon, label }) => {
         const Icon = iconMap[icon] || LayoutDashboard
         const isActive = pathname === href || pathname.startsWith(`${href}/`)
-        const showBadge = icon === 'MessageCircle' && unreadMessageCount > 0
+        const showMessageBadge = icon === 'MessageCircle' && unreadMessageCount > 0
+        const showNotificationBadge = icon === 'Bell' && unreadNotificationCount > 0
 
         return (
           <Link
@@ -56,9 +60,14 @@ export function SidebarNav({
               isActive ? 'text-[#9FE870]' : 'text-slate-400 group-hover:text-[#9FE870]'
             }`} />
             <span className="flex-1">{label}</span>
-            {showBadge && (
+            {showMessageBadge && (
               <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
                 {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+              </span>
+            )}
+            {showNotificationBadge && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
               </span>
             )}
           </Link>

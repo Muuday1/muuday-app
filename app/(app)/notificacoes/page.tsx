@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale'
 import { getNotifications } from '@/lib/actions/notifications'
 import { NotificationMarkReadButton } from '@/components/notifications/NotificationMarkReadButton'
 import { MarkAllReadButton } from '@/components/notifications/MarkAllReadButton'
+import { NotificationRealtimeListener } from '@/components/notifications/NotificationRealtimeListener'
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
@@ -24,7 +25,9 @@ export default async function NotificacoesPage({
   const notifications = result.success ? result.data.notifications : []
 
   return (
-    <PageContainer maxWidth="md">
+    <>
+      <NotificationRealtimeListener />
+      <PageContainer maxWidth="md">
       <PageHeader title="Notificações" subtitle="Acompanhe atualizações da sua conta e sessões.">
         <div className="flex items-center gap-2">
           <Link
@@ -114,5 +117,6 @@ export default async function NotificacoesPage({
         </div>
       )}
     </PageContainer>
+    </>
   )
 }

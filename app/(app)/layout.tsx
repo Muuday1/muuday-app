@@ -8,6 +8,7 @@ import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistr
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { getLayoutSession } from '@/lib/auth/layout-session'
 import { getConversations } from '@/lib/actions/chat'
+import { getUnreadNotificationCount } from '@/lib/actions/notifications'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile } = await getLayoutSession()
@@ -26,11 +27,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? conversationsResult.data.conversations.reduce((sum, c) => sum + c.unreadCount, 0)
     : 0
 
+  // Fetch unread notification count for badge
+  const notificationsResult = await getUnreadNotificationCount()
+  const unreadNotificationCount = notificationsResult.success ? notificationsResult.data.count : 0
+
   const navItems = (() => {
     if (isAdmin) {
       return [
         { href: '/buscar-auth', icon: 'Search', label: 'Buscar' },
         { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
+        { href: '/notificacoes', icon: 'Bell', label: 'Notificações' },
         { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
         { href: '/perfil', icon: 'User', label: 'Perfil' },
         { href: '/admin', icon: 'Shield', label: 'Admin' },
@@ -41,6 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: '/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
         { href: '/agenda', icon: 'Calendar', label: 'Calendário' },
         { href: '/mensagens', icon: 'MessageCircle', label: 'Mensagens' },
+        { href: '/notificacoes', icon: 'Bell', label: 'Notificações' },
         { href: '/servicos', icon: 'Layers', label: 'Serviços' },
         { href: '/prontuario', icon: 'FileText', label: 'Prontuário' },
         { href: '/financeiro', icon: 'Wallet', label: 'Financeiro' },
@@ -51,6 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: '/buscar-auth', icon: 'Search', label: 'Buscar' },
       { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
       { href: '/mensagens', icon: 'MessageCircle', label: 'Mensagens' },
+      { href: '/notificacoes', icon: 'Bell', label: 'Notificações' },
       { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
       { href: '/disputas', icon: 'ShieldAlert', label: 'Disputas' },
       { href: '/perfil', icon: 'User', label: 'Perfil' },
@@ -69,7 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
 
-        <SidebarNav navItems={navItems} unreadMessageCount={unreadMessageCount} />
+        <SidebarNav navItems={navItems} unreadMessageCount={unreadMessageCount} unreadNotificationCount={unreadNotificationCount} />
 
         <div className="p-4 border-t border-slate-200/80">
           {isLoggedIn ? (
@@ -144,7 +152,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </main>
 
-      <MobileNav navItems={navItems} unreadMessageCount={unreadMessageCount} />
+      <MobileNav navItems={navItems} unreadMessageCount={unreadMessageCount} unreadNotificationCount={unreadNotificationCount} />
       <PwaInstallPrompt />
       <ServiceWorkerRegistration />
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export function NotificationBell() {
   const [count, setCount] = useState(0)
@@ -19,9 +20,27 @@ export function NotificationBell() {
         // silently fail
       }
     }
+
+    // Initial fetch
     fetchCount()
-    const interval = setInterval(fetchCount, 30000)
-    return () => clearInterval(interval)
+
+    // Supabase Realtime for instant updates
+    const supabase = createClient()
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => {
+          // Re-fetch count when any notification changes
+          void fetchCount()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   return (

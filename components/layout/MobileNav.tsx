@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart, Wallet, MessageCircle, Layers, FileText, ShieldAlert } from 'lucide-react'
+import { LayoutDashboard, Search, Calendar, User, Settings, Shield, Heart, Wallet, MessageCircle, Layers, FileText, ShieldAlert, Bell } from 'lucide-react'
 
 type NavItem = {
   href: string
@@ -24,14 +24,17 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Layers,
   FileText,
   ShieldAlert,
+  Bell,
 }
 
 export function MobileNav({
   navItems,
   unreadMessageCount = 0,
+  unreadNotificationCount = 0,
 }: {
   navItems: NavItem[]
   unreadMessageCount?: number
+  unreadNotificationCount?: number
 }) {
   const pathname = usePathname()
 
@@ -44,7 +47,8 @@ export function MobileNav({
         {mobileItems.map(({ href, icon, label }) => {
           const Icon = iconMap[icon] || LayoutDashboard
           const isActive = pathname === href || pathname.startsWith(`${href}/`)
-          const showBadge = icon === 'MessageCircle' && unreadMessageCount > 0
+          const showMessageBadge = icon === 'MessageCircle' && unreadMessageCount > 0
+          const showNotificationBadge = icon === 'Bell' && unreadNotificationCount > 0
 
           return (
             <Link
@@ -62,9 +66,11 @@ export function MobileNav({
               )}
               <div className="relative">
                 <Icon className={`w-5 h-5 ${isActive ? 'text-[#9FE870]' : ''}`} />
-                {showBadge && (
+                {(showMessageBadge || showNotificationBadge) && (
                   <span className="absolute -right-2 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
-                    {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                    {showMessageBadge
+                      ? unreadMessageCount > 9 ? '9+' : unreadMessageCount
+                      : unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                   </span>
                 )}
               </div>
