@@ -2,6 +2,30 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-04-22
+
+### Entry 85 (2026-04-22) — Sala de Espera + jogo "O Expat" para sessões de video
+- Scope executed:
+  - Migration `063`: adiciona `professional_ready_at` em `bookings` para controle de entrada do profissional.
+  - API `GET /api/sessao/status`: polling do cliente a cada 2s com rate limiting (`bookingManage`).
+  - API `POST /api/sessao/liberar`: profissional libera a sessão; valida ownership, status e janela de tempo.
+  - `SessionCountdown`: countdown ao início da sessão; mostra alerta âmbar quando o horário chegou.
+  - `WaitingRoomGame` ("O Expat"): runner 2D B&W em canvas; obstáculos progressivos (avião → casa → mala → prédio), moedas com $, high score em `sessionStorage`, partículas de poeira no pulo, `touch-action: none` para mobile.
+  - `VideoSession` refatorado em 3 fases: `waiting` → `connecting` → `in-session`.
+  - Economia de créditos Agora: ninguém conecta até o profissional clicar "Entrar na sessão".
+  - Agora cleanup separado do unmount para evitar desconexão na troca de fase.
+  - Tratamento de erro na fase `connecting` com botão "Voltar e tentar novamente".
+- Security:
+  - Descoberta e mitigação de API key Resend hardcoded em 4 scripts Python.
+  - Scripts refatorados para `os.environ.get("RESEND_API_KEY")`.
+  - `.gitignore` atualizado para proteger scripts com keys e cache da CLI Supabase.
+- Validation:
+  - `npm run lint` -> pass (0 warnings)
+  - `npm run build` -> pass (Turbopack)
+  - Deploy Vercel production -> Ready
+  - Health check `/api/health` -> 200
+  - APIs `/api/sessao/status` e `/api/sessao/liberar` -> 401 não autenticado (comportamento esperado)
+
 ## 2026-04-16
 
 ### Entry 84 (2026-04-16) — Onboarding modal load-path performance split + hygiene pass

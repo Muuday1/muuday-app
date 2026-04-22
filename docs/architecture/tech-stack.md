@@ -32,11 +32,11 @@ Wave legend:
 | Upstash | Rate limiting | In progress | Wave 0 | Abuse patterns or higher API throughput require tighter controls |
 | Inngest | Background job orchestration | In progress | Wave 2 prep / Wave 4 scale | Fragmented retries and async workflow reliability pressure |
 
-## Wave 2 close — infrastructure hardening (deploy before Wave 3)
+## Wave 2 close ï¿½ infrastructure hardening (deploy before Wave 3)
 
 | Component | Purpose | Status | Deploy timing | Growth update trigger |
 | --- | --- | --- | --- | --- |
-| Database composite indexes | Query performance for booking/search paths | In progress (migration `020` criada) | Wave 2 close | `EXPLAIN ANALYZE` mostra seq scans após aplicação dos índices |
+| Database composite indexes | Query performance for booking/search paths | In progress (migration `020` criada) | Wave 2 close | `EXPLAIN ANALYZE` mostra seq scans apï¿½s aplicaï¿½ï¿½o dos ï¿½ndices |
 | Booking race condition fix | Atomic conflict check + insert via Postgres RPC or UNIQUE constraint | Planned | Wave 2 close | Double-booking reports in production |
 | JWT custom claims for role | Eliminate per-request DB query in middleware | Planned | Wave 2 close | Middleware latency > 50ms p95 or DB connection saturation |
 | Zod validation hardening | Schema validation on ALL server actions (booking amounts, dates, IDs) | Planned | Wave 2 close | Input validation gaps in server actions |
@@ -59,7 +59,7 @@ Wave legend:
 | Event-driven notification dispatcher | Consistent email + in-app delivery | Planned/In progress | Wave 4 | Reminder reliability and multi-channel routing needs |
 | Checkly synthetic monitoring | Uptime and critical-path monitoring (already in devDependencies) | In progress | Wave 4 | SLA incidents require broader check set/escalation |
 | Sentry alert rules | Custom alerts for error rate spike, payment failures, auth failures | In progress | Wave 4 | Final dashboard alert-rule setup still manual |
-| Session provider (Agora) | Video/session execution | In progress | Wave 2/3 | Reliability and no-show evidence hardening |
+| Session provider (Agora) | Video/session execution | In progress (waiting room + game delivered) | Wave 2/3 | Reliability and no-show evidence hardening |
 | Compliance disclaimer versioning | Sensitive-category checkout/profile governance | Planned | Wave 5 | Legal wording changes and category expansion complexity |
 
 ## Scale-triggered additions (deploy when threshold is met)
