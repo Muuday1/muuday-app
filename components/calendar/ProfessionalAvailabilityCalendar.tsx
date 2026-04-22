@@ -413,6 +413,8 @@ export function ProfessionalAvailabilityCalendar({
               const weekday = weekdayFromDate(day, timezone)
               const availabilityCount = activeRules.filter(rule => rule.day_of_week === weekday).length
               const bookedCount = (bookingsByDate.get(key) || []).length
+              const dayExceptions = exceptionsByDate.get(key) || []
+              const hasFullDayBlock = dayExceptions.some(exc => exc.startMinutes === 0 && exc.endMinutes === 24 * 60)
               return (
                 <button
                   key={key}
@@ -426,9 +428,13 @@ export function ProfessionalAvailabilityCalendar({
                   }`}
                 >
                   <p className="text-xs font-semibold text-slate-800">{formatInTimeZone(day, timezone, 'd')}</p>
-                  <p className="mt-1 text-[11px] text-[#3d6b1f]">
-                    {availabilityCount > 0 ? `${availabilityCount} bloco(s)` : 'Sem disponibilidade'}
-                  </p>
+                  {hasFullDayBlock ? (
+                    <p className="mt-1 text-[11px] font-medium text-red-600">Bloqueado</p>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-[#3d6b1f]">
+                      {availabilityCount > 0 ? `${availabilityCount} bloco(s)` : 'Sem disponibilidade'}
+                    </p>
+                  )}
                   <p className="text-[11px] text-amber-700">{bookedCount > 0 ? `${bookedCount} ocupado(s)` : 'Livre'}</p>
                 </button>
               )
