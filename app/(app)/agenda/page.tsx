@@ -263,40 +263,64 @@ export default async function AgendaPage({
   } | null = null
 
   if (professionalId) {
-    const [settingsResult, availabilityResult, calendarIntegrationResult, externalBusyResult, planConfigMap] =
-      await Promise.all([
-        supabase
-          .from('professional_settings')
-          .select(
-            'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose',
-          )
-          .eq('professional_id', professionalId)
-          .maybeSingle(),
-        supabase
-          .from('availability')
-          .select('day_of_week, start_time, end_time, is_active')
-          .eq('professional_id', professionalId)
-          .eq('is_active', true)
-          .order('day_of_week', { ascending: true }),
-        supabase
-          .from('calendar_integrations')
-          .select('id, provider, sync_enabled, connection_status, provider_account_email, last_sync_at, last_sync_completed_at, last_sync_error')
-          .eq('professional_id', professionalId)
-          .maybeSingle(),
-        supabase
-          .from('external_calendar_busy_slots')
-          .select('id, start_time_utc, end_time_utc, provider')
-          .eq('professional_id', professionalId)
-          .gte('start_time_utc', nowIso)
-          .order('start_time_utc', { ascending: true })
-          .limit(120),
-        loadPlanConfigMap(),
-      ])
+    const [
+      settingsResult,
+      availabilityRulesResult,
+      legacyAvailabilityResult,
+      calendarIntegrationResult,
+      externalBusyResult,
+      planConfigMap,
+    ] = await Promise.all([
+      supabase
+        .from('professional_settings')
+        .select(
+          'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose',
+        )
+        .eq('professional_id', professionalId)
+        .maybeSingle(),
+      supabase
+        .from('availability_rules')
+        .select('weekday, start_time_local, end_time_local, is_active')
+        .eq('professional_id', professionalId)
+        .eq('is_active', true)
+        .order('weekday', { ascending: true }),
+      supabase
+        .from('availability')
+        .select('day_of_week, start_time, end_time, is_active')
+        .eq('professional_id', professionalId)
+        .eq('is_active', true)
+        .order('day_of_week', { ascending: true }),
+      supabase
+        .from('calendar_integrations')
+        .select('id, provider, sync_enabled, connection_status, provider_account_email, last_sync_at, last_sync_completed_at, last_sync_error')
+        .eq('professional_id', professionalId)
+        .maybeSingle(),
+      supabase
+        .from('external_calendar_busy_slots')
+        .select('id, start_time_utc, end_time_utc, provider')
+        .eq('professional_id', professionalId)
+        .gte('start_time_utc', nowIso)
+        .order('start_time_utc', { ascending: true })
+        .limit(120),
+      loadPlanConfigMap(),
+    ])
 
     professionalSettings = settingsResult.data as Record<string, any> | null
-    overviewAvailabilityRules =
-      (availabilityResult.data || []).map(row => ({
-        day_of_week: Number(row.day_of_week),
+
+    const useModernRules =
+      !availabilityRulesResult.error &&
+      availabilityRulesResult.data &&
+      availabilityRulesResult.data.length > 0
+
+    overviewAvailabilityRules = useModernRules
+      ? (availabilityRulesResult.data || []).map(row => ({
+          day_of_week: Number(row.weekday),
+          start_time: String(row.start_time_local || ''),
+          end_time: String(row.end_time_local || ''),
+          is_active: true,
+        }))
+      : (legacyAvailabilityResult.data || []).map(row => ({
+          day_of_week: Number(row.day_of_week),
         start_time: String(row.start_time).slice(0, 5),
         end_time: String(row.end_time).slice(0, 5),
         is_active: Boolean(row.is_active),
