@@ -104,13 +104,17 @@ export async function loadProfessionalOnboardingState(
   professionalId: string,
   options?: LoadProfessionalOnboardingStateOptions,
 ): Promise<OnboardingStateResult | null> {
-  const { data: professionalRow } = await supabase
+  const { data: professionalRow, error: professionalError } = await supabase
     .from('professionals')
     .select(
       'id, user_id, status, tier, first_booking_enabled, bio, category, subcategories, languages, years_experience, session_price_brl, session_duration_minutes, whatsapp_number, cover_photo_url, video_intro_url, social_links',
     )
     .eq('id', professionalId)
     .maybeSingle()
+
+  if (professionalError) {
+    console.error('[onboarding-state] failed to load professional:', professionalError.message)
+  }
 
   if (!professionalRow?.id) return null
 
@@ -138,13 +142,17 @@ export async function loadProfessionalOnboardingState(
         : null,
   }
 
-  const { data: profileRow } = await supabase
+  const { data: profileRow, error: profileError } = await supabase
     .from('profiles')
     .select('full_name, email, country, timezone, avatar_url')
     .eq('id', String(professionalRow.user_id))
     .maybeSingle()
 
-  const { data: applicationRow } = await supabase
+  if (profileError) {
+    console.error('[onboarding-state] failed to load profile:', profileError.message)
+  }
+
+  const { data: applicationRow, error: applicationError } = await supabase
     .from('professional_applications')
     .select(
       'display_name,category,specialty_name,primary_language,secondary_languages,focus_areas,years_experience,taxonomy_suggestions',
@@ -154,6 +162,10 @@ export async function loadProfessionalOnboardingState(
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  if (applicationError) {
+    console.error('[onboarding-state] failed to load application:', applicationError.message)
+  }
 
   snapshot.account = {
     fullName: String(profileRow?.full_name || ''),
@@ -342,11 +354,20 @@ export async function evaluateFirstBookingEligibility(
       evaluation?: ProfessionalOnboardingEvaluation
     }
 > {
-  const { count: existingAcceptedBookingsCount } = await supabase
+  const { count: existingAcceptedBookingsCount, error: bookingsError } = await supabase
     .from('bookings')
     .select('id', { count: 'exact', head: true })
     .eq('professional_id', professionalId)
     .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
+
+  if (bookingsError) {
+    console.error('[first-booking-eligibility] failed to load existing bookings:', bookingsError.message)
+    return {
+      ok: false,
+      message: 'Erro ao verificar disponibilidade do profissional. Tente novamente.',
+      reasonCode: 'unknown_gate_blocker',
+    }
+  }
 
   const hasAcceptedBookings = (existingAcceptedBookingsCount || 0) > 0
   if (hasAcceptedBookings) return { ok: true }
