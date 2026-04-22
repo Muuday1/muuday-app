@@ -130,18 +130,18 @@ export default async function DashboardPage({
   const todayLocalDate = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd')
 
   const [
-    { data: professionalSettings },
-    { data: upcomingBookings },
-    { count: pendingConfirmationCountRaw },
-    { count: openRequestCountRaw },
-    { count: completedLast30Count },
-    { count: cancelledLast30Count },
-    { count: favoritesCount },
-    { count: activeAvailabilityCount },
-    { count: availabilityExceptionsCount },
-    { data: calendarIntegration },
-    { count: acceptedBookingsCount },
-    { data: paymentsMonthRows },
+    { data: professionalSettings, error: settingsError },
+    { data: upcomingBookings, error: upcomingError },
+    { count: pendingConfirmationCountRaw, error: pendingCountError },
+    { count: openRequestCountRaw, error: requestCountError },
+    { count: completedLast30Count, error: completedCountError },
+    { count: cancelledLast30Count, error: cancelledCountError },
+    { count: favoritesCount, error: favoritesError },
+    { count: activeAvailabilityCount, error: availabilityError },
+    { count: availabilityExceptionsCount, error: exceptionsError },
+    { data: calendarIntegration, error: calendarError },
+    { count: acceptedBookingsCount, error: acceptedCountError },
+    { data: paymentsMonthRows, error: paymentsError },
     onboardingState,
     onboardingTrackerMeta,
   ] = await Promise.all([
@@ -218,6 +218,22 @@ export default async function DashboardPage({
     }),
     loadProfessionalTrackerMeta(supabase, professionalId),
   ])
+
+  const logQueryError = (area: string, error: any) => {
+    if (error) console.error(`[dashboard] ${area} query error:`, error.message, error.code)
+  }
+  logQueryError('settings', settingsError)
+  logQueryError('upcoming bookings', upcomingError)
+  logQueryError('pending count', pendingCountError)
+  logQueryError('request count', requestCountError)
+  logQueryError('completed count', completedCountError)
+  logQueryError('cancelled count', cancelledCountError)
+  logQueryError('favorites', favoritesError)
+  logQueryError('availability', availabilityError)
+  logQueryError('exceptions', exceptionsError)
+  logQueryError('calendar', calendarError)
+  logQueryError('accepted count', acceptedCountError)
+  logQueryError('payments', paymentsError)
 
   const pendingConfirmationCount = pendingConfirmationCountRaw || 0
   const openRequestCount = openRequestCountRaw || 0
