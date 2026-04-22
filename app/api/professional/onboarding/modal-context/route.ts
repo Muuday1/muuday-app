@@ -307,9 +307,28 @@ export async function GET(request: Request) {
       .eq('professional_id', professional.id)
       .maybeSingle(),
     supabase
-      .from('availability')
-      .select('day_of_week,start_time,end_time,is_active')
-      .eq('professional_id', professional.id),
+      .from('availability_rules')
+      .select('weekday,start_time_local,end_time_local,is_active')
+      .eq('professional_id', professional.id)
+      .then(async result => {
+        if (result.data && result.data.length > 0) {
+          return {
+            data: result.data.map(row => ({
+              day_of_week: row.weekday,
+              start_time: row.start_time_local,
+              end_time: row.end_time_local,
+              is_active: row.is_active,
+            })),
+            error: null,
+          }
+        }
+        // Fallback to legacy availability table
+        const legacy = await supabase
+          .from('availability')
+          .select('day_of_week,start_time,end_time,is_active')
+          .eq('professional_id', professional.id)
+        return legacy
+      }),
     supabase
       .from('professional_applications')
       .select(
