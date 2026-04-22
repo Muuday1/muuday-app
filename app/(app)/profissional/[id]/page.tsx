@@ -383,12 +383,29 @@ export default async function ProfissionalPage({
     }
   }
 
-  const { data: availability } = await readClient
+  const { data: availabilityRulesRows, error: availabilityRulesError } = await readClient
+    .from('availability_rules')
+    .select('weekday, start_time_local, end_time_local, is_active')
+    .eq('professional_id', professional.id)
+    .eq('is_active', true)
+    .order('weekday')
+
+  const { data: legacyAvailability } = await readClient
     .from('availability')
     .select('id,day_of_week,start_time,end_time,is_active')
     .eq('professional_id', professional.id)
     .eq('is_active', true)
     .order('day_of_week')
+
+  const availability =
+    !availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0
+      ? availabilityRulesRows.map(rule => ({
+          id: `rule-${rule.weekday}-${rule.start_time_local}-${rule.end_time_local}`,
+          day_of_week: rule.weekday,
+          start_time: rule.start_time_local,
+          end_time: rule.end_time_local,
+        }))
+      : (legacyAvailability || []) as AvailabilitySlotRow[]
 
   const { data: existingBookings } = await readClient
     .from('bookings')
