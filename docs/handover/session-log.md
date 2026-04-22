@@ -1363,6 +1363,37 @@ Use this for meaningful checkpoints only.
   - `npm.cmd run build`
   - `npm.cmd run test:state-machines`
   - `npm.cmd run test:e2e` (`13 passed`)
+### Entry 62 (2026-04-22) — Two-tier availability architecture closure
+
+- Contexto: o sistema mantém duas tabelas de disponibilidade:
+  - `availability_rules` (moderna, preferida por todas as superfícies de leitura)
+  - `availability` (legada, preservada para compatibilidade)
+- Lacuna crítica identificada: a rota `POST /api/professional/onboarding/save` escrevia apenas em `availability`, deixando `availability_rules` vazio ou desatualizado para professionals que salvaram após a migração 005.
+- Superfícies de leitura auditadas e corrigidas (todas agora preferem `availability_rules` com fallback para `availability`):
+  - `/agenda` (overview + calendário profissional)
+  - `/profissional/[id]` (perfil público + slot picker)
+  - `/agendar/[id]` (checkout + BookingForm slot picker)
+  - `/buscar` (filtro de busca com merge das duas fontes)
+  - `/dashboard` (contagem de "Slots ativos")
+- Extractions com testes unitários:
+  - `lib/search/availability-merge.ts` (6 tests) — merge modern + legacy para busca
+  - `lib/booking/slot-filtering.ts` (16 tests) — filtragem pura de slots contra exceções e bookings
+  - `components/booking/booking-form-helpers.ts` — deduplicação de `generateTimeSlots`
+- Renderização de exceções no calendário profissional:
+  - overlays vermelhos em day/week view para blocos de tempo
+  - badge "Bloqueado" em month view para bloqueios de dia inteiro
+- Dual-write implementado no onboarding save:
+  - `safeRulesRows` construídos com weekday, start/end_time_local, timezone, is_active
+  - delete + insert atômico em ambas as tabelas
+  - rollback simétrico: se `availability_rules` falha, restaura legacy; se settings falha, restaura ambas
+- Migração de backfill criada (`062-backfill-availability-rules-from-legacy.sql`):
+  - sincroniza `availability_rules` a partir de `availability` para professionals com dados legados
+  - usa timezone de `professional_settings` ou fallback 'America/Sao_Paulo'
+- Validação:
+  - `tsc --noEmit` → pass
+  - `npm run test:state-machines` (91 tests) → pass
+  - `npm run build` (140/140 static pages) → pass
+
 - PR-3 (branch `codex/hardening-ops-pr3`, em andamento):
   - CI `main` agora exige `SUPABASE_DB_POOLER_URL` e valida pooler em modo produção.
   - evidências operacionais executadas:
