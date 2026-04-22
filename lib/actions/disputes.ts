@@ -222,12 +222,15 @@ export async function resolveCase(
   }
 
   // Log action
-  await supabase.from('case_actions').insert({
+  const { error: actionError } = await supabase.from('case_actions').insert({
     case_id: idParsed.data,
     action_type: 'resolved',
     performed_by: adminId,
     metadata: { refund_amount: refundAmount ?? null },
   })
+  if (actionError) {
+    console.error('[disputes] case_actions insert error:', actionError.message)
+  }
 
   return { success: true, data: { resolvedAt } }
 }

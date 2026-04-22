@@ -596,7 +596,10 @@ export async function createBooking(data: {
           parent_booking_id: parentBooking.id,
         }))
 
-        await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
+        const { error: cleanupError } = await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
+        if (cleanupError) {
+          console.error('[booking] cleanup child bookings error:', cleanupError.message)
+        }
         const { data: childRows, error: childError } = await supabase
           .from('bookings')
           .insert(childrenWithParentId)
@@ -604,14 +607,20 @@ export async function createBooking(data: {
 
         if (childError) {
           if (isActiveSlotCollision(childError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
-            await supabase.from('bookings').delete().eq('id', parentBooking.id)
+            const { error: rollbackError } = await supabase.from('bookings').delete().eq('id', parentBooking.id)
+            if (rollbackError) {
+              console.error('[booking] rollback parent booking error:', rollbackError.message)
+            }
             return {
               success: false,
               error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
             }
           }
           reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType }, 'booking_children_insert_failed')
-          await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          const { error: rollbackError } = await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          if (rollbackError) {
+            console.error('[booking] rollback parent booking error:', rollbackError.message)
+          }
           return { success: false, error: 'Erro ao criar sessões recorrentes. Tente novamente.' }
         }
 
@@ -623,8 +632,14 @@ export async function createBooking(data: {
         const { error: sessionsError } = await supabase.from('booking_sessions').insert(sessionsWithParentId)
         if (sessionsError) {
           reportBookingError(sessionsError, { parentBookingId: parentBooking.id, bookingType }, 'booking_sessions_insert_failed')
-          await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
-          await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          const { error: rollbackChildrenError } = await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
+          if (rollbackChildrenError) {
+            console.error('[booking] rollback child bookings error:', rollbackChildrenError.message)
+          }
+          const { error: rollbackParentError } = await supabase.from('bookings').delete().eq('id', parentBooking.id)
+          if (rollbackParentError) {
+            console.error('[booking] rollback parent booking error:', rollbackParentError.message)
+          }
           return { success: false, error: 'Erro ao criar estrutura de pacote recorrente.' }
         }
 

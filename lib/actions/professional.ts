@@ -68,11 +68,17 @@ async function upsertPrimaryService(args: {
   }
 
   if (existingService?.id) {
-    await supabase.from('professional_services').update(payload).eq('id', existingService.id)
+    const { error: updateError } = await supabase.from('professional_services').update(payload).eq('id', existingService.id)
+    if (updateError) {
+      console.error('[professional/upsertPrimaryService] update error:', updateError.message)
+    }
     return
   }
 
-  await supabase.from('professional_services').insert(payload)
+  const { error: insertError } = await supabase.from('professional_services').insert(payload)
+  if (insertError) {
+    console.error('[professional/upsertPrimaryService] insert error:', insertError.message)
+  }
 }
 
 export async function createProfessionalProfile(formData: FormData) {
@@ -363,7 +369,11 @@ export async function saveProfessionalProfileDraft(input: {
     priceBrl: parsed.data.sessionPriceBrl,
   })
 
-  await supabase.from('professional_credentials').delete().eq('professional_id', parsed.data.professionalId)
+  const { error: credDeleteError } = await supabase.from('professional_credentials').delete().eq('professional_id', parsed.data.professionalId)
+  if (credDeleteError) {
+    console.error('[professional/saveDraft] credentials delete error:', credDeleteError.message)
+    return { error: 'Erro ao atualizar credenciais.' }
+  }
   if (parsed.data.credentialUrls.length > 0) {
     const { error: credentialsError } = await supabase.from('professional_credentials').insert(
       parsed.data.credentialUrls.map(fileUrl => ({
