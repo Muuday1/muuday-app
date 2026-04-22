@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-16
+Last updated: 2026-04-22
 
 ## Operational truth
 
@@ -51,6 +51,12 @@ Last updated: 2026-04-16
 5. Calendar sync controls were removed from the onboarding modal and concentrated in `/disponibilidade`.
 6. Onboarding modal load path was split into `critical` + `optional` scopes to prevent long blocking spinner on open.
 7. Optional tracker blocks now hydrate in background (`plan-pricing`, taxonomy, plan configs, FX rates) without blocking edits.
+8. Two-tier availability architecture closed:
+   - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
+   - Onboarding save route now dual-writes to both tables atomically.
+   - Backfill migration (062) syncs existing professionals after the onboarding fix.
+   - Availability exceptions render visually on the professional calendar (day/week/month).
+   - Slot-filtering and availability-merge utilities extracted with full unit-test coverage.
 
 ## Open risks
 

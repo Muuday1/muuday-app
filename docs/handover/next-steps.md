@@ -1,6 +1,6 @@
 # Next Steps
 
-Last updated: 2026-04-16
+Last updated: 2026-04-22
 
 Execute in order. Keep changes batchable, validated, and documented.
 
@@ -11,6 +11,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 3. Keep onboarding tracker copy/progression consistent and avoid reintroducing blocking optional fetches in modal open path.
 4. Close remaining PT-BR cleanup on lower-traffic admin/member surfaces.
 5. Evaluate and either merge or archive `feat/landing-page-redesign` explicitly (do not leave in ambiguous state).
+6. Apply migration 062 in production to sync `availability_rules` for professionals who saved availability before the dual-write fix.
 
 ## Pre-Wave-3 hardening
 

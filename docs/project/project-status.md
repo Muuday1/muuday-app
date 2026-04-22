@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-16
+Last updated: 2026-04-22
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -46,6 +46,15 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 2. Financial and compliance hardening needed for Wave 3 remains open.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
 4. Legacy/unmerged feature branch (`feat/landing-page-redesign`) still requires explicit product validation before merge.
+
+## Recently closed
+
+1. Two-tier availability architecture fully aligned:
+   - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
+   - Onboarding save route dual-writes to both tables with symmetric rollback.
+   - Modal-context route prefers `availability_rules` with legacy fallback.
+   - Backfill migration (062) ensures professionals with pre-fix onboarding data are synced.
+   - Availability exceptions render on professional calendar and filter all slot pickers.
 
 ## Blockers
 
