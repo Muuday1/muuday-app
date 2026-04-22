@@ -11,21 +11,28 @@ export async function resolveAuthenticatedProfessionalContext() {
     return { ok: false as const, status: 401, error: 'Not authenticated.' }
   }
 
-  const { data: professional } = await getPrimaryProfessionalForUser(
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(
     supabase,
     user.id,
     'id,user_id,status,tier',
   )
+  if (profError) {
+    console.error('[calendar/auth-context] getPrimaryProfessionalForUser error:', profError.message)
+  }
 
   if (!professional?.id) {
     return { ok: false as const, status: 403, error: 'Professional profile not found.' }
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('email,full_name')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (profileError) {
+    console.error('[calendar/auth-context] profile query error:', profileError.message)
+  }
 
   return {
     ok: true as const,

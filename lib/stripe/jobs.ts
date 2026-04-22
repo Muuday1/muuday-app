@@ -12,12 +12,17 @@ export async function tryStartJobRun(
   runKey: string,
   context: Record<string, unknown> = {},
 ): Promise<StripeJobRunStart> {
-  const { data: existing } = await admin
+  const { data: existing, error: existingError } = await admin
     .from('stripe_job_runs')
     .select('id, status')
     .eq('job_name', jobName)
     .eq('run_key', runKey)
     .maybeSingle()
+
+  if (existingError) {
+    console.error(`[stripe/jobs] failed to check existing job run for ${jobName}/${runKey}:`, existingError.message)
+    throw new Error(`Failed to check existing stripe job run: ${existingError.message}`)
+  }
 
   if (existing?.id && existing.status === 'completed') {
     return { id: String(existing.id), started: false }

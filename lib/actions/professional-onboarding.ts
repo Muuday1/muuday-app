@@ -17,17 +17,24 @@ export async function submitProfessionalForReviewAction() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
+  if (profileError) {
+    console.error('[professional-onboarding] profile query error:', profileError.message)
+  }
+
   if (!profile || profile.role !== 'profissional') {
     redirect('/buscar')
   }
 
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  if (profError) {
+    console.error('[professional-onboarding] getPrimaryProfessionalForUser error:', profError.message)
+  }
 
   if (!professional?.id) {
     redirect('/completar-perfil?result=missing-profile')

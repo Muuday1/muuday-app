@@ -73,12 +73,16 @@ export async function toggleBlogLike(articleSlug: string, visitorId: string) {
   const rl = await rateLimit('messageSend', `blog-like-${visitorId.slice(0, 32)}`)
   if (!rl.allowed) return { success: false, liked: false, error: 'Muitas curtidas. Tente novamente em breve.' }
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from('blog_likes')
     .select('id')
     .eq('article_slug', articleSlug)
     .eq('visitor_id', visitorId)
     .maybeSingle()
+
+  if (existingError) {
+    console.error('[blog-engagement] existing like query error:', existingError.message)
+  }
 
   if (existing) {
     const { error } = await supabase

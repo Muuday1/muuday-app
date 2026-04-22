@@ -28,11 +28,15 @@ export const getLayoutSession = cache(async (): Promise<LayoutSession> => {
       return { user: null, profile: null }
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('full_name,role,avatar_url')
       .eq('id', user.id)
       .maybeSingle()
+
+    if (profileError) {
+      console.error('[layout-session] profile query error:', profileError.message)
+    }
 
     return {
       user,

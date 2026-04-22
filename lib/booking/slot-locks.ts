@@ -17,11 +17,15 @@ export async function acquireSlotLock(
   const ttlMinutes = input.ttlMinutes ?? 10
   const expiresAt = new Date(now + ttlMinutes * 60 * 1000).toISOString()
 
-  await supabase
+  const { error: cleanupError } = await supabase
     .from('slot_locks')
     .delete()
     .eq('professional_id', input.professionalId)
     .lte('expires_at', nowIso)
+
+  if (cleanupError) {
+    console.error('[slot-locks] cleanup expired locks error:', cleanupError.message)
+  }
 
   const { data: overlappingLocks, error: lockQueryError } = await supabase
     .from('slot_locks')
@@ -46,7 +50,11 @@ export async function acquireSlotLock(
     (lock: { id: string; user_id: string }) => lock.user_id === input.userId,
   )
   if (ownLock) {
-    await supabase.from('slot_locks').update({ expires_at: expiresAt }).eq('id', ownLock.id)
+    const { error: renewError } = await supabase.from('slot_locks').update({ expires_at: expiresAt }).eq('id', ownLock.id)
+    if (renewError) {
+      console.error('[slot-locks] renew own lock error:', renewError.message)
+      return { ok: false, reason: 'error', errorMessage: renewError.message }
+    }
     return { ok: true, lockId: ownLock.id }
   }
 
@@ -73,5 +81,8 @@ export async function acquireSlotLock(
 }
 
 export async function releaseSlotLock(supabase: SupabaseLikeClient, lockId: string) {
-  await supabase.from('slot_locks').delete().eq('id', lockId)
+  const { error } = await supabase.from('slot_locks').delete().eq('id', lockId)
+  if (error) {
+    console.error('[slot-locks] release lock error:', error.message)
+  }
 }

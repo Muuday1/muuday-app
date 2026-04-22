@@ -71,11 +71,15 @@ export async function requireAdmin() {
     throw new Error('Não autenticado.')
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  if (profileError) {
+    console.error('[admin/shared] profile role query error:', profileError.message)
+  }
 
   if (profile?.role !== 'admin') {
     throw new Error('Acesso negado. Apenas administradores podem executar esta ação.')

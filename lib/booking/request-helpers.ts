@@ -32,7 +32,7 @@ export async function expireRequestIfNeeded(
   const transition = assertRequestBookingTransition(status, 'expired')
   if (!transition.ok) return request
 
-  const { data: expiredRequest } = await supabase
+  const { data: expiredRequest, error: expireError } = await supabase
     .from('request_bookings')
     .update({
       status: 'expired',
@@ -42,6 +42,10 @@ export async function expireRequestIfNeeded(
     .eq('status', status)
     .select(REQUEST_BOOKING_FIELDS)
     .maybeSingle()
+
+  if (expireError) {
+    console.error('[request-helpers] expire request update error:', expireError.message)
+  }
 
   return expiredRequest || { ...request, status: 'expired' }
 }

@@ -453,11 +453,15 @@ export async function adminReviewProfessionalDecision(
       }
     }
 
-    const { data: professionalOwner } = await supabase
+    const { data: professionalOwner, error: ownerError } = await supabase
       .from('profiles')
       .select('email,full_name')
       .eq('id', currentProfessional.user_id)
       .maybeSingle()
+
+    if (ownerError) {
+      console.error('[admin/reviewDecision] professional owner query error:', ownerError.message)
+    }
 
     if (professionalOwner?.email) {
       try {
@@ -613,6 +617,11 @@ export async function loadAdminDashboardData(): Promise<{ success: boolean; data
       supabase.from('reviews').select('id, is_visible'),
     ])
 
+    if (usersRes.error) console.error('[admin/dashboard] users query error:', usersRes.error.message)
+    if (prosRes.error) console.error('[admin/dashboard] professionals query error:', prosRes.error.message)
+    if (bookingsRes.error) console.error('[admin/dashboard] bookings query error:', bookingsRes.error.message)
+    if (reviewsRes.error) console.error('[admin/dashboard] reviews query error:', reviewsRes.error.message)
+
     const allPros = prosRes.data || []
     const allRevs = reviewsRes.data || []
 
@@ -625,10 +634,14 @@ export async function loadAdminDashboardData(): Promise<{ success: boolean; data
       pendingReviews: allRevs.filter(r => !r.is_visible).length,
     }
 
-    const { data: professionalsData } = await supabase
+    const { data: professionalsData, error: professionalsError } = await supabase
       .from('professionals')
       .select('*, profiles!professionals_user_id_fkey(*)')
       .order('created_at', { ascending: false })
+
+    if (professionalsError) {
+      console.error('[admin/dashboard] professionals detail query error:', professionalsError.message)
+    }
 
     const resolvedProfessionals = (professionalsData as unknown as AdminDashboardData['professionals']) || []
     const professionalIds = resolvedProfessionals.map(p => p.id).filter(Boolean)
@@ -638,10 +651,14 @@ export async function loadAdminDashboardData(): Promise<{ success: boolean; data
     let professionalMinServicePrice: Record<string, number> = {}
 
     if (professionalIds.length > 0) {
-      const { data: credentialRows } = await supabase
+      const { data: credentialRows, error: credentialError } = await supabase
         .from('professional_credentials')
         .select('professional_id')
         .in('professional_id', professionalIds)
+
+      if (credentialError) {
+        console.error('[admin/dashboard] credentials query error:', credentialError.message)
+      }
 
       professionalCredentialCounts = (credentialRows || []).reduce((acc, row: any) => {
         const pid = String(row.professional_id || '').trim()
@@ -650,11 +667,15 @@ export async function loadAdminDashboardData(): Promise<{ success: boolean; data
         return acc
       }, {} as Record<string, number>)
 
-      const { data: serviceRows } = await supabase
+      const { data: serviceRows, error: serviceError } = await supabase
         .from('professional_services')
         .select('professional_id,price_brl,is_active')
         .in('professional_id', professionalIds)
         .eq('is_active', true)
+
+      if (serviceError) {
+        console.error('[admin/dashboard] services query error:', serviceError.message)
+      }
 
       professionalMinServicePrice = (serviceRows || []).reduce((acc, row: any) => {
         const pid = String(row.professional_id || '').trim()
@@ -666,21 +687,29 @@ export async function loadAdminDashboardData(): Promise<{ success: boolean; data
         return acc
       }, {} as Record<string, number>)
 
-      const { data: linkRows } = await supabase
+      const { data: linkRows, error: linkError } = await supabase
         .from('professional_specialties')
         .select('professional_id,specialty_id')
         .in('professional_id', professionalIds)
+
+      if (linkError) {
+        console.error('[admin/dashboard] specialties link query error:', linkError.message)
+      }
 
       const specialtyIds = Array.from(
         new Set((linkRows || []).map((row: any) => String(row.specialty_id || '').trim()).filter(Boolean)),
       )
 
       if (specialtyIds.length > 0) {
-        const { data: specialtyRows } = await supabase
+        const { data: specialtyRows, error: specialtyError } = await supabase
           .from('specialties')
           .select('id,name_pt')
           .in('id', specialtyIds)
           .eq('is_active', true)
+
+        if (specialtyError) {
+          console.error('[admin/dashboard] specialties query error:', specialtyError.message)
+        }
 
         const specialtyById = new Map(
           (specialtyRows || []).map((row: any) => [String(row.id), String(row.name_pt || '').trim()]),
@@ -705,16 +734,24 @@ export async function loadAdminDashboardData(): Promise<{ success: boolean; data
       }
     }
 
-    const { data: reviewsData } = await supabase
+    const { data: reviewsData, error: reviewsDataError } = await supabase
       .from('reviews')
       .select('*, profiles!reviews_user_id_fkey(full_name), professionals!reviews_professional_id_fkey(id, profiles!professionals_user_id_fkey(full_name))')
       .order('created_at', { ascending: false })
 
-    const { data: bookingsData } = await supabase
+    if (reviewsDataError) {
+      console.error('[admin/dashboard] reviews detail query error:', reviewsDataError.message)
+    }
+
+    const { data: bookingsData, error: bookingsDataError } = await supabase
       .from('bookings')
       .select('id, scheduled_at, status, price_brl, duration_minutes, profiles!bookings_user_id_fkey(full_name, email), professionals!bookings_professional_id_fkey(profiles!professionals_user_id_fkey(full_name))')
       .order('scheduled_at', { ascending: false })
       .limit(50)
+
+    if (bookingsDataError) {
+      console.error('[admin/dashboard] bookings detail query error:', bookingsDataError.message)
+    }
 
     const mappedBookings = (bookingsData || []).map((b: Record<string, unknown>) => {
       const pro = b.professionals as Record<string, unknown> | null

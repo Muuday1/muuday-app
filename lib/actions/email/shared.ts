@@ -37,7 +37,10 @@ export async function safe<T>(fn: () => Promise<T>, label: string) {
 // Auth guard - ensures only authenticated users can trigger emails + rate limit
 export async function requireAuth(): Promise<string | null> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    console.error('[email/shared] auth error:', authError.message)
+  }
   if (!user) return null
 
   const rl = await rateLimit('email', user.id)
@@ -64,29 +67,41 @@ export async function assertCallerCanEmailRecipient(callerId: string, recipientE
   const supabase = await createClient()
 
   // 1. Caller can always email themselves
-  const { data: callerProfile } = await supabase
+  const { data: callerProfile, error: callerError } = await supabase
     .from('profiles')
     .select('email')
     .eq('id', callerId)
     .single()
 
+  if (callerError) {
+    console.error('[email/shared] caller profile query error:', callerError.message)
+  }
+
   if (callerProfile?.email === recipientEmail) return true
 
   // 2. Caller has a booking relationship with the recipient
-  const { data: recipientProfile } = await supabase
+  const { data: recipientProfile, error: recipientError } = await supabase
     .from('profiles')
     .select('id')
     .eq('email', recipientEmail)
     .maybeSingle()
 
+  if (recipientError) {
+    console.error('[email/shared] recipient profile query error:', recipientError.message)
+  }
+
   if (!recipientProfile) return false
 
   // Check if there's any booking between caller and recipient (as user<->professional)
-  const { count: bookingCount } = await supabase
+  const { count: bookingCount, error: bookingError } = await supabase
     .from('bookings')
     .select('id', { count: 'exact', head: true })
     .or(`and(user_id.eq.${callerId},professional_id.in.(select id from professionals where user_id='${recipientProfile.id}')),and(user_id.eq.${recipientProfile.id},professional_id.in.(select id from professionals where user_id='${callerId}'))`)
     .limit(1)
+
+  if (bookingError) {
+    console.error('[email/shared] booking relationship query error:', bookingError.message)
+  }
 
   return (bookingCount || 0) > 0
 }
@@ -98,15 +113,20 @@ export async function canSend(userId: string | null | undefined, key: NotifKey):
   if (!userId) return true // no user context -> always send (e.g. professional notifications)
   try {
     const supabase = await createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('notification_preferences')
       .eq('id', userId)
       .single()
+    if (error) {
+      console.error('[email/shared] notification preferences query error:', error.message)
+      return true // on error -> send anyway
+    }
     const prefs = data?.notification_preferences as Record<string, boolean> | null
     if (!prefs) return true // no prefs saved -> default opt-in
     return prefs[key] !== false
-  } catch {
+  } catch (e) {
+    console.error('[email/shared] canSend unexpected error:', e)
     return true // on error -> send anyway
   }
 }

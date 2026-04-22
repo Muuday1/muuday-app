@@ -39,11 +39,15 @@ export async function completeAccount(
     return { success: false, error: 'Sessão expirada', redirectTo: '/login' }
   }
 
-  const { data: currentProfile } = await supabase
+  const { data: currentProfile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (profileError) {
+    console.error('[complete-account] profile query error:', profileError.message)
+  }
 
   const currentRole = normalizeRole(currentProfile?.role)
   const metadataRole =

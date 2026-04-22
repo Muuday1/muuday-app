@@ -26,7 +26,10 @@ export async function respondToReview(
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  if (profError) {
+    console.error('[review-response] getPrimaryProfessionalForUser error:', profError.message)
+  }
   if (!professional) {
     return { success: false, error: 'Apenas profissionais podem responder a avaliações.' }
   }
@@ -45,11 +48,15 @@ export async function respondToReview(
   }
 
   // Verify the review belongs to this professional
-  const { data: review } = await supabase
+  const { data: review, error: reviewError } = await supabase
     .from('reviews')
     .select('id, professional_id, professional_response')
     .eq('id', idParsed.data)
     .maybeSingle()
+
+  if (reviewError) {
+    console.error('[review-response] review query error:', reviewError.message)
+  }
 
   if (!review) {
     return { success: false, error: 'Avaliação não encontrada.' }

@@ -11,7 +11,10 @@ async function requireAdmin() {
   } = await supabase.auth.getUser()
   if (!user) return { ok: false as const, error: 'Não autenticado.' }
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profileError) {
+    console.error('[admin-plans] profile role query error:', profileError.message)
+  }
   if (profile?.role !== 'admin') {
     return { ok: false as const, error: 'Acesso restrito ao admin.' }
   }

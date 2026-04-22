@@ -458,11 +458,15 @@ export async function sendReferralInviteEmailAction(
   // the inviterName matches the caller's profile to prevent impersonation
   const { createClient } = await import('@/lib/supabase/server')
   const supabase = await createClient()
-  const { data: callerProfile } = await supabase
+  const { data: callerProfile, error: callerError } = await supabase
     .from('profiles')
     .select('full_name')
     .eq('id', callerId)
     .single()
+
+  if (callerError) {
+    console.error('[email] caller profile query error:', callerError.message)
+  }
 
   if (!callerProfile || callerProfile.full_name !== payload.inviterName) return
   return safe(() => sendReferralInviteEmail(payload.to, payload.inviterName, payload.referralLink), 'referralInvite')

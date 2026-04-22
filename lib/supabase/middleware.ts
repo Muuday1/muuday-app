@@ -165,11 +165,14 @@ export async function updateSession(request: NextRequest) {
       })
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
+    if (profileError) {
+      console.error('[middleware] profile role query error:', profileError.message)
+    }
     cachedRole = normalizeProfileRole(profile?.role) ?? null
     return cachedRole
   }

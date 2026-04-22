@@ -24,13 +24,17 @@ export async function toggleGuideUseful(guideSlug: string, visitorId: string) {
   const rl = await rateLimit('messageSend', `guide-useful-${visitorId.slice(0, 32)}`)
   if (!rl.allowed) return { success: false, marked: false, error: 'Muitas ações. Tente novamente em breve.' }
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from('guide_feedback')
     .select('id')
     .eq('guide_slug', guideSlug)
     .eq('visitor_id', visitorId)
     .eq('feedback_type', 'useful')
     .maybeSingle()
+
+  if (existingError) {
+    console.error('[guide-feedback] existing query error:', existingError.message)
+  }
 
   if (existing) {
     const { error } = await supabase

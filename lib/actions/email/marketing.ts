@@ -112,11 +112,15 @@ export async function sendReferralInviteEmailAction(
   // Referral invites are intentionally sent to external emails, but we verify
   // the inviterName matches the caller's profile to prevent impersonation
   const supabase = await createClient()
-  const { data: callerProfile } = await supabase
+  const { data: callerProfile, error: callerError } = await supabase
     .from('profiles')
     .select('full_name')
     .eq('id', callerId)
     .single()
+
+  if (callerError) {
+    console.error('[email/marketing] caller profile query error:', callerError.message)
+  }
 
   if (!callerProfile || callerProfile.full_name !== payload.inviterName) return
   return safe(() => sendReferralInviteEmail(payload.to, payload.inviterName, payload.referralLink), 'referralInvite')

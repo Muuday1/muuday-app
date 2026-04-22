@@ -48,7 +48,10 @@ async function upsertPrimaryService(args: {
     .limit(1)
     .maybeSingle()
 
-  if (serviceError) return
+  if (serviceError) {
+    console.error('[professional/upsertPrimaryService] service query error:', serviceError.message)
+    return
+  }
 
   const payload = {
     professional_id: args.professionalId,
@@ -99,7 +102,10 @@ export async function createProfessionalProfile(formData: FormData) {
   const { bio, category, tags, languages, years_experience: yearsExperience, session_price_brl: sessionPriceBrl, session_duration_minutes: sessionDurationMinutes } = parsed.data
 
   // Check if professional profile already exists
-  const { data: existing } = await getPrimaryProfessionalForUser(supabase, user.id, 'id, tier')
+  const { data: existing, error: existingError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id, tier')
+  if (existingError) {
+    console.error('[professional/create] getPrimaryProfessionalForUser error:', existingError.message)
+  }
 
   const tierForValidation = String(existing?.tier || 'basic').toLowerCase()
   const planConfigs = await loadPlanConfigMap()
@@ -205,15 +211,23 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
     return { error: firstError }
   }
 
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  if (profError) {
+    console.error('[professional/updateAvailability] getPrimaryProfessionalForUser error:', profError.message)
+  }
 
   if (!professional) return { error: 'Perfil profissional não encontrado' }
 
   // Delete existing availability
-  await supabase
+  const { error: deleteError } = await supabase
     .from('availability')
     .delete()
     .eq('professional_id', professional.id)
+
+  if (deleteError) {
+    console.error('[professional/updateAvailability] delete availability error:', deleteError.message)
+    return { error: 'Erro ao remover disponibilidade anterior.' }
+  }
 
   // Insert new slots
   if (parsed.data.length > 0) {
@@ -276,11 +290,14 @@ export async function saveProfessionalProfileDraft(input: {
     return { error: parsed.error.errors[0]?.message || 'Dados inválidos.' }
   }
 
-  const { data: professional } = await getPrimaryProfessionalForUser(
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(
     supabase,
     user.id,
     'id,tier',
   )
+  if (profError) {
+    console.error('[professional/saveDraft] getPrimaryProfessionalForUser error:', profError.message)
+  }
   if (!professional || professional.id !== parsed.data.professionalId) {
     return { error: 'Perfil profissional inválido para este usuário.' }
   }
