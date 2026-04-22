@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { rateLimit } from '@/lib/security/rate-limit'
+import { sendPushToUser } from '@/lib/push/sender'
 
 const messageContentSchema = z.string().trim().min(1, 'Mensagem não pode estar vazia.').max(2000, 'Mensagem muito longa.')
 const conversationIdSchema = z.string().uuid('Identificador de conversa inválido.')
@@ -140,6 +141,36 @@ export async function sendMessage(
   if (error || !message) {
     return { success: false, error: 'Erro ao enviar mensagem.' }
   }
+
+  // Send push notification to the other participant (fire-and-forget)
+  void (async () => {
+    try {
+      const { data: participants } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', idParsed.data)
+
+      const otherParticipant = participants?.find(p => p.user_id !== userId)
+      if (!otherParticipant) return
+
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const senderName = senderProfile?.full_name || 'Alguém'
+
+      await sendPushToUser(otherParticipant.user_id, {
+        title: `${senderName}`,
+        body: contentParsed.data,
+        url: `/mensagens/${idParsed.data}`,
+        tag: `chat-${idParsed.data}`,
+      })
+    } catch (pushErr) {
+      console.warn('[chat] Push notification failed:', pushErr)
+    }
+  })()
 
   return { success: true, data: { messageId: message.id, sentAt: message.sent_at } }
 }

@@ -33,6 +33,7 @@ export interface PushPayload {
   url?: string
   badge?: string
   icon?: string
+  tag?: string
 }
 
 /**

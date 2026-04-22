@@ -4,6 +4,7 @@ import { MobileNav } from '@/components/layout/MobileNav'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { NotificationBell } from '@/components/layout/NotificationBell'
 import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt'
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { getLayoutSession } from '@/lib/auth/layout-session'
 import { getConversations } from '@/lib/actions/chat'
@@ -145,6 +146,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <MobileNav navItems={navItems} unreadMessageCount={unreadMessageCount} />
       <PwaInstallPrompt />
+      <ServiceWorkerRegistration />
     </div>
   )
 }

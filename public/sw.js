@@ -67,3 +67,49 @@ self.addEventListener('fetch', (event) => {
     }),
   )
 })
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  // @ts-ignore
+  const data = event.data?.json() || {}
+  const title = data.title || 'Muuday'
+  const body = data.body || ''
+  const url = data.url || '/'
+  const icon = data.icon || '/assets/icon-192x192.png'
+  const badge = data.badge || '/assets/icon-192x192.png'
+
+  // @ts-ignore
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge,
+      data: { url },
+      tag: data.tag || 'muuday-default',
+      renotify: true,
+    }),
+  )
+})
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  // @ts-ignore
+  event.notification.close()
+  const url = event.notification.data?.url || '/'
+
+  // @ts-ignore
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus existing tab if open
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus()
+        }
+      }
+      // Otherwise open new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url)
+      }
+    }),
+  )
+})
