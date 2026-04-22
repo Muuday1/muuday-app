@@ -37,10 +37,15 @@ describe('runPendingPaymentTimeout', () => {
             }),
             update: () => ({
               eq: () => ({
-                eq: () =>
-                  Promise.resolve({
-                    error: opts.updateError ? { message: opts.updateError } : null,
+                eq: () => ({
+                  select: () => ({
+                    maybeSingle: () =>
+                      Promise.resolve({
+                        data: { id: 'bk-1' },
+                        error: opts.updateError ? { message: opts.updateError } : null,
+                      }),
                   }),
+                }),
               }),
             }),
           }
