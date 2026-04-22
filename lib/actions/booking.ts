@@ -307,6 +307,15 @@ export async function createBooking(data: {
     return { success: false, error: 'Não foi possível montar os horários do agendamento.' }
   }
 
+  // Hard server-side guard: reject any slot that is in the past or exactly now.
+  // This is independent of minimumNoticeHours to prevent accepting stale frontend data.
+  const now = new Date()
+  for (const slot of plannedSessions) {
+    if (slot.startUtc.getTime() <= now.getTime()) {
+      return { success: false, error: 'O horário selecionado já passou. Escolha um horário futuro.' }
+    }
+  }
+
   for (const slot of plannedSessions) {
     const validation = await validateSlotAvailability({
       supabase,
