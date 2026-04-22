@@ -119,7 +119,7 @@ export async function syncExternalBusySlotsForIntegration(
       caldavCalendarUrl: integration.caldav_calendar_url,
     })
 
-    await admin
+    const { error: syncMetaError } = await admin
       .from('calendar_integrations')
       .update({
         last_sync_at: new Date().toISOString(),
@@ -132,6 +132,10 @@ export async function syncExternalBusySlotsForIntegration(
       .eq('professional_id', integration.professional_id)
       .eq('provider', integration.provider)
 
+    if (syncMetaError) {
+      console.error('[calendar-sync] failed to update sync metadata:', syncMetaError.message)
+    }
+
     return {
       ok: true as const,
       slots: result.slots.length,
@@ -140,7 +144,7 @@ export async function syncExternalBusySlotsForIntegration(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    await admin
+    const { error: syncMetaError } = await admin
       .from('calendar_integrations')
       .update({
         last_sync_error: message.slice(0, 1000),
@@ -150,6 +154,10 @@ export async function syncExternalBusySlotsForIntegration(
       })
       .eq('professional_id', integration.professional_id)
       .eq('provider', integration.provider)
+
+    if (syncMetaError) {
+      console.error('[calendar-sync] failed to update sync error metadata:', syncMetaError.message)
+    }
 
     return {
       ok: false as const,
@@ -199,11 +207,15 @@ export async function upsertBookingInExternalCalendar(admin: SupabaseClient, boo
 
   const existingEvent = await getBookingExternalCalendarEvent(admin, bookingId, integration.provider)
 
-  const { data: profile } = await admin
+  const { data: profile, error: profileError } = await admin
     .from('profiles')
     .select('email')
     .eq('id', String(booking.user_id || ''))
     .maybeSingle()
+
+  if (profileError) {
+    console.error('[calendar-sync] failed to load profile for attendee email:', profileError.message)
+  }
 
   const eventResult = await adapter.upsertBookingEvent({
     integration,
