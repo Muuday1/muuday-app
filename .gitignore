@@ -33,3 +33,10 @@ test_write_verify.txt
 # Screenshot exports (use artifacts/ instead)
 landing-*.png
 wise-reference-*.png
+
+# Resend setup scripts contain hardcoded API keys (security)
+scripts/resend_*.py
+scripts/resend_*.json
+
+# Supabase CLI local cache
+supabase/.temp/
