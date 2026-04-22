@@ -72,11 +72,15 @@ export async function openCase(
   }
 
   // Verify user is a participant in the booking
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select('id, user_id, professional_id')
     .eq('id', bookingParsed.data)
     .maybeSingle()
+
+  if (bookingError) {
+    console.error('[disputes] failed to load booking:', bookingError.message)
+  }
 
   if (!booking) {
     return { success: false, error: 'Agendamento não encontrado.' }
@@ -84,12 +88,15 @@ export async function openCase(
 
   const isParticipant = booking.user_id === userId
   if (!isParticipant) {
-    const { data: prof } = await supabase
+    const { data: prof, error: profError } = await supabase
       .from('professionals')
       .select('id')
       .eq('id', booking.professional_id)
       .eq('user_id', userId)
       .maybeSingle()
+    if (profError) {
+      console.error('[disputes] failed to load professional:', profError.message)
+    }
     if (!prof) {
       return { success: false, error: 'Você não tem acesso a este agendamento.' }
     }

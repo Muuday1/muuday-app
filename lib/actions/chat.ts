@@ -35,11 +35,15 @@ export async function getOrCreateConversation(bookingId: string): Promise<ChatRe
   const { supabase, userId } = await getAuthenticatedUser()
 
   // Verify user is a participant in the booking
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select('id, user_id, professional_id')
     .eq('id', parsed.data)
     .maybeSingle()
+
+  if (bookingError) {
+    console.error('[chat] failed to load booking:', bookingError.message)
+  }
 
   if (!booking) {
     return { success: false, error: 'Agendamento não encontrado.' }
@@ -49,12 +53,15 @@ export async function getOrCreateConversation(bookingId: string): Promise<ChatRe
   const isClient = booking.user_id === userId
   let isProfessional = false
   if (!isClient && booking.professional_id) {
-    const { data: prof } = await supabase
+    const { data: prof, error: profError } = await supabase
       .from('professionals')
       .select('id')
       .eq('id', booking.professional_id)
       .eq('user_id', userId)
       .maybeSingle()
+    if (profError) {
+      console.error('[chat] failed to load professional:', profError.message)
+    }
     isProfessional = !!prof
   }
 
