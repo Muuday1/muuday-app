@@ -426,6 +426,22 @@ export default async function AgendaPage({
     .filter((booking: any) => booking.status === 'completed')
     .map((booking: any) => booking.id)
 
+  // Fetch conversations for chat links on confirmed bookings
+  const allBookingIds = [...upcoming, ...past]
+    .filter((b: any) => ['confirmed', 'completed'].includes(b.status))
+    .map((b: any) => b.id)
+
+  const conversationMap = new Map<string, string>()
+  if (allBookingIds.length > 0) {
+    const { data: conversationsData } = await supabase
+      .from('conversations')
+      .select('id, booking_id')
+      .in('booking_id', allBookingIds)
+    ;(conversationsData || []).forEach((c: any) => {
+      if (c.booking_id) conversationMap.set(c.booking_id, c.id)
+    })
+  }
+
   const reviewedBookingIds = new Set<string>()
   if (!isProfessional && completedBookingIds.length > 0) {
     const { data: existingReviews, error: reviewsError } = await supabase
@@ -865,13 +881,24 @@ export default async function AgendaPage({
                         </span>
                       )}
                       {booking.status === 'confirmed' ? (
-                        <Link
-                          href={`/sessao/${booking.id}`}
-                          className="flex items-center gap-1.5 rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#8ed85f]"
-                        >
-                          <Video className="h-3.5 w-3.5" />
-                          Entrar na sessão
-                        </Link>
+                        <>
+                          <Link
+                            href={`/sessao/${booking.id}`}
+                            className="flex items-center gap-1.5 rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#8ed85f]"
+                          >
+                            <Video className="h-3.5 w-3.5" />
+                            Entrar na sessão
+                          </Link>
+                          {conversationMap.has(booking.id) && (
+                            <Link
+                              href={`/mensagens/${conversationMap.get(booking.id)}`}
+                              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                              Mensagens
+                            </Link>
+                          )}
+                        </>
                       ) : null}
                     </div>
                   </div>
@@ -981,6 +1008,15 @@ export default async function AgendaPage({
                         <Video className="h-3.5 w-3.5" />
                         Abrir sessão
                       </Link>
+                      {conversationMap.has(booking.id) && (
+                        <Link
+                          href={`/mensagens/${conversationMap.get(booking.id)}`}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          Mensagens
+                        </Link>
+                      )}
                     </div>
                   ) : null}
                 </div>

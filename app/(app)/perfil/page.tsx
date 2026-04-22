@@ -3,7 +3,7 @@ export const metadata = { title: 'Meu Perfil | Muuday' }
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, SlidersHorizontal, Bell } from 'lucide-react'
+import { Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, SlidersHorizontal, Bell, MessageCircle } from 'lucide-react'
 import { COUNTRIES } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfileAccountSettings } from '@/components/profile/ProfileAccountSettings'
@@ -275,6 +275,24 @@ export default async function PerfilPage() {
           </div>
         </AppCard>
       )}
+
+      {/* Messages */}
+      <AppCard className="mb-6">
+        <h3 className="font-display font-bold text-lg text-slate-900 mb-4 flex items-center gap-2">
+          <MessageCircle className="w-4 h-4" />
+          Mensagens
+        </h3>
+        <p className="text-sm text-slate-500 mb-4">
+          Converse com profissionais e clientes sobre seus agendamentos.
+        </p>
+        <Link
+          href="/mensagens"
+          className="inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#8ed85f]"
+        >
+          Ver mensagens
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </AppCard>
 
       {/* Push Notifications */}
       <AppCard className="mb-6">

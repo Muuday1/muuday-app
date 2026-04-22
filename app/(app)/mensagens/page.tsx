@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Mensagens | Muuday' }
 
 import Link from 'next/link'
-import { MessageCircle, Clock } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { MessageCircle, Clock, ArrowRight } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { getConversations } from '@/lib/actions/chat'
@@ -12,11 +13,48 @@ import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 import { AppCard } from '@/components/ui/AppCard'
 
-export default async function MensagensPage() {
+type SearchParams = {
+  profissional?: string
+}
+
+export default async function MensagensPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>
+}) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  const { profissional } = await searchParams
+
+  // Handle "Mandar mensagem" from professional profiles
+  if (profissional) {
+    // Find confirmed bookings between current user and this professional
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('professional_id', profissional)
+      .eq('user_id', user?.id)
+      .in('status', ['confirmed', 'completed'])
+      .order('scheduled_at', { ascending: false })
+      .limit(1)
+
+    if (bookings && bookings.length > 0) {
+      const bookingId = bookings[0].id
+      // Find the conversation for this booking
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('booking_id', bookingId)
+        .maybeSingle()
+
+      if (conversation) {
+        redirect(`/mensagens/${conversation.id}`)
+      }
+    }
+  }
 
   const result = await getConversations()
   const conversations = result.success ? result.data.conversations : []
@@ -28,7 +66,22 @@ export default async function MensagensPage() {
         subtitle="Conversas com profissionais e clientes."
       />
 
-      {conversations.length === 0 ? (
+      {profissional && conversations.length === 0 ? (
+        <AppEmptyState
+          icon={MessageCircle}
+          title="Nenhuma conversa disponível"
+          description="Você só pode conversar com profissionais após confirmar um agendamento."
+          action={
+            <Link
+              href={`/profissional/${profissional}`}
+              className="inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#8ed85f]"
+            >
+              Ver perfil do profissional
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          }
+        />
+      ) : conversations.length === 0 ? (
         <AppEmptyState
           icon={MessageCircle}
           title="Nenhuma conversa ainda"
