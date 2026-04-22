@@ -56,11 +56,15 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('id,role')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (profileError) {
+    console.error('[agora/token] profile query error:', profileError.message, profileError.code)
+  }
 
   const { data: booking } = await supabase
     .from('bookings')

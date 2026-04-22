@@ -196,7 +196,6 @@ export async function GET(request: NextRequest) {
       console.error('[cron/booking-timeouts] cancel error:', booking.id, cancelError?.message)
       continue
     }
-    cancelled += 1
 
     if (booking.booking_type === 'recurring_parent') {
       const cascadeReason = 'Cancelado devido expiracao de confirmacao do pacote recorrente.'
@@ -223,6 +222,8 @@ export async function GET(request: NextRequest) {
         console.error('[cron/booking-timeouts] recurring session cancel error:', booking.id, sessionCancelError.message)
       }
     }
+
+    cancelled += 1
 
     const refundResponse = await admin
       .from('payments')

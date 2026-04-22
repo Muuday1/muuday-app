@@ -23,9 +23,79 @@ type SessionTokenPayload = {
   windowEndUtc: string
 }
 
+type VideoError =
+  | { kind: 'permission_denied'; message: string }
+  | { kind: 'camera_unavailable'; message: string }
+  | { kind: 'microphone_unavailable'; message: string }
+  | { kind: 'token_failed'; message: string }
+  | { kind: 'join_failed'; message: string }
+  | { kind: 'unknown'; message: string }
+
+function classifyVideoError(error: unknown): VideoError {
+  const message = error instanceof Error ? error.message : String(error)
+  const lower = message.toLowerCase()
+
+  if (
+    lower.includes('permission') ||
+    lower.includes('notallowederror') ||
+    lower.includes('domexception') ||
+    lower.includes('access denied')
+  ) {
+    return {
+      kind: 'permission_denied',
+      message:
+        'Permissão de câmera ou microfone negada. Verifique as permissões do navegador e tente novamente.',
+    }
+  }
+
+  if (
+    lower.includes('camera') ||
+    lower.includes('videoinput') ||
+    lower.includes('device not found') ||
+    lower.includes('could not start video')
+  ) {
+    return {
+      kind: 'camera_unavailable',
+      message:
+        'Não foi possível acessar a câmera. Verifique se ela está conectada e não está sendo usada por outro aplicativo.',
+    }
+  }
+
+  if (
+    lower.includes('microphone') ||
+    lower.includes('audioinput') ||
+    lower.includes('could not start audio')
+  ) {
+    return {
+      kind: 'microphone_unavailable',
+      message:
+        'Não foi possível acessar o microfone. Verifique se ele está conectado e não está sendo usado por outro aplicativo.',
+    }
+  }
+
+  if (lower.includes('token') || lower.includes('unauthorized')) {
+    return {
+      kind: 'token_failed',
+      message: 'Falha ao obter autorização para a sessão de vídeo. Tente recarregar a página.',
+    }
+  }
+
+  if (lower.includes('join') || lower.includes('connect')) {
+    return {
+      kind: 'join_failed',
+      message: 'Não foi possível conectar à sessão de vídeo. Verifique sua conexão de internet.',
+    }
+  }
+
+  return {
+    kind: 'unknown',
+    message: error instanceof Error ? error.message : 'Erro ao iniciar a sessão de vídeo.',
+  }
+}
+
 export default function VideoSession({ bookingId }: VideoSessionProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<VideoError | null>(null)
   const [joined, setJoined] = useState(false)
   const [tokenPayload, setTokenPayload] = useState<SessionTokenPayload | null>(null)
   const [isMicEnabled, setIsMicEnabled] = useState(true)
@@ -38,6 +108,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
   const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null)
   const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null)
   const remoteUsersRef = useRef<Record<string, IAgoraRTCRemoteUser>>({})
+  const cancelledRef = useRef(false)
 
   const statusLabel = useMemo(() => {
     if (error) return 'Falha ao iniciar vídeo'
@@ -47,7 +118,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
   }, [error, isLoading, joined])
 
   useEffect(() => {
-    let cancelled = false
+    cancelledRef.current = false
 
     async function boot() {
       setIsLoading(true)
@@ -64,7 +135,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
         if (!tokenResponse.ok) {
           throw new Error(tokenJson?.error || 'Falha ao obter token da sessão.')
         }
-        if (cancelled) return
+        if (cancelledRef.current) return
         setTokenPayload(tokenJson as SessionTokenPayload)
 
         const agoraModule = await import('agora-rtc-sdk-ng')
@@ -73,6 +144,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
         clientRef.current = client
 
         client.on('user-published', async (user, mediaType) => {
+          if (cancelledRef.current) return
           remoteUsersRef.current[String(user.uid)] = user
           await client.subscribe(user, mediaType)
 
@@ -100,25 +172,59 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
           }
         })
 
-        const [microphoneTrack, cameraTrack] = await AgoraRTC.createMicrophoneAndCameraTracks()
-        localAudioTrackRef.current = microphoneTrack
-        localVideoTrackRef.current = cameraTrack
+        client.on('connection-state-change', (curState, revState, reason) => {
+          if (cancelledRef.current) return
+          console.warn('[agora] connection state:', revState, '->', curState, reason)
+        })
+
+        let microphoneTrack: IMicrophoneAudioTrack | undefined
+        let cameraTrack: ICameraVideoTrack | undefined
+
+        try {
+          const tracks = await AgoraRTC.createMicrophoneAndCameraTracks()
+          microphoneTrack = tracks[0]
+          cameraTrack = tracks[1]
+        } catch (trackError) {
+          const classified = classifyVideoError(trackError)
+          // Fallback: try audio-only if camera failed but not permission denied
+          if (classified.kind === 'camera_unavailable') {
+            try {
+              microphoneTrack = await AgoraRTC.createMicrophoneAudioTrack()
+            } catch {
+              throw trackError
+            }
+          } else {
+            throw trackError
+          }
+        }
+
+        localAudioTrackRef.current = microphoneTrack || null
+        localVideoTrackRef.current = cameraTrack || null
 
         await client.join(tokenJson.appId, tokenJson.channelName, tokenJson.token, tokenJson.uid)
-        await client.publish([microphoneTrack, cameraTrack])
-        if (localVideoRef.current) {
+
+        const tracksToPublish: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = []
+        if (microphoneTrack) tracksToPublish.push(microphoneTrack)
+        if (cameraTrack) tracksToPublish.push(cameraTrack)
+
+        if (tracksToPublish.length > 0) {
+          await client.publish(tracksToPublish)
+        }
+
+        if (cameraTrack && localVideoRef.current) {
           cameraTrack.play(localVideoRef.current)
         }
-        if (!cancelled) {
+
+        if (!cancelledRef.current) {
           setJoined(true)
         }
       } catch (bootError) {
-        const message = bootError instanceof Error ? bootError.message : 'Erro ao iniciar a sessão.'
-        if (!cancelled) {
-          setError(message)
+        const classified = classifyVideoError(bootError)
+        if (!cancelledRef.current) {
+          setError(classified)
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelledRef.current) {
           setIsLoading(false)
         }
       }
@@ -127,22 +233,36 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
     void boot()
 
     return () => {
-      cancelled = true
+      cancelledRef.current = true
       const client = clientRef.current
       const localAudio = localAudioTrackRef.current
       const localVideo = localVideoTrackRef.current
 
       if (localAudio) {
-        localAudio.stop()
-        localAudio.close()
+        try {
+          localAudio.stop()
+          localAudio.close()
+        } catch {
+          // ignore cleanup errors
+        }
       }
       if (localVideo) {
-        localVideo.stop()
-        localVideo.close()
+        try {
+          localVideo.stop()
+          localVideo.close()
+        } catch {
+          // ignore cleanup errors
+        }
       }
       if (client) {
-        client.removeAllListeners()
-        void client.leave()
+        try {
+          client.removeAllListeners()
+          client.leave().catch(() => {
+            // ignore leave errors during cleanup
+          })
+        } catch {
+          // ignore cleanup errors
+        }
       }
     }
   }, [bookingId])
@@ -151,16 +271,24 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
     const track = localAudioTrackRef.current
     if (!track) return
     const next = !isMicEnabled
-    await track.setEnabled(next)
-    setIsMicEnabled(next)
+    try {
+      await track.setEnabled(next)
+      setIsMicEnabled(next)
+    } catch {
+      // ignore toggle errors
+    }
   }
 
   async function toggleCamera() {
     const track = localVideoTrackRef.current
     if (!track) return
     const next = !isCameraEnabled
-    await track.setEnabled(next)
-    setIsCameraEnabled(next)
+    try {
+      await track.setEnabled(next)
+      setIsCameraEnabled(next)
+    } catch {
+      // ignore toggle errors
+    }
   }
 
   return (
@@ -175,7 +303,23 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
         {error ? (
           <div className="mt-3 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <p>{error}</p>
+            <div>
+              <p className="font-medium">
+                {error.kind === 'permission_denied'
+                  ? 'Permissão necessária'
+                  : error.kind === 'camera_unavailable'
+                    ? 'Câmera indisponível'
+                    : error.kind === 'microphone_unavailable'
+                      ? 'Microfone indisponível'
+                      : 'Erro na sessão'}
+              </p>
+              <p className="mt-0.5">{error.message}</p>
+              {error.kind === 'permission_denied' && (
+                <p className="mt-1 text-xs">
+                  Dica: Clique no ícone de cadeado 🔒 na barra de endereço do navegador e permita acesso à câmera e microfone.
+                </p>
+              )}
+            </div>
           </div>
         ) : null}
       </div>
@@ -187,6 +331,9 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
             ref={localVideoRef}
             className="h-56 w-full overflow-hidden rounded-md bg-black sm:h-72"
           />
+          {!localVideoTrackRef.current && joined && (
+            <p className="mt-1 px-1 text-xs text-slate-400">Câmera desativada ou indisponível</p>
+          )}
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
@@ -221,7 +368,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
         <button
           type="button"
           onClick={toggleMic}
-          disabled={!joined}
+          disabled={!joined || !localAudioTrackRef.current}
           className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isMicEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
@@ -230,7 +377,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
         <button
           type="button"
           onClick={toggleCamera}
-          disabled={!joined}
+          disabled={!joined || !localVideoTrackRef.current}
           className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}

@@ -33,11 +33,21 @@ declare module 'agora-rtc-sdk-ng' {
       event: 'user-published' | 'user-unpublished',
       listener: (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => void | Promise<void>,
     ): void
+    on(
+      event: 'connection-state-change',
+      listener: (
+        curState: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'FAILED',
+        revState: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'FAILED',
+        reason?: string,
+      ) => void,
+    ): void
   }
 
   const AgoraRTC: {
     createClient(config: { mode: 'rtc'; codec: 'vp8' | 'h264' }): IAgoraRTCClient
     createMicrophoneAndCameraTracks(): Promise<[IMicrophoneAudioTrack, ICameraVideoTrack]>
+    createMicrophoneAudioTrack(): Promise<IMicrophoneAudioTrack>
+    createCameraVideoTrack(): Promise<ICameraVideoTrack>
   }
 
   export default AgoraRTC

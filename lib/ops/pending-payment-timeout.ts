@@ -62,7 +62,7 @@ export async function runPendingPaymentTimeout(
 
     const metadata = (booking.metadata as Record<string, unknown> | null) || {}
 
-    const { error: updateError } = await admin
+    const { data: updatedBooking, error: updateError } = await admin
       .from('bookings')
       .update({
         status: 'cancelled',
@@ -77,8 +77,11 @@ export async function runPendingPaymentTimeout(
       })
       .eq('id', booking.id)
       .eq('status', 'pending_payment')
+      .select('id')
+      .maybeSingle()
 
-    if (updateError) {
+    if (updateError || !updatedBooking) {
+      console.error('[pending-payment-timeout] cancel failed or race condition:', booking.id, updateError?.message)
       continue
     }
 
