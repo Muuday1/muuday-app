@@ -19,6 +19,10 @@ import { createBooking } from '@/lib/actions/booking'
 import { cn, formatCurrency } from '@/lib/utils'
 import { captureEvent } from '@/lib/analytics/posthog-client'
 import { FEATURE_FLAGS } from '@/lib/analytics/feature-flags'
+import {
+  isSlotBlockedByException,
+  hasUtcBookingConflict,
+} from '@/lib/booking/slot-filtering'
 
 interface AvailabilitySlot {
   id: string
@@ -175,19 +179,9 @@ export default function BookingForm({
           const slotUserDateObj = fromIsoDateToLocalDate(slotUserDate)
           if (slotUserDateObj < today || slotUserDateObj > maxDate) continue
 
-          const [slotH, slotM] = rawSlot.split(':').map(Number)
-          const slotStartMinutes = slotH * 60 + slotM
-          const slotEndMinutes = slotStartMinutes + professional.session_duration_minutes
-          const isBlockedByException = availabilityExceptions.some(exc => {
-            if (exc.date_local !== professionalDate) return false
-            if (exc.start_time_local === null || exc.end_time_local === null) return true
-            const [excStartH, excStartM] = exc.start_time_local.split(':').map(Number)
-            const [excEndH, excEndM] = exc.end_time_local.split(':').map(Number)
-            const excStartMinutes = excStartH * 60 + excStartM
-            const excEndMinutes = excEndH * 60 + excEndM
-            return slotStartMinutes < excEndMinutes && slotEndMinutes > excStartMinutes
-          })
-          if (isBlockedByException) continue
+          if (isSlotBlockedByException(rawSlot, professional.session_duration_minutes, professionalDate, availabilityExceptions)) {
+            continue
+          }
 
           const slotUserTime = formatInTimeZone(slotUtc, userTimezone, 'HH:mm')
           const existingSlots = map.get(slotUserDate) || []
@@ -244,14 +238,7 @@ export default function BookingForm({
       const slotUtc = fromZonedTime(`${selectedDateStr}T${time}:00`, userTimezone)
       if (Number.isNaN(slotUtc.getTime())) return false
       const slotEndUtc = new Date(slotUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
-
-      const hasConflict = existingBookings.some(booking => {
-        const bookingStart = new Date(booking.scheduled_at)
-        if (Number.isNaN(bookingStart.getTime())) return false
-        const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000)
-        return slotUtc < bookingEnd && slotEndUtc > bookingStart
-      })
-      return !hasConflict
+      return !hasUtcBookingConflict(slotUtc, slotEndUtc, existingBookings)
     })
   }, [
     existingBookings,

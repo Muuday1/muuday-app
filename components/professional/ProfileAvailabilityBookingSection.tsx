@@ -5,6 +5,11 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
+import {
+  isSlotBlockedByException,
+  hasUtcBookingConflict,
+  hasUtcExternalConflict,
+} from '@/lib/booking/slot-filtering'
 
 type AvailabilitySlot = {
   id: string
@@ -197,19 +202,9 @@ export function ProfileAvailabilityBookingSection({
           const slotUserDateObj = fromIsoDateToLocalDate(slotUserDate)
           if (slotUserDateObj < today || slotUserDateObj > maxDate) continue
 
-          const [slotH, slotM] = rawSlot.split(':').map(Number)
-          const slotStartMinutes = slotH * 60 + slotM
-          const slotEndMinutes = slotStartMinutes + selectedDuration
-          const isBlockedByException = availabilityExceptions.some(exc => {
-            if (exc.date_local !== professionalDate) return false
-            if (exc.start_time_local === null || exc.end_time_local === null) return true
-            const [excStartH, excStartM] = exc.start_time_local.split(':').map(Number)
-            const [excEndH, excEndM] = exc.end_time_local.split(':').map(Number)
-            const excStartMinutes = excStartH * 60 + excStartM
-            const excEndMinutes = excEndH * 60 + excEndM
-            return slotStartMinutes < excEndMinutes && slotEndMinutes > excStartMinutes
-          })
-          if (isBlockedByException) continue
+          if (isSlotBlockedByException(rawSlot, selectedDuration, professionalDate, availabilityExceptions)) {
+            continue
+          }
 
           const slotUserTime = formatInTimeZone(slotUtc, userTimezone, 'HH:mm')
           const existingSlots = map.get(slotUserDate) || []
@@ -263,22 +258,8 @@ export function ProfileAvailabilityBookingSection({
       if (Number.isNaN(slotUtc.getTime())) return false
       const slotEndUtc = new Date(slotUtc.getTime() + selectedDuration * 60 * 1000)
 
-      const hasBookingConflict = existingBookings.some(booking => {
-        const bookingStart = new Date(booking.scheduled_at)
-        if (Number.isNaN(bookingStart.getTime())) return false
-        const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000)
-        return slotUtc < bookingEnd && slotEndUtc > bookingStart
-      })
-      if (hasBookingConflict) return false
-
-      const hasExternalConflict = externalCalendarBusySlots.some(busy => {
-        const busyStart = new Date(busy.start_utc)
-        const busyEnd = new Date(busy.end_utc)
-        if (Number.isNaN(busyStart.getTime()) || Number.isNaN(busyEnd.getTime())) return false
-        return slotUtc < busyEnd && slotEndUtc > busyStart
-      })
-      if (hasExternalConflict) return false
-
+      if (hasUtcBookingConflict(slotUtc, slotEndUtc, existingBookings)) return false
+      if (hasUtcExternalConflict(slotUtc, slotEndUtc, externalCalendarBusySlots)) return false
       return true
     })
   }, [existingBookings, externalCalendarBusySlots, selectedDate, selectedDuration, slotsByUserDate, userTimezone])
