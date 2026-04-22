@@ -57,9 +57,11 @@ export async function runNoShowDetection(
     // If a participant already reported no-show, apply policy and finalize
     if (noShowActor === 'user') {
       // Client reported professional no-show -> 100% refund
-      await applyNoShowResolution(admin, booking.id, 'professional', 100, nowIso)
-      refunded++
-      detected++
+      const resolved = await applyNoShowResolution(admin, booking.id, 'professional', 100, nowIso)
+      if (resolved) {
+        refunded++
+        detected++
+      }
       continue
     }
 
@@ -67,14 +69,16 @@ export async function runNoShowDetection(
       // Professional reported client no-show -> apply tiered refund
       // If booking was >24h away when marked: 50%, else 0%
       const refundPercent = hoursUntilStart >= 24 ? 50 : 0
-      await applyNoShowResolution(admin, booking.id, 'user', refundPercent, nowIso)
-      refunded++
-      detected++
+      const resolved = await applyNoShowResolution(admin, booking.id, 'user', refundPercent, nowIso)
+      if (resolved) {
+        refunded++
+        detected++
+      }
       continue
     }
 
     // Nobody reported yet -> system detects and flags both parties
-    await admin
+    const { error: updateError } = await admin
       .from('bookings')
       .update({
         status: 'no_show',
@@ -89,7 +93,12 @@ export async function runNoShowDetection(
       .eq('id', booking.id)
       .eq('status', 'confirmed')
 
-    // Notify both parties
+    if (updateError) {
+      console.error(`[no-show-detection] failed to update booking ${booking.id}:`, updateError.message)
+      continue
+    }
+
+    // Notify both parties only after successful status update
     await insertNoShowNotification(admin, booking.user_id, booking.id, 'client', nowIso)
     const professionalUserId = await resolveProfessionalUserId(admin, booking.professional_id)
     if (professionalUserId) {
@@ -108,16 +117,21 @@ async function applyNoShowResolution(
   responsibleParty: 'professional' | 'user',
   refundPercent: number,
   nowIso: string,
-) {
-  const { data: booking } = await admin
+): Promise<boolean> {
+  const { data: booking, error: fetchError } = await admin
     .from('bookings')
     .select('metadata')
     .eq('id', bookingId)
     .maybeSingle()
 
+  if (fetchError) {
+    console.error(`[no-show-detection] failed to fetch booking ${bookingId}:`, fetchError.message)
+    return false
+  }
+
   const metadata = (booking?.metadata as Record<string, unknown> | null) || {}
 
-  await admin
+  const { error: updateError } = await admin
     .from('bookings')
     .update({
       status: 'no_show',
@@ -132,8 +146,14 @@ async function applyNoShowResolution(
     })
     .eq('id', bookingId)
 
+  if (updateError) {
+    console.error(`[no-show-detection] failed to resolve booking ${bookingId}:`, updateError.message)
+    return false
+  }
+
   // TODO: Fase 6 — invoke refund engine when payment stack is ready
   // For now, we store the policy in metadata so the future refund engine can process it
+  return true
 }
 
 async function insertNoShowNotification(

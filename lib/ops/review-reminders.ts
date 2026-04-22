@@ -36,10 +36,16 @@ export async function runReviewReminderSync(
 
   // Exclude bookings that already have a review
   const bookingIds = eligibleBookings.map((b) => b.id)
-  const { data: existingReviews } = await admin
+  const { data: existingReviews, error: reviewsError } = await admin
     .from('reviews')
     .select('booking_id')
     .in('booking_id', bookingIds)
+
+  if (reviewsError) {
+    console.error('[review-reminders] failed to load existing reviews:', reviewsError.message)
+    // Abort to avoid sending duplicate review requests when we can't verify state
+    return { checked: eligibleBookings.length, sent: 0, at: nowIso }
+  }
 
   const reviewedBookingIds = new Set((existingReviews || []).map((r) => r.booking_id))
   const pendingBookings = eligibleBookings.filter((b) => !reviewedBookingIds.has(b.id))
@@ -52,15 +58,22 @@ export async function runReviewReminderSync(
   const userIds = Array.from(new Set(pendingBookings.map((b) => b.user_id)))
   const professionalIds = Array.from(new Set(pendingBookings.map((b) => b.professional_id)))
 
-  const { data: profiles } = await admin
+  const { data: profiles, error: profilesError } = await admin
     .from('profiles')
     .select('id, email, full_name')
     .in('id', userIds)
 
-  const { data: professionals } = await admin
+  const { data: professionals, error: professionalsError } = await admin
     .from('professionals')
     .select('id, user_id, bio')
     .in('id', professionalIds)
+
+  if (profilesError) {
+    console.error('[review-reminders] failed to load profiles:', profilesError.message)
+  }
+  if (professionalsError) {
+    console.error('[review-reminders] failed to load professionals:', professionalsError.message)
+  }
 
   const profileById = new Map((profiles || []).map((p) => [p.id, p]))
   const professionalById = new Map((professionals || []).map((p) => [p.id, p]))

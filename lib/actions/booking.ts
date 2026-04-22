@@ -158,19 +158,27 @@ export async function createBooking(data: {
   const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('currency, timezone')
     .eq('id', user.id)
     .single()
 
-  const { data: professional } = await supabase
+  if (profileError) {
+    console.error('[booking/create] profile query error:', profileError.message, profileError.code)
+  }
+
+  const { data: professional, error: professionalError } = await supabase
     .from('professionals')
     .select(
       'id, user_id, tier, session_price_brl, session_duration_minutes, status, first_booking_enabled, profiles!professionals_user_id_fkey(timezone)',
     )
     .eq('id', bookingInput.professionalId)
     .single()
+
+  if (professionalError) {
+    console.error('[booking/create] professional query error:', professionalError.message, professionalError.code)
+  }
 
   if (!professional || professional.status !== 'approved') {
     return { success: false, error: 'Profissional não disponível.' }
@@ -354,6 +362,14 @@ export async function createBooking(data: {
   const currency = profile?.currency || 'BRL'
   const rates = await getExchangeRates(supabase)
   const priceBrl = Number(professional.session_price_brl) || 0
+  if (priceBrl <= 0) {
+    reportBookingError(
+      new Error('Invalid session price'),
+      { professionalId: bookingInput.professionalId, priceBrl: professional.session_price_brl },
+      'booking_invalid_session_price',
+    )
+    return { success: false, error: 'Profissional não possui preço configurado para sessão.' }
+  }
   const perSessionPriceUserCurrency = roundCurrency(priceBrl * (rates[currency] || 1))
   const totalPriceUserCurrency = roundCurrency(perSessionPriceUserCurrency * sessionCount)
   const bookingStatus = bookingSettings.confirmationMode === 'manual' ? 'pending_confirmation' : 'confirmed'
