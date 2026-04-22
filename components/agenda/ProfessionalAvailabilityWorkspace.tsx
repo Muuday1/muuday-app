@@ -149,19 +149,36 @@ export function ProfessionalAvailabilityWorkspace({
       ].filter(item => item.start_utc && item.end_utc),
     )
 
-    // Load existing availability
-    const { data: rows } = await supabase
-      .from('availability')
-      .select('day_of_week,start_time,end_time,is_active')
+    // Load existing availability (prefer modern rules, fallback to legacy)
+    const { data: modernRows } = await supabase
+      .from('availability_rules')
+      .select('weekday,start_time_local,end_time_local,is_active')
       .eq('professional_id', professional.id)
 
-    if (rows && rows.length > 0) {
+    const legacyRows = modernRows && modernRows.length > 0
+      ? null
+      : await supabase
+          .from('availability')
+          .select('day_of_week,start_time,end_time,is_active')
+          .eq('professional_id', professional.id)
+          .then(r => r.data)
+
+    const rows = modernRows && modernRows.length > 0
+      ? modernRows.map(row => ({
+          day_of_week: row.weekday,
+          start_time: row.start_time_local,
+          end_time: row.end_time_local,
+          is_active: row.is_active,
+        }))
+      : (legacyRows || [])
+
+    if (rows.length > 0) {
       const newState = buildDefaultState()
       for (const row of rows) {
         newState[row.day_of_week] = {
           is_available: Boolean(row.is_active),
-          start_time: row.start_time.slice(0, 5), // "HH:MM:SS" -> "HH:MM"
-          end_time: row.end_time.slice(0, 5),
+          start_time: String(row.start_time || '09:00').slice(0, 5), // "HH:MM:SS" -> "HH:MM"
+          end_time: String(row.end_time || '17:00').slice(0, 5),
         }
       }
       setAvailability(newState)
@@ -204,8 +221,8 @@ export function ProfessionalAvailabilityWorkspace({
 
     const supabase = createClient()
 
-    // Build rows to upsert (only available days)
-    const rowsToUpsert = DAYS_OF_WEEK
+    // Build rows for both tables
+    const legacyRows = DAYS_OF_WEEK
       .map(day => ({
         professional_id: professionalId,
         day_of_week: day.value,
@@ -214,23 +231,55 @@ export function ProfessionalAvailabilityWorkspace({
         is_active: availability[day.value].is_available,
       }))
 
-    // Delete existing rows and insert new ones (clean upsert)
-    const { error: deleteError } = await supabase
+    const modernRows = DAYS_OF_WEEK
+      .map(day => ({
+        professional_id: professionalId,
+        weekday: day.value,
+        start_time_local: availability[day.value].start_time + ':00',
+        end_time_local: availability[day.value].end_time + ':00',
+        timezone: calendarTimezone,
+        is_active: availability[day.value].is_available,
+      }))
+
+    // Delete existing rows and insert new ones (clean upsert) — legacy table
+    const { error: deleteLegacyError } = await supabase
       .from('availability')
       .delete()
       .eq('professional_id', professionalId)
 
-    if (deleteError) {
+    if (deleteLegacyError) {
       setErrorMessage('Erro ao salvar. Tente novamente.')
       setSaveStatus('error')
       return
     }
 
-    const { error: insertError } = await supabase
-      .from('availability')
-      .insert(rowsToUpsert)
+    // Delete existing rows and insert new ones — modern table
+    const { error: deleteModernError } = await supabase
+      .from('availability_rules')
+      .delete()
+      .eq('professional_id', professionalId)
 
-    if (insertError) {
+    if (deleteModernError) {
+      setErrorMessage('Erro ao salvar. Tente novamente.')
+      setSaveStatus('error')
+      return
+    }
+
+    const { error: insertLegacyError } = await supabase
+      .from('availability')
+      .insert(legacyRows)
+
+    if (insertLegacyError) {
+      setErrorMessage('Erro ao salvar. Tente novamente.')
+      setSaveStatus('error')
+      return
+    }
+
+    const { error: insertModernError } = await supabase
+      .from('availability_rules')
+      .insert(modernRows)
+
+    if (insertModernError) {
       setErrorMessage('Erro ao salvar. Tente novamente.')
       setSaveStatus('error')
       return

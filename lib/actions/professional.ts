@@ -224,27 +224,60 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
 
   if (!professional) return { error: 'Perfil profissional não encontrado' }
 
-  // Delete existing availability
-  const { error: deleteError } = await supabase
+  // Fetch timezone for modern rules
+  const { data: settingsRow } = await supabase
+    .from('professional_settings')
+    .select('timezone')
+    .eq('professional_id', professional.id)
+    .maybeSingle()
+  const timezone = String(settingsRow?.timezone || 'America/Sao_Paulo')
+
+  // Delete existing availability — legacy table
+  const { error: deleteLegacyError } = await supabase
     .from('availability')
     .delete()
     .eq('professional_id', professional.id)
 
-  if (deleteError) {
-    console.error('[professional/updateAvailability] delete availability error:', deleteError.message)
+  if (deleteLegacyError) {
+    console.error('[professional/updateAvailability] delete availability error:', deleteLegacyError.message)
     return { error: 'Erro ao remover disponibilidade anterior.' }
   }
 
-  // Insert new slots
+  // Delete existing availability — modern table
+  const { error: deleteModernError } = await supabase
+    .from('availability_rules')
+    .delete()
+    .eq('professional_id', professional.id)
+
+  if (deleteModernError) {
+    console.error('[professional/updateAvailability] delete availability_rules error:', deleteModernError.message)
+    return { error: 'Erro ao remover regras de disponibilidade anteriores.' }
+  }
+
+  // Insert new slots — legacy table
   if (parsed.data.length > 0) {
-    const { error } = await supabase
+    const { error: insertLegacyError } = await supabase
       .from('availability')
       .insert(parsed.data.map(slot => ({
         professional_id: professional.id,
         ...slot,
       })))
 
-    if (error) return { error: error.message }
+    if (insertLegacyError) return { error: insertLegacyError.message }
+
+    // Insert new slots — modern table
+    const { error: insertModernError } = await supabase
+      .from('availability_rules')
+      .insert(parsed.data.map(slot => ({
+        professional_id: professional.id,
+        weekday: slot.day_of_week,
+        start_time_local: slot.start_time,
+        end_time_local: slot.end_time,
+        timezone,
+        is_active: true,
+      })))
+
+    if (insertModernError) return { error: insertModernError.message }
   }
 
   await recomputeProfessionalVisibility(supabase, professional.id)
