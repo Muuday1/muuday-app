@@ -162,7 +162,7 @@ export default function VideoSession({
         const data = await res.json()
         if (!mounted) return
         setStatusError(null)
-        if (data.ready && !connectingFailed) {
+        if (data.ready && data.canJoinWindow && !connectingFailed) {
           setPhase('connecting')
         }
       } catch {
@@ -446,7 +446,7 @@ export default function VideoSession({
         {!isProfessional && (
           <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
             <p className="mb-2 px-1 text-xs font-medium text-slate-600">Sala de espera</p>
-            <WaitingRoomGame />
+            <WaitingRoomGame isPaused={phase !== 'waiting'} />
           </div>
         )}
       </div>
@@ -576,6 +576,25 @@ export default function VideoSession({
         >
           {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
           {isCameraEnabled ? 'Camera ligada' : 'Camera desligada'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            cancelledRef.current = true
+            const client = clientRef.current
+            const localAudio = localAudioTrackRef.current
+            const localVideo = localVideoTrackRef.current
+            if (localAudio) { try { localAudio.stop(); localAudio.close() } catch {} }
+            if (localVideo) { try { localVideo.stop(); localVideo.close() } catch {} }
+            if (client) { try { client.removeAllListeners(); client.leave().catch(() => {}) } catch {} }
+            setJoined(false)
+            setPhase('waiting')
+            setConnectingFailed(false)
+            setError(null)
+          }}
+          className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+        >
+          Encerrar sessao
         </button>
         {isLoading ? (
           <span className="inline-flex items-center gap-2 text-xs text-slate-500">

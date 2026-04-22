@@ -39,4 +39,6 @@ scripts/resend_*.py
 scripts/resend_*.json
 
 # Supabase CLI local cache
-supabase/.temp/
+supabase/.temp/__pycache__/  
+__pycache__/ 
+supabase/.temp/ 
