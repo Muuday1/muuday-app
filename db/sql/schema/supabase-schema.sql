@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     "refund_under_24h":0
   }'::jsonb,
   metadata JSONB DEFAULT '{}'::jsonb,
+  professional_ready_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -121,7 +121,13 @@ export default async function VideoSessionPage({
           A entrada fica disponivel 20 minutos antes do inicio e ate 4 horas apos o fim da sessao.
         </div>
       ) : (
-        <VideoSession bookingId={bookingId} />
+        <VideoSession
+        bookingId={bookingId}
+        userRole={profile?.role || 'usuario'}
+        isProfessionalOwner={professionalOwnerId === user.id}
+        professionalName={professionalName}
+        scheduledAtIso={startAt.toISOString()}
+      />
       )}
     </div>
   )

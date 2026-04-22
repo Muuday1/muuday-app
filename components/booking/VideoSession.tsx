@@ -1,17 +1,25 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, Loader2, Mic, MicOff, Video, VideoOff } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle, Loader2, Mic, MicOff, Video, VideoOff, Play } from 'lucide-react'
 import type {
   IAgoraRTCClient,
   IAgoraRTCRemoteUser,
   ICameraVideoTrack,
   IMicrophoneAudioTrack,
 } from 'agora-rtc-sdk-ng'
+import WaitingRoomGame from './WaitingRoomGame'
+import SessionCountdown from './SessionCountdown'
 
 type VideoSessionProps = {
   bookingId: string
+  userRole: 'usuario' | 'profissional' | 'admin'
+  isProfessionalOwner: boolean
+  professionalName: string
+  scheduledAtIso: string
 }
+
+type Phase = 'waiting' | 'connecting' | 'in-session'
 
 type SessionTokenPayload = {
   appId: string
@@ -44,7 +52,7 @@ function classifyVideoError(error: unknown): VideoError {
     return {
       kind: 'permission_denied',
       message:
-        'Permissão de câmera ou microfone negada. Verifique as permissões do navegador e tente novamente.',
+        'Permissao de camera ou microfone negada. Verifique as permissoes do navegador e tente novamente.',
     }
   }
 
@@ -57,7 +65,7 @@ function classifyVideoError(error: unknown): VideoError {
     return {
       kind: 'camera_unavailable',
       message:
-        'Não foi possível acessar a câmera. Verifique se ela está conectada e não está sendo usada por outro aplicativo.',
+        'Nao foi possivel acessar a camera. Verifique se ela esta conectada e nao esta sendo usada por outro aplicativo.',
     }
   }
 
@@ -69,38 +77,48 @@ function classifyVideoError(error: unknown): VideoError {
     return {
       kind: 'microphone_unavailable',
       message:
-        'Não foi possível acessar o microfone. Verifique se ele está conectado e não está sendo usado por outro aplicativo.',
+        'Nao foi possivel acessar o microfone. Verifique se ele esta conectado e nao esta sendo usado por outro aplicativo.',
     }
   }
 
   if (lower.includes('token') || lower.includes('unauthorized')) {
     return {
       kind: 'token_failed',
-      message: 'Falha ao obter autorização para a sessão de vídeo. Tente recarregar a página.',
+      message: 'Falha ao obter autorizacao para a sessao de video. Tente recarregar a pagina.',
     }
   }
 
   if (lower.includes('join') || lower.includes('connect')) {
     return {
       kind: 'join_failed',
-      message: 'Não foi possível conectar à sessão de vídeo. Verifique sua conexão de internet.',
+      message: 'Nao foi possivel conectar a sessao de video. Verifique sua conexao de internet.',
     }
   }
 
   return {
     kind: 'unknown',
-    message: error instanceof Error ? error.message : 'Erro ao iniciar a sessão de vídeo.',
+    message: error instanceof Error ? error.message : 'Erro ao iniciar a sessao de video.',
   }
 }
 
-export default function VideoSession({ bookingId }: VideoSessionProps) {
+export default function VideoSession({
+  bookingId,
+  userRole,
+  isProfessionalOwner,
+  professionalName,
+  scheduledAtIso,
+}: VideoSessionProps) {
+  const [phase, setPhase] = useState<Phase>('waiting')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<VideoError | null>(null)
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [joined, setJoined] = useState(false)
   const [tokenPayload, setTokenPayload] = useState<SessionTokenPayload | null>(null)
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isCameraEnabled, setIsCameraEnabled] = useState(true)
   const [remoteUserIds, setRemoteUserIds] = useState<string[]>([])
+  const [liberando, setLiberando] = useState(false)
+  const [connectingFailed, setConnectingFailed] = useState(false)
 
   const localVideoRef = useRef<HTMLDivElement | null>(null)
   const remoteContainerRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -109,18 +127,68 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
   const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null)
   const remoteUsersRef = useRef<Record<string, IAgoraRTCRemoteUser>>({})
   const cancelledRef = useRef(false)
+  const pollingRef = useRef<number | null>(null)
+
+  const isProfessional = isProfessionalOwner || userRole === 'profissional'
+  const scheduledAt = useMemo(() => new Date(scheduledAtIso), [scheduledAtIso])
 
   const statusLabel = useMemo(() => {
-    if (error) return 'Falha ao iniciar vídeo'
-    if (isLoading) return 'Conectando à sessão...'
-    if (joined) return 'Você está na sessão'
+    if (error) return 'Falha ao iniciar video'
+    if (isLoading) return 'Conectando a sessao...'
+    if (joined) return 'Voce esta na sessao'
     return 'Pronto para entrar'
   }, [error, isLoading, joined])
 
+  // Poll session status while in waiting phase
   useEffect(() => {
+    if (phase !== 'waiting') {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      return
+    }
+
+    let mounted = true
+
+    async function checkStatus() {
+      try {
+        const res = await fetch(`/api/sessao/status?bookingId=${bookingId}`)
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          if (mounted) setStatusError(data.error || 'Erro ao consultar status.')
+          return
+        }
+        const data = await res.json()
+        if (!mounted) return
+        setStatusError(null)
+        if (data.ready && !connectingFailed) {
+          setPhase('connecting')
+        }
+      } catch {
+        if (mounted) setStatusError('Erro de rede ao consultar status.')
+      }
+    }
+
+    // Check immediately
+    void checkStatus()
+    pollingRef.current = window.setInterval(checkStatus, 2000)
+
+    return () => {
+      mounted = false
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [phase, bookingId, connectingFailed])
+
+  // Connect to Agora when phase becomes 'connecting'
+  useEffect(() => {
+    if (phase !== 'connecting') return
     cancelledRef.current = false
 
-    async function boot() {
+    async function connect() {
       setIsLoading(true)
       setError(null)
 
@@ -133,7 +201,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
 
         const tokenJson = await tokenResponse.json()
         if (!tokenResponse.ok) {
-          throw new Error(tokenJson?.error || 'Falha ao obter token da sessão.')
+          throw new Error(tokenJson?.error || 'Falha ao obter token da sessao.')
         }
         if (cancelledRef.current) return
         setTokenPayload(tokenJson as SessionTokenPayload)
@@ -186,7 +254,6 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
           cameraTrack = tracks[1]
         } catch (trackError) {
           const classified = classifyVideoError(trackError)
-          // Fallback: try audio-only if camera failed but not permission denied
           if (classified.kind === 'camera_unavailable') {
             try {
               microphoneTrack = await AgoraRTC.createMicrophoneAudioTrack()
@@ -217,10 +284,13 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
 
         if (!cancelledRef.current) {
           setJoined(true)
+          setConnectingFailed(false)
+          setPhase('in-session')
         }
       } catch (bootError) {
         const classified = classifyVideoError(bootError)
         if (!cancelledRef.current) {
+          setConnectingFailed(true)
           setError(classified)
         }
       } finally {
@@ -230,8 +300,11 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
       }
     }
 
-    void boot()
+    void connect()
+  }, [phase, bookingId])
 
+  // Cleanup Agora resources on unmount only
+  useEffect(() => {
     return () => {
       cancelledRef.current = true
       const client = clientRef.current
@@ -265,7 +338,29 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
         }
       }
     }
-  }, [bookingId])
+  }, [])
+
+  async function liberarSessao() {
+    setLiberando(true)
+    setStatusError(null)
+    try {
+      const res = await fetch('/api/sessao/liberar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setStatusError(data.error || 'Falha ao liberar sessao.')
+        return
+      }
+      setPhase('connecting')
+    } catch {
+      setStatusError('Erro de rede ao liberar sessao.')
+    } finally {
+      setLiberando(false)
+    }
+  }
 
   async function toggleMic() {
     const track = localAudioTrackRef.current
@@ -291,6 +386,127 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
     }
   }
 
+  // Waiting room UI
+  if (phase === 'waiting') {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <p className="text-sm font-semibold text-slate-900">Sala de espera</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <SessionCountdown targetDate={scheduledAt} />
+            {statusError ? (
+              <span className="text-xs text-red-600">{statusError}</span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Sincronizando
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Professional controls */}
+        {isProfessional && (
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-700">
+              Voce e o profissional desta sessao. Clique abaixo para liberar a entrada do cliente e conectar.
+            </p>
+            <button
+              type="button"
+              onClick={liberarSessao}
+              disabled={liberando}
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#9FE870] px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-[#8dd65f] hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {liberando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {liberando ? 'Liberando...' : 'Entrar na sessao'}
+            </button>
+          </div>
+        )}
+
+        {/* Client message */}
+        {!isProfessional && (
+          <div className="rounded-lg border border-slate-200 bg-white p-5 text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+            </div>
+            <p className="text-sm font-medium text-slate-800">
+              Aguardando <span className="font-bold">{professionalName}</span> entrar na sessao
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Assim que o profissional liberar, voce sera conectado automaticamente.
+            </p>
+          </div>
+        )}
+
+        {/* Game — client only */}
+        {!isProfessional && (
+          <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
+            <p className="mb-2 px-1 text-xs font-medium text-slate-600">Sala de espera</p>
+            <WaitingRoomGame />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Connecting phase — animated transition
+  if (phase === 'connecting') {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#9FE870]/20">
+            <Loader2 className="h-6 w-6 animate-spin text-slate-700" />
+          </div>
+          <p className="text-sm font-semibold text-slate-900">Conectando a sessao...</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Preparando camera e microfone
+          </p>
+        </div>
+
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <div>
+                <p className="font-medium">
+                  {error.kind === 'permission_denied'
+                    ? 'Permissao necessaria'
+                    : error.kind === 'camera_unavailable'
+                      ? 'Camera indisponivel'
+                      : error.kind === 'microphone_unavailable'
+                        ? 'Microfone indisponivel'
+                        : 'Erro na sessao'}
+                </p>
+                <p className="mt-0.5">{error.message}</p>
+                {error.kind === 'permission_denied' && (
+                  <p className="mt-1 text-xs">
+                    Dica: Clique no icone de cadeado na barra de endereco do navegador e permita acesso a camera e microfone.
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null)
+                setConnectingFailed(false)
+                setPhase('waiting')
+              }}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+            >
+              Voltar e tentar novamente
+            </button>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  // In-session UI
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -300,39 +516,17 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
             Token expira em {new Date(tokenPayload.expiresAtUtc).toLocaleTimeString('pt-BR')}
           </p>
         ) : null}
-        {error ? (
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <div>
-              <p className="font-medium">
-                {error.kind === 'permission_denied'
-                  ? 'Permissão necessária'
-                  : error.kind === 'camera_unavailable'
-                    ? 'Câmera indisponível'
-                    : error.kind === 'microphone_unavailable'
-                      ? 'Microfone indisponível'
-                      : 'Erro na sessão'}
-              </p>
-              <p className="mt-0.5">{error.message}</p>
-              {error.kind === 'permission_denied' && (
-                <p className="mt-1 text-xs">
-                  Dica: Clique no ícone de cadeado 🔒 na barra de endereço do navegador e permita acesso à câmera e microfone.
-                </p>
-              )}
-            </div>
-          </div>
-        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-slate-950 p-2">
-          <p className="mb-2 px-1 text-xs font-medium text-slate-300">Você</p>
+          <p className="mb-2 px-1 text-xs font-medium text-slate-300">Voce</p>
           <div
             ref={localVideoRef}
             className="h-56 w-full overflow-hidden rounded-md bg-black sm:h-72"
           />
           {!localVideoTrackRef.current && joined && (
-            <p className="mt-1 px-1 text-xs text-slate-400">Câmera desativada ou indisponível</p>
+            <p className="mt-1 px-1 text-xs text-slate-400">Camera desativada ou indisponivel</p>
           )}
         </div>
 
@@ -381,7 +575,7 @@ export default function VideoSession({ bookingId }: VideoSessionProps) {
           className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-          {isCameraEnabled ? 'Câmera ligada' : 'Câmera desligada'}
+          {isCameraEnabled ? 'Camera ligada' : 'Camera desligada'}
         </button>
         {isLoading ? (
           <span className="inline-flex items-center gap-2 text-xs text-slate-500">
