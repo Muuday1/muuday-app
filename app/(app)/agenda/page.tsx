@@ -254,6 +254,12 @@ export default async function AgendaPage({
     end_time_utc: string
     provider: string
   }> = []
+  let overviewAvailabilityExceptions: Array<{
+    date_local: string
+    is_available: boolean
+    start_time_local: string | null
+    end_time_local: string | null
+  }> = []
   let professionalBookingRulesPanelProps: {
     userId: string
     professionalId: string
@@ -269,6 +275,7 @@ export default async function AgendaPage({
       legacyAvailabilityResult,
       calendarIntegrationResult,
       externalBusyResult,
+      availabilityExceptionsResult,
       planConfigMap,
     ] = await Promise.all([
       supabase
@@ -302,6 +309,11 @@ export default async function AgendaPage({
         .gte('start_time_utc', nowIso)
         .order('start_time_utc', { ascending: true })
         .limit(120),
+      supabase
+        .from('availability_exceptions')
+        .select('date_local, is_available, start_time_local, end_time_local')
+        .eq('professional_id', professionalId)
+        .eq('is_available', false),
       loadPlanConfigMap(),
     ])
 
@@ -326,6 +338,12 @@ export default async function AgendaPage({
         is_active: Boolean(row.is_active),
       })) || []
     activeAvailabilityCount = overviewAvailabilityRules.length
+    overviewAvailabilityExceptions = (availabilityExceptionsResult.data || []) as Array<{
+      date_local: string
+      is_available: boolean
+      start_time_local: string | null
+      end_time_local: string | null
+    }>
     calendarIntegrationConnected = Boolean(calendarIntegrationResult.data?.sync_enabled)
     calendarIntegrationProvider = String(calendarIntegrationResult.data?.provider || 'google')
     const rawConnectionStatus = String(calendarIntegrationResult.data?.connection_status || 'disconnected')
@@ -485,6 +503,7 @@ export default async function AgendaPage({
         calendarIntegrationAccountEmail={calendarIntegrationAccountEmail}
         calendarIntegrationLastSyncError={calendarIntegrationLastSyncError}
         overviewAvailabilityRules={overviewAvailabilityRules}
+        overviewAvailabilityExceptions={overviewAvailabilityExceptions}
         overviewCalendarBookings={overviewCalendarBookings}
         professionalBookingRulesPanelProps={professionalBookingRulesPanelProps}
       />

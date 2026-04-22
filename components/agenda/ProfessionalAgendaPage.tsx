@@ -44,6 +44,12 @@ type ProfessionalAgendaPageProps = {
     end_time: string
     is_active: boolean
   }>
+  overviewAvailabilityExceptions?: Array<{
+    date_local: string
+    is_available: boolean
+    start_time_local: string | null
+    end_time_local: string | null
+  }>
   overviewCalendarBookings: Array<{
     id: string
     start_utc: string
@@ -135,6 +141,7 @@ export function ProfessionalAgendaPage({
   calendarIntegrationAccountEmail,
   calendarIntegrationLastSyncError,
   overviewAvailabilityRules,
+  overviewAvailabilityExceptions = [],
   overviewCalendarBookings,
   professionalBookingRulesPanelProps,
 }: ProfessionalAgendaPageProps) {
@@ -375,6 +382,7 @@ export function ProfessionalAgendaPage({
               timezone={calendarTimezone}
               availabilityRules={overviewAvailabilityRules}
               bookings={overviewCalendarBookings}
+              exceptions={overviewAvailabilityExceptions}
               onSlotClick={(date, startMinutes) => {
                 setBlockModal({ open: true, date, startMinutes })
                 setBlockReason('')

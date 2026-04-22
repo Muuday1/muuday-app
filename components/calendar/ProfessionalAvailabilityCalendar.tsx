@@ -36,10 +36,18 @@ type BookingSlot = {
 
 type CalendarView = 'day' | 'week' | 'month'
 
+type AvailabilityException = {
+  date_local: string
+  is_available: boolean
+  start_time_local: string | null
+  end_time_local: string | null
+}
+
 type ProfessionalAvailabilityCalendarProps = {
   timezone: string
   availabilityRules: AvailabilityRule[]
   bookings: BookingSlot[]
+  exceptions?: AvailabilityException[]
   className?: string
   onBookingClick?: (booking: BookingSlot) => void
   onSlotClick?: (date: Date, startMinutes: number) => void
@@ -105,6 +113,7 @@ export function ProfessionalAvailabilityCalendar({
   timezone,
   availabilityRules,
   bookings,
+  exceptions = [],
   className = '',
   onBookingClick,
   onSlotClick,
@@ -123,6 +132,26 @@ export function ProfessionalAvailabilityCalendar({
     () => buildLocalBookingIntervals(bookings, timezone),
     [bookings, timezone],
   )
+
+  const exceptionsByDate = useMemo(() => {
+    const map = new Map<string, Array<{ startMinutes: number; endMinutes: number }>>()
+    for (const exc of exceptions) {
+      if (exc.is_available !== false) continue
+      const key = exc.date_local
+      const list = map.get(key) || []
+      if (exc.start_time_local === null || exc.end_time_local === null) {
+        // Full-day block
+        list.push({ startMinutes: 0, endMinutes: 24 * 60 })
+      } else {
+        list.push({
+          startMinutes: parseMinutes(exc.start_time_local),
+          endMinutes: parseMinutes(exc.end_time_local),
+        })
+      }
+      map.set(key, list)
+    }
+    return map
+  }, [exceptions])
 
   const visibleRange = useMemo(() => {
     const fallbackStart = HOURS_START * 60
@@ -304,6 +333,26 @@ export function ProfessionalAvailabilityCalendar({
     })
   }
 
+  function renderDayExceptionBlocks(date: Date) {
+    const key = getDateKey(date, timezone)
+    const dayExceptions = exceptionsByDate.get(key) || []
+    return dayExceptions.map((exc, index) => {
+      const clippedStart = Math.max(exc.startMinutes, visibleRange.startMinutes)
+      const clippedEnd = Math.min(exc.endMinutes, visibleRange.endMinutes)
+      const top = ((clippedStart - visibleRange.startMinutes) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
+      const height = ((clippedEnd - clippedStart) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
+      if (height <= 0 || clippedEnd <= visibleRange.startMinutes || clippedStart >= visibleRange.endMinutes) return null
+      return (
+        <div
+          key={`${key}-exc-${index}`}
+          className="absolute left-1 right-1 rounded-md border border-red-200 bg-red-100/70"
+          style={{ top: `${Math.max(0, top)}px`, height: `${Math.max(18, height)}px` }}
+          title={exc.startMinutes === 0 && exc.endMinutes === 24 * 60 ? 'Dia bloqueado' : 'Horário bloqueado'}
+        />
+      )
+    })
+  }
+
   return (
     <div className={`rounded-lg border border-slate-200 bg-white ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 px-3 py-2.5 md:px-4 md:py-3">
@@ -432,6 +481,7 @@ export function ProfessionalAvailabilityCalendar({
                 })}
                 {renderDayAvailabilityBlocks(day)}
                 {renderDayBookedBlocks(day)}
+                {renderDayExceptionBlocks(day)}
               </div>
             ))}
           </div>
