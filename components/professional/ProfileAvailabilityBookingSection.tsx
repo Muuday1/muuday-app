@@ -258,45 +258,28 @@ export function ProfileAvailabilityBookingSection({
     const candidateSlots = slotsByUserDate.get(selectedDateStr) || []
     if (candidateSlots.length === 0) return []
 
-    const bookingBlockedRanges = existingBookings
-      .map(booking => {
-        const bookingStart = new Date(booking.scheduled_at)
-        if (Number.isNaN(bookingStart.getTime())) return null
-        const bookingDateStr = formatInTimeZone(bookingStart, userTimezone, 'yyyy-MM-dd')
-        if (bookingDateStr !== selectedDateStr) return null
-        const bookingStartStr = formatInTimeZone(bookingStart, userTimezone, 'HH:mm')
-        const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000)
-        const bookingEndStr = formatInTimeZone(bookingEnd, userTimezone, 'HH:mm')
-        const [startH, startM] = bookingStartStr.split(':').map(Number)
-        const [endH, endM] = bookingEndStr.split(':').map(Number)
-        return { startMinutes: startH * 60 + startM, endMinutes: endH * 60 + endM }
-      })
-      .filter((range): range is { startMinutes: number; endMinutes: number } => Boolean(range))
-
-    const externalBlockedRanges = externalCalendarBusySlots
-      .map(slot => {
-        const slotStart = new Date(slot.start_utc)
-        if (Number.isNaN(slotStart.getTime())) return null
-        const slotDateStr = formatInTimeZone(slotStart, userTimezone, 'yyyy-MM-dd')
-        if (slotDateStr !== selectedDateStr) return null
-        const slotStartStr = formatInTimeZone(slotStart, userTimezone, 'HH:mm')
-        const slotEnd = new Date(slot.end_utc)
-        const slotEndStr = formatInTimeZone(slotEnd, userTimezone, 'HH:mm')
-        const [startH, startM] = slotStartStr.split(':').map(Number)
-        const [endH, endM] = slotEndStr.split(':').map(Number)
-        return { startMinutes: startH * 60 + startM, endMinutes: endH * 60 + endM }
-      })
-      .filter((range): range is { startMinutes: number; endMinutes: number } => Boolean(range))
-
-    const blockedRanges = [...bookingBlockedRanges, ...externalBlockedRanges]
-
     return candidateSlots.filter(time => {
-      const [slotH, slotM] = time.split(':').map(Number)
-      const slotStartMinutes = slotH * 60 + slotM
-      const slotEndMinutes = slotStartMinutes + selectedDuration
-      return !blockedRanges.some(
-        range => slotStartMinutes < range.endMinutes && slotEndMinutes > range.startMinutes,
-      )
+      const slotUtc = fromZonedTime(`${selectedDateStr}T${time}:00`, userTimezone)
+      if (Number.isNaN(slotUtc.getTime())) return false
+      const slotEndUtc = new Date(slotUtc.getTime() + selectedDuration * 60 * 1000)
+
+      const hasBookingConflict = existingBookings.some(booking => {
+        const bookingStart = new Date(booking.scheduled_at)
+        if (Number.isNaN(bookingStart.getTime())) return false
+        const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000)
+        return slotUtc < bookingEnd && slotEndUtc > bookingStart
+      })
+      if (hasBookingConflict) return false
+
+      const hasExternalConflict = externalCalendarBusySlots.some(busy => {
+        const busyStart = new Date(busy.start_utc)
+        const busyEnd = new Date(busy.end_utc)
+        if (Number.isNaN(busyStart.getTime()) || Number.isNaN(busyEnd.getTime())) return false
+        return slotUtc < busyEnd && slotEndUtc > busyStart
+      })
+      if (hasExternalConflict) return false
+
+      return true
     })
   }, [existingBookings, externalCalendarBusySlots, selectedDate, selectedDuration, slotsByUserDate, userTimezone])
 
