@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Dashboard | Muuday' }
 
 import Link from 'next/link'
