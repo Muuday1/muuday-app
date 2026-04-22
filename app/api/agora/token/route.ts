@@ -4,6 +4,10 @@ import { RtcRole, RtcTokenBuilder } from 'agora-access-token'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import {
+  recordParticipantJoined,
+  recordActualStartIfBothJoined,
+} from '@/lib/session/tracker'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid(),
@@ -134,6 +138,11 @@ export async function POST(request: NextRequest) {
     privilegeExpiredTs,
   )
 
+  // Track who is joining for no-show evidence
+  const role = professionalOwnerId === user.id ? 'professional' : 'client'
+  await recordParticipantJoined(booking.id, role)
+  await recordActualStartIfBothJoined(booking.id)
+
   return NextResponse.json({
     appId,
     token,
@@ -142,5 +151,6 @@ export async function POST(request: NextRequest) {
     expiresAtUtc: new Date(privilegeExpiredTs * 1000).toISOString(),
     windowStartUtc: joinStart.toISOString(),
     windowEndUtc: joinEnd.toISOString(),
+    providerMeta: { appId },
   })
 }

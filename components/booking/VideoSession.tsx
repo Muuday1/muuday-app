@@ -10,6 +10,7 @@ import type {
 } from 'agora-rtc-sdk-ng'
 import WaitingRoomGame from './WaitingRoomGame'
 import SessionCountdown from './SessionCountdown'
+import { emitSessionEvent } from '@/lib/session/client-tracker'
 
 type VideoSessionProps = {
   bookingId: string
@@ -193,6 +194,8 @@ export default function VideoSession({
       setError(null)
 
       try {
+        void emitSessionEvent(bookingId, 'session_join_attempted')
+
         const tokenResponse = await fetch('/api/agora/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -286,12 +289,18 @@ export default function VideoSession({
           setJoined(true)
           setConnectingFailed(false)
           setPhase('in-session')
+          void emitSessionEvent(bookingId, 'session_joined')
+          void emitSessionEvent(bookingId, 'session_started')
         }
       } catch (bootError) {
         const classified = classifyVideoError(bootError)
         if (!cancelledRef.current) {
           setConnectingFailed(true)
           setError(classified)
+          void emitSessionEvent(bookingId, 'session_failed', {
+            reason: classified.kind,
+            message: classified.message,
+          })
         }
       } finally {
         if (!cancelledRef.current) {
@@ -591,6 +600,7 @@ export default function VideoSession({
             setPhase('waiting')
             setConnectingFailed(false)
             setError(null)
+            void emitSessionEvent(bookingId, 'session_ended')
           }}
           className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
         >
