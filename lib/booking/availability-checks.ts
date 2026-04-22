@@ -18,11 +18,15 @@ export async function loadAvailabilityRules(
     return availabilityRulesRows
   }
 
-  const { data: legacyAvailabilityRows } = await supabase
+  const { data: legacyAvailabilityRows, error: legacyError } = await supabase
     .from('availability')
     .select('day_of_week, start_time, end_time, is_active')
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+
+  if (legacyError) {
+    console.error('[availability-checks] failed to load legacy availability:', legacyError.message)
+  }
 
   return mapLegacyAvailabilityToRules(legacyAvailabilityRows || [], timezone)
 }
@@ -57,11 +61,17 @@ export async function isSlotAllowedByExceptions(
   endUtc: Date,
 ) {
   const localDate = formatInTimeZone(startUtc, timezone, 'yyyy-MM-dd')
-  const { data: exceptionRows } = await supabase
+  const { data: exceptionRows, error: exceptionError } = await supabase
     .from('availability_exceptions')
     .select('is_available, start_time_local, end_time_local')
     .eq('professional_id', professionalId)
     .eq('date_local', localDate)
+
+  if (exceptionError) {
+    console.error('[availability-checks] failed to load exceptions:', exceptionError.message)
+    // Fail closed: if we can't verify exceptions, block the slot
+    return false
+  }
 
   const slotStartMinutes = getMinutesInTimezone(startUtc, timezone)
   const slotEndMinutes = getMinutesInTimezone(endUtc, timezone)
@@ -116,7 +126,13 @@ export async function hasInternalConflict(
 
   if (ignoreBookingId) query = query.neq('id', ignoreBookingId)
 
-  const { data: candidateConflicts } = await query
+  const { data: candidateConflicts, error: conflictError } = await query
+
+  if (conflictError) {
+    console.error('[availability-checks] failed to load conflicts:', conflictError.message)
+    // Fail closed: if we can't verify conflicts, assume there is one
+    return true
+  }
 
   return (candidateConflicts || []).some((booking: Record<string, unknown>) => {
     const existingStart = new Date(
