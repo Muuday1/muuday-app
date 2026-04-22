@@ -151,7 +151,11 @@ export default async function AgendarPage({
   const bookingWindowEnd = new Date(now)
   bookingWindowEnd.setDate(bookingWindowEnd.getDate() + Math.max(30, bookingSettings.maxBookingWindowDays))
 
-  const [{ data: bookingRows }, { data: externalBusyRows }] = await Promise.all([
+  const [
+    { data: bookingRows },
+    { data: externalBusyRows },
+    { data: availabilityExceptionsRows },
+  ] = await Promise.all([
     supabase
       .from('bookings')
       .select('scheduled_at, start_time_utc, end_time_utc, duration_minutes')
@@ -165,6 +169,11 @@ export default async function AgendarPage({
       .eq('professional_id', professional.id)
       .gte('start_time_utc', now.toISOString())
       .lte('start_time_utc', bookingWindowEnd.toISOString()),
+    supabase
+      .from('availability_exceptions')
+      .select('date_local, is_available, start_time_local, end_time_local')
+      .eq('professional_id', professional.id)
+      .eq('is_available', false),
   ])
 
   const existingBookings = [
@@ -244,6 +253,14 @@ export default async function AgendarPage({
         profileHref={professionalProfileHref}
         availability={availability || []}
         existingBookings={existingBookings || []}
+        availabilityExceptions={
+          (availabilityExceptionsRows || []) as {
+            date_local: string
+            is_available: boolean
+            start_time_local: string | null
+            end_time_local: string | null
+          }[]
+        }
         userTimezone={profile?.timezone || 'America/Sao_Paulo'}
         userCurrency={profile?.currency || 'BRL'}
         professionalTimezone={bookingSettings.timezone}

@@ -32,6 +32,13 @@ interface ExistingBooking {
   duration_minutes: number
 }
 
+interface AvailabilityException {
+  date_local: string
+  is_available: boolean
+  start_time_local: string | null
+  end_time_local: string | null
+}
+
 interface BookingFormProps {
   professional: {
     id: string
@@ -43,6 +50,7 @@ interface BookingFormProps {
   profileHref: string
   availability: AvailabilitySlot[]
   existingBookings: ExistingBooking[]
+  availabilityExceptions?: AvailabilityException[]
   userTimezone: string
   userCurrency: string
   professionalTimezone: string
@@ -79,6 +87,7 @@ export default function BookingForm({
   profileHref,
   availability,
   existingBookings,
+  availabilityExceptions = [],
   userTimezone,
   userCurrency,
   professionalTimezone,
@@ -166,6 +175,20 @@ export default function BookingForm({
           const slotUserDateObj = fromIsoDateToLocalDate(slotUserDate)
           if (slotUserDateObj < today || slotUserDateObj > maxDate) continue
 
+          const [slotH, slotM] = rawSlot.split(':').map(Number)
+          const slotStartMinutes = slotH * 60 + slotM
+          const slotEndMinutes = slotStartMinutes + professional.session_duration_minutes
+          const isBlockedByException = availabilityExceptions.some(exc => {
+            if (exc.date_local !== professionalDate) return false
+            if (exc.start_time_local === null || exc.end_time_local === null) return true
+            const [excStartH, excStartM] = exc.start_time_local.split(':').map(Number)
+            const [excEndH, excEndM] = exc.end_time_local.split(':').map(Number)
+            const excStartMinutes = excStartH * 60 + excStartM
+            const excEndMinutes = excEndH * 60 + excEndM
+            return slotStartMinutes < excEndMinutes && slotEndMinutes > excStartMinutes
+          })
+          if (isBlockedByException) continue
+
           const slotUserTime = formatInTimeZone(slotUtc, userTimezone, 'HH:mm')
           const existingSlots = map.get(slotUserDate) || []
           existingSlots.push(slotUserTime)
@@ -183,6 +206,7 @@ export default function BookingForm({
     return map
   }, [
     availability,
+    availabilityExceptions,
     maxBookingWindowDays,
     maxDate,
     minNoticeTimestamp,
@@ -216,36 +240,18 @@ export default function BookingForm({
     const candidateSlots = slotsByUserDate.get(selectedDateStr) || []
     if (candidateSlots.length === 0) return []
 
-    const blockedRanges = existingBookings
-      .map(booking => {
-        const bookingStart = new Date(booking.scheduled_at)
-        if (Number.isNaN(bookingStart.getTime())) return null
-
-        const bookingDateStr = formatInTimeZone(bookingStart, userTimezone, 'yyyy-MM-dd')
-        if (bookingDateStr !== selectedDateStr) return null
-
-        const bookingStartStr = formatInTimeZone(bookingStart, userTimezone, 'HH:mm')
-        const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000)
-        const bookingEndStr = formatInTimeZone(bookingEnd, userTimezone, 'HH:mm')
-        const [startH, startM] = bookingStartStr.split(':').map(Number)
-        const [endH, endM] = bookingEndStr.split(':').map(Number)
-
-        return {
-          startMinutes: startH * 60 + startM,
-          endMinutes: endH * 60 + endM,
-        }
-      })
-      .filter((range): range is { startMinutes: number; endMinutes: number } => Boolean(range))
-
     return candidateSlots.filter(time => {
-      const [slotH, slotM] = time.split(':').map(Number)
-      const slotStartMinutes = slotH * 60 + slotM
-      const slotEndMinutes = slotStartMinutes + professional.session_duration_minutes
+      const slotUtc = fromZonedTime(`${selectedDateStr}T${time}:00`, userTimezone)
+      if (Number.isNaN(slotUtc.getTime())) return false
+      const slotEndUtc = new Date(slotUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
 
-      const overlapsExisting = blockedRanges.some(
-        range => slotStartMinutes < range.endMinutes && slotEndMinutes > range.startMinutes,
-      )
-      return !overlapsExisting
+      const hasConflict = existingBookings.some(booking => {
+        const bookingStart = new Date(booking.scheduled_at)
+        if (Number.isNaN(bookingStart.getTime())) return false
+        const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000)
+        return slotUtc < bookingEnd && slotEndUtc > bookingStart
+      })
+      return !hasConflict
     })
   }, [
     existingBookings,
