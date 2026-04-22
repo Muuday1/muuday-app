@@ -14,8 +14,9 @@ import {
   subMonths,
 } from 'date-fns'
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Video, User, X } from 'lucide-react'
 import { ptBR } from 'date-fns/locale'
+import Link from 'next/link'
 
 type AvailabilityRule = {
   day_of_week: number
@@ -29,6 +30,8 @@ type BookingSlot = {
   start_utc: string
   end_utc: string
   status: string
+  client_name?: string
+  session_link?: string
 }
 
 type CalendarView = 'day' | 'week' | 'month'
@@ -38,6 +41,9 @@ type ProfessionalAvailabilityCalendarProps = {
   availabilityRules: AvailabilityRule[]
   bookings: BookingSlot[]
   className?: string
+  onBookingClick?: (booking: BookingSlot) => void
+  onSlotClick?: (date: Date, startMinutes: number) => void
+  readOnly?: boolean
 }
 
 const HOURS_START = 6
@@ -60,8 +66,16 @@ function getDateKey(date: Date, timezone: string) {
   return formatInTimeZone(date, timezone, 'yyyy-MM-dd')
 }
 
+type LocalBookingInterval = {
+  start: number
+  end: number
+  status: string
+  id: string
+  client_name?: string
+}
+
 function buildLocalBookingIntervals(bookings: BookingSlot[], timezone: string) {
-  const map = new Map<string, Array<{ start: number; end: number; status: string; id: string }>>()
+  const map = new Map<string, LocalBookingInterval[]>()
 
   for (const booking of bookings) {
     const startUtc = new Date(booking.start_utc)
@@ -72,7 +86,7 @@ function buildLocalBookingIntervals(bookings: BookingSlot[], timezone: string) {
     const startMinutes = parseMinutes(formatInTimeZone(startUtc, timezone, 'HH:mm'))
     const endMinutes = parseMinutes(formatInTimeZone(endUtc, timezone, 'HH:mm'))
     const current = map.get(key) || []
-    current.push({ start: startMinutes, end: endMinutes, status: booking.status, id: booking.id })
+    current.push({ start: startMinutes, end: endMinutes, status: booking.status, id: booking.id, client_name: booking.client_name })
     map.set(key, current)
   }
 
@@ -92,9 +106,13 @@ export function ProfessionalAvailabilityCalendar({
   availabilityRules,
   bookings,
   className = '',
+  onBookingClick,
+  onSlotClick,
+  readOnly = false,
 }: ProfessionalAvailabilityCalendarProps) {
   const [view, setView] = useState<CalendarView>('week')
   const [cursorDate, setCursorDate] = useState(() => toZonedTime(new Date(), timezone))
+  const [selectedBooking, setSelectedBooking] = useState<BookingSlot | null>(null)
 
   const activeRules = useMemo(
     () => availabilityRules.filter(rule => rule.is_active !== false),
@@ -255,13 +273,33 @@ export function ProfessionalAvailabilityCalendar({
       const top = ((clippedStart - visibleRange.startMinutes) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
       const height = ((clippedEnd - clippedStart) / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT
       if (height <= 0 || clippedEnd <= visibleRange.startMinutes || clippedStart >= visibleRange.endMinutes) return null
+      const isClickable = !readOnly && (onBookingClick || booking.id)
       return (
-        <div
+        <button
           key={`booking-${booking.id}`}
-          className="absolute left-2 right-2 rounded-md border border-amber-300 bg-amber-200/85"
+          type="button"
+          onClick={() => {
+            if (onBookingClick) {
+              const fullBooking = bookings.find(b => b.id === booking.id)
+              if (fullBooking) onBookingClick(fullBooking)
+            }
+            setSelectedBooking(bookings.find(b => b.id === booking.id) || null)
+          }}
+          className={`absolute left-2 right-2 rounded-md border border-amber-300 bg-amber-200/85 text-left transition ${isClickable ? 'cursor-pointer hover:bg-amber-300/90 hover:shadow-sm' : ''}`}
           style={{ top: `${Math.max(0, top)}px`, height: `${Math.max(18, height)}px` }}
-          title={`Ocupado (${booking.status})`}
-        />
+          title={`Ocupado (${booking.status})${booking.client_name ? ` — ${booking.client_name}` : ''}`}
+        >
+          {height >= 28 && booking.client_name ? (
+            <span className="block truncate px-1.5 text-[10px] font-medium text-amber-900">
+              {booking.client_name}
+            </span>
+          ) : null}
+          {height >= 28 && !booking.client_name ? (
+            <span className="block truncate px-1.5 text-[10px] font-medium text-amber-900">
+              {booking.status === 'confirmed' ? 'Confirmado' : booking.status === 'pending_confirmation' ? 'Pendente' : 'Ocupado'}
+            </span>
+          ) : null}
+        </button>
       )
     })
   }
@@ -375,9 +413,23 @@ export function ProfessionalAvailabilityCalendar({
                 className="relative border-r border-slate-200/80 bg-white last:border-r-0"
                 style={{ height: `${(visibleRange.totalMinutes / SLOT_STEP_MINUTES) * SLOT_ROW_HEIGHT}px` }}
               >
-                {Array.from({ length: visibleRange.totalMinutes / SLOT_STEP_MINUTES }).map((_, index) => (
-                  <div key={index} className="h-6 border-t border-slate-200/80" />
-                ))}
+                {Array.from({ length: visibleRange.totalMinutes / SLOT_STEP_MINUTES }).map((_, index) => {
+                  const slotMinutes = visibleRange.startMinutes + index * SLOT_STEP_MINUTES
+                  const slotDate = new Date(day)
+                  slotDate.setHours(0, slotMinutes, 0, 0)
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        if (onSlotClick && !readOnly) {
+                          onSlotClick(day, slotMinutes)
+                        }
+                      }}
+                      className={`block h-6 w-full border-t border-slate-200/80 ${!readOnly && onSlotClick ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                    />
+                  )
+                })}
                 {renderDayAvailabilityBlocks(day)}
                 {renderDayBookedBlocks(day)}
               </div>
@@ -385,6 +437,51 @@ export function ProfessionalAvailabilityCalendar({
           </div>
         </div>
       )}
+      {/* Booking detail popover */}
+      {selectedBooking ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-slate-900">
+                  {selectedBooking.client_name || 'Sessão agendada'}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {formatInTimeZone(new Date(selectedBooking.start_utc), timezone, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+                <p className="text-xs text-slate-400">
+                  Status: {selectedBooking.status === 'confirmed' ? 'Confirmada' : selectedBooking.status === 'pending_confirmation' ? 'Pendente de confirmação' : selectedBooking.status}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBooking(null)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'pending_confirmation') ? (
+                <Link
+                  href={`/sessao/${selectedBooking.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#9FE870] px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f]"
+                >
+                  <Video className="h-4 w-4" />
+                  Entrar na sessão
+                </Link>
+              ) : null}
+              <Link
+                href={`/agenda?view=inbox`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
+              >
+                <User className="h-4 w-4" />
+                Ver na inbox
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

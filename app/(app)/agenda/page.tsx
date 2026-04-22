@@ -422,6 +422,7 @@ export default async function AgendaPage({
           start_utc: startUtcIso,
           end_utc: endUtcIso,
           status: String(booking.status || 'pending'),
+          client_name: booking.profiles?.full_name || undefined,
         }
       })
       .filter(Boolean),
@@ -437,7 +438,7 @@ export default async function AgendaPage({
           : null,
       )
       .filter(Boolean),
-  ] as Array<{ id: string; start_utc: string; end_utc: string; status: string }>
+  ] as Array<{ id: string; start_utc: string; end_utc: string; status: string; client_name?: string }>
 
   if (isProfessional && professional && professionalId) {
     return (
