@@ -774,7 +774,8 @@ export async function POST(request: Request) {
     }
 
     if (savedSection === 'availability') {
-      const invalidRange = Object.values(payload.data.availabilityMap).some(
+      const availabilityPayload = payload.data as z.infer<typeof availabilitySchema>
+      const invalidRange = Object.values(availabilityPayload.availabilityMap).some(
         day => day.is_available && day.start_time >= day.end_time,
       )
       if (invalidRange) {
@@ -784,23 +785,32 @@ export async function POST(request: Request) {
       const nowIso = new Date().toISOString()
       const safeMinimumNoticeHours = Math.min(
         Number(minNoticeRange.max),
-        Math.max(Number(minNoticeRange.min), Number(payload.data.minimumNoticeHours || minNoticeRange.min)),
+        Math.max(Number(minNoticeRange.min), Number(availabilityPayload.minimumNoticeHours || minNoticeRange.min)),
       )
-      const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, payload.data.bufferMinutes))
+      const safeBufferMinutes = Math.min(maxBufferForTier, Math.max(0, availabilityPayload.bufferMinutes))
       const canUseManualConfirmation = tierConfig.features.includes('manual_accept')
       const safeConfirmationMode =
-        canUseManualConfirmation && payload.data.confirmationMode === 'manual'
+        canUseManualConfirmation && availabilityPayload.confirmationMode === 'manual'
           ? 'manual'
           : 'auto_accept'
       const safeBookingWindowDays = Math.max(
         1,
-        Math.min(Number(tierLimits.bookingWindowDays), Number(payload.data.maxBookingWindowDays || tierLimits.bookingWindowDays)),
+        Math.min(Number(tierLimits.bookingWindowDays), Number(availabilityPayload.maxBookingWindowDays || tierLimits.bookingWindowDays)),
       )
-      const safeRows = Object.entries(payload.data.availabilityMap).map(([day, value]) => ({
+      const safeRows = Object.entries(availabilityPayload.availabilityMap).map(([day, value]) => ({
         professional_id: professionalId,
         day_of_week: Number(day),
         start_time: `${value.start_time}:00`,
         end_time: `${value.end_time}:00`,
+        is_active: value.is_available,
+      }))
+
+      const safeRulesRows = Object.entries(availabilityPayload.availabilityMap).map(([day, value]) => ({
+        professional_id: professionalId,
+        weekday: Number(day),
+        start_time_local: `${value.start_time}:00`,
+        end_time_local: `${value.end_time}:00`,
+        timezone: availabilityPayload.profileTimezone,
         is_active: value.is_available,
       }))
 
@@ -814,6 +824,19 @@ export async function POST(request: Request) {
           professionalId,
           message: previousAvailabilityError.message,
           code: previousAvailabilityError.code,
+        })
+      }
+
+      const { data: previousAvailabilityRulesRows, error: previousAvailabilityRulesError } = await db
+        .from('availability_rules')
+        .select('weekday,start_time_local,end_time_local,is_active')
+        .eq('professional_id', professionalId)
+      if (previousAvailabilityRulesError) {
+        // Backup rows are best-effort. We should not block save when this read fails.
+        console.error('[onboarding-save] could not read previous availability_rules rows', {
+          professionalId,
+          message: previousAvailabilityRulesError.message,
+          code: previousAvailabilityRulesError.code,
         })
       }
 
@@ -833,7 +856,7 @@ export async function POST(request: Request) {
         })
       }
 
-      if (availabilityRowsChangedForDiff(previousAvailabilityRows, payload.data.availabilityMap)) {
+      if (availabilityRowsChangedForDiff(previousAvailabilityRows, availabilityPayload.availabilityMap)) {
         resolvedAdjustmentFieldKeys.add('weekly_schedule')
       }
 
@@ -853,9 +876,9 @@ export async function POST(request: Request) {
         previousMaxBookingWindowDays !== safeBookingWindowDays ||
         previousBufferMinutes !== safeBufferMinutes ||
         previousConfirmationMode !== safeConfirmationMode ||
-        previousEnableRecurring !== payload.data.enableRecurring ||
-        previousAllowMultiSession !== payload.data.allowMultiSession ||
-        previousRequireSessionPurpose !== payload.data.requireSessionPurpose
+        previousEnableRecurring !== availabilityPayload.enableRecurring ||
+        previousAllowMultiSession !== availabilityPayload.allowMultiSession ||
+        previousRequireSessionPurpose !== availabilityPayload.requireSessionPurpose
       if (bookingRulesChanged) {
         resolvedAdjustmentFieldKeys.add('booking_rules')
       }
@@ -865,27 +888,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Nao foi possivel atualizar a disponibilidade.' }, { status: 500 })
       }
 
+      const { error: deleteRulesError } = await db.from('availability_rules').delete().eq('professional_id', professionalId)
+      if (deleteRulesError) {
+        return NextResponse.json({ error: 'Nao foi possivel atualizar as regras de disponibilidade.' }, { status: 500 })
+      }
+
       const { error: insertError } = await db.from('availability').insert(safeRows)
       if (insertError) {
         return NextResponse.json({ error: 'Nao foi possivel salvar os horarios.' }, { status: 500 })
       }
 
-      const { error: settingsError } = await upsertProfessionalSettingsWithFallback(db, {
-        professional_id: professionalId,
-        timezone: payload.data.profileTimezone,
-        minimum_notice_hours: safeMinimumNoticeHours,
-        max_booking_window_days: safeBookingWindowDays,
-        buffer_minutes: safeBufferMinutes,
-        buffer_time_minutes: safeBufferMinutes,
-        confirmation_mode: safeConfirmationMode,
-        enable_recurring: payload.data.enableRecurring,
-        allow_multi_session: payload.data.allowMultiSession,
-        require_session_purpose: payload.data.requireSessionPurpose,
-        updated_at: nowIso,
-      })
-
-      if (settingsError) {
-        // Best-effort rollback for availability rows when settings save fails.
+      const { error: insertRulesError } = await db.from('availability_rules').insert(safeRulesRows)
+      if (insertRulesError) {
+        // Rollback legacy availability on rules failure to keep both tables in sync.
         await db.from('availability').delete().eq('professional_id', professionalId)
         if (!previousAvailabilityError && Array.isArray(previousAvailabilityRows) && previousAvailabilityRows.length > 0) {
           const restoreRows = previousAvailabilityRows.map(row => ({
@@ -896,6 +911,48 @@ export async function POST(request: Request) {
             is_active: Boolean(row.is_active),
           }))
           await db.from('availability').insert(restoreRows)
+        }
+        return NextResponse.json({ error: 'Nao foi possivel salvar as regras de disponibilidade.' }, { status: 500 })
+      }
+
+      const { error: settingsError } = await upsertProfessionalSettingsWithFallback(db, {
+        professional_id: professionalId,
+        timezone: availabilityPayload.profileTimezone,
+        minimum_notice_hours: safeMinimumNoticeHours,
+        max_booking_window_days: safeBookingWindowDays,
+        buffer_minutes: safeBufferMinutes,
+        buffer_time_minutes: safeBufferMinutes,
+        confirmation_mode: safeConfirmationMode,
+        enable_recurring: availabilityPayload.enableRecurring,
+        allow_multi_session: availabilityPayload.allowMultiSession,
+        require_session_purpose: availabilityPayload.requireSessionPurpose,
+        updated_at: nowIso,
+      })
+
+      if (settingsError) {
+        // Best-effort rollback for availability rows when settings save fails.
+        await db.from('availability').delete().eq('professional_id', professionalId)
+        await db.from('availability_rules').delete().eq('professional_id', professionalId)
+        if (!previousAvailabilityError && Array.isArray(previousAvailabilityRows) && previousAvailabilityRows.length > 0) {
+          const restoreRows = previousAvailabilityRows.map(row => ({
+            professional_id: professionalId,
+            day_of_week: Number(row.day_of_week),
+            start_time: String(row.start_time),
+            end_time: String(row.end_time),
+            is_active: Boolean(row.is_active),
+          }))
+          await db.from('availability').insert(restoreRows)
+        }
+        if (!previousAvailabilityRulesError && Array.isArray(previousAvailabilityRulesRows) && previousAvailabilityRulesRows.length > 0) {
+          const restoreRulesRows = previousAvailabilityRulesRows.map(row => ({
+            professional_id: professionalId,
+            weekday: Number(row.weekday),
+            start_time_local: String(row.start_time_local),
+            end_time_local: String(row.end_time_local),
+            timezone: availabilityPayload.profileTimezone,
+            is_active: Boolean(row.is_active),
+          }))
+          await db.from('availability_rules').insert(restoreRulesRows)
         }
 
         if (previousSettingsRow && !previousSettingsError) {
