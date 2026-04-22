@@ -17,7 +17,7 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
   // Fetch the booking with professional details
   const { data: booking } = await supabase
     .from('bookings')
-    .select('*, professionals(*, profiles(*))')
+    .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
     .eq('id', bookingId)
     .eq('user_id', user.id)
     .single()

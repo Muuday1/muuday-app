@@ -167,59 +167,68 @@ export default async function AgendaPage({
     isProfessional && professionalId
       ? supabase
           .from('bookings')
-          .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles(*))')
+          .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles!professionals_user_id_fkey(*))')
           .eq('professional_id', professionalId)
       : isProfessional
         ? null
         : supabase
             .from('bookings')
-            .select('*, professionals(*, profiles(*))')
+            .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
             .eq('user_id', user.id)
 
   const pastQuery =
     isProfessional && professionalId
       ? supabase
           .from('bookings')
-          .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles(*))')
+          .select('*, profiles!bookings_user_id_fkey(*), professionals(*, profiles!professionals_user_id_fkey(*))')
           .eq('professional_id', professionalId)
       : isProfessional
         ? null
         : supabase
             .from('bookings')
-            .select('*, professionals(*, profiles(*))')
+            .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
             .eq('user_id', user.id)
 
   const requestBookingsQuery =
     isProfessional && professionalId
       ? supabase
           .from('request_bookings')
-          .select('*, profiles!request_bookings_user_id_fkey(*), professionals(*, profiles(*))')
+          .select('*, profiles!request_bookings_user_id_fkey(*), professionals(*, profiles!professionals_user_id_fkey(*))')
           .eq('professional_id', professionalId)
       : isProfessional
         ? null
         : supabase
             .from('request_bookings')
-            .select('*, professionals(*, profiles(*))')
+            .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
             .eq('user_id', user.id)
 
-  const { data: upcomingBookings } = upcomingQuery
+  const { data: upcomingBookings, error: upcomingError } = upcomingQuery
     ? await upcomingQuery
         .in('status', ['pending', 'pending_confirmation', 'confirmed'])
         .gte('scheduled_at', nowIso)
         .order('scheduled_at', { ascending: true })
-    : { data: [] as any[] }
+    : { data: [] as any[], error: null }
+  if (upcomingError) {
+    console.error('[agenda] upcoming bookings query error:', upcomingError.message, upcomingError.code)
+  }
 
-  const { data: pastBookings } = pastQuery
+  const { data: pastBookings, error: pastError } = pastQuery
     ? await pastQuery
         .in('status', ['completed', 'cancelled', 'no_show', 'pending', 'pending_confirmation', 'confirmed'])
         .lt('scheduled_at', nowIso)
         .order('scheduled_at', { ascending: false })
         .limit(20)
-    : { data: [] as any[] }
+    : { data: [] as any[], error: null }
+  if (pastError) {
+    console.error('[agenda] past bookings query error:', pastError.message, pastError.code)
+  }
 
-  const { data: requestBookings } = requestBookingsQuery
+  const { data: requestBookings, error: requestError } = requestBookingsQuery
     ? await requestBookingsQuery.order('created_at', { ascending: false }).limit(30)
-    : { data: [] as any[] }
+    : { data: [] as any[], error: null }
+  if (requestError) {
+    console.error('[agenda] request bookings query error:', requestError.message, requestError.code)
+  }
 
   let professionalSettings: Record<string, any> | null = null
   let activeAvailabilityCount = 0
