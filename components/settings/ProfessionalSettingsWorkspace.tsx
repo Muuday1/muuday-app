@@ -291,7 +291,7 @@ export default function ProfessionalSettingsWorkspace() {
 
         <SecuritySettings
           onOpenPassword={() => { window.location.href = '/recuperar-senha' }}
-          onOpenVisibility={() => { /* TODO */ }}
+          onOpenVisibility={() => { window.location.href = '/editar-perfil-profissional' }}
           onSignOut={() => {
             const form = document.createElement('form')
             form.method = 'post'
