@@ -35,11 +35,15 @@ export async function recordStripeWebhookEvent(
   admin: SupabaseClient,
   input: StripeWebhookRecordInput,
 ) {
-  const { data: existing } = await admin
+  const { data: existing, error: existingError } = await admin
     .from('stripe_webhook_events')
     .select('id, status')
     .eq('provider_event_id', input.providerEventId)
     .maybeSingle()
+
+  if (existingError) {
+    console.error('[stripe/webhook] failed to check existing event:', existingError.message)
+  }
 
   if (existing?.id) {
     return {
@@ -207,11 +211,15 @@ async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Eve
       stripe_event_type: event.type,
     })
 
-    const { data: paymentRows } = await admin
+    const { data: paymentRows, error: paymentRowsError } = await admin
       .from('payments')
       .select('id')
       .eq('provider', 'stripe')
       .eq('provider_payment_id', paymentIntentId)
+
+    if (paymentRowsError) {
+      console.error('[stripe/webhook] failed to load payment rows for retry:', paymentRowsError.message)
+    }
 
     const paymentId = paymentRows?.[0]?.id ? String(paymentRows[0].id) : null
     await enqueuePaymentRetry(admin, paymentId, paymentIntentId, {

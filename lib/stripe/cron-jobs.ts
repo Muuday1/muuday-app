@@ -244,16 +244,20 @@ export async function runStripeSubscriptionRenewalChecks(
           missingProfessional += 1
         } else {
           const billingCardOnFile = !['incomplete_expired', 'unpaid'].includes(subscription.status)
-          await admin
+          const { error: settingsUpdateError } = await admin
             .from('professional_settings')
             .update({
               billing_card_on_file: billingCardOnFile,
               updated_at: new Date().toISOString(),
             })
             .eq('professional_id', professionalId)
+
+          if (settingsUpdateError) {
+            console.error('[stripe/subscription-check] failed to update professional settings:', settingsUpdateError.message)
+          }
         }
 
-        await admin
+        const { error: queueUpdateError } = await admin
           .from('stripe_subscription_check_queue')
           .update({
             status: 'succeeded',
@@ -261,7 +265,12 @@ export async function runStripeSubscriptionRenewalChecks(
             updated_at: new Date().toISOString(),
           })
           .eq('id', row.id)
-        processed += 1
+
+        if (queueUpdateError) {
+          console.error('[stripe/subscription-check] failed to mark queue item as succeeded:', queueUpdateError.message)
+        } else {
+          processed += 1
+        }
       } catch (processingError) {
         failed += 1
         const nextRetryAt = buildNextRetryDate(row.attempt_count + 1, now).toISOString()
@@ -386,7 +395,7 @@ export async function runStripeFailedPaymentRetries(
         const stripeStatus = paymentIntent.status
         if (stripeStatus === 'succeeded' || stripeStatus === 'processing') {
           if (row.payment_id) {
-            await admin
+            const { error: paymentUpdateError } = await admin
               .from('payments')
               .update({
                 status: 'captured',
@@ -394,8 +403,12 @@ export async function runStripeFailedPaymentRetries(
                 updated_at: new Date().toISOString(),
               })
               .eq('id', row.payment_id)
+
+            if (paymentUpdateError) {
+              console.error('[stripe/payment-retry] failed to update payment status:', paymentUpdateError.message)
+            }
           }
-          await admin
+          const { error: queueUpdateError } = await admin
             .from('stripe_payment_retry_queue')
             .update({
               status: 'succeeded',
@@ -403,7 +416,12 @@ export async function runStripeFailedPaymentRetries(
               updated_at: new Date().toISOString(),
             })
             .eq('id', row.id)
-          succeeded += 1
+
+          if (queueUpdateError) {
+            console.error('[stripe/payment-retry] failed to mark queue item as succeeded:', queueUpdateError.message)
+          } else {
+            succeeded += 1
+          }
           continue
         }
 

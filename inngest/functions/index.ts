@@ -84,7 +84,7 @@ async function notificationExists(
   userId: string,
   bookingId: string,
   type: string,
-) {
+): Promise<boolean> {
   const { data, error } = await admin
     .from('notifications')
     .select('id')
@@ -94,7 +94,11 @@ async function notificationExists(
     .limit(1)
     .maybeSingle()
 
-  if (error) return false
+  if (error) {
+    console.error(`[notificationExists] query failed for ${type}:`, error.message)
+    // Fail closed: assume notification exists to prevent duplicates
+    return true
+  }
   return Boolean(data?.id)
 }
 
