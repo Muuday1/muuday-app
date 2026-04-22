@@ -127,7 +127,10 @@ async function applyPaymentRefund(
           refunded_at: nowIso,
         }
 
-  await supabase.from('payments').update(patch).eq('id', paymentData.id)
+  const { error: refundError } = await supabase.from('payments').update(patch).eq('id', paymentData.id)
+  if (refundError) {
+    console.error('[booking/refund] failed to update payment refund:', refundError.message)
+  }
 }
 
 export async function confirmBooking(bookingId: string): Promise<ActionResult> {
@@ -453,6 +456,7 @@ export async function rescheduleBooking(
     })
     .eq('id', booking.id)
     .eq('user_id', user.id)
+    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
 
   await releaseSlotLock(supabase, slotLock.lockId)
 
@@ -622,7 +626,7 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
 
   await applyPaymentRefund(supabase, safeBookingId, 100)
 
-  await supabase.from('notifications').insert({
+  const { error: notifyError } = await supabase.from('notifications').insert({
     user_id: null,
     booking_id: safeBookingId,
     type: 'ops.professional_no_show',
@@ -633,6 +637,9 @@ export async function reportProfessionalNoShow(bookingId: string): Promise<Actio
       professional_id: booking.professional_id,
     },
   })
+  if (notifyError) {
+    console.error('[booking/no-show] failed to insert admin notification:', notifyError.message)
+  }
 
   await enqueueBookingCalendarSync({
     bookingId: safeBookingId,

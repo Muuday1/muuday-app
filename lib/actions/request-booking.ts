@@ -162,7 +162,7 @@ export async function createRequestBooking(input: {
     }
   }
 
-  const { data: request } = await supabase
+  const { data: request, error: requestError } = await supabase
     .from('request_bookings')
     .insert({
       user_id: user.id,
@@ -176,7 +176,8 @@ export async function createRequestBooking(input: {
     .select('id')
     .single()
 
-  if (!request) {
+  if (requestError || !request) {
+    console.error('[request-booking/create] insert failed:', requestError?.message)
     return { success: false, error: 'Não foi possível criar a solicitação. Tente novamente.' }
   }
 
@@ -587,6 +588,10 @@ export async function acceptRequestBooking(
 
   const userCurrency = profile?.currency || 'BRL'
   const sessionPriceBrl = Number(professional.session_price_brl) || 0
+  if (sessionPriceBrl <= 0) {
+    console.error('[request-booking/accept] invalid session price for professional:', professional.id)
+    return { success: false, error: 'Profissional não possui preço configurado para sessão.' }
+  }
   const exchangeRates = await getExchangeRates(supabase)
   const sessionPriceUserCurrency = roundCurrency(sessionPriceBrl * (exchangeRates[userCurrency] || 1))
   const bookingStatus = settings.confirmationMode === 'manual' ? 'pending_confirmation' : 'confirmed'
@@ -775,7 +780,16 @@ export async function acceptRequestBooking(
     .eq('user_id', user.id)
     .eq('status', currentStatus)
 
-
+  if (requestUpdateError) {
+    console.error('[request-booking/accept] failed to mark request as converted:', requestUpdateError.message)
+    // The booking was created successfully; we don't fail the user flow,
+    // but the request remains in 'offered' state which is an inconsistency.
+    // Log for manual reconciliation.
+    Sentry.captureException(requestUpdateError, {
+      tags: { area: 'request_booking_accept', flow: 'request_update' },
+      extra: { requestBookingId: freshRequest.id, bookingId },
+    })
+  }
 
   await enqueueBookingCalendarSync({
     bookingId: bookingId,
