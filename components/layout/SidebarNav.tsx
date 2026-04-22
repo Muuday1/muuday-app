@@ -25,7 +25,13 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShieldAlert,
 }
 
-export function SidebarNav({ navItems }: { navItems: NavItem[] }) {
+export function SidebarNav({
+  navItems,
+  unreadMessageCount = 0,
+}: {
+  navItems: NavItem[]
+  unreadMessageCount?: number
+}) {
   const pathname = usePathname()
 
   return (
@@ -33,6 +39,7 @@ export function SidebarNav({ navItems }: { navItems: NavItem[] }) {
       {navItems.map(({ href, icon, label }) => {
         const Icon = iconMap[icon] || LayoutDashboard
         const isActive = pathname === href || pathname.startsWith(`${href}/`)
+        const showBadge = icon === 'MessageCircle' && unreadMessageCount > 0
 
         return (
           <Link
@@ -48,7 +55,12 @@ export function SidebarNav({ navItems }: { navItems: NavItem[] }) {
             <Icon className={`w-4 h-4 transition-colors ${
               isActive ? 'text-[#9FE870]' : 'text-slate-400 group-hover:text-[#9FE870]'
             }`} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {showBadge && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+              </span>
+            )}
           </Link>
         )
       })}

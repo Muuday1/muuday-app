@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { Send, Loader2 } from 'lucide-react'
-import { sendMessage, getMessages } from '@/lib/actions/chat'
+import { sendMessage, getMessages, markConversationAsRead } from '@/lib/actions/chat'
+import { createClient } from '@/lib/supabase/client'
 
 interface Message {
   id: string
@@ -42,23 +43,42 @@ export function MessageThread({
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Polling for new messages
+  // Realtime subscription for new messages (replaces 5s polling)
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const result = await getMessages(conversationId, { limit: 50 })
-      if (result.success) {
-        const fetched = result.data.messages as Message[]
-        setMessages(prev => {
-          const existingIds = new Set(prev.map(m => m.id))
-          const newMessages = fetched.filter(m => !existingIds.has(m.id))
-          if (newMessages.length === 0) return prev
-          return [...prev, ...newMessages].sort(
-            (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime(),
-          )
-        })
-      }
-    }, 5000)
-    return () => clearInterval(interval)
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as Message
+          setMessages(prev => {
+            if (prev.some(m => m.id === newMessage.id)) return prev
+            return [...prev, newMessage].sort(
+              (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime(),
+            )
+          })
+          // Mark as read since user is actively viewing the thread
+          void markConversationAsRead(conversationId)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [conversationId])
+
+  // Also mark as read on mount (in case user navigated here with unread messages)
+  useEffect(() => {
+    void markConversationAsRead(conversationId)
   }, [conversationId])
 
   async function handleSubmit(e: React.FormEvent) {

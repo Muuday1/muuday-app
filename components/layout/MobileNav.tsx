@@ -28,8 +28,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export function MobileNav({
   navItems,
+  unreadMessageCount = 0,
 }: {
   navItems: NavItem[]
+  unreadMessageCount?: number
 }) {
   const pathname = usePathname()
 
@@ -42,6 +44,7 @@ export function MobileNav({
         {mobileItems.map(({ href, icon, label }) => {
           const Icon = iconMap[icon] || LayoutDashboard
           const isActive = pathname === href || pathname.startsWith(`${href}/`)
+          const showBadge = icon === 'MessageCircle' && unreadMessageCount > 0
 
           return (
             <Link
@@ -57,7 +60,14 @@ export function MobileNav({
               {isActive && (
                 <div className="absolute -top-2 w-8 h-0.5 bg-[#9FE870] rounded-full" />
               )}
-              <Icon className={`w-5 h-5 ${isActive ? 'text-[#9FE870]' : ''}`} />
+              <div className="relative">
+                <Icon className={`w-5 h-5 ${isActive ? 'text-[#9FE870]' : ''}`} />
+                {showBadge && (
+                  <span className="absolute -right-2 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
+                    {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[10px] font-medium ${isActive ? 'text-[#3d6b1f]' : ''}`}>
                 {label}
               </span>

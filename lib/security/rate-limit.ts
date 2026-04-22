@@ -207,6 +207,7 @@ export const RATE_LIMITS = {
   notificationRead: { limit: 30, windowSeconds: 60 },
   notificationWrite: { limit: 15, windowSeconds: 60 },
   messageSend: { limit: 30, windowSeconds: 60 },
+  messageRead: { limit: 60, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(

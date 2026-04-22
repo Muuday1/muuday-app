@@ -6,6 +6,7 @@ import { NotificationBell } from '@/components/layout/NotificationBell'
 import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { getLayoutSession } from '@/lib/auth/layout-session'
+import { getConversations } from '@/lib/actions/chat'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile } = await getLayoutSession()
@@ -17,6 +18,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!isLoggedIn) {
     return <PublicPageLayout>{children}</PublicPageLayout>
   }
+
+  // Fetch unread message count for badge
+  const conversationsResult = await getConversations()
+  const unreadMessageCount = conversationsResult.success
+    ? conversationsResult.data.conversations.reduce((sum, c) => sum + c.unreadCount, 0)
+    : 0
 
   const navItems = (() => {
     if (isAdmin) {
@@ -61,7 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
 
-        <SidebarNav navItems={navItems} />
+        <SidebarNav navItems={navItems} unreadMessageCount={unreadMessageCount} />
 
         <div className="p-4 border-t border-slate-200/80">
           {isLoggedIn ? (
@@ -136,7 +143,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </main>
 
-      <MobileNav navItems={navItems} />
+      <MobileNav navItems={navItems} unreadMessageCount={unreadMessageCount} />
       <PwaInstallPrompt />
     </div>
   )

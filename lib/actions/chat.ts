@@ -164,7 +164,7 @@ export async function getMessages(
 
   const { supabase, userId } = await getAuthenticatedUser()
 
-  const rl = await rateLimit('messageSend', userId)
+  const rl = await rateLimit('messageRead', userId)
   if (!rl.allowed) return { success: false, error: 'Muitas requisições. Tente novamente em breve.' }
 
   // Verify participant
@@ -218,7 +218,7 @@ export async function markConversationAsRead(conversationId: string): Promise<Ch
 
   const { supabase, userId } = await getAuthenticatedUser()
 
-  const rl = await rateLimit('messageSend', userId)
+  const rl = await rateLimit('messageRead', userId)
   if (!rl.allowed) return { success: false, error: 'Muitas requisições. Tente novamente em breve.' }
 
   const readAt = new Date().toISOString()
