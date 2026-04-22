@@ -137,7 +137,8 @@ export default async function DashboardPage({
     { count: completedLast30Count, error: completedCountError },
     { count: cancelledLast30Count, error: cancelledCountError },
     { count: favoritesCount, error: favoritesError },
-    { count: activeAvailabilityCount, error: availabilityError },
+    { count: activeAvailabilityCountLegacy, error: availabilityLegacyError },
+    { count: activeAvailabilityRulesCount, error: availabilityRulesError },
     { count: availabilityExceptionsCount, error: exceptionsError },
     { data: calendarIntegration, error: calendarError },
     { count: acceptedBookingsCount, error: acceptedCountError },
@@ -193,6 +194,11 @@ export default async function DashboardPage({
       .eq('professional_id', professionalId)
       .eq('is_active', true),
     supabase
+      .from('availability_rules')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('is_active', true),
+    supabase
       .from('availability_exceptions')
       .select('id', { count: 'exact', head: true })
       .eq('professional_id', professionalId)
@@ -229,7 +235,12 @@ export default async function DashboardPage({
   logQueryError('completed count', completedCountError)
   logQueryError('cancelled count', cancelledCountError)
   logQueryError('favorites', favoritesError)
-  logQueryError('availability', availabilityError)
+  logQueryError('availability legacy', availabilityLegacyError)
+  logQueryError('availability rules', availabilityRulesError)
+  const activeAvailabilityCount = Math.max(
+    activeAvailabilityCountLegacy || 0,
+    activeAvailabilityRulesCount || 0,
+  )
   logQueryError('exceptions', exceptionsError)
   logQueryError('calendar', calendarError)
   logQueryError('accepted count', acceptedCountError)
