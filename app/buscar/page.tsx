@@ -31,6 +31,7 @@ import {
   matchesSelectedCategory,
   normalizeSearchCategorySlug,
 } from '@/lib/search-config'
+import { mergeAvailabilitySources } from '@/lib/search/availability-merge'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 import {
   filterPubliclyVisibleProfessionals,
@@ -57,49 +58,6 @@ type AvailabilityRow = {
   day_of_week: number
   start_time: string
   end_time: string
-}
-
-function mergeAvailabilitySources(
-  modernRows: Array<{
-    professional_id: string
-    weekday: number
-    start_time_local: string
-    end_time_local: string
-  }>,
-  legacyRows: AvailabilityRow[],
-): AvailabilityRow[] {
-  const modernByPro = new Map<string, typeof modernRows>()
-  for (const row of modernRows) {
-    const list = modernByPro.get(row.professional_id) || []
-    list.push(row)
-    modernByPro.set(row.professional_id, list)
-  }
-
-  const result: AvailabilityRow[] = []
-  for (const [professionalId, modernList] of modernByPro) {
-    for (const row of modernList) {
-      result.push({
-        professional_id: professionalId,
-        day_of_week: row.weekday,
-        start_time: row.start_time_local,
-        end_time: row.end_time_local,
-      })
-    }
-  }
-
-  const legacyByPro = new Map<string, AvailabilityRow[]>()
-  for (const row of legacyRows) {
-    const list = legacyByPro.get(row.professional_id) || []
-    list.push(row)
-    legacyByPro.set(row.professional_id, list)
-  }
-
-  for (const [professionalId, legacyList] of legacyByPro) {
-    if (modernByPro.has(professionalId)) continue
-    result.push(...legacyList)
-  }
-
-  return result
 }
 
 type SearchQueryState = {
