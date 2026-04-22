@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Prontuário | Muuday' }
 
 import Link from 'next/link'
