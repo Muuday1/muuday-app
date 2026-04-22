@@ -59,6 +59,49 @@ type AvailabilityRow = {
   end_time: string
 }
 
+function mergeAvailabilitySources(
+  modernRows: Array<{
+    professional_id: string
+    weekday: number
+    start_time_local: string
+    end_time_local: string
+  }>,
+  legacyRows: AvailabilityRow[],
+): AvailabilityRow[] {
+  const modernByPro = new Map<string, typeof modernRows>()
+  for (const row of modernRows) {
+    const list = modernByPro.get(row.professional_id) || []
+    list.push(row)
+    modernByPro.set(row.professional_id, list)
+  }
+
+  const result: AvailabilityRow[] = []
+  for (const [professionalId, modernList] of modernByPro) {
+    for (const row of modernList) {
+      result.push({
+        professional_id: professionalId,
+        day_of_week: row.weekday,
+        start_time: row.start_time_local,
+        end_time: row.end_time_local,
+      })
+    }
+  }
+
+  const legacyByPro = new Map<string, AvailabilityRow[]>()
+  for (const row of legacyRows) {
+    const list = legacyByPro.get(row.professional_id) || []
+    list.push(row)
+    legacyByPro.set(row.professional_id, list)
+  }
+
+  for (const [professionalId, legacyList] of legacyByPro) {
+    if (modernByPro.has(professionalId)) continue
+    result.push(...legacyList)
+  }
+
+  return result
+}
+
 type SearchQueryState = {
   q: string
   categoria: string
@@ -365,23 +408,37 @@ async function loadPublicSearchBaseDataByIds(
   let specialtyContext: SpecialtyContext = EMPTY_SPECIALTY_CONTEXT
   let availabilityRows: AvailabilityRow[] = []
   if (professionalIds.length > 0) {
-    const [resolvedSpecialtyContext, availabilityResult, servicesResult] = await Promise.all([
-      loadProfessionalSpecialtyContext(readClient, professionalIds),
-      readClient
-        .from('availability')
-        .select('professional_id,day_of_week,start_time,end_time')
-        .in('professional_id', professionalIds)
-        .eq('is_active', true),
-      readClient
-        .from('professional_services')
-        .select('professional_id,price_brl,duration_minutes,created_at')
-        .in('professional_id', professionalIds)
-        .eq('is_active', true)
-        .order('created_at', { ascending: true }),
-    ])
+    const [resolvedSpecialtyContext, modernAvailabilityResult, legacyAvailabilityResult, servicesResult] =
+      await Promise.all([
+        loadProfessionalSpecialtyContext(readClient, professionalIds),
+        readClient
+          .from('availability_rules')
+          .select('professional_id,weekday,start_time_local,end_time_local')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true),
+        readClient
+          .from('availability')
+          .select('professional_id,day_of_week,start_time,end_time')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true),
+        readClient
+          .from('professional_services')
+          .select('professional_id,price_brl,duration_minutes,created_at')
+          .in('professional_id', professionalIds)
+          .eq('is_active', true)
+          .order('created_at', { ascending: true }),
+      ])
 
     specialtyContext = resolvedSpecialtyContext
-    availabilityRows = (availabilityResult.data || []) as AvailabilityRow[]
+    availabilityRows = mergeAvailabilitySources(
+      (modernAvailabilityResult.data || []) as Array<{
+        professional_id: string
+        weekday: number
+        start_time_local: string
+        end_time_local: string
+      }>,
+      (legacyAvailabilityResult.data || []) as AvailabilityRow[],
+    )
 
     const primaryServiceByProfessionalId = new Map<string, ProfessionalServiceSearchRow>()
     ;((servicesResult.data || []) as ProfessionalServiceSearchRow[]).forEach(service => {
@@ -765,13 +822,28 @@ export async function BuscarPageContent({
     if (!isLoggedIn && cachedAvailabilityRows.length > 0) {
       availabilityRows = cachedAvailabilityRows.filter(row => idsSet.has(row.professional_id))
     } else {
-      const availabilityResult = await readClient
-        .from('availability')
-        .select('professional_id,day_of_week,start_time,end_time')
-        .in('professional_id', ids)
-        .eq('is_active', true)
-      availabilityRows = (availabilityResult.data || []) as AvailabilityRow[]
-      availabilityError = Boolean(availabilityResult.error)
+      const [modernResult, legacyResult] = await Promise.all([
+        readClient
+          .from('availability_rules')
+          .select('professional_id,weekday,start_time_local,end_time_local')
+          .in('professional_id', ids)
+          .eq('is_active', true),
+        readClient
+          .from('availability')
+          .select('professional_id,day_of_week,start_time,end_time')
+          .in('professional_id', ids)
+          .eq('is_active', true),
+      ])
+      availabilityRows = mergeAvailabilitySources(
+        (modernResult.data || []) as Array<{
+          professional_id: string
+          weekday: number
+          start_time_local: string
+          end_time_local: string
+        }>,
+        (legacyResult.data || []) as AvailabilityRow[],
+      )
+      availabilityError = Boolean(modernResult.error) || Boolean(legacyResult.error)
     }
 
     if (!availabilityError) {
