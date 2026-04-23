@@ -7,7 +7,7 @@ import { Mail, Globe, Clock, Shield, MapPin, CalendarClock, ArrowRight, Pencil, 
 import { COUNTRIES } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfileAccountSettings } from '@/components/profile/ProfileAccountSettings'
-import { PushNotificationToggle } from '@/components/push/PushNotificationToggle'
+import { PushNotificationToggle } from '@/components/pwa/PushNotificationToggle'
 import { AppCard } from '@/components/ui/AppCard'
 import { PageContainer } from '@/components/ui/AppShell'
 

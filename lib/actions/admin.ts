@@ -8,6 +8,7 @@ import {
   sendProfileNeedsChangesEmail,
   sendProfileRejectedEmail,
 } from '@/lib/email/resend'
+import { emitProfessionalProfileApproved } from '@/lib/email/resend-events'
 import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
 import {
   REVIEW_ADJUSTMENT_PRESET_FIELDS,
@@ -470,6 +471,9 @@ export async function adminReviewProfessionalDecision(
             professionalOwner.email,
             professionalOwner.full_name || 'Profissional',
           )
+          emitProfessionalProfileApproved(professionalOwner.email, {
+            professional_id: parsed.data.professionalId,
+          })
         } else if (targetStatus === 'needs_changes') {
           const structuredMessage =
             structuredAdjustments.length > 0

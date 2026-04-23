@@ -91,6 +91,21 @@ export interface SessionAdapter {
     event: K,
     handler: SessionAdapterEvents[K]
   ): () => void;
+
+  /** Toggle local audio track without leaving the room. */
+  setAudioEnabled(enabled: boolean): Promise<void>;
+
+  /** Toggle local video track without leaving the room. */
+  setVideoEnabled(enabled: boolean): Promise<void>;
+
+  /** Whether local audio is currently enabled. */
+  isAudioEnabled(): boolean;
+
+  /** Whether local video is currently enabled. */
+  isVideoEnabled(): boolean;
+
+  /** Get a MediaStream containing the local audio/video tracks. */
+  getLocalStream(): MediaStream | null;
 }
 
 export interface SessionAdapterEvents {

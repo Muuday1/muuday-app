@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { getClientIp } from '@/lib/http/client-ip'
 import { z } from 'zod'
 
 const unsubscribeSchema = z.object({
@@ -10,7 +12,7 @@ const unsubscribeSchema = z.object({
  * POST /api/push/unsubscribe
  * Removes a Web Push subscription for the authenticated user.
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -18,6 +20,14 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const rl = await rateLimit('notificationWrite', `push-unsubscribe:${user.id}:${getClientIp(request)}`)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Muitas tentativas. Tente novamente em instantes.' },
+      { status: 429, headers: { 'Retry-After': String(Math.max(1, rl.retryAfterSeconds)) } },
+    )
   }
 
   const body = await request.json().catch(() => null)

@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createStripeClientIfConfigured } from './client'
 import { asRecord, asString, asNumber, truncateErrorMessage, buildNextRetryDate, toIsoWeekKey } from './helpers'
 import { tryStartJobRun, finishJobRun } from './jobs'
-
 export type PayoutScanSummary = {
   scannedPayments: number
   eligiblePayments: number

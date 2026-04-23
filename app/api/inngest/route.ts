@@ -16,6 +16,12 @@ import {
   autoDetectNoShow,
   cleanupExpiredSlotLocks,
   cancelStalePendingPayments,
+  syncUserInactivity30d,
+  syncUserInactivity60d,
+  syncUserInactivity90d,
+  syncProfessionalInactivity30d,
+  syncAbandonedSearch,
+  syncAbandonedCheckout,
 } from '@/inngest/functions'
 import {
   INTERNAL_API_CORS_POLICY,
@@ -50,6 +56,12 @@ const inngestHandler = serve({
     autoDetectNoShow,
     cleanupExpiredSlotLocks,
     cancelStalePendingPayments,
+    syncUserInactivity30d,
+    syncUserInactivity60d,
+    syncUserInactivity90d,
+    syncProfessionalInactivity30d,
+    syncAbandonedSearch,
+    syncAbandonedCheckout,
   ],
 })
 

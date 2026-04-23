@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendPushToUser } from '@/lib/push/sender'
 
 /**
  * Auto-detect no-show bookings that passed their scheduled end time
@@ -176,6 +177,20 @@ async function insertNoShowNotification(
     title,
     body,
     payload: { role, detected_at: nowIso },
+  })
+
+  const url = role === 'client' ? '/agenda' : '/dashboard'
+  void sendPushToUser(
+    userId,
+    {
+      title,
+      body,
+      url,
+      tag: 'booking_no_show_detected',
+    },
+    { notifType: 'booking_no_show_detected', admin },
+  ).catch(err => {
+    console.warn('[no-show-detection] push failed:', err)
   })
 }
 

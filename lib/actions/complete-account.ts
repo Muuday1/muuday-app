@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeEmailAction } from './email'
 import { revalidatePath } from 'next/cache'
+import { emitUserSignedUp, emitUserProfileCompleted, emitProfessionalSignedUp } from '@/lib/email/resend-events'
 
 function normalizeRole(value: unknown): string | null {
   const normalized = String(value || '').toLowerCase().trim()
@@ -82,6 +83,26 @@ export async function completeAccount(
       (user.user_metadata?.name as string) ||
       'por aí'
     sendWelcomeEmailAction(user.email, displayName)
+
+    // Emit Resend automation events
+    const firstName = displayName.split(' ')[0] || 'por aí'
+    const country = input.country
+    const role = finalRole || input.roleHint
+
+    if (role === 'profissional') {
+      const specialty = (user.user_metadata?.professional_specialty_name as string) || ''
+      emitProfessionalSignedUp(user.email, {
+        first_name: firstName,
+        specialty,
+      })
+    } else {
+      emitUserSignedUp(user.email, {
+        first_name: firstName,
+        country,
+        user_type: role === 'usuario' ? 'client' : 'unknown',
+      })
+      emitUserProfileCompleted(user.email, { user_id: user.id })
+    }
   }
 
   revalidatePath('/')

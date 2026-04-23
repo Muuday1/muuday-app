@@ -70,6 +70,22 @@ describe('runPendingPaymentTimeout', () => {
             insert: () => Promise.resolve({ error: null }),
           }
         }
+        if (table === 'profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () => Promise.resolve({ data: { notification_preferences: null }, error: null }),
+              }),
+            }),
+          }
+        }
+        if (table === 'push_subscriptions') {
+          return {
+            select: () => ({
+              eq: () => Promise.resolve({ data: [], error: null }),
+            }),
+          }
+        }
         throw new Error(`Unexpected table: ${table}`)
       },
     } as any

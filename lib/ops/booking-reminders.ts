@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendPushToUser } from '@/lib/push/sender'
 
 type ReminderType = 'booking.reminder.24h' | 'booking.reminder.1h' | 'booking.reminder.10m'
 
@@ -25,6 +26,15 @@ function buildReminderCopy(reminderType: ReminderType) {
         : 'A sessão está prestes a começar.'
 
   return { title, body }
+}
+
+interface NotificationTuple {
+  user_id: string
+  booking_id: string
+  type: ReminderType
+  title: string
+  body: string
+  payload: { role: string }
 }
 
 export async function runBookingReminderSync(
@@ -84,7 +94,7 @@ export async function runBookingReminderSync(
     }
   }
 
-  const notificationsToInsert: Record<string, unknown>[] = []
+  const notificationsToInsert: NotificationTuple[] = []
 
   for (const booking of bookings) {
     const bookingId = String(booking.id)
@@ -124,6 +134,48 @@ export async function runBookingReminderSync(
     return { checked: bookings.length, inserted: 0, at: nowIso }
   }
 
+  // Determine which notifications are actually new to avoid duplicate push sends.
+  // The cron runs every 5 minutes; upsert ignores duplicates, but we need to
+  // know which rows will be inserted to send push only once per reminder.
+  const existingKeys = new Set<string>()
+  if (notificationsToInsert.length > 0) {
+    const bookingIds = Array.from(new Set(notificationsToInsert.map(n => n.booking_id)))
+    const types = Array.from(new Set(notificationsToInsert.map(n => n.type)))
+    const userIds = Array.from(new Set(notificationsToInsert.map(n => n.user_id)))
+
+    const { data: existing } = await admin
+      .from('notifications')
+      .select('booking_id, type, user_id')
+      .in('booking_id', bookingIds)
+      .in('type', types)
+      .in('user_id', userIds)
+
+    for (const row of existing || []) {
+      existingKeys.add(`${row.booking_id}:${row.type}:${row.user_id}`)
+    }
+  }
+
+  const newNotifications = notificationsToInsert.filter(
+    n => !existingKeys.has(`${n.booking_id}:${n.type}:${n.user_id}`),
+  )
+
+  // Send push notifications for new reminders (fire-and-forget)
+  for (const n of newNotifications) {
+    const url = n.payload.role === 'professional' ? '/dashboard' : '/agenda'
+    void sendPushToUser(
+      n.user_id,
+      {
+        title: n.title,
+        body: n.body,
+        url,
+        tag: n.type,
+      },
+      { notifType: n.type, admin },
+    ).catch(err => {
+      console.warn('[booking-reminders] push failed:', err)
+    })
+  }
+
   const { error: insertError } = await admin.from('notifications').upsert(notificationsToInsert, {
     onConflict: 'booking_id,type,user_id',
     ignoreDuplicates: true,
@@ -135,7 +187,7 @@ export async function runBookingReminderSync(
 
   return {
     checked: bookings.length,
-    inserted: notificationsToInsert.length,
+    inserted: newNotifications.length,
     at: nowIso,
   }
 }

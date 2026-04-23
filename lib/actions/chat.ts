@@ -161,12 +161,16 @@ export async function sendMessage(
 
       const senderName = senderProfile?.full_name || 'Alguém'
 
-      await sendPushToUser(otherParticipant.user_id, {
-        title: `${senderName}`,
-        body: contentParsed.data,
-        url: `/mensagens/${idParsed.data}`,
-        tag: `chat-${idParsed.data}`,
-      })
+      await sendPushToUser(
+        otherParticipant.user_id,
+        {
+          title: `${senderName}`,
+          body: contentParsed.data,
+          url: `/mensagens/${idParsed.data}`,
+          tag: `chat-${idParsed.data}`,
+        },
+        { notifType: 'chat_message' },
+      )
     } catch (pushErr) {
       console.warn('[chat] Push notification failed:', pushErr)
     }

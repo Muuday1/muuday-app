@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { submitReviewAction } from '@/lib/actions/review'
 import { Star, Send, Loader2 } from 'lucide-react'
 
 type ReviewFormProps = {
@@ -40,27 +40,17 @@ export function ReviewForm({ bookingId, userId, professionalId }: ReviewFormProp
     setError(null)
     setSubmitting(true)
 
-    const supabase = createClient()
-    const { error: insertError } = await supabase
-      .from('reviews')
-      .insert({
-        booking_id: bookingId,
-        user_id: userId,
-        professional_id: professionalId,
-        rating,
-        comment: comment.trim() || null,
-        is_visible: false, // Admin approves before publishing
-      })
+    const result = await submitReviewAction({
+      bookingId,
+      professionalId,
+      rating,
+      comment: comment.trim() || undefined,
+    })
 
     setSubmitting(false)
 
-    if (insertError) {
-      if (insertError.code === '23505') {
-        // Unique constraint — review already exists
-        setError('Você já avaliou esta sessão.')
-      } else {
-        setError('Erro ao enviar avaliação. Tente novamente.')
-      }
+    if (!result.success) {
+      setError(result.error || 'Erro ao enviar avaliação. Tente novamente.')
       return
     }
 

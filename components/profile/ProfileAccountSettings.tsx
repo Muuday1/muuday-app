@@ -10,12 +10,14 @@ type NotificationPreferences = {
   booking_emails: boolean
   session_reminders: boolean
   news_promotions: boolean
+  chat_messages: boolean
 }
 
 const DEFAULT_NOTIFICATIONS: NotificationPreferences = {
   booking_emails: true,
   session_reminders: true,
   news_promotions: true,
+  chat_messages: true,
 }
 
 const NOTIFICATION_ITEMS: {
@@ -32,6 +34,11 @@ const NOTIFICATION_ITEMS: {
     key: 'session_reminders',
     label: 'Lembretes de sessão',
     description: 'Lembrete 24h e 1h antes da sessão',
+  },
+  {
+    key: 'chat_messages',
+    label: 'Mensagens do chat',
+    description: 'Notificações push quando receber mensagens novas',
   },
   {
     key: 'news_promotions',

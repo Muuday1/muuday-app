@@ -19,6 +19,7 @@ import { ProfessionalWorkspaceSection } from './professional-workspace-section'
 import { RegionSettings } from './region-settings'
 import { NotificationSettings } from './notification-settings'
 import { SecuritySettings } from './security-settings'
+import { PushNotificationToggle } from '@/components/pwa/PushNotificationToggle'
 
 export default function ProfessionalSettingsWorkspace() {
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
@@ -288,6 +289,8 @@ export default function ProfessionalSettingsWorkspace() {
           preferences={notifications}
           onToggle={handleToggle}
         />
+
+        <PushNotificationToggle />
 
         <SecuritySettings
           onOpenPassword={() => { window.location.href = '/recuperar-senha' }}

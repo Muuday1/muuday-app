@@ -30,6 +30,10 @@ import { createBatchBookingGroup } from '@/lib/booking/batch-booking'
 import { generateRecurrenceSlots } from '@/lib/booking/recurrence-engine'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import {
+  emitProfessionalReceivedBooking,
+  emitUserStartedCheckout,
+} from '@/lib/email/resend-events'
+import {
   localDateTimeSchema,
   isActiveSlotCollision,
 } from '@/lib/booking/request-validation'
@@ -171,7 +175,7 @@ export async function createBooking(data: {
   const { data: professional, error: professionalError } = await supabase
     .from('professionals')
     .select(
-      'id, user_id, tier, session_price_brl, session_duration_minutes, status, first_booking_enabled, profiles!professionals_user_id_fkey(timezone)',
+      'id, user_id, tier, session_price_brl, session_duration_minutes, status, first_booking_enabled, profiles!professionals_user_id_fkey(timezone, email, full_name)',
     )
     .eq('id', bookingInput.professionalId)
     .single()
@@ -794,6 +798,27 @@ export async function createBooking(data: {
 
   logBookingEvent('booking_create_success', { bookingId, bookingType, usedAtomicPath, createdBookingIds })
   Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking completed', level: 'info', data: { bookingId, bookingType } })
+
+  // Emit Resend automation events (non-blocking)
+  const professionalEmail = Array.isArray(professional.profiles)
+    ? (professional.profiles[0] as { email?: string } | null)?.email
+    : (professional.profiles as { email?: string } | null)?.email
+  const professionalName = Array.isArray(professional.profiles)
+    ? (professional.profiles[0] as { full_name?: string } | null)?.full_name
+    : (professional.profiles as { full_name?: string } | null)?.full_name
+
+  if (professionalEmail) {
+    emitProfessionalReceivedBooking(professionalEmail, {
+      booking_id: bookingId,
+      client_name: user.email || 'Cliente',
+    })
+  }
+  if (user.email) {
+    emitUserStartedCheckout(user.email, {
+      booking_id: bookingId,
+      professional_id: bookingInput.professionalId,
+    })
+  }
 
   return { success: true, bookingId }
 }

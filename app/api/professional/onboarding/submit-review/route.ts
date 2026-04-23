@@ -8,6 +8,7 @@ import {
   PROFESSIONAL_REQUIRED_TERMS,
   PROFESSIONAL_TERMS_VERSION,
 } from '@/lib/legal/professional-terms'
+import { emitProfessionalProfileSubmitted } from '@/lib/email/resend-events'
 
 export async function POST(request: Request) {
   const ip = getClientIp(request as never)
@@ -88,6 +89,11 @@ export async function POST(request: Request) {
   if (!result.ok) {
     const status = result.code === 'blocked' ? 409 : result.code === 'missing_state' ? 500 : 400
     return NextResponse.json({ error: result.error, code: result.code }, { status })
+  }
+
+  // Emit Resend automation event (non-blocking)
+  if (user.email) {
+    emitProfessionalProfileSubmitted(user.email, { professional_id: professional.id })
   }
 
   return NextResponse.json({

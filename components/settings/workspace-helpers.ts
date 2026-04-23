@@ -2,6 +2,7 @@ export type NotificationPreferences = {
   booking_emails: boolean
   session_reminders: boolean
   news_promotions: boolean
+  chat_messages: boolean
 }
 
 export type UserRole = 'usuario' | 'profissional' | 'admin' | null
@@ -29,6 +30,7 @@ export const DEFAULT_NOTIFICATIONS: NotificationPreferences = {
   booking_emails: true,
   session_reminders: true,
   news_promotions: true,
+  chat_messages: true,
 }
 
 export const NOTIFICATION_ITEMS: {
@@ -45,6 +47,11 @@ export const NOTIFICATION_ITEMS: {
     key: 'session_reminders',
     label: 'Lembretes de sessão',
     desc: 'Lembrete 24h e 1h antes da sessão',
+  },
+  {
+    key: 'chat_messages',
+    label: 'Mensagens do chat',
+    desc: 'Notificações push quando receber mensagens novas',
   },
   {
     key: 'news_promotions',

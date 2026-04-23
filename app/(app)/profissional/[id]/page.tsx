@@ -23,6 +23,7 @@ import { loadProfessionalSpecialtyContext } from '@/lib/taxonomy/professional-sp
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { formatCurrency } from '@/lib/utils'
 import { isFeatureAvailable } from '@/lib/tier-config'
+import { emitUserViewedProfessional } from '@/lib/email/resend-events'
 
 const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
@@ -380,6 +381,20 @@ export default async function ProfissionalPage({
 
     if (!isPubliclyVisible || professional.status !== 'approved') {
       notFound()
+    }
+
+    // Emit Resend automation event for logged-in viewers (non-blocking)
+    if (user?.email) {
+      const profProfiles = (professional as unknown as Record<string, unknown>).profiles
+      const profileName = Array.isArray(profProfiles)
+        ? (profProfiles[0] as { full_name?: string } | null)?.full_name
+        : (profProfiles as { full_name?: string } | null)?.full_name
+      const specialty = professional.subcategories?.[0] || professional.category || ''
+      emitUserViewedProfessional(user.email, {
+        professional_id: professional.id,
+        specialty,
+        professional_name: profileName || '',
+      })
     }
   }
 

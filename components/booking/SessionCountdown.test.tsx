@@ -12,11 +12,14 @@ describe('SessionCountdown', () => {
   })
 
   it('renders countdown for a future date', () => {
-    const future = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes from now
-    render(<SessionCountdown targetDate={future} />)
+    const now = new Date('2026-04-22T12:00:00.000Z')
+    vi.setSystemTime(now)
+
+    const future = new Date(now.getTime() + 5 * 60 * 1000) // 5 minutes from now
+    const { container } = render(<SessionCountdown targetDate={future} />)
 
     expect(screen.getByText(/Comeca em/i)).toBeInTheDocument()
-    expect(screen.getByText(/04:59/)).toBeInTheDocument()
+    expect(container.textContent).toMatch(/05:00/)
   })
 
   it('renders "horario chegou" message for a past date', () => {
@@ -27,20 +30,26 @@ describe('SessionCountdown', () => {
   })
 
   it('updates countdown every second', () => {
-    const future = new Date(Date.now() + 2 * 60 * 1000 + 5000) // 2:05 from now
-    render(<SessionCountdown targetDate={future} />)
+    const now = new Date('2026-04-22T12:00:00.000Z')
+    vi.setSystemTime(now)
 
-    expect(screen.getByText(/02:04/)).toBeInTheDocument()
+    const future = new Date(now.getTime() + 2 * 60 * 1000 + 5000) // 2:05 from now
+    const { container } = render(<SessionCountdown targetDate={future} />)
+
+    expect(container.textContent).toMatch(/02:05/)
 
     act(() => {
       vi.advanceTimersByTime(1000)
     })
 
-    expect(screen.getByText(/02:03/)).toBeInTheDocument()
+    expect(container.textContent).toMatch(/02:04/)
   })
 
   it('switches to "horario chegou" when time passes', () => {
-    const future = new Date(Date.now() + 1500) // 1.5 seconds from now
+    const now = new Date('2026-04-22T12:00:00.000Z')
+    vi.setSystemTime(now)
+
+    const future = new Date(now.getTime() + 1500) // 1.5 seconds from now
     render(<SessionCountdown targetDate={future} />)
 
     expect(screen.getByText(/Comeca em/i)).toBeInTheDocument()
@@ -53,9 +62,12 @@ describe('SessionCountdown', () => {
   })
 
   it('formats hours correctly for long waits', () => {
-    const future = new Date(Date.now() + 3 * 3600 * 1000 + 25 * 60 * 1000 + 15 * 1000) // 3:25:15
-    render(<SessionCountdown targetDate={future} />)
+    const now = new Date('2026-04-22T12:00:00.000Z')
+    vi.setSystemTime(now)
 
-    expect(screen.getByText(/03:25:14/)).toBeInTheDocument()
+    const future = new Date(now.getTime() + 3 * 3600 * 1000 + 25 * 60 * 1000 + 15 * 1000) // 3:25:15
+    const { container } = render(<SessionCountdown targetDate={future} />)
+
+    expect(container.textContent).toMatch(/03:25:15/)
   })
 })

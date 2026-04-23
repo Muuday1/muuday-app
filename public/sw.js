@@ -70,8 +70,15 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification handler
 self.addEventListener('push', (event) => {
-  // @ts-ignore
-  const data = event.data?.json() || {}
+  let data = {}
+  try {
+    // @ts-ignore
+    data = event.data?.json() || {}
+  } catch {
+    // Invalid payload — show generic notification
+    data = {}
+  }
+
   const title = data.title || 'Muuday'
   const body = data.body || ''
   const url = data.url || '/'

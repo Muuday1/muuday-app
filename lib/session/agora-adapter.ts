@@ -24,6 +24,8 @@ export class AgoraSessionAdapter implements SessionAdapter {
   private localAudio: IMicrophoneAudioTrack | null = null;
   private localVideo: ICameraVideoTrack | null = null;
   private joined = false;
+  private audioEnabled = true;
+  private videoEnabled = true;
   private eventHandlers: Partial<
     Record<keyof SessionAdapterEvents, Set<SessionAdapterEvents[keyof SessionAdapterEvents]>>
   > = {};
@@ -38,12 +40,46 @@ export class AgoraSessionAdapter implements SessionAdapter {
 
     await this.client.join(appId, room.roomReference, token.token, token.uid);
 
-    // Create + publish local tracks
-    const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-    this.localAudio = audioTrack;
-    this.localVideo = videoTrack;
+    // Create local tracks with camera-fallback: if camera fails, try audio-only
+    let audioTrack: IMicrophoneAudioTrack | undefined;
+    let videoTrack: ICameraVideoTrack | undefined;
 
-    await this.client.publish([audioTrack, videoTrack]);
+    try {
+      const tracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+      audioTrack = tracks[0];
+      videoTrack = tracks[1];
+    } catch (trackError) {
+      const msg = String(trackError).toLowerCase();
+      const isCameraError =
+        msg.includes('camera') ||
+        msg.includes('videoinput') ||
+        msg.includes('device not found') ||
+        msg.includes('could not start video');
+
+      if (isCameraError) {
+        try {
+          audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        } catch {
+          throw trackError;
+        }
+      } else {
+        throw trackError;
+      }
+    }
+
+    this.localAudio = audioTrack || null;
+    this.localVideo = videoTrack || null;
+    this.audioEnabled = true;
+    this.videoEnabled = true;
+
+    const tracksToPublish: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = [];
+    if (audioTrack) tracksToPublish.push(audioTrack);
+    if (videoTrack) tracksToPublish.push(videoTrack);
+
+    if (tracksToPublish.length > 0) {
+      await this.client.publish(tracksToPublish);
+    }
+
     this.joined = true;
   }
 
@@ -51,18 +87,18 @@ export class AgoraSessionAdapter implements SessionAdapter {
     if (!this.client) return;
 
     if (this.localAudio) {
-      this.localAudio.stop();
-      this.localAudio.close();
+      try { this.localAudio.stop(); } catch { /* ignore */ }
+      try { this.localAudio.close(); } catch { /* ignore */ }
       this.localAudio = null;
     }
     if (this.localVideo) {
-      this.localVideo.stop();
-      this.localVideo.close();
+      try { this.localVideo.stop(); } catch { /* ignore */ }
+      try { this.localVideo.close(); } catch { /* ignore */ }
       this.localVideo = null;
     }
 
     if (this.joined) {
-      await this.client.leave();
+      try { await this.client.leave(); } catch { /* ignore */ }
       this.joined = false;
     }
     this.client.removeAllListeners();
@@ -116,6 +152,42 @@ export class AgoraSessionAdapter implements SessionAdapter {
     if (!this.client) return [];
     const users = (this.client as any).remoteUsers as IAgoraRTCRemoteUser[];
     return users.map((u) => String(u.uid));
+  }
+
+  async setAudioEnabled(enabled: boolean): Promise<void> {
+    if (!this.localAudio) return;
+    await this.localAudio.setEnabled(enabled);
+    this.audioEnabled = enabled;
+  }
+
+  async setVideoEnabled(enabled: boolean): Promise<void> {
+    if (!this.localVideo) return;
+    await this.localVideo.setEnabled(enabled);
+    this.videoEnabled = enabled;
+  }
+
+  isAudioEnabled(): boolean {
+    return this.audioEnabled;
+  }
+
+  isVideoEnabled(): boolean {
+    return this.videoEnabled;
+  }
+
+  getLocalStream(): MediaStream | null {
+    if (!this.localAudio && !this.localVideo) return null;
+    const stream = new MediaStream();
+    if (this.localAudio) {
+      try {
+        stream.addTrack((this.localAudio as any).getMediaStreamTrack());
+      } catch { /* ignore */ }
+    }
+    if (this.localVideo) {
+      try {
+        stream.addTrack((this.localVideo as any).getMediaStreamTrack());
+      } catch { /* ignore */ }
+    }
+    return stream;
   }
 
   onEvent<K extends keyof SessionAdapterEvents>(

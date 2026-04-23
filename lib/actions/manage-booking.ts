@@ -24,6 +24,11 @@ import {
 } from '@/lib/booking/recurring-deadlines'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import { localDateTimeSchema } from '@/lib/booking/request-validation'
+import {
+  emitUserSessionCompleted,
+  emitProfessionalSessionCompleted,
+  emitUserCancelledBooking,
+} from '@/lib/email/resend-events'
 
 type ActionResult =
   | { success: true }
@@ -279,6 +284,21 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     action: 'cancel_booking',
     source: 'booking.cancel',
   })
+
+  // Emit Resend automation event (non-blocking)
+  const cancelledBy = isBookingUser ? 'user' : 'professional'
+  const { data: cancelledUserProfile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', isBookingUser ? user.id : booking.user_id)
+    .maybeSingle()
+  if (cancelledUserProfile?.email) {
+    emitUserCancelledBooking(cancelledUserProfile.email, {
+      booking_id: safeBookingId,
+      cancelled_by: cancelledBy,
+    })
+  }
+
   revalidatePath('/agenda')
   revalidatePath('/dashboard')
   return { success: true }
@@ -537,7 +557,7 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, professional_id, scheduled_at, duration_minutes')
+    .select('id, status, professional_id, user_id, scheduled_at, duration_minutes')
     .eq('id', safeBookingId)
     .single()
 
@@ -567,6 +587,35 @@ export async function completeBooking(bookingId: string): Promise<ActionResult> 
 
   if (error || !completedBooking) {
     return { success: false, error: 'Erro ao concluir agendamento. Tente novamente.' }
+  }
+
+  // Emit Resend automation events (non-blocking)
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', booking.user_id)
+    .maybeSingle()
+  if (userProfile?.email) {
+    emitUserSessionCompleted(userProfile.email, {
+      booking_id: safeBookingId,
+      professional_id: booking.professional_id,
+    })
+  }
+
+  const { data: profProfile } = await supabase
+    .from('professionals')
+    .select('profiles!professionals_user_id_fkey(email)')
+    .eq('id', booking.professional_id)
+    .maybeSingle()
+  const profEmail = profProfile
+    ? (Array.isArray((profProfile as Record<string, unknown>).profiles)
+      ? (((profProfile as Record<string, unknown>).profiles as unknown[])[0] as { email?: string })?.email
+      : ((profProfile as Record<string, unknown>).profiles as { email?: string })?.email)
+    : null
+  if (profEmail) {
+    emitProfessionalSessionCompleted(profEmail, {
+      booking_id: safeBookingId,
+    })
   }
 
   revalidatePath('/agenda')

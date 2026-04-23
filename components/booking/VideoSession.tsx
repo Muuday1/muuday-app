@@ -2,15 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, Loader2, Mic, MicOff, Video, VideoOff, Play } from 'lucide-react'
-import type {
-  IAgoraRTCClient,
-  IAgoraRTCRemoteUser,
-  ICameraVideoTrack,
-  IMicrophoneAudioTrack,
-} from 'agora-rtc-sdk-ng'
 import WaitingRoomGame from './WaitingRoomGame'
 import SessionCountdown from './SessionCountdown'
 import { emitSessionEvent } from '@/lib/session/client-tracker'
+import { AgoraSessionAdapter } from '@/lib/session/agora-adapter'
+import type { SessionAdapter, SessionJoinToken, SessionRoom } from '@/lib/session/types'
 
 type VideoSessionProps = {
   bookingId: string
@@ -118,17 +114,16 @@ export default function VideoSession({
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isCameraEnabled, setIsCameraEnabled] = useState(true)
   const [remoteUserIds, setRemoteUserIds] = useState<string[]>([])
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({})
+  const [hasLocalVideo, setHasLocalVideo] = useState(false)
   const [liberando, setLiberando] = useState(false)
   const [connectingFailed, setConnectingFailed] = useState(false)
 
-  const localVideoRef = useRef<HTMLDivElement | null>(null)
-  const remoteContainerRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const clientRef = useRef<IAgoraRTCClient | null>(null)
-  const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null)
-  const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null)
-  const remoteUsersRef = useRef<Record<string, IAgoraRTCRemoteUser>>({})
+  const localVideoRef = useRef<HTMLVideoElement | null>(null)
+  const adapterRef = useRef<SessionAdapter | null>(null)
   const cancelledRef = useRef(false)
   const pollingRef = useRef<number | null>(null)
+  const subscribedUidsRef = useRef<Set<string>>(new Set())
 
   const isProfessional = isProfessionalOwner || userRole === 'profissional'
   const scheduledAt = useMemo(() => new Date(scheduledAtIso), [scheduledAtIso])
@@ -184,7 +179,18 @@ export default function VideoSession({
     }
   }, [phase, bookingId, connectingFailed])
 
-  // Connect to Agora when phase becomes 'connecting'
+  // Attach local stream to video element whenever it changes
+  useEffect(() => {
+    const adapter = adapterRef.current
+    const videoEl = localVideoRef.current
+    if (!adapter || !videoEl) return
+    const stream = adapter.getLocalStream()
+    if (stream && videoEl.srcObject !== stream) {
+      videoEl.srcObject = stream
+    }
+  }, [joined, isCameraEnabled, hasLocalVideo])
+
+  // Connect via SessionAdapter when phase becomes 'connecting'
   useEffect(() => {
     if (phase !== 'connecting') return
     cancelledRef.current = false
@@ -209,83 +215,96 @@ export default function VideoSession({
         if (cancelledRef.current) return
         setTokenPayload(tokenJson as SessionTokenPayload)
 
-        const agoraModule = await import('agora-rtc-sdk-ng')
-        const AgoraRTC = agoraModule.default
-        const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
-        clientRef.current = client
+        const adapter: SessionAdapter = new AgoraSessionAdapter()
+        adapterRef.current = adapter
 
-        client.on('user-published', async (user, mediaType) => {
-          if (cancelledRef.current) return
-          remoteUsersRef.current[String(user.uid)] = user
-          await client.subscribe(user, mediaType)
+        // Bind lifecycle events and store unsubscribers for cleanup
+        const unsubscribers: (() => void)[] = []
 
-          if (mediaType === 'audio' && user.audioTrack) {
-            user.audioTrack.play()
-          }
-
-          if (mediaType === 'video') {
-            const uid = String(user.uid)
+        unsubscribers.push(
+          adapter.onEvent('userJoined', (uid) => {
+            if (cancelledRef.current) return
             setRemoteUserIds(prev => (prev.includes(uid) ? prev : [...prev, uid]))
-            setTimeout(() => {
-              const container = remoteContainerRefs.current[uid]
-              if (container && user.videoTrack) {
-                user.videoTrack.play(container)
-              }
-            }, 0)
-          }
-        })
+          })
+        )
 
-        client.on('user-unpublished', (user, mediaType) => {
-          const uid = String(user.uid)
-          if (mediaType === 'video') {
-            setRemoteUserIds(prev => prev.filter(item => item !== uid))
-            delete remoteUsersRef.current[uid]
-          }
-        })
+        unsubscribers.push(
+          adapter.onEvent('userLeft', (uid) => {
+            if (cancelledRef.current) return
+            setRemoteUserIds(prev => prev.filter(id => id !== uid))
+            setRemoteStreams(prev => {
+              const next = { ...prev }
+              delete next[uid]
+              return next
+            })
+            subscribedUidsRef.current.delete(uid)
+          })
+        )
 
-        client.on('connection-state-change', (curState, revState, reason) => {
-          if (cancelledRef.current) return
-          console.warn('[agora] connection state:', revState, '->', curState, reason)
-        })
+        unsubscribers.push(
+          adapter.onEvent('trackPublished', async (uid, _kind) => {
+            if (cancelledRef.current) return
+            if (subscribedUidsRef.current.has(uid)) return
+            subscribedUidsRef.current.add(uid)
 
-        let microphoneTrack: IMicrophoneAudioTrack | undefined
-        let cameraTrack: ICameraVideoTrack | undefined
-
-        try {
-          const tracks = await AgoraRTC.createMicrophoneAndCameraTracks()
-          microphoneTrack = tracks[0]
-          cameraTrack = tracks[1]
-        } catch (trackError) {
-          const classified = classifyVideoError(trackError)
-          if (classified.kind === 'camera_unavailable') {
             try {
-              microphoneTrack = await AgoraRTC.createMicrophoneAudioTrack()
-            } catch {
-              throw trackError
+              const stream = await adapter.subscribe(uid)
+              if (cancelledRef.current) return
+              setRemoteStreams(prev => ({ ...prev, [uid]: stream }))
+            } catch (err) {
+              console.warn('[VideoSession] subscribe failed for', uid, err)
+              subscribedUidsRef.current.delete(uid)
             }
-          } else {
-            throw trackError
-          }
+          })
+        )
+
+        unsubscribers.push(
+          adapter.onEvent('trackUnpublished', (uid, kind) => {
+            if (cancelledRef.current) return
+            console.log('[VideoSession] track unpublished', uid, kind)
+            // Keep the stream alive; the <video> will freeze on last frame.
+            // Full removal happens on userLeft.
+          })
+        )
+
+        unsubscribers.push(
+          adapter.onEvent('connectionStateChanged', (state, reason) => {
+            if (cancelledRef.current) return
+            console.warn('[VideoSession] connection state:', state, reason)
+          })
+        )
+
+        unsubscribers.push(
+          adapter.onEvent('error', (err) => {
+            if (cancelledRef.current) return
+            console.error('[VideoSession] adapter error:', err)
+          })
+        )
+
+        // Store unsubscribers on the adapter instance for cleanup
+        ;(adapter as any).__unsubscribers = unsubscribers
+
+        const room: SessionRoom = {
+          bookingId,
+          provider: 'agora',
+          roomReference: tokenJson.channelName,
+          status: 'join_open',
         }
 
-        localAudioTrackRef.current = microphoneTrack || null
-        localVideoTrackRef.current = cameraTrack || null
-
-        await client.join(tokenJson.appId, tokenJson.channelName, tokenJson.token, tokenJson.uid)
-
-        const tracksToPublish: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = []
-        if (microphoneTrack) tracksToPublish.push(microphoneTrack)
-        if (cameraTrack) tracksToPublish.push(cameraTrack)
-
-        if (tracksToPublish.length > 0) {
-          await client.publish(tracksToPublish)
+        const token: SessionJoinToken = {
+          token: tokenJson.token,
+          roomReference: tokenJson.channelName,
+          uid: tokenJson.uid,
+          expiresAtUtc: tokenJson.expiresAtUtc,
+          windowStartUtc: tokenJson.windowStartUtc,
+          windowEndUtc: tokenJson.windowEndUtc,
+          providerMeta: { appId: tokenJson.appId },
         }
 
-        if (cameraTrack && localVideoRef.current) {
-          cameraTrack.play(localVideoRef.current)
-        }
+        await adapter.join(room, token)
 
         if (!cancelledRef.current) {
+          setHasLocalVideo(adapter.isVideoEnabled() && (adapter.getLocalStream()?.getVideoTracks().length ?? 0) > 0)
           setJoined(true)
           setConnectingFailed(false)
           setPhase('in-session')
@@ -312,39 +331,18 @@ export default function VideoSession({
     void connect()
   }, [phase, bookingId])
 
-  // Cleanup Agora resources on unmount only
+  // Cleanup adapter on unmount
   useEffect(() => {
     return () => {
       cancelledRef.current = true
-      const client = clientRef.current
-      const localAudio = localAudioTrackRef.current
-      const localVideo = localVideoTrackRef.current
-
-      if (localAudio) {
-        try {
-          localAudio.stop()
-          localAudio.close()
-        } catch {
+      const adapter = adapterRef.current
+      if (adapter) {
+        const unsubscribers = (adapter as any).__unsubscribers as (() => void)[] | undefined
+        unsubscribers?.forEach(u => { try { u() } catch { /* ignore */ } })
+        adapter.leave().catch(() => {
           // ignore cleanup errors
-        }
-      }
-      if (localVideo) {
-        try {
-          localVideo.stop()
-          localVideo.close()
-        } catch {
-          // ignore cleanup errors
-        }
-      }
-      if (client) {
-        try {
-          client.removeAllListeners()
-          client.leave().catch(() => {
-            // ignore leave errors during cleanup
-          })
-        } catch {
-          // ignore cleanup errors
-        }
+        })
+        adapterRef.current = null
       }
     }
   }, [])
@@ -372,11 +370,11 @@ export default function VideoSession({
   }
 
   async function toggleMic() {
-    const track = localAudioTrackRef.current
-    if (!track) return
+    const adapter = adapterRef.current
+    if (!adapter) return
     const next = !isMicEnabled
     try {
-      await track.setEnabled(next)
+      await adapter.setAudioEnabled(next)
       setIsMicEnabled(next)
     } catch {
       // ignore toggle errors
@@ -384,15 +382,35 @@ export default function VideoSession({
   }
 
   async function toggleCamera() {
-    const track = localVideoTrackRef.current
-    if (!track) return
+    const adapter = adapterRef.current
+    if (!adapter) return
     const next = !isCameraEnabled
     try {
-      await track.setEnabled(next)
+      await adapter.setVideoEnabled(next)
       setIsCameraEnabled(next)
+      setHasLocalVideo(next && (adapter.getLocalStream()?.getVideoTracks().length ?? 0) > 0)
     } catch {
       // ignore toggle errors
     }
+  }
+
+  async function handleEndSession() {
+    cancelledRef.current = true
+    const adapter = adapterRef.current
+    if (adapter) {
+      const unsubscribers = (adapter as any).__unsubscribers as (() => void)[] | undefined
+      unsubscribers?.forEach(u => { try { u() } catch { /* ignore */ } })
+      try { await adapter.leave() } catch { /* ignore */ }
+      adapterRef.current = null
+    }
+    setJoined(false)
+    setPhase('waiting')
+    setConnectingFailed(false)
+    setError(null)
+    setRemoteUserIds([])
+    setRemoteStreams({})
+    subscribedUidsRef.current.clear()
+    void emitSessionEvent(bookingId, 'session_ended')
   }
 
   // Waiting room UI
@@ -530,11 +548,14 @@ export default function VideoSession({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-slate-950 p-2">
           <p className="mb-2 px-1 text-xs font-medium text-slate-300">Voce</p>
-          <div
+          <video
             ref={localVideoRef}
-            className="h-56 w-full overflow-hidden rounded-md bg-black sm:h-72"
+            autoPlay
+            playsInline
+            muted
+            className="h-56 w-full overflow-hidden rounded-md bg-black object-cover sm:h-72"
           />
-          {!localVideoTrackRef.current && joined && (
+          {!hasLocalVideo && joined && (
             <p className="mt-1 px-1 text-xs text-slate-400">Camera desativada ou indisponivel</p>
           )}
         </div>
@@ -550,15 +571,18 @@ export default function VideoSession({
               {remoteUserIds.map(uid => (
                 <div key={uid} className="rounded-md border border-slate-200 bg-white p-2">
                   <p className="mb-1 text-xs font-medium text-slate-600">Participante {uid}</p>
-                  <div
+                  <video
                     ref={element => {
-                      remoteContainerRefs.current[uid] = element
-                      const user = remoteUsersRef.current[uid]
-                      if (element && user?.videoTrack) {
-                        user.videoTrack.play(element)
+                      if (element) {
+                        const stream = remoteStreams[uid]
+                        if (stream && element.srcObject !== stream) {
+                          element.srcObject = stream
+                        }
                       }
                     }}
-                    className="h-44 w-full overflow-hidden rounded-lg bg-black"
+                    autoPlay
+                    playsInline
+                    className="h-44 w-full overflow-hidden rounded-lg bg-black object-cover"
                   />
                 </div>
               ))}
@@ -571,7 +595,7 @@ export default function VideoSession({
         <button
           type="button"
           onClick={toggleMic}
-          disabled={!joined || !localAudioTrackRef.current}
+          disabled={!joined}
           className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isMicEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
@@ -580,7 +604,7 @@ export default function VideoSession({
         <button
           type="button"
           onClick={toggleCamera}
-          disabled={!joined || !localVideoTrackRef.current}
+          disabled={!joined}
           className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
@@ -588,20 +612,7 @@ export default function VideoSession({
         </button>
         <button
           type="button"
-          onClick={() => {
-            cancelledRef.current = true
-            const client = clientRef.current
-            const localAudio = localAudioTrackRef.current
-            const localVideo = localVideoTrackRef.current
-            if (localAudio) { try { localAudio.stop(); localAudio.close() } catch {} }
-            if (localVideo) { try { localVideo.stop(); localVideo.close() } catch {} }
-            if (client) { try { client.removeAllListeners(); client.leave().catch(() => {}) } catch {} }
-            setJoined(false)
-            setPhase('waiting')
-            setConnectingFailed(false)
-            setError(null)
-            void emitSessionEvent(bookingId, 'session_ended')
-          }}
+          onClick={handleEndSession}
           className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
         >
           Encerrar sessao

@@ -37,6 +37,7 @@ import {
   filterPubliclyVisibleProfessionals,
   type ProfessionalSearchRecord,
 } from '@/lib/professional/public-visibility'
+import { emitUserSearched } from '@/lib/email/resend-events'
 
 type BuscarSearchParams = {
   q?: string
@@ -476,6 +477,9 @@ export async function BuscarPageContent({
   basePath?: string
 }) {
   const readClient = await createClient()
+  const {
+    data: { user: searchUser },
+  } = await readClient.auth.getUser()
   const exchangeRates = await getExchangeRates(readClient)
   const {
     q,
@@ -512,6 +516,22 @@ export async function BuscarPageContent({
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
   const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
   const maxPriceBrl = maxPrice === null ? null : maxPrice / selectedCurrencyRate
+
+  // Emit Resend automation event for logged-in users performing searches (non-blocking)
+  if (searchUser?.email && (queryText || selectedCategory || selectedSubcategory)) {
+    const filters = [
+      selectedCategory || '',
+      selectedSubcategory || '',
+      selectedSpecialty || '',
+      selectedAvailability !== 'qualquer' ? selectedAvailability : '',
+      selectedLocation || '',
+      selectedLanguage !== 'qualquer' ? selectedLanguage : '',
+    ].filter(Boolean).join(', ')
+    emitUserSearched(searchUser.email, {
+      query: queryText,
+      filters: filters || undefined,
+    })
+  }
 
   const queryState = buildSearchQueryState({
     q: queryText,
@@ -567,6 +587,32 @@ export async function BuscarPageContent({
       specialtyContext = EMPTY_SPECIALTY_CONTEXT
       cachedAvailabilityRows = []
     }
+  }
+
+  // Persist search session for logged-in users to enable abandoned-search recovery
+  if (searchUser?.id && readClient && (queryText || selectedCategory || selectedSubcategory)) {
+    void (async () => {
+      try {
+        await readClient.from('search_sessions').insert({
+          user_id: searchUser.id,
+          query: queryText || null,
+          filters: {
+            category: selectedCategory || undefined,
+            subcategory: selectedSubcategory || undefined,
+            specialty: selectedSpecialty || undefined,
+            availability: selectedAvailability !== 'qualquer' ? selectedAvailability : undefined,
+            location: selectedLocation || undefined,
+            language: selectedLanguage !== 'qualquer' ? selectedLanguage : undefined,
+            minPrice: minPriceBrl ?? undefined,
+            maxPrice: maxPriceBrl ?? undefined,
+          },
+          result_count: professionals.length,
+          searched_at: new Date().toISOString(),
+        })
+      } catch {
+        // Silently fail — search session tracking must not break search UX
+      }
+    })()
   }
 
   const specialtiesByProfessionalId = specialtyContext.byProfessionalId

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendPushToUser } from '@/lib/push/sender'
 
 export type PendingPaymentTimeoutResult = {
   checked: number
@@ -85,7 +86,7 @@ export async function runPendingPaymentTimeout(
       continue
     }
 
-    // Notify user
+    // Notify user (in-app + push)
     if (booking.user_id) {
       await admin.from('notifications').insert({
         user_id: booking.user_id,
@@ -98,6 +99,19 @@ export async function runPendingPaymentTimeout(
           timeout_minutes: TIMEOUT_MINUTES,
           cancelled_at: nowIso,
         },
+      })
+
+      void sendPushToUser(
+        booking.user_id as string,
+        {
+          title: 'Agendamento cancelado',
+          body: 'O pagamento não foi concluído a tempo e seu agendamento foi cancelado.',
+          url: '/buscar',
+          tag: 'booking_auto_cancelled',
+        },
+        { notifType: 'booking_auto_cancelled', admin },
+      ).catch(err => {
+        console.warn('[pending-payment-timeout] push failed:', err)
       })
     }
 

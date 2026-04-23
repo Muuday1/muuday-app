@@ -1,4 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canSendPush, notifTypeToPreferenceKey } from './preferences'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 let webPush: typeof import('web-push') | null = null
 
@@ -27,6 +29,24 @@ function configureWebPush() {
   return true
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Determine if an error is retryable.
+ * - 410/404: subscription expired → NOT retryable, remove it
+ * - 4xx (except 404/410): client error → NOT retryable
+ * - 5xx: server error → retryable
+ * - Network errors (no statusCode): retryable
+ */
+function isRetryableError(err: unknown): boolean {
+  const statusCode = (err as { statusCode?: number })?.statusCode
+  if (statusCode === 410 || statusCode === 404) return false
+  if (statusCode && statusCode >= 400 && statusCode < 500) return false
+  return true
+}
+
 export interface PushPayload {
   title: string
   body: string
@@ -36,15 +56,98 @@ export interface PushPayload {
   tag?: string
 }
 
+export interface SendPushOptions {
+  /** Notification type (e.g. 'booking.reminder.1h', 'chat_message'). Used to respect user preferences. */
+  notifType?: string
+  /** Optional Supabase admin client. When provided, avoids creating a new client per call. */
+  admin?: SupabaseClient
+}
+
+/**
+ * Send a push notification to a single subscription with retry.
+ * Returns true if sent successfully, false otherwise.
+ */
+async function sendToSubscription(
+  sub: { endpoint: string; p256dh: string; auth: string },
+  payload: PushPayload,
+  admin: SupabaseClient,
+): Promise<boolean> {
+  const maxRetries = 2
+  let attempt = 0
+
+  while (attempt <= maxRetries) {
+    try {
+      await webPush!.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
+        },
+        JSON.stringify(payload),
+      )
+      return true
+    } catch (err: unknown) {
+      const statusCode = (err as { statusCode?: number })?.statusCode
+
+      // 410 Gone = subscription expired, remove it immediately
+      if (statusCode === 410 || statusCode === 404) {
+        await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        return false
+      }
+
+      // Client errors (4xx except 404/410) → don't retry
+      if (!isRetryableError(err)) {
+        console.warn('[push] Failed to send notification (non-retryable):', statusCode || (err as Error).message)
+        return false
+      }
+
+      // Last attempt failed → log and give up
+      if (attempt === maxRetries) {
+        console.warn('[push] Failed to send notification after retries:', statusCode || (err as Error).message)
+        return false
+      }
+
+      // Retry with exponential backoff: 1s, 2s
+      await sleep(1000 * (attempt + 1))
+      attempt++
+    }
+  }
+
+  return false
+}
+
 /**
  * Send a push notification to a specific user.
  * Returns number of successful deliveries.
+ *
+ * If notifType is provided, checks user notification preferences before sending.
+ * Users can disable categories via their settings; default is opt-in.
+ *
+ * Performance: when calling in a loop (e.g. cron jobs), pass the same `admin`
+ * client via `options.admin` to avoid creating a new client per iteration.
  */
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
-  const admin = createAdminClient()
+export async function sendPushToUser(
+  userId: string,
+  payload: PushPayload,
+  options?: SendPushOptions,
+): Promise<number> {
+  const admin = options?.admin ?? createAdminClient()
   if (!admin) {
     console.warn('[push] Admin client not available')
     return 0
+  }
+
+  // Check user preferences if notification type is provided
+  if (options?.notifType) {
+    const prefKey = notifTypeToPreferenceKey(options.notifType)
+    if (prefKey) {
+      const allowed = await canSendPush(admin, userId, prefKey)
+      if (!allowed) {
+        return 0
+      }
+    }
   }
 
   const { data: subscriptions, error } = await admin
@@ -66,26 +169,8 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 
   let sent = 0
   for (const sub of subscriptions) {
-    try {
-      await webPush!.sendNotification(
-        {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-        },
-        JSON.stringify(payload),
-      )
-      sent++
-    } catch (err: unknown) {
-      const statusCode = (err as { statusCode?: number })?.statusCode
-      // 410 Gone = subscription expired, remove it
-      if (statusCode === 410 || statusCode === 404) {
-        await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
-      }
-      console.warn('[push] Failed to send notification:', statusCode || (err as Error).message)
-    }
+    const success = await sendToSubscription(sub, payload, admin)
+    if (success) sent++
   }
 
   return sent
@@ -93,11 +178,19 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 
 /**
  * Broadcast a push notification to multiple users.
+ * Returns total number of successful deliveries.
+ *
+ * Performance: pass `options.admin` to reuse the same Supabase client across
+ * all recipients, avoiding repeated client instantiation.
  */
-export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<number> {
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload,
+  options?: SendPushOptions,
+): Promise<number> {
   let total = 0
   for (const userId of userIds) {
-    total += await sendPushToUser(userId, payload)
+    total += await sendPushToUser(userId, payload, options)
   }
   return total
 }

@@ -20,6 +20,16 @@ import { runSlotLockCleanup } from '@/lib/ops/slot-lock-cleanup'
 import { runPendingPaymentTimeout } from '@/lib/ops/pending-payment-timeout'
 import type { CalendarProvider } from '@/lib/calendar/types'
 import { inngest } from '../client'
+import {
+  emitUserBookingConfirmed,
+  emitUserPaymentFailed,
+} from '@/lib/email/resend-events'
+import {
+  runUserInactivityScan,
+  runProfessionalInactivityScan,
+} from '@/lib/ops/resend-inactivity-events'
+import { runAbandonedSearchSync } from '@/lib/ops/abandoned-search'
+import { runAbandonedCheckoutSync } from '@/lib/ops/abandoned-checkout'
 
 type SupabaseDbChangeEventData = {
   source?: string
@@ -147,6 +157,21 @@ async function resolveProfessionalAccountUserId(
   return String(data.user_id)
 }
 
+async function resolveUserEmail(
+  admin: SupabaseClient,
+  userId: string | null,
+): Promise<string | null> {
+  if (!userId) return null
+  const { data, error } = await admin
+    .from('profiles')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !data?.email) return null
+  return String(data.email)
+}
+
 export const syncBookingReminders = inngest.createFunction(
   {
     id: 'sync-booking-reminders',
@@ -166,6 +191,154 @@ export const syncBookingReminders = inngest.createFunction(
       trigger: event.name,
       checked: result.checked,
       inserted: result.inserted,
+      at: result.at,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncUserInactivity30d = inngest.createFunction(
+  {
+    id: 'sync-user-inactivity-30d',
+    name: 'Sync user inactivity (30d)',
+    triggers: [{ cron: '0 9 * * 1' }], // Mondays at 9am UTC
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('scan-inactive-users-30d', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for inactivity scan.')
+      }
+      return runUserInactivityScan(admin, 30)
+    })
+
+    logger.info('User inactivity 30d scan complete.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncUserInactivity60d = inngest.createFunction(
+  {
+    id: 'sync-user-inactivity-60d',
+    name: 'Sync user inactivity (60d)',
+    triggers: [{ cron: '0 9 * * 1' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('scan-inactive-users-60d', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for inactivity scan.')
+      }
+      return runUserInactivityScan(admin, 60)
+    })
+
+    logger.info('User inactivity 60d scan complete.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncUserInactivity90d = inngest.createFunction(
+  {
+    id: 'sync-user-inactivity-90d',
+    name: 'Sync user inactivity (90d)',
+    triggers: [{ cron: '0 9 * * 1' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('scan-inactive-users-90d', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for inactivity scan.')
+      }
+      return runUserInactivityScan(admin, 90)
+    })
+
+    logger.info('User inactivity 90d scan complete.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncProfessionalInactivity30d = inngest.createFunction(
+  {
+    id: 'sync-professional-inactivity-30d',
+    name: 'Sync professional inactivity (30d)',
+    triggers: [{ cron: '0 9 * * 1' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('scan-inactive-professionals-30d', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for inactivity scan.')
+      }
+      return runProfessionalInactivityScan(admin)
+    })
+
+    logger.info('Professional inactivity 30d scan complete.', {
+      trigger: event.name,
+      ...result,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncAbandonedSearch = inngest.createFunction(
+  {
+    id: 'sync-abandoned-search',
+    name: 'Sync abandoned search events',
+    triggers: [{ cron: '*/30 * * * *' }, { event: 'ops/abandoned-search.sync.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('scan-abandoned-searches', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for abandoned search scan.')
+      }
+      return runAbandonedSearchSync(admin)
+    })
+
+    logger.info('Abandoned search scan complete.', {
+      trigger: event.name,
+      checked: result.checked,
+      emitted: result.emitted,
+      at: result.at,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const syncAbandonedCheckout = inngest.createFunction(
+  {
+    id: 'sync-abandoned-checkout',
+    name: 'Sync abandoned checkout events',
+    triggers: [{ cron: '*/30 * * * *' }, { event: 'ops/abandoned-checkout.sync.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('scan-abandoned-checkouts', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for abandoned checkout scan.')
+      }
+      return runAbandonedCheckoutSync(admin)
+    })
+
+    logger.info('Abandoned checkout scan complete.', {
+      trigger: event.name,
+      checked: result.checked,
+      emitted: result.emitted,
       at: result.at,
     })
 
@@ -681,6 +854,16 @@ export const processSupabasePaymentsChange = inngest.createFunction(
             })
           : false
 
+        // Emit Resend automation events (non-blocking)
+        const userEmail = await resolveUserEmail(admin, bookingUserId)
+        if (userEmail) {
+          emitUserBookingConfirmed(userEmail, {
+            booking_id: bookingId,
+            service: 'Sessão',
+            professional_id: professionalId || '',
+          })
+        }
+
         let calendarSync: string = 'skipped'
         try {
           const syncResult = await upsertBookingInExternalCalendar(admin, bookingId)
@@ -748,6 +931,16 @@ export const processSupabasePaymentsChange = inngest.createFunction(
               payload: notificationPayload,
             })
           : false
+
+        // Emit Resend automation events (non-blocking)
+        const userEmailFailed = await resolveUserEmail(admin, bookingUserId)
+        if (userEmailFailed) {
+          const amount = asString(record.amount_total) || '0'
+          emitUserPaymentFailed(userEmailFailed, {
+            booking_id: bookingId,
+            amount,
+          })
+        }
 
         let calendarSync: string = 'skipped'
         try {
