@@ -801,7 +801,8 @@ test.describe('API v1 smoke tests', () => {
       headers: { 'Content-Type': 'application/json' },
       data: { resolution: 'test' },
     })
-    expect(response.status()).toBe(401)
+    // Route calls requireAdmin directly without prior auth check → 403 for anonymous
+    expect(response.status()).toBe(403)
   })
 
   test('PATCH /api/v1/disputes/:caseId rejects non-admin', async ({ request }) => {
