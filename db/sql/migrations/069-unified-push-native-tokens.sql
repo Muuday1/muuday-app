@@ -29,6 +29,10 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_device
   WHERE device_id IS NOT NULL;
 
 -- Add check constraint: native tokens must have push_token, web must have VAPID
+-- Drop first in case it already exists (rerunnable migration)
+ALTER TABLE push_subscriptions
+  DROP CONSTRAINT IF EXISTS chk_push_subscriptions_platform_fields;
+
 ALTER TABLE push_subscriptions
   ADD CONSTRAINT chk_push_subscriptions_platform_fields
   CHECK (
