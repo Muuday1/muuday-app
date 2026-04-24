@@ -14,8 +14,6 @@
  */
 
 import { env } from '@/lib/config/env'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,6 +61,8 @@ function getAuthHeaders(): Record<string, string> {
 /**
  * Generate a client_assertion JWT signed with the private key.
  * Revolut requires this for token refresh.
+ *
+ * Priority: REVOLUT_PRIVATE_KEY env var → revolut_private.pem file (local dev)
  */
 function generateClientAssertion(): string {
   const clientId = env.REVOLUT_CLIENT_ID
@@ -70,15 +70,23 @@ function generateClientAssertion(): string {
     throw new Error('REVOLUT_CLIENT_ID not configured')
   }
 
-  // Read private key from project root (revolut_private.pem)
-  // In production, store this in an env var instead of a file.
-  const privateKeyPath = join(process.cwd(), 'revolut_private.pem')
-  let privateKey: string
-  try {
-    privateKey = readFileSync(privateKeyPath, 'utf8')
-  } catch {
+  let privateKey: string | undefined = env.REVOLUT_PRIVATE_KEY
+
+  // Fallback: read from file for local development
+  if (!privateKey) {
+    try {
+      const { readFileSync } = require('fs')
+      const { join } = require('path')
+      privateKey = readFileSync(join(process.cwd(), 'revolut_private.pem'), 'utf8')
+    } catch {
+      // Will throw below
+    }
+  }
+
+  if (!privateKey) {
     throw new Error(
-      'revolut_private.pem not found. Generate it or set REVOLUT_PRIVATE_KEY env var.'
+      'REVOLUT_PRIVATE_KEY not configured and revolut_private.pem not found. ' +
+        'Set REVOLUT_PRIVATE_KEY env var with the PEM content (replace newlines with \\n).'
     )
   }
 

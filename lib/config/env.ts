@@ -46,6 +46,7 @@ const envSchema = z.object({
   REVOLUT_REFRESH_TOKEN: optionalString,
   REVOLUT_WEBHOOK_SECRET: optionalString,
   REVOLUT_ACCOUNT_ID: optionalString,
+  REVOLUT_PRIVATE_KEY: optionalString,
 
   // Payout Configuration
   PAYOUT_COOLDOWN_HOURS: z.coerce.number().min(0).default(48),

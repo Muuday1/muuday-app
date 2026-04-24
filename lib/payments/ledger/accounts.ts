@@ -91,6 +91,13 @@ export const FX_COST_EXPENSE: LedgerAccount = {
   type: 'expense',
 }
 
+/** Admin manual balance adjustments (emergency corrections) */
+export const ADMIN_ADJUSTMENT: LedgerAccount = {
+  code: '3400',
+  name: 'Admin Adjustment',
+  type: 'expense',
+}
+
 // ---------------------------------------------------------------------------
 // Equity / Contra Accounts (4000-4999)
 // ---------------------------------------------------------------------------
@@ -122,6 +129,7 @@ const ACCOUNTS_BY_CODE: ReadonlyMap<string, LedgerAccount> = new Map([
   [STRIPE_FEE_EXPENSE.code, STRIPE_FEE_EXPENSE],
   [TROLLEY_FEE_EXPENSE.code, TROLLEY_FEE_EXPENSE],
   [FX_COST_EXPENSE.code, FX_COST_EXPENSE],
+  [ADMIN_ADJUSTMENT.code, ADMIN_ADJUSTMENT],
   [PROFESSIONAL_BALANCE.code, PROFESSIONAL_BALANCE],
   [PROFESSIONAL_DEBT.code, PROFESSIONAL_DEBT],
 ])

@@ -26,6 +26,7 @@ import {
 } from '@/lib/payments/ledger/entries'
 import { getProfessionalBalance, updateProfessionalBalance } from '@/lib/payments/ledger/balance'
 import { notifyProfessionalsOnBatchSubmitted } from '@/lib/notifications/payout-notifications'
+import { trackPayoutSent } from '@/lib/analytics/server-events'
 import { env } from '@/lib/config/env'
 import { inngest } from '../client'
 
@@ -559,6 +560,16 @@ export const payoutBatchCreate = inngest.createFunction(
       await notifyProfessionalsOnBatchSubmitted(admin, batchDraft.batchId)
       return { notified: true }
     })
+
+    // Track analytics
+    for (const pro of preCalculated.eligiblePros) {
+      trackPayoutSent(pro.professionalId, {
+        batchId: batchDraft.batchId,
+        amount: Number(pro.totalEligibleAmount),
+        netAmount: Number(pro.totalEligibleAmount), // Will be refined per-item
+        debtDeducted: 0,
+      })
+    }
 
     logger.info('Payout batch created, submitted, and ledger entries recorded.', {
       trigger: event.name,

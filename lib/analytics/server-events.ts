@@ -219,3 +219,84 @@ export async function flushAnalytics() {
     posthogInstance = null
   }
 }
+
+// ─── Payment funnel events ────────────────────────────────────────────────
+
+export function trackPayoutSent(
+  professionalId: string,
+  props: {
+    batchId: string
+    amount: number
+    netAmount: number
+    debtDeducted: number
+  },
+) {
+  captureSafe(professionalId, 'payout_sent', {
+    batch_id: props.batchId,
+    amount: props.amount,
+    net_amount: props.netAmount,
+    debt_deducted: props.debtDeducted,
+  })
+}
+
+export function trackPayoutCompleted(
+  professionalId: string,
+  props: {
+    batchId: string
+    amount: number
+  },
+) {
+  captureSafe(professionalId, 'payout_completed', {
+    batch_id: props.batchId,
+    amount: props.amount,
+  })
+}
+
+export function trackPayoutFailed(
+  professionalId: string,
+  props: {
+    batchId: string
+    amount: number
+    reason: string
+  },
+) {
+  captureSafe(professionalId, 'payout_failed', {
+    batch_id: props.batchId,
+    amount: props.amount,
+    reason: props.reason,
+  })
+}
+
+export function trackRefundProcessed(
+  adminId: string,
+  props: {
+    bookingId: string
+    paymentId: string
+    amount: number
+    percentage: number
+    postPayout: boolean
+  },
+) {
+  captureSafe(adminId, 'refund_processed', {
+    booking_id: props.bookingId,
+    payment_id: props.paymentId,
+    amount: props.amount,
+    percentage: props.percentage,
+    post_payout: props.postPayout,
+  })
+}
+
+export function trackDisputeCreated(
+  professionalId: string,
+  props: {
+    bookingId: string
+    disputeAmount: number
+    source: 'stripe_webhook' | 'admin'
+  },
+) {
+  captureSafe(professionalId, 'dispute_created', {
+    booking_id: props.bookingId,
+    dispute_amount: props.disputeAmount,
+    source: props.source,
+  })
+}

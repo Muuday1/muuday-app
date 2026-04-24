@@ -13,6 +13,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyProfessionalAboutPayout } from '@/lib/notifications/payout-notifications'
+import { trackPayoutCompleted, trackPayoutFailed } from '@/lib/analytics/server-events'
 import { inngest } from '../client'
 
 // ---------------------------------------------------------------------------
@@ -232,13 +233,13 @@ async function handleRecipientUpdated(
           .eq('status', 'processing')
 
         if (pendingItems && pendingItems.length > 0) {
-          // Hold the funds by marking items as held
+          // Hold the funds by marking items as failed (inactive account)
           for (const item of pendingItems) {
             await admin
               .from('payout_batch_items')
               .update({
-                status: 'held',
-                failure_reason: 'Professional Trolley account became inactive',
+                status: 'failed',
+                failure_reason: 'Professional Trolley account became inactive — funds held',
                 updated_at: new Date().toISOString(),
               })
               .eq('id', item.id)
@@ -391,6 +392,20 @@ async function handlePaymentUpdated(
         }).catch(() => {
           // Notification failures are non-blocking
         })
+
+        // Track analytics
+        if (ourStatus === 'completed') {
+          trackPayoutCompleted(itemDetails.professional_id, {
+            batchId: batchItem.batch_id,
+            amount: Number(itemDetails.net_amount || 0),
+          })
+        } else if (ourStatus === 'failed' || ourStatus === 'returned') {
+          trackPayoutFailed(itemDetails.professional_id, {
+            batchId: batchItem.batch_id,
+            amount: Number(itemDetails.net_amount || 0),
+            reason: `Trolley payment ${trolleyStatus}`,
+          })
+        }
       }
     } catch {
       // Notification fetch failures are non-blocking
