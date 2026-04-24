@@ -34,6 +34,27 @@
 
 ---
 
+## Phase 0 — Webhook Security Hardening ✅ COMPLETE
+
+**Delivered**: 2026-04-24
+
+### Trolley Webhook Signature Verification
+- [x] HMAC-SHA256 implementation (`lib/payments/trolley/client.ts`)
+- [x] Parses `X-PaymentRails-Signature: t={timestamp},v1={hex}` format
+- [x] Concatenates timestamp + raw body for signature computation
+- [x] Timing-safe comparison (`crypto.timingSafeEqual`)
+- [x] Graceful degradation when `TROLLEY_WEBHOOK_SECRET` not configured
+
+### Revolut Webhook Signature Verification
+- [x] HMAC-SHA256 implementation (`lib/payments/revolut/client.ts`)
+- [x] Parses `Revolut-Signature: v1={hex}` format (supports multiple signatures during rotation)
+- [x] Builds `payload_to_sign = v1.{timestamp}.{raw_payload}` per Revolut docs
+- [x] Reads `Revolut-Request-Timestamp` header from webhook route
+- [x] Timing-safe comparison with all provided signatures
+- [x] Graceful degradation when `REVOLUT_WEBHOOK_SECRET` not configured
+
+---
+
 ## Phase 1 — Ledger Foundation ✅ COMPLETE
 
 **Delivered**: 2026-04-24

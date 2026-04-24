@@ -128,8 +128,8 @@
 
 ## ⚠️ Known Limitations / TODO
 
-1. **Trolley webhook signature verification** — Stubbed (`verifyTWebhookSignature` returns true if secret not configured), needs HMAC implementation
-2. **Revolut webhook JWT verification** — Stubbed, needs implementation
+1. ~~Trolley webhook signature verification~~ ✅ **Implemented** — HMAC-SHA256 with timing-safe comparison
+2. ~~Revolut webhook signature verification~~ ✅ **Implemented** — HMAC-SHA256 with multiple signature support (rotation)
 3. **Professional periodicity setting** — Hardcoded to weekly batch schedule, needs UI + DB column
 4. **Ledger entry atomicity** — Uses sequential inserts, should be PostgreSQL RPC for production
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried

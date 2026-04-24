@@ -16,9 +16,9 @@ Execute in order. Keep changes batchable, validated, and documented.
 
 ## Payment Engine — Next Tasks (in order)
 
-1. **Apply migrations 070-075 to production Supabase** — includes `force_completed` in CHECK constraint
-2. **Implement real Trolley webhook HMAC verification** — replace stub in `lib/payments/trolley/client.ts`
-3. **Implement real Revolut webhook JWT verification** — replace stub in `lib/payments/revolut/client.ts`
+1. ~~Implement real Trolley webhook HMAC verification~~ ✅ **Done** — `lib/payments/trolley/client.ts`
+2. ~~Implement real Revolut webhook HMAC verification~~ ✅ **Done** — `lib/payments/revolut/client.ts`
+3. **Apply migrations 070-075 to production Supabase** — includes `force_completed` in CHECK constraint
 4. **Test Trolley sandbox onboarding end-to-end** — PayPal recipient creation, KYC flow
 5. **Test Stripe sandbox pay-in → ledger → payout flow** — full money movement validation
 6. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
