@@ -107,6 +107,11 @@ The complete structured roadmap with explicit Review → Corrections → Commit 
 - [x] Reconciliation engine (auto-match Stripe ↔ Revolut)
 - [x] Daily reconciliation cron (6am UTC)
 
+### Environment & Deploy Notes (2026-04-24)
+- **Stripe**: Currently in SANDBOX (`sk_test_` / `pk_test_`). Switch to LIVE (`sk_live_` / `pk_live_`) only after Phase 4 complete.
+- **Env vars**: All payments engine env vars now documented in `.env.local.example`
+- **Vercel deploy**: Ensure env vars are configured in Vercel dashboard before deploying.
+
 ### Policy Updates (2026-04-24)
 - **Fee structure**: NO per-payout fees. Monthly subscription fee billed separately.
 - **Trolley payout**: PayPal-only for MVP. Bank transfer in future phase.
