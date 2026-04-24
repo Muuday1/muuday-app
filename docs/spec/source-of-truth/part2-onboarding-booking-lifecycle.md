@@ -1618,3 +1618,8 @@ End of Part 2.
 
 
 
+
+
+---
+
+> **Spec reviewed as part of 2026-04-24 audit.** Known contradictions identified in docs/DOC-AUDIT-REPORT-2026-04-24.md. Do not modify this spec without resolving contradictions in all affected parts.

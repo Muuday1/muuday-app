@@ -37,3 +37,8 @@
 1. Keep active docs aligned with current production truth.
 2. Finish UX cleanup on professional calendar and remaining admin/professional operational surfaces.
 3. Reopen Wave 3 only after the current stabilization backlog is materially closed.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

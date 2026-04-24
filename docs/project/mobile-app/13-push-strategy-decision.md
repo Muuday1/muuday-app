@@ -200,3 +200,8 @@ export async function sendUnifiedPush(userId, payload, options)
 Expo Push é a escolha correta para o estágio atual: **zero custo, máxima velocidade, mínima complexidade.** A arquitetura unificada garante que não ficamos presos — podemos migrar para qualquer provider no futuro sem mudar a API pública.
 
 **Próximo passo:** Implementar `lib/push/unified-sender.ts` e migration 069.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

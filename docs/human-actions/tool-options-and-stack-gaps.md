@@ -77,3 +77,8 @@ At each Wave close:
 1. Confirm all stack items in `docs/architecture/tech-stack.md` still have valid phase/trigger metadata.
 2. Promote or demote items between `Current`, `Open`, and `Evaluate` based on implementation reality.
 3. Update this file when new tools are proposed so they never stay as name-only placeholders.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

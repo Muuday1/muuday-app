@@ -297,3 +297,8 @@ available ──[ Payout trigger ]──→ processing ──[ Stripe transfer ]
 - `docs/product/journeys/professional-workspace-journey.md` — Dashboard earnings card
 - `docs/product/journeys/payments-billing-revenue.md` — Backend payment flow
 - `docs/product/journeys/operator-case-resolution.md` — Dispute/refund cases
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

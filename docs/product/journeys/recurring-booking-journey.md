@@ -461,3 +461,8 @@ Same as regular booking: `pending_confirmation` → `confirmed` → `completed` 
 - `docs/product/journeys/search-booking.md` — Parent booking journey
 - `lib/booking/recurrence-engine.ts` — Backend engine
 - `lib/booking/recurring-deadlines.ts` — Deadline calculations
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

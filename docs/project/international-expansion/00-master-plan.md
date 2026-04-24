@@ -451,3 +451,8 @@ CREATE INDEX idx_reviews_market ON reviews(client_market_code);
 
 > Documento vivo. Atualizado em: 2026-04-23
 > Próxima revisão: quando houver mudanças de escopo ou decisões arquiteturais
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

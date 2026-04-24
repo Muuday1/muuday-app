@@ -517,3 +517,8 @@ Acuracia esperada: 90%+
 | Fallback | Ingles quando nao ha overlap |
 | Escalabilidade | Suporta N mercados via configuracao |
 | SEO | hreflang, sem redirect para crawlers |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

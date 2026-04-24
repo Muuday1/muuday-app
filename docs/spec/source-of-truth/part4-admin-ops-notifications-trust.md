@@ -1163,3 +1163,8 @@ These are important future-thinking items, but should not be implemented now unl
 These should be considered only after the MVP and early operational patterns are visible.
 
 END OF PART 4
+
+
+---
+
+> **Spec reviewed as part of 2026-04-24 audit.** Known contradictions identified in docs/DOC-AUDIT-REPORT-2026-04-24.md. Do not modify this spec without resolving contradictions in all affected parts.

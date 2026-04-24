@@ -70,3 +70,8 @@ Allow users to create account, complete profile basics, and reach trusted discov
 - [Master Spec](../../spec/consolidated/master-spec.md)
 - [Search and Booking Journey](./search-booking.md)
 - [Session Management Journey](./session-management.md)
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

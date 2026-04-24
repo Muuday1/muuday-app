@@ -1,6 +1,6 @@
 ﻿# Project Overview
 
-Last updated: 2026-03-29
+Last updated: 2026-04-24
 
 ## Product definition
 
@@ -27,15 +27,16 @@ Primary references:
 
 ## Current stage
 
-`In progress` - Platform baseline exists, but full implementation parity with the canonical 5-part spec is not complete.
+`Stabilization` - Waves 0–2 are complete. Platform baseline is operational with search, booking, onboarding, admin review, and session execution (Agora with waiting room). Backend parallel work (Fases 1–5) delivered notifications, chat, push, client records, disputes, multi-service booking, and analytics. Wave 3 (real-money payments) is locked pending compliance readiness.
 
 ## Program priorities
 
-1. Achieve schema and state-model parity for booking foundation in production.
-2. Complete Wave 1 and Wave 2 journey correctness (taxonomy/search/onboarding/booking).
-3. Implement Wave 3 payments-revenue engine with dual-rail lifecycle (UK Stripe + BR Airwallex/dLocal) and internal ledger safety.
-4. Implement Wave 4 admin/trust/notifications operational layer.
-5. Keep Agora as active video provider and execute Wave 5 compliance validations.
+1. ✅ Achieve schema and state-model parity for booking foundation in production. (Done)
+2. ✅ Complete Wave 1 and Wave 2 journey correctness (taxonomy/search/onboarding/booking). (Done)
+3. ⏳ Implement Wave 3 payments-revenue engine with dual-rail lifecycle (UK Stripe + BR Airwallex/dLocal) and internal ledger safety. (Locked — waiting for compliance + rail confirmation)
+4. ✅ Implement Wave 4 admin/trust/notifications operational layer. (Backend complete — chat, push, client records, disputes, cases, multi-service)
+5. ✅ Keep Agora as active video provider and execute Wave 5 compliance validations. (Agora locked; waiting room + game shipped)
+6. 🔄 Close stabilization backlog: professional operations UX, copy cleanup, doc drift remediation.
 
 ## Program constraints
 
@@ -50,3 +51,8 @@ Primary references:
 - [Roadmap](./roadmap.md)
 - [Execution Alignment](./execution-alignment.md)
 - [Journey Coverage Matrix](../spec/consolidated/journey-coverage-matrix.md)
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

@@ -329,3 +329,8 @@ type NotificationPreferences = {
 - `docs/product/journeys/global-context-propagation.md` — Timezone/currency settings
 - `docs/product/journeys/notification-inbox-lifecycle.md` — Notification dispatch
 - `docs/product/journeys/profile-edit-journey.md` — Profile editing
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

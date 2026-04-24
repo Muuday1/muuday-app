@@ -31,3 +31,8 @@ Protect API routes and server actions against abuse.
 
 1. Confirm Upstash env vars in production.
 2. Monitor rate-limit source metadata (`upstash` vs `memory`) in logs.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

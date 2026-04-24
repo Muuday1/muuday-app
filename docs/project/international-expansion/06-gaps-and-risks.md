@@ -289,3 +289,8 @@
 **Mitigação:**
 - Pesquisa de mercado ANTES de investir em desenvolvimento.
 - Diferenciação (foco em expats, não em mercado local).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

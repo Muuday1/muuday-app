@@ -126,3 +126,8 @@
 2. **Landing Page Richness** — Stakeholder solicitou mais imagens, animações, motion (ver `LANDING-WISE-GAP-LIST.md`).
 3. **Forms** — Padronizar todos os inputs para usar `AppInput`.
 4. **Tabelas** — Criar `AppTable` primitive para listagens (agenda, financeiro, admin).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

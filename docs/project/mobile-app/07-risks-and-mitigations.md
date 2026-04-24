@@ -189,3 +189,8 @@ The `MOBILE_API_KEY` proposed in the auth strategy is a static string embedded i
 | 9 | OAuth deep link issues | Medium | Medium | Mobile Lead | Low (test matrix) |
 | 10 | Payment flow discrepancies | Medium | Medium | Backend Lead | Low (unified service) |
 | 11 | Static API key leak from mobile bundle | Medium | High | Security Lead | Medium (app attestation + pinning) |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

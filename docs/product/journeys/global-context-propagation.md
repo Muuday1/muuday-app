@@ -237,3 +237,8 @@ Global context (country, timezone, currency, language) is referenced in 5+ docum
 - `docs/spec/source-of-truth/part2-onboarding-booking-lifecycle.md` — Timezone rules
 - `lib/booking/recurring-deadlines.ts` — Deadline calculations
 - `lib/professional/onboarding-helpers.ts` — Country/timezone setup
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

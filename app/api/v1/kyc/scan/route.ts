@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     .eq('id', credential.id)
 
   if (updateError) {
-    console.error('[api/v1/kyc/scan] update error:', updateError)
+    console.error('[api/v1/kyc/scan] update error:', updateError.message, updateError.code)
     return NextResponse.json({ error: 'Failed to persist OCR results.' }, { status: 500 })
   }
 

@@ -1,6 +1,6 @@
 ﻿# Rules And Constraints
 
-Last updated: 2026-03-29
+Last updated: 2026-04-24
 
 ## Non-flexible constraints
 
@@ -39,3 +39,8 @@ Last updated: 2026-03-29
 1. UX and visual refinement without policy drift.
 2. Internal refactors preserving behavior and constraints.
 3. Tooling improvements aligned with cost-effective rollout.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

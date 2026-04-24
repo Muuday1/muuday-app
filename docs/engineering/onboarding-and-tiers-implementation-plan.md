@@ -11,7 +11,7 @@ Canonical refs: `docs/spec/source-of-truth/part1-foundations-search-tiers.md`, `
 1. Product is video-only (Agora for now). No in-person delivery.
 2. No service jurisdiction. Professionals can serve globally.
 3. Tier limits are runtime-configurable from `plan_configs` (Admin > Planos), with safe defaults:
-   - Basic: `1 service / 1 specialty / 3 tags / 30-day window`
+   - Basic: `1 service / 1 specialty / 3 tags / 60-day window`
    - Professional: `3 / 3 / 4 / 90 days`
    - Premium: `5 / 3 / 5 / 180 days`
 4. Annual = `10x` monthly.
@@ -219,7 +219,7 @@ Exit criteria:
 
 ## Appendix B - Canonical tier matrix
 
-1. Basic: 1 service, 1 specialty, 3 tags, 30-day booking window.
+1. Basic: 1 service, 1 specialty, 3 tags, 60-day booking window.
 2. Professional: 3 services, 3 specialties, 4 tags, 90 days.
 3. Premium: 5 services, 3 specialties, 5 tags, 180 days.
 
@@ -259,3 +259,8 @@ Exit criteria:
 1. `docs/project/roadmap.md` and `docs/spec/consolidated/master-spec.md` are canonical scope/status docs.
 2. `docs/spec/consolidated/execution-plan.md` is derived operational plan and must reference canonical docs.
 3. `docs/spec/consolidated/journey-coverage-matrix.md` reflects real implementation state (no stale placeholders).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

@@ -47,7 +47,7 @@ async function sendEvent(
       console.warn(`[resend-events] ${eventName} failed (${res.status}): ${body}`)
     }
   } catch (err) {
-    console.warn(`[resend-events] ${eventName} error:`, err)
+    console.warn(`[resend-events] ${eventName} error:`, err instanceof Error ? err.message : String(err))
   }
 }
 

@@ -352,3 +352,8 @@ Profile editing covers two distinct flows: **user profile** (`/editar-perfil`) f
 - `docs/product/journeys/professional-onboarding.md` — Onboarding profile creation
 - `docs/product/journeys/search-booking.md` — Profile public display
 - `docs/product/journeys/professional-workspace-journey.md` — Dashboard quick action
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

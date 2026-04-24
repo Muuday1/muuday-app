@@ -42,3 +42,8 @@ The files under `source-of-truth/` are copied from the 5 provided consolidation 
 1. If code or behavior diverges from this spec, update implementation or explicitly document the delta.
 2. Do not remove source-of-truth content.
 3. New decisions should be added as additive deltas, not undocumented overrides.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

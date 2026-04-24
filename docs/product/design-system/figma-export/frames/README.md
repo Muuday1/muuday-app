@@ -59,3 +59,7 @@
 - Components: Build reusable components from `components.json` before constructing frames.
 - Prototype links: Connect frames within each journey with "Navigate to" and Smart Animate where appropriate.
 - Use auto-layout for all cards, lists, and sidebars to ensure responsive behavior.
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

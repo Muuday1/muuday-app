@@ -147,7 +147,7 @@ export async function canSendService(
     if (!prefs) return true // no prefs saved -> default opt-in
     return prefs[key] !== false
   } catch (e) {
-    console.error('[email/shared] canSend unexpected error:', e)
+    console.error('[email/shared] canSend unexpected error:', e instanceof Error ? e.message : String(e))
     return true // on error -> send anyway
   }
 }

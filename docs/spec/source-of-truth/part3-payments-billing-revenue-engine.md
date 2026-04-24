@@ -512,7 +512,7 @@ TECHNICAL REQUIREMENTS
   - promotional tools
   - search boost rules
   - request booking rights
-  - annual discount behavior
+  - annual pricing behavior (10× monthly, not a percentage discount)
 
 
 ==================================================
@@ -890,7 +890,7 @@ Muuday has:
 
 Billing choices:
 - monthly
-- annual with 15% discount
+- annual = 10× monthly price
 
 12.2 Trial/waiver logic
 Decision:
@@ -1733,3 +1733,8 @@ It is:
 - later polishing legal/compliance wording for sensitive categories
 
 END OF PART 3
+
+
+---
+
+> **Spec reviewed as part of 2026-04-24 audit.** Known contradictions identified in docs/DOC-AUDIT-REPORT-2026-04-24.md. Do not modify this spec without resolving contradictions in all affected parts.

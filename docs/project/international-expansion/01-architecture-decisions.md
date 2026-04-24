@@ -282,3 +282,8 @@ Futuramente, podemos permitir que um profissional brasileiro que fala espanhol t
 | URLs: Subdiretórios (`/br/`, `/mx/`) | ✅ Aprovado |
 | Detecção: Accept-Language + IP + cookie + confirmação manual | ✅ Aprovado |
 | Isolamento: `market_code` em `professionals` | ✅ Aprovado |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

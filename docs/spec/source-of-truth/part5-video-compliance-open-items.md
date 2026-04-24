@@ -940,3 +940,8 @@ The value of this package is in the exact rules and the interaction between thos
 The most important thing to preserve when consolidating is not the volume of text. It is the decision precision.
 
 END OF PART 5
+
+
+---
+
+> **Spec reviewed as part of 2026-04-24 audit.** Known contradictions identified in docs/DOC-AUDIT-REPORT-2026-04-24.md. Do not modify this spec without resolving contradictions in all affected parts.

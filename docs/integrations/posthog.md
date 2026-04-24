@@ -65,3 +65,8 @@ Feature flags:
 - If PostHog env vars are absent, capture helpers are no-op.
 - Keep event names stable to avoid dashboard fragmentation.
 - Feature-flag behavior is fail-open for existing checkout UX (`undefined` flag state keeps current behavior).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

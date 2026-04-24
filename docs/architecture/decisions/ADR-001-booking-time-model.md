@@ -23,3 +23,8 @@ Muuday serves users and professionals across countries and timezones. Booking lo
 
 - Booking creation, rescheduling, reminders, and timeout jobs depend on UTC fields.
 - Journey docs and API behavior must always show timezone handling rules.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

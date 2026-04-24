@@ -172,3 +172,8 @@ Marketing homepage for Muuday. Serves two audiences:
 | `mu-btn-primary` | `globals.css` utility | `rounded-md`, `bg-[#22c55e]` |
 | `mu-btn-outline` | `globals.css` utility | `rounded-md`, border |
 | `mu-shell-card` | `globals.css` utility | Flat, border-only |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

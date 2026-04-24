@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     .maybeSingle()
 
   if (profileError) {
-    console.error('[api/v1/users/me] profile error:', profileError)
+    console.error('[api/v1/users/me] profile error:', profileError.message, profileError.code)
     return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 })
   }
 

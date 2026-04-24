@@ -279,3 +279,8 @@ https://muuday.com/profissional/{slug}         → Professional profile (falls b
 | Payments | **@stripe/stripe-react-native** | Native PaymentSheet |
 | Analytics | **posthog-react-native** | Same events as web |
 | Feature Flags | **PostHog** | Already configured for web |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

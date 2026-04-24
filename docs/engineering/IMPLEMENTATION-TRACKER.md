@@ -378,7 +378,13 @@ getProfessionalServices(professionalId)
 
 ## FASE 6 — Payment Stack ⏳ AGUARDANDO INSTRUÇÕES
 
-> **Status**: Plano arquitetural pronto. Aguardando instruções específicas do usuário sobre Stripe → Ledger → Trolley → Revolut.
+> ⚠️ **ATENÇÃO ARQUITETURAL (2026-04-24):** O plano original desta fase mencionava **Trolley + Revolut** para payouts. Esta arquitetura foi **SUPERSEDIDA** pela decisão canônica de 2026-04-10 documentada em `docs/engineering/stripe-integration-plan.md`. O caminho canônico é:
+> - Entidade UK → Stripe end-to-end (cobrança + payout via Stripe Connect)
+> - Entidade BR → Airwallex end-to-end (alternativa: dLocal como contingência)
+>
+> **NÃO implementar Trolley + Revolut.** Aguardar instruções específicas sobre o fluxo Stripe → Ledger interno → Airwallex/dLocal.
+>
+> **Status**: Plano arquitetural pronto (baseado em Stripe + Airwallex). Aguardando instruções específicas do usuário para iniciar execução real de pagamentos (Wave 3).
 
 ### O que será construído (esqueleto do plano):
 
@@ -448,3 +454,8 @@ getProfessionalServices(professionalId)
 | Arquivos de declaração de tipo | 2 (`posthog-node`, `web-push`) |
 | Env vars novas | 2 (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) |
 | Rate limit presets novos | 3 (`notificationRead`, `notificationWrite`, `messageSend`) |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

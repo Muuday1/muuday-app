@@ -280,3 +280,8 @@
 - Confirmation card has 24px (space-6) internal padding.
 - Calendar export buttons are full-width inside the card.
 - On mobile, the card becomes edge-to-edge with 16px padding.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

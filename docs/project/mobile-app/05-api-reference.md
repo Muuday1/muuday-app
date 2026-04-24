@@ -1041,3 +1041,8 @@ Scan/upload KYC document.
 | `apiV1AdminWrite` | 30 | 60s |
 | `apiV1PushSubscribe` | 10 | 60s |
 | `apiV1KycScan` | 10 | 60s |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

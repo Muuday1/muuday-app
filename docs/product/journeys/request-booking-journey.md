@@ -405,3 +405,8 @@ open ──[pro offers]──→ offered ──[user accepts]──→ accepted 
 - `docs/product/journeys/professional-workspace-journey.md` — Pro inbox
 - `lib/booking/request-booking-state-machine.ts` — Backend state machine
 - `lib/actions/request-booking.ts` — Server actions
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

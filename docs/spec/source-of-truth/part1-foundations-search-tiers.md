@@ -1449,7 +1449,7 @@ These events help answer:
 11.2 Tier summary
 
 * 3 plans: Basic, Professional, Premium.
-* Annual plan exists with 15% discount.
+* Annual plan: annual = 10× monthly price (not a percentage discount).
 * 3 months free for signup.
 * Tier affects operations, growth, monetization, and search visibility.
 * Tier influence on ranking is moderate, not dominant.
@@ -1520,3 +1520,8 @@ These will appear in later parts so this part can remain focused and actionable.
 
 ## END OF PART 1
 
+
+
+---
+
+> **Spec reviewed as part of 2026-04-24 audit.** Known contradictions identified in docs/DOC-AUDIT-REPORT-2026-04-24.md. Do not modify this spec without resolving contradictions in all affected parts.

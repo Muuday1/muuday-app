@@ -476,7 +476,7 @@ ready_to_book ──[active]──→ active_professional
 |------|---------|-----|
 | Buffer time | 15 min | Tier-dependent (Basic: 30, Pro: 60) |
 | Min notice | 24h | 72h |
-| Max booking window | 30 days | Tier-dependent (Basic: 30, Pro: 90) |
+| Max booking window | 60 days | Tier-dependent (Basic: 60, Pro: 90) |
 
 ### Earnings Display
 
@@ -623,3 +623,8 @@ ready_to_book ──[active]──→ active_professional
 - `docs/product/journeys/recurring-booking-journey.md` — Recurring packages
 - `docs/product/journeys/payments-billing-revenue.md` — Financial backend
 - `lib/professional/workspace-health.ts` — Alert generation logic
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

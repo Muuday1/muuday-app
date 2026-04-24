@@ -190,3 +190,8 @@ Week:  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17+
 | Skip JWT auth refactor | Mobile app cannot use existing API. Must build parallel backend. Cost: **+1 month**, infrastructure duplication. |
 | Skip translation extraction | Every UI string is translated twice (web + mobile). Cost: **+2–3 weeks**, translation drift forever. |
 | Skip DB type generation | Schema changes break mobile silently. Cost: **unbounded** bug-fixing time. |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

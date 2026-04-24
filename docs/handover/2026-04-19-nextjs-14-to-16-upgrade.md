@@ -121,3 +121,8 @@ git merge-tree $(git merge-base main nextjs-14-to-16-upgrade) main nextjs-14-to-
 ```
 
 **Ready for merge to `main`.**
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

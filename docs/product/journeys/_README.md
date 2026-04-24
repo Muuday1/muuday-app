@@ -1,13 +1,13 @@
 # Muuday Journey Documentation — Master Index
 
-**Last updated:** 2026-04-19  
-**Status:** 19 canonical journeys documented + 2 master implementation guides + 5 research documents  
-**Scope:** All end-to-end product journeys for the Muuday marketplace  
+**Last updated:** 2026-04-24
+**Status:** 19 canonical journeys documented + 2 master implementation guides + 5 research documents
+**Scope:** All end-to-end product journeys for the Muuday marketplace
 
 > 🚨 **Implementing changes? Start here:**
 > 1. Read [`IMPLEMENTATION-ROADMAP.md`](../IMPLEMENTATION-ROADMAP.md) — what to build, in what order
 > 2. Read [`AI-AGENT-INSTRUCTIONS.md`](../AI-AGENT-INSTRUCTIONS.md) — how to build it (rules, workflow, pitfalls)
-> 3. Then read the specific journey doc for frame-by-frame UX specs  
+> 3. Then read the specific journey doc for frame-by-frame UX specs
 
 ---
 
@@ -17,39 +17,39 @@
 
 | # | Document | Status | Actors | Key Flow |
 |---|----------|--------|--------|----------|
-| 1 | [User Onboarding](user-onboarding.md) | In progress | User, System | Landing → Auth → Onboarding → Dashboard |
-| 2 | [Search & Booking](search-booking.md) | In progress | User, System, Professional | Search → Profile Bio → Services → Multi-Step Booking → Checkout → Confirmation |
+| 1 | [User Onboarding](user-onboarding.md) | ✅ Complete | User, System | Landing → Auth → Onboarding → Dashboard |
+| 2 | [Search & Booking](search-booking.md) | ✅ Complete (backend) / 🔄 UI polish | User, System, Professional | Search → Profile Bio → Services → Multi-Step Booking → Checkout → Confirmation |
 | 3 | [Search Recovery](search-recovery-journey.md) | ✅ Complete | User, System | Query → Filter → Zero Results → Recovery → Waitlist |
 | 4 | [Session Lifecycle](session-lifecycle.md) | ✅ Complete | User, Professional, System | Pre-Session → Join → In-Session → Post-Session → Dispute |
-| 5 | [Recurring Booking](recurring-booking-journey.md) | ✅ Complete | User, System, Professional | Setup → Management → Modification → Renewal |
+| 5 | [Recurring Booking](recurring-booking-journey.md) | ✅ Complete (backend) / 🔄 UI polish | User, System, Professional | Setup → Management → Modification → Renewal |
 | 6 | [Review Moderation](review-moderation-lifecycle.md) | ✅ Complete | User, Professional, Admin, System | Submit → Moderate → Publish → Respond |
 
 ### Professional-Facing Journeys
 
 | # | Document | Status | Actors | Key Flow |
 |---|----------|--------|--------|----------|
-| 7 | [Professional Onboarding](professional-onboarding.md) | In progress | Professional, Admin, System | Signup → Onboarding → Submission → Review → Live |
+| 7 | [Professional Onboarding](professional-onboarding.md) | ✅ Complete | Professional, Admin, System | Signup → Onboarding → Submission → Review → Live |
 | 8 | [Professional Workspace](professional-workspace-journey.md) | ✅ Complete | Professional, System | Dashboard → Agenda → Availability → Rules → Earnings |
-| 9 | [Session Management](session-management.md) | In progress | Professional, System | Agenda → Confirm/Cancel → Reminders → Post-Session |
-| 10 | [Video Session Execution](video-session-execution.md) | In progress | User, Professional, System | Join → A/V → Tools → End → Handoff |
+| 9 | [Session Management](session-management.md) | ✅ Complete (merged into Session Lifecycle) | Professional, System | Agenda → Confirm/Cancel → Reminders → Post-Session |
+| 10 | [Video Session Execution](video-session-execution.md) | ✅ Complete (merged into Session Lifecycle) | User, Professional, System | Join → A/V → Tools → End → Handoff |
 
 ### Admin & Operations Journeys
 
 | # | Document | Status | Actors | Key Flow |
 |---|----------|--------|--------|----------|
-| 11 | [Admin Operations](admin-operations.md) | In progress | Admin, System | Queue → Review → Decide → Notify → Audit |
-| 12 | [Operator Case Resolution](operator-case-resolution.md) | ✅ Complete | Operator, User, Professional, System | Create → Triage → Investigate → Decide → Close |
+| 11 | [Admin Operations](admin-operations.md) | ✅ Complete (review flow) / 🔄 Case UI polish | Admin, System | Queue → Review → Decide → Notify → Audit |
+| 12 | [Operator Case Resolution](operator-case-resolution.md) | ✅ Complete (backend) / 🔄 Admin UI polish | Operator, User, Professional, System | Create → Triage → Investigate → Decide → Close |
 
 ### System & Cross-Cutting Journeys
 
 | # | Document | Status | Actors | Key Flow |
 |---|----------|--------|--------|----------|
-| 13 | [Payments & Revenue](payments-billing-revenue.md) | Planned | User, Professional, System | Charge → Split → Payout → Refund → Report |
-| 14 | [Trust & Safety](trust-safety-compliance.md) | In progress | User, Professional, Admin, System | Monitoring → Flag → Investigate → Enforce → Appeal |
+| 13 | [Payments & Revenue](payments-billing-revenue.md) | ⏳ Planned (Wave 3) | User, Professional, System | Charge → Split → Payout → Refund → Report |
+| 14 | [Trust & Safety](trust-safety-compliance.md) | ✅ Complete (backend) / 🔄 UI polish | User, Professional, Admin, System | Monitoring → Flag → Investigate → Enforce → Appeal |
 | 15 | [Notification Inbox](notification-inbox-lifecycle.md) | ✅ Complete | All, System | Trigger → Dispatch → Render → State → Archive |
 | 16 | [Global Context Propagation](global-context-propagation.md) | ✅ Complete | All, System | Country → Timezone → Currency → Language |
 | 17 | [Request Booking](request-booking-journey.md) | ✅ Complete | User, Professional, System | Request → Offer → Accept/Decline → Convert |
-| 18 | [Financial Overview](financial-overview-journey.md) | ✅ Complete | Professional, System | Earnings → Payouts → Transactions → Analytics |
+| 18 | [Financial Overview](financial-overview-journey.md) | ✅ Complete (backend skeleton) / ⏳ Wave 3 | Professional, System | Earnings → Payouts → Transactions → Analytics |
 | 19 | [Profile Edit](profile-edit-journey.md) | ✅ Complete | User, Professional, System | Edit → Validate → Save → Review |
 | 20 | [Settings & Preferences](settings-preferences-journey.md) | ✅ Complete | User, Professional, System | Region → Notifications → Security → Health |
 
@@ -132,6 +132,8 @@ Each journey document follows this structure:
 5. **Update** IMPLEMENTATION-ROADMAP.md after EVERY task (mark ✅, check acceptance criteria)
 6. **Update** the journey document with implementation status
 
+> ⚠️ **CRITICAL: Check backend status before implementing.** Many journeys have `✅ Complete (backend)` status — the API, database, and server actions already exist. Do NOT rebuild them. Focus on frontend consumption, UI polish, or feature-flag enablement.
+
 ### For Product Managers:
 - Read the Executive Summary and Deep Review sections first
 - Use the Implementation Plan for sprint planning
@@ -161,10 +163,6 @@ The following documents are partially superseded by the new canonical docs but s
 - `session-management.md` — Merged into `session-lifecycle.md`
 - `video-session-execution.md` — Merged into `session-lifecycle.md`
 - `trust-safety-compliance.md` — Partially superseded by `operator-case-resolution.md`
-
----
-
-
 
 ---
 

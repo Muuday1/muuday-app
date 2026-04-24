@@ -427,3 +427,8 @@ Professional configures platform-specific settings: availability schedule, notif
 ---
 
 *Settings & Preferences frames complete. For shared components, see `components.md`. For tokens, see `tokens.md`.*
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

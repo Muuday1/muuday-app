@@ -337,3 +337,8 @@ export async function createBooking(data) {
 4. **Monitor** — Watch Sentry error rates and PostHog event volumes for 1 week at each traffic level.
 5. **Remove Server Actions** — Only after 100% traffic is stable for 1 week.
 6. **Rollback** — If error rate spikes, toggle the PostHog flag back to 0%. The old Server Actions remain functional until explicitly deleted.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

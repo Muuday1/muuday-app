@@ -73,3 +73,8 @@ These are safety rails only. They do not replace Stripe webhook/payment lifecycl
 - `db/sql/analysis/024-wave3-pii-column-audit.sql`
 2. Confirm no forbidden card-data columns are present.
 3. Confirm any local payout-sensitive fields are encrypted and documented.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

@@ -2,6 +2,42 @@
 
 Use this for meaningful checkpoints only.
 
+## 2026-04-24
+
+### Entry 86 (2026-04-24) — Comprehensive Documentation Audit
+- Scope executed:
+  - Full read pass of all 154 markdown files under `docs/`.
+  - Codebase cross-reference against `package.json`, `lib/tier-config.ts`, `db/sql/migrations/`, `app/`, `lib/actions/`, `app/api/v1/`, `inngest/functions/`.
+  - Identified critical misalignment in `docs/product/IMPLEMENTATION-ROADMAP.md` — all backend-built systems marked as ⏳ pending. Rewrote with accurate `✅` / `🔄` / `⏳` statuses.
+  - Identified payment rail controversy: three different plans across docs (Stripe+Airwallex vs Trolley+Revolut). Added warning banners to affected docs.
+  - Identified canonical spec internal contradictions: annual pricing (10× vs 15% discount) and Basic booking window (30 vs 60 days).
+  - Updated 11 critical status documents with accurate current state.
+  - Created `docs/DOC-AUDIT-REPORT-2026-04-24.md` with full findings, severity ratings, and remediation recommendations.
+- Key stats:
+  - Next.js: `^16.2.4` (doc said 14)
+  - React: `^19` (doc said 18)
+  - Migrations: 69 applied (doc mentioned only 14)
+  - `lib/actions/admin.ts`: 172 lines (was 655)
+  - `lib/actions/email.ts`: 270 lines (was 548)
+- Validation: N/A (docs-only change)
+
+### Entry 87 (2026-04-24) — Resolve spec contradictions (user decisions applied)
+- User decisions received and applied:
+  1. **Annual pricing:** 10× monthly (not 15% discount).
+  2. **Basic booking window:** 60 days (not 30 days).
+- Changes executed:
+  - `lib/tier-config.ts`: `bookingWindowDays` for Basic changed `30 → 60`.
+  - `docs/spec/source-of-truth/part1-foundations-search-tiers.md` line 1452: removed "15% discount", now reads "Annual plan: annual = 10× monthly price".
+  - `docs/spec/source-of-truth/part3-payments-billing-revenue-engine.md` lines 515, 893: updated to "10× monthly" / "annual = 10× monthly price".
+  - `docs/engineering/onboarding-and-tiers-implementation-plan.md`: Basic window updated `30-day → 60-day` (2 occurrences).
+  - `docs/engineering/stripe-integration-plan.md`: Annual pricing rule updated from "15% discount" to "10× monthly".
+  - `docs/product/journeys/professional-workspace-journey.md`: Max booking window table updated `Basic: 30 → Basic: 60`.
+  - `docs/DOC-AUDIT-REPORT-2026-04-24.md`: Contradiction sections marked as RESOLVED.
+- Verification:
+  - `grep` confirms zero remaining "15% discount" references in active docs.
+  - `grep` confirms zero remaining "30-day Basic window" references in docs.
+  - `npm run typecheck` → pass (tier-config change is a literal value swap, no type impact).
+
 ## 2026-04-22
 
 ### Entry 85 (2026-04-22) — Sala de Espera + jogo "O Expat" para sessões de video
@@ -1424,3 +1460,8 @@ Use this for meaningful checkpoints only.
     - `npm.cmd run db:validate-pooling` (local/dev informativo),
     - `npm.cmd run audit:auth-role-claims` (`100%` válido, `0%` fallback),
     - `npm.cmd run audit:rls:api` (PASS sem leak para bookings/payments/reviews/messages).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

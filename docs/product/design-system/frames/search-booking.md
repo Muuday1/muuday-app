@@ -1066,3 +1066,8 @@ Before handing off to development, verify each frame has:
 ---
 
 *Muuday Design System — Search & Booking Journey Frames v1.0*
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

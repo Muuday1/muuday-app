@@ -97,3 +97,8 @@ A task is done only when:
 3. test coverage includes critical and edge paths
 4. observability/auditability is clear
 5. docs reflect reality
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

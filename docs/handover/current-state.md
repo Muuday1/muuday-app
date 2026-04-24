@@ -47,21 +47,22 @@ Last updated: 2026-04-22
 1. Sprint 3 (Profile/Professional APIs extraction) is complete. All Server Actions in `lib/actions/professional.ts`, `professional-services.ts`, `availability-exceptions.ts`, `user-profile.ts`, `review.ts`, `favorites.ts`, `disputes.ts`, and `client-records.ts` have been extracted into service modules (`lib/*-service.ts`) and thin API routes (`/api/v1/*`). TypeScript and build pass cleanly.
 2. CORS gap closed for all `/api/v1/*` endpoints. Preflight and response headers are now applied in `middleware.ts` for the entire versioned API surface, enabling cross-origin mobile app consumption.
 3. Sprint 4 (Booking Lifecycle APIs extraction) is complete. `lib/actions/manage-booking.ts` and `lib/actions/request-booking.ts` have been extracted into `lib/booking/manage-booking-service.ts` and `lib/booking/request-booking-service.ts`. New API routes: `GET /api/v1/bookings`, `GET /api/v1/bookings/:id`, `PATCH /api/v1/bookings/:id/{confirm,cancel,reschedule,session-link,complete}`, `POST /api/v1/bookings/:id/{report-no-show,mark-user-no-show}`, and full request-booking lifecycle under `/api/v1/bookings/requests/*`.
-4. Sprint 5 (Remaining APIs extraction) in progress: onboarding (`complete-profile`, `complete-account`), review-response, blog-engagement, guide-feedback, admin-plans, and admin-taxonomy have been extracted into service modules and `/api/v1/*` routes. TypeScript and build pass cleanly.
-5. Only `lib/actions/admin.ts` (~809 lines) and `lib/actions/email.ts` (~506 lines) remain as significant Server Actions with inline logic. All other actions are now thin wrappers.
-3. Dashboard onboarding banner/modal were consolidated into one primary experience.
-2. `/onboarding-profissional` was deprecated into a safe redirect.
-3. Search currency switching was fixed to update price filters correctly.
-4. PT-BR mojibake cleanup was applied across main public/search/profile surfaces.
-5. Calendar sync controls were removed from the onboarding modal and concentrated in `/disponibilidade`.
-6. Onboarding modal load path was split into `critical` + `optional` scopes to prevent long blocking spinner on open.
-7. Optional tracker blocks now hydrate in background (`plan-pricing`, taxonomy, plan configs, FX rates) without blocking edits.
-8. Two-tier availability architecture closed:
-   - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
-   - Onboarding save route now dual-writes to both tables atomically.
-   - Backfill migration (062) syncs existing professionals after the onboarding fix.
-   - Availability exceptions render visually on the professional calendar (day/week/month).
-   - Slot-filtering and availability-merge utilities extracted with full unit-test coverage.
+4. Sprint 5 (Remaining APIs extraction) is complete: onboarding (`complete-profile`, `complete-account`), review-response, blog-engagement, guide-feedback, admin-plans, and admin-taxonomy have been extracted into service modules and `/api/v1/*` routes. TypeScript and build pass cleanly.
+5. `lib/actions/admin.ts` (172 lines) and `lib/actions/email.ts` (270 lines) are thin wrappers. No god files remain in `actions/`.
+6. Dashboard onboarding banner/modal were consolidated into one primary experience.
+7. `/onboarding-profissional` was deprecated into a safe redirect.
+8. Search currency switching was fixed to update price filters correctly.
+9. PT-BR mojibake cleanup was applied across main public/search/profile surfaces.
+10. Calendar sync controls were removed from the onboarding modal and concentrated in `/disponibilidade`.
+11. Onboarding modal load path was split into `critical` + `optional` scopes to prevent long blocking spinner on open.
+12. Optional tracker blocks now hydrate in background (`plan-pricing`, taxonomy, plan configs, FX rates) without blocking edits.
+13. Two-tier availability architecture closed:
+    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
+    - Onboarding save route now dual-writes to both tables atomically.
+    - Backfill migration (062) syncs existing professionals after the onboarding fix.
+    - Availability exceptions render visually on the professional calendar (day/week/month).
+    - Slot-filtering and availability-merge utilities extracted with full unit-test coverage.
+14. Comprehensive documentation audit completed (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md`.
 
 ## Open risks
 
@@ -77,3 +78,8 @@ Last updated: 2026-04-22
 3. Update docs in the same batch as meaningful implementation changes.
 4. Do not reopen Wave 3 implicitly through incidental implementation work.
 5. Prefer short, current operational docs over long historical running logs in active files.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

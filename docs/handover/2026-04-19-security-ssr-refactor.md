@@ -243,3 +243,8 @@ See full list above in sections 1.2 and 1.3. Key new files include all extracted
 - **CSP `style-src 'unsafe-inline'`:** Intentionally kept. 25+ dynamic inline styles in core components would require significant UI refactoring to remove.
 - **No generated Supabase types:** `ProfessionalRow` is hand-written. Consider running `supabase gen types typescript` for stronger type safety.
 - **Component/hook test coverage:** Still zero. Only 41 utility/state-machine tests exist.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

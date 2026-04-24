@@ -66,3 +66,8 @@ npm run build
 1. `npm audit` shows only accepted/tracked vulnerabilities with ticket numbers.
 2. `npm outdated` major-version upgrades are documented in a separate upgrade roadmap.
 3. CI passes after every patch batch.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

@@ -157,3 +157,8 @@
 - Chart bars use 4px radius on top corners.
 - Transaction rows have hover state bg: surface-muted.
 - On mobile, KPI cards scroll horizontally.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

@@ -116,3 +116,8 @@ RLS audit is considered complete only when:
 5. Build passes with `lib/config/env.ts` validation enabled.
 6. Secret rotation register has zero `overdue` items (or documented exceptions with ticket numbers).
 7. Evidence (query output + command output) is attached to handover.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

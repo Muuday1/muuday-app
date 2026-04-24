@@ -45,7 +45,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 1. Professional operations UX still needs refinement, especially around calendar and scheduling experience.
 2. Financial and compliance hardening needed for Wave 3 remains open.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
-4. Legacy/unmerged feature branch (`feat/landing-page-redesign`) still requires explicit product validation before merge.
+4. Documentation drift identified in comprehensive audit (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md` for full findings.
 
 ## Recently closed
 
@@ -68,3 +68,8 @@ Every meaningful implementation batch should update:
 1. `docs/project/project-status.md`
 2. `docs/handover/current-state.md`
 3. `docs/handover/next-steps.md`
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

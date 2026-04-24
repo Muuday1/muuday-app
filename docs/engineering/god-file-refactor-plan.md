@@ -156,3 +156,8 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 - **OnboardingTrackerModal**: High risk due to complexity and lack of tests. Recommend adding component tests first.
 - **Email templates**: Medium risk — need to verify all email functions still produce identical HTML output.
 - **Request booking**: Low risk — follow proven pattern from booking.ts refactor.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

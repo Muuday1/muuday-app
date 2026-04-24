@@ -428,3 +428,8 @@ Custo estimado: $10-30/mês para VPS + banco.
 **Se quiser self-hosted:** Directus.
 
 **Se orçamento não for problema:** Contentful (mas é overkill e caro demais para estágio atual).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

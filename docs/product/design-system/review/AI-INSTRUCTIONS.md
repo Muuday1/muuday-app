@@ -201,3 +201,8 @@ Add to the top of any modified file:
 ---
 
 *These instructions are binding. Violations must be reported to the project owner.*
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

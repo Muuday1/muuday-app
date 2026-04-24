@@ -39,3 +39,8 @@ Last updated: 2026-03-29
 
 1. Keep smoke checks tied to deploy workflow.
 2. Validate workflow health via external monitor alerts.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

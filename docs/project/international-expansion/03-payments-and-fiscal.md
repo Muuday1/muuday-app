@@ -332,3 +332,8 @@ Payout Profissional: $1.200 MXN
 - [ ] Criar conta Trolley (gratuita, só para testar API).
 - [ ] Documentar o modelo de split (comissão, taxas, payout) para o time.
 - [ ] Criar template de "payout receipt" para profissionais.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

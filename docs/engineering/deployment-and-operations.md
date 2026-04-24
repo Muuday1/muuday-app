@@ -157,3 +157,8 @@ Use runbooks in `docs/engineering/runbooks`:
 - [Checkly Monitoring](../integrations/checkly.md)
 - [Data Governance and Lifecycle](./data-governance-and-lifecycle.md)
 - [Secrets Rotation Runbook](./runbooks/secrets-rotation-runbook.md)
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

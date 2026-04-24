@@ -114,3 +114,8 @@ Not auto-changed in this run because they require product/security decision:
 - Extension schema relocation warnings (`pg_trgm`, `pg_net` in `public`) may break references.
 - Some RLS policy optimization warnings (multiple permissive policies) need careful policy consolidation.
 - Auth password leak protection is a dashboard-level toggle (not SQL migration).
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

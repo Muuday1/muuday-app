@@ -173,3 +173,8 @@ Scheduled workflows now enforce reminders and sync checks:
 
 1. Rotation owner: founder/operator until team expansion.
 2. No secret rotation is considered complete without register entry and smoke validation evidence.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

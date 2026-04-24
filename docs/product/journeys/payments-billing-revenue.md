@@ -61,3 +61,8 @@ Provide reliable money movement across booking charges, refunds, disputes, payou
 - [Master Spec](../../spec/consolidated/master-spec.md)
 - [Open Validations](../../spec/consolidated/open-validations.md)
 - [Integration: Stripe (to create/update)](../../integrations)
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

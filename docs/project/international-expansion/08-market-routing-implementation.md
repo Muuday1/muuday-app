@@ -759,3 +759,8 @@ export function PricingDisplay({ amount }: { amount: number }) {
 - [ ] Criar `app/api/market/route.ts`
 - [ ] Adaptar `app/buscar/page.tsx` para aceitar `market` param
 - [ ] Testar todos os cenários acima
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

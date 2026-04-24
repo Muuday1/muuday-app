@@ -83,3 +83,8 @@ When legal hold is active, deletion/anonymization jobs must skip affected record
 1. `docs/architecture/tech-stack.md`
 2. `docs/human-actions/decision-backlog.md`
 3. `docs/spec/consolidated/open-validations.md`
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

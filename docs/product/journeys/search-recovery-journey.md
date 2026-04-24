@@ -529,3 +529,8 @@ When zero results, suggest in this order:
 - `docs/product/journeys/search-booking.md` — Parent search journey
 - `docs/product/journeys/global-context-propagation.md` — Currency/location in search
 - `lib/search-config.ts` — Search configuration constants
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

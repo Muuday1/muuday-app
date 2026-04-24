@@ -438,3 +438,8 @@ export async function POST(request: Request) {
 - [ ] Adicionar banner ao layout root
 - [ ] Testar todos os cenários da tabela acima
 - [ ] Adicionar testes E2E (Playwright) para detecção de mercado
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

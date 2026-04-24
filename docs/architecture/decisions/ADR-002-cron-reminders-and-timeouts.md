@@ -25,3 +25,8 @@ Booking reminders and pending-confirmation timeouts need reliable recurring exec
 
 - Requires `CRON_SECRET` and stable `CRON_BASE_URL` configuration.
 - Monitoring should include endpoint checks and workflow run health.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

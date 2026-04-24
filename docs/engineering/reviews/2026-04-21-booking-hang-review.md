@@ -220,3 +220,8 @@ The booking hang is a **P0 production incident** caused most likely by UTF-8 BOM
 | `lib/booking/external-calendar-conflicts.ts` | Fail-open on query error | Medium |
 | `components/agenda/BookingRealtimeListener.tsx` | Removed unused eslint-disable | Low |
 | 41 other `.ts/.tsx` files | Removed BOM | Critical |
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

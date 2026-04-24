@@ -111,3 +111,8 @@ Define cost-efficient alerting and error-budget rules for current scale (solo op
 1. Sev 1: ack <= 15m, mitigate <= 2h
 2. Sev 2: ack <= 4h, mitigate <= 24h
 3. Sev 3: ack next business block, mitigate <= 3 business days
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

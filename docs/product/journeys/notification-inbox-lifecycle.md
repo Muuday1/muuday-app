@@ -400,3 +400,8 @@ CREATE INDEX idx_notifications_recipient_read ON notifications(recipient_id, rea
 - `docs/product/journeys/session-lifecycle.md` — Notification triggers within session lifecycle
 - `docs/product/journeys/operator-case-resolution.md` — Admin notification triggers
 - `lib/email/templates/*.ts` — Existing email templates
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

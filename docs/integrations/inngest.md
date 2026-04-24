@@ -45,3 +45,8 @@ Durable background-job orchestration for retries, idempotent async workflows, an
    - `curl -X PUT https://muuday-app.vercel.app/api/inngest --fail-with-body`
 2. Validate scheduled executions in cloud and compare parity with cron.
 3. Keep clear idempotency keys and retry-safe handlers as more workflows migrate.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

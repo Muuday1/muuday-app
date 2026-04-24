@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (error) {
-      console.error('[api/v1/professionals/search] rpc error:', error)
+      console.error('[api/v1/professionals/search] rpc error:', error.message, error.code)
       return NextResponse.json({ error: 'Search failed.' }, { status: 500 })
     }
 
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
       .eq('profiles.role', 'profissional')
 
     if (profError) {
-      console.error('[api/v1/professionals/search] professionals error:', profError)
+      console.error('[api/v1/professionals/search] professionals error:', profError.message, profError.code)
       return NextResponse.json({ error: 'Failed to load professionals.' }, { status: 500 })
     }
 
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       total: candidateIds.length,
     })
   } catch (err) {
-    console.error('[api/v1/professionals/search] unexpected error:', err)
+    console.error('[api/v1/professionals/search] unexpected error:', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
-  }
+    }
 }

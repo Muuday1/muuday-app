@@ -832,3 +832,8 @@ No schema changes. But price calculation must use `service.price_brl` instead of
 - [`request-booking-journey.md`](./request-booking-journey.md) — Custom time requests
 - [`session-lifecycle.md`](./session-lifecycle.md) — Session execution after booking
 - [`payments-billing-revenue.md`](./payments-billing-revenue.md) — Payment processing details
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

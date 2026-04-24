@@ -103,3 +103,8 @@ Current production sample data has only one approved professional. The `search-b
 ## Domain migration note
 
 When moving to `muuday.com`, update only `BASE_URL`.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

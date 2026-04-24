@@ -486,3 +486,8 @@
 - `docs/product/journeys/session-lifecycle.md` — No-show and dispute flows
 - `docs/product/journeys/operator-case-resolution.md` — Case handling
 - `docs/product/journeys/trust-safety-compliance.md` — Trust flags
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

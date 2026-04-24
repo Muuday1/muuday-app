@@ -258,3 +258,8 @@ This requires Supabase Auth to be configured with the **iOS Client ID** and **An
 - [ ] Configure Supabase Auth dashboard with iOS/Android OAuth client IDs
 - [ ] Document mobile auth flow for the mobile team
 - [ ] Add E2E tests for bearer token auth on API routes
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

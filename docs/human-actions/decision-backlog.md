@@ -109,3 +109,8 @@ Ordered by execution impact.
 1. Review this list weekly.
 2. Move resolved items to `Done` with date and owner.
 3. Update `docs/project/project-status.md` when blockers are removed.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

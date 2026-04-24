@@ -38,3 +38,8 @@ Primary backend platform for:
 2. Validate migration execution state in production before each wave gate.
 3. Use `npm run auth:validate-smoke` as the baseline Auth email smoke check (signup + reset trigger) before wave gates.
 4. Add DB operation observability and stronger audit traces for admin actions.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

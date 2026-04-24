@@ -28,3 +28,8 @@ Use this checklist in repository **Settings -> Secrets and variables -> Actions*
 
 1. `CI` workflow blocks `main` push when required E2E secrets are missing.
 2. `Checkly Validate` runs synthetic tests and deploy only when `CHECKLY_API_KEY` and `CHECKLY_ACCOUNT_ID` exist.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

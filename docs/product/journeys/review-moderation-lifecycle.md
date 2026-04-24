@@ -452,3 +452,8 @@ submitted ──[admin approves]──→ published ──[user edits]──→ 
 - `docs/product/journeys/session-lifecycle.md` — Review window timing
 - `docs/product/journeys/search-booking.md` — Profile trust signals
 - `docs/product/journeys/notification-inbox-lifecycle.md` — Review notifications
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

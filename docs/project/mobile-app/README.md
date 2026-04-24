@@ -42,3 +42,8 @@ When implementing, prioritize work that serves both initiatives:
 1. API-first refactor (serves mobile + multi-market)
 2. ICU translations (serves mobile + multi-market)
 3. DB market isolation (serves mobile + multi-market)
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

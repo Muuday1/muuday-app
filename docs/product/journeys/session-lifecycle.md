@@ -730,3 +730,8 @@ confirmed ──[session time passes]──→ completed ──[review window]�
 - `docs/product/journeys/operator-case-resolution.md` — Dispute resolution
 - `lib/booking/state-machine.ts` — Internal state transitions
 - `lib/actions/manage-booking.ts` — Server actions
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

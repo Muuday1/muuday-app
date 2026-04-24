@@ -218,7 +218,7 @@ Each rule from Part 3 is classified as:
 | 12.4 | Upgrade immediate, downgrade next cycle | **Works** | `stripe.subscriptions.update()` with `proration_behavior: 'create_prorations'` for upgrade, `billing_cycle_anchor: 'unchanged'` + schedule for downgrade. |
 | 12.5 | Pause profile = pause billing | **Works with config** | `stripe.subscriptions.update({ pause_collection: { behavior: 'void' } })`. Resume when profile unpauses. |
 | 12.5 | Cancel = end of current cycle + block new bookings | **Works** | `stripe.subscriptions.update({ cancel_at_period_end: true })`. |
-| 6.5 | Annual pricing with 15% discount | **Works** | Create annual Price with 15% discount baked in. |
+| 6.5 | Annual pricing = 10× monthly | **Works** | Create annual Price with 10× monthly amount baked in (customer pays for 10 months, gets 12). |
 | 2.20 | Recover professional debt from payouts, then card | **Needs custom code** | Stripe doesn't auto-deduct debt from Connect transfers. App must track debt and offset from next transfer amount. |
 
 **Action items:**
@@ -414,3 +414,8 @@ STRIPE_CONNECT_CLIENT_ID=ca_...
 | `customer.subscription.deleted` | Mark plan canceled, enforce block |
 | `account.updated` | Connected account onboarding status |
 
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

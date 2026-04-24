@@ -45,3 +45,8 @@ Last updated: 2026-04-01
 
 - If DSN is not configured, Sentry stays disabled (safe no-op).
 - Keep sample rates conservative in production and raise only when needed.
+
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
