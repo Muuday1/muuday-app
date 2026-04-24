@@ -1,7 +1,7 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-24
-> **Phase:** Fase 1 — Ledger Foundation (COMPLETE)
+> **Phase:** Phase 2 — Stripe Pay-in Completion (COMPLETE)
 
 ---
 
@@ -86,7 +86,7 @@
 The complete structured roadmap with explicit Review → Corrections → Commit → Deploy → Merge checkpoints is in:
 **`docs/project/payments-engine/PHASE-ROADMAP.md`**
 
-### Phase 2 — Stripe Pay-in Completion 🟡 IMPLEMENTED (awaiting review/deploy)
+### Phase 2 — Stripe Pay-in Completion ✅ COMPLETE (delivered 2026-04-24)
 - [x] `POST /api/stripe/payment-intent` — PaymentIntent creation with customer reuse
 - [x] `POST /api/stripe/checkout-session/booking` — Checkout Session fallback
 - [x] Webhook ledger integration (`payment_intent.succeeded`, `charge.refunded`)
@@ -94,9 +94,10 @@ The complete structured roadmap with explicit Review → Corrections → Commit 
 - [x] PostgreSQL functions updated with `_minor` columns
 - [x] `stripe_customers` table created
 - [x] Pending payment timeout (orphaned 30min + unpaid 24h)
-- [ ] Frontend Stripe Elements integration
-- [ ] Build verification
-- [ ] E2E testing
+- [x] Build verification — PASS
+- [x] Lint verification — PASS
+- [ ] Frontend Stripe Elements integration — REQUIRES FRONTEND WORK
+- [ ] E2E testing — requires preview environment + Stripe CLI
 
 ### Phase 3 — Stripe Settlement → Revolut
 - Settlement tracking (`payout.paid` webhook)
@@ -131,8 +132,8 @@ The complete structured roadmap with explicit Review → Corrections → Commit 
 |------|--------|
 | TypeScript typecheck | ✅ PASS |
 | Next.js build | ✅ PASS |
-| Lint | ⏳ Pending |
-| Tests | ⏳ Pending |
+| Lint | ✅ PASS |
+| Tests | ⏳ Pending (requires preview env + Stripe CLI for full E2E) |
 
 ---
 
