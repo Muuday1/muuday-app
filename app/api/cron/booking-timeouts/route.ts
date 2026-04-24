@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
+import { getStripeClient } from '@/lib/stripe/client'
+import {
+  buildRefundTransaction,
+  createLedgerTransaction,
+} from '@/lib/payments/ledger/entries'
 import {
   INTERNAL_API_CORS_POLICY,
   applyCorsHeaders,
@@ -225,21 +230,79 @@ export async function GET(request: NextRequest) {
 
     cancelled += 1
 
-    const refundResponse = await admin
+    // Load captured payments for this booking to process refunds properly
+    const { data: capturedPayments, error: paymentsError } = await admin
       .from('payments')
-      .update({
-        status: 'refunded',
-        refunded_at: nowIso,
-      })
+      .select('id, provider_payment_id, amount_total, currency, booking_id, professional_id')
       .eq('booking_id', booking.id)
       .in('status', ['captured'])
 
-    const { error: refundError } = refundResponse
-    if (refundError) {
-      console.error('[cron/booking-timeouts] refund error:', booking.id, refundError.message)
+    if (paymentsError) {
+      console.error('[cron/booking-timeouts] payments load error:', booking.id, paymentsError.message)
       continue
     }
-    refunded += 1
+
+    if (!capturedPayments || capturedPayments.length === 0) {
+      continue
+    }
+
+    const stripe = getStripeClient()
+    let bookingRefunded = 0
+
+    for (const payment of capturedPayments) {
+      try {
+        // 1. Refund via Stripe API if we have a payment intent
+        if (stripe && payment.provider_payment_id) {
+          await stripe.refunds.create(
+            {
+              payment_intent: payment.provider_payment_id,
+              reason: 'requested_by_customer',
+              metadata: {
+                booking_id: booking.id,
+                payment_id: payment.id,
+                source: 'cron_booking_timeout',
+              },
+            },
+            { idempotencyKey: `timeout-refund-${payment.id}-${nowIso}` },
+          )
+        }
+
+        // 2. Create ledger entries for the refund
+        const amountMinor = BigInt(Math.round((payment.amount_total || 0) * 100))
+        if (amountMinor > BigInt(0)) {
+          const ledgerInput = buildRefundTransaction({
+            refundAmount: amountMinor,
+            bookingId: payment.booking_id,
+            paymentId: payment.id,
+          })
+          await createLedgerTransaction(admin, ledgerInput)
+        }
+
+        // 3. Update payment status
+        const { error: updateError } = await admin
+          .from('payments')
+          .update({
+            status: 'refunded',
+            refunded_at: nowIso,
+          })
+          .eq('id', payment.id)
+
+        if (updateError) {
+          console.error('[cron/booking-timeouts] payment update error:', payment.id, updateError.message)
+          continue
+        }
+
+        bookingRefunded += 1
+      } catch (refundError) {
+        const msg = refundError instanceof Error ? refundError.message : String(refundError)
+        console.error('[cron/booking-timeouts] refund processing error:', booking.id, payment.id, msg)
+        // Continue with next payment — do not block other refunds
+      }
+    }
+
+    if (bookingRefunded > 0) {
+      refunded += 1
+    }
   }
 
   return withCors(NextResponse.json({

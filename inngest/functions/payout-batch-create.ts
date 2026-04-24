@@ -382,7 +382,22 @@ export const payoutBatchCreate = inngest.createFunction(
             professionalId: item.professional_id,
             error: errorMsg,
           })
-          // Continue with other items — will mark failed items later
+          // Mark item as failed so it does not stay pending indefinitely
+          try {
+            await admin
+              .from('payout_batch_items')
+              .update({
+                status: 'failed',
+                failure_reason: `Trolley payment creation failed: ${errorMsg.slice(0, 200)}`,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', item.id)
+          } catch (dbErr: unknown) {
+            logger.error('Failed to mark batch item as failed.', {
+              itemId: item.id,
+              error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+            })
+          }
         }
       }
 
@@ -521,7 +536,7 @@ export const payoutBatchCreate = inngest.createFunction(
             trolleyFeesRecorded += 1
           }
 
-          // Update professional balance
+          // Update professional balance atomically (includes last_payout_at)
           // available_balance decreases by eligibleAmount (total bookings consumed)
           // total_debt decreases by debtDeducted (if applicable)
           const ZERO = BigInt(0)
@@ -529,13 +544,8 @@ export const payoutBatchCreate = inngest.createFunction(
             await updateProfessionalBalance(admin, item.professional_id, {
               availableDelta: eligibleAmount > ZERO ? -eligibleAmount : ZERO,
               debtDelta: debtDeducted > ZERO ? -debtDeducted : ZERO,
+              lastPayoutAt: new Date().toISOString(),
             })
-
-            // Update last_payout_at
-            await admin
-              .from('professional_balances')
-              .update({ last_payout_at: new Date().toISOString() })
-              .eq('professional_id', item.professional_id)
 
             balancesUpdated += 1
           }

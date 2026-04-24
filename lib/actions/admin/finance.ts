@@ -315,7 +315,7 @@ export async function loadLedgerEntries(params: {
   try {
     let query = admin
       .from('ledger_entries')
-      .select('*', { count: 'exact' })
+      .select('id, transaction_id, created_at, account_id, entry_type, amount, currency, booking_id, payment_id, payout_batch_id, description', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -379,7 +379,7 @@ export async function loadPayoutBatches(params: {
   try {
     let query = admin
       .from('payout_batches')
-      .select('*', { count: 'exact' })
+      .select('id, status, total_amount, net_amount, total_fees, item_count, created_at, submitted_at, completed_at, failed_at, failure_reason', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 

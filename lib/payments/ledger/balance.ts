@@ -28,6 +28,7 @@ export interface BalanceUpdateInput {
   withheldDelta?: bigint
   pendingDelta?: bigint
   debtDelta?: bigint
+  lastPayoutAt?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -40,7 +41,7 @@ export async function getProfessionalBalance(
 ): Promise<ProfessionalBalance | null> {
   const { data, error } = await admin
     .from('professional_balances')
-    .select('*')
+    .select('professional_id, available_balance, withheld_balance, pending_balance, total_debt, currency, last_payout_at, last_calculated_at')
     .eq('professional_id', professionalId)
     .maybeSingle()
 
@@ -68,7 +69,7 @@ export async function getAllProfessionalBalances(
 ): Promise<ProfessionalBalance[]> {
   let query = admin
     .from('professional_balances')
-    .select('*')
+    .select('professional_id, available_balance, withheld_balance, pending_balance, total_debt, currency, last_payout_at, last_calculated_at')
     .order('updated_at', { ascending: false })
 
   if (options?.minAvailable !== undefined) {
@@ -124,6 +125,7 @@ export async function updateProfessionalBalance(
     p_withheld_delta: Number(update.withheldDelta ?? ZERO),
     p_pending_delta: Number(update.pendingDelta ?? ZERO),
     p_debt_delta: Number(update.debtDelta ?? ZERO),
+    p_last_payout_at: update.lastPayoutAt ?? null,
   })
 
   if (error) {
@@ -165,12 +167,7 @@ export async function recordPayoutToProfessional(
     withheldDelta: ZERO,
     pendingDelta: ZERO,
     debtDelta: ZERO,
-  }).then(async (balance) => {
-    await admin
-      .from('professional_balances')
-      .update({ last_payout_at: new Date().toISOString() })
-      .eq('professional_id', professionalId)
-    return balance
+    lastPayoutAt: new Date().toISOString(),
   })
 }
 

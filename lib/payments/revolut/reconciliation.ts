@@ -97,16 +97,19 @@ export async function runTreasuryReconciliation(
 
   const matches: ReconciliationMatch[] = []
   const mismatches: ReconciliationMatch[] = []
+  const usedTxIds = new Set<string>()
 
   // 3. Match each settlement to a Revolut transaction
   for (const settlement of settlements) {
     const settlementAmount = BigInt(settlement.net_amount || settlement.amount || 0)
 
-    // Find best match: closest amount within tolerance
+    // Find best match: closest amount within tolerance, excluding already-used transactions
     let bestMatch: (typeof eligibleTxs)[number] | null = null
     let bestDiff = RECONCILIATION_TOLERANCE_MINOR + BigInt(1)
 
     for (const tx of eligibleTxs) {
+      if (usedTxIds.has(tx.id)) continue
+
       const diff = tx.amount > settlementAmount
         ? tx.amount - settlementAmount
         : settlementAmount - tx.amount
@@ -118,6 +121,8 @@ export async function runTreasuryReconciliation(
     }
 
     if (bestMatch) {
+      usedTxIds.add(bestMatch.id)
+
       const match: ReconciliationMatch = {
         settlementId: settlement.id,
         stripePayoutId: settlement.stripe_payout_id,
