@@ -247,7 +247,8 @@ test.describe('Payment Engine Health', () => {
     const response = await request.get('/api/health')
     expect(response.status()).toBe(200)
     const body = await response.json()
-    expect(body).toHaveProperty('status')
+    expect(body).toHaveProperty('ok')
+    expect(body.ok).toBe(true)
   })
 
   test('RLS health endpoint responds', async ({ request }) => {
