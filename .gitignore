@@ -46,6 +46,8 @@ supabase/.temp/
 # Revolut API keys
 revolut_private.pem
 revolut_public.pem
+revolut_private_*.pem
+revolut_private_*.pfx
 # Revolut certificates
 revolut_private.pfx
 revolut_public.pfx

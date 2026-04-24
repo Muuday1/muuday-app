@@ -25,6 +25,7 @@ import {
   buildTrolleyFeeTransaction,
 } from '@/lib/payments/ledger/entries'
 import { getProfessionalBalance, updateProfessionalBalance } from '@/lib/payments/ledger/balance'
+import { notifyProfessionalsOnBatchSubmitted } from '@/lib/notifications/payout-notifications'
 import { env } from '@/lib/config/env'
 import { inngest } from '../client'
 
@@ -549,6 +550,14 @@ export const payoutBatchCreate = inngest.createFunction(
       }
 
       return { ledgerEntriesCreated, balancesUpdated, trolleyFeesRecorded }
+    })
+
+    // ------------------------------------------------------------------
+    // Step 7: Send notifications to professionals
+    // ------------------------------------------------------------------
+    await step.run('send-payout-notifications', async () => {
+      await notifyProfessionalsOnBatchSubmitted(admin, batchDraft.batchId)
+      return { notified: true }
     })
 
     logger.info('Payout batch created, submitted, and ledger entries recorded.', {

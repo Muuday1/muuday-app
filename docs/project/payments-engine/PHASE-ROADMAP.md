@@ -196,7 +196,7 @@
 - [x] Webhook `recipient.created` → insert into `trolley_recipients` (Inngest processor)
 - [x] Webhook `recipient.updated` → update KYC status (`pending` → `in_review` → `approved`/`rejected`)
 - [x] Status tracking: `pending_kyc` → `active` → `suspended` (with `is_active` flag)
-- [ ] UI dashboard component for "Configurar Pagamento" (needs React component)
+- [x] UI dashboard component for "Configurar Pagamento" (`PayoutStatusCard` + `PayoutHistoryTable`)
 
 ### 4.2 Payout Batch Execution (enhance existing)
 - [x] Eligibility scan runs weekly (Mondays 8am UTC)
@@ -215,8 +215,10 @@
 - [ ] **Monthly subscription fee** (Stripe) — Phase 6 scope, NOT deducted from payouts
 
 ### 4.4 Payout Notification
-- [ ] Email to professional: "Seu pagamento foi enviado" (Phase 4.5 — needs Resend template)
-- [ ] In-app notification with amount + expected arrival (Phase 4.5)
+- [x] Email to professional: "Seu pagamento foi enviado" (`sendPayoutSentEmail` Resend template)
+- [x] In-app notification with amount + expected arrival (`notifications` table insert)
+- [x] Email on payout completed (`sendPayoutCompletedEmail`)
+- [x] Email on payout failed (`sendPayoutFailedEmail`)
 - [x] Dashboard server action returns payout history (`getPayoutStatus`)
 - [x] React dashboard component for payout history (`PayoutHistoryTable`)
 

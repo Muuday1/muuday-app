@@ -12,6 +12,7 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyProfessionalAboutPayout } from '@/lib/notifications/payout-notifications'
 import { inngest } from '../client'
 
 // ---------------------------------------------------------------------------
@@ -304,6 +305,44 @@ async function handlePaymentUpdated(
           updated_at: new Date().toISOString(),
         })
         .eq('id', batchItem.batch_id)
+    }
+  }
+
+  // ── Send notification to professional on terminal status ────────────
+  if (ourStatus === 'completed' || ourStatus === 'failed' || ourStatus === 'returned') {
+    try {
+      const { data: itemDetails } = await admin
+        .from('payout_batch_items')
+        .select('professional_id, amount, net_amount, debt_deducted')
+        .eq('id', batchItem.id)
+        .single()
+
+      const { data: pro } = await admin
+        .from('professionals')
+        .select('email, name')
+        .eq('id', itemDetails?.professional_id || '')
+        .maybeSingle()
+
+      if (itemDetails && pro && pro.email) {
+        void notifyProfessionalAboutPayout(admin, {
+          professionalId: itemDetails.professional_id,
+          professionalEmail: pro.email,
+          professionalName: pro.name || 'Profissional',
+          amount: BigInt(itemDetails.amount || 0),
+          debtDeducted: BigInt(itemDetails.debt_deducted || 0),
+          netAmount: BigInt(itemDetails.net_amount || 0),
+          payoutBatchId: batchItem.batch_id,
+          payoutBatchItemId: batchItem.id,
+          status: ourStatus === 'returned' ? 'failed' : (ourStatus as 'completed' | 'failed'),
+          reason: ourStatus === 'failed' || ourStatus === 'returned'
+            ? `Trolley payment ${trolleyStatus}`
+            : undefined,
+        }).catch(() => {
+          // Notification failures are non-blocking
+        })
+      }
+    } catch {
+      // Notification fetch failures are non-blocking
     }
   }
 
