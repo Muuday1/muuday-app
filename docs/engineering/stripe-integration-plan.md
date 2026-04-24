@@ -34,7 +34,8 @@ Canonical routing rule:
 3. Payout lifecycle:
    - Weekly eligibility scan (Mondays 8am UTC) creates `payout_batches`.
    - Treasury check verifies Revolut balance before Trolley submission.
-   - Trolley processes payouts to professional bank accounts.
+   - Trolley processes payouts to professional PayPal accounts (MVP).
+     Bank transfer support will be added in a future phase.
    - Ledger entries track every debit/credit.
 4. Failover policy:
    - If Trolley fails for BR corridor, activate Airwallex/dLocal contingency.
@@ -464,7 +465,8 @@ Trolley handles **professional onboarding, KYC, and mass payouts**. It replaces 
 - Profissionais **não precisam criar conta Stripe** (menor fricção de onboarding).
 - Melhores taxas para corridors internacionais (UK → BR/MX).
 - Tax forms automáticos (W-8BEN, W-9) para compliance IRS.
-- Suporte a múltiplos rails (ACH, SEPA, transferência bancária local).
+- PayPal support for MVP (fastest to launch).
+- Future: múltiplos rails (ACH, SEPA, transferência bancária local).
 
 ### Flow
 1. Profissional completa KYC no Trolley (embed ou redirect).
@@ -474,12 +476,19 @@ Trolley handles **professional onboarding, KYC, and mass payouts**. It replaces 
 5. Trolley webhooks (`payment.updated`) sync status back to `payout_batch_items`.
 6. Ledger entries created for every payout (`createPayoutEntry`).
 
-### Fee Structure (Muuday absorbs Trolley fees)
-| Professional Periodicity | Muuday Fee (deducted from payout) |
-|--------------------------|-----------------------------------|
-| Weekly | R$ 15,00 |
-| Bi-weekly | R$ 10,00 |
-| Monthly | R$ 5,00 |
+### Fee Structure (Updated 2026-04-24)
+
+**NO per-payout fees.** Professionals receive 100% of their eligible payout amount.
+
+| Fee Type | Who Pays | How |
+|----------|----------|-----|
+| Stripe fee | Muuday | Absorbed from platform revenue |
+| Trolley fee | Muuday | Absorbed from platform revenue |
+| Monthly subscription | Professional | Billed separately via Stripe subscription (Phase 6) |
+
+> The monthly subscription fee is a flat rate for all professionals, charged automatically
+> via Stripe. It is NOT deducted from payouts — professionals always see 100% of what
+> they earned in each payout.
 
 ### Env vars
 ```

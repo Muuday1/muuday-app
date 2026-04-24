@@ -132,22 +132,25 @@ export async function createCheckoutSession({
 
 ### Como funciona
 1. Profissional completa onboarding no Trolley (via embed ou redirect da Muuday).
-2. Trolley coleta dados bancários e tax forms (W-8BEN para não-residentes US, W-9 para US persons).
+2. Trolley coleta PayPal e tax forms (W-8BEN para não-residentes US, W-9 para US persons).
+   > **Nota**: No MVP, apenas PayPal é suportado. Transferência bancária será adicionada em fase futura.
 3. Stripe UK recebe pagamento do cliente e settle para Revolut Business (T+7 dias).
 4. Toda segunda-feira (8am UTC), o sistema:
    - Scaneia bookings elegíveis (48h após sessão, sem disputa aberta)
    - Calcula saldo disponível por profissional
-   - Deduza fee por periodicidade (weekly R$15 / biweekly R$10 / monthly R$5)
    - Deduza dívida existente (disputas pós-payout)
+   - **NÃO deduz fee por payout** — profissionais recebem 100% do valor elegível
+   - Fee mensal é cobrada separadamente via Stripe subscription (Phase 6)
    - Verifica se saldo Revolut ≥ total do batch + safety buffer (R$ 10.000)
    - Se suficiente: cria batch no Trolley e envia
    - Se insuficiente: batch fica em `insufficient_funds`, alerta admin
-5. Trolley processa e envia para conta bancária do profissional.
+5. Trolley processa e envia para PayPal do profissional.
+   > **Nota**: No MVP, payout é via PayPal apenas. Transferência bancária em fase futura.
 
 ### Vantagens do Trolley
 - Menor taxa que Stripe Connect para corridors internacionais.
 - Profissional NÃO precisa criar conta Stripe (menor fricção).
-- Transferência bancária direta (ACH, SEPA, local rails).
+- PayPal (MVP); transferência bancária direta (ACH, SEPA, local rails) em fase futura.
 - Tax forms automáticos (W-8BEN, W-9) — compliance IRS.
 - Dashboard para profissionais acompanharem status.
 

@@ -400,7 +400,7 @@ getProfessionalServices(professionalId)
 | `lib/payments/ledger/accounts.ts` | ✅ | Chart of accounts + LEDGER_ACCOUNT_CODES |
 | `lib/payments/ledger/entries.ts` | ✅ | Double-entry helpers + transaction templates |
 | `lib/payments/ledger/balance.ts` | ✅ | Professional balance CRUD + invariant validation |
-| `lib/payments/fees/calculator.ts` | ✅ | Fee calc (weekly R$15 / biweekly R$10 / monthly R$5) + minor unit formatting |
+| `lib/payments/fees/calculator.ts` | ✅ | Payout calc (NO per-payout fees; debt deduction only) + minor unit formatting |
 | `lib/payments/trolley/client.ts` | ✅ | Trolley API client (recipient, payment, batch) |
 | `lib/payments/revolut/client.ts` | ✅ | Revolut Business API client (treasury balance, transactions) |
 | `lib/payments/eligibility/engine.ts` | ✅ | 6-criteria eligibility engine (booking + professional) |

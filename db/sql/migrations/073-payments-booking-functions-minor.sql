@@ -331,13 +331,15 @@ CREATE TABLE IF NOT EXISTS public.stripe_customers (
 -- RLS for stripe_customers
 ALTER TABLE public.stripe_customers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "stripe_customers_select_own"
+DROP POLICY IF EXISTS "stripe_customers_select_own" ON public.stripe_customers;
+CREATE POLICY "stripe_customers_select_own"
   ON public.stripe_customers
   FOR SELECT
   TO authenticated
   USING (user_id = auth.uid());
 
-CREATE POLICY IF NOT EXISTS "stripe_customers_admin_all"
+DROP POLICY IF EXISTS "stripe_customers_admin_all" ON public.stripe_customers;
+CREATE POLICY "stripe_customers_admin_all"
   ON public.stripe_customers
   FOR ALL
   TO service_role

@@ -215,11 +215,16 @@ pending ──► in_review ──► approved ──► active
                               └──► rejected
 ```
 
+**Payout Methods (MVP — Phase 4):**
+- **PayPal ONLY** for initial launch. All professionals must connect a PayPal account.
+- **Bank transfer** will be added in a future phase when Trolley + local banking integrations are ready.
+- This is documented in the professional onboarding flow.
+
 **Transition Guards:**
 - `pending` → `in_review`: Trolley API call made, awaiting KYC
 - `in_review` → `approved`: Trolley webhook `recipient.updated` with approved status
 - `in_review` → `rejected`: Trolley webhook with rejected status
-- `approved` → `active`: Professional confirms payout method in dashboard
+- `approved` → `active`: Professional confirms PayPal payout method in dashboard
 - `active` → [deactivated]: On `recipient.deactivated` webhook
 
 ---
@@ -314,22 +319,25 @@ const isTreasurySufficient = (
 
 ## 7. The Fee Structure
 
-### 7.1 Professional-Paid Fees
+### 7.1 Professional-Paid Fees (Updated 2026-04-24)
 
-| Periodicity | Fee (BRL) | Fee (minor) | Rationale |
-|-------------|-----------|-------------|-----------|
-| Weekly | R$ 15.00 | 1500n | Higher frequency = higher cost |
-| Bi-weekly | R$ 10.00 | 1000n | Middle ground |
-| Monthly | R$ 5.00 | 500n | Lowest cost, preferred |
+**NO per-payout fees.** Professionals receive 100% of their eligible payout amount (minus debt).
 
-### 7.2 Fee Application Order
+**Monthly subscription fee** (billed separately via Stripe):
+| Tier | Fee (BRL) | Description |
+|------|-----------|-------------|
+| All professionals | R$ XX.00 | Flat monthly fee, charged via Stripe subscription (NOT deducted from payouts) |
+
+> **Rationale**: Charging a monthly fee creates predictable revenue and simplifies the payout flow. Professionals see exactly what they earned in each payout, with no surprise deductions.
+
+### 7.2 Payout Calculation Order
 
 ```
 1. Calculate total eligible amount from completed bookings
 2. Deduct professional debt (from disputes)
-3. Apply periodicity fee
-4. Result = net_amount sent to Trolley
-5. Trolley fee (if any) is absorbed by Muuday
+3. Result = net_amount sent to Trolley
+4. Trolley fee (if any) is absorbed by Muuday
+5. Professional receives 100% of net_amount
 ```
 
 ### 7.3 Example Calculation
@@ -337,12 +345,18 @@ const isTreasurySufficient = (
 ```
 Eligible bookings:        R$ 500.00  = 50000n
 Professional debt:        -R$ 25.00  = -2500n
-Subtotal:                 R$ 475.00  = 47500n
-Weekly fee:               -R$ 15.00  = -1500n
-Net to Trolley:           R$ 460.00  = 46000n
+Net to Trolley:           R$ 475.00  = 47500n
 Trolley fee (absorbed):   ~R$ 2.50   = 250n
-Professional receives:    R$ 460.00  = 46000n
+Professional receives:    R$ 475.00  = 47500n
 ```
+
+### 7.4 Monthly Fee Billing (Future — Phase 6)
+
+The monthly subscription fee will be implemented as a Stripe subscription:
+- Charged automatically to the professional's card on file
+- Separate from the payout flow
+- Managed via `/admin/finance/subscriptions` dashboard
+- Failed payments trigger grace period + notification
 
 ---
 
@@ -632,6 +646,8 @@ Any of these events trigger a plan update:
 | 2026-04-24 | R$ 10,000 treasury buffer | Safety margin for operational continuity | ✅ Tentative |
 | 2026-04-24 | R$ 500 max professional debt | Threshold before payout blocking | ✅ Tentative |
 | 2026-04-24 | Weekly batch schedule (Mondays) | Predictable for professionals; operational rhythm | ✅ Tentative |
+| 2026-04-24 | **No per-payout fees** | Monthly subscription fee instead; simpler for pros | ✅ Final |
+| 2026-04-24 | **PayPal-only for Trolley MVP** | Faster launch; bank transfer in future phase | ✅ Final |
 
 ---
 

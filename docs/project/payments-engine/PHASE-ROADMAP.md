@@ -199,10 +199,11 @@
 - [ ] Final status: `completed` or `failed` per item
 
 ### 4.3 Fee & Debt Deduction
-- [ ] Deduct periodicity fee (weekly R$15 / biweekly R$10 / monthly R$5)
-- [ ] Deduct existing professional debt (disputes)
-- [ ] Ledger entries for each deduction
+- [x] **NO per-payout fee** — professionals receive 100% of eligible amount (policy changed 2026-04-24)
+- [ ] Deduct existing professional debt (disputes) from payouts
+- [ ] Ledger entries for debt deduction
 - [ ] Professional sees net amount in dashboard
+- [ ] **Monthly subscription fee** (Stripe) — Phase 6 scope, NOT deducted from payouts
 
 ### 4.4 Payout Notification
 - [ ] Email to professional: "Seu pagamento foi enviado"
@@ -223,10 +224,10 @@
 ### 🔒 PHASE 4 CHECKPOINT: Review → Corrections → Commit → Deploy → Merge
 
 **Review criteria**:
-1. Trolley onboarding flow works for test recipient
+1. Trolley onboarding flow works for test recipient (PayPal)
 2. Payout batch correctly submits to Trolley API
 3. Ledger entries balance for every payout (debits = credits)
-4. Fee deduction is accurate and transparent to professional
+4. **No per-payout fee deducted** — professional receives 100% of eligible amount
 5. Notifications sent correctly
 
 **If review passes**: commit → deploy preview → E2E → merge → **STOP**.
@@ -363,6 +364,8 @@
 | 2026-04-24 | **Stripe → Revolut → Trolley** | Founder decision: Stripe Connect rejected for payouts, Trolley preferred for professional UX |
 | 2026-04-24 | BigInt `_minor` columns | ES2017 target, no float arithmetic for money |
 | 2026-04-24 | Double-entry ledger | Auditability, compliance, reconciliation |
+| 2026-04-24 | **No per-payout fees** | Monthly subscription instead; simpler payout flow |
+| 2026-04-24 | **PayPal-only for Trolley MVP** | Faster launch; bank transfer in future phase |
 
 ---
 

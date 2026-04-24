@@ -97,11 +97,9 @@ export const payoutBatchCreate = inngest.createFunction(
       }> = []
 
       for (const pro of preCalculated.proData) {
-        const periodicity = 'weekly' as const
         const calc = calculatePayout({
           eligibleAmount: BigInt(pro.totalEligibleAmount),
           professionalDebt: BigInt(0),
-          periodicity,
         })
 
         items.push({

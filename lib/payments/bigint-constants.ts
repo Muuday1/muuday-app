@@ -21,10 +21,16 @@ export const B = {
 // ---------------------------------------------------------------------------
 // Fee amounts (minor units)
 // ---------------------------------------------------------------------------
+// NOTE (2026-04-24): No per-payout fees. Professionals receive 100% of
+// eligible payouts. Monthly subscription fee is billed separately via Stripe.
+// The constants below are reserved for future subscription pricing.
 export const FEES = {
-  WEEKLY: BigInt(1500),    // R$ 15.00
-  BIWEEKLY: BigInt(1000),  // R$ 10.00
-  MONTHLY: BigInt(500),    // R$ 5.00
+  /** @deprecated No per-payout fee. Use monthly subscription instead. */
+  WEEKLY: BigInt(1500),    // R$ 15.00 — was per-payout fee, now unused
+  /** @deprecated No per-payout fee. Use monthly subscription instead. */
+  BIWEEKLY: BigInt(1000),  // R$ 10.00 — was per-payout fee, now unused
+  /** Placeholder for monthly subscription fee (Phase 6). */
+  MONTHLY_SUBSCRIPTION: BigInt(500), // R$ 5.00 — flat monthly fee for all pros
 }
 
 // ---------------------------------------------------------------------------

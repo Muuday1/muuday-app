@@ -200,7 +200,7 @@ available ──[ Payout trigger ]──→ processing ──[ Stripe transfer ]
 | Platform fee | 15-25% (tier-dependent) | Shown at booking confirmation |
 | Stripe fee | ~2.9% + R$ 0.30 (BR cards) / 1.5% + £0.20 (EU cards) | Absorbed by Muuday |
 | Trolley fee | ~$1-3 + 1% per payout | Absorbed by Muuday (not charged to pro) |
-| Muuday platform fee | R$ 15 (weekly) / R$ 10 (biweekly) / R$ 5 (monthly) | Deducted from pro payout |
+| Monthly subscription | R$ XX.00 (flat) | Billed separately via Stripe (NOT deducted from payout) |
 
 ### Payout Schedule
 
