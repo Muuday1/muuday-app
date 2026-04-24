@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { AdminAuthError } from '@/lib/admin/auth-helper'
 
 export type AdminActionResult =
   | { success: true }
@@ -68,7 +69,7 @@ export async function requireAdmin() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error('Não autenticado.')
+    throw new AdminAuthError('Não autenticado.')
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -82,7 +83,7 @@ export async function requireAdmin() {
   }
 
   if (profile?.role !== 'admin') {
-    throw new Error('Acesso negado. Apenas administradores podem executar esta ação.')
+    throw new AdminAuthError('Acesso negado. Apenas administradores podem executar esta ação.')
   }
 
   return { supabase, userId: user.id }

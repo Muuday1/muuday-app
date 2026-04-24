@@ -13,6 +13,7 @@ import {
 import type { AdminDashboardData } from '@/lib/admin/admin-service'
 import { type AdminActionResult, requireAdmin } from './admin/shared'
 import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
+import { AdminAuthError } from '@/lib/admin/auth-helper'
 
 export type { AdminDashboardData } from '@/lib/admin/admin-service'
 export type { AdminActionResult } from './admin/shared'
@@ -31,7 +32,11 @@ export async function adminUpdateProfessionalStatus(
     }
     return result
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminUpdateProfessionalStatus] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
 
@@ -49,7 +54,11 @@ export async function adminUpdateFirstBookingGate(
     }
     return result
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminUpdateFirstBookingGate] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
 
@@ -66,7 +75,11 @@ export async function adminToggleReviewVisibility(
     }
     return result
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminToggleReviewVisibility] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
 
@@ -80,7 +93,11 @@ export async function adminDeleteReview(reviewId: string): Promise<AdminActionRe
     }
     return result
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminDeleteReview] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
 
@@ -108,7 +125,11 @@ export async function adminReviewProfessionalDecision(
     }
     return result
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminReviewProfessionalDecision] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
 
@@ -121,7 +142,11 @@ export async function loadAdminDashboardData(): Promise<{
     const { supabase } = await requireAdmin()
     return loadAdminDashboardDataService(supabase)
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[loadAdminDashboardData] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
 
@@ -138,6 +163,10 @@ export async function adminRestoreLatestReviewAdjustments(
     }
     return result
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido.' }
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminRestoreLatestReviewAdjustments] unexpected error:', error)
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }

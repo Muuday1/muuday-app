@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { requireAuth } from './email/shared'
+import { requireAuth, assertCallerCanEmailRecipient } from './email/shared'
 import {
   addUserToResendService,
   sendWelcomeEmailService,
@@ -119,6 +119,7 @@ export async function sendNewReviewEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendNewReviewEmailService(supabase, callerId, to, professionalName, clientName, rating, comment)
 }
@@ -128,6 +129,7 @@ export async function sendIncompleteProfileReminderEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendIncompleteProfileReminderEmailService(supabase, callerId, to, professionalName, missingItems)
 }
@@ -140,6 +142,7 @@ export async function sendSessionReminder24hEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendSessionReminder24hEmailService(supabase, callerId, to, name, professionalName, service, date, time, timezone, userId)
 }
@@ -150,6 +153,7 @@ export async function sendSessionReminder1hEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendSessionReminder1hEmailService(supabase, callerId, to, name, professionalName, time, timezone, userId)
 }
@@ -160,6 +164,7 @@ export async function sendProfessionalReminder24hEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendProfessionalReminder24hEmailService(supabase, callerId, to, professionalName, clientName, service, date, time)
 }
@@ -170,6 +175,7 @@ export async function sendRequestReviewEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendRequestReviewEmailService(supabase, callerId, to, name, professionalName, service, userId)
 }
@@ -183,6 +189,7 @@ export async function sendRescheduledEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendRescheduledEmailService(supabase, callerId, to, name, professionalName, service, oldDate, oldTime, newDate, newTime, timezone, rescheduledBy, userId)
 }
@@ -195,6 +202,7 @@ export async function sendNewsletterEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendNewsletterEmailService(supabase, callerId, to, name, subject, badge, headline, body, ctaLabel, ctaUrl, ctaSub, userId)
 }
@@ -206,6 +214,7 @@ export async function sendWaitlistConfirmationEmailAction(to: string, name: stri
 export async function sendWelcomeSeries1EmailAction(to: string, name: string, userId?: string) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendWelcomeSeries1EmailService(supabase, callerId, to, name, userId)
 }
@@ -213,6 +222,7 @@ export async function sendWelcomeSeries1EmailAction(to: string, name: string, us
 export async function sendWelcomeSeries2EmailAction(to: string, name: string, userId?: string) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendWelcomeSeries2EmailService(supabase, callerId, to, name, userId)
 }
@@ -220,6 +230,7 @@ export async function sendWelcomeSeries2EmailAction(to: string, name: string, us
 export async function sendWelcomeSeries3EmailAction(to: string, name: string, userId?: string) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendWelcomeSeries3EmailService(supabase, callerId, to, name, userId)
 }
@@ -229,6 +240,7 @@ export async function sendReferralInviteEmailAction(
 ) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendReferralInviteEmailService(supabase, callerId, to, inviterName, referralLink)
 }
@@ -236,6 +248,7 @@ export async function sendReferralInviteEmailAction(
 export async function sendFirstBookingNudgeEmailAction(to: string, name: string, userId?: string) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendFirstBookingNudgeEmailService(supabase, callerId, to, name, userId)
 }
@@ -243,6 +256,7 @@ export async function sendFirstBookingNudgeEmailAction(to: string, name: string,
 export async function sendReengagementEmailAction(to: string, name: string, userId?: string) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendReengagementEmailService(supabase, callerId, to, name, userId)
 }
@@ -250,6 +264,7 @@ export async function sendReengagementEmailAction(to: string, name: string, user
 export async function sendLaunchEmailAction(to: string, name: string, userId?: string) {
   const callerId = await requireAuth()
   if (!callerId) return
+  if (!await assertCallerCanEmailRecipient(callerId, to)) return
   const supabase = await createClient()
   return sendLaunchEmailService(supabase, callerId, to, name, userId)
 }
