@@ -109,7 +109,7 @@
 - **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
-- **Migrations pending**: 070-076 need to be applied to production Supabase.
+- **Migrations applied**: 070-076 applied to production Supabase (confirmed 2026-04-24).
 
 ---
 
