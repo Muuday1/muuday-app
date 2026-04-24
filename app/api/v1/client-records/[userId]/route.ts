@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
-import { requireProfessional } from '@/lib/professional/auth-helper'
+import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
 import { getClientRecordByUser } from '@/lib/client-records/client-records-service'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
@@ -21,8 +21,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const prof = await requireProfessional(supabase)
     professionalId = prof.professionalId
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unauthorized'
-    return NextResponse.json({ error: message }, { status: 401 })
+    if (e instanceof ProfessionalAuthError) {
+      return NextResponse.json({ error: e.message }, { status: 401 })
+    }
+    throw e
   }
 
   const { userId } = await params
