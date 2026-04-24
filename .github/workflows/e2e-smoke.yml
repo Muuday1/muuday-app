@@ -22,6 +22,7 @@ jobs:
       INNGEST_SIGNING_KEY: ${{ secrets.INNGEST_SIGNING_KEY || 'test-key-for-build-only' }}
       INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY || 'test-key-for-build-only' }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || '' }}
+      SUPABASE_DB_POOLER_URL: ${{ secrets.SUPABASE_DB_POOLER_URL || '' }}
 
     steps:
       - name: Checkout
