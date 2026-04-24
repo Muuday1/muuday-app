@@ -184,7 +184,7 @@ export async function resolveCase(
 
       refundResult = {
         refundId: result.refundId || 'unknown',
-        amountRefunded: result.amountRefunded,
+        amountRefunded: result.amountRefunded || BigInt(0),
       }
 
       // Update associated dispute_resolution if exists

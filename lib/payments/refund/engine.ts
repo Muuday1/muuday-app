@@ -26,7 +26,7 @@ import { addProfessionalDebt } from '@/lib/payments/ledger/balance'
 export interface RefundResult {
   success: boolean
   refundId?: string
-  amountRefunded: bigint
+  amountRefunded?: bigint
   stripeError?: string
   ledgerError?: string
   disputeResolutionId?: string

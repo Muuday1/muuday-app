@@ -23,7 +23,7 @@ export default async function AdminFinancePage() {
 
   const result = await loadFinanceOverview()
 
-  if (!result.success || !result.data) {
+  if (!result.success) {
     return (
       <PageContainer>
         <div className="rounded-lg border border-red-200 bg-white p-12 text-center">

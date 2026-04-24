@@ -13,6 +13,7 @@
  * refresh token when a 401 is received.
  */
 
+import crypto from 'crypto'
 import { env } from '@/lib/config/env'
 
 // ---------------------------------------------------------------------------
@@ -90,7 +91,6 @@ function generateClientAssertion(): string {
     )
   }
 
-  const crypto = require('crypto')
   const now = Math.floor(Date.now() / 1000)
   const jti = crypto.randomUUID()
 

@@ -58,7 +58,7 @@ export default async function AdminTreasuryPage() {
               <p className="mt-2 text-3xl font-bold text-slate-900">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: String(data.currency || 'BRL') }).format(Number(data.safetyBuffer || 0) / 100)}
               </p>
-              {data.isBelowBuffer && <p className="mt-1 text-sm text-red-600 font-medium">⚠️ Abaixo do buffer</p>}
+              {Boolean(data.isBelowBuffer) && <p className="mt-1 text-sm text-red-600 font-medium">⚠️ Abaixo do buffer</p>}
             </div>
           </div>
 

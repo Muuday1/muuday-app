@@ -86,7 +86,7 @@ export async function processBookingRefund(
   return {
     success: true,
     refundId: result.refundId || 'unknown',
-    amountRefunded: formatMinorUnits(result.amountRefunded),
+    amountRefunded: formatMinorUnits(result.amountRefunded || BigInt(0)),
     disputeResolutionId: result.disputeResolutionId,
   }
 }
