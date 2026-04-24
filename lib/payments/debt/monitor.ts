@@ -51,7 +51,7 @@ export async function checkDebtThresholds(
 
   const { data, error } = await admin
     .from('professional_balances')
-    .select('professional_id, total_debt, professionals(name, email)')
+    .select('professional_id, total_debt')
     .gt('total_debt', Number(threshold))
     .order('total_debt', { ascending: false })
 
@@ -60,14 +60,47 @@ export async function checkDebtThresholds(
     return []
   }
 
+  // Fetch professional names via profiles (professionals table has no name/email columns)
+  const proIds = [...new Set((data || []).map((r) => r.professional_id).filter(Boolean))]
+  let nameMap = new Map<string, { name: string; email: string }>()
+  if (proIds.length > 0) {
+    const { data: pros } = await admin
+      .from('professionals')
+      .select('id, user_id')
+      .in('id', proIds)
+    const userIds = [...new Set((pros || []).map((p) => p.user_id).filter(Boolean))]
+    if (userIds.length > 0) {
+      const { data: profiles } = await admin
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .in('id', userIds)
+      const profileMap = new Map(
+        (profiles || []).map((p) => [
+          p.id,
+          {
+            name: [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Profissional',
+            email: p.email || '',
+          },
+        ]),
+      )
+      const proToUser = new Map((pros || []).map((p) => [p.id, p.user_id]))
+      for (const proId of proIds) {
+        const userId = proToUser.get(proId)
+        if (userId) {
+          nameMap.set(proId, profileMap.get(userId) || { name: 'Profissional', email: '' })
+        }
+      }
+    }
+  }
+
   const alerts: DebtAlert[] = []
   for (const row of data || []) {
     const totalDebt = BigInt(row.total_debt || 0)
-    const pro = (row as unknown as { professionals?: { name?: string; email?: string } }).professionals
+    const info = nameMap.get(row.professional_id)
     alerts.push({
       professionalId: row.professional_id,
-      professionalName: pro?.name || 'Unknown',
-      professionalEmail: pro?.email || '',
+      professionalName: info?.name || 'Unknown',
+      professionalEmail: info?.email || '',
       totalDebt,
       threshold,
       exceededBy: totalDebt - threshold,

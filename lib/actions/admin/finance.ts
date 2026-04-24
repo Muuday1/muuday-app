@@ -191,17 +191,50 @@ export async function loadFinanceOverview(): Promise<FinanceActionResult<Finance
     const maxDebt = BigInt(env.MAX_PROFESSIONAL_DEBT_MINOR)
     const { data: highDebtPros } = await admin
       .from('professional_balances')
-      .select('professional_id, total_debt, professionals(name, email)')
+      .select('professional_id, total_debt')
       .gt('total_debt', Number(maxDebt))
       .order('total_debt', { ascending: false })
       .limit(10)
 
+    // Fetch professional names via profiles (professionals table has no name/email columns)
+    const highDebtProIds = [...new Set((highDebtPros || []).map((r) => r.professional_id).filter(Boolean))]
+    let highDebtNameMap = new Map<string, { name: string; email: string }>()
+    if (highDebtProIds.length > 0) {
+      const { data: pros } = await admin
+        .from('professionals')
+        .select('id, user_id')
+        .in('id', highDebtProIds)
+      const userIds = [...new Set((pros || []).map((p) => p.user_id).filter(Boolean))]
+      if (userIds.length > 0) {
+        const { data: profiles } = await admin
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds)
+        const profileMap = new Map(
+          (profiles || []).map((p) => [
+            p.id,
+            {
+              name: [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Profissional',
+              email: p.email || '',
+            },
+          ]),
+        )
+        const proToUser = new Map((pros || []).map((p) => [p.id, p.user_id]))
+        for (const proId of highDebtProIds) {
+          const userId = proToUser.get(proId)
+          if (userId) {
+            highDebtNameMap.set(proId, profileMap.get(userId) || { name: 'Profissional', email: '' })
+          }
+        }
+      }
+    }
+
     const professionalsWithHighDebt = (highDebtPros || []).map((row) => {
-      const pro = (row as unknown as { professionals?: { name?: string; email?: string } }).professionals
+      const info = highDebtNameMap.get(row.professional_id)
       return {
         professionalId: row.professional_id,
-        name: pro?.name || 'Unknown',
-        email: pro?.email || '',
+        name: info?.name || 'Unknown',
+        email: info?.email || '',
         totalDebt: String(row.total_debt || 0),
       }
     })
@@ -408,7 +441,7 @@ export async function loadDisputes(params: {
     let query = admin
       .from('dispute_resolutions')
       .select(
-        'id, booking_id, professional_id, dispute_amount, recovered_amount, remaining_debt, status, recovery_method, created_at, resolved_at, notes, professionals(name)',
+        'id, booking_id, professional_id, dispute_amount, recovered_amount, remaining_debt, status, recovery_method, created_at, resolved_at, notes',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -424,23 +457,50 @@ export async function loadDisputes(params: {
       throw new Error(error.message)
     }
 
-    const disputes: DisputeRow[] = (data || []).map((d) => {
-      const pro = (d as unknown as { professionals?: { name?: string } }).professionals
-      return {
-        id: d.id,
-        bookingId: d.booking_id,
-        professionalId: d.professional_id,
-        professionalName: pro?.name,
-        disputeAmount: String(d.dispute_amount || 0),
-        recoveredAmount: String(d.recovered_amount || 0),
-        remainingDebt: String(d.remaining_debt || 0),
-        status: d.status,
-        recoveryMethod: d.recovery_method,
-        createdAt: d.created_at,
-        resolvedAt: d.resolved_at,
-        notes: d.notes,
+    // Fetch professional names separately via profiles (professionals table has no 'name' column)
+    const proIds = [...new Set((data || []).map((d) => d.professional_id).filter(Boolean))]
+    let nameMap = new Map<string, string>()
+    if (proIds.length > 0) {
+      const { data: pros } = await admin
+        .from('professionals')
+        .select('id, user_id')
+        .in('id', proIds)
+      const userIds = [...new Set((pros || []).map((p) => p.user_id).filter(Boolean))]
+      if (userIds.length > 0) {
+        const { data: profiles } = await admin
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds)
+        const profileMap = new Map(
+          (profiles || []).map((p) => [
+            p.id,
+            [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Profissional',
+          ]),
+        )
+        const proToUser = new Map((pros || []).map((p) => [p.id, p.user_id]))
+        for (const proId of proIds) {
+          const userId = proToUser.get(proId)
+          if (userId) {
+            nameMap.set(proId, profileMap.get(userId) || 'Profissional')
+          }
+        }
       }
-    })
+    }
+
+    const disputes: DisputeRow[] = (data || []).map((d) => ({
+      id: d.id,
+      bookingId: d.booking_id,
+      professionalId: d.professional_id,
+      professionalName: nameMap.get(d.professional_id) || undefined,
+      disputeAmount: String(d.dispute_amount || 0),
+      recoveredAmount: String(d.recovered_amount || 0),
+      remainingDebt: String(d.remaining_debt || 0),
+      status: d.status,
+      recoveryMethod: d.recovery_method,
+      createdAt: d.created_at,
+      resolvedAt: d.resolved_at,
+      notes: d.notes,
+    }))
 
     return { success: true, data: { disputes, total: count ?? 0 } }
   } catch (error) {

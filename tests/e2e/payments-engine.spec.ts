@@ -75,7 +75,7 @@ test.describe('Admin Finance Dashboard', () => {
     await expect(page.getByRole('heading', { name: 'Tesouraria' })).toBeVisible()
     await expect(page.getByText('Saldo Atual')).toBeVisible()
     await expect(page.getByText('Payouts Pendentes')).toBeVisible()
-    await expect(page.getByText('Disponível')).toBeVisible()
+    await expect(page.getByText('Disponível', { exact: true })).toBeVisible()
     await expect(page.getByText('Buffer de Segurança')).toBeVisible()
   })
 
@@ -126,7 +126,7 @@ test.describe('Treasury API', () => {
   test.skip(!hasAdminConfig, 'Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run treasury API tests.')
 
   test('GET /api/admin/finance/treasury-status requires admin auth', async ({ request }) => {
-    const response = await request.get(`${baseUrl}/api/admin/finance/treasury-status`)
+    const response = await request.get('/api/admin/finance/treasury-status')
     expect(response.status()).toBe(401)
   })
 
@@ -244,14 +244,14 @@ test.describe('Trolley Payout Onboarding', () => {
 
 test.describe('Payment Engine Health', () => {
   test('health endpoint responds', async ({ request }) => {
-    const response = await request.get(`${baseUrl}/api/health`)
+    const response = await request.get('/api/health')
     expect(response.status()).toBe(200)
     const body = await response.json()
     expect(body).toHaveProperty('status')
   })
 
   test('RLS health endpoint responds', async ({ request }) => {
-    const response = await request.get(`${baseUrl}/api/health/rls`)
+    const response = await request.get('/api/health/rls')
     expect([200, 500]).toContain(response.status())
   })
 })
