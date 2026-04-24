@@ -108,12 +108,36 @@ const envSchema = z.object({
   ADMIN_AUDIT_FAIL_ON_ERROR: z.enum(['true', 'false']).default('false'),
 
   // E2E / testing
+  // These are only used in E2E tests. Use a forgiving preprocess so that
+  // placeholder values in Vercel (e.g. "test", "fill-me-in") do not fail the build.
   E2E_BASE_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
-  E2E_USER_EMAIL: z.preprocess((val) => (val === '' ? undefined : val), z.string().email().optional()),
+  E2E_USER_EMAIL: z.preprocess(
+    (val) => {
+      if (val === '' || typeof val !== 'string') return undefined
+      // Quick-and-dirty email check — reject obvious placeholders
+      if (!val.includes('@') || !val.includes('.')) return undefined
+      return val
+    },
+    z.string().email().optional(),
+  ),
   E2E_USER_PASSWORD: optionalString,
-  E2E_PROFESSIONAL_EMAIL: z.preprocess((val) => (val === '' ? undefined : val), z.string().email().optional()),
+  E2E_PROFESSIONAL_EMAIL: z.preprocess(
+    (val) => {
+      if (val === '' || typeof val !== 'string') return undefined
+      if (!val.includes('@') || !val.includes('.')) return undefined
+      return val
+    },
+    z.string().email().optional(),
+  ),
   E2E_PROFESSIONAL_PASSWORD: optionalString,
-  E2E_ADMIN_EMAIL: z.preprocess((val) => (val === '' ? undefined : val), z.string().email().optional()),
+  E2E_ADMIN_EMAIL: z.preprocess(
+    (val) => {
+      if (val === '' || typeof val !== 'string') return undefined
+      if (!val.includes('@') || !val.includes('.')) return undefined
+      return val
+    },
+    z.string().email().optional(),
+  ),
   E2E_ADMIN_PASSWORD: optionalString,
 })
 
