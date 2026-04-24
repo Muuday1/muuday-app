@@ -42,3 +42,10 @@ scripts/resend_*.json
 supabase/.temp/__pycache__/  
 __pycache__/ 
 supabase/.temp/ 
+
+# Revolut API keys
+revolut_private.pem
+revolut_public.pem
+# Revolut certificates
+revolut_private.pfx
+revolut_public.pfx

@@ -8,8 +8,11 @@ import { Wallet, Calendar, Receipt, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { getPayoutStatus } from '@/lib/actions/professional-payout'
 import { AppCard } from '@/components/ui/AppCard'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
+import { PayoutStatusCard } from '@/components/finance/PayoutStatusCard'
+import { PayoutHistoryTable } from '@/components/finance/PayoutHistoryTable'
 
 export default async function FinanceiroPage() {
   const supabase = await createClient()
@@ -54,6 +57,9 @@ export default async function FinanceiroPage() {
         .in('status', ['confirmed', 'completed', 'pending_confirmation'])
     : { data: [] as any[] }
 
+  // Fetch payout status from payments engine
+  const payoutData = professionalId ? await getPayoutStatus() : null
+
   const currency = profile.currency || 'BRL'
   const capturedPayments = (payments || []).filter((payment: any) => payment.status === 'captured')
   const grossTotal = capturedPayments.reduce(
@@ -72,6 +78,7 @@ export default async function FinanceiroPage() {
         subtitle="Acompanhe ganhos, pagamentos pendentes e volume de agendamentos em um único painel."
       />
 
+      {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
         <AppCard>
           <p className="mb-1 text-xs text-slate-500">Total capturado</p>
@@ -87,18 +94,28 @@ export default async function FinanceiroPage() {
         </AppCard>
       </div>
 
-      <AppCard className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Wallet className="w-4 h-4 text-[#9FE870]" />
-          <h2 className="font-semibold text-slate-900">Próximos recursos</h2>
+      {/* Payout section */}
+      {payoutData && !('error' in payoutData) ? (
+        <div className="space-y-4 mb-6">
+          <PayoutStatusCard
+            payoutStatus={payoutData.payoutStatus}
+            balance={payoutData.balance}
+          />
+          <PayoutHistoryTable payouts={payoutData.recentPayouts} />
         </div>
-        <ul className="text-sm text-slate-600 space-y-2">
-          <li>Histórico detalhado por booking (bruto, taxas e líquido).</li>
-          <li>Payouts semanais e falhas de saque com tratamento operacional.</li>
-          <li>Consolidação com ledger interno para reconciliação.</li>
-        </ul>
-      </AppCard>
+      ) : (
+        <AppCard className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Wallet className="w-4 h-4 text-[#9FE870]" />
+            <h2 className="font-semibold text-slate-900">Saldo e Recebimentos</h2>
+          </div>
+          <p className="text-sm text-slate-600">
+            Os dados de saldo e recebimentos estarão disponíveis após a configuração completa do sistema de pagamentos.
+          </p>
+        </AppCard>
+      )}
 
+      {/* Quick links */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <AppCard hover padding="sm">
           <Link

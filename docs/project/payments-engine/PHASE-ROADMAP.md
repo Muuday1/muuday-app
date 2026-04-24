@@ -218,16 +218,16 @@
 - [ ] Email to professional: "Seu pagamento foi enviado" (Phase 4.5 — needs Resend template)
 - [ ] In-app notification with amount + expected arrival (Phase 4.5)
 - [x] Dashboard server action returns payout history (`getPayoutStatus`)
-- [ ] React dashboard component for payout history (needs UI)
+- [x] React dashboard component for payout history (`PayoutHistoryTable`)
 
 ### Phase 4 Quality Gates
 - [x] TypeScript typecheck clean
-- [ ] Build passes (in progress)
+- [x] Build passes
 - [x] Lint passes
 - [ ] Trolley sandbox onboarding tested end-to-end
 - [x] Payout batch creates correct ledger entries (debits = credits verified)
 - [x] Fee deduction math verified (100% to pro, debt deducted, Trolley fee absorbed)
-- [ ] Professional dashboard shows correct payout history (needs UI component)
+- [x] Professional dashboard shows correct payout history (`PayoutStatusCard` + `PayoutHistoryTable`)
 
 ---
 
