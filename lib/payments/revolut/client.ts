@@ -312,18 +312,66 @@ export async function getTreasuryBalance(): Promise<{
 // Webhook signature verification
 // ---------------------------------------------------------------------------
 
-export function verifyRevolutWebhookSignature(payload: string, signature: string): boolean {
+/**
+ * Verify a Revolut webhook signature.
+ *
+ * Revolut webhooks are signed with HMAC-SHA256 using a webhook signing secret.
+ * Headers:
+ *   - Revolut-Request-Timestamp: UNIX timestamp in milliseconds
+ *   - Revolut-Signature: v1=hex_hmac (multiple signatures comma-separated during rotation)
+ *
+ * Verification steps:
+ * 1. payload_to_sign = v1.{timestamp}.{raw_payload}
+ * 2. HMAC-SHA256(payload_to_sign, signing_secret)
+ * 3. Compare with v1 value(s) using timing-safe equality
+ *
+ * Docs: https://developer.revolut.com/docs/guides/manage-accounts/webhooks/verify-the-payload-signature
+ */
+export function verifyRevolutWebhookSignature(payload: string, signature: string, timestamp: string | null): boolean {
   const secret = env.REVOLUT_WEBHOOK_SECRET
   if (!secret) {
     console.warn('[revolut] REVOLUT_WEBHOOK_SECRET not configured, skipping verification')
     return true
   }
 
-  // Revolut webhooks are signed with JWT. The signature should be
-  // verified using Revolut's public key.
-  // TODO: Implement JWT verification based on Revolut docs.
-  console.warn('[revolut] Webhook signature verification not yet implemented')
-  return true
+  if (!timestamp) {
+    console.warn('[revolut] Missing Revolut-Request-Timestamp header')
+    return false
+  }
+
+  // Build payload to sign: v1.{timestamp}.{raw_payload}
+  const payloadToSign = `v1.${timestamp}.${payload}`
+
+  const expectedSig = crypto
+    .createHmac('sha256', secret)
+    .update(payloadToSign, 'utf8')
+    .digest('hex')
+
+  // Revolut may send multiple signatures during secret rotation (comma-separated)
+  const signatures = signature.split(',').map((s) => {
+    const match = s.trim().match(/v1=([a-f0-9]+)/i)
+    return match ? match[1].toLowerCase() : null
+  }).filter(Boolean) as string[]
+
+  if (signatures.length === 0) {
+    console.warn('[revolut] Invalid signature format, expected v1=hex_hmac')
+    return false
+  }
+
+  const expectedBuf = Buffer.from(expectedSig, 'hex')
+
+  for (const receivedSig of signatures) {
+    try {
+      const receivedBuf = Buffer.from(receivedSig, 'hex')
+      if (expectedBuf.length === receivedBuf.length && crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
+        return true
+      }
+    } catch {
+      // Buffer.from may throw on invalid hex, skip this signature
+    }
+  }
+
+  return false
 }
 
 export async function isRevolutHealthy(): Promise<boolean> {

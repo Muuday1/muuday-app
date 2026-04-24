@@ -51,10 +51,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const signature = request.headers.get('x-revolut-signature')
+  const signature = request.headers.get('x-revolut-signature') || request.headers.get('Revolut-Signature')
+  const timestamp = request.headers.get('x-revolut-request-timestamp') || request.headers.get('Revolut-Request-Timestamp')
   const rawBody = await request.text()
 
-  if (signature && !verifyRevolutWebhookSignature(rawBody, signature)) {
+  if (signature && !verifyRevolutWebhookSignature(rawBody, signature, timestamp)) {
     return withCors(
       NextResponse.json(
         { error: 'Assinatura do webhook invalida.' },

@@ -8,6 +8,7 @@
  * Environment vars: TROLLEY_API_KEY, TROLLEY_API_SECRET, TROLLEY_WEBHOOK_SECRET
  */
 
+import crypto from 'crypto'
 import { env } from '@/lib/config/env'
 
 // ---------------------------------------------------------------------------
@@ -160,10 +161,16 @@ export async function processTrolleyBatch(batchId: string): Promise<TrolleyBatch
 /**
  * Verify a Trolley webhook signature.
  *
- * Trolley webhooks include a signature header that should be verified
- * to ensure the request came from Trolley.
+ * Trolley (formerly PaymentRails) webhooks include a signature header.
+ * Format: `X-PaymentRails-Signature: t={timestamp},v1={hex_hmac}`
  *
- * TODO: Implement actual signature verification based on Trolley docs.
+ * Verification steps:
+ * 1. Extract `t` (timestamp) and `v1` (signature) from header
+ * 2. Concatenate: `${timestamp}${rawBody}`
+ * 3. Compute HMAC-SHA256 with webhook secret
+ * 4. Compare using timing-safe equality
+ *
+ * Docs: https://developers.trolley.com/docs/webhooks
  */
 export function verifyTWebhookSignature(payload: string, signature: string): boolean {
   const secret = env.TROLLEY_WEBHOOK_SECRET
@@ -172,10 +179,40 @@ export function verifyTWebhookSignature(payload: string, signature: string): boo
     return true
   }
 
-  // TODO: Implement HMAC verification
-  // Trolley webhook signature format to be confirmed from docs
-  console.warn('[trolley] Webhook signature verification not yet implemented')
-  return true
+  // Parse signature header: t=1234567890,v1=abc123...
+  const tMatch = signature.match(/t=(\d+)/)
+  const v1Match = signature.match(/v1=([a-f0-9]+)/i)
+
+  if (!tMatch || !v1Match) {
+    console.warn('[trolley] Invalid signature format, expected t={timestamp},v1={hex}')
+    return false
+  }
+
+  const timestamp = tMatch[1]
+  const receivedSig = v1Match[1].toLowerCase()
+
+  // Trolley docs: concatenate timestamp with raw POST body
+  const signedPayload = timestamp + payload
+
+  const expectedSig = crypto
+    .createHmac('sha256', secret)
+    .update(signedPayload, 'utf8')
+    .digest('hex')
+
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    const expectedBuf = Buffer.from(expectedSig, 'hex')
+    const receivedBuf = Buffer.from(receivedSig, 'hex')
+
+    if (expectedBuf.length !== receivedBuf.length) {
+      return false
+    }
+
+    return crypto.timingSafeEqual(expectedBuf, receivedBuf)
+  } catch {
+    // Buffer.from may throw on invalid hex
+    return false
+  }
 }
 
 // ---------------------------------------------------------------------------
