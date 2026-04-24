@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loadDisputes } from '@/lib/actions/admin/finance'
+import { formatMinorUnits } from '@/lib/payments/fees/calculator'
 
 export const metadata = { title: 'Disputas | Admin | Muuday' }
 
@@ -17,13 +18,21 @@ export default async function AdminDisputesPage({
   if (profile?.role !== 'admin') redirect('/buscar')
 
   const params = await searchParams
-  const offset = params.offset ? parseInt(params.offset, 10) : 0
+  const rawOffset = params.offset ? parseInt(params.offset, 10) : 0
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0
   const status = params.status || undefined
 
   const result = await loadDisputes({ limit: 50, offset, status })
 
   if (!result.success) {
-    return <p className="p-6 text-red-600">{result.error}</p>
+    return (
+      <div className="p-6 space-y-4">
+        <p className="text-red-600">{result.error}</p>
+        <a href="?" className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          Tentar novamente
+        </a>
+      </div>
+    )
   }
 
   const { disputes, total } = result.data
@@ -67,7 +76,7 @@ export default async function AdminDisputesPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {disputes.map((d) => (
+            {disputes.length > 0 ? disputes.map((d) => (
               <tr key={d.id}>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -80,18 +89,24 @@ export default async function AdminDisputesPage({
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-900">{d.professionalName || d.professionalId.slice(0, 8)}</td>
                 <td className="px-4 py-3 text-right font-medium text-slate-900">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(d.disputeAmount) / 100)}
+                  {formatMinorUnits(BigInt(d.disputeAmount), 'BRL')}
                 </td>
                 <td className="px-4 py-3 text-right text-green-600">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(d.recoveredAmount) / 100)}
+                  {formatMinorUnits(BigInt(d.recoveredAmount), 'BRL')}
                 </td>
                 <td className="px-4 py-3 text-right text-red-600">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(d.remainingDebt) / 100)}
+                  {formatMinorUnits(BigInt(d.remainingDebt), 'BRL')}
                 </td>
                 <td className="px-4 py-3 text-slate-500">{d.recoveryMethod}</td>
                 <td className="px-4 py-3 text-slate-500">{new Date(d.createdAt).toLocaleDateString('pt-BR')}</td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                  Nenhuma disputa encontrada.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
