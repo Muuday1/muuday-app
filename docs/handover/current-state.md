@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-22
+Last updated: 2026-04-24
 
 ## Operational truth
 
@@ -20,18 +20,18 @@ Last updated: 2026-04-22
 4. Dashboard tracker modal is now the primary onboarding experience for professionals.
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
+7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
 
 ### In progress
 
 1. Professional operations UX polish, especially calendar and scheduling ergonomics.
 2. Remaining copy and consistency cleanup on member and admin surfaces.
-3. Pre-Wave-3 financial and compliance hardening.
+3. Pre-Wave-3 financial and compliance hardening — payment engine code complete, needs production migration + E2E validation.
 
 ### Not open yet
 
-1. Wave 3 real-money execution.
-2. Full payout and settlement operations.
-3. Final compliance/legal freeze for sensitive categories.
+1. Wave 3 real-money execution (blocked on E2E + compliance).
+2. Final compliance/legal freeze for sensitive categories.
 
 ## Infrastructure state
 
@@ -41,6 +41,7 @@ Last updated: 2026-04-22
 4. Upstash-backed rate limiting and Sentry/Checkly monitoring baselines are active.
 5. Supabase DB webhooks feed `/api/webhooks/supabase-db` and enqueue async processing safely.
 6. Calendar OAuth groundwork exists; full provider lifecycle remains an active implementation track.
+7. Payment engine infrastructure complete: 9 ledger tables, 8 TS modules, 2 webhooks, 4 Inngest functions, admin finance dashboard with 5 pages.
 
 ## Recently stabilized
 
@@ -62,11 +63,12 @@ Last updated: 2026-04-22
     - Backfill migration (062) syncs existing professionals after the onboarding fix.
     - Availability exceptions render visually on the professional calendar (day/week/month).
     - Slot-filtering and availability-merge utilities extracted with full unit-test coverage.
+15. Payment engine build fixes committed and pushed to `main` — TypeScript clean, lint clean, 186 pages generated.
 14. Comprehensive documentation audit completed (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md`.
 
 ## Open risks
 
-1. Wave 3 remains the largest technical and operational risk area.
+1. Wave 3 risk reduced — payment engine code is complete and build-stable. Risk now concentrated in E2E validation and compliance freeze.
 2. Legal/tax wording and sensitive-category compliance still require human closure.
 3. Local environment drift remains a risk if work is done outside the canonical workspace.
 4. Some operational docs had accumulated stale or corrupted text; active handover docs have now been reset, but older historical docs should be treated cautiously unless they are explicitly current.

@@ -14,6 +14,16 @@ Execute in order. Keep changes batchable, validated, and documented.
 6. ~~Evaluate and either merge or archive `feat/landing-page-redesign` explicitly~~ ✅ **Archived** — branch was 12 days behind main, would have reverted months of work (API v1, E2E tests, services, migrations). Main already has a superior LandingPage component with animations, carousels, and multi-section layout.
 7. ~~Apply migration 062 in production to sync `availability_rules` for professionals who saved availability before the dual-write fix~~ ✅ **Applied** — confirmed in `session-log.md` Entry 84.
 
+## Payment Engine — Next Tasks (in order)
+
+1. **Apply migrations 070-075 to production Supabase** — includes `force_completed` in CHECK constraint
+2. **Implement real Trolley webhook HMAC verification** — replace stub in `lib/payments/trolley/client.ts`
+3. **Implement real Revolut webhook JWT verification** — replace stub in `lib/payments/revolut/client.ts`
+4. **Test Trolley sandbox onboarding end-to-end** — PayPal recipient creation, KYC flow
+5. **Test Stripe sandbox pay-in → ledger → payout flow** — full money movement validation
+6. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
+7. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
+
 ## Pre-Wave-3 hardening
 
 1. Keep production query-plan validation and index evidence current.
@@ -21,6 +31,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 3. Keep RLS audit evidence current for critical private tables.
 4. Keep secrets rotation, sync audit, and DB pooling validation operational.
 5. Keep Stripe resilience foundation aligned with DB migrations and operational tables, without opening real-money execution early.
+6. Payment engine code is build-stable; focus shifts to E2E validation and production migration.
 
 ## Wave 3 opening criteria
 

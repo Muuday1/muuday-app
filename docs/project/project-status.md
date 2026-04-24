@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-22
+Last updated: 2026-04-24
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -9,8 +9,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Wave 0: Done
 - Wave 1: Done
 - Wave 2: Done (closed 2026-04-10)
+- Payment engine (Phases 1–6): Implemented, build passes, awaiting production migration + E2E testing
 - Stabilization and UX refinement: In progress
-- Wave 3 real-money execution: Not started
+- Wave 3 real-money execution: Blocked on E2E validation + compliance freeze
 
 ## Production state
 
@@ -43,7 +44,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 ## Active gaps
 
 1. Professional operations UX still needs refinement, especially around calendar and scheduling experience.
-2. Financial and compliance hardening needed for Wave 3 remains open.
+2. Financial infrastructure implemented; compliance hardening and E2E testing remain open before Wave 3 launch.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
 4. Documentation drift identified in comprehensive audit (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md` for full findings.
 
@@ -58,7 +59,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Blockers
 
-1. Wave 3 depends on payment-rail execution work and compliance readiness.
+1. Wave 3 depends on E2E testing of payment flows (Stripe sandbox → Trolley sandbox) and compliance readiness.
 2. Sensitive-category legal/tax wording is not fully frozen.
 
 ## Continuity rule
