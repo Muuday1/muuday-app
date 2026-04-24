@@ -33,6 +33,7 @@ import { runAbandonedCheckoutSync } from '@/lib/ops/abandoned-checkout'
 import { treasuryBalanceSnapshot } from './treasury-snapshot'
 import { treasuryReconciliation } from './treasury-reconciliation'
 import { payoutBatchCreate } from './payout-batch-create'
+import { processTrolleyWebhook } from './trolley-webhook-processor'
 
 type SupabaseDbChangeEventData = {
   source?: string
@@ -718,7 +719,7 @@ export const processCalendarBookingSync = inngest.createFunction(
   },
 )
 
-export { treasuryBalanceSnapshot, treasuryReconciliation, payoutBatchCreate }
+export { treasuryBalanceSnapshot, treasuryReconciliation, payoutBatchCreate, processTrolleyWebhook }
 
 export const processSupabasePaymentsChange = inngest.createFunction(
   {

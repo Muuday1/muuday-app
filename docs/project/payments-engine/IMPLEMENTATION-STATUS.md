@@ -1,72 +1,45 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-24
-> **Phase:** Phase 2 — Stripe Pay-in Completion (COMPLETE)
+> **Phase:** Phase 4 — Professional Payout via Trolley (IN PROGRESS)
 
 ---
 
-## ✅ What Was Built Today
+## ✅ What Was Built Today (Phase 4)
 
-### Migrations (3 files)
+### Migration (1 file)
 
 | File | Description |
 |------|-------------|
-| `db/sql/migrations/070-payments-ledger-schema.sql` | 9 new tables + RLS policies + helper function |
-| `db/sql/migrations/071-payments-bigint-migration.sql` | DECIMAL → BIGINT minor units for payments, bookings, payout tables |
-| `db/sql/migrations/072-payments-ledger-accounts-bootstrap.sql` | 10 chart of accounts inserted |
+| `db/sql/migrations/075-payments-phase4-payout-enhancement.sql` | Adds `debt_deducted`, `trolley_fee_absorbed`, `professional_debt_before` to `payout_batch_items` |
 
-**Tables created:**
-- `ledger_accounts` — Chart of accounts
-- `ledger_entries` — Double-entry journal
-- `professional_balances` — Per-pro running balance
-- `payout_batches` — Batch payout records
-- `payout_batch_items` — Individual payouts within batch
-- `trolley_recipients` — Trolley recipient profiles
-- `revolut_treasury_snapshots` — Treasury balance tracking
-- `dispute_resolutions` — Post-payout dispute tracking
-- `booking_payout_items` — Junction table (prevents double payout)
-
-### TypeScript Modules (8 files)
+### TypeScript Modules (4 files new, 2 files fixed)
 
 | File | Purpose |
 |------|---------|
-| `lib/payments/bigint-constants.ts` | ES2017-compatible BigInt constants |
-| `lib/payments/ledger/accounts.ts` | Chart of accounts constants + lookup |
-| `lib/payments/ledger/entries.ts` | Double-entry creation + transaction templates |
-| `lib/payments/ledger/balance.ts` | Professional balance CRUD + validation |
-| `lib/payments/fees/calculator.ts` | Fee calculation + minor unit formatting |
-| `lib/payments/trolley/client.ts` | Trolley API client skeleton |
-| `lib/payments/revolut/client.ts` | Revolut API client skeleton |
-| `lib/payments/eligibility/engine.ts` | Payout eligibility engine |
+| `lib/payments/trolley/onboarding.ts` | Trolley recipient creation, status sync, onboarding helpers |
+| `lib/actions/professional-payout.ts` | Server actions: `initiatePayoutSetup`, `getPayoutStatus`, `refreshPayoutStatus` |
+| `inngest/functions/trolley-webhook-processor.ts` | Inngest function processing `recipient.created`, `recipient.updated`, `payment.updated`, `batch.updated` |
+| `lib/security/rate-limit.ts` | Added `payoutSetup` + `payoutSync` rate limit presets |
 
-### Webhook Routes (2 files)
+**Fixed files:**
+| File | Fix |
+|------|-----|
+| `lib/payments/ledger/entries.ts` | **CRITICAL FIX**: `buildPaymentCaptureTransaction` and `buildPayoutTransaction` were unbalanced (debits ≠ credits). Rewrote with standard double-entry convention. Added `buildPayoutWithDebtTransaction` and `buildTrolleyFeeTransaction`. |
+| `inngest/functions/payout-batch-create.ts` | Enhanced with real debt deduction, Trolley API submission (create payments → batch → process), ledger entry creation, balance updates |
+| `inngest/functions/index.ts` | Registered `processTrolleyWebhook` |
 
-| File | Purpose |
-|------|---------|
-| `app/api/webhooks/trolley/route.ts` | Trolley webhook receiver |
-| `app/api/webhooks/revolut/route.ts` | Revolut webhook receiver |
+### Ledger Transaction Templates (verified balanced)
 
-### Inngest Functions (2 files)
-
-| File | Purpose | Trigger |
-|------|---------|---------|
-| `inngest/functions/treasury-snapshot.ts` | Capture treasury balance + alert if low | Cron `*/15 * * * *` + Revolut webhook |
-| `inngest/functions/payout-batch-create.ts` | Scan eligibility, create batch, check treasury | Cron weekly + event |
-
-### Configuration Updates
-
-| File | Change |
-|------|--------|
-| `lib/config/env.ts` | Added Trolley, Revolut, payout config env vars |
-| `lib/security/rate-limit.ts` | Added `trolleyWebhook` + `revolutWebhook` presets |
-| `app/api/inngest/route.ts` | Registered 2 new Inngest functions |
-| `inngest/functions/index.ts` | Exported new functions |
-
-### Documentation
-
-| File | Purpose |
-|------|---------|
-| `docs/project/payments-engine/MASTER-PLAN.md` | Ultra-detailed master plan with all decisions, state machines, risk scenarios |
+| Template | Debits | Credits | Status |
+|----------|--------|---------|--------|
+| `buildPaymentCaptureTransaction` | STRIPE_RECEIVABLE + STRIPE_FEE_EXPENSE | PLATFORM_FEE_REVENUE + PROFESSIONAL_BALANCE | ✅ Fixed |
+| `buildStripeSettlementTransaction` | CASH_REVOLUT_TREASURY | STRIPE_RECEIVABLE | ✅ OK |
+| `buildPayoutTransaction` | PROFESSIONAL_BALANCE | CASH_REVOLUT_TREASURY | ✅ Fixed |
+| `buildPayoutWithDebtTransaction` | PROFESSIONAL_BALANCE | CASH_REVOLUT_TREASURY + PROFESSIONAL_DEBT | ✅ New |
+| `buildTrolleyFeeTransaction` | TROLLEY_FEE_EXPENSE | CASH_REVOLUT_TREASURY | ✅ New |
+| `buildDisputeAfterPayoutTransaction` | PROFESSIONAL_DEBT | CASH_REVOLUT_TREASURY | ✅ OK |
+| `buildRefundTransaction` | CUSTOMER_DEPOSITS_HELD | STRIPE_RECEIVABLE | ✅ Fixed |
 
 ---
 
@@ -76,70 +49,50 @@
 2. **BIGINT minor units** — All money as integers (R$ 150.00 = 15000)
 3. **Double-entry ledger** — Every movement has equal debit + credit
 4. **No partial batches** — Treasury insufficient = entire batch blocked
-5. **Muuday absorbs FX costs** — Professional receives exact BRL amount
+5. **Muuday absorbs FX + Trolley costs** — Professional receives exact BRL amount
 6. **PayPal-only for MVP** — Bank transfer unlocks at 200 monthly payments
+7. **NO per-payout fee** — Monthly subscription billed separately via Stripe (Phase 6)
 
 ---
 
-## 📋 Next Steps — Phase Roadmap
+## 📋 Phase Status
 
-The complete structured roadmap with explicit Review → Corrections → Commit → Deploy → Merge checkpoints is in:
-**`docs/project/payments-engine/PHASE-ROADMAP.md`**
+### Phase 1 — Ledger Foundation ✅ COMPLETE
+- 9 tables, 8 TS modules, 2 webhooks, 2 Inngest functions
 
-### Phase 2 — Stripe Pay-in Completion ✅ COMPLETE (delivered 2026-04-24)
-- [x] `POST /api/stripe/payment-intent` — PaymentIntent creation with customer reuse
-- [x] `POST /api/stripe/checkout-session/booking` — Checkout Session fallback
-- [x] Webhook ledger integration (`payment_intent.succeeded`, `charge.refunded`)
-- [x] Booking flow updated (`provider: 'stripe'`, `status: 'requires_payment'`)
-- [x] PostgreSQL functions updated with `_minor` columns
-- [x] `stripe_customers` table created
-- [x] Pending payment timeout (orphaned 30min + unpaid 24h)
-- [x] Build verification — PASS
-- [x] Lint verification — PASS
-- [ ] Frontend Stripe Elements integration — REQUIRES FRONTEND WORK
-- [ ] E2E testing — requires preview environment + Stripe CLI
+### Phase 2 — Stripe Pay-in Completion ✅ COMPLETE
+- PaymentIntent API, Checkout Session fallback, webhook ledger integration
+- Deferred capture, pending payment timeout, rate limiting
 
-### Phase 3 — Stripe Settlement → Revolut ✅ COMPLETE (delivered 2026-04-24)
-- [x] `stripe_settlements` table (migration `074`)
-- [x] Webhook `payout.paid` → ledger entry + settlement record
-- [x] Webhook `payout.failed` → error logging + failed record
-- [x] Treasury dashboard API (`/api/admin/finance/treasury-status`)
-- [x] Reconciliation engine (auto-match Stripe ↔ Revolut)
-- [x] Daily reconciliation cron (6am UTC)
+### Phase 3 — Stripe Settlement → Revolut ✅ COMPLETE
+- `stripe_settlements` table (migration 074)
+- `payout.paid`/`payout.failed` webhooks
+- Treasury dashboard API + reconciliation engine
+- Daily reconciliation cron (6am UTC)
 
-### Environment & Deploy Notes (2026-04-24)
-- **Stripe**: Currently in SANDBOX (`sk_test_` / `pk_test_`). Switch to LIVE (`sk_live_` / `pk_live_`) only after Phase 4 complete.
-- **Env vars**: All payments engine env vars now documented in `.env.local.example`
-- **Vercel deploy**: Ensure env vars are configured in Vercel dashboard before deploying.
+### Phase 4 — Professional Payout via Trolley 🔄 IN PROGRESS
+- [x] Trolley onboarding API (`lib/payments/trolley/onboarding.ts`)
+- [x] Server actions for payout setup (`lib/actions/professional-payout.ts`)
+- [x] Inngest webhook processor (`inngest/functions/trolley-webhook-processor.ts`)
+- [x] Real Trolley API submission in batch creation
+- [x] Debt deduction with ledger entries
+- [x] Trolley fee absorption ledger entries
+- [ ] Email notification on payout (needs Resend template)
+- [ ] In-app notification on payout
+- [ ] React dashboard UI for payout history
 
-### Policy Updates (2026-04-24)
-- **Fee structure**: NO per-payout fees. Monthly subscription fee billed separately.
-- **Trolley payout**: PayPal-only for MVP. Bank transfer in future phase.
+### Phase 5 — Refunds, Disputes & Edge Cases ⏳ NOT STARTED
+### Phase 6 — Admin Finance Dashboard & Observability ⏳ NOT STARTED
 
-### Phase 3 — Stripe Settlement → Revolut
-- Settlement tracking (`payout.paid` webhook)
-- Treasury dashboard
-- Reconciliation logic
+---
 
-### Phase 4 — Professional Payout via Trolley
-- Trolley onboarding flow
-- Real Trolley API batch submission
-- Fee & debt deduction
+## Environment & Deploy Notes
 
-### Phase 5 — Refunds, Disputes & Edge Cases
-- Refund engine
-- Dispute handling
-- Debt recovery
-
-### Phase 6 — Admin Finance Dashboard & Observability
-- Admin finance views
-- Force actions
-- Observability metrics
-
-4. **Admin Dashboard**
-   - Treasury view
-   - Payout batch management
-   - Professional balance overview
+- **Stripe**: Currently in SANDBOX (`sk_test_` / `pk_test_`). Switch to LIVE only after Phase 4 end-to-end tested.
+- **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel.
+- **Revolut**: Need `REVOLUT_API_KEY`, `REVOLUT_ACCOUNT_ID` in Vercel.
+- **Env vars**: All documented in `.env.local.example`.
+- **Migrations pending**: 070-075 need to be applied to production Supabase.
 
 ---
 
@@ -148,20 +101,22 @@ The complete structured roadmap with explicit Review → Corrections → Commit 
 | Gate | Status |
 |------|--------|
 | TypeScript typecheck | ✅ PASS |
-| Next.js build | ✅ PASS |
 | Lint | ✅ PASS |
-| Tests | ⏳ Pending (requires preview env + Stripe CLI for full E2E) |
+| Next.js build | 🔄 Running |
+| Trolley sandbox onboarding | ⏳ Pending (needs test credentials) |
+| Payout batch ledger balance | ✅ Verified (debits = credits) |
+| Fee deduction math | ✅ Verified (100% to pro, debt deducted) |
 
 ---
 
 ## ⚠️ Known Limitations
 
-1. **Trolley webhook signature verification** — Stubbed, needs implementation
+1. **Trolley webhook signature verification** — Stubbed (`verifyTWebhookSignature` returns true), needs HMAC implementation
 2. **Revolut webhook JWT verification** — Stubbed, needs implementation
-3. **Trolley API calls** — Skeleton only, needs real integration
-4. **Revolut API calls** — Skeleton only, needs real integration
-5. **Professional periodicity setting** — Hardcoded to 'weekly', needs UI + DB column
-6. **Ledger entry atomicity** — Uses sequential inserts, should be PostgreSQL RPC
+3. **Professional periodicity setting** — Hardcoded to weekly batch schedule, needs UI + DB column
+4. **Ledger entry atomicity** — Uses sequential inserts, should be PostgreSQL RPC for production
+5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
+6. **React UI components** — Dashboard payout history and onboarding UI not yet built
 
 ---
 

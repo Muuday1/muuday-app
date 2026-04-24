@@ -12,6 +12,13 @@
  * 2. Always use createLedgerTransaction() which validates balance.
  * 3. Never modify or delete ledger entries after creation.
  * 4. All amounts are BIGINT minor units.
+ *
+ * ACCOUNTING CONVENTION (standard double-entry):
+ * - ASSET:   debit = increase,  credit = decrease
+ * - LIABILITY: debit = decrease, credit = increase
+ * - EQUITY:  debit = decrease, credit = increase
+ * - REVENUE: debit = decrease, credit = increase
+ * - EXPENSE: debit = increase,  credit = decrease
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -87,20 +94,6 @@ function validateTransactionEntries(entries: LedgerEntryInput[]): void {
  *
  * This is the ONLY way to write ledger entries. It validates that
  * debits === credits before writing to the database.
- *
- * Usage:
- * ```ts
- * await createLedgerTransaction(admin, {
- *   bookingId: booking.id,
- *   paymentId: payment.id,
- *   currency: 'BRL',
- *   description: 'Customer payment captured via Stripe',
- *   entries: [
- *     { account: CUSTOMER_DEPOSITS_HELD, entryType: 'debit', amount: BigInt(15000) },
- *     { account: STRIPE_RECEIVABLE, entryType: 'credit', amount: BigInt(15000) },
- *   ],
- * })
- * ```
  */
 export async function createLedgerTransaction(
   admin: SupabaseClient,
@@ -156,12 +149,19 @@ import {
   PROFESSIONAL_PAYABLE,
   STRIPE_FEE_EXPENSE,
   STRIPE_RECEIVABLE,
+  TROLLEY_FEE_EXPENSE,
 } from './accounts'
 
 /**
  * Record a customer payment capture.
  *
- * Flow: Customer paid via Stripe → money held as Stripe receivable.
+ * Flow: Customer paid via Stripe → Stripe holds funds → we record receivable.
+ *
+ * Accounting:
+ * - STRIPE_RECEIVABLE (asset)     ↑  debit  = amount - stripeFee
+ * - STRIPE_FEE_EXPENSE (expense)  ↑  debit  = stripeFee
+ * - PLATFORM_FEE_REVENUE (rev)    ↑  credit = platformFee
+ * - PROFESSIONAL_BALANCE (equity) ↑  credit = amount - platformFee
  */
 export function buildPaymentCaptureTransaction(params: {
   amount: bigint
@@ -179,10 +179,9 @@ export function buildPaymentCaptureTransaction(params: {
     currency: 'BRL',
     description: `Payment capture: ${amount} BRL (Stripe fee: ${stripeFeeAmount}, Platform fee: ${platformFeeAmount})`,
     entries: [
-      { account: CUSTOMER_DEPOSITS_HELD, entryType: 'debit', amount },
-      { account: STRIPE_RECEIVABLE, entryType: 'credit', amount: amount - stripeFeeAmount },
-      { account: STRIPE_FEE_EXPENSE, entryType: 'credit', amount: stripeFeeAmount },
-      { account: PLATFORM_FEE_REVENUE, entryType: 'debit', amount: platformFeeAmount },
+      { account: STRIPE_RECEIVABLE, entryType: 'debit', amount: amount - stripeFeeAmount },
+      { account: STRIPE_FEE_EXPENSE, entryType: 'debit', amount: stripeFeeAmount },
+      { account: PLATFORM_FEE_REVENUE, entryType: 'credit', amount: platformFeeAmount },
       { account: PROFESSIONAL_BALANCE, entryType: 'credit', amount: netToProfessional },
     ],
   }
@@ -191,7 +190,11 @@ export function buildPaymentCaptureTransaction(params: {
 /**
  * Record a Stripe settlement (Stripe payout to Revolut).
  *
- * Flow: Stripe transfers funds to Revolut treasury.
+ * Flow: Stripe transfers net funds to Revolut treasury.
+ *
+ * Accounting:
+ * - CASH_REVOLUT_TREASURY (asset) ↑  debit  = netAmount
+ * - STRIPE_RECEIVABLE (asset)     ↓  credit = netAmount
  */
 export function buildStripeSettlementTransaction(params: {
   amount: bigint
@@ -211,27 +214,94 @@ export function buildStripeSettlementTransaction(params: {
 }
 
 /**
- * Record a payout to a professional via Trolley.
+ * Record a payout to a professional via Trolley (NO debt deduction).
  *
- * Flow: Muuday pays professional from treasury.
+ * Flow: Muuday pays professional from treasury. Professional receives 100%.
+ *
+ * Accounting:
+ * - PROFESSIONAL_BALANCE (equity)      ↓  debit  = amount
+ * - CASH_REVOLUT_TREASURY (asset)      ↓  credit = amount
  */
 export function buildPayoutTransaction(params: {
   amount: bigint
-  feeAmount: bigint
-  netAmount: bigint
   professionalId: string
   payoutBatchId: string
 }): LedgerTransactionInput {
-  const { amount, netAmount, professionalId, payoutBatchId } = params
+  const { amount, professionalId, payoutBatchId } = params
 
   return {
     payoutBatchId,
     currency: 'BRL',
-    description: `Payout to professional ${professionalId}: ${amount} BRL (net: ${netAmount})`,
+    description: `Payout to professional ${professionalId}: ${amount} BRL`,
     entries: [
-      { account: PROFESSIONAL_PAYABLE, entryType: 'debit', amount },
       { account: PROFESSIONAL_BALANCE, entryType: 'debit', amount },
+      { account: CASH_REVOLUT_TREASURY, entryType: 'credit', amount },
+    ],
+  }
+}
+
+/**
+ * Record a payout to a professional WITH debt deduction.
+ *
+ * Flow: Muuday pays professional net amount, deducting existing debt.
+ *
+ * Accounting:
+ * - PROFESSIONAL_BALANCE (equity)      ↓  debit  = eligibleAmount
+ * - CASH_REVOLUT_TREASURY (asset)      ↓  credit = netAmount
+ * - PROFESSIONAL_DEBT (contra-equity)  ↓  credit = debtDeducted
+ *
+ * Invariant: eligibleAmount === netAmount + debtDeducted
+ */
+export function buildPayoutWithDebtTransaction(params: {
+  eligibleAmount: bigint
+  netAmount: bigint
+  debtDeducted: bigint
+  professionalId: string
+  payoutBatchId: string
+}): LedgerTransactionInput {
+  const { eligibleAmount, netAmount, debtDeducted, professionalId, payoutBatchId } = params
+
+  // Validate invariant
+  if (eligibleAmount !== netAmount + debtDeducted) {
+    throw new Error(
+      `Payout transaction unbalanced: eligibleAmount (${eligibleAmount}) !== netAmount (${netAmount}) + debtDeducted (${debtDeducted})`,
+    )
+  }
+
+  return {
+    payoutBatchId,
+    currency: 'BRL',
+    description: `Payout to professional ${professionalId}: ${eligibleAmount} BRL (net: ${netAmount}, debt deducted: ${debtDeducted})`,
+    entries: [
+      { account: PROFESSIONAL_BALANCE, entryType: 'debit', amount: eligibleAmount },
       { account: CASH_REVOLUT_TREASURY, entryType: 'credit', amount: netAmount },
+      { account: PROFESSIONAL_DEBT, entryType: 'credit', amount: debtDeducted },
+    ],
+  }
+}
+
+/**
+ * Record Trolley fee absorbed by Muuday.
+ *
+ * Flow: Trolley charges a fee for processing the payout. Muuday absorbs it.
+ *
+ * Accounting:
+ * - TROLLEY_FEE_EXPENSE (expense)      ↑  debit  = trolleyFee
+ * - CASH_REVOLUT_TREASURY (asset)      ↓  credit = trolleyFee
+ */
+export function buildTrolleyFeeTransaction(params: {
+  trolleyFee: bigint
+  payoutBatchId: string
+}): LedgerTransactionInput {
+  const { trolleyFee, payoutBatchId } = params
+
+  return {
+    payoutBatchId,
+    currency: 'BRL',
+    description: `Trolley fee absorbed: ${trolleyFee} BRL`,
+    entries: [
+      { account: TROLLEY_FEE_EXPENSE, entryType: 'debit', amount: trolleyFee },
+      { account: CASH_REVOLUT_TREASURY, entryType: 'credit', amount: trolleyFee },
     ],
   }
 }
@@ -240,6 +310,10 @@ export function buildPayoutTransaction(params: {
  * Record a dispute after payout (professional goes into debt).
  *
  * Flow: Customer disputes → Muuday refunds → professional owes money.
+ *
+ * Accounting:
+ * - PROFESSIONAL_DEBT (contra-equity)  ↑  debit  = disputeAmount
+ * - CASH_REVOLUT_TREASURY (asset)      ↓  credit = disputeAmount
  */
 export function buildDisputeAfterPayoutTransaction(params: {
   disputeAmount: bigint
@@ -263,7 +337,11 @@ export function buildDisputeAfterPayoutTransaction(params: {
 /**
  * Record a refund (before payout).
  *
- * Flow: Customer cancels → full or partial refund.
+ * Flow: Customer cancels → Stripe refunds → we reverse the receivable.
+ *
+ * Accounting:
+ * - STRIPE_RECEIVABLE (asset)          ↓  credit = refundAmount
+ * - CUSTOMER_DEPOSITS_HELD (liability) ↓  debit  = refundAmount
  */
 export function buildRefundTransaction(params: {
   refundAmount: bigint
@@ -278,8 +356,8 @@ export function buildRefundTransaction(params: {
     currency: 'BRL',
     description: `Refund: ${refundAmount} BRL`,
     entries: [
-      { account: STRIPE_RECEIVABLE, entryType: 'debit', amount: refundAmount },
-      { account: CUSTOMER_DEPOSITS_HELD, entryType: 'credit', amount: refundAmount },
+      { account: CUSTOMER_DEPOSITS_HELD, entryType: 'debit', amount: refundAmount },
+      { account: STRIPE_RECEIVABLE, entryType: 'credit', amount: refundAmount },
     ],
   }
 }

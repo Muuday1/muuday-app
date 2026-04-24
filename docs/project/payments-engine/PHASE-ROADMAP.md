@@ -191,39 +191,43 @@
 **Goal**: End-to-end professional payout execution.
 
 ### 4.1 Trolley Onboarding Flow
-- [ ] Professional clicks "Configurar Pagamento" in dashboard
-- [ ] Redirect or embed Trolley recipient onboarding
-- [ ] Webhook `recipient.created` → insert into `trolley_recipients`
-- [ ] Webhook `recipient.updated` → update KYC status
-- [ ] Status tracking: `pending_kyc` → `active` → `suspended`
+- [x] Professional clicks "Configurar Pagamento" in dashboard → server action `initiatePayoutSetup`
+- [x] Server action creates Trolley recipient via API (`createProfessionalTrolleyRecipient`)
+- [x] Webhook `recipient.created` → insert into `trolley_recipients` (Inngest processor)
+- [x] Webhook `recipient.updated` → update KYC status (`pending` → `in_review` → `approved`/`rejected`)
+- [x] Status tracking: `pending_kyc` → `active` → `suspended` (with `is_active` flag)
+- [ ] UI dashboard component for "Configurar Pagamento" (needs React component)
 
 ### 4.2 Payout Batch Execution (enhance existing)
-- [ ] Eligibility scan already runs weekly (Mondays 8am UTC)
-- [ ] Enhance with real Trolley API submission (currently stubbed)
-- [ ] Handle Trolley API errors gracefully (retry with exponential backoff)
-- [ ] Webhook `payment.updated` → sync status to `payout_batch_items`
-- [ ] Final status: `completed` or `failed` per item
+- [x] Eligibility scan runs weekly (Mondays 8am UTC)
+- [x] Real Trolley API submission (create payments → create batch → process batch)
+- [x] Handle Trolley API errors gracefully (per-item failure, batch-level retry via Inngest)
+- [x] Webhook `payment.updated` → sync status to `payout_batch_items` (Inngest processor)
+- [x] Webhook `batch.updated` → sync batch status to `payout_batches`
+- [x] Final status: `completed` or `failed`/`returned` per item
 
 ### 4.3 Fee & Debt Deduction
 - [x] **NO per-payout fee** — professionals receive 100% of eligible amount (policy changed 2026-04-24)
-- [ ] Deduct existing professional debt (disputes) from payouts
-- [ ] Ledger entries for debt deduction
-- [ ] Professional sees net amount in dashboard
+- [x] Deduct existing professional debt (disputes) from payouts (`debt_deducted` field)
+- [x] Ledger entries for debt deduction (`buildPayoutWithDebtTransaction`)
+- [x] Trolley fee absorbed by Muuday (`trolley_fee_absorbed` field + `buildTrolleyFeeTransaction`)
+- [x] Professional sees net amount in dashboard (`getPayoutStatus` server action)
 - [ ] **Monthly subscription fee** (Stripe) — Phase 6 scope, NOT deducted from payouts
 
 ### 4.4 Payout Notification
-- [ ] Email to professional: "Seu pagamento foi enviado"
-- [ ] In-app notification with amount + expected arrival
-- [ ] Dashboard shows payout history
+- [ ] Email to professional: "Seu pagamento foi enviado" (Phase 4.5 — needs Resend template)
+- [ ] In-app notification with amount + expected arrival (Phase 4.5)
+- [x] Dashboard server action returns payout history (`getPayoutStatus`)
+- [ ] React dashboard component for payout history (needs UI)
 
 ### Phase 4 Quality Gates
-- [ ] TypeScript typecheck clean
-- [ ] Build passes
-- [ ] Lint passes
+- [x] TypeScript typecheck clean
+- [ ] Build passes (in progress)
+- [x] Lint passes
 - [ ] Trolley sandbox onboarding tested end-to-end
-- [ ] Payout batch creates correct ledger entries
-- [ ] Fee deduction math verified
-- [ ] Professional dashboard shows correct payout history
+- [x] Payout batch creates correct ledger entries (debits = credits verified)
+- [x] Fee deduction math verified (100% to pro, debt deducted, Trolley fee absorbed)
+- [ ] Professional dashboard shows correct payout history (needs UI component)
 
 ---
 
