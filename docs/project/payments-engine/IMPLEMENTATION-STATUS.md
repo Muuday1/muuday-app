@@ -106,7 +106,7 @@
 ## Environment & Deploy Notes
 
 - **Stripe**: Currently in SANDBOX (`sk_test_` / `pk_test_`). Switch to LIVE only after E2E testing.
-- **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel.
+- **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel. Optional `TROLLEY_API_BASE=https://api.sandbox.trolley.com/v1` for sandbox mode.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
 - **Migrations applied**: 070-076 applied to production Supabase (confirmed 2026-04-24).
