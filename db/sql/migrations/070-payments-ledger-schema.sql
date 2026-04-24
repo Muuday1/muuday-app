@@ -39,11 +39,12 @@ CREATE INDEX IF NOT EXISTS ledger_accounts_type_idx
 CREATE TABLE IF NOT EXISTS public.payout_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   status TEXT NOT NULL DEFAULT 'draft' CHECK (
-    status IN ('draft', 'treasury_check', 'insufficient_funds', 'submitted', 'processing', 'completed', 'failed', 'cancelled')
+    status IN ('draft', 'treasury_check', 'insufficient_funds', 'submitted', 'processing', 'completed', 'force_completed', 'failed', 'cancelled')
   ),
   total_amount BIGINT NOT NULL DEFAULT 0,
   total_fees BIGINT NOT NULL DEFAULT 0,
   net_amount BIGINT NOT NULL DEFAULT 0,
+  item_count INTEGER NOT NULL DEFAULT 0,
   currency TEXT NOT NULL DEFAULT 'BRL',
   trolley_batch_id TEXT,
   treasury_balance_before BIGINT,
