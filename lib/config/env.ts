@@ -39,6 +39,7 @@ const envSchema = z.object({
   TROLLEY_API_KEY: optionalString,
   TROLLEY_API_SECRET: optionalString,
   TROLLEY_WEBHOOK_SECRET: optionalString,
+  TROLLEY_API_BASE: z.string().url().optional().default('https://api.trolley.com/v1'),
 
   // Payments (Revolut — treasury)
   REVOLUT_CLIENT_ID: optionalString,

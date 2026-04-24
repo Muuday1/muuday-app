@@ -42,7 +42,7 @@ export interface TrolleyBatch {
 // Client
 // ---------------------------------------------------------------------------
 
-const TROLLEY_API_BASE = 'https://api.trolley.com/v1'
+const TROLLEY_API_BASE = env.TROLLEY_API_BASE
 
 function getAuthHeaders(): Record<string, string> {
   const key = env.TROLLEY_API_KEY
