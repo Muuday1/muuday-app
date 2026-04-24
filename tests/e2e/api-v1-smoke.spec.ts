@@ -686,6 +686,139 @@ test.describe('API v1 smoke tests', () => {
     expect(response.status()).toBe(401)
   })
 
+  test('GET /api/v1/admin/taxonomy requires authentication', async ({ request }) => {
+    const response = await request.get('/api/v1/admin/taxonomy')
+    expect([401, 403]).toContain(response.status())
+  })
+
+  test('GET /api/v1/admin/taxonomy rejects non-admin', async ({ request }) => {
+    const { sessionJson } = await loginViaApi(request)
+    const response = await request.get('/api/v1/admin/taxonomy', {
+      headers: {
+        Authorization: `Bearer ${JSON.parse(sessionJson).access_token}`,
+        'X-Supabase-Session': sessionJson,
+      },
+    })
+    expect(response.status()).toBe(403)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
+
+  test('POST /api/v1/admin/taxonomy/items requires authentication', async ({ request }) => {
+    const response = await request.post('/api/v1/admin/taxonomy/items', {
+      headers: { 'Content-Type': 'application/json' },
+      data: { name: 'test' },
+    })
+    expect([401, 403]).toContain(response.status())
+  })
+
+  test('POST /api/v1/admin/taxonomy/items rejects non-admin', async ({ request }) => {
+    const { sessionJson } = await loginViaApi(request)
+    const response = await request.post('/api/v1/admin/taxonomy/items', {
+      headers: {
+        Authorization: `Bearer ${JSON.parse(sessionJson).access_token}`,
+        'X-Supabase-Session': sessionJson,
+        'Content-Type': 'application/json',
+      },
+      data: { name: 'test' },
+    })
+    expect(response.status()).toBe(403)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
+
+  test('PATCH /api/v1/admin/taxonomy/items/:id requires authentication', async ({ request }) => {
+    const response = await request.patch('/api/v1/admin/taxonomy/items/fake-id', {
+      headers: { 'Content-Type': 'application/json' },
+      data: { name: 'test' },
+    })
+    expect([401, 403]).toContain(response.status())
+  })
+
+  test('PATCH /api/v1/admin/taxonomy/items/:id rejects non-admin', async ({ request }) => {
+    const { sessionJson } = await loginViaApi(request)
+    const response = await request.patch('/api/v1/admin/taxonomy/items/fake-id', {
+      headers: {
+        Authorization: `Bearer ${JSON.parse(sessionJson).access_token}`,
+        'X-Supabase-Session': sessionJson,
+        'Content-Type': 'application/json',
+      },
+      data: { name: 'test' },
+    })
+    expect(response.status()).toBe(403)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
+
+  test('PATCH /api/v1/admin/taxonomy/items/:id/toggle-active requires authentication', async ({ request }) => {
+    const response = await request.patch('/api/v1/admin/taxonomy/items/fake-id/toggle-active', {
+      headers: { 'Content-Type': 'application/json' },
+      data: { type: 'category', currentActive: true },
+    })
+    expect([401, 403]).toContain(response.status())
+  })
+
+  test('PATCH /api/v1/admin/taxonomy/items/:id/toggle-active rejects non-admin', async ({ request }) => {
+    const { sessionJson } = await loginViaApi(request)
+    const response = await request.patch('/api/v1/admin/taxonomy/items/fake-id/toggle-active', {
+      headers: {
+        Authorization: `Bearer ${JSON.parse(sessionJson).access_token}`,
+        'X-Supabase-Session': sessionJson,
+        'Content-Type': 'application/json',
+      },
+      data: { type: 'category', currentActive: true },
+    })
+    expect(response.status()).toBe(403)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
+
+  test('PATCH /api/v1/admin/tag-suggestions requires authentication', async ({ request }) => {
+    const response = await request.patch('/api/v1/admin/tag-suggestions', {
+      headers: { 'Content-Type': 'application/json' },
+      data: { id: 'fake', status: 'approved' },
+    })
+    expect([401, 403]).toContain(response.status())
+  })
+
+  test('PATCH /api/v1/admin/tag-suggestions rejects non-admin', async ({ request }) => {
+    const { sessionJson } = await loginViaApi(request)
+    const response = await request.patch('/api/v1/admin/tag-suggestions', {
+      headers: {
+        Authorization: `Bearer ${JSON.parse(sessionJson).access_token}`,
+        'X-Supabase-Session': sessionJson,
+        'Content-Type': 'application/json',
+      },
+      data: { id: 'fake', status: 'approved' },
+    })
+    expect(response.status()).toBe(403)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
+
+  test('PATCH /api/v1/disputes/:caseId requires authentication', async ({ request }) => {
+    const response = await request.patch('/api/v1/disputes/fake-case-id', {
+      headers: { 'Content-Type': 'application/json' },
+      data: { resolution: 'test' },
+    })
+    expect(response.status()).toBe(401)
+  })
+
+  test('PATCH /api/v1/disputes/:caseId rejects non-admin', async ({ request }) => {
+    const { sessionJson } = await loginViaApi(request)
+    const response = await request.patch('/api/v1/disputes/fake-case-id', {
+      headers: {
+        Authorization: `Bearer ${JSON.parse(sessionJson).access_token}`,
+        'X-Supabase-Session': sessionJson,
+        'Content-Type': 'application/json',
+      },
+      data: { resolution: 'test' },
+    })
+    expect(response.status()).toBe(403)
+    const body = await response.json()
+    expect(body).toHaveProperty('error')
+  })
+
   test('POST /api/v1/favorites toggles favorite when authenticated', async ({ request }) => {
     const { sessionJson } = await loginViaApi(request)
     const token = JSON.parse(sessionJson).access_token

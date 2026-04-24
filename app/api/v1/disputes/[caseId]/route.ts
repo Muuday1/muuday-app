@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
-import { requireAdmin } from '@/lib/admin/auth-helper'
+import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { getCaseById, resolveCase } from '@/lib/disputes/dispute-service'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
@@ -55,8 +55,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const admin = await requireAdmin(supabase)
     adminId = admin.userId
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Forbidden'
-    return NextResponse.json({ error: message }, { status: 403 })
+    if (e instanceof AdminAuthError) {
+      return NextResponse.json({ error: e.message }, { status: 403 })
+    }
+    throw e
   }
 
   const { caseId } = await params
