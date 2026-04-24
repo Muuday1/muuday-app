@@ -94,6 +94,8 @@ function validateTransactionEntries(entries: LedgerEntryInput[]): void {
  *
  * This is the ONLY way to write ledger entries. It validates that
  * debits === credits before writing to the database.
+ *
+ * Uses PostgreSQL RPC for atomicity — all entries succeed or none do.
  */
 export async function createLedgerTransaction(
   admin: SupabaseClient,
@@ -102,36 +104,29 @@ export async function createLedgerTransaction(
   validateTransactionEntries(input.entries)
 
   const transactionId = randomUUID()
-  const entryIds: string[] = []
 
-  for (const entry of input.entries) {
-    const { data, error } = await admin
-      .from('ledger_entries')
-      .insert({
-        transaction_id: transactionId,
-        booking_id: input.bookingId ?? null,
-        payment_id: input.paymentId ?? null,
-        payout_batch_id: input.payoutBatchId ?? null,
-        account_id: entry.account.code,
-        entry_type: entry.entryType,
-        amount: entry.amount,
-        currency: input.currency ?? 'BRL',
-        description: entry.description ?? input.description ?? null,
-        metadata: entry.metadata ?? {},
-      })
-      .select('id')
-      .single()
+  const { data, error } = await admin.rpc('create_ledger_transaction_atomic', {
+    p_transaction_id: transactionId,
+    p_booking_id: input.bookingId ?? null,
+    p_payment_id: input.paymentId ?? null,
+    p_payout_batch_id: input.payoutBatchId ?? null,
+    p_currency: input.currency ?? 'BRL',
+    p_description: input.description ?? null,
+    p_entries: input.entries.map((e) => ({
+      account_id: e.account.code,
+      entry_type: e.entryType,
+      amount: Number(e.amount),
+      description: e.description ?? null,
+      metadata: e.metadata ?? {},
+    })),
+  })
 
-    if (error) {
-      throw new Error(
-        `Failed to create ledger entry for account ${entry.account.code}: ${error.message}`,
-      )
-    }
-
-    if (data?.id) {
-      entryIds.push(data.id)
-    }
+  if (error) {
+    throw new Error(`Failed to create ledger transaction: ${error.message}`)
   }
+
+  const rows = (data || []) as Array<{ entry_id: string; account_id: string; entry_type: string; amount: number }>
+  const entryIds = rows.map((r) => r.entry_id)
 
   return { transactionId, entryIds }
 }
