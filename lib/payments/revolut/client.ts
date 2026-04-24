@@ -136,7 +136,7 @@ async function refreshAccessToken(): Promise<boolean> {
       client_assertion: clientAssertion,
     })
 
-    const response = await fetch('https://b2b.revolut.com/api/1.0/auth/token', {
+    const response = await fetch(`${REVOLUT_API_BASE}/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
@@ -378,7 +378,8 @@ export async function isRevolutHealthy(): Promise<boolean> {
   try {
     await getRevolutAccounts()
     return true
-  } catch {
+  } catch (err) {
+    console.error('[revolut/health] Health check failed:', err)
     return false
   }
 }

@@ -52,7 +52,7 @@ export async function checkDebtThresholds(
   const { data, error } = await admin
     .from('professional_balances')
     .select('professional_id, total_debt')
-    .gt('total_debt', Number(threshold))
+    .gt('total_debt', threshold.toString())
     .order('total_debt', { ascending: false })
 
   if (error) {

@@ -224,7 +224,8 @@ export async function isTrolleyHealthy(): Promise<boolean> {
     // Lightweight check: fetch recipients list with limit 1
     await trolleyFetch('/recipients?limit=1')
     return true
-  } catch {
+  } catch (err) {
+    console.error('[trolley/health] Health check failed:', err)
     return false
   }
 }
