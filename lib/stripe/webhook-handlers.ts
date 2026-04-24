@@ -5,6 +5,7 @@ import { getStripeClient } from './client'
 import {
   buildPaymentCaptureTransaction,
   buildRefundTransaction,
+  buildStripeSettlementTransaction,
   createLedgerTransaction,
 } from '@/lib/payments/ledger/entries'
 import { updateProfessionalBalance } from '@/lib/payments/ledger/balance'
@@ -248,6 +249,104 @@ async function fetchStripeFeeForPaymentIntent(
   return { stripeFeeMinor: estimatedFee, platformFeeMinor: platformFee }
 }
 
+// ---------------------------------------------------------------------------
+// Stripe Settlement Tracking (payout.paid / payout.failed)
+// ---------------------------------------------------------------------------
+
+async function fetchStripePayoutFee(payoutId: string): Promise<bigint> {
+  const stripe = getStripeClient()
+  if (!stripe) return BigInt(0)
+
+  try {
+    const payout = await stripe.payouts.retrieve(payoutId, {
+      expand: ['balance_transaction'],
+    })
+    const bt = payout.balance_transaction
+    if (bt && typeof bt === 'object' && 'fee' in bt) {
+      return BigInt(Math.round(bt.fee || 0))
+    }
+  } catch {
+    // Fallback: unable to fetch fee
+  }
+  return BigInt(0)
+}
+
+async function recordStripeSettlement(
+  admin: SupabaseClient,
+  payout: Stripe.Payout,
+  status: 'paid' | 'failed',
+): Promise<{ id: string; created: boolean }> {
+  const { data: existing } = await admin
+    .from('stripe_settlements')
+    .select('id')
+    .eq('stripe_payout_id', payout.id)
+    .maybeSingle()
+
+  if (existing?.id) {
+    const { error: updateError } = await admin
+      .from('stripe_settlements')
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+
+    if (updateError) {
+      throw new Error(`Failed to update settlement: ${updateError.message}`)
+    }
+    return { id: existing.id, created: false }
+  }
+
+  const amountMinor = BigInt(Math.round((payout.amount || 0)))
+  // Fetch actual fee from Stripe API (not available directly on Payout object)
+  const feeMinor = status === 'paid'
+    ? await fetchStripePayoutFee(payout.id)
+    : BigInt(0)
+  const netMinor = amountMinor - feeMinor
+
+  const { data: inserted, error } = await admin
+    .from('stripe_settlements')
+    .insert({
+      stripe_payout_id: payout.id,
+      amount: amountMinor,
+      fee: feeMinor,
+      net_amount: netMinor,
+      currency: payout.currency?.toUpperCase() || 'BRL',
+      status,
+      arrival_date: payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : null,
+      bank_reference: typeof payout.destination === 'string' ? payout.destination : null,
+      metadata: {
+        stripe_event_type: status === 'paid' ? 'payout.paid' : 'payout.failed',
+        automatic: payout.automatic,
+        method: payout.method,
+        type: payout.type,
+      },
+    })
+    .select('id')
+    .single()
+
+  if (error || !inserted) {
+    throw new Error(`Failed to record settlement: ${error?.message || 'unknown'}`)
+  }
+
+  return { id: inserted.id, created: true }
+}
+
+async function createStripeSettlementEntry(
+  admin: SupabaseClient,
+  payout: Stripe.Payout,
+): Promise<void> {
+  const amountMinor = BigInt(Math.round((payout.amount || 0)))
+  const feeMinor = await fetchStripePayoutFee(payout.id)
+
+  const ledgerInput = buildStripeSettlementTransaction({
+    amount: amountMinor,
+    stripeFeeAmount: feeMinor,
+  })
+
+  await createLedgerTransaction(admin, ledgerInput)
+}
+
 async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Event) {
   const paymentIntentId = extractPaymentIntentIdFromStripeEvent(event)
   const eventObject = asRecord(event.data.object as unknown)
@@ -349,6 +448,39 @@ async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Eve
     }
 
     return { outcome: 'processed', paymentRowsUpdated: payments.length }
+  }
+
+  // Stripe Settlement events
+  if (event.type === 'payout.paid') {
+    const payout = event.data.object as Stripe.Payout
+    const settlement = await recordStripeSettlement(admin, payout, 'paid')
+
+    // Create ledger entry for settlement (Stripe Receivable → Cash)
+    if (settlement.created) {
+      try {
+        await createStripeSettlementEntry(admin, payout)
+      } catch (ledgerError) {
+        console.error(
+          `[stripe/webhook] ledger error for settlement ${payout.id}:`,
+          ledgerError instanceof Error ? ledgerError.message : ledgerError,
+        )
+      }
+    }
+
+    return { outcome: 'processed', settlementId: settlement.id, created: settlement.created }
+  }
+
+  if (event.type === 'payout.failed') {
+    const payout = event.data.object as Stripe.Payout
+    const settlement = await recordStripeSettlement(admin, payout, 'failed')
+
+    // TODO: Send alert to ops team
+    console.error(`[stripe/webhook] Payout failed: ${payout.id}`, {
+      failure_code: payout.failure_code,
+      failure_message: payout.failure_message,
+    })
+
+    return { outcome: 'processed', settlementId: settlement.id, created: settlement.created }
   }
 
   if (

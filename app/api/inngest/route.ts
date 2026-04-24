@@ -23,6 +23,7 @@ import {
   syncAbandonedSearch,
   syncAbandonedCheckout,
   treasuryBalanceSnapshot,
+  treasuryReconciliation,
   payoutBatchCreate,
 } from '@/inngest/functions'
 import {
@@ -65,6 +66,7 @@ const inngestHandler = serve({
     syncAbandonedSearch,
     syncAbandonedCheckout,
     treasuryBalanceSnapshot,
+    treasuryReconciliation,
     payoutBatchCreate,
   ],
 })

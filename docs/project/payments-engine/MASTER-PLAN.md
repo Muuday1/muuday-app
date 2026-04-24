@@ -243,7 +243,7 @@ pending ──► in_review ──► approved ──► active
 | `charge.dispute.created` | 🆕 NEW | Debit: Professional Payable; Credit: Customer Deposits Held | Hold payout, create dispute record |
 | `charge.dispute.closed` (won) | 🆕 NEW | Reverse hold entry | Release booking for payout |
 | `charge.dispute.closed` (lost) | 🆕 NEW | Debit: Professional Debt; Credit: Cash | Customer refunded, pro in debt |
-| `payout.paid` | 🆕 NEW | Debit: Cash; Credit: Stripe Receivable | Treasury snapshot updated |
+| `payout.paid` | ✅ Exists | Debit: Cash; Credit: Stripe Receivable | Record `stripe_settlements`, mark reconciled |
 | `invoice.paid` | ✅ Exists | Subscription revenue | Update pro billing status |
 | `invoice.payment_failed` | ✅ Exists | None | Enqueue subscription check |
 | `customer.subscription.updated` | ✅ Exists | None | Update pro billing status |

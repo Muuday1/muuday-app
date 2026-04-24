@@ -99,6 +99,14 @@ The complete structured roadmap with explicit Review → Corrections → Commit 
 - [ ] Frontend Stripe Elements integration — REQUIRES FRONTEND WORK
 - [ ] E2E testing — requires preview environment + Stripe CLI
 
+### Phase 3 — Stripe Settlement → Revolut ✅ COMPLETE (delivered 2026-04-24)
+- [x] `stripe_settlements` table (migration `074`)
+- [x] Webhook `payout.paid` → ledger entry + settlement record
+- [x] Webhook `payout.failed` → error logging + failed record
+- [x] Treasury dashboard API (`/api/admin/finance/treasury-status`)
+- [x] Reconciliation engine (auto-match Stripe ↔ Revolut)
+- [x] Daily reconciliation cron (6am UTC)
+
 ### Policy Updates (2026-04-24)
 - **Fee structure**: NO per-payout fees. Monthly subscription fee billed separately.
 - **Trolley payout**: PayPal-only for MVP. Bank transfer in future phase.
