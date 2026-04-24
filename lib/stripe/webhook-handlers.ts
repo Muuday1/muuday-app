@@ -483,6 +483,78 @@ async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Eve
     return { outcome: 'processed', settlementId: settlement.id, created: settlement.created }
   }
 
+  // ── Dispute created: freeze payouts via dispute_resolutions ───────
+  if (event.type === 'charge.dispute.created') {
+    const dispute = event.data.object as Stripe.Dispute
+    const chargeId = asString(dispute.charge)
+
+    if (chargeId) {
+      try {
+        const stripe = getStripeClient()
+        if (stripe) {
+          const charge = await stripe.charges.retrieve(chargeId)
+          const piId = asIdFromStringOrObject(charge.payment_intent)
+
+          if (piId) {
+            // Find payment, booking, and professional
+            const { data: paymentRow } = await admin
+              .from('payments')
+              .select('id, booking_id, professional_id')
+              .eq('provider', 'stripe')
+              .eq('provider_payment_id', piId)
+              .maybeSingle()
+
+            if (paymentRow?.professional_id && paymentRow?.booking_id) {
+              // Create dispute_resolution to freeze this booking's payouts
+              await admin.from('dispute_resolutions').insert({
+                booking_id: paymentRow.booking_id,
+                professional_id: paymentRow.professional_id,
+                dispute_amount: BigInt(dispute.amount || 0),
+                remaining_debt: BigInt(dispute.amount || 0),
+                recovery_method: 'future_withholding',
+                status: 'open',
+                notes: `Stripe dispute created: ${dispute.reason || 'unknown'}`,
+                metadata: {
+                  stripe_dispute_id: dispute.id,
+                  stripe_charge_id: chargeId,
+                  stripe_payment_intent_id: piId,
+                  dispute_amount: dispute.amount,
+                  dispute_currency: dispute.currency,
+                  dispute_reason: dispute.reason,
+                  source: 'stripe_webhook',
+                },
+              })
+
+              // Also create an internal case for admin review
+              await admin.from('cases').insert({
+                booking_id: paymentRow.booking_id,
+                reporter_id: 'system',
+                type: 'cancelation_dispute',
+                reason: `Stripe dispute created: ${dispute.reason || 'unknown'} (ID: ${dispute.id})`,
+                status: 'open',
+                metadata: {
+                  stripe_dispute_id: dispute.id,
+                  stripe_charge_id: chargeId,
+                  stripe_payment_intent_id: piId,
+                  dispute_amount: dispute.amount,
+                  dispute_currency: dispute.currency,
+                  dispute_reason: dispute.reason,
+                  source: 'stripe_webhook',
+                },
+              })
+            }
+          }
+        }
+      } catch (disputeError) {
+        console.error(`[stripe/webhook] dispute handling error for ${dispute.id}:`,
+          disputeError instanceof Error ? disputeError.message : disputeError,
+        )
+      }
+    }
+
+    return { outcome: 'processed', disputeId: dispute.id }
+  }
+
   if (
     event.type === 'invoice.payment_failed' ||
     event.type === 'invoice.paid' ||

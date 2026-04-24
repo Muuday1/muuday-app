@@ -251,30 +251,30 @@
 **Goal**: Handle refunds, chargebacks, and debt recovery.
 
 ### 5.1 Refund Engine
-- [ ] `processRefund(bookingId, reason, percentage)` — admin action
-- [ ] Stripe refund API call with idempotency key
-- [ ] Update `payments.refunded_amount_minor`
-- [ ] If professional already received payout: create `dispute_resolutions` + debt
-- [ ] Ledger entry: `createRefundEntry()` + `createDisputeEntry()`
+- [x] `processRefund(bookingId, reason, percentage)` — admin action (`lib/actions/admin/refund.ts`)
+- [x] Stripe refund API call with idempotency key (`lib/payments/refund/engine.ts`)
+- [x] Update `payments.refunded_amount_minor`
+- [x] If professional already received payout: create `dispute_resolutions` + debt
+- [x] Ledger entry: `buildRefundTransaction()` + `buildDisputeAfterPayoutTransaction()`
 
 ### 5.2 Dispute Handling
-- [ ] Webhook `charge.dispute.created` → freeze payout eligibility for professional
-- [ ] Auto-create internal case for admin review
-- [ ] Admin approves/rejects dispute
-- [ ] If approved: process refund, add debt to professional
-- [ ] If rejected: release freeze, professional keeps funds
+- [x] Webhook `charge.dispute.created` → freeze payout eligibility via `dispute_resolutions`
+- [x] Auto-create internal case for admin review
+- [x] `resolveCase` integrates with `processRefund` when admin approves refund
+- [x] If approved: process refund, update `dispute_resolutions` status to `recovered`
+- [ ] If rejected: release freeze, professional keeps funds — TODO: manual admin action
 
 ### 5.3 Debt Recovery
-- [ ] `addDebt()` — adds to `professional_balances.total_debt`
-- [ ] `recoverDebt()` — deducts from future payouts
-- [ ] Alert admin when `total_debt > MAX_PROFESSIONAL_DEBT_MINOR`
-- [ ] Professional dashboard shows current debt
+- [x] `addDebt()` — adds to `professional_balances.total_debt` (`lib/payments/ledger/balance.ts`)
+- [x] `recoverDebt()` — deducts from future payouts (integrated in `payout-batch-create.ts`)
+- [x] Alert admin when `total_debt > MAX_PROFESSIONAL_DEBT_MINOR` (`lib/payments/debt/monitor.ts`)
+- [x] Professional dashboard shows current debt (`PayoutStatusCard`)
 
 ### 5.4 Edge Cases
-- [ ] Insufficient treasury → batch blocked (already implemented)
-- [ ] Trolley API failure → retry with backoff, alert after N failures
-- [ ] Stripe webhook duplicate → idempotency guard (already implemented)
-- [ ] Professional inactive during payout → hold funds, notify
+- [x] Insufficient treasury → batch blocked (already implemented)
+- [x] Trolley API failure → retry with backoff via Inngest `retries: 3`
+- [x] Stripe webhook duplicate → idempotency guard (already implemented)
+- [x] Professional inactive during payout → hold funds, notify (`trolley-webhook-processor.ts`)
 
 ### Phase 5 Quality Gates
 - [ ] TypeScript typecheck clean

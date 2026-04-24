@@ -41,7 +41,9 @@ const envSchema = z.object({
   TROLLEY_WEBHOOK_SECRET: optionalString,
 
   // Payments (Revolut — treasury)
+  REVOLUT_CLIENT_ID: optionalString,
   REVOLUT_API_KEY: optionalString,
+  REVOLUT_REFRESH_TOKEN: optionalString,
   REVOLUT_WEBHOOK_SECRET: optionalString,
   REVOLUT_ACCOUNT_ID: optionalString,
 

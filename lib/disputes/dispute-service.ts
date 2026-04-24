@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { processRefund } from '@/lib/payments/refund/engine'
 
 const caseIdSchema = z.string().uuid('Identificador de caso inválido.')
 const bookingIdSchema = z.string().uuid('Identificador de agendamento inválido.')
@@ -141,7 +143,7 @@ export async function resolveCase(
   caseId: string,
   resolution: string,
   refundAmount?: number,
-): Promise<DisputeResult<{ resolvedAt: string }>> {
+): Promise<DisputeResult<{ resolvedAt: string; refundResult?: { refundId: string; amountRefunded: bigint } }>> {
   const idParsed = caseIdSchema.safeParse(caseId)
   const resolutionParsed = reasonSchema.safeParse(resolution)
 
@@ -153,6 +155,60 @@ export async function resolveCase(
   }
 
   const resolvedAt = new Date().toISOString()
+
+  // Load case to get booking_id
+  const { data: caseRow } = await supabase
+    .from('cases')
+    .select('booking_id, type')
+    .eq('id', idParsed.data)
+    .maybeSingle()
+
+  // ── Process refund if amount provided ──────────────────────────────
+  let refundResult: { refundId: string; amountRefunded: bigint } | undefined
+  if (refundAmount && refundAmount > 0 && caseRow?.booking_id) {
+    const admin = createAdminClient()
+    if (admin) {
+      const result = await processRefund(admin, {
+        bookingId: caseRow.booking_id,
+        reason: resolutionParsed.data,
+        percentage: refundAmount,
+        adminId,
+      })
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.stripeError || 'Erro ao processar reembolso. Caso não foi resolvido.',
+        }
+      }
+
+      refundResult = {
+        refundId: result.refundId || 'unknown',
+        amountRefunded: result.amountRefunded,
+      }
+
+      // Update associated dispute_resolution if exists
+      const { data: disputeResolution } = await admin
+        .from('dispute_resolutions')
+        .select('id')
+        .eq('booking_id', caseRow.booking_id)
+        .eq('status', 'open')
+        .maybeSingle()
+
+      if (disputeResolution) {
+        await admin
+          .from('dispute_resolutions')
+          .update({
+            status: 'recovered',
+            recovered_amount: result.amountRefunded,
+            remaining_debt: BigInt(0),
+            resolved_at: resolvedAt,
+            updated_at: resolvedAt,
+          })
+          .eq('id', disputeResolution.id)
+      }
+    }
+  }
 
   const { error } = await supabase
     .from('cases')
@@ -173,13 +229,25 @@ export async function resolveCase(
     case_id: idParsed.data,
     action_type: 'resolved',
     performed_by: adminId,
-    metadata: { refund_amount: refundAmount ?? null },
+    metadata: {
+      refund_amount: refundAmount ?? null,
+      refund_id: refundResult?.refundId,
+      refunded_amount_minor: refundResult?.amountRefunded.toString(),
+    },
   })
   if (actionError) {
     console.error('[disputes] case_actions insert error:', actionError.message)
   }
 
-  return { success: true, data: { resolvedAt } }
+  return {
+    success: true,
+    data: {
+      resolvedAt,
+      refundResult: refundResult
+        ? { refundId: refundResult.refundId, amountRefunded: refundResult.amountRefunded }
+        : undefined,
+    },
+  }
 }
 
 export async function getCaseById(

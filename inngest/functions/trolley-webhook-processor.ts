@@ -214,6 +214,57 @@ async function handleRecipientUpdated(
     .update(updateData)
     .eq('trolley_recipient_id', trolleyRecipientId)
 
+  // ── Handle inactive: hold pending payouts ───────────────────────────
+  if (status === 'inactive') {
+    try {
+      const { data: recipient } = await admin
+        .from('trolley_recipients')
+        .select('professional_id')
+        .eq('trolley_recipient_id', trolleyRecipientId)
+        .maybeSingle()
+
+      if (recipient?.professional_id) {
+        // Find pending batch items for this professional
+        const { data: pendingItems } = await admin
+          .from('payout_batch_items')
+          .select('id, batch_id, net_amount')
+          .eq('professional_id', recipient.professional_id)
+          .eq('status', 'processing')
+
+        if (pendingItems && pendingItems.length > 0) {
+          // Hold the funds by marking items as held
+          for (const item of pendingItems) {
+            await admin
+              .from('payout_batch_items')
+              .update({
+                status: 'held',
+                failure_reason: 'Professional Trolley account became inactive',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', item.id)
+          }
+
+          // Notify professional
+          await admin.from('notifications').insert({
+            user_id: recipient.professional_id,
+            type: 'payout_held',
+            title: 'Pagamento retido ⚠️',
+            body: 'Sua conta de pagamento foi desativada e seu pagamento foi retido. Entre em contato com o suporte.',
+            payload: {
+              trolley_recipient_id: trolleyRecipientId,
+              held_items_count: pendingItems.length,
+              reason: 'account_inactive',
+            },
+          })
+        }
+      }
+    } catch (holdError) {
+      console.error('[trolley/webhook] failed to hold payouts for inactive recipient:',
+        holdError instanceof Error ? holdError.message : holdError,
+      )
+    }
+  }
+
   return { action: 'updated', recipientId: trolleyRecipientId }
 }
 
