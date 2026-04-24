@@ -27,6 +27,29 @@ export async function submitReview(
     return { success: false, error: parsed.error.issues[0]?.message || 'Dados inválidos.' }
   }
 
+  // Verify the booking exists and belongs to the user
+  const { data: booking, error: bookingError } = await supabase
+    .from('bookings')
+    .select('id, user_id, professional_id, status')
+    .eq('id', parsed.data.bookingId)
+    .single()
+
+  if (bookingError || !booking) {
+    return { success: false, error: 'Agendamento não encontrado.' }
+  }
+
+  if (booking.user_id !== userId) {
+    return { success: false, error: 'Você não tem permissão para avaliar este agendamento.' }
+  }
+
+  if (booking.professional_id !== parsed.data.professionalId) {
+    return { success: false, error: 'Profissional não corresponde ao agendamento.' }
+  }
+
+  if (booking.status !== 'completed') {
+    return { success: false, error: 'Apenas sessões concluídas podem ser avaliadas.' }
+  }
+
   const { error: insertError } = await supabase.from('reviews').insert({
     booking_id: parsed.data.bookingId,
     user_id: userId,
