@@ -3,7 +3,6 @@ import { runPendingPaymentTimeout } from './pending-payment-timeout'
 
 describe('runPendingPaymentTimeout', () => {
   const now = new Date('2026-04-21T12:00:00.000Z')
-  const cutoff = new Date('2026-04-21T11:30:00.000Z')
 
   function makeAdmin(opts: {
     bookings?: Array<{
@@ -13,11 +12,20 @@ describe('runPendingPaymentTimeout', () => {
       created_at: string
       metadata?: Record<string, unknown> | null
     }>
-    payment?: { id: string } | null
+    unpaidBookings?: Array<{
+      id: string
+      user_id: string
+      professional_id: string
+      created_at: string
+      metadata?: Record<string, unknown> | null
+    }>
+    payment?: { id: string; status?: string } | null
     bookingsError?: string
-    paymentError?: string
+    unpaidBookingsError?: string
     updateError?: string
   }) {
+    let bookingsQueryCount = 0
+
     return {
       from: (table: string) => {
         if (table === 'bookings') {
@@ -26,11 +34,17 @@ describe('runPendingPaymentTimeout', () => {
               eq: () => ({
                 lte: () => ({
                   order: () => ({
-                    limit: () =>
-                      Promise.resolve({
-                        data: opts.bookings || [],
-                        error: opts.bookingsError ? { message: opts.bookingsError } : null,
-                      }),
+                    limit: () => {
+                      bookingsQueryCount++
+                      const isFirstQuery = bookingsQueryCount === 1
+                      const error = isFirstQuery
+                        ? (opts.bookingsError ? { message: opts.bookingsError } : null)
+                        : (opts.unpaidBookingsError ? { message: opts.unpaidBookingsError } : null)
+                      const data = isFirstQuery
+                        ? (opts.bookings || [])
+                        : (opts.unpaidBookings || [])
+                      return Promise.resolve({ data, error })
+                    },
                   }),
                 }),
               }),
@@ -58,7 +72,7 @@ describe('runPendingPaymentTimeout', () => {
                   maybeSingle: () =>
                     Promise.resolve({
                       data: opts.payment ?? null,
-                      error: opts.paymentError ? { message: opts.paymentError } : null,
+                      error: null,
                     }),
                 }),
               }),
@@ -105,7 +119,7 @@ describe('runPendingPaymentTimeout', () => {
           id: 'bk-1',
           user_id: 'user-1',
           professional_id: 'prof-1',
-          created_at: cutoff.toISOString(),
+          created_at: now.toISOString(),
           metadata: null,
         },
       ],
@@ -116,18 +130,56 @@ describe('runPendingPaymentTimeout', () => {
     expect(result.cancelled).toBe(1)
   })
 
-  it('skips bookings that have a payment', async () => {
+  it('skips bookings that have a completed payment', async () => {
     const admin = makeAdmin({
       bookings: [
         {
           id: 'bk-1',
           user_id: 'user-1',
           professional_id: 'prof-1',
-          created_at: cutoff.toISOString(),
+          created_at: now.toISOString(),
           metadata: null,
         },
       ],
-      payment: { id: 'pay-1' },
+      payment: { id: 'pay-1', status: 'captured' },
+    })
+    const result = await runPendingPaymentTimeout(admin, now)
+    expect(result.checked).toBe(1)
+    expect(result.cancelled).toBe(0)
+  })
+
+  it('cancels unpaid bookings with requires_payment status after 24h', async () => {
+    const admin = makeAdmin({
+      bookings: [],
+      unpaidBookings: [
+        {
+          id: 'bk-2',
+          user_id: 'user-1',
+          professional_id: 'prof-1',
+          created_at: now.toISOString(),
+          metadata: null,
+        },
+      ],
+      payment: { id: 'pay-2', status: 'requires_payment' },
+    })
+    const result = await runPendingPaymentTimeout(admin, now)
+    expect(result.checked).toBe(1)
+    expect(result.cancelled).toBe(1)
+  })
+
+  it('skips unpaid bookings if payment status is not requires_payment', async () => {
+    const admin = makeAdmin({
+      bookings: [],
+      unpaidBookings: [
+        {
+          id: 'bk-2',
+          user_id: 'user-1',
+          professional_id: 'prof-1',
+          created_at: now.toISOString(),
+          metadata: null,
+        },
+      ],
+      payment: { id: 'pay-2', status: 'captured' },
     })
     const result = await runPendingPaymentTimeout(admin, now)
     expect(result.checked).toBe(1)

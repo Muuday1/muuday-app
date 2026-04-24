@@ -48,7 +48,7 @@ Wave legend:
 
 | Component | Purpose | Status | Planned entry wave | Growth update trigger |
 | --- | --- | --- | --- | --- |
-| Dual-rail payments stack (UK Stripe + BR Airwallex/dLocal) | Booking charges, refunds, payouts, professional billing by entity | Planned | Wave 3 | BR provider lock, reconciliation, and intercompany settlement requirements |
+| Payments stack (Stripe pay-in + Revolut treasury + Trolley payout) | Booking charges, refunds, payouts, professional billing | In progress | Wave 3 | Treasury reconciliation, payout volume scaling, BR contingency activation |
 | Stripe webhook endpoint | Signature-verified `/api/webhooks/stripe` with idempotency + Inngest retry | Done (skeleton) | Wave 3 | Required for any real payment processing |
 | Stripe MCP server (dev tooling) | Claude Code direct access to Stripe API for setup/testing | Planned | Wave 3 | Speeds up Stripe integration development |
 | Internal financial ledger | Booking-finance auditability and reconciliation | Planned | Wave 3 | Finance/audit traceability gaps in payment lifecycle |
@@ -77,10 +77,10 @@ Wave legend:
 | Item | Purpose | Status | Decision by phase | Re-evaluation trigger |
 | --- | --- | --- | --- | --- |
 | Final session provider lock | Agora (locked) | Done | Locked on 2026-04-10 | Reopen only with explicit product decision |
-| BR-entity rail provider decision | Airwallex vs dLocal for BR professionals/payout rails | Under evaluation | Before Wave 3 start gate | Commercial terms, API fit, and compliance constraints |
+| BR-entity rail provider decision | Airwallex vs dLocal as **contingency only** for BR professionals/payout rails | Under evaluation | Post-MVP | Commercial terms, API fit, and compliance constraints. Primary rail is Trolley. |
 | Deep tax automation | Post-MVP expansion | Under evaluation | Post-MVP | New jurisdictions/regulatory complexity beyond light model |
 
-> ⚠️ **ARCHITECTURE NOTE (2026-04-24):** An older backend tracker (`docs/engineering/IMPLEMENTATION-TRACKER.md` Fase 6) references "Trolley + Revolut" for payouts. This has been **superseded** by the entity-based rail decision documented in `docs/engineering/stripe-integration-plan.md`. The canonical path is: UK entity → Stripe end-to-end; BR entity → Airwallex end-to-end. Trolley+Revolut is archived.
+> **ARCHITECTURE NOTE (2026-04-24):** The payment stack is **Stripe UK (pay-in) → Revolut Business (treasury) → Trolley (payout)**. This replaces the earlier Airwallex-centric plan. Stripe Connect is NOT used for provider payouts. Airwallex/dLocal remain as operational contingency. See `docs/project/payments-engine/MASTER-PLAN.md` for full architecture.
 
 ## Plan and billing status
 

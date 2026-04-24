@@ -248,6 +248,10 @@ export const RATE_LIMITS = {
   apiV1AdminRead: { limit: 60, windowSeconds: 60 },
   apiV1AdminWrite: { limit: 30, windowSeconds: 60 },
   apiV1TaxonomyCatalog: { limit: 60, windowSeconds: 60 },
+  trolleyWebhook: { limit: 60, windowSeconds: 60 },
+  revolutWebhook: { limit: 60, windowSeconds: 60 },
+  stripePaymentIntent: { limit: 10, windowSeconds: 60 },
+  stripeCheckoutBooking: { limit: 10, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(

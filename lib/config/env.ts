@@ -35,6 +35,25 @@ const envSchema = z.object({
   STRIPE_CONNECT_CLIENT_ID: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
 
+  // Payments (Trolley — professional payouts)
+  TROLLEY_API_KEY: optionalString,
+  TROLLEY_API_SECRET: optionalString,
+  TROLLEY_WEBHOOK_SECRET: optionalString,
+
+  // Payments (Revolut — treasury)
+  REVOLUT_API_KEY: optionalString,
+  REVOLUT_WEBHOOK_SECRET: optionalString,
+  REVOLUT_ACCOUNT_ID: optionalString,
+
+  // Payout Configuration
+  PAYOUT_COOLDOWN_HOURS: z.coerce.number().min(0).default(48),
+  PAYOUT_BATCH_SCHEDULE_CRON: z.string().default('0 8 * * 1'),
+  MINIMUM_TREASURY_BUFFER_MINOR: z.coerce.number().min(0).default(1_000_000),
+  MAX_PROFESSIONAL_DEBT_MINOR: z.coerce.number().min(0).default(50_000),
+  WEEKLY_PAYOUT_FEE_MINOR: z.coerce.number().min(0).default(1_500),
+  BIWEEKLY_PAYOUT_FEE_MINOR: z.coerce.number().min(0).default(1_000),
+  MONTHLY_PAYOUT_FEE_MINOR: z.coerce.number().min(0).default(500),
+
   // Mobile app
   MOBILE_API_KEY: optionalString,
 

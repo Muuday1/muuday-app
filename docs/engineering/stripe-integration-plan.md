@@ -4,33 +4,41 @@ Last updated: 2026-04-10
 
 Source: `docs/spec/source-of-truth/part3-payments-billing-revenue-engine.md`
 
-## Decision update (2026-04-10) - canonical payments routing
+## Decision update (2026-04-24) - canonical payments routing
 
-This file applies to the **UK entity Stripe rail** only.
+This file applies to the **Stripe UK pay-in rail** only. Payouts are handled by Trolley, not Stripe Connect.
 
 Canonical routing rule:
-1. Entity decides rail, not professional country alone.
-2. UK entity uses Stripe end-to-end where supported.
-3. BR entity uses Airwallex end-to-end for BR professionals/payout rails.
-4. dLocal remains contingency only (not active in v1).
-5. US/EU professionals onboarded under UK entity remain Stripe end-to-end.
+1. **Customer pay-in**: Stripe UK for ALL customers (regardless of professional country).
+2. **Treasury/Settlement**: Revolut Business account receives Stripe payouts.
+3. **Professional payout**: Trolley (mass payouts, KYC, tax forms). NOT Stripe Connect.
+4. **BR contingency**: Airwallex or dLocal as fallback if Trolley fails for BR corridor.
+5. **Ledger**: Internal double-entry ledger tracks every movement (Stripe Receivable → Cash → Professional Payable).
 
 ### Wave 3 implementation lock (operational)
 
-1. Do **not** implement UK->BR payout routing in Stripe for BR professionals.
-2. Stripe webhooks handled in UK rail:
-- `checkout.session.completed`
-- `invoice.paid`
-- `invoice.payment_failed`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
-3. Settlement ownership:
-- UK ledger reconciles only UK-entity Stripe flows.
-- BR ledger and payout lifecycle are reconciled in BR rail (Airwallex).
+1. Stripe webhooks handled in UK rail:
+   - `checkout.session.completed`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `payment_intent.succeeded`
+   - `payment_intent.payment_failed`
+   - `charge.refunded`
+   - `payout.paid`
+2. Settlement ownership:
+   - Stripe settles to Revolut Business account (configured in Stripe Dashboard).
+   - Revolut balance is snapshotted every 15 minutes via Inngest.
+   - Treasury sufficiency formula ensures balance ≥ pending payouts + safety buffer.
+3. Payout lifecycle:
+   - Weekly eligibility scan (Mondays 8am UTC) creates `payout_batches`.
+   - Treasury check verifies Revolut balance before Trolley submission.
+   - Trolley processes payouts to professional bank accounts.
+   - Ledger entries track every debit/credit.
 4. Failover policy:
-- dLocal is fallback provider for BR rail incident/coverage gaps, not default path.
-
-Historical sections below that discuss UK->BR Stripe-only assumptions are kept only as implementation history context and are **not** canonical for Wave 3 execution.
+   - If Trolley fails for BR corridor, activate Airwallex/dLocal contingency.
+   - If Revolut balance insufficient, batch status → `insufficient_funds` (blocked, not partial).
 
 ## Background Job Resilience Foundation â€” Implemented (code level)
 
@@ -395,26 +403,127 @@ Each rule from Part 3 is classified as:
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_CONNECT_CLIENT_ID=ca_...
+# NOTA: Stripe Connect NÃO é usado. Payouts são via Trolley.
 ```
 
 ## Stripe webhooks to listen to
 
 | Event | Action |
 |-------|--------|
-| `payment_intent.succeeded` | Confirm booking, create ledger entry |
+| Event | Action |
+|-------|--------|
+| `payment_intent.succeeded` | Confirm booking, create ledger entry (`createPaymentCapturedEntry`) |
 | `payment_intent.payment_failed` | Mark booking payment failed, notify user |
-| `charge.dispute.created` | Freeze payout, create internal case |
-| `charge.dispute.closed` | Release or deduct payout |
-| `transfer.created` | Update ledger |
-| `transfer.reversed` | Update ledger, track debt |
-| `payout.failed` | Alert, start grace period |
+| `charge.refunded` | Update `payments.refunded_amount_minor`, create ledger entry (`createRefundEntry`) |
+| `charge.dispute.created` | Freeze payout eligibility, create internal case |
+| `charge.dispute.closed` | Release or deduct payout, update ledger |
+| `payout.paid` | Stripe settled to Revolut — create ledger entry (`createStripeSettlementEntry`) |
+| `payout.failed` | Alert admin, mark settlement as failed |
 | `invoice.payment_failed` | Professional sub: start grace, block bookings |
 | `customer.subscription.updated` | Sync plan state |
 | `customer.subscription.deleted` | Mark plan canceled, enforce block |
-| `account.updated` | Connected account onboarding status |
+
+> **Nota:** `transfer.*` e `account.updated` foram removidos — não usamos Stripe Connect. Payouts são orquestrados via Trolley.
 
 
+
+---
+
+## Revolut Business Integration (Treasury)
+
+### Purpose
+Revolut Business serves as the **treasury/settlement account** between Stripe pay-ins and Trolley payouts.
+
+### Flow
+1. Stripe UK settles processed charges to the linked Revolut Business account (typically T+7).
+2. Inngest captures Revolut balance every 15 minutes (`treasury-balance-snapshot`).
+3. Before each payout batch, the system verifies: `Revolut balance ≥ batch total + MINIMUM_TREASURY_BUFFER_MINOR`.
+4. If insufficient: batch is blocked with status `insufficient_funds` and admin is alerted.
+5. If sufficient: batch proceeds to Trolley submission.
+
+### Env vars
+```
+REVOLUT_API_KEY=...
+REVOLUT_WEBHOOK_SECRET=...
+REVOLUT_ACCOUNT_ID=...
+```
+
+### Key files
+- `lib/payments/revolut/client.ts` — API client
+- `inngest/functions/treasury-snapshot.ts` — balance capture
+- `app/api/webhooks/revolut/route.ts` — webhook receiver
+
+---
+
+## Trolley Integration (Payout)
+
+### Purpose
+Trolley handles **professional onboarding, KYC, and mass payouts**. It replaces Stripe Connect for provider-facing transfers.
+
+### Why Trolley over Stripe Connect
+- Profissionais **não precisam criar conta Stripe** (menor fricção de onboarding).
+- Melhores taxas para corridors internacionais (UK → BR/MX).
+- Tax forms automáticos (W-8BEN, W-9) para compliance IRS.
+- Suporte a múltiplos rails (ACH, SEPA, transferência bancária local).
+
+### Flow
+1. Profissional completa KYC no Trolley (embed ou redirect).
+2. Trolley webhooks (`recipient.created`, `recipient.updated`) sync to `trolley_recipients` table.
+3. Weekly eligibility scan creates `payout_batches` + `payout_batch_items`.
+4. Treasury check passes → batch submitted to Trolley API.
+5. Trolley webhooks (`payment.updated`) sync status back to `payout_batch_items`.
+6. Ledger entries created for every payout (`createPayoutEntry`).
+
+### Fee Structure (Muuday absorbs Trolley fees)
+| Professional Periodicity | Muuday Fee (deducted from payout) |
+|--------------------------|-----------------------------------|
+| Weekly | R$ 15,00 |
+| Bi-weekly | R$ 10,00 |
+| Monthly | R$ 5,00 |
+
+### Env vars
+```
+TROLLEY_API_KEY=...
+TROLLEY_API_SECRET=...
+TROLLEY_WEBHOOK_SECRET=...
+```
+
+### Key files
+- `lib/payments/trolley/client.ts` — API client
+- `lib/payments/eligibility/engine.ts` — payout eligibility criteria
+- `inngest/functions/payout-batch-create.ts` — weekly batch creation
+- `app/api/webhooks/trolley/route.ts` — webhook receiver
+
+---
+
+## Ledger Double-Entry (Internal)
+
+### Chart of Accounts (10 accounts)
+| Code | Name | Type |
+|------|------|------|
+| 1000 | Cash | Asset |
+| 1100 | Stripe Receivable | Asset |
+| 2000 | Professional Payable | Liability |
+| 2100 | Customer Deposits | Liability |
+| 4000 | Platform Fee Revenue | Revenue |
+| 5000 | Stripe Fee Expense | Expense |
+| 5100 | Trolley Fee Expense | Expense |
+| 5200 | FX Cost Expense | Expense |
+| 3000 | Professional Balance | Equity |
+| 3100 | Professional Debt | Equity |
+
+### Transaction Templates
+- `createPaymentCapturedEntry()` — Customer pays → Stripe Receivable + Customer Deposits
+- `createStripeSettlementEntry()` — Stripe settles → Cash + Stripe Receivable
+- `createPayoutEntry()` — Pay professional → Professional Payable + Cash
+- `createDisputeEntry()` — Dispute after payout → Professional Debt + Customer Deposits
+- `createRefundEntry()` — Refund → Customer Deposits + Stripe Receivable
+
+### Key files
+- `lib/payments/ledger/accounts.ts` — chart of accounts
+- `lib/payments/ledger/entries.ts` — entry creation + templates
+- `lib/payments/ledger/balance.ts` — professional balance management
+- `lib/payments/fees/calculator.ts` — fee calculation
 
 ---
 

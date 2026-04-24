@@ -9,7 +9,7 @@
 
 ## RESUMO EXECUTIVO
 
-A Muuday está construída hoje como uma plataforma 100% brasileira (pt-BR, landing page BR, profissionais BR, Stripe BR, termos SP/BR). Para expandir para México, Portugal e futuros mercados, precisamos de uma arquitetura de **isolamento por mercado** com subdiretórios (`/br/`, `/mx/`), detecção inteligente de mercado, CMS headless, e pagamentos unificados via Stripe UK + Trolley.
+A Muuday está construída hoje como uma plataforma 100% brasileira (pt-BR, landing page BR, profissionais BR, Stripe BR, termos SP/BR). Para expandir para México, Portugal e futuros mercados, precisamos de uma arquitetura de **isolamento por mercado** com subdiretórios (`/br/`, `/mx/`), detecção inteligente de mercado, CMS headless, e pagamentos unificados via Stripe UK (pay-in) + Revolut Business (treasury) + Trolley (payout).
 
 **A decisão mais importante:** NÃO pare o Brasil para construir internacionalização. Faça as fundações silenciosamente enquanto continua o roadmap BR. Quando o Brasil estiver consolidado (500+ profissionais, 1000+ bookings/mês), o México estará pronto para lançar em 4-8 semanas.
 
@@ -125,7 +125,7 @@ CREATE INDEX idx_reviews_market ON reviews(client_market_code);
 **O que fazer:**
 - Remover dual-region BR/UK para processamento de clientes
 - Usar Stripe UK para TODOS os pagamentos de clientes
-- Manter `resolveStripePlatformRegion` apenas se usarmos Stripe Connect no futuro (mas payout será Trolley/PayPal)
+- Remover Stripe Connect completamente — payout é Trolley, não Stripe
 
 **Impacto:** Simplifica código. Um único Stripe para todos os clientes.
 

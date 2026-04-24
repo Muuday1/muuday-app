@@ -3,22 +3,25 @@
 Last updated: 2026-04-10
 Source: Part 3 and Part 5
 
-## 1) BR rail provider final selection (critical)
+## 1) BR rail provider final selection (RESOLVED — 2026-04-24)
 
 Context:
-- Payment architecture is locked as entity-based dual rail.
-- UK entity uses Stripe where supported.
-- BR entity must use a BR-compatible rail for BR professionals/payouts.
-- Final BR rail provider decision is pending (Airwallex vs dLocal).
+- Payment architecture is **Stripe UK (pay-in) → Revolut Business (treasury) → Trolley (payout)**.
+- Trolley is the **primary** payout provider for all corridors including BR.
+- BR rail provider decision is **closed**: Airwallex vs dLocal is now a **contingency-only** evaluation.
 
-Validation questions:
-1. Which provider (Airwallex or dLocal) best fits startup volume, compliance constraints, and rollout speed?
-2. What BR payout constraints apply to KYC fields, settlement timing, and payout methods?
-3. What intercompany settlement model is required between UK and BR entities?
-4. What operational fallback exists if BR rail onboarding is delayed?
+Resolution:
+- Trolley selected as primary payout provider (founder decision, 2026-04-24).
+- Airwallex kept as first contingency if Trolley fails for BR corridor.
+- dLocal kept as second contingency if Airwallex also fails.
+- No separate BR entity needed — all payouts originate from UK entity via Trolley.
+
+Validation questions (contingency only):
+1. Which provider (Airwallex or dLocal) best fits as fallback for BR corridor?
+2. What is the activation procedure if Trolley fails for BR?
 
 Blocking impact:
-- Wave 3 real-money BR payout rollout cannot be finalized until this is validated.
+- **NONE** — primary rail (Trolley) is locked. Contingency evaluation can proceed in parallel.
 
 ## 2) Video provider note (closed)
 

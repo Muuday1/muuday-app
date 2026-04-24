@@ -8,41 +8,53 @@
 
 ## 1. Visão Geral do Fluxo de Dinheiro
 
+> **ATUALIZAÇÃO (2026-04-24):** O fluxo ativo é **Stripe UK → Revolut Business → Trolley**. Não usamos PayPal para payouts. Airwallex/dLocal são contingência.
+
 ```
 ┌─────────────────┐     Stripe UK      ┌──────────────────┐
-│ Cliente (expat) │ ─────────────────► │ Conta Stripe UK  │
+│ Cliente (expat) │ ─────────────────► │ Stripe UK        │
 │ - Cartão CC     │    (pagamento)     │ (muuday.com)     │
 │ - Apple Pay     │                    │                  │
-│ - PayPal        │                    │                  │
 │ - Google Pay    │                    │                  │
+│ - PayPal        │                    │                  │
 └─────────────────┘                    └────────┬─────────┘
                                                 │
-                                                │ menos comissão Muuday
+                                                │ settlement (T+7 dias)
                                                 │
                                                 ▼
                                        ┌──────────────────┐
-                                       │ Conta Bancária   │
-                                       │ Muuday UK        │
-                                       │ (Barclays/Monzo) │
+                                       │ Revolut Business │
+                                       │ (conta treasury) │
                                        └────────┬─────────┘
                                                 │
                                                 │ payout
+                                                │
+                                                ▼
+                                       ┌──────────────────┐
+                                       │ Trolley          │
+                                       │ (mass payouts)   │
+                                       └────────┬─────────┘
                                                 │
                        ┌────────────────────────┼────────────────────────┐
                        │                        │                        │
                        ▼                        ▼                        ▼
                ┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-               │ PayPal       │        │ Trolley      │        │ Wise/Bank    │
-               │ (inicial)    │        │ (futuro)     │        │ (futuro)     │
-               └──────┬───────┘        └──────┬───────┘        └──────┬───────┘
-                      │                        │                        │
-                      ▼                        ▼                        ▼
-               ┌──────────────┐        ┌──────────────┐        ┌──────────┐
-               │ Profissional │        │ Profissional │        │ Prof.    │
-               │ (Brasil)     │        │ (México)     │        │ (outros) │
-               │ Recebe BRL   │        │ Recebe MXN   │        │ Recebe   │
-               │ no PayPal    │        │ no PayPal    │        │ local    │
-               └──────────────┘        └──────────────┘        └──────────┘
+               │ Profissional │        │ Profissional │        │ Profissional │
+               │ (Brasil)     │        │ (México)     │        │ (outros)     │
+               │ Recebe BRL   │        │ Recebe MXN   │        │ Recebe local │
+               │ na conta     │        │ na conta     │        │ na conta     │
+               │ bancária     │        │ bancária     │        │ bancária     │
+               └──────────────┘        └──────────────┘        └──────────────┘
+
+PARALELO (auditoria):
+┌─────────────────────────────────────────────────────────────┐
+│  Ledger Double-Entry (interno)                              │
+│  ─────────────────────────────                              │
+│  1. Customer pays → Stripe Receivable ↑ / Customer Deposits ↑│
+│  2. Stripe settles → Cash ↑ / Stripe Receivable ↓           │
+│  3. Payout professional → Professional Payable ↑ / Cash ↓   │
+│  4. Dispute/refund → reverso com tracking de dívida        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -111,65 +123,64 @@ export async function createCheckoutSession({
 
 ---
 
-## 3. Pagamento aos Profissionais
+## 3. Pagamento aos Profissionais via Trolley
 
-### Fase 1: PayPal (MVP — agora)
-**Por quê:** Rápido, global, profissionais já conhecem.
+> **ATUALIZAÇÃO (2026-04-24):** Trolley é o payout provider **primário** desde o início. Não usamos PayPal. O ledger double-entry já está implementado.
 
-**Como funciona:**
-1. Profissional cadastra email do PayPal no dashboard.
-2. Quando o cliente paga, o dinheiro vai para a conta Stripe UK → conta bancária UK.
-3. Periodicamente (ex: toda segunda-feira), a Muuday envia um payout manual ou automatizado via PayPal para o email do profissional.
-4. O profissional recebe em BRL/MXN no PayPal (conversão automática).
+### Arquitetura Ativa
+**Stripe UK (pay-in) → Revolut Business (treasury) → Trolley (payout)**
 
-**Problemas:**
-- Taxa PayPal para envio internacional: ~5% + spread cambial.
-- Profissional precisa sacar do PayPal para conta bancária (taxa adicional).
-- Não é escalável para 500+ profissionais.
+### Como funciona
+1. Profissional completa onboarding no Trolley (via embed ou redirect da Muuday).
+2. Trolley coleta dados bancários e tax forms (W-8BEN para não-residentes US, W-9 para US persons).
+3. Stripe UK recebe pagamento do cliente e settle para Revolut Business (T+7 dias).
+4. Toda segunda-feira (8am UTC), o sistema:
+   - Scaneia bookings elegíveis (48h após sessão, sem disputa aberta)
+   - Calcula saldo disponível por profissional
+   - Deduza fee por periodicidade (weekly R$15 / biweekly R$10 / monthly R$5)
+   - Deduza dívida existente (disputas pós-payout)
+   - Verifica se saldo Revolut ≥ total do batch + safety buffer (R$ 10.000)
+   - Se suficiente: cria batch no Trolley e envia
+   - Se insuficiente: batch fica em `insufficient_funds`, alerta admin
+5. Trolley processa e envia para conta bancária do profissional.
 
-**Implementação:**
+### Vantagens do Trolley
+- Menor taxa que Stripe Connect para corridors internacionais.
+- Profissional NÃO precisa criar conta Stripe (menor fricção).
+- Transferência bancária direta (ACH, SEPA, local rails).
+- Tax forms automáticos (W-8BEN, W-9) — compliance IRS.
+- Dashboard para profissionais acompanharem status.
+
+### Custo
+- Setup: $0
+- Por transação: ~$1-3 + 1% (dependendo do método e corridor)
+- Plano: gratuito até certo volume, depois ~$50-200/mês
+
+### Ledger Double-Entry
+Cada payout gera entries no ledger:
+- **Débito**: Professional Payable (reduz liability)
+- **Crédito**: Cash (reduz asset)
+- Profissional balance: `available` → transferido para `paid_out`
+
+### Implementação (já entregue em Fase 6.1)
 ```ts
-// lib/payouts/paypal.ts
-export async function sendPayPalPayout({
-  recipientEmail,
-  amount,
-  currency,
-}: PayPalPayoutParams) {
-  // Usar PayPal Payouts API
-  const response = await paypal.payouts.create({
-    sender_batch_header: {
-      email_subject: 'Pagamento Muuday',
-    },
-    items: [{
-      recipient_type: 'EMAIL',
-      amount: { value: amount.toString(), currency },
-      receiver: recipientEmail,
-      note: 'Pagamento por sessão realizada',
-    }],
-  })
-  return response
-}
+// lib/payments/trolley/client.ts
+export async function createTrolleyRecipient(...) { ... }
+export async function createPayment(...) { ... }
+export async function createBatch(...) { ... }
+
+// lib/payments/ledger/entries.ts
+export async function createPayoutEntry(...) { ... }
+
+// inngest/functions/payout-batch-create.ts
+// Roda toda segunda 8am UTC
 ```
 
-### Fase 2: Trolley (Escalabilidade — 3-6 meses)
-**Por quê:** Especializado em mass payouts internacionais, tax forms, compliance.
-
-**Como funciona:**
-1. Profissional se cadastra no Trolley (via API da Muuday).
-2. Trolley coleta dados bancários e tax forms (W-8BEN para não-residentes US).
-3. Muuday envia payout via API Trolley.
-4. Trolley processa e envia para conta bancária do profissional (ou PayPal, se preferir).
-
-**Vantagens:**
-- Menor taxa que PayPal (~1-2% + spread).
-- Suporte a transferência bancária direta (ACH, SEPA, etc.).
-- Tax forms automáticos (W-8BEN, W-9).
-- Dashboard para profissionais.
-
-**Custo:**
-- Setup: $0
-- Por transação: ~$1-3 + 1% (dependendo do método)
-- Plano: gratuito até certo volume, depois ~$50-200/mês
+### Contingência
+Se Trolley falhar para corridor BR:
+- **Airwallex**: rail alternativo para BR (já avaliado, API pronta)
+- **dLocal**: fallback se Airwallex também falhar
+- Ativação manual via admin dashboard (feature flag)
 
 **Implementação:**
 ```ts

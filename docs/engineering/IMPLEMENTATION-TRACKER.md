@@ -376,49 +376,121 @@ getProfessionalServices(professionalId)
 
 ---
 
-## FASE 6 — Payment Stack ⏳ AGUARDANDO INSTRUÇÕES
+## FASE 6 — Payment Stack 🟡 EM PROGRESSO
 
-> ⚠️ **ATENÇÃO ARQUITETURAL (2026-04-24):** O plano original desta fase mencionava **Trolley + Revolut** para payouts. Esta arquitetura foi **SUPERSEDIDA** pela decisão canônica de 2026-04-10 documentada em `docs/engineering/stripe-integration-plan.md`. O caminho canônico é:
-> - Entidade UK → Stripe end-to-end (cobrança + payout via Stripe Connect)
-> - Entidade BR → Airwallex end-to-end (alternativa: dLocal como contingência)
+> **ATUALIZAÇÃO ARQUITETURAL (2026-04-24):** A arquitetura foi **redefinida** pelo founder. O caminho ativo é:
+> - **Stripe UK** = cobrança do cliente (pay-in apenas — NÃO Stripe Connect)
+> - **Revolut Business** = conta treasury/settlement (recebe de Stripe, funda payouts)
+> - **Trolley** = payout aos profissionais (onboarding KYC + mass payouts)
+> - **Ledger double-entry interno** = rastreabilidade completa de cada centavo
 >
-> **NÃO implementar Trolley + Revolut.** Aguardar instruções específicas sobre o fluxo Stripe → Ledger interno → Airwallex/dLocal.
+> **NÃO usa Stripe Connect para payouts.** NÃO usa Airwallex como rail principal. Airwallex/dLocal permanecem como contingência operacional.
 >
-> **Status**: Plano arquitetural pronto (baseado em Stripe + Airwallex). Aguardando instruções específicas do usuário para iniciar execução real de pagamentos (Wave 3).
+> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Pronto para iniciar Fase 2 (Stripe Pay-in Completion).
 
-### O que será construído (esqueleto do plano):
+---
 
-#### 6.1 Cobrança do Cliente por Sessão
-- [ ] `POST /api/stripe/payment-intent` — cria PaymentIntent para valor da sessão
-- [ ] `POST /api/stripe/checkout-session/booking` — Stripe Checkout alternativo
+### FASE 6.1 — Ledger Foundation ✅ COMPLETA
+
+| Aspecto | Status | Detalhe |
+|---------|--------|---------|
+| Migration `070` — Ledger Schema | ✅ 📦 | 9 tabelas: `ledger_accounts`, `ledger_entries`, `professional_balances`, `payout_batches`, `payout_batch_items`, `trolley_recipients`, `revolut_treasury_snapshots`, `dispute_resolutions`, `booking_payout_items` |
+| Migration `071` — BigInt Migration | ✅ 📦 | `_minor` columns em `payments`, `bookings`, `payout_batches`, `payout_batch_items`, `professional_balances`, `revolut_treasury_snapshots`, `dispute_resolutions` |
+| Migration `072` — Chart of Accounts | ✅ 📦 | 10 contas ledger bootstrap (Cash, Stripe Receivable, Professional Payable, etc.) |
+| `lib/payments/ledger/accounts.ts` | ✅ | Chart of accounts + LEDGER_ACCOUNT_CODES |
+| `lib/payments/ledger/entries.ts` | ✅ | Double-entry helpers + transaction templates |
+| `lib/payments/ledger/balance.ts` | ✅ | Professional balance CRUD + invariant validation |
+| `lib/payments/fees/calculator.ts` | ✅ | Fee calc (weekly R$15 / biweekly R$10 / monthly R$5) + minor unit formatting |
+| `lib/payments/trolley/client.ts` | ✅ | Trolley API client (recipient, payment, batch) |
+| `lib/payments/revolut/client.ts` | ✅ | Revolut Business API client (treasury balance, transactions) |
+| `lib/payments/eligibility/engine.ts` | ✅ | 6-criteria eligibility engine (booking + professional) |
+| `lib/payments/bigint-constants.ts` | ✅ | ES2017-safe BigInt constants (ZERO, ONE_HUNDRED, etc.) |
+| Webhook `/api/webhooks/trolley` | ✅ | Rate-limited, signature-verified, enqueues Inngest |
+| Webhook `/api/webhooks/revolut` | ✅ | Rate-limited, JWT-verified, enqueues Inngest |
+| Inngest `treasury-balance-snapshot` | ✅ | Captura saldo Revolut a cada 15min |
+| Inngest `payout-batch-create` | ✅ | Cria batches semanais (segundas 8am UTC) |
+| `lib/config/env.ts` | ✅ | Trolley + Revolut + payout config env vars |
+| `lib/security/rate-limit.ts` | ✅ | Presets `trolleyWebhook` + `revolutWebhook` |
+
+---
+
+### FASE 6.2 — Stripe Pay-in Completion ⏳ PRÓXIMA
+
+#### 6.2.1 PaymentIntent para Bookings
+- [ ] `POST /api/stripe/payment-intent` — cria PaymentIntent com `capture_method: 'manual'`
+- [ ] Pré-autoriza no momento do booking (hold funds)
+- [ ] Captura automática 24h antes da sessão ou após confirmação
+
+#### 6.2.2 Stripe Checkout (fallback)
+- [ ] `POST /api/stripe/checkout-session/booking` — Stripe Checkout para clientes sem cartão salvo
 - [ ] Stripe Customer creation/reuse por `profiles.id`
-- [ ] Webhook `payment_intent.succeeded` → `payments.status = 'captured'`
-- [ ] Webhook `payment_intent.payment_failed` → cancela booking
 
-#### 6.2 Ledger Interno (Double-Entry)
-- [ ] Tabelas: `ledger_charges`, `ledger_bookings`, `ledger_earnings`, `ledger_transfers`, `ledger_payouts`, `ledger_refunds`, `ledger_reversals`, `ledger_subscription_billings`
-- [ ] Princípio contábil: cada transação tem crédito e débito
-- [ ] Trigger auto-cria ledger entry quando payment capturado
+#### 6.2.3 Webhook Processing
+- [ ] `payment_intent.succeeded` → `payments.status = 'captured'` + ledger entry (`createPaymentCapturedEntry`)
+- [ ] `payment_intent.payment_failed` → cancela booking + notifica cliente
+- [ ] `charge.refunded` → atualiza `payments.refunded_amount_minor` + ledger entry (`createRefundEntry`)
 
-#### 6.3 Fee / Commission Engine
-- [ ] `lib/finance/fee-calculator.ts`
-- [ ] Platform fee: 15% Basic, 20% Pro, 25% Premium
-- [ ] Stripe fee: 2.9% + R$0.30 (BR) / 1.5% + £0.20 (UK)
+#### 6.2.4 Ledger Integration
+- [ ] Hook em webhook handler para chamar `createPaymentCapturedEntry()`
+- [ ] Atualiza `professional_balances` (pending → available após cooldown)
 
-#### 6.4 Payout aos Profissionais (Trolley + Revolut)
-- [ ] Trolley integration: criar recipient, webhooks, criar payment
-- [ ] Revolut API: saldo da conta corporativa
-- [ ] Threshold: BRL 100 mínimo
-- [ ] Frequência: semanal (segundas) ou sob demanda (premium)
+---
 
-#### 6.5 Refund Engine
-- [ ] `processRefund(bookingId, reason, percentage)`
-- [ ] Chama `stripe.refunds.create()`
-- [ ] Se transfer já feita: cria `ledger_reversals` + dívida do profissional
+### FASE 6.3 — Stripe Settlement → Revolut ⏳ PENDENTE
 
-#### 6.6 Admin Financeiro
-- [ ] API routes para summary, pending payouts, force payout
+#### 6.3.1 Settlement Tracking
+- [ ] Stripe payout reconciliation ( Stripe → Revolut bank account )
+- [ ] Webhook `payout.paid` → marca settlement como completo
+- [ ] Ledger entry: `createStripeSettlementEntry()` (Stripe Receivable → Cash)
+
+#### 6.3.2 Treasury Automation
+- [ ] Revolut balance snapshot já ativo (Inngest a cada 15min)
+- [ ] Alerta se saldo < `MINIMUM_TREASURY_BUFFER_MINOR` (R$ 10.000)
+- [ ] Dashboard admin com histórico de saldo
+
+---
+
+### FASE 6.4 — Professional Payout via Trolley ⏳ PENDENTE
+
+#### 6.4.1 Trolley Onboarding
+- [ ] Profissional completa KYC no Trolley (via embed ou redirect)
+- [ ] Webhook `recipient.created` / `recipient.updated` → sync `trolley_recipients`
+- [ ] Status tracking: `pending_kyc` → `active` → `suspended`
+
+#### 6.4.2 Payout Batch Execution
+- [ ] Eligibility scan semanal (já implementado em `payout-batch-create`)
+- [ ] Treasury check: Revolut balance ≥ batch total + safety buffer
+- [ ] Trolley batch submission via API
+- [ ] Webhook `payment.updated` → atualiza status `payout_batch_items`
+
+#### 6.4.3 Fee Deduction
+- [ ] Dedução automática de fee por periodicidade (weekly/biweekly/monthly)
+- [ ] Dedução de dívida profissional (disputas pós-payout)
+- [ ] Ledger entries para cada dedução
+
+---
+
+### FASE 6.5 — Refund & Dispute Engine ⏳ PENDENTE
+
+#### 6.5.1 Refund Flow
+- [ ] `processRefund(bookingId, reason, percentage)` — admin action
+- [ ] Stripe refund API call
+- [ ] Se já houve payout: cria `dispute_resolutions` + dívida do profissional
+- [ ] Ledger entries: `createRefundEntry()` + `createDisputeEntry()`
+
+#### 6.5.2 Dispute Recovery
+- [ ] Debt tracking em `professional_balances.total_debt`
+- [ ] Auto-recovery from future payouts (`recoverDebt()`)
+- [ ] Alerta admin quando dívida > `MAX_PROFESSIONAL_DEBT_MINOR`
+
+---
+
+### FASE 6.6 — Admin Finance Dashboard ⏳ PENDENTE
+
+- [ ] API routes: `/api/admin/finance/summary`, `/api/admin/finance/pending-payouts`
 - [ ] CSV export de ledger por profissional
+- [ ] Force payout (emergência)
+- [ ] Dispute resolution UI
 
 ---
 

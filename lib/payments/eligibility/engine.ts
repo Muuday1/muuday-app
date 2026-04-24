@@ -1,0 +1,327 @@
+/**
+ * Payout Eligibility Engine — Muuday Payments Engine
+ *
+ * Determines which bookings are eligible for payout and which professionals
+ * can receive payouts. This is the GATEKEEPER of all money leaving Muuday.
+ *
+ * ALL criteria must be met for a booking to be eligible.
+ * ALL criteria must be met for a professional to receive payouts.
+ *
+ * Eligibility is checked at batch creation time AND at batch submission time.
+ */
+
+import { SupabaseClient } from '@supabase/supabase-js'
+import { getProfessionalBalance, canReceivePayouts } from '../ledger/balance'
+import { THRESHOLDS } from '../bigint-constants'
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+export interface EligibilityConfig {
+  payoutCooldownHours: number
+  maxProfessionalDebt: bigint
+  minPayoutAmount: bigint
+}
+
+export const DEFAULT_ELIGIBILITY_CONFIG: EligibilityConfig = {
+  payoutCooldownHours: 48,
+  maxProfessionalDebt: THRESHOLDS.MAX_PRO_DEBT,
+  minPayoutAmount: BigInt(500), // R$ 5.00 minimum payout
+}
+
+// ---------------------------------------------------------------------------
+// Booking Eligibility
+// ---------------------------------------------------------------------------
+
+export interface BookingEligibilityResult {
+  eligible: boolean
+  bookingId: string
+  reason?: string
+  eligibleAmount: bigint
+}
+
+/**
+ * Check if a single booking is eligible for payout.
+ *
+ * ALL of these must be true:
+ * 1. Booking status = 'completed'
+ * 2. Payment status = 'captured'
+ * 3. Cooldown period has passed
+ * 4. No open dispute
+ * 5. Not already included in a submitted/completed batch
+ * 6. Professional is active and KYC-approved
+ */
+export async function checkBookingEligibility(
+  admin: SupabaseClient,
+  bookingId: string,
+  config: EligibilityConfig = DEFAULT_ELIGIBILITY_CONFIG,
+): Promise<BookingEligibilityResult> {
+  const { data: booking, error } = await admin
+    .from('bookings')
+    .select(`
+      id,
+      status,
+      scheduled_end_at,
+      professional_id,
+      payments!inner(status, amount_total_minor)
+    `)
+    .eq('id', bookingId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to load booking ${bookingId}: ${error.message}`)
+  }
+
+  if (!booking) {
+    return { eligible: false, bookingId, reason: 'Booking not found', eligibleAmount: BigInt(0) }
+  }
+
+  // Criterion 1: Booking must be completed
+  if (booking.status !== 'completed') {
+    return {
+      eligible: false,
+      bookingId,
+      reason: `Booking status is '${booking.status}', expected 'completed'`,
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  // Criterion 2: Payment must be captured
+  const payment = Array.isArray(booking.payments) ? booking.payments[0] : booking.payments
+  if (!payment || payment.status !== 'captured') {
+    return {
+      eligible: false,
+      bookingId,
+      reason: `Payment status is '${payment?.status}', expected 'captured'`,
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  // Criterion 3: Cooldown period must have passed
+  const scheduledEnd = new Date(booking.scheduled_end_at)
+  const cooldownMs = config.payoutCooldownHours * 60 * 60 * 1000
+  const eligibleAfter = new Date(scheduledEnd.getTime() + cooldownMs)
+  const now = new Date()
+
+  if (now < eligibleAfter) {
+    return {
+      eligible: false,
+      bookingId,
+      reason: `Cooldown not complete. Eligible after ${eligibleAfter.toISOString()}`,
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  // Criterion 4: No open dispute
+  const { data: openDispute } = await admin
+    .from('dispute_resolutions')
+    .select('id')
+    .eq('booking_id', bookingId)
+    .eq('status', 'open')
+    .maybeSingle()
+
+  if (openDispute) {
+    return {
+      eligible: false,
+      bookingId,
+      reason: 'Booking has an open dispute',
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  // Criterion 5: Not already in a submitted/completed batch
+  const { data: existingPayout } = await admin
+    .from('booking_payout_items')
+    .select(`
+      payout_batch_item_id,
+      payout_batch_items!inner(batch_id, payout_batches!inner(status))
+    `)
+    .eq('booking_id', bookingId)
+    .in('payout_batch_items.payout_batches.status', ['submitted', 'processing', 'completed'])
+    .maybeSingle()
+
+  if (existingPayout) {
+    return {
+      eligible: false,
+      bookingId,
+      reason: 'Booking already included in a submitted/completed payout batch',
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  // Criterion 6: Professional must be active
+  const professionalId = booking.professional_id
+  const { data: trolleyRecipient } = await admin
+    .from('trolley_recipients')
+    .select('is_active, kyc_status')
+    .eq('professional_id', professionalId)
+    .maybeSingle()
+
+  if (!trolleyRecipient || !trolleyRecipient.is_active) {
+    return {
+      eligible: false,
+      bookingId,
+      reason: 'Professional has no active Trolley recipient profile',
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  if (trolleyRecipient.kyc_status !== 'approved') {
+    return {
+      eligible: false,
+      bookingId,
+      reason: `Professional KYC status is '${trolleyRecipient.kyc_status}', expected 'approved'`,
+      eligibleAmount: BigInt(0),
+    }
+  }
+
+  // All criteria met
+  return {
+    eligible: true,
+    bookingId,
+    eligibleAmount: BigInt(payment.amount_total_minor ?? 0),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Professional Eligibility
+// ---------------------------------------------------------------------------
+
+export interface ProfessionalEligibilityResult {
+  eligible: boolean
+  professionalId: string
+  reason?: string
+  totalEligibleAmount: bigint
+  bookingIds: string[]
+}
+
+/**
+ * Check if a professional is eligible to receive payouts.
+ *
+ * This checks:
+ * 1. Professional has active Trolley profile
+ * 2. Professional balance debt is below threshold
+ * 3. Professional has eligible bookings
+ */
+export async function checkProfessionalEligibility(
+  admin: SupabaseClient,
+  professionalId: string,
+  config: EligibilityConfig = DEFAULT_ELIGIBILITY_CONFIG,
+): Promise<ProfessionalEligibilityResult> {
+  // Check balance/debt
+  const balance = await getProfessionalBalance(admin, professionalId)
+  if (balance) {
+    const payoutCheck = canReceivePayouts(balance, config.maxProfessionalDebt)
+    if (!payoutCheck.eligible) {
+      return {
+        eligible: false,
+        professionalId,
+        reason: payoutCheck.reason,
+        totalEligibleAmount: BigInt(0),
+        bookingIds: [],
+      }
+    }
+  }
+
+  // Find all eligible bookings for this professional
+  const { data: bookings, error } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('professional_id', professionalId)
+    .eq('status', 'completed')
+    .order('scheduled_end_at', { ascending: true })
+
+  if (error) {
+    throw new Error(`Failed to load bookings for professional ${professionalId}: ${error.message}`)
+  }
+
+  const eligibleBookings: string[] = []
+  let totalAmount = BigInt(0)
+
+  for (const booking of bookings ?? []) {
+    const result = await checkBookingEligibility(admin, booking.id, config)
+    if (result.eligible) {
+      eligibleBookings.push(booking.id)
+      totalAmount = totalAmount + result.eligibleAmount
+    }
+  }
+
+  if (eligibleBookings.length === 0) {
+    return {
+      eligible: false,
+      professionalId,
+      reason: 'No eligible bookings found',
+      totalEligibleAmount: BigInt(0),
+      bookingIds: [],
+    }
+  }
+
+  if (totalAmount < config.minPayoutAmount) {
+    return {
+      eligible: false,
+      professionalId,
+      reason: `Total eligible amount (${totalAmount}) is below minimum payout (${config.minPayoutAmount})`,
+      totalEligibleAmount: totalAmount,
+      bookingIds: eligibleBookings,
+    }
+  }
+
+  return {
+    eligible: true,
+    professionalId,
+    totalEligibleAmount: totalAmount,
+    bookingIds: eligibleBookings,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Batch Eligibility Scan
+// ---------------------------------------------------------------------------
+
+export interface BatchEligibilityScanResult {
+  eligibleProfessionals: ProfessionalEligibilityResult[]
+  ineligibleProfessionals: ProfessionalEligibilityResult[]
+  totalBatchAmount: bigint
+}
+
+/**
+ * Scan all professionals and find those eligible for payout.
+ *
+ * This is called by the Inngest cron job that creates payout batches.
+ */
+export async function scanPayoutEligibility(
+  admin: SupabaseClient,
+  config: EligibilityConfig = DEFAULT_ELIGIBILITY_CONFIG,
+): Promise<BatchEligibilityScanResult> {
+  // Find all professionals with active Trolley profiles
+  const { data: professionals, error } = await admin
+    .from('trolley_recipients')
+    .select('professional_id')
+    .eq('is_active', true)
+    .eq('kyc_status', 'approved')
+
+  if (error) {
+    throw new Error(`Failed to load active professionals: ${error.message}`)
+  }
+
+  const eligible: ProfessionalEligibilityResult[] = []
+  const ineligible: ProfessionalEligibilityResult[] = []
+  let totalAmount = BigInt(0)
+
+  for (const row of professionals ?? []) {
+    const result = await checkProfessionalEligibility(admin, row.professional_id, config)
+    if (result.eligible) {
+      eligible.push(result)
+      totalAmount = totalAmount + result.totalEligibleAmount
+    } else {
+      ineligible.push(result)
+    }
+  }
+
+  return {
+    eligibleProfessionals: eligible,
+    ineligibleProfessionals: ineligible,
+    totalBatchAmount: totalAmount,
+  }
+}

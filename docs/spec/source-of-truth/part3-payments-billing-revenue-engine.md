@@ -1,9 +1,18 @@
 
 MUUDAY — PART 3
-PAYMENTS, BILLING, STRIPE/CONNECT, REFUNDS, DISPUTES, PAYOUTS, FX, LEDGER, AND REVENUE OPERATIONS
+PAYMENTS, BILLING, STRIPE, REFUNDS, DISPUTES, PAYOUTS, FX, LEDGER, AND REVENUE OPERATIONS
 Version: Working Consolidation
 Status: Consolidated from the decision process
 Purpose of this part: Define how money moves through Muuday for users, professionals, and the platform, including one-off bookings, recurring/monthly services, professional subscription plans, refunds, disputes, and payouts.
+
+> **ARCHITECTURE UPDATE (2026-04-24):** This document predates the founder's decision to use **Stripe → Revolut → Trolley** instead of Stripe Connect for payouts. Key changes:
+> - Stripe is **pay-in only** (NOT Stripe Connect for payouts)
+> - Revolut Business is the **treasury/settlement** account
+> - Trolley handles **professional onboarding + payouts**
+> - Airwallex/dLocal are **contingency only**
+> - A double-entry internal ledger tracks every movement
+>
+> For the canonical current architecture, see `docs/project/payments-engine/MASTER-PLAN.md`.
 
 IMPORTANT READING NOTE
 This document is intentionally explicit. It does not assume anything is already documented somewhere else.
@@ -49,8 +58,8 @@ The preferred payment architecture is:
 - Customer-facing localized pricing where possible
 - Professional payout delayed and released under Muuday’s payout rules
 
-Critical caveat:
-The UK-platform-to-Brazil-professional payout architecture must be validated directly with Stripe because cross-border Connect behavior is not universally self-serve and may require a specific supported corridor or alternative structure.
+Critical caveat (ARCHIVED — 2026-04-24):
+The UK-platform-to-Brazil-professional payout via Stripe Connect was evaluated and **rejected**. Trolley is the primary payout provider. Airwallex/dLocal remain as contingency if Trolley fails for the BR corridor.
 
 This document therefore contains:
 - final decisions already made
@@ -69,9 +78,10 @@ Decision:
 - Customers can pay from anywhere (example given: Japan)
 - Goal: customer pays Muuday UK; only the professional share is sent toward Brazil
 
-Important note:
-- This requires direct validation with Stripe because standard Connect region behavior may not automatically support every UK-platform-to-Brazil-connected-account payout configuration.
-- If Stripe does not support the desired corridor directly in the needed way, fallback architecture must be considered.
+Important note (ARCHIVED — 2026-04-24):
+- ~~This requires direct validation with Stripe because standard Connect region behavior may not automatically support every UK-platform-to-Brazil-connected-account payout configuration.~~
+- Stripe Connect was **rejected** for payouts. Trolley is the primary payout provider.
+- If Trolley fails for the BR corridor, fallback is Airwallex → dLocal.
 
 2.2 Marketplace commercial model
 Decision:

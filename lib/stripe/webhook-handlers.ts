@@ -1,6 +1,13 @@
 import Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { asRecord, asString, asIdFromStringOrObject, truncateErrorMessage, buildNextRetryDate } from './helpers'
+import { getStripeClient } from './client'
+import {
+  buildPaymentCaptureTransaction,
+  buildRefundTransaction,
+  createLedgerTransaction,
+} from '@/lib/payments/ledger/entries'
+import { updateProfessionalBalance } from '@/lib/payments/ledger/balance'
 
 const DEFAULT_MAX_WEBHOOK_ATTEMPTS = 8
 
@@ -97,16 +104,25 @@ function extractPaymentIntentIdFromStripeEvent(event: Stripe.Event) {
   return null
 }
 
+type PaymentRowForWebhook = {
+  id: string
+  booking_id: string
+  professional_id: string
+  amount_total_minor: number
+  metadata: Record<string, unknown>
+  status: string
+}
+
 async function setPaymentStatusFromWebhook(
   admin: SupabaseClient,
   providerPaymentId: string,
   status: 'captured' | 'failed' | 'refunded',
   extraMetadata: Record<string, unknown>,
-) {
+): Promise<PaymentRowForWebhook[]> {
   const nowIso = new Date().toISOString()
   const { data: rows, error: loadError } = await admin
     .from('payments')
-    .select('id, metadata, status')
+    .select('id, booking_id, professional_id, amount_total_minor, metadata, status')
     .eq('provider', 'stripe')
     .eq('provider_payment_id', providerPaymentId)
 
@@ -115,10 +131,10 @@ async function setPaymentStatusFromWebhook(
   }
 
   if (!rows || rows.length === 0) {
-    return 0
+    return []
   }
 
-  let updated = 0
+  const updated: PaymentRowForWebhook[] = []
   for (const row of rows) {
     const metadata = asRecord(row.metadata)
     const mergedMetadata = {
@@ -139,7 +155,7 @@ async function setPaymentStatusFromWebhook(
     if (updateError) {
       throw new Error(`Failed to update payment status: ${updateError.message}`)
     }
-    updated += 1
+    updated.push(row as unknown as PaymentRowForWebhook)
   }
 
   return updated
@@ -192,21 +208,97 @@ async function enqueueSubscriptionCheck(
   }
 }
 
+/**
+ * Fetch the actual Stripe fee from a PaymentIntent by looking up its latest charge.
+ * Falls back to an estimate if the API call fails.
+ */
+async function fetchStripeFeeForPaymentIntent(
+  paymentIntentId: string,
+  amountMinor: bigint,
+): Promise<{ stripeFeeMinor: bigint; platformFeeMinor: bigint }> {
+  const stripe = getStripeClient()
+  if (!stripe) {
+    // Fallback estimate: 2.9% + 30 cents for BRL
+    const estimatedFee = (amountMinor * BigInt(29)) / BigInt(1000) + BigInt(30)
+    const platformFee = (amountMinor * BigInt(15)) / BigInt(100) // 15% platform fee
+    return { stripeFeeMinor: estimatedFee, platformFeeMinor: platformFee }
+  }
+
+  try {
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['latest_charge.balance_transaction'],
+    })
+
+    const charge = pi.latest_charge
+    if (charge && typeof charge === 'object' && 'balance_transaction' in charge) {
+      const bt = charge.balance_transaction
+      if (bt && typeof bt === 'object' && 'fee' in bt) {
+        const fee = BigInt(Math.round((bt.fee || 0)))
+        const platformFee = (amountMinor * BigInt(15)) / BigInt(100) // 15% platform fee
+        return { stripeFeeMinor: fee, platformFeeMinor: platformFee }
+      }
+    }
+  } catch (error) {
+    console.error(`[stripe/webhook] failed to fetch fee for PI ${paymentIntentId}:`, error)
+  }
+
+  // Fallback estimate
+  const estimatedFee = (amountMinor * BigInt(29)) / BigInt(1000) + BigInt(30)
+  const platformFee = (amountMinor * BigInt(15)) / BigInt(100)
+  return { stripeFeeMinor: estimatedFee, platformFeeMinor: platformFee }
+}
+
 async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Event) {
   const paymentIntentId = extractPaymentIntentIdFromStripeEvent(event)
   const eventObject = asRecord(event.data.object as unknown)
   const metadata = asRecord(eventObject.metadata)
 
   if (event.type === 'payment_intent.succeeded' && paymentIntentId) {
-    const updated = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'captured', {
+    const payments = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'captured', {
       stripe_event_id: event.id,
       stripe_event_type: event.type,
     })
-    return { outcome: 'processed', paymentRowsUpdated: updated }
+
+    // Ledger + balance integration for each payment row updated
+    for (const payment of payments) {
+      try {
+        const amountMinor = BigInt(payment.amount_total_minor || 0)
+        if (amountMinor <= BigInt(0)) continue
+
+        const { stripeFeeMinor, platformFeeMinor } = await fetchStripeFeeForPaymentIntent(
+          paymentIntentId,
+          amountMinor,
+        )
+
+        // Create ledger entry
+        const ledgerInput = buildPaymentCaptureTransaction({
+          amount: amountMinor,
+          stripeFeeAmount: stripeFeeMinor,
+          platformFeeAmount: platformFeeMinor,
+          bookingId: payment.booking_id,
+          paymentId: payment.id,
+        })
+        await createLedgerTransaction(admin, ledgerInput)
+
+        // Update professional balance: increment pending_balance
+        await updateProfessionalBalance(admin, payment.professional_id, {
+          pendingDelta: amountMinor - platformFeeMinor,
+        })
+      } catch (ledgerError) {
+        console.error(
+          `[stripe/webhook] ledger/balance error for payment ${payment.id}:`,
+          ledgerError instanceof Error ? ledgerError.message : ledgerError,
+        )
+        // Non-blocking: webhook should still succeed even if ledger fails
+        // The ledger can be reconstructed later from the payment data
+      }
+    }
+
+    return { outcome: 'processed', paymentRowsUpdated: payments.length }
   }
 
   if (event.type === 'payment_intent.payment_failed' && paymentIntentId) {
-    const updated = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'failed', {
+    const payments = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'failed', {
       stripe_event_id: event.id,
       stripe_event_type: event.type,
     })
@@ -227,15 +319,36 @@ async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Eve
       stripe_event_id: event.id,
       stripe_event_type: event.type,
     })
-    return { outcome: 'processed', paymentRowsUpdated: updated, retryQueued: true }
+    return { outcome: 'processed', paymentRowsUpdated: payments.length, retryQueued: true }
   }
 
   if ((event.type === 'charge.refunded' || event.type === 'refund.created') && paymentIntentId) {
-    const updated = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'refunded', {
+    const payments = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'refunded', {
       stripe_event_id: event.id,
       stripe_event_type: event.type,
     })
-    return { outcome: 'processed', paymentRowsUpdated: updated }
+
+    // Ledger integration for refunds
+    for (const payment of payments) {
+      try {
+        const amountMinor = BigInt(payment.amount_total_minor || 0)
+        if (amountMinor <= BigInt(0)) continue
+
+        const ledgerInput = buildRefundTransaction({
+          refundAmount: amountMinor,
+          bookingId: payment.booking_id,
+          paymentId: payment.id,
+        })
+        await createLedgerTransaction(admin, ledgerInput)
+      } catch (ledgerError) {
+        console.error(
+          `[stripe/webhook] ledger error for refund ${payment.id}:`,
+          ledgerError instanceof Error ? ledgerError.message : ledgerError,
+        )
+      }
+    }
+
+    return { outcome: 'processed', paymentRowsUpdated: payments.length }
   }
 
   if (

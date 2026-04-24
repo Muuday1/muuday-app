@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         deliveredByResend = true
       }
     } catch (error) {
-      console.error('[auth/password-reset] admin generateLink failed', error)
+      console.error('[auth/password-reset] admin generateLink failed')
     }
   }
 

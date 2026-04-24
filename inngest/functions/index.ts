@@ -30,6 +30,8 @@ import {
 } from '@/lib/ops/resend-inactivity-events'
 import { runAbandonedSearchSync } from '@/lib/ops/abandoned-search'
 import { runAbandonedCheckoutSync } from '@/lib/ops/abandoned-checkout'
+import { treasuryBalanceSnapshot } from './treasury-snapshot'
+import { payoutBatchCreate } from './payout-batch-create'
 
 type SupabaseDbChangeEventData = {
   source?: string
@@ -714,6 +716,8 @@ export const processCalendarBookingSync = inngest.createFunction(
     return { ok: true, source: 'inngest', ...result }
   },
 )
+
+export { treasuryBalanceSnapshot, payoutBatchCreate }
 
 export const processSupabasePaymentsChange = inngest.createFunction(
   {

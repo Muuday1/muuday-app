@@ -34,7 +34,7 @@ export async function createBookingWithPaymentAtomic(
     currency: string
     status: string
     metadata: Record<string, unknown>
-    captured_at: string
+    captured_at: string | null
   },
 ) {
   const { data, error } = await supabase.rpc('create_booking_with_payment', {
@@ -84,7 +84,7 @@ export async function createBatchBookingsWithPaymentAtomic(
     currency: string
     status: string
     metadata: Record<string, unknown>
-    captured_at: string
+    captured_at: string | null
   },
 ) {
   const { data, error } = await supabase.rpc('create_batch_bookings_with_payment', {
@@ -120,7 +120,7 @@ export async function createRecurringBookingWithPaymentAtomic(
     currency: string
     status: string
     metadata: Record<string, unknown>
-    captured_at: string
+    captured_at: string | null
   },
 ) {
   const { data, error } = await supabase.rpc('create_recurring_booking_with_payment', {

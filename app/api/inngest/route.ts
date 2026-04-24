@@ -22,6 +22,8 @@ import {
   syncProfessionalInactivity30d,
   syncAbandonedSearch,
   syncAbandonedCheckout,
+  treasuryBalanceSnapshot,
+  payoutBatchCreate,
 } from '@/inngest/functions'
 import {
   INTERNAL_API_CORS_POLICY,
@@ -62,6 +64,8 @@ const inngestHandler = serve({
     syncProfessionalInactivity30d,
     syncAbandonedSearch,
     syncAbandonedCheckout,
+    treasuryBalanceSnapshot,
+    payoutBatchCreate,
   ],
 })
 

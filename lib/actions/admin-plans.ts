@@ -19,7 +19,7 @@ export async function loadPlanConfigs() {
     if (error instanceof AdminAuthError) {
       return { ok: false as const, error: error.message }
     }
-    console.error('[loadPlanConfigs] unexpected error:', error)
+    console.error('[loadPlanConfigs] unexpected error')
     return { ok: false as const, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -33,7 +33,7 @@ export async function savePlanConfigs(plans: PlanConfigMap) {
     if (error instanceof AdminAuthError) {
       return { ok: false as const, error: error.message }
     }
-    console.error('[savePlanConfigs] unexpected error:', error)
+    console.error('[savePlanConfigs] unexpected error')
     return { ok: false as const, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }

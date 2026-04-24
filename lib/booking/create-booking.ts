@@ -343,7 +343,10 @@ export async function executeBookingCreation(
   }
   const perSessionPriceUserCurrency = roundCurrency(priceBrl * (rates[currency] || 1))
   const totalPriceUserCurrency = roundCurrency(perSessionPriceUserCurrency * sessionCount)
-  const bookingStatus = bookingSettings.confirmationMode === 'manual' ? 'pending_confirmation' : 'confirmed'
+  // Phase 2: Stripe Pay-in Flow — booking starts as pending_payment
+  // After successful payment capture, Supabase DB webhook transitions to
+  // confirmed (auto_accept) or pending_confirmation (manual)
+  const bookingStatus = 'pending_payment' as const
   const confirmationDeadlineAt =
     bookingSettings.confirmationMode === 'manual'
       ? new Date(Date.now() + MANUAL_CONFIRMATION_SLA_HOURS * 60 * 60 * 1000).toISOString()
@@ -355,7 +358,7 @@ export async function executeBookingCreation(
   let usedAtomicPath = false
 
   const paymentMetadata = {
-    capturedBy: 'legacy_booking_flow',
+    capturedBy: 'stripe_payment_intent',
     confirmationMode: bookingSettings.confirmationMode,
     bookingType,
     sessionsCount: sessionCount,
@@ -366,12 +369,12 @@ export async function executeBookingCreation(
   const paymentData = {
     user_id: user.id,
     professional_id: bookingInput.professionalId,
-    provider: 'legacy' as const,
+    provider: 'stripe' as const,
     amount_total: totalPriceUserCurrency,
     currency,
-    status: 'captured' as const,
+    status: 'requires_payment' as const,
     metadata: paymentMetadata,
-    captured_at: new Date().toISOString(),
+    captured_at: null as string | null,
   }
 
   try {

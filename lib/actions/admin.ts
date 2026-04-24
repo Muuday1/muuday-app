@@ -35,7 +35,7 @@ export async function adminUpdateProfessionalStatus(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminUpdateProfessionalStatus] unexpected error:', error)
+    console.error('[adminUpdateProfessionalStatus] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -57,7 +57,7 @@ export async function adminUpdateFirstBookingGate(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminUpdateFirstBookingGate] unexpected error:', error)
+    console.error('[adminUpdateFirstBookingGate] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -78,7 +78,7 @@ export async function adminToggleReviewVisibility(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminToggleReviewVisibility] unexpected error:', error)
+    console.error('[adminToggleReviewVisibility] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -96,7 +96,7 @@ export async function adminDeleteReview(reviewId: string): Promise<AdminActionRe
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminDeleteReview] unexpected error:', error)
+    console.error('[adminDeleteReview] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -128,7 +128,7 @@ export async function adminReviewProfessionalDecision(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminReviewProfessionalDecision] unexpected error:', error)
+    console.error('[adminReviewProfessionalDecision] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -145,7 +145,7 @@ export async function loadAdminDashboardData(): Promise<{
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[loadAdminDashboardData] unexpected error:', error)
+    console.error('[loadAdminDashboardData] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -166,7 +166,7 @@ export async function adminRestoreLatestReviewAdjustments(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminRestoreLatestReviewAdjustments] unexpected error:', error)
+    console.error('[adminRestoreLatestReviewAdjustments] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }

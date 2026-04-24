@@ -58,7 +58,7 @@ The Financial Overview (`/financeiro`) is where professionals track their earnin
 1. **"Total capturado" is gross, not net** — Pro doesn't know what they actually receive
 2. **No date range** — Is this lifetime? This month? Unclear.
 3. **No transaction list** — Cannot drill down into individual payments
-4. **No fee transparency** — Platform fee + Stripe fee are invisible
+4. **No fee transparency** — Platform fee + processing fee are invisible
 5. **No payout status** — When will money arrive in my account?
 6. **No earnings trend** — Am I earning more or less than last month?
 7. **Placeholder admits the page is unfinished** — Unprofessional
@@ -198,8 +198,9 @@ available ──[ Payout trigger ]──→ processing ──[ Stripe transfer ]
 | Component | Value | Display |
 |-----------|-------|---------|
 | Platform fee | 15-25% (tier-dependent) | Shown at booking confirmation |
-| Stripe fee | ~2.9% + R$ 0.30 | Included in platform fee or separate |
-| Payout fee | Free (Stripe) | Not charged to pro |
+| Stripe fee | ~2.9% + R$ 0.30 (BR cards) / 1.5% + £0.20 (EU cards) | Absorbed by Muuday |
+| Trolley fee | ~$1-3 + 1% per payout | Absorbed by Muuday (not charged to pro) |
+| Muuday platform fee | R$ 15 (weekly) / R$ 10 (biweekly) / R$ 5 (monthly) | Deducted from pro payout |
 
 ### Payout Schedule
 
@@ -274,7 +275,7 @@ available ──[ Payout trigger ]──→ processing ──[ Stripe transfer ]
 |------|------|--------|
 | Payout status component | `components/finance/PayoutStatus.tsx` | 1 day |
 | Payout history | `components/finance/PayoutHistory.tsx` | 1 day |
-| Stripe payout integration | `lib/finance/payouts.ts` | 2 days |
+| Trolley payout integration | `lib/payments/trolley/client.ts` | 2 days |
 
 ### Phase 3: Earnings Analytics (Week 2)
 

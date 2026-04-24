@@ -33,32 +33,55 @@
 
 ## 2. Modelo de Pagamentos
 
+> **ATUALIZAÇÃO (2026-04-24):** O modelo foi refinado pelo founder. O fluxo ativo é **Stripe UK (pay-in) → Revolut Business (treasury) → Trolley (payout)**. Não usamos Stripe Connect para payouts. Airwallex/dLocal são contingência.
+
 ### Decisão
-| Ator | Método de pagamento | Processador |
-|------|---------------------|-------------|
-| **Cliente (expat)** | Cartão de crédito, Apple Pay, Google Pay, PayPal, Alipay | Stripe (UK entity) |
-| **Profissional** | PayPal (inicialmente), depois Trolley ou outro payout provider | Trolley / PayPal |
+| Ator | Função | Processador | Notas |
+|------|--------|-------------|-------|
+| **Cliente (expat)** | Pagamento da sessão | Stripe UK | Cartão, Apple Pay, Google Pay, PayPal. Todos os clientes, todas as moedas. |
+| **Muuday (treasury)** | Recebimento de Stripe + fundação de payouts | Revolut Business | Conta corporativa UK. Stripe settle aqui. |
+| **Profissional** | Recebimento do payout | Trolley | Mass payouts, KYC, tax forms (W-8BEN). NÃO PayPal. |
 
 ### Justificativa
 - Clientes expats já moram fora; não precisam de Pix, Boleto, SPEI, Oxxo Pay.
 - Eles querem métodos globais: CC, Apple Pay, PayPal, Alipay.
-- Stripe UK já processa pagamentos globais em múltiplas moedas.
-- Profissionais no Brasil/México recebem via PayPal inicialmente (rápido de implementar), depois migramos para Trolley (mass payouts, tax forms, compliance).
+- Stripe UK processa pagamentos globais em múltiplas moedas.
+- **Stripe Connect foi REJEITADO** para payouts: não queremos que profissionais precisem criar conta Stripe. Trolley é mais simples para o profissional.
+- Revolut Business serve como conta treasury: recebe settlements de Stripe e funda os payouts para Trolley.
+- Trolley é especializado em mass payouts internacionais, coleta dados bancários e tax forms automaticamente.
 - **NÃO haverá emissão de nota fiscal no Brasil** — o serviço é prestado fora do Brasil, a entidade faturante é UK, e o profissional é um contractor independente.
 
+### Fluxo de Dinheiro
+```
+Cliente (qualquer moeda)
+  │
+  ▼ Stripe UK
+  │
+  ▼ Revolut Business (treasury)
+  │
+  ├─► Trolley ──► Profissional (BRL, MXN, etc.)
+  │
+  └─► Ledger (double-entry) ──► Auditoria/Compliance
+```
+
 ### Implicações Fiscais (UK)
-- A Muuday UK recebe o dinheiro do cliente expat.
-- A Muuday UK repassa (menos comissão) ao profissional via PayPal/Trolley.
+- A Muuday UK recebe o dinheiro do cliente expat via Stripe.
+- Stripe settle para Revolut Business (conta UK).
+- A Muuday UK repassa (menos comissão) ao profissional via Trolley.
 - A Muuday UK declara a receita na HMRC (HM Revenue & Customs).
 - A Muuday UK precisa manter evidência de que o dinheiro saiu do UK para o profissional no exterior (compliance anti-lavagem de dinheiro).
+- **Ledger double-entry interno** provê trilha de auditoria completa para HMRC.
 - **Ainda precisamos de contador UK** para definir se há VAT (UK VAT threshold é £85k/ano), se há withholding tax, e como declarar payouts internacionais.
 - Profissionais são **independent contractors**, não funcionários. Eles são responsáveis por sua própria tributação local (IR no Brasil, ISR no México).
 
 ### O que muda no código
-- `lib/stripe/client.ts`: Remover a noção de "Stripe BR" vs "Stripe UK" para processamento de pagamentos de clientes. Usar **Stripe UK para todos os clientes**.
-- `lib/stripe/client.ts`: Manter a noção de "Stripe Connect" (se usarmos Stripe Connect para payouts) OU substituir por Trolley/PayPal.
-- Colunas `session_price_brl`, `price_brl`: Renomear para `session_price`, `price` + `currency` (BRL, MXN, USD, GBP, EUR).
-- Planos de assinatura (`lib/professional/plan-pricing.ts`): Precisam de preços em múltiplas moedas, mas o pagamento do plano é feito pelo profissional (também via Stripe UK ou PayPal).
+- `lib/stripe/client.ts`: Remover a noção de "Stripe BR" vs "Stripe UK". Usar **Stripe UK para todos os clientes**.
+- `lib/stripe/client.ts`: **Remover Stripe Connect** — payouts são Trolley, não Stripe.
+- `lib/payments/trolley/client.ts`: Já implementado. Integração ativa.
+- `lib/payments/revolut/client.ts`: Já implementado. Snapshot de saldo a cada 15min.
+- `lib/payments/ledger/`: Já implementado. Double-entry ledger ativo.
+- Colunas `session_price_brl`, `price_brl`: Renomear para `session_price_minor`, `price_minor` + `currency` (BRL, MXN, USD, GBP, EUR).
+- Planos de assinatura (`lib/professional/plan-pricing.ts`): Precisam de preços em múltiplas moedas.
 
 ---
 
