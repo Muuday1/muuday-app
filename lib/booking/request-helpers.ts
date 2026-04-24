@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   REQUEST_BOOKING_STATUSES,
   assertRequestBookingTransition,
@@ -17,7 +17,7 @@ export function toRequestBookingStatus(value: unknown): RequestBookingStatus | n
 }
 
 export async function expireRequestIfNeeded(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   request: Record<string, unknown>,
 ) {
   if (request.status !== 'offered') return request

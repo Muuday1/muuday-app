@@ -29,13 +29,27 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
   UPSTASH_REDIS_REST_TOKEN: optionalString,
 
-  // Payments (Stripe)
+  // Payments (Stripe — UK single region)
   STRIPE_SECRET_KEY: optionalString,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optionalString,
   STRIPE_CONNECT_CLIENT_ID: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
-  STRIPE_BR_SECRET_KEY: optionalString,
-  NEXT_PUBLIC_STRIPE_BR_PUBLISHABLE_KEY: optionalString,
+
+  // Mobile app
+  MOBILE_API_KEY: optionalString,
+
+  // CMS (Sanity)
+  SANITY_PROJECT_ID: optionalString,
+  SANITY_DATASET: z.string().default('production'),
+  SANITY_API_KEY: optionalString,
+
+  // OCR (AWS Textract + Google Document AI)
+  AWS_REGION: z.string().default('us-east-1'),
+  AWS_ACCESS_KEY_ID: optionalString,
+  AWS_SECRET_ACCESS_KEY: optionalString,
+  GOOGLE_DOCUMENT_AI_PROJECT_ID: optionalString,
+  GOOGLE_DOCUMENT_AI_LOCATION: z.string().default('us'),
+  GOOGLE_DOCUMENT_AI_PROCESSOR_ID: optionalString,
 
   // Observability
   SENTRY_DSN: optionalString,

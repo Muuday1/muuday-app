@@ -1,0 +1,374 @@
+import { z } from 'zod'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendPushToUser } from '@/lib/push/sender'
+
+const messageContentSchema = z.string().trim().min(1, 'Mensagem não pode estar vazia.').max(2000, 'Mensagem muito longa.')
+const conversationIdSchema = z.string().uuid('Identificador de conversa inválido.')
+const bookingIdSchema = z.string().uuid('Identificador de agendamento inválido.')
+
+export type ChatResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string }
+
+/**
+ * Get or create a conversation for a booking.
+ */
+export async function getOrCreateConversation(
+  supabase: SupabaseClient,
+  userId: string,
+  bookingId: string,
+): Promise<ChatResult<{ conversationId: string }>> {
+  const parsed = bookingIdSchema.safeParse(bookingId)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  // Verify user is a participant in the booking
+  const { data: booking, error: bookingError } = await supabase
+    .from('bookings')
+    .select('id, user_id, professional_id')
+    .eq('id', parsed.data)
+    .maybeSingle()
+
+  if (bookingError) {
+    console.error('[chat] failed to load booking:', bookingError.message)
+  }
+
+  if (!booking) {
+    return { success: false, error: 'Agendamento não encontrado.' }
+  }
+
+  const isClient = booking.user_id === userId
+  let isProfessional = false
+  if (!isClient && booking.professional_id) {
+    const { data: prof, error: profError } = await supabase
+      .from('professionals')
+      .select('id')
+      .eq('id', booking.professional_id)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (profError) {
+      console.error('[chat] failed to load professional:', profError.message)
+    }
+    isProfessional = !!prof
+  }
+
+  if (!isClient && !isProfessional) {
+    return { success: false, error: 'Você não tem acesso a esta conversa.' }
+  }
+
+  let { data: conversation } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('booking_id', parsed.data)
+    .maybeSingle()
+
+  if (!conversation) {
+    const { data: created, error } = await supabase
+      .from('conversations')
+      .insert({ booking_id: parsed.data })
+      .select('id')
+      .single()
+
+    if (error || !created) {
+      return { success: false, error: 'Erro ao criar conversa.' }
+    }
+
+    conversation = created
+  }
+
+  return { success: true, data: { conversationId: conversation.id } }
+}
+
+/**
+ * Send a message in a conversation.
+ */
+export async function sendMessage(
+  supabase: SupabaseClient,
+  userId: string,
+  conversationId: string,
+  content: string,
+): Promise<ChatResult<{ messageId: string; sentAt: string }>> {
+  const idParsed = conversationIdSchema.safeParse(conversationId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const contentParsed = messageContentSchema.safeParse(content)
+  if (!contentParsed.success) {
+    return { success: false, error: contentParsed.error.issues[0]?.message || 'Conteúdo inválido.' }
+  }
+
+  // Verify participant
+  const { data: participant } = await supabase
+    .from('conversation_participants')
+    .select('id')
+    .eq('conversation_id', idParsed.data)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!participant) {
+    return { success: false, error: 'Você não participa desta conversa.' }
+  }
+
+  const { data: message, error } = await supabase
+    .from('messages')
+    .insert({
+      conversation_id: idParsed.data,
+      sender_id: userId,
+      content: contentParsed.data,
+    })
+    .select('id, sent_at')
+    .single()
+
+  if (error || !message) {
+    return { success: false, error: 'Erro ao enviar mensagem.' }
+  }
+
+  // Send push notification to the other participant (fire-and-forget)
+  void (async () => {
+    try {
+      const { data: participants } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', idParsed.data)
+
+      const otherParticipant = participants?.find(p => p.user_id !== userId)
+      if (!otherParticipant) return
+
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const senderName = senderProfile?.full_name || 'Alguém'
+
+      await sendPushToUser(
+        otherParticipant.user_id,
+        {
+          title: `${senderName}`,
+          body: contentParsed.data,
+          url: `/mensagens/${idParsed.data}`,
+          tag: `chat-${idParsed.data}`,
+        },
+        { notifType: 'chat_message' },
+      )
+    } catch (pushErr) {
+      console.warn('[chat] Push notification failed:', pushErr)
+    }
+  })()
+
+  return { success: true, data: { messageId: message.id, sentAt: message.sent_at } }
+}
+
+/**
+ * Get messages for a conversation with pagination.
+ */
+export async function getMessages(
+  supabase: SupabaseClient,
+  userId: string,
+  conversationId: string,
+  {
+    limit = 50,
+    cursor,
+  }: {
+    limit?: number
+    cursor?: string
+  } = {},
+): Promise<ChatResult<{ messages: unknown[]; nextCursor: string | null }>> {
+  const idParsed = conversationIdSchema.safeParse(conversationId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  // Verify participant
+  const { data: participant } = await supabase
+    .from('conversation_participants')
+    .select('id')
+    .eq('conversation_id', idParsed.data)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!participant) {
+    return { success: false, error: 'Você não participa desta conversa.' }
+  }
+
+  let query = supabase
+    .from('messages')
+    .select('id, sender_id, content, sent_at, edited_at, is_deleted')
+    .eq('conversation_id', idParsed.data)
+    .eq('is_deleted', false)
+    .order('sent_at', { ascending: false })
+    .limit(limit + 1)
+
+  if (cursor) {
+    query = query.lt('sent_at', cursor)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    return { success: false, error: 'Erro ao carregar mensagens.' }
+  }
+
+  const messages = data || []
+  const hasMore = messages.length > limit
+  const trimmed = hasMore ? messages.slice(0, limit) : messages
+  const nextCursor = hasMore && trimmed.length > 0
+    ? String(trimmed[trimmed.length - 1].sent_at)
+    : null
+
+  return { success: true, data: { messages: trimmed, nextCursor } }
+}
+
+/**
+ * Mark all messages in a conversation as read for the current user.
+ */
+export async function markConversationAsRead(
+  supabase: SupabaseClient,
+  userId: string,
+  conversationId: string,
+): Promise<ChatResult<{ updated: boolean }>> {
+  const idParsed = conversationIdSchema.safeParse(conversationId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const readAt = new Date().toISOString()
+
+  const { error } = await supabase
+    .from('conversation_participants')
+    .update({ last_read_at: readAt })
+    .eq('conversation_id', idParsed.data)
+    .eq('user_id', userId)
+
+  if (error) {
+    return { success: false, error: 'Erro ao marcar conversa como lida.' }
+  }
+
+  return { success: true, data: { updated: true } }
+}
+
+/**
+ * Get all conversations for the current user with last message preview and unread count.
+ */
+export async function getConversations(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<
+  ChatResult<{
+    conversations: {
+      id: string
+      bookingId: string
+      otherParticipantName: string
+      otherParticipantId: string
+      otherParticipantRole: string
+      lastMessageContent: string | null
+      lastMessageSentAt: string | null
+      lastMessageSenderId: string | null
+      unreadCount: number
+    }[]
+  }>
+> {
+  // 1. Get all conversations where user is participant
+  const { data: myParticipants } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id, last_read_at')
+    .eq('user_id', userId)
+
+  const conversationIds = myParticipants?.map(p => p.conversation_id) || []
+  if (conversationIds.length === 0) {
+    return { success: true, data: { conversations: [] } }
+  }
+
+  // 2. Get conversation details
+  const { data: conversations } = await supabase
+    .from('conversations')
+    .select('id, booking_id')
+    .in('id', conversationIds)
+
+  // 3. Get other participants
+  const { data: otherParticipants } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id, user_id, role')
+    .in('conversation_id', conversationIds)
+    .neq('user_id', userId)
+
+  const otherUserIds = otherParticipants?.map(p => p.user_id) || []
+
+  // 4. Get profiles for other participants
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', otherUserIds)
+
+  // 5. Get last message and unread count for each conversation
+  const lastMessages = new Map<
+    string,
+    { content: string; sent_at: string; sender_id: string }
+  >()
+  const unreadCounts = new Map<string, number>()
+
+  await Promise.all(
+    conversationIds.map(async convId => {
+      const { data: lastMsg } = await supabase
+        .from('messages')
+        .select('content, sent_at, sender_id')
+        .eq('conversation_id', convId)
+        .eq('is_deleted', false)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (lastMsg) {
+        lastMessages.set(convId, lastMsg)
+      }
+
+      const myParticipant = myParticipants?.find(p => p.conversation_id === convId)
+      let unreadQuery = supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', convId)
+        .eq('is_deleted', false)
+
+      if (myParticipant?.last_read_at) {
+        unreadQuery = unreadQuery.gt('sent_at', myParticipant.last_read_at)
+      }
+
+      const { count } = await unreadQuery
+      unreadCounts.set(convId, count || 0)
+    }),
+  )
+
+  // 6. Build result
+  const result = (conversations || [])
+    .map(conv => {
+      const otherParticipant = otherParticipants?.find(p => p.conversation_id === conv.id)
+      const otherProfile = profiles?.find(p => p.id === otherParticipant?.user_id)
+      const lastMsg = lastMessages.get(conv.id) || null
+
+      return {
+        id: conv.id,
+        bookingId: conv.booking_id,
+        otherParticipantName: otherProfile?.full_name || 'Usuário',
+        otherParticipantId: otherParticipant?.user_id || '',
+        otherParticipantRole: otherParticipant?.role || '',
+        lastMessageContent: lastMsg?.content || null,
+        lastMessageSentAt: lastMsg?.sent_at || null,
+        lastMessageSenderId: lastMsg?.sender_id || null,
+        unreadCount: unreadCounts.get(conv.id) || 0,
+      }
+    })
+    .sort((a, b) => {
+      const aTime = a.lastMessageSentAt
+        ? new Date(a.lastMessageSentAt).getTime()
+        : 0
+      const bTime = b.lastMessageSentAt
+        ? new Date(b.lastMessageSentAt).getTime()
+        : 0
+      return bTime - aTime
+    })
+
+  return { success: true, data: { conversations: result } }
+}

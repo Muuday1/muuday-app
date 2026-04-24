@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Bell, Clock, ArrowRight } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
-import { getNotifications } from '@/lib/actions/notifications'
+import { getNotificationsAction } from '@/lib/actions/notifications'
 import { NotificationMarkReadButton } from '@/components/notifications/NotificationMarkReadButton'
 import { MarkAllReadButton } from '@/components/notifications/MarkAllReadButton'
 import { NotificationRealtimeListener } from '@/components/notifications/NotificationRealtimeListener'
@@ -17,7 +17,7 @@ export default async function NotificacoesPage({
   searchParams: Promise<{ unreadOnly?: string }>
 }) {
   const { unreadOnly } = await searchParams
-  const result = await getNotifications({
+  const result = await getNotificationsAction({
     limit: 50,
     unreadOnly: unreadOnly === '1',
   })

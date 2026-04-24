@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-The current auth stack is **100% cookie-based** via `@supabase/ssr`. The middleware, Server Components, and API routes all call `supabase.auth.getUser()` which reads the `sb-access-token` cookie. React Native cannot use cookies for API authentication.
+The current auth stack is **cookie-based** via `@supabase/ssr`. The middleware, Server Components, and API routes all call `supabase.auth.getUser()` which reads the Supabase auth cookie (e.g. `sb-<project-ref>-auth-token`). React Native cannot use cookies for API authentication, so we support dual-mode auth.
 
 ## Solution: Dual-Mode Auth (Cookies + JWT Headers)
 
@@ -15,7 +15,16 @@ The Supabase server client (`createServerClient` from `@supabase/ssr`) calls `ge
 2. Sending the JWT to `auth/v1/user` on the Supabase Auth server.
 3. Returning the user object.
 
-If we provide a **custom storage adapter** that checks cookies **first**, then falls back to the `Authorization` header, mobile requests will work transparently.
+The `@supabase/ssr` cookie storage expects the **full session JSON** (not just the access token) in the auth cookie. This means a raw `Bearer <access_token>` header is insufficient — the server needs the complete session object to reconstruct the Supabase client state.
+
+Our API layer supports **two authentication modes**:
+
+1. **Web (cookies)**: Browser sends the Supabase auth cookie automatically.
+2. **Mobile (headers)**: Mobile app sends:
+   - `Authorization: Bearer <access_token>` — for OAuth2 compatibility
+   - `X-Supabase-Session: <full_session_json>` — so the server can inject the complete session into the cookie store
+
+The `X-Supabase-Session` header must contain a JSON string with at minimum: `access_token`, `refresh_token`, `expires_in`, `expires_at`, `token_type`, and `user`.
 
 ### Implementation Plan
 
@@ -124,15 +133,17 @@ const supabase = createClient(
 const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
 // The session is auto-stored in AsyncStorage.
-// To call our API routes, extract the access token:
+// To call our API routes, send BOTH the access token and the full session JSON:
 const session = await supabase.auth.getSession()
 const accessToken = session.data.session?.access_token
+const sessionJson = JSON.stringify(session.data.session)
 
 const response = await fetch(`${API_BASE_URL}/api/v1/bookings`, {
   headers: {
     'Authorization': `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
     'X-Mobile-API-Key': MOBILE_API_KEY,
+    'X-Supabase-Session': sessionJson,
   },
 })
 ```

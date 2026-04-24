@@ -19,6 +19,7 @@ try {
 const baseURL = process.env.E2E_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
 export default defineConfig({
+  globalSetup: './tests/e2e/global-setup.ts',
   testDir: './tests/e2e',
   timeout: 60_000,
   expect: { timeout: 10_000 },

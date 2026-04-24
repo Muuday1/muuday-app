@@ -31,6 +31,10 @@
     "test:unit:watch": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-textract": "^3.1035.0",
+    "@google-cloud/documentai": "^9.6.0",
+    "@sanity/client": "^7.21.0",
+    "@sanity/image-url": "^2.1.1",
     "@sentry/nextjs": "^10.49.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",

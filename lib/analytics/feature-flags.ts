@@ -26,6 +26,11 @@ export const FEATURE_FLAGS = {
 
   // Admin
   disputeSystemEnabled: 'dispute_system_enabled',
+
+  // Mobile / International
+  mobileApiEnabled: 'mobile_api_enabled',
+  marketIsolationEnabled: 'market_isolation_enabled',
+  ukLandingEnabled: 'uk_landing_enabled',
 } as const
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS
@@ -62,4 +67,7 @@ export const DEFAULT_FEATURE_FLAGS: Record<FeatureFlagValue, boolean> = {
   [FEATURE_FLAGS.clientRecordsEnabled]: false,
   [FEATURE_FLAGS.pushNotificationsEnabled]: false,
   [FEATURE_FLAGS.disputeSystemEnabled]: false,
+  [FEATURE_FLAGS.mobileApiEnabled]: false,
+  [FEATURE_FLAGS.marketIsolationEnabled]: false,
+  [FEATURE_FLAGS.ukLandingEnabled]: false,
 }

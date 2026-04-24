@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { Send, Loader2 } from 'lucide-react'
-import { sendMessage, getMessages, markConversationAsRead } from '@/lib/actions/chat'
+import { sendMessageAction, getMessagesAction, markConversationAsReadAction } from '@/lib/actions/chat'
 import { createClient } from '@/lib/supabase/client'
 
 interface Message {
@@ -66,7 +66,7 @@ export function MessageThread({
             )
           })
           // Mark as read since user is actively viewing the thread
-          void markConversationAsRead(conversationId)
+          void markConversationAsReadAction(conversationId)
         },
       )
       .subscribe()
@@ -78,7 +78,7 @@ export function MessageThread({
 
   // Also mark as read on mount (in case user navigated here with unread messages)
   useEffect(() => {
-    void markConversationAsRead(conversationId)
+    void markConversationAsReadAction(conversationId)
   }, [conversationId])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -100,7 +100,7 @@ export function MessageThread({
     setMessages(prev => [...prev, optimisticMessage])
     setInput('')
 
-    const result = await sendMessage(conversationId, content)
+    const result = await sendMessageAction(conversationId, content)
 
     if (result.success) {
       setMessages(prev =>

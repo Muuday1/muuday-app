@@ -1,37 +1,52 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
+import {
+  emailSchema,
+  personNameSchema,
+  displayTextSchema,
+  messageSchema,
+  shortOptionalMessageSchema,
+  dateSchema,
+  timeSchema,
+  timezoneSchema,
+  amountSchema,
+  urlSchema,
+  optionalUserIdSchema,
+  optionalCallToActionSubSchema,
+  cancelledBySchema,
+  rescheduledBySchema,
+  ratingSchema,
+  missingItemsSchema,
+  getValidationError,
+  safe,
+  parsePayload,
+  assertCallerCanEmailRecipientService,
+  canSendService,
+  type NotifKey,
+} from '@/lib/email/email-action-service'
 
-export const emailSchema = z.string().trim().email('E-mail inválido.')
-export const personNameSchema = z.string().trim().min(1, 'Nome obrigatório.').max(120, 'Nome muito longo.')
-export const displayTextSchema = z.string().trim().min(1, 'Campo obrigatório.').max(200, 'Texto muito longo.')
-export const messageSchema = z.string().trim().min(1, 'Campo obrigatório.').max(1200, 'Texto muito longo.')
-export const shortOptionalMessageSchema = z.string().trim().max(1200, 'Texto muito longo.')
-export const dateSchema = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.')
-export const timeSchema = z
-  .string()
-  .trim()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horário inválido.')
-export const timezoneSchema = z.string().trim().min(2, 'Fuso horário inválido.').max(80, 'Fuso horário inválido.')
-export const amountSchema = z
-  .string()
-  .trim()
-  .regex(/^\d+([.,]\d{1,2})?$/, 'Valor monetário inválido.')
-export const urlSchema = z.string().trim().url('URL inválida.').max(500, 'URL muito longa.')
-export const optionalUserIdSchema = z.string().uuid('Identificador de usuário inválido.').optional()
-export const optionalCallToActionSubSchema = z.string().trim().max(240, 'Texto muito longo.').optional()
-export const cancelledBySchema = z.enum(['user', 'professional'])
-export const rescheduledBySchema = z.enum(['user', 'professional'])
-export const ratingSchema = z.number().int().min(1).max(5)
-export const missingItemsSchema = z.array(displayTextSchema).min(1, 'Lista de itens obrigatória.').max(20)
-
-export function getValidationError(error: z.ZodError) {
-  return error.issues[0]?.message || 'Dados inválidos.'
-}
-
-// helper - swallows errors so a failed email never breaks the main flow
-export async function safe<T>(fn: () => Promise<T>, label: string) {
-  try { return await fn() } catch (e) { console.error(`[email] ${label}`, e) }
+export {
+  emailSchema,
+  personNameSchema,
+  displayTextSchema,
+  messageSchema,
+  shortOptionalMessageSchema,
+  dateSchema,
+  timeSchema,
+  timezoneSchema,
+  amountSchema,
+  urlSchema,
+  optionalUserIdSchema,
+  optionalCallToActionSubSchema,
+  cancelledBySchema,
+  rescheduledBySchema,
+  ratingSchema,
+  missingItemsSchema,
+  getValidationError,
+  safe,
+  parsePayload,
+  type NotifKey,
 }
 
 // Auth guard - ensures only authenticated users can trigger emails + rate limit
@@ -49,15 +64,6 @@ export async function requireAuth(): Promise<string | null> {
   return user.id
 }
 
-export function parsePayload<T>(schema: z.ZodSchema<T>, payload: unknown): T | null {
-  const parsed = schema.safeParse(payload)
-  if (!parsed.success) {
-    console.warn('[email] invalid payload', getValidationError(parsed.error))
-    return null
-  }
-  return parsed.data
-}
-
 /**
  * Security: Verify the caller has a legitimate relationship with the recipient.
  * Prevents IDOR where an authenticated user sends Muuday-branded emails to arbitrary addresses.
@@ -65,68 +71,11 @@ export function parsePayload<T>(schema: z.ZodSchema<T>, payload: unknown): T | n
  */
 export async function assertCallerCanEmailRecipient(callerId: string, recipientEmail: string): Promise<boolean> {
   const supabase = await createClient()
-
-  // 1. Caller can always email themselves
-  const { data: callerProfile, error: callerError } = await supabase
-    .from('profiles')
-    .select('email')
-    .eq('id', callerId)
-    .single()
-
-  if (callerError) {
-    console.error('[email/shared] caller profile query error:', callerError.message)
-  }
-
-  if (callerProfile?.email === recipientEmail) return true
-
-  // 2. Caller has a booking relationship with the recipient
-  const { data: recipientProfile, error: recipientError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', recipientEmail)
-    .maybeSingle()
-
-  if (recipientError) {
-    console.error('[email/shared] recipient profile query error:', recipientError.message)
-  }
-
-  if (!recipientProfile) return false
-
-  // Check if there's any booking between caller and recipient (as user<->professional)
-  const { count: bookingCount, error: bookingError } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .or(`and(user_id.eq.${callerId},professional_id.in.(select id from professionals where user_id='${recipientProfile.id}')),and(user_id.eq.${recipientProfile.id},professional_id.in.(select id from professionals where user_id='${callerId}'))`)
-    .limit(1)
-
-  if (bookingError) {
-    console.error('[email/shared] booking relationship query error:', bookingError.message)
-  }
-
-  return (bookingCount || 0) > 0
+  return assertCallerCanEmailRecipientService(supabase, callerId, recipientEmail)
 }
-
-export type NotifKey = 'booking_emails' | 'session_reminders' | 'news_promotions'
 
 // Returns false if the user has explicitly disabled this category
 export async function canSend(userId: string | null | undefined, key: NotifKey): Promise<boolean> {
-  if (!userId) return true // no user context -> always send (e.g. professional notifications)
-  try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('notification_preferences')
-      .eq('id', userId)
-      .single()
-    if (error) {
-      console.error('[email/shared] notification preferences query error:', error.message)
-      return true // on error -> send anyway
-    }
-    const prefs = data?.notification_preferences as Record<string, boolean> | null
-    if (!prefs) return true // no prefs saved -> default opt-in
-    return prefs[key] !== false
-  } catch (e) {
-    console.error('[email/shared] canSend unexpected error:', e)
-    return true // on error -> send anyway
-  }
+  const supabase = await createClient()
+  return canSendService(supabase, userId, key)
 }

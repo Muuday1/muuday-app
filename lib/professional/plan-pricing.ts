@@ -1,9 +1,3 @@
-import {
-  getStripeClientForRegion,
-  resolveStripePlatformRegion,
-  type StripePlatformRegion,
-} from '@/lib/stripe/client'
-
 export type PlanTier = 'basic' | 'professional' | 'premium'
 
 export type PlanPricingPayload = {
@@ -12,7 +6,6 @@ export type PlanPricingPayload = {
   monthlyAmount: number
   annualAmount: number
   tier: PlanTier
-  region: StripePlatformRegion
   fallback?: boolean
   mode?: string
 }
@@ -22,43 +15,27 @@ export type PlanPricingResult =
   | { ok: false; status: number; error: string }
 
 const PRICE_ENV_KEYS: Record<
-  StripePlatformRegion,
-  Record<PlanTier, Record<'monthly' | 'annual', string>>
+  PlanTier,
+  Record<'monthly' | 'annual', string>
 > = {
-  uk: {
-    basic: {
-      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_UK',
-      annual: 'STRIPE_PRICE_BASIC_ANNUAL_UK',
-    },
-    professional: {
-      monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_UK',
-      annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_UK',
-    },
-    premium: {
-      monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_UK',
-      annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_UK',
-    },
+  basic: {
+    monthly: 'STRIPE_PRICE_BASIC_MONTHLY_UK',
+    annual: 'STRIPE_PRICE_BASIC_ANNUAL_UK',
   },
-  br: {
-    basic: {
-      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_BR',
-      annual: 'STRIPE_PRICE_BASIC_ANNUAL_BR',
-    },
-    professional: {
-      monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_BR',
-      annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_BR',
-    },
-    premium: {
-      monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_BR',
-      annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_BR',
-    },
+  professional: {
+    monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_UK',
+    annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_UK',
+  },
+  premium: {
+    monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_UK',
+    annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_UK',
   },
 }
 
-const PLAN_PRICE_BASE_MINOR_BRL: Record<PlanTier, number> = {
-  basic: 4999,
-  professional: 9999,
-  premium: 14999,
+const PLAN_PRICE_BASE_MINOR_GBP: Record<PlanTier, number> = {
+  basic: 999,
+  professional: 1999,
+  premium: 2999,
 }
 
 export function readPlanTier(value: string | null | undefined): PlanTier {
@@ -82,43 +59,41 @@ export async function resolveProfessionalPlanPricing(args: {
   allowFallbackPricing: boolean
 }): Promise<PlanPricingResult> {
   const tier = readPlanTier(args.tierRaw)
-  const region =
-    (String(args.platformRegionRaw || '').trim().toLowerCase() as StripePlatformRegion) ||
-    resolveStripePlatformRegion(args.countryRaw)
-  const stripe = getStripeClientForRegion(region)
+
+  // Stripe is now UK-only. Import lazily to avoid bundling issues.
+  const { getStripeClient } = await import('@/lib/stripe/client')
+  const stripe = getStripeClient()
   if (!stripe) {
     return {
       ok: false,
       status: 503,
-      error: 'Provider de cobranca indisponivel para esta regiao.',
+      error: 'Payment provider unavailable.',
     }
   }
 
-  const monthlyKey = PRICE_ENV_KEYS[region][tier].monthly
-  const annualKey = PRICE_ENV_KEYS[region][tier].annual
+  const monthlyKey = PRICE_ENV_KEYS[tier].monthly
+  const annualKey = PRICE_ENV_KEYS[tier].annual
   const monthlyPriceId = process.env[monthlyKey]
   const annualPriceId = process.env[annualKey]
 
   if (!monthlyPriceId || !annualPriceId) {
     console.error('[plan-pricing] missing stripe price configuration', {
-      region,
       tier,
       monthlyConfigured: Boolean(monthlyPriceId),
       annualConfigured: Boolean(annualPriceId),
     })
     if (!args.allowFallbackPricing) {
-      return { ok: false, status: 503, error: 'Preco indisponivel no momento.' }
+      return { ok: false, status: 503, error: 'Pricing unavailable at the moment.' }
     }
-    const fallbackMonthly = PLAN_PRICE_BASE_MINOR_BRL[tier]
+    const fallbackMonthly = PLAN_PRICE_BASE_MINOR_GBP[tier]
     return {
       ok: true,
       data: {
         provider: 'fallback-test',
-        currency: String(args.currencyRaw || (region === 'uk' ? 'GBP' : 'BRL')).toUpperCase(),
+        currency: 'GBP',
         monthlyAmount: fallbackMonthly,
         annualAmount: fallbackMonthly * 10,
         tier,
-        region,
         fallback: true,
         mode: 'test',
       },
@@ -133,15 +108,14 @@ export async function resolveProfessionalPlanPricing(args: {
     return {
       ok: true,
       data: {
-        provider: region === 'br' ? 'stripe-br' : 'stripe-uk',
-        currency: String(monthlyPrice.currency || annualPrice.currency || 'brl').toUpperCase(),
+        provider: 'stripe-uk',
+        currency: String(monthlyPrice.currency || annualPrice.currency || 'gbp').toUpperCase(),
         monthlyAmount: Number(monthlyPrice.unit_amount || 0),
         annualAmount: Number(annualPrice.unit_amount || 0),
         tier,
-        region,
       },
     }
   } catch {
-    return { ok: false, status: 503, error: 'Nao foi possivel carregar precos do provider.' }
+    return { ok: false, status: 503, error: 'Could not load pricing from provider.' }
   }
 }

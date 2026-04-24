@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
+import { createApiClient } from '@/lib/supabase/api-client'
+import { rateLimit } from '@/lib/security/rate-limit'
+import { addSessionLinkService } from '@/lib/booking/manage-booking-service'
+import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params
+  Sentry.addBreadcrumb({ category: 'booking', message: `PATCH /api/v1/bookings/${id}/session-link`, level: 'info' })
+
+  const supabase = await createApiClient(request)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const rl = await rateLimit('apiV1BookingConfirm', user.id)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded.' }, { status: 429 })
+  }
+
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const link = body.link !== undefined ? String(body.link) : undefined
+  if (!link) {
+    return NextResponse.json({ error: 'link is required' }, { status: 400 })
+  }
+
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
+  const professionalId = professional?.id ?? null
+
+  const result = await addSessionLinkService(supabase, user.id, professionalId, id, link)
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: result.error, reasonCode: result.reasonCode },
+      { status: 400 },
+    )
+  }
+
+  return NextResponse.json({ success: true })
+}
