@@ -63,7 +63,7 @@ export const PROFESSIONAL_TERMS: ProfessionalTerm[] = [
       },
       {
         heading: 'Lei aplicável e foro',
-        body: 'Aplica-se a legislação da República Federativa do Brasil. Fica eleito o foro da Comarca da Capital do Estado de São Paulo/SP, ressalvadas hipóteses de competência legal específica.',
+        body: 'These terms are governed by the laws of England and Wales. Any dispute arising out of or in connection with these terms shall be resolved in the courts of London, United Kingdom. For the avoidance of doubt, Brazilian data protection law (LGPD) and Mexican data protection law (LFPDPPP) apply as applicable data protection legislation, but do not override the governing law of this contract.',
       },
     ],
   },

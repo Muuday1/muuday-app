@@ -6,9 +6,8 @@ import {
   insertTaxonomyItem,
   toggleTaxonomyActive,
   reviewTagSuggestion,
-  type TaxonomyType,
-  type TaxonomyData,
 } from '@/lib/actions/admin-taxonomy'
+import type { TaxonomyType, TaxonomyData } from '@/lib/actions/admin-taxonomy-types'
 import {
   ChevronDown,
   ChevronRight,

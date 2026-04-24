@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getAppBaseUrl } from '@/lib/config/app-url'
-import {
-  getStripeClientForRegion,
-  resolveStripePlatformRegion,
-  type StripePlatformRegion,
-} from '@/lib/stripe/client'
+import { getStripeClient } from '@/lib/stripe/client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 
@@ -17,36 +13,20 @@ const payloadSchema = z.object({
 })
 
 const PRICE_ENV_KEYS: Record<
-  StripePlatformRegion,
-  Record<'basic' | 'professional' | 'premium', Record<'monthly' | 'annual', string>>
+  'basic' | 'professional' | 'premium',
+  Record<'monthly' | 'annual', string>
 > = {
-  uk: {
-    basic: {
-      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_UK',
-      annual: 'STRIPE_PRICE_BASIC_ANNUAL_UK',
-    },
-    professional: {
-      monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_UK',
-      annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_UK',
-    },
-    premium: {
-      monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_UK',
-      annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_UK',
-    },
+  basic: {
+    monthly: 'STRIPE_PRICE_BASIC_MONTHLY_UK',
+    annual: 'STRIPE_PRICE_BASIC_ANNUAL_UK',
   },
-  br: {
-    basic: {
-      monthly: 'STRIPE_PRICE_BASIC_MONTHLY_BR',
-      annual: 'STRIPE_PRICE_BASIC_ANNUAL_BR',
-    },
-    professional: {
-      monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_BR',
-      annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_BR',
-    },
-    premium: {
-      monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_BR',
-      annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_BR',
-    },
+  professional: {
+    monthly: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY_UK',
+    annual: 'STRIPE_PRICE_PROFESSIONAL_ANNUAL_UK',
+  },
+  premium: {
+    monthly: 'STRIPE_PRICE_PREMIUM_MONTHLY_UK',
+    annual: 'STRIPE_PRICE_PREMIUM_ANNUAL_UK',
   },
 }
 
@@ -89,7 +69,7 @@ export async function POST(request: NextRequest) {
 
   const { data: professional } = await supabase
     .from('professionals')
-    .select('id,tier,platform_region')
+    .select('id,tier')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
     .limit(1)
@@ -99,19 +79,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
   }
 
-  const region =
-    (professional.platform_region as StripePlatformRegion | null) ||
-    resolveStripePlatformRegion(profile.country)
-
-  const stripe = getStripeClientForRegion(region)
+  const stripe = getStripeClient()
   if (!stripe) {
     return NextResponse.json(
-      { error: 'Stripe indisponivel para esta regiao no momento.' },
+      { error: 'Stripe indisponivel no momento.' },
       { status: 503 },
     )
   }
 
-  const envKey = PRICE_ENV_KEYS[region][parsed.data.tier][parsed.data.billingCycle]
+  const envKey = PRICE_ENV_KEYS[parsed.data.tier][parsed.data.billingCycle]
   const priceId = process.env[envKey]
   if (!priceId) {
     const { data: settings } = await supabase
@@ -140,7 +116,6 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('[stripe] missing price configuration', {
-      region,
       tier: parsed.data.tier,
       cycle: parsed.data.billingCycle,
     })
@@ -174,7 +149,7 @@ export async function POST(request: NextRequest) {
       professional_id: professional.id,
       selected_tier: parsed.data.tier,
       selected_cycle: parsed.data.billingCycle,
-      region,
+      region: 'uk',
     },
     success_url: successUrl,
     cancel_url: cancelUrl,

@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation'
 import { MessageCircle, Clock, ArrowRight } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
-import { getConversations } from '@/lib/actions/chat'
+import { getConversationsAction } from '@/lib/actions/chat'
 import { createClient } from '@/lib/supabase/server'
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
@@ -56,7 +56,7 @@ export default async function MensagensPage({
     }
   }
 
-  const result = await getConversations()
+  const result = await getConversationsAction()
   const conversations = result.success ? result.data.conversations : []
 
   return (

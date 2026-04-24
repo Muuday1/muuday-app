@@ -19,7 +19,7 @@ import {
   mapSignupErrorMessage,
 } from '@/lib/auth/messages'
 import { getTierLimits } from '@/lib/tier-config'
-import type { SignupCatalog } from '@/lib/actions/signup'
+import type { SignupCatalog } from '@/lib/actions/signup-types'
 import {
   PROFESSIONAL_TERMS,
   PROFESSIONAL_TERMS_VERSION,

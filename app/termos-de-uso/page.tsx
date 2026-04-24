@@ -88,8 +88,8 @@ export default function TermosDeUsoPage() {
 
           <h2>9. Lei aplicável</h2>
           <p>
-            Estes termos são regidos pelas leis da República Federativa do Brasil. Quaisquer disputas serão
-            resolvidas no foro da cidade de São Paulo, SP.
+            These terms are governed by the laws of England and Wales. Any dispute shall be resolved in the courts
+            of London, United Kingdom.
           </p>
 
           <h2>10. Contato</h2>

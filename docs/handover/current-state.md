@@ -44,7 +44,12 @@ Last updated: 2026-04-22
 
 ## Recently stabilized
 
-1. Dashboard onboarding banner/modal were consolidated into one primary experience.
+1. Sprint 3 (Profile/Professional APIs extraction) is complete. All Server Actions in `lib/actions/professional.ts`, `professional-services.ts`, `availability-exceptions.ts`, `user-profile.ts`, `review.ts`, `favorites.ts`, `disputes.ts`, and `client-records.ts` have been extracted into service modules (`lib/*-service.ts`) and thin API routes (`/api/v1/*`). TypeScript and build pass cleanly.
+2. CORS gap closed for all `/api/v1/*` endpoints. Preflight and response headers are now applied in `middleware.ts` for the entire versioned API surface, enabling cross-origin mobile app consumption.
+3. Sprint 4 (Booking Lifecycle APIs extraction) is complete. `lib/actions/manage-booking.ts` and `lib/actions/request-booking.ts` have been extracted into `lib/booking/manage-booking-service.ts` and `lib/booking/request-booking-service.ts`. New API routes: `GET /api/v1/bookings`, `GET /api/v1/bookings/:id`, `PATCH /api/v1/bookings/:id/{confirm,cancel,reschedule,session-link,complete}`, `POST /api/v1/bookings/:id/{report-no-show,mark-user-no-show}`, and full request-booking lifecycle under `/api/v1/bookings/requests/*`.
+4. Sprint 5 (Remaining APIs extraction) in progress: onboarding (`complete-profile`, `complete-account`), review-response, blog-engagement, guide-feedback, admin-plans, and admin-taxonomy have been extracted into service modules and `/api/v1/*` routes. TypeScript and build pass cleanly.
+5. Only `lib/actions/admin.ts` (~809 lines) and `lib/actions/email.ts` (~506 lines) remain as significant Server Actions with inline logic. All other actions are now thin wrappers.
+3. Dashboard onboarding banner/modal were consolidated into one primary experience.
 2. `/onboarding-profissional` was deprecated into a safe redirect.
 3. Search currency switching was fixed to update price filters correctly.
 4. PT-BR mojibake cleanup was applied across main public/search/profile surfaces.

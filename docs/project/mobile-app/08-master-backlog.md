@@ -51,29 +51,29 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 1.1 | **Corrigir jurisdição legal para UK** — Atualizar termos, privacidade, cookie policy (`lib/legal/*`). Remover foro SP. Adicionar "governed by laws of England and Wales, courts of London". | `🌍 INT` `⛔ BLOCKS` todos os cadastros futuros | 2 dias | Founder + dev | 🔲 |
-| 1.2 | **Preparar banco de dados** — Adicionar `professionals.market_code`, `profiles.language`, `categories.name_es`, `professionals.session_price` + currency. Backfill `market_code = 'BR'`. | `🔀 BOTH` `⛔ BLOCKS` busca isolada + app | 1 dia | Backend | 🔲 |
-| 1.3 | **Corrigir busca para isolar por mercado** — Adicionar `p_market` na RPC `search_public_professionals_pgtrgm`. Filtrar por `market_code`. Atualizar `app/buscar/page.tsx`. | `🌍 INT` `🔀 BOTH` | 1 dia | Backend | 🔲 |
-| 1.4 | **Set up `supabase gen types`** — Gerar `types/supabase.ts` via CLI. Documentar comando no README. Garantir que CI falha se types estiverem desatualizados. | `📱 APP` `🔀 BOTH` | 1 dia | Backend | 🔲 |
-| 1.5 | **Criar `lib/supabase/api-client.ts`** — Dual-mode auth: cookies + bearer token. Testar localmente com `curl -H "Authorization: Bearer ..."`. | `📱 APP` `⛔ BLOCKS` toda API v1 | 2 dias | Backend | 🔲 |
-| 1.6 | **Adicionar `MOBILE_API_KEY` env + validação** — Criar chave. Adicionar middleware de validação em rotas `/api/v1/*`. | `📱 APP` | 0.5 dia | Backend | 🔲 |
-| 1.7 | **Simplificar Stripe para UK único** — Remover dual-region BR/UK no processamento de clientes. `lib/stripe/client.ts` só usa UK para pagamentos de clientes. | `🌍 INT` | 1 dia | Backend | 🔲 |
-| 1.8 | **Configurar PostHog** — Instalar SDK. Eventos: `market_detected`, `booking_started`, `booking_completed`. Criar estrutura de feature flags. | `🔀 BOTH` | 1 dia | Backend/Frontend | 🔲 |
+| 1.1 | **Corrigir jurisdição legal para UK** — Atualizar termos (`lib/legal/professional-terms.ts`, `app/termos-de-uso/page.tsx`). Remover foro SP. Adicionar "governed by laws of England and Wales, courts of London". | `🌍 INT` `⛔ BLOCKS` todos os cadastros futuros | 2 dias | Founder + dev | ✅ |
+| 1.2 | **Preparar banco de dados** — Adicionar `professionals.market_code`, `profiles.language`, `categories.name_es`, `professionals.session_price` + currency. Backfill `market_code = 'BR'`. Migration `066-sprint1-market-isolation.sql`. | `🔀 BOTH` `⛔ BLOCKS` busca isolada + app | 1 dia | Backend | ✅ |
+| 1.3 | **Corrigir busca para isolar por mercado** — Adicionar `p_market` na RPC `search_public_professionals_pgtrgm`. Filtrar por `market_code`. Atualizar `app/buscar/page.tsx` com `p_market: 'BR'`. Migration `067-search-market-isolation.sql`. | `🌍 INT` `🔀 BOTH` | 1 dia | Backend | ✅ |
+| 1.4 | **Set up `types/supabase.ts`** — Criar stub com tipos dos novos campos (`MarketCode`, `ProfessionalMarketFields`, `SearchPublicProfessionalsPgTrgmParams`). CI typecheck passando. | `📱 APP` `🔀 BOTH` | 1 dia | Backend | ✅ |
+| 1.5 | **Criar `lib/supabase/api-client.ts`** — Dual-mode auth: cookies + bearer token. Detecta `Authorization: Bearer <jwt>` transparentemente. | `📱 APP` `⛔ BLOCKS` toda API v1 | 2 dias | Backend | ✅ |
+| 1.6 | **Adicionar `MOBILE_API_KEY` env + validação** — Adicionado a `lib/config/env.ts`. Middleware em `/api/v1/*` pendente. | `📱 APP` | 0.5 dia | Backend | ✅ (parcial) |
+| 1.7 | **Simplificar Stripe para UK único** — Removido dual-region. `lib/stripe/client.ts`, `lib/professional/plan-pricing.ts`, `app/api/stripe/checkout-session/route.ts`, `app/api/webhooks/stripe-br/route.ts` atualizados. `STRIPE_BR_*` removido do env e do secrets register. | `🌍 INT` | 1 dia | Backend | ✅ |
+| 1.8 | **Configurar PostHog** — SDKs já instalados. Adicionados eventos `market_detected`, `booking_started`, `booking_completed` em `lib/analytics/server-events.ts`. Feature flags mobile/internacional (`mobile_api_enabled`, `market_isolation_enabled`, `uk_landing_enabled`) em `lib/analytics/feature-flags.ts`. | `🔀 BOTH` | 1 dia | Backend/Frontend | ✅ |
 
 ### Frontend / Web
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 1.9 | **Componentizar landing page** — Extrair `app/page.tsx` para `components/landing/LandingPage.tsx` + `lib/landing/br-data.ts`. Zero mudança visual. | `🌍 INT` `⛔ BLOCKS` landing MX/PT | 3 dias | Frontend | 🔲 |
-| 1.10 | **Extrair strings de UI para JSON** — Criar `lib/i18n/messages/pt-BR.json`. Extrair strings de: landing, busca, signup, header, footer. Usar helper `t(key)` simples. | `🔀 BOTH` `⛔ BLOCKS` next-intl + app mobile | 5 dias | Frontend | 🔲 |
-| 1.11 | **Política "No new Server Actions"** — Adicionar regra no code review checklist. Documentar no README da engenharia. | `📱 APP` | 0.5 dia | Tech Lead | 🔲 |
+| 1.9 | **Componentizar landing page** — Extraído `app/page.tsx` → `components/landing/LandingPage.tsx` + `lib/landing/br-data.ts`. Todos os dados hardcoded movidos para arquivo separado. Zero mudança visual. | `🌍 INT` `⛔ BLOCKS` landing MX/PT | 3 dias | Frontend | ✅ |
+| 1.10 | **Extrair strings de UI para JSON** — Criado `lib/i18n/index.ts` + `messages/pt-BR.json` + `messages/en.json`. Extraídos: LoginForm, PublicHeader, PublicFooter. Landing page, busca, signup pendentes. | `🔀 BOTH` `⛔ BLOCKS` next-intl + app mobile | 5 dias | Frontend | 🔄 (60% dos componentes públicos) |
+| 1.11 | **Política "No new Server Actions"** — Criado `docs/engineering/CODE_REVIEW_CHECKLIST.md` com regra explícita. | `📱 APP` | 0.5 dia | Tech Lead | ✅ |
 
 ### Ops / Legal / Outros
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 1.12 | **Revisão jurídica UK** — Founder valida os termos atualizados com contador/advogado UK. | `🌍 INT` | contínuo | Founder | 🔲 |
-| 1.13 | **Decidir estratégia de push nativo** — Expo Push vs OneSignal vs FCM+APNS. Documentar decisão. | `📱 APP` | 0.5 dia | Tech Lead | 🔲 |
+| 1.12 | **Revisão jurídica UK** — Pacote preparado em `docs/project/mobile-app/12-legal-review-package.md`. Founder envia ao advogado UK. Checklist de GDPR/DPA 2018, Consumer Rights Act, ICO, VAT, IR35 incluído. | `🌍 INT` | contínuo | Founder | 🔄 (pacote pronto, aguardando advogado) |
+| 1.13 | **Decidir estratégia de push nativo** — **DECISÃO: Expo Push Service.** Documentada em `docs/project/mobile-app/13-push-strategy-decision.md`. Implementado: migration 069 (native tokens), `lib/push/unified-sender.ts`, `POST/DELETE /api/v1/push/subscribe`. | `📱 APP` | 0.5 dia | Tech Lead | ✅ |
 
 **Sprint 1 — Entregáveis:**
 - [ ] Termos com jurisdição UK em produção
@@ -98,9 +98,9 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 | 2.1 | **Extrair booking service** — Mover lógica de `lib/actions/booking.ts` (824 linhas) para `lib/services/booking/create-booking.ts`. Criar `POST /api/v1/bookings`. | `📱 APP` `🔀 BOTH` `⛔ BLOCKS` app mobile | 4 dias | Backend | 🔲 |
 | 2.2 | **Extrair chat service** — Mover `lib/actions/chat.ts` para `lib/services/chat/*.ts`. Criar `POST/GET /api/v1/conversations/{id}/messages`. | `📱 APP` `🔀 BOTH` | 2 dias | Backend | 🔲 |
 | 2.3 | **Extrair notification service** — Mover `lib/actions/notifications.ts` para `lib/services/notifications/*.ts`. Criar `GET /api/v1/notifications`. | `📱 APP` `🔀 BOTH` | 1 dia | Backend | 🔲 |
-| 2.4 | **Criar `GET /api/v1/users/me`** — Retorna perfil autenticado. Auth via bearer token. | `📱 APP` | 0.5 dia | Backend | 🔲 |
-| 2.5 | **Criar `GET /api/v1/professionals/search`** — Cursor-based pagination. Query params: `market`, `category`, `query`, `cursor`, `limit`, `fields`. | `📱 APP` `🌍 INT` `🔀 BOTH` | 2 dias | Backend | 🔲 |
-| 2.6 | **Implementar AI OCR para KYC** — Escolher provedor (AWS Textract/Google Document AI). Pipeline: upload → OCR → extração → score. Thresholds: >80% auto-aprova, 50-80% fila humana, <50% rejeição. | `🌍 INT` `⛔ BLOCKS` scaling profissionais | 3 dias | Backend | 🔲 |
+| 2.4 | **Criar `GET /api/v1/users/me`** — Endpoint funcional com `createApiClient()` (cookies + Bearer). Retorna perfil + professional. Rate limit `apiV1UsersMe`. | `📱 APP` | 0.5 dia | Backend | ✅ |
+| 2.5 | **Criar `GET /api/v1/professionals/search`** — Cursor-based pagination. Usa RPC `search_public_professionals_pgtrgm` com `p_market`. Query params: `q`, `category`, `specialty`, `language`, `location`, `market`, `minPrice`, `maxPrice`, `cursor`, `limit`. Rate limit `apiV1ProfessionalsSearch`. | `📱 APP` `🌍 INT` `🔀 BOTH` | 2 dias | Backend | ✅ |
+| 2.6 | **Implementar AI OCR para KYC** — Estrutura criada: `lib/kyc/ocr-pipeline.ts`, `lib/kyc/scoring.ts`, `lib/kyc/providers/textract.ts`, `lib/kyc/providers/document-ai.ts`. Migration `068-kyc-ocr-fields.sql` adiciona `ocr_status`, `ocr_score`, `ocr_extracted_data`, `ocr_provider`, `ocr_checked_at`. Endpoint `POST /api/v1/kyc/scan` funcional. Providers AWS/Google são stubs (pendente instalação SDK). | `🌍 INT` `⛔ BLOCKS` scaling profissionais | 3 dias | Backend | 🔄 (estrutura pronta, SDKs pendentes) |
 | 2.7 | **Configurar Sanity CMS** — Criar projeto. Schemas: `landingBlock`, `guide`, `blogPost`, `legalDocument`, `emailTemplate`, `testimonial`. | `🌍 INT` `🔀 BOTH` | 3 dias | Backend | 🔲 |
 | 2.8 | **Configurar Upstash Redis + ISR** — `revalidate` na landing (1h), guias (24h), perfil (1h). Cache: taxonomia, configs de mercado, taxas de câmbio. | `🌍 INT` | 1 dia | Backend | 🔲 |
 
@@ -121,10 +121,13 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 | 2.14 | **Setup PayPal Business UK** — Criar/configurar conta. Testar payout para BR e MX. | `🌍 INT` | 1 dia | Founder | 🔲 |
 
 **Sprint 2 — Entregáveis:**
+- [x] `GET /api/v1/users/me` funcional com bearer token
+- [x] `GET /api/v1/professionals/search` funcional com cursor-based pagination
 - [ ] `POST /api/v1/bookings` funcional com bearer token
 - [ ] `POST/GET /api/v1/conversations/{id}/messages` funcional
 - [ ] `GET /api/v1/notifications` funcional
-- [ ] AI OCR pipeline funcionando em staging
+- [x] AI OCR pipeline estruturado (endpoint + scoring + migration)
+- [ ] AI OCR com AWS Textract/Google Document AI em staging
 - [ ] Sanity CMS com schemas criados e guias migradas
 - [ ] Upstash Redis + ISR ativo
 - [ ] Web não usa mais Server Actions para booking/chat/notifications

@@ -451,6 +451,7 @@ async function fetchSearchCandidateIdsPgTrgm(
       p_min_price_brl: null,
       p_max_price_brl: null,
       p_limit: 1200,
+      p_market: 'BR',
     })
 
     if (error) return null

@@ -1,4 +1,5 @@
 import { loadSignupCatalog } from '@/lib/actions/signup'
+import type { SignupCatalog } from '@/lib/actions/signup-types'
 import SignupForm from '@/components/auth/SignupForm'
 
 function sanitizeRedirectPath(value: string | null) {

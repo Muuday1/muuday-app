@@ -8,6 +8,7 @@ import { AuthOverlay } from '@/components/auth/AuthOverlay'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { createClient } from '@/lib/supabase/client'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
+import { t } from '@/lib/i18n'
 import {
   PUBLIC_CURRENCY_COOKIE,
   PUBLIC_CURRENCY_OPTIONS,
@@ -28,14 +29,16 @@ type NavItem = {
   label: string
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: '/', label: 'Home' },
-  { href: '/buscar', label: 'Buscar profissionais' },
-  { href: '/registrar-profissional', label: 'Registrar como profissional' },
-  { href: '/guias', label: 'Guias' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/sobre', label: 'Sobre nós' },
-]
+function useNavItems(): NavItem[] {
+  return [
+    { href: '/', label: t('header.nav.home') },
+    { href: '/buscar', label: t('header.nav.search') },
+    { href: '/registrar-profissional', label: t('header.nav.register') },
+    { href: '/guias', label: t('header.nav.guides') },
+    { href: '/blog', label: t('header.nav.blog') },
+    { href: '/sobre', label: t('header.nav.about') },
+  ]
+}
 
 function setCookie(name: string, value: string) {
   const oneYear = 60 * 60 * 24 * 365
@@ -180,7 +183,8 @@ export function PublicHeader({
     } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-md px-2 py-1`
   }
 
-  const resolvedNavItems = NAV_ITEMS.map(item => {
+  const navItems = useNavItems()
+  const resolvedNavItems = navItems.map(item => {
     if (item.href === '/buscar' && isLoggedInClient) {
       return { ...item, href: '/buscar-auth' }
     }
@@ -224,7 +228,7 @@ export function PublicHeader({
                   ? 'border-white/20 bg-white/10 text-white'
                   : 'border-slate-200 bg-white text-slate-700'
               }`}
-              aria-label="Selecionar idioma"
+              aria-label={t('header.languageSelector')}
             >
               {PUBLIC_LANGUAGE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
@@ -238,7 +242,7 @@ export function PublicHeader({
                 value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
                 className="h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
-                aria-label="Selecionar moeda"
+                aria-label={t('header.currencySelector')}
               >
                 {PUBLIC_CURRENCY_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -253,7 +257,7 @@ export function PublicHeader({
                 href={loggedInHrefClient}
                 className="mu-btn-primary !px-4 !py-2 !text-xs"
               >
-                Minha área
+                {t('header.myArea')}
               </Link>
             ) : (
               <>
@@ -267,7 +271,7 @@ export function PublicHeader({
                       : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                   }`}
                 >
-                  Login
+                  {t('header.login')}
                 </button>
                 <Link
                   href="/cadastro"
@@ -277,7 +281,7 @@ export function PublicHeader({
                       : 'bg-[#8ed85f] hover:bg-[#7bc752]'
                   }`}
                 >
-                  Criar conta
+                  {t('header.createAccount')}
                 </Link>
               </>
             )}
@@ -327,7 +331,7 @@ export function PublicHeader({
                   ? 'border-white/20 bg-white/10 text-white'
                   : 'border-slate-200 bg-white text-slate-700'
               }`}
-              aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-label={menuOpen ? t('header.menuClose') : t('header.menuOpen')}
               aria-expanded={menuOpen}
               aria-controls="public-nav-panel"
             >
@@ -379,7 +383,7 @@ export function PublicHeader({
                     : 'bg-[#8ed85f] text-white hover:bg-[#7bc752] focus-visible:ring-[#9FE870]/30'
                 }`}
               >
-                Minha área
+                {t('header.myArea')}
               </Link>
             ) : (
               <>
@@ -396,7 +400,7 @@ export function PublicHeader({
                       : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f] focus-visible:ring-[#9FE870]/30'
                   }`}
                 >
-                  Login
+                  {t('header.login')}
                 </button>
                 <Link
                   href="/cadastro"
@@ -407,7 +411,7 @@ export function PublicHeader({
                       : 'bg-[#8ed85f] text-white hover:bg-[#7bc752] focus-visible:ring-[#9FE870]/30'
                   }`}
                 >
-                  Criar conta
+                  {t('header.createAccount')}
                 </Link>
               </>
             )}
@@ -424,8 +428,8 @@ export function PublicHeader({
       >
         <div className="max-h-[78vh] overflow-y-auto pr-1">
           <LoginForm
-            title="Entrar"
-            subtitle="Acesse sua conta Muuday."
+            title={t('header.loginTitle')}
+            subtitle={t('header.loginSubtitle')}
             idPrefix="header-login"
             onSuccess={() => setAuthMenuOpen(false)}
           />

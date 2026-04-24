@@ -1,87 +1,56 @@
 'use server'
 
-import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from './email/shared'
 import {
-  sendWelcomeEmail,
-  sendCompleteAccountEmail,
-  addContactToResend,
-  SEGMENTS,
-  sendBookingConfirmationEmail,
-  sendNewBookingToProfessionalEmail,
-  sendSessionReminder24hEmail,
-  sendSessionReminder1hEmail,
-  sendProfessionalReminder24hEmail,
-  sendBookingCancelledEmail,
-  sendPaymentConfirmationEmail,
-  sendPaymentFailedEmail,
-  sendRefundEmail,
-  sendNewReviewEmail,
-  sendNewsletterEmail,
-  sendRequestReviewEmail,
-  sendRescheduledEmail,
-  sendIncompleteProfileReminderEmail,
-  sendWaitlistConfirmationEmail,
-  sendWelcomeSeries1Email,
-  sendWelcomeSeries2Email,
-  sendWelcomeSeries3Email,
-  sendReferralInviteEmail,
-  sendFirstBookingNudgeEmail,
-  sendReengagementEmail,
-  sendLaunchEmail,
-} from '@/lib/email/resend'
-import {
-  emailSchema,
-  personNameSchema,
-  displayTextSchema,
-  dateSchema,
-  timeSchema,
-  timezoneSchema,
-  amountSchema,
-  optionalUserIdSchema,
-  optionalCallToActionSubSchema,
-  cancelledBySchema,
-  rescheduledBySchema,
-  ratingSchema,
-  missingItemsSchema,
-  parsePayload,
-  safe,
-  requireAuth,
-  assertCallerCanEmailRecipient,
-  canSend,
-} from './email/shared'
+  addUserToResendService,
+  sendWelcomeEmailService,
+  sendCompleteAccountEmailService,
+  sendBookingConfirmationEmailService,
+  sendNewBookingToProfessionalEmailService,
+  sendBookingCancelledEmailService,
+  sendPaymentConfirmationEmailService,
+  sendPaymentFailedEmailService,
+  sendRefundEmailService,
+  sendNewReviewEmailService,
+  sendIncompleteProfileReminderEmailService,
+  sendSessionReminder24hEmailService,
+  sendSessionReminder1hEmailService,
+  sendProfessionalReminder24hEmailService,
+  sendRequestReviewEmailService,
+  sendRescheduledEmailService,
+  sendNewsletterEmailService,
+  sendWaitlistConfirmationEmailService,
+  sendWelcomeSeries1EmailService,
+  sendWelcomeSeries2EmailService,
+  sendWelcomeSeries3EmailService,
+  sendReferralInviteEmailService,
+  sendFirstBookingNudgeEmailService,
+  sendReengagementEmailService,
+  sendLaunchEmailService,
+} from '@/lib/email/email-action-service'
 
 // --- Audience management --------------------------------------------------
 export async function addUserToResendAction(email: string, firstName: string) {
-  const payload = parsePayload(
-    z.object({
-      email: emailSchema,
-      firstName: personNameSchema,
-    }),
-    { email, firstName },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  return safe(() => addContactToResend(payload.email, payload.firstName, SEGMENTS.usuarios), 'addContact')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return addUserToResendService(supabase, callerId, email, firstName)
 }
 
 // --- Transactional: Auth --------------------------------------------------
 export async function sendWelcomeEmailAction(to: string, name: string) {
-  const payload = parsePayload(z.object({ to: emailSchema, name: personNameSchema }), { to, name })
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  void safe(() => addContactToResend(payload.to, payload.name, SEGMENTS.usuarios), 'addContact')
-  return safe(() => sendWelcomeEmail(payload.to, payload.name), 'welcome')
+  const supabase = await createClient()
+  return sendWelcomeEmailService(supabase, callerId, to, name)
 }
 
 export async function sendCompleteAccountEmailAction(to: string, name: string) {
-  const payload = parsePayload(z.object({ to: emailSchema, name: personNameSchema }), { to, name })
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  return safe(() => sendCompleteAccountEmail(payload.to, payload.name), 'completeAccount')
+  const supabase = await createClient()
+  return sendCompleteAccountEmailService(supabase, callerId, to, name)
 }
 
 // --- Transactional: Booking -----------------------------------------------
@@ -90,47 +59,20 @@ export async function sendBookingConfirmationEmailAction(
   date: string, time: string, timezone: string,
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      service: displayTextSchema,
-      date: dateSchema,
-      time: timeSchema,
-      timezone: timezoneSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, service, date, time, timezone, userId },
-  )
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  if (!await canSend(payload.userId, 'booking_emails')) return
-  return safe(() => sendBookingConfirmationEmail(payload.to, payload.name, payload.professionalName, payload.service, payload.date, payload.time, payload.timezone), 'bookingConfirmation')
+  const supabase = await createClient()
+  return sendBookingConfirmationEmailService(supabase, callerId, to, name, professionalName, service, date, time, timezone, userId)
 }
 
 export async function sendNewBookingToProfessionalEmailAction(
   to: string, professionalName: string, clientName: string,
   service: string, date: string, time: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      professionalName: personNameSchema,
-      clientName: personNameSchema,
-      service: displayTextSchema,
-      date: dateSchema,
-      time: timeSchema,
-    }),
-    { to, professionalName, clientName, service, date, time },
-  )
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  return safe(() => sendNewBookingToProfessionalEmail(payload.to, payload.professionalName, payload.clientName, payload.service, payload.date, payload.time), 'newBookingProfessional')
+  const supabase = await createClient()
+  return sendNewBookingToProfessionalEmailService(supabase, callerId, to, professionalName, clientName, service, date, time)
 }
 
 export async function sendBookingCancelledEmailAction(
@@ -138,24 +80,10 @@ export async function sendBookingCancelledEmailAction(
   date: string, time: string, cancelledBy: 'user' | 'professional',
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      date: dateSchema,
-      time: timeSchema,
-      cancelledBy: cancelledBySchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, date, time, cancelledBy, userId },
-  )
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  if (!await canSend(payload.userId, 'booking_emails')) return
-  return safe(() => sendBookingCancelledEmail(payload.to, payload.name, payload.professionalName, payload.date, payload.time, payload.cancelledBy), 'bookingCancelled')
+  const supabase = await createClient()
+  return sendBookingCancelledEmailService(supabase, callerId, to, name, professionalName, date, time, cancelledBy, userId)
 }
 
 // --- Transactional: Payment -----------------------------------------------
@@ -164,60 +92,24 @@ export async function sendPaymentConfirmationEmailAction(
   service: string, amount: string, date: string,
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      service: displayTextSchema,
-      amount: amountSchema,
-      date: dateSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, service, amount, date, userId },
-  )
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  if (!await canSend(payload.userId, 'booking_emails')) return
-  return safe(() => sendPaymentConfirmationEmail(payload.to, payload.name, payload.professionalName, payload.service, payload.amount, payload.date), 'paymentConfirmation')
+  const supabase = await createClient()
+  return sendPaymentConfirmationEmailService(supabase, callerId, to, name, professionalName, service, amount, date, userId)
 }
 
 export async function sendPaymentFailedEmailAction(to: string, name: string, service: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      service: displayTextSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, service, userId },
-  )
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  return safe(() => sendPaymentFailedEmail(payload.to, payload.name, payload.service), 'paymentFailed')
+  const supabase = await createClient()
+  return sendPaymentFailedEmailService(supabase, callerId, to, name, service, userId)
 }
 
 export async function sendRefundEmailAction(to: string, name: string, amount: string, service: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      amount: amountSchema,
-      service: displayTextSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, amount, service, userId },
-  )
-  if (!payload) return
   const callerId = await requireAuth()
   if (!callerId) return
-  if (!await assertCallerCanEmailRecipient(callerId, payload.to)) return
-  if (!await canSend(payload.userId, 'booking_emails')) return
-  return safe(() => sendRefundEmail(payload.to, payload.name, payload.amount, payload.service), 'refund')
+  const supabase = await createClient()
+  return sendRefundEmailService(supabase, callerId, to, name, amount, service, userId)
 }
 
 // --- Transactional: Profile & Reviews -------------------------------------
@@ -225,35 +117,19 @@ export async function sendNewReviewEmailAction(
   to: string, professionalName: string,
   clientName: string, rating: number, comment: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      professionalName: personNameSchema,
-      clientName: personNameSchema,
-      rating: ratingSchema,
-      comment: z.string().trim().max(1200, 'Texto muito longo.'),
-    }),
-    { to, professionalName, clientName, rating, comment },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  return safe(() => sendNewReviewEmail(payload.to, payload.professionalName, payload.clientName, payload.rating, payload.comment), 'newReview')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendNewReviewEmailService(supabase, callerId, to, professionalName, clientName, rating, comment)
 }
 
 export async function sendIncompleteProfileReminderEmailAction(
   to: string, professionalName: string, missingItems: string[],
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      professionalName: personNameSchema,
-      missingItems: missingItemsSchema,
-    }),
-    { to, professionalName, missingItems },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  return safe(() => sendIncompleteProfileReminderEmail(payload.to, payload.professionalName, payload.missingItems), 'incompleteProfile')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendIncompleteProfileReminderEmailService(supabase, callerId, to, professionalName, missingItems)
 }
 
 // --- Reminders ------------------------------------------------------------
@@ -262,84 +138,40 @@ export async function sendSessionReminder24hEmailAction(
   date: string, time: string, timezone: string,
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      service: displayTextSchema,
-      date: dateSchema,
-      time: timeSchema,
-      timezone: timezoneSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, service, date, time, timezone, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'session_reminders')) return
-  return safe(() => sendSessionReminder24hEmail(payload.to, payload.name, payload.professionalName, payload.service, payload.date, payload.time, payload.timezone), 'reminder24h')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendSessionReminder24hEmailService(supabase, callerId, to, name, professionalName, service, date, time, timezone, userId)
 }
 
 export async function sendSessionReminder1hEmailAction(
   to: string, name: string, professionalName: string, time: string, timezone: string,
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      time: timeSchema,
-      timezone: timezoneSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, time, timezone, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'session_reminders')) return
-  return safe(() => sendSessionReminder1hEmail(payload.to, payload.name, payload.professionalName, payload.time, payload.timezone), 'reminder1h')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendSessionReminder1hEmailService(supabase, callerId, to, name, professionalName, time, timezone, userId)
 }
 
 export async function sendProfessionalReminder24hEmailAction(
   to: string, professionalName: string, clientName: string,
   service: string, date: string, time: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      professionalName: personNameSchema,
-      clientName: personNameSchema,
-      service: displayTextSchema,
-      date: dateSchema,
-      time: timeSchema,
-    }),
-    { to, professionalName, clientName, service, date, time },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  return safe(() => sendProfessionalReminder24hEmail(payload.to, payload.professionalName, payload.clientName, payload.service, payload.date, payload.time), 'professionalReminder24h')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendProfessionalReminder24hEmailService(supabase, callerId, to, professionalName, clientName, service, date, time)
 }
 
 export async function sendRequestReviewEmailAction(
   to: string, name: string, professionalName: string, service: string,
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      service: displayTextSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, service, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'session_reminders')) return
-  return safe(() => sendRequestReviewEmail(payload.to, payload.name, payload.professionalName, payload.service), 'requestReview')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendRequestReviewEmailService(supabase, callerId, to, name, professionalName, service, userId)
 }
 
 // --- Reschedule -----------------------------------------------------------
@@ -349,26 +181,10 @@ export async function sendRescheduledEmailAction(
   timezone: string, rescheduledBy: 'user' | 'professional',
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      professionalName: personNameSchema,
-      service: displayTextSchema,
-      oldDate: dateSchema,
-      oldTime: timeSchema,
-      newDate: dateSchema,
-      newTime: timeSchema,
-      timezone: timezoneSchema,
-      rescheduledBy: rescheduledBySchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, professionalName, service, oldDate, oldTime, newDate, newTime, timezone, rescheduledBy, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'booking_emails')) return
-  return safe(() => sendRescheduledEmail(payload.to, payload.name, payload.professionalName, payload.service, payload.oldDate, payload.oldTime, payload.newDate, payload.newTime, payload.timezone, payload.rescheduledBy), 'rescheduled')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendRescheduledEmailService(supabase, callerId, to, name, professionalName, service, oldDate, oldTime, newDate, newTime, timezone, rescheduledBy, userId)
 }
 
 // --- Marketing & Lifecycle (news_promotions) ------------------------------
@@ -377,130 +193,63 @@ export async function sendNewsletterEmailAction(
   headline: string, body: string, ctaLabel: string, ctaUrl: string, ctaSub?: string,
   userId?: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      name: personNameSchema,
-      subject: displayTextSchema,
-      badge: z.string().trim().min(1).max(40),
-      headline: z.string().trim().min(1).max(180),
-      body: z.string().trim().min(1).max(1200, 'Texto muito longo.'),
-      ctaLabel: z.string().trim().min(1).max(80),
-      ctaUrl: z.string().trim().url('URL inválida.').max(500, 'URL muito longa.'),
-      ctaSub: optionalCallToActionSubSchema,
-      userId: optionalUserIdSchema,
-    }),
-    { to, name, subject, badge, headline, body, ctaLabel, ctaUrl, ctaSub, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendNewsletterEmail(payload.to, payload.name, payload.subject, payload.badge, payload.headline, payload.body, payload.ctaLabel, payload.ctaUrl, payload.ctaSub), 'newsletter')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendNewsletterEmailService(supabase, callerId, to, name, subject, badge, headline, body, ctaLabel, ctaUrl, ctaSub, userId)
 }
 
 export async function sendWaitlistConfirmationEmailAction(to: string, name: string) {
-  const payload = parsePayload(z.object({ to: emailSchema, name: personNameSchema }), { to, name })
-  if (!payload) return
-  // No auth required - called from public waitlist API route (which has its own rate limiting)
-  return safe(() => sendWaitlistConfirmationEmail(payload.to, payload.name), 'waitlistConfirmation')
+  return sendWaitlistConfirmationEmailService(to, name)
 }
 
 export async function sendWelcomeSeries1EmailAction(to: string, name: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({ to: emailSchema, name: personNameSchema, userId: optionalUserIdSchema }),
-    { to, name, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendWelcomeSeries1Email(payload.to, payload.name), 'welcomeSeries1')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendWelcomeSeries1EmailService(supabase, callerId, to, name, userId)
 }
 
 export async function sendWelcomeSeries2EmailAction(to: string, name: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({ to: emailSchema, name: personNameSchema, userId: optionalUserIdSchema }),
-    { to, name, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendWelcomeSeries2Email(payload.to, payload.name), 'welcomeSeries2')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendWelcomeSeries2EmailService(supabase, callerId, to, name, userId)
 }
 
 export async function sendWelcomeSeries3EmailAction(to: string, name: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({ to: emailSchema, name: personNameSchema, userId: optionalUserIdSchema }),
-    { to, name, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendWelcomeSeries3Email(payload.to, payload.name), 'welcomeSeries3')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendWelcomeSeries3EmailService(supabase, callerId, to, name, userId)
 }
 
 export async function sendReferralInviteEmailAction(
   to: string, inviterName: string, referralLink: string,
 ) {
-  const payload = parsePayload(
-    z.object({
-      to: emailSchema,
-      inviterName: personNameSchema,
-      referralLink: z.string().trim().url('URL inválida.').max(500, 'URL muito longa.'),
-    }),
-    { to, inviterName, referralLink },
-  )
-  if (!payload) return
-
   const callerId = await requireAuth()
   if (!callerId) return
-
-  // Referral invites are intentionally sent to external emails, but we verify
-  // the inviterName matches the caller's profile to prevent impersonation
-  const { createClient } = await import('@/lib/supabase/server')
   const supabase = await createClient()
-  const { data: callerProfile, error: callerError } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', callerId)
-    .single()
-
-  if (callerError) {
-    console.error('[email] caller profile query error:', callerError.message)
-  }
-
-  if (!callerProfile || callerProfile.full_name !== payload.inviterName) return
-  return safe(() => sendReferralInviteEmail(payload.to, payload.inviterName, payload.referralLink), 'referralInvite')
+  return sendReferralInviteEmailService(supabase, callerId, to, inviterName, referralLink)
 }
 
 export async function sendFirstBookingNudgeEmailAction(to: string, name: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({ to: emailSchema, name: personNameSchema, userId: optionalUserIdSchema }),
-    { to, name, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendFirstBookingNudgeEmail(payload.to, payload.name), 'firstBookingNudge')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendFirstBookingNudgeEmailService(supabase, callerId, to, name, userId)
 }
 
 export async function sendReengagementEmailAction(to: string, name: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({ to: emailSchema, name: personNameSchema, userId: optionalUserIdSchema }),
-    { to, name, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendReengagementEmail(payload.to, payload.name), 'reengagement')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendReengagementEmailService(supabase, callerId, to, name, userId)
 }
 
 export async function sendLaunchEmailAction(to: string, name: string, userId?: string) {
-  const payload = parsePayload(
-    z.object({ to: emailSchema, name: personNameSchema, userId: optionalUserIdSchema }),
-    { to, name, userId },
-  )
-  if (!payload) return
-  if (!await requireAuth()) return
-  if (!await canSend(payload.userId, 'news_promotions')) return
-  return safe(() => sendLaunchEmail(payload.to, payload.name), 'launch')
+  const callerId = await requireAuth()
+  if (!callerId) return
+  const supabase = await createClient()
+  return sendLaunchEmailService(supabase, callerId, to, name, userId)
 }

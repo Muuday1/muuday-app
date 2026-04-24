@@ -1,6 +1,24 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { getAppBaseUrl } from '@/lib/config/app-url'
+import { validateMobileApiKey } from '@/lib/api/mobile-api-key'
+import {
+  evaluateCorsRequest,
+  createCorsPreflightResponse,
+  PUBLIC_API_CORS_POLICY,
+} from '@/lib/http/cors'
+
+const API_V1_CORS_POLICY = {
+  ...PUBLIC_API_CORS_POLICY,
+  allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'] as const,
+  allowHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-Mobile-API-Key',
+    'X-Device-ID',
+  ],
+}
 
 function generateNonce(): string {
   const array = new Uint8Array(16)
@@ -87,6 +105,18 @@ function shouldForceAppHostRedirect(request: NextRequest) {
 }
 
 export async function middleware(request: NextRequest) {
+  // Handle CORS preflight and validate mobile API key for all /api/v1/* routes
+  if (request.nextUrl.pathname.startsWith('/api/v1/')) {
+    if (request.method === 'OPTIONS') {
+      return createCorsPreflightResponse(request, API_V1_CORS_POLICY)
+    }
+
+    const apiKeyError = validateMobileApiKey(request)
+    if (apiKeyError) {
+      return apiKeyError
+    }
+  }
+
   if (shouldForceAppHostRedirect(request) && hasExplicitAppHostConfig()) {
     const appBaseUrl = getAppBaseUrl()
     try {
@@ -101,6 +131,16 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = await updateSession(request)
+
+  // Apply CORS headers to /api/v1/* responses
+  if (request.nextUrl.pathname.startsWith('/api/v1/')) {
+    const corsDecision = evaluateCorsRequest(request, API_V1_CORS_POLICY)
+    if (corsDecision.allowed) {
+      for (const [key, value] of Object.entries(corsDecision.headers)) {
+        response.headers.set(key, value)
+      }
+    }
+  }
 
   // Apply CSP with per-request nonce (primary XSS defense)
   const nonce = generateNonce()

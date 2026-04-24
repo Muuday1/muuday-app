@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getMessages, markConversationAsRead } from '@/lib/actions/chat'
+import { getMessagesAction, markConversationAsReadAction } from '@/lib/actions/chat'
 import { MessageThread } from '@/components/chat/MessageThread'
 
 export default async function ConversationPage({
@@ -55,11 +55,11 @@ export default async function ConversationPage({
   const otherName = otherProfile?.full_name || 'Usuário'
 
   // Load messages
-  const messagesResult = await getMessages(conversationId, { limit: 50 })
+  const messagesResult = await getMessagesAction(conversationId, { limit: 50 })
   const messages = messagesResult.success ? messagesResult.data.messages : []
 
   // Mark as read
-  await markConversationAsRead(conversationId)
+  await markConversationAsReadAction(conversationId)
 
   return (
     <div className="mx-auto flex h-[calc(100vh-80px)] max-w-3xl flex-col px-4 py-4 md:h-[calc(100vh-0px)] md:px-8 md:py-6">

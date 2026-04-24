@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 
 export const REQUEST_BOOKING_ALLOWED_TIERS = ['professional', 'premium']
 
 export async function professionalCanReceiveRequestBooking(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   professional: Record<string, any>,
 ): Promise<{ ok: true } | { ok: false; error: string; reasonCode?: string }> {
   if (professional.status !== 'approved') {

@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/client'
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 import { captureEvent, identifyEventUser } from '@/lib/analytics/posthog-client'
+import { t } from '@/lib/i18n'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
 import { guardAuthAttempt } from '@/lib/auth/attempt-guard-client'
 import {
@@ -167,7 +168,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
       <form onSubmit={handleLogin} className={formSpacingClass} noValidate>
         <div>
           <label htmlFor={emailId} className="mb-1 block text-sm font-medium text-slate-700">
-            E-mail
+            {t('auth.login.emailLabel')}
           </label>
           <input
             id={emailId}
@@ -175,7 +176,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            placeholder="seu@email.com"
+            placeholder={t('auth.login.emailPlaceholder')}
             className={inputClass}
             aria-invalid={Boolean(error)}
             autoComplete="email"
@@ -185,13 +186,13 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
         <div>
           <div className="mb-1 flex items-center justify-between">
             <label htmlFor={passwordId} className="block text-sm font-medium text-slate-700">
-              Senha
+              {t('auth.login.passwordLabel')}
             </label>
             <Link
               href={email.trim() ? `/recuperar-senha?email=${encodeURIComponent(email.trim())}` : '/recuperar-senha'}
               className="rounded-md text-sm font-medium text-[#3d6b1f] hover:text-[#3d6b1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
             >
-              Esqueceu a senha?
+              {t('auth.login.forgotPassword')}
             </Link>
           </div>
           <input
@@ -200,7 +201,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            placeholder="••••••••"
+            placeholder={t('auth.login.passwordPlaceholder')}
             className={inputClass}
             aria-invalid={Boolean(error)}
             autoComplete="current-password"
@@ -212,12 +213,12 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
             <p>{error}</p>
             {showRecoveryHint ? (
               <p className="mt-1 text-xs">
-                Esqueceu a senha?{' '}
+                {t('auth.login.recoveryHint')}{' '}
                 <Link
                   href={email.trim() ? `/recuperar-senha?email=${encodeURIComponent(email.trim())}` : '/recuperar-senha'}
                   className="font-semibold underline"
                 >
-                  Clique aqui.
+                  {t('auth.login.recoveryLink')}
                 </Link>
               </p>
             ) : null}
@@ -227,10 +228,10 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
         <button type="submit" disabled={loading} className={submitClass}>
           {loading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Entrando...
+              <Loader2 className="h-4 w-4 animate-spin" /> {t('auth.login.submitLoading')}
             </>
           ) : (
-            'Entrar'
+            t('auth.login.submit')
           )}
         </button>
       </form>
@@ -238,19 +239,19 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
       <div className={compact ? 'mt-4' : 'mt-6'}>
         <div className={dividerClass}>
           <div className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs font-medium text-slate-400">ou entre com</span>
+          <span className="text-xs font-medium text-slate-400">{t('auth.login.socialDivider')}</span>
           <div className="h-px flex-1 bg-slate-200" />
         </div>
         <SocialAuthButtons redirectPath={safeRedirectPath || undefined} compact={compact} />
       </div>
 
       <p className={compact ? 'mt-4 text-center text-xs text-slate-500' : 'mt-6 text-center text-sm text-slate-500'}>
-        Ainda não é membro?{' '}
+        {t('auth.login.noAccount')}{' '}
         <Link
           href="/cadastro"
           className="rounded-md font-medium text-[#3d6b1f] hover:text-[#3d6b1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
         >
-          Criar conta
+          {t('auth.login.createAccount')}
         </Link>
       </p>
     </div>

@@ -1,16 +1,16 @@
 'use server'
 
-import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { rateLimit } from '@/lib/security/rate-limit'
-
-const caseIdSchema = z.string().uuid('Identificador de caso inválido.')
-const bookingIdSchema = z.string().uuid('Identificador de agendamento inválido.')
-const reasonSchema = z.string().trim().min(10, 'Descreva o motivo com pelo menos 10 caracteres.').max(1000, 'Motivo muito longo.')
-const contentSchema = z.string().trim().min(1, 'Mensagem não pode estar vazia.').max(2000, 'Mensagem muito longa.')
-
-const caseTypeSchema = z.enum(['cancelation_dispute', 'no_show_claim', 'quality_issue', 'refund_request'])
+import {
+  openCase as openCaseService,
+  addCaseMessage as addCaseMessageService,
+  resolveCase as resolveCaseService,
+  getCaseById as getCaseByIdService,
+  getCaseMessages as getCaseMessagesService,
+  listCases as listCasesService,
+} from '@/lib/disputes/dispute-service'
 
 export type DisputeResult<T = unknown> =
   | { success: true; data: T }
@@ -44,9 +44,6 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
   return { success: true, userId: user.id } as const
 }
 
-/**
- * Open a new case/dispute.
- */
 export async function openCase(
   bookingId: string,
   type: string,
@@ -57,72 +54,9 @@ export async function openCase(
   const rl = await rateLimit('bookingManage', userId)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
-  const bookingParsed = bookingIdSchema.safeParse(bookingId)
-  const typeParsed = caseTypeSchema.safeParse(type)
-  const reasonParsed = reasonSchema.safeParse(reason)
-
-  if (!bookingParsed.success) {
-    return { success: false, error: bookingParsed.error.issues[0]?.message || 'Agendamento inválido.' }
-  }
-  if (!typeParsed.success) {
-    return { success: false, error: 'Tipo de disputa inválido.' }
-  }
-  if (!reasonParsed.success) {
-    return { success: false, error: reasonParsed.error.issues[0]?.message || 'Motivo inválido.' }
-  }
-
-  // Verify user is a participant in the booking
-  const { data: booking, error: bookingError } = await supabase
-    .from('bookings')
-    .select('id, user_id, professional_id')
-    .eq('id', bookingParsed.data)
-    .maybeSingle()
-
-  if (bookingError) {
-    console.error('[disputes] failed to load booking:', bookingError.message)
-  }
-
-  if (!booking) {
-    return { success: false, error: 'Agendamento não encontrado.' }
-  }
-
-  const isParticipant = booking.user_id === userId
-  if (!isParticipant) {
-    const { data: prof, error: profError } = await supabase
-      .from('professionals')
-      .select('id')
-      .eq('id', booking.professional_id)
-      .eq('user_id', userId)
-      .maybeSingle()
-    if (profError) {
-      console.error('[disputes] failed to load professional:', profError.message)
-    }
-    if (!prof) {
-      return { success: false, error: 'Você não tem acesso a este agendamento.' }
-    }
-  }
-
-  const { data, error } = await supabase
-    .from('cases')
-    .insert({
-      booking_id: bookingParsed.data,
-      reporter_id: userId,
-      type: typeParsed.data,
-      reason: reasonParsed.data,
-    })
-    .select('id')
-    .single()
-
-  if (error || !data) {
-    return { success: false, error: 'Erro ao abrir disputa.' }
-  }
-
-  return { success: true, data: { caseId: data.id } }
+  return openCaseService(supabase, userId, bookingId, type, reason)
 }
 
-/**
- * Add a message to a case.
- */
 export async function addCaseMessage(
   caseId: string,
   content: string,
@@ -132,53 +66,10 @@ export async function addCaseMessage(
   const rl = await rateLimit('messageSend', userId)
   if (!rl.allowed) return { success: false, error: 'Muitas mensagens. Tente novamente em breve.' }
 
-  const idParsed = caseIdSchema.safeParse(caseId)
-  const contentParsed = contentSchema.safeParse(content)
-
-  if (!idParsed.success) {
-    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
-  }
-  if (!contentParsed.success) {
-    return { success: false, error: contentParsed.error.issues[0]?.message || 'Conteúdo inválido.' }
-  }
-
-  // Verify participant
-  const { data: caseRow } = await supabase
-    .from('cases')
-    .select('id, reporter_id')
-    .eq('id', idParsed.data)
-    .maybeSingle()
-
-  if (!caseRow) {
-    return { success: false, error: 'Caso não encontrado.' }
-  }
-
   const isAdmin = await requireAdmin(supabase)
-  const canParticipate = caseRow.reporter_id === userId || isAdmin.success
-  if (!canParticipate) {
-    return { success: false, error: 'Você não pode participar deste caso.' }
-  }
-
-  const { data, error } = await supabase
-    .from('case_messages')
-    .insert({
-      case_id: idParsed.data,
-      sender_id: userId,
-      content: contentParsed.data,
-    })
-    .select('id')
-    .single()
-
-  if (error || !data) {
-    return { success: false, error: 'Erro ao enviar mensagem.' }
-  }
-
-  return { success: true, data: { messageId: data.id } }
+  return addCaseMessageService(supabase, userId, caseId, content, isAdmin.success)
 }
 
-/**
- * Resolve a case (admin only).
- */
 export async function resolveCase(
   caseId: string,
   resolution: string,
@@ -194,50 +85,9 @@ export async function resolveCase(
   const rl = await rateLimit('bookingManage', adminId)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
-  const idParsed = caseIdSchema.safeParse(caseId)
-  const resolutionParsed = reasonSchema.safeParse(resolution)
-
-  if (!idParsed.success) {
-    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
-  }
-  if (!resolutionParsed.success) {
-    return { success: false, error: resolutionParsed.error.issues[0]?.message || 'Resolução inválida.' }
-  }
-
-  const resolvedAt = new Date().toISOString()
-
-  const { error } = await supabase
-    .from('cases')
-    .update({
-      status: 'resolved',
-      resolution: resolutionParsed.data,
-      refund_amount: refundAmount ?? null,
-      resolved_at: resolvedAt,
-      resolved_by: adminId,
-    })
-    .eq('id', idParsed.data)
-
-  if (error) {
-    return { success: false, error: 'Erro ao resolver caso.' }
-  }
-
-  // Log action
-  const { error: actionError } = await supabase.from('case_actions').insert({
-    case_id: idParsed.data,
-    action_type: 'resolved',
-    performed_by: adminId,
-    metadata: { refund_amount: refundAmount ?? null },
-  })
-  if (actionError) {
-    console.error('[disputes] case_actions insert error:', actionError.message)
-  }
-
-  return { success: true, data: { resolvedAt } }
+  return resolveCaseService(supabase, adminId, caseId, resolution, refundAmount)
 }
 
-/**
- * Get a single case by ID.
- */
 export async function getCaseById(
   caseId: string,
 ): Promise<DisputeResult<{
@@ -254,82 +104,18 @@ export async function getCaseById(
   reporter_name: string | null
 }>> {
   const { supabase, userId } = await getAuthenticatedUser()
-
-  const idParsed = caseIdSchema.safeParse(caseId)
-  if (!idParsed.success) {
-    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
-  }
-
-  const { data, error } = await supabase
-    .from('cases')
-    .select('id, booking_id, reporter_id, type, status, reason, resolution, refund_amount, resolved_at, created_at, profiles!cases_reporter_id_fkey(full_name)')
-    .eq('id', idParsed.data)
-    .maybeSingle()
-
-  if (error || !data) {
-    return { success: false, error: 'Caso não encontrado.' }
-  }
-
   const isAdmin = await requireAdmin(supabase)
-  const canAccess = data.reporter_id === userId || isAdmin.success
-  if (!canAccess) {
-    return { success: false, error: 'Você não tem acesso a este caso.' }
-  }
-
-  return {
-    success: true,
-    data: {
-      ...data,
-      reporter_name: (data as any).profiles?.full_name || null,
-    } as any,
-  }
+  return getCaseByIdService(supabase, userId, caseId, isAdmin.success)
 }
 
-/**
- * Get messages for a case.
- */
 export async function getCaseMessages(
   caseId: string,
 ): Promise<DisputeResult<{ messages: unknown[] }>> {
   const { supabase, userId } = await getAuthenticatedUser()
-
-  const idParsed = caseIdSchema.safeParse(caseId)
-  if (!idParsed.success) {
-    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
-  }
-
-  const { data: caseRow } = await supabase
-    .from('cases')
-    .select('id, reporter_id')
-    .eq('id', idParsed.data)
-    .maybeSingle()
-
-  if (!caseRow) {
-    return { success: false, error: 'Caso não encontrado.' }
-  }
-
   const isAdmin = await requireAdmin(supabase)
-  const canAccess = caseRow.reporter_id === userId || isAdmin.success
-  if (!canAccess) {
-    return { success: false, error: 'Você não tem acesso a este caso.' }
-  }
-
-  const { data, error } = await supabase
-    .from('case_messages')
-    .select('id, sender_id, content, created_at, profiles!case_messages_sender_id_fkey(full_name)')
-    .eq('case_id', idParsed.data)
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    return { success: false, error: 'Erro ao carregar mensagens.' }
-  }
-
-  return { success: true, data: { messages: data || [] } }
+  return getCaseMessagesService(supabase, userId, caseId, isAdmin.success)
 }
 
-/**
- * List cases for admin or reporter.
- */
 export async function listCases(
   {
     status,
@@ -347,37 +133,5 @@ export async function listCases(
   if (!rl.allowed) return { success: false, error: 'Muitas requisições. Tente novamente em breve.' }
 
   const isAdmin = await requireAdmin(supabase)
-
-  let query = supabase
-    .from('cases')
-    .select('id, booking_id, reporter_id, type, status, reason, resolution, refund_amount, resolved_at, created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit + 1)
-
-  if (!isAdmin.success) {
-    query = query.eq('reporter_id', userId)
-  }
-
-  if (status) {
-    query = query.eq('status', status)
-  }
-
-  if (cursor) {
-    query = query.lt('created_at', cursor)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
-    return { success: false, error: 'Erro ao carregar casos.' }
-  }
-
-  const cases = data || []
-  const hasMore = cases.length > limit
-  const trimmed = hasMore ? cases.slice(0, limit) : cases
-  const nextCursor = hasMore && trimmed.length > 0
-    ? String(trimmed[trimmed.length - 1].created_at)
-    : null
-
-  return { success: true, data: { cases: trimmed, nextCursor } }
+  return listCasesService(supabase, userId, isAdmin.success, { status, limit, cursor })
 }

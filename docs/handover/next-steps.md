@@ -1,12 +1,14 @@
 # Next Steps
 
-Last updated: 2026-04-22
+Last updated: 2026-04-23
 
 Execute in order. Keep changes batchable, validated, and documented.
 
 ## Immediate queue
 
 1. Run production smoke for onboarding review loop (`admin -> solicitar ajustes -> profissional corrige -> reenviar`) after each publish batch.
+2. Sprint 5 — Remaining APIs extraction: admin (`lib/actions/admin.ts`, `admin-plans.ts`, `admin-taxonomy.ts`) and email (`lib/actions/email.ts`). These are lower priority for mobile but should be extracted for architecture consistency.
+3. Continue professional operations polish with focus on calendar UX and scheduling-rule clarity in `/disponibilidade`.
 2. Continue professional operations polish with focus on calendar UX and scheduling-rule clarity in `/disponibilidade`.
 3. Keep onboarding tracker copy/progression consistent and avoid reintroducing blocking optional fetches in modal open path.
 4. Close remaining PT-BR cleanup on lower-traffic admin/member surfaces.

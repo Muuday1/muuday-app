@@ -7,8 +7,8 @@ import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { getLayoutSession } from '@/lib/auth/layout-session'
-import { getConversations } from '@/lib/actions/chat'
-import { getUnreadNotificationCount } from '@/lib/actions/notifications'
+import { getConversationsAction } from '@/lib/actions/chat'
+import { getUnreadNotificationCountAction } from '@/lib/actions/notifications'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile } = await getLayoutSession()
@@ -22,13 +22,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   // Fetch unread message count for badge
-  const conversationsResult = await getConversations()
+  const conversationsResult = await getConversationsAction()
   const unreadMessageCount = conversationsResult.success
     ? conversationsResult.data.conversations.reduce((sum, c) => sum + c.unreadCount, 0)
     : 0
 
   // Fetch unread notification count for badge
-  const notificationsResult = await getUnreadNotificationCount()
+  const notificationsResult = await getUnreadNotificationCountAction()
   const unreadNotificationCount = notificationsResult.success ? notificationsResult.data.count : 0
 
   const navItems = (() => {

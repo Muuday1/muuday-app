@@ -26,7 +26,7 @@ function buildRateLimitHeaders(limitResult: Awaited<ReturnType<typeof rateLimit>
 }
 
 function createStripeWebhookClient() {
-  const key = process.env.STRIPE_BR_SECRET_KEY || process.env.STRIPE_SECRET_KEY
+  const key = process.env.STRIPE_SECRET_KEY
   if (!key) return null
   return new Stripe(key, {
     apiVersion: '2026-03-25.dahlia',
@@ -55,11 +55,11 @@ export async function POST(request: NextRequest) {
   }
 
   const signature = request.headers.get('stripe-signature')
-  const webhookSecret = process.env.STRIPE_BR_WEBHOOK_SECRET
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
   if (!signature || !webhookSecret) {
     return withCors(
       NextResponse.json(
-        { error: 'Webhook Stripe BR não configurado corretamente.' },
+        { error: 'Webhook Stripe não configurado corretamente.' },
         { status: 503, headers: rateLimitHeaders },
       ),
     )
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   if (!stripeClient) {
     return withCors(
       NextResponse.json(
-        { error: 'STRIPE_BR_SECRET_KEY não configurada no ambiente.' },
+        { error: 'STRIPE_SECRET_KEY não configurada no ambiente.' },
         { status: 503, headers: rateLimitHeaders },
       ),
     )
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       livemode: event.livemode,
       payload: {
         ...(event as unknown as Record<string, unknown>),
-        platform_region: 'br',
+        platform_region: 'uk',
       },
       signatureHeader: signature,
     })
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
           eventType: event.type,
           livemode: event.livemode,
           inserted: persisted.inserted,
-          platformRegion: 'br',
+          platformRegion: 'uk',
         },
       })
       enqueued = true
@@ -160,9 +160,9 @@ export async function POST(request: NextRequest) {
       ),
     )
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro ao processar webhook Stripe BR.'
+    const message = error instanceof Error ? error.message : 'Erro ao processar webhook Stripe.'
     const status = message.toLowerCase().includes('does not exist') ? 503 : 500
-    const body: Record<string, string> = { error: 'Erro ao persistir webhook Stripe BR.' }
+    const body: Record<string, string> = { error: 'Erro ao persistir webhook Stripe.' }
     if (process.env.NODE_ENV !== 'production') body.details = message
     return withCors(
       NextResponse.json(body, { status, headers: rateLimitHeaders }),
@@ -173,4 +173,3 @@ export async function POST(request: NextRequest) {
 export async function OPTIONS(request: NextRequest) {
   return createCorsPreflightResponse(request, WEBHOOK_API_CORS_POLICY)
 }
-

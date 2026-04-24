@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Facebook, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react'
+import { t } from '@/lib/i18n'
 
 export function PublicFooter() {
   return (
@@ -14,7 +15,7 @@ export function PublicFooter() {
               muuday
             </p>
             <p className="mt-2 text-sm font-medium text-slate-500">
-              Brasileiros conectando brasileiros no mundo
+              {t('footer.tagline')}
             </p>
           </div>
 
@@ -44,27 +45,27 @@ export function PublicFooter() {
         {/* Links grid */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">Produtos</p>
+            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">{t('footer.products')}</p>
             <ul className="mt-4 space-y-3">
               <li>
                 <Link href="/buscar" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Buscar profissionais
+                  {t('footer.searchProfessionals')}
                 </Link>
               </li>
               <li>
                 <Link href="/registrar-profissional" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Registrar como profissional
+                  {t('footer.registerProfessional')}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">Empresa</p>
+            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">{t('footer.company')}</p>
             <ul className="mt-4 space-y-3">
               <li>
                 <Link href="/sobre" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Sobre nós
+                  {t('footer.about')}
                 </Link>
               </li>
               <li>
@@ -76,42 +77,42 @@ export function PublicFooter() {
           </div>
 
           <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">Legal</p>
+            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">{t('footer.legal')}</p>
             <ul className="mt-4 space-y-3">
               <li>
                 <Link href="/politica-de-cookies" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Política de cookies
+                  {t('footer.cookiePolicy')}
                 </Link>
               </li>
               <li>
                 <Link href="/privacidade" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Privacidade
+                  {t('footer.privacy')}
                 </Link>
               </li>
               <li>
                 <Link href="/termos-de-uso" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Termos de uso
+                  {t('footer.terms')}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">Suporte</p>
+            <p className="text-sm font-bold uppercase tracking-wider text-slate-900">{t('footer.support')}</p>
             <ul className="mt-4 space-y-3">
               <li>
                 <Link href="/guias" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Guias
+                  {t('footer.guides')}
                 </Link>
               </li>
               <li>
                 <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Central de ajuda
+                  {t('footer.helpCenter')}
                 </Link>
               </li>
               <li>
                 <Link href="/ajuda" className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline">
-                  Contato
+                  {t('footer.contact')}
                 </Link>
               </li>
               <li>
@@ -120,7 +121,7 @@ export function PublicFooter() {
                   className="text-sm text-slate-600 transition hover:text-slate-900 hover:underline"
                   onClick={() => window?.MuudayCookieConsent?.open?.()}
                 >
-                  Gerenciar cookies
+                  {t('footer.manageCookies')}
                 </button>
               </li>
             </ul>
@@ -130,7 +131,7 @@ export function PublicFooter() {
         {/* Bottom */}
         <div className="mt-10 border-t border-slate-300 pt-6">
           <p className="text-sm text-slate-500">
-            &copy; Muuday {new Date().getFullYear()}. Todos os direitos reservados.
+            &copy; Muuday {new Date().getFullYear()}. {t('footer.copyright')}
           </p>
         </div>
       </div>

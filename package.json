@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "inngest:dev": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test tests/e2e/api-v1-smoke.spec.ts",
     "test:unit": "vitest run",
     "test:state-machines": "node scripts/ops/test-state-machines.cjs",
     "db:validate-pooling": "node scripts/ops/validate-db-pooling-config.cjs",
@@ -31,6 +32,10 @@
     "test:unit:watch": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-textract": "^3.1035.0",
+    "@google-cloud/documentai": "^9.6.0",
+    "@sanity/client": "^7.21.0",
+    "@sanity/image-url": "^2.1.1",
     "@sentry/nextjs": "^10.49.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",

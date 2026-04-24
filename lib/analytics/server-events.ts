@@ -157,6 +157,57 @@ export function trackPlanUpgraded(
   })
 }
 
+export function trackMarketDetected(
+  userId: string,
+  props: {
+    detectedMarket: string
+    method: 'ip' | 'profile' | 'manual' | 'default'
+    confidence?: number
+  },
+) {
+  captureSafe(userId, 'market_detected', {
+    detected_market: props.detectedMarket,
+    method: props.method,
+    confidence: props.confidence,
+  })
+}
+
+export function trackBookingStarted(
+  userId: string,
+  props: {
+    bookingId: string
+    professionalId: string
+    bookingType: string
+    priceBrl: number
+    marketCode?: string
+  },
+) {
+  captureSafe(userId, 'booking_started', {
+    booking_id: props.bookingId,
+    professional_id: props.professionalId,
+    booking_type: props.bookingType,
+    price_brl: props.priceBrl,
+    market_code: props.marketCode,
+  })
+}
+
+export function trackBookingCompleted(
+  userId: string,
+  props: {
+    bookingId: string
+    professionalId: string
+    durationMinutes: number
+    marketCode?: string
+  },
+) {
+  captureSafe(userId, 'booking_completed', {
+    booking_id: props.bookingId,
+    professional_id: props.professionalId,
+    duration_minutes: props.durationMinutes,
+    market_code: props.marketCode,
+  })
+}
+
 /**
  * Flush pending analytics events.
  * Call this at the end of server actions if you need immediate delivery.
