@@ -50,9 +50,8 @@ const envSchema = z.object({
   PAYOUT_BATCH_SCHEDULE_CRON: z.string().default('0 8 * * 1'),
   MINIMUM_TREASURY_BUFFER_MINOR: z.coerce.number().min(0).default(1_000_000),
   MAX_PROFESSIONAL_DEBT_MINOR: z.coerce.number().min(0).default(50_000),
-  WEEKLY_PAYOUT_FEE_MINOR: z.coerce.number().min(0).default(1_500),
-  BIWEEKLY_PAYOUT_FEE_MINOR: z.coerce.number().min(0).default(1_000),
-  MONTHLY_PAYOUT_FEE_MINOR: z.coerce.number().min(0).default(500),
+  // Note: per-payout fees were removed. Monthly subscription fee is billed
+  // separately via Stripe subscription (Phase 6).
 
   // Mobile app
   MOBILE_API_KEY: optionalString,
