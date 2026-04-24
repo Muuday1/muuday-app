@@ -95,12 +95,22 @@ async function handleRecipientCreated(
     return { action: 'already_exists', recipientId: trolleyRecipientId }
   }
 
-  // Try to match by email to a professional
-  const { data: professional } = await admin
-    .from('professionals')
+  // Try to match by email to a professional via profiles
+  const { data: profile } = await admin
+    .from('profiles')
     .select('id')
     .eq('email', email)
     .maybeSingle()
+
+  let professional: { id: string } | null = null
+  if (profile) {
+    const { data: pro } = await admin
+      .from('professionals')
+      .select('id')
+      .eq('user_id', profile.id)
+      .maybeSingle()
+    professional = pro
+  }
 
   if (!professional) {
     // Insert without professional_id for now — will need manual linking
@@ -371,15 +381,19 @@ async function handlePaymentUpdated(
 
       const { data: pro } = await admin
         .from('professionals')
-        .select('email, name')
+        .select('user_id, profiles!professionals_user_id_fkey(email, full_name, first_name)')
         .eq('id', itemDetails?.professional_id || '')
         .maybeSingle()
 
-      if (itemDetails && pro && pro.email) {
+      const proProfile = pro?.profiles as Record<string, unknown> | undefined
+      const proEmail = asString(proProfile?.email)
+      const proName = asString(proProfile?.full_name) || asString(proProfile?.first_name) || 'Profissional'
+
+      if (itemDetails && proEmail) {
         void notifyProfessionalAboutPayout(admin, {
           professionalId: itemDetails.professional_id,
-          professionalEmail: pro.email,
-          professionalName: pro.name || 'Profissional',
+          professionalEmail: proEmail,
+          professionalName: proName,
           amount: BigInt(itemDetails.amount || 0),
           debtDeducted: BigInt(itemDetails.debt_deducted || 0),
           netAmount: BigInt(itemDetails.net_amount || 0),
