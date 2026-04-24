@@ -133,7 +133,8 @@
 3. **Professional periodicity setting** — Hardcoded to weekly batch schedule, needs UI + DB column
 4. **Ledger entry atomicity** — Uses sequential inserts, should be PostgreSQL RPC for production
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
-6. **Migrations not applied in production** — 070-076 pending; migration 076 adds `force_completed` + `item_count`
+6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-076 confirmed in production
+7. ~~Trolley webhook professional linking bug~~ ✅ **Fixed** — `professionals.email` query corrected to `profiles` → `professionals` by `user_id`
 
 ---
 
