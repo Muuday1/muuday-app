@@ -19,6 +19,8 @@ jobs:
       E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || vars.NEXT_PUBLIC_SUPABASE_URL || '' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }}
+      INNGEST_SIGNING_KEY: ${{ secrets.INNGEST_SIGNING_KEY || 'test-key-for-build-only' }}
+      INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY || 'test-key-for-build-only' }}
 
     steps:
       - name: Checkout
