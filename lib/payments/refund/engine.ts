@@ -207,7 +207,13 @@ export async function processRefund(
 
   if (paymentUpdateError) {
     console.error('[refund/engine] failed to update payment:', paymentUpdateError.message)
-    // Non-blocking: Stripe refund succeeded, we'll reconcile later
+    // Return partial success: Stripe refund succeeded but local DB is out of sync
+    return {
+      success: true,
+      refundId: stripeRefundId,
+      amountRefunded: refundAmount,
+      ledgerError: `Payment table update failed: ${paymentUpdateError.message}`,
+    }
   }
 
   // Create ledger entry

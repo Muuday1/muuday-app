@@ -103,19 +103,19 @@ export async function calculateFinancialMetrics(
   for (const entry of ledgerEntries || []) {
     const amount = BigInt(entry.amount || 0)
     switch (entry.account_id) {
-      case '4100': // PLATFORM_FEE_REVENUE
+      case '3000': // PLATFORM_FEE_REVENUE
         if (entry.entry_type === 'credit') totalRevenue30d += amount
         break
-      case '3100': // PROFESSIONAL_BALANCE
+      case '4000': // PROFESSIONAL_BALANCE (payouts are debits to this account)
         if (entry.entry_type === 'debit') totalPayouts30d += amount
         break
-      case '2100': // CUSTOMER_DEPOSITS_HELD
+      case '2100': // CUSTOMER_DEPOSITS_HELD (refunds are debits to this account)
         if (entry.entry_type === 'debit') totalRefunds30d += amount
         break
-      case '6100': // STRIPE_FEE_EXPENSE
+      case '3100': // STRIPE_FEE_EXPENSE
         if (entry.entry_type === 'debit') totalStripeFees30d += amount
         break
-      case '6200': // TROLLEY_FEE_EXPENSE
+      case '3200': // TROLLEY_FEE_EXPENSE
         if (entry.entry_type === 'debit') totalTrolleyFees30d += amount
         break
     }

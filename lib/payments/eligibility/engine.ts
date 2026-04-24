@@ -131,22 +131,35 @@ export async function checkBookingEligibility(
   }
 
   // Criterion 5: Not already in a submitted/completed batch
-  const { data: existingPayout } = await admin
+  // First, find all booking_payout_items for this booking
+  const { data: bookingPayoutLinks } = await admin
     .from('booking_payout_items')
-    .select(`
-      payout_batch_item_id,
-      payout_batch_items!inner(batch_id, payout_batches!inner(status))
-    `)
+    .select('payout_batch_item_id')
     .eq('booking_id', bookingId)
-    .in('payout_batch_items.payout_batches.status', ['submitted', 'processing', 'completed'])
-    .maybeSingle()
 
-  if (existingPayout) {
-    return {
-      eligible: false,
-      bookingId,
-      reason: 'Booking already included in a submitted/completed payout batch',
-      eligibleAmount: BigInt(0),
+  if (bookingPayoutLinks && bookingPayoutLinks.length > 0) {
+    const itemIds = bookingPayoutLinks.map((link) => link.payout_batch_item_id).filter(Boolean)
+    if (itemIds.length > 0) {
+      const { data: batchItems } = await admin
+        .from('payout_batch_items')
+        .select('id, batch_id, payout_batches!inner(status)')
+        .in('id', itemIds)
+
+      const hasActiveBatch = batchItems?.some((item) => {
+        const batch = Array.isArray(item.payout_batches)
+          ? item.payout_batches[0]
+          : item.payout_batches
+        return ['submitted', 'processing', 'completed'].includes(batch?.status)
+      })
+
+      if (hasActiveBatch) {
+        return {
+          eligible: false,
+          bookingId,
+          reason: 'Booking already included in a submitted/completed payout batch',
+          eligibleAmount: BigInt(0),
+        }
+      }
     }
   }
 

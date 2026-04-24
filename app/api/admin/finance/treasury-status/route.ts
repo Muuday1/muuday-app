@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { getTreasuryBalance } from '@/lib/payments/revolut/client'
 import { env } from '@/lib/config/env'
 
@@ -14,7 +15,30 @@ import { env } from '@/lib/config/env'
  *
  * Admin-only access.
  */
+async function requireAdmin() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, status: 401, error: 'Não autenticado.' }
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') {
+    return { ok: false as const, status: 403, error: 'Acesso restrito ao admin.' }
+  }
+
+  return { ok: true as const, supabase, userId: user.id }
+}
+
 export async function GET(request: NextRequest) {
+  const adminCheck = await requireAdmin()
+  if (!adminCheck.ok) {
+    return NextResponse.json(
+      { error: adminCheck.error },
+      { status: adminCheck.status },
+    )
+  }
+
   const admin = createAdminClient()
   if (!admin) {
     return NextResponse.json(

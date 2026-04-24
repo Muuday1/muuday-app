@@ -11,6 +11,7 @@ import { ADMIN_ADJUSTMENT, PROFESSIONAL_BALANCE } from '@/lib/payments/ledger/ac
 import { updateProfessionalBalance } from '@/lib/payments/ledger/balance'
 import { env } from '@/lib/config/env'
 import { requireAdmin } from './shared'
+import { writeAdminAuditLog } from '@/lib/admin/admin-service'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,8 +133,8 @@ export async function loadFinanceOverview(): Promise<FinanceActionResult<Finance
     )
     const minBuffer = BigInt(env.MINIMUM_TREASURY_BUFFER_MINOR)
 
-    const { data: pendingPayoutItems } = await admin
-      .from('payout_batch_items')
+    const { data: pendingPayoutBatches } = await admin
+      .from('payout_batches')
       .select('id')
       .in('status', ['submitted', 'processing'])
 
@@ -173,13 +174,15 @@ export async function loadFinanceOverview(): Promise<FinanceActionResult<Finance
     for (const entry of ledgerEntries || []) {
       transactionCount += 1
       const amount = BigInt(entry.amount || 0)
-      if (entry.account_id === '4100' && entry.entry_type === 'credit') {
+      // Use correct account codes from lib/payments/ledger/accounts.ts
+      // PLATFORM_FEE_REVENUE = '3000', STRIPE_FEE_EXPENSE = '3100', TROLLEY_FEE_EXPENSE = '3200'
+      if (entry.account_id === '3000' && entry.entry_type === 'credit') {
         totalRevenue += amount
       }
-      if (entry.account_id === '6100' && entry.entry_type === 'debit') {
+      if (entry.account_id === '3100' && entry.entry_type === 'debit') {
         totalStripeFees += amount
       }
-      if (entry.account_id === '6200' && entry.entry_type === 'debit') {
+      if (entry.account_id === '3200' && entry.entry_type === 'debit') {
         totalTrolleyFees += amount
       }
     }
@@ -216,7 +219,7 @@ export async function loadFinanceOverview(): Promise<FinanceActionResult<Finance
           : null,
       },
       payouts: {
-        pendingCount: pendingPayoutItems?.length || 0,
+        pendingCount: pendingPayoutBatches?.length || 0,
         pendingTotal: pendingPayoutsTotal.toString(),
         completedLast30Days: completedPayouts?.length || 0,
         completedTotalLast30Days: (completedPayouts || [])
@@ -461,8 +464,10 @@ export async function forcePayout(
   amount: number, // in minor units
   reason: string,
 ): Promise<ForceActionResult> {
+  let adminUserId: string | null = null
   try {
-    await requireAdmin()
+    const adminAuth = await requireAdmin()
+    adminUserId = adminAuth.userId
   } catch {
     return { success: false, error: 'Acesso negado.' }
   }
@@ -478,11 +483,22 @@ export async function forcePayout(
       return { success: false, error: 'Amount must be positive.' }
     }
 
+    // Verify professional exists and has sufficient balance
+    const { data: professional } = await admin
+      .from('professionals')
+      .select('id')
+      .eq('id', professionalId)
+      .maybeSingle()
+
+    if (!professional) {
+      return { success: false, error: 'Professional not found.' }
+    }
+
     // Create a special "force" payout batch
     const { data: batch } = await admin
       .from('payout_batches')
       .insert({
-        status: 'completed',
+        status: 'force_completed',
         total_amount: amountBig,
         net_amount: amountBig,
         total_fees: BigInt(0),
@@ -490,6 +506,7 @@ export async function forcePayout(
         metadata: {
           force_action: true,
           admin_reason: reason,
+          admin_user_id: adminUserId,
         },
       })
       .select('id')
@@ -509,7 +526,7 @@ export async function forcePayout(
       debt_deducted: BigInt(0),
       trolley_fee_absorbed: BigInt(0),
       status: 'completed',
-      metadata: { force_action: true, admin_reason: reason },
+      metadata: { force_action: true, admin_reason: reason, admin_user_id: adminUserId },
     })
 
     // Create ledger entry
@@ -523,6 +540,21 @@ export async function forcePayout(
     // Update professional balance
     await updateProfessionalBalance(admin, professionalId, {
       availableDelta: -amountBig,
+    })
+
+    // Write admin audit log
+    await writeAdminAuditLog(admin, {
+      adminUserId: adminUserId || 'system',
+      action: 'payout.force',
+      targetTable: 'payout_batches',
+      targetId: batch.id,
+      newValue: {
+        professional_id: professionalId,
+        amount: amountBig.toString(),
+        status: 'force_completed',
+        reason,
+      },
+      metadata: { force_action: true, admin_user_id: adminUserId },
     })
 
     return {
@@ -544,8 +576,10 @@ export async function forceRefund(
   percentage: number,
   reason: string,
 ): Promise<ForceActionResult> {
+  let adminUserId: string | null = null
   try {
-    await requireAdmin()
+    const adminAuth = await requireAdmin()
+    adminUserId = adminAuth.userId
   } catch {
     return { success: false, error: 'Acesso negado.' }
   }
@@ -556,19 +590,41 @@ export async function forceRefund(
   }
 
   try {
-    const { data: { user } } = await admin.auth.getUser()
-    const adminId = user?.id || 'system'
-
     const result = await processRefund(admin, {
       bookingId,
       reason,
       percentage,
-      adminId,
+      adminId: adminUserId || 'system',
     })
 
     if (!result.success) {
+      // Write audit log even on failure
+      await writeAdminAuditLog(admin, {
+        adminUserId: adminUserId || 'system',
+        action: 'refund.force.failed',
+        targetTable: 'bookings',
+        targetId: bookingId,
+        oldValue: { status: 'attempted' },
+        newValue: { error: result.stripeError || 'Refund failed' },
+        metadata: { percentage, reason, admin_user_id: adminUserId },
+      })
       return { success: false, error: result.stripeError || 'Refund failed.' }
     }
+
+    // Write admin audit log
+    await writeAdminAuditLog(admin, {
+      adminUserId: adminUserId || 'system',
+      action: 'refund.force',
+      targetTable: 'bookings',
+      targetId: bookingId,
+      newValue: {
+        refund_id: result.refundId || null,
+        amount_refunded: result.amountRefunded?.toString() || null,
+        percentage,
+        reason,
+      },
+      metadata: { force_action: true, admin_user_id: adminUserId },
+    })
 
     return {
       success: true,
@@ -591,8 +647,10 @@ export async function adjustProfessionalBalance(
   delta: number, // in minor units, can be negative
   reason: string,
 ): Promise<ForceActionResult> {
+  let adminUserId: string | null = null
   try {
-    await requireAdmin()
+    const adminAuth = await requireAdmin()
+    adminUserId = adminAuth.userId
   } catch {
     return { success: false, error: 'Acesso negado.' }
   }
@@ -604,6 +662,17 @@ export async function adjustProfessionalBalance(
 
   try {
     const deltaBig = BigInt(delta)
+
+    // Verify professional exists
+    const { data: professional } = await admin
+      .from('professionals')
+      .select('id')
+      .eq('id', professionalId)
+      .maybeSingle()
+
+    if (!professional) {
+      return { success: false, error: 'Professional not found.' }
+    }
 
     // Update balance
     await updateProfessionalBalance(admin, professionalId, {
@@ -632,6 +701,19 @@ export async function adjustProfessionalBalance(
           description: reason,
         },
       ],
+    })
+
+    // Write admin audit log
+    await writeAdminAuditLog(admin, {
+      adminUserId: adminUserId || 'system',
+      action: 'balance.adjust',
+      targetTable: 'professional_balances',
+      targetId: professionalId,
+      newValue: {
+        delta: deltaBig.toString(),
+        reason,
+      },
+      metadata: { force_action: true, admin_user_id: adminUserId },
     })
 
     return {

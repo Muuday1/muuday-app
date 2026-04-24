@@ -69,7 +69,7 @@ export async function createProfessionalTrolleyRecipient(
     .from('professionals')
     .select('id, user_id, profiles!professionals_user_id_fkey(email, full_name, first_name, last_name)')
     .eq('id', professionalId)
-    .single()
+    .maybeSingle()
 
   if (proError || !professional) {
     return { success: false, error: `Professional not found: ${proError?.message}` }
