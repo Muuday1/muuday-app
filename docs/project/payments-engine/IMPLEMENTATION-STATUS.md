@@ -109,7 +109,7 @@
 - **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
-- **Migrations pending**: 070-075 need to be applied to production Supabase.
+- **Migrations pending**: 070-076 need to be applied to production Supabase.
 
 ---
 
@@ -133,7 +133,7 @@
 3. **Professional periodicity setting** — Hardcoded to weekly batch schedule, needs UI + DB column
 4. **Ledger entry atomicity** — Uses sequential inserts, should be PostgreSQL RPC for production
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
-6. **Migrations not applied in production** — 070-075 pending; migration 070 needs `force_completed` added to CHECK constraint
+6. **Migrations not applied in production** — 070-076 pending; migration 076 adds `force_completed` + `item_count`
 
 ---
 
