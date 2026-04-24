@@ -1,7 +1,7 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-24
-> **Status:** Phases 1–6 ✅ IMPLEMENTED — 18 bug fixes committed, build passes, lint passes, awaiting migration 077-078 + E2E testing
+> **Status:** Phases 1–6 ✅ IMPLEMENTED — 24 bug fixes committed, build passes, lint passes, E2E passes, deployed to production
 
 ---
 
@@ -109,8 +109,8 @@
 - **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel. Optional `TROLLEY_API_BASE=https://api.sandbox.trolley.com/v1` for sandbox mode.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
-- **Migrations applied**: 070-076 applied to production Supabase (confirmed 2026-04-24).
-- **Migrations pending**: 077-078 (atomic balance + ledger RPCs) — apply before next deploy.
+- **Migrations applied**: 070-079 applied to production Supabase (confirmed 2026-04-24).
+- **Migrations pending**: None.
 
 ---
 
@@ -140,8 +140,14 @@
 9. ~~**Currency formatting via floating-point**~~ ✅ **Fixed** — All admin pages use `formatMinorUnits()` instead of `Number()/100`
 10. ~~**Missing empty states**~~ ✅ **Fixed** — Ledger, payouts, disputes pages show "Nenhum registro encontrado"
 11. ~~**Unvalidated pagination offset**~~ ✅ **Fixed** — `Number.isFinite()` + `>= 0` guards on all admin table pages
+12. ~~**Stripe routes `professionals.full_name` crash**~~ ✅ **Fixed** — Table has no `full_name` column; now queries via `profiles(first_name, last_name)`
+13. ~~**Booking timeout auto-refund missing ledger**~~ ✅ **Fixed** — Cron now creates Stripe refund + ledger entries instead of just updating DB status
+14. ~~**Trolley payment failure leaves item pending**~~ ✅ **Fixed** — Failed items marked `failed` with reason in DB
+15. ~~**Revolut reconciliation double-match**~~ ✅ **Fixed** — Matched transactions tracked with `Set` to prevent reuse
+16. ~~**last_payout_at race condition**~~ ✅ **Fixed** — Added `p_last_payout_at` to atomic RPC (migration 079)
+17. ~~**SELECT * in payment queries**~~ ✅ **Fixed** — Explicit column lists in balance, ledger, payout queries
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
-6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-076 confirmed in production
+6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-079 confirmed in production
 7. ~~Trolley webhook professional linking bug~~ ✅ **Fixed** — `professionals.email` query corrected to `profiles` → `professionals` by `user_id`
 
 ---
