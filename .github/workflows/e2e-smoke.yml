@@ -21,6 +21,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }}
       INNGEST_SIGNING_KEY: ${{ secrets.INNGEST_SIGNING_KEY || 'test-key-for-build-only' }}
       INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY || 'test-key-for-build-only' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || '' }}
 
     steps:
       - name: Checkout
