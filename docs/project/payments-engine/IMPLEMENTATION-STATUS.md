@@ -1,7 +1,7 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-24
-> **Status:** Phases 1–6 ✅ IMPLEMENTED — Build passes, lint passes, awaiting production migration + E2E testing
+> **Status:** Phases 1–6 ✅ IMPLEMENTED — 18 bug fixes committed, build passes, lint passes, awaiting migration 077-078 + E2E testing
 
 ---
 
@@ -110,6 +110,7 @@
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
 - **Migrations applied**: 070-076 applied to production Supabase (confirmed 2026-04-24).
+- **Migrations pending**: 077-078 (atomic balance + ledger RPCs) — apply before next deploy.
 
 ---
 
@@ -131,7 +132,14 @@
 1. ~~Trolley webhook signature verification~~ ✅ **Implemented** — HMAC-SHA256 with timing-safe comparison
 2. ~~Revolut webhook signature verification~~ ✅ **Implemented** — HMAC-SHA256 with multiple signature support (rotation)
 3. **Professional periodicity setting** — Hardcoded to weekly batch schedule, needs UI + DB column
-4. **Ledger entry atomicity** — Uses sequential inserts, should be PostgreSQL RPC for production
+4. ~~**Ledger entry atomicity**~~ ✅ **Fixed** — `create_ledger_transaction_atomic` RPC (migration 078) replaces sequential inserts
+5. ~~**Balance update atomicity**~~ ✅ **Fixed** — `update_professional_balance_atomic` RPC (migration 077) replaces read-modify-write
+6. ~~**Admin force actions unprotected**~~ ✅ **Fixed** — Rate limiting added to `forcePayout`, `forceRefund`, `adjustProfessionalBalance`
+7. ~~**forcePayout negative balances**~~ ✅ **Fixed** — Balance sufficiency check prevents overdrawing
+8. ~~**Treasury page internal HTTP**~~ ✅ **Fixed** — Direct DB queries instead of `fetch()` to own API route
+9. ~~**Currency formatting via floating-point**~~ ✅ **Fixed** — All admin pages use `formatMinorUnits()` instead of `Number()/100`
+10. ~~**Missing empty states**~~ ✅ **Fixed** — Ledger, payouts, disputes pages show "Nenhum registro encontrado"
+11. ~~**Unvalidated pagination offset**~~ ✅ **Fixed** — `Number.isFinite()` + `>= 0` guards on all admin table pages
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
 6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-076 confirmed in production
 7. ~~Trolley webhook professional linking bug~~ ✅ **Fixed** — `professionals.email` query corrected to `profiles` → `professionals` by `user_id`
