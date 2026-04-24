@@ -114,11 +114,11 @@ const envSchema = z.object({
   E2E_USER_EMAIL: z.preprocess(
     (val) => {
       if (val === '' || typeof val !== 'string') return undefined
-      // Quick-and-dirty email check — reject obvious placeholders
+      // Forgiving email check — reject obvious placeholders but do not fail Zod validation
       if (!val.includes('@') || !val.includes('.')) return undefined
       return val
     },
-    z.string().email().optional(),
+    z.string().optional(),
   ),
   E2E_USER_PASSWORD: optionalString,
   E2E_PROFESSIONAL_EMAIL: z.preprocess(
@@ -127,7 +127,7 @@ const envSchema = z.object({
       if (!val.includes('@') || !val.includes('.')) return undefined
       return val
     },
-    z.string().email().optional(),
+    z.string().optional(),
   ),
   E2E_PROFESSIONAL_PASSWORD: optionalString,
   E2E_ADMIN_EMAIL: z.preprocess(
@@ -136,7 +136,7 @@ const envSchema = z.object({
       if (!val.includes('@') || !val.includes('.')) return undefined
       return val
     },
-    z.string().email().optional(),
+    z.string().optional(),
   ),
   E2E_ADMIN_PASSWORD: optionalString,
 })
