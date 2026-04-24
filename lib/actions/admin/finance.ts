@@ -8,10 +8,11 @@ import {
   buildPayoutTransaction,
 } from '@/lib/payments/ledger/entries'
 import { ADMIN_ADJUSTMENT, PROFESSIONAL_BALANCE } from '@/lib/payments/ledger/accounts'
-import { updateProfessionalBalance } from '@/lib/payments/ledger/balance'
+import { updateProfessionalBalance, getProfessionalBalance } from '@/lib/payments/ledger/balance'
 import { env } from '@/lib/config/env'
 import { requireAdmin } from './shared'
 import { writeAdminAuditLog } from '@/lib/admin/admin-service'
+import { rateLimit } from '@/lib/security/rate-limit'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -406,7 +407,10 @@ export async function loadDisputes(params: {
   try {
     let query = admin
       .from('dispute_resolutions')
-      .select('*, professionals(name)', { count: 'exact' })
+      .select(
+        'id, booking_id, professional_id, dispute_amount, recovered_amount, remaining_debt, status, recovery_method, created_at, resolved_at, notes, professionals(name)',
+        { count: 'exact' },
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -456,8 +460,9 @@ export type ForceActionResult =
 /**
  * Force a manual payout to a professional (emergency admin action).
  *
- * Creates a single-item payout batch and processes it immediately.
- * Always creates a ledger entry for audit trail.
+ * Creates a single-item payout batch record and ledger entry.
+ * NOTE: This records the payout in the ledger but does NOT execute
+ * the actual Trolley/Revolut transfer. Use the batch processor for real transfers.
  */
 export async function forcePayout(
   professionalId: string,
@@ -472,6 +477,15 @@ export async function forcePayout(
     return { success: false, error: 'Acesso negado.' }
   }
 
+  // Rate limit: max 5 force payouts per admin per hour
+  const rateLimitResult = await rateLimit('apiV1AdminWrite', `force-payout:${adminUserId}`)
+  if (!rateLimitResult.allowed) {
+    return {
+      success: false,
+      error: `Rate limit exceeded. Try again in ${rateLimitResult.retryAfterSeconds}s.`,
+    }
+  }
+
   const admin = createAdminClient()
   if (!admin) {
     return { success: false, error: 'Admin client not configured.' }
@@ -483,7 +497,7 @@ export async function forcePayout(
       return { success: false, error: 'Amount must be positive.' }
     }
 
-    // Verify professional exists and has sufficient balance
+    // Verify professional exists
     const { data: professional } = await admin
       .from('professionals')
       .select('id')
@@ -492,6 +506,15 @@ export async function forcePayout(
 
     if (!professional) {
       return { success: false, error: 'Professional not found.' }
+    }
+
+    // Verify professional has sufficient available balance
+    const balance = await getProfessionalBalance(admin, professionalId)
+    if (!balance || balance.availableBalance < amountBig) {
+      return {
+        success: false,
+        error: `Insufficient balance. Available: ${balance?.availableBalance.toString() ?? '0'}, requested: ${amountBig.toString()}.`,
+      }
     }
 
     // Create a special "force" payout batch
@@ -537,7 +560,7 @@ export async function forcePayout(
     })
     await createLedgerTransaction(admin, ledgerInput)
 
-    // Update professional balance
+    // Update professional balance atomically via RPC
     await updateProfessionalBalance(admin, professionalId, {
       availableDelta: -amountBig,
     })
@@ -559,7 +582,7 @@ export async function forcePayout(
 
     return {
       success: true,
-      message: `Force payout of ${amountBig} created for professional ${professionalId}.`,
+      message: `Force payout of ${amountBig} recorded for professional ${professionalId}. Note: actual transfer must be executed separately.`,
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
@@ -582,6 +605,15 @@ export async function forceRefund(
     adminUserId = adminAuth.userId
   } catch {
     return { success: false, error: 'Acesso negado.' }
+  }
+
+  // Rate limit: max 5 force refunds per admin per hour
+  const rateLimitResult = await rateLimit('apiV1AdminWrite', `force-refund:${adminUserId}`)
+  if (!rateLimitResult.allowed) {
+    return {
+      success: false,
+      error: `Rate limit exceeded. Try again in ${rateLimitResult.retryAfterSeconds}s.`,
+    }
   }
 
   const admin = createAdminClient()
@@ -653,6 +685,15 @@ export async function adjustProfessionalBalance(
     adminUserId = adminAuth.userId
   } catch {
     return { success: false, error: 'Acesso negado.' }
+  }
+
+  // Rate limit: max 5 balance adjustments per admin per hour
+  const rateLimitResult = await rateLimit('apiV1AdminWrite', `balance-adjust:${adminUserId}`)
+  if (!rateLimitResult.allowed) {
+    return {
+      success: false,
+      error: `Rate limit exceeded. Try again in ${rateLimitResult.retryAfterSeconds}s.`,
+    }
   }
 
   const admin = createAdminClient()

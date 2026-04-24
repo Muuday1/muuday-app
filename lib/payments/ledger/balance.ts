@@ -110,55 +110,21 @@ const ZERO = BigInt(0)
 /**
  * Atomically update a professional's balance.
  *
- * Uses Supabase RPC for atomicity. The actual implementation
- * should be a PostgreSQL function to avoid race conditions.
- *
- * TODO: Replace with PostgreSQL RPC for production.
+ * Uses the PostgreSQL RPC `update_professional_balance_atomic`
+ * for true atomicity — no read-modify-write race conditions.
  */
 export async function updateProfessionalBalance(
   admin: SupabaseClient,
   professionalId: string,
   update: BalanceUpdateInput,
 ): Promise<ProfessionalBalance> {
-  const current = await getProfessionalBalance(admin, professionalId)
-
-  if (!current) {
-    // Initialize balance record if it doesn't exist
-    const { error: insertError } = await admin.from('professional_balances').insert({
-      professional_id: professionalId,
-      available_balance: update.availableDelta ?? ZERO,
-      withheld_balance: update.withheldDelta ?? ZERO,
-      pending_balance: update.pendingDelta ?? ZERO,
-      total_debt: update.debtDelta ?? ZERO,
-      currency: 'BRL',
-      last_calculated_at: new Date().toISOString(),
-    })
-
-    if (insertError) {
-      throw new Error(
-        `Failed to initialize balance for professional ${professionalId}: ${insertError.message}`,
-      )
-    }
-
-    return getProfessionalBalance(admin, professionalId) as Promise<ProfessionalBalance>
-  }
-
-  const newAvailable = current.availableBalance + (update.availableDelta ?? ZERO)
-  const newWithheld = current.withheldBalance + (update.withheldDelta ?? ZERO)
-  const newPending = current.pendingBalance + (update.pendingDelta ?? ZERO)
-  const newDebt = current.totalDebt + (update.debtDelta ?? ZERO)
-
-  const { error } = await admin
-    .from('professional_balances')
-    .update({
-      available_balance: newAvailable,
-      withheld_balance: newWithheld,
-      pending_balance: newPending,
-      total_debt: newDebt,
-      last_calculated_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('professional_id', professionalId)
+  const { data, error } = await admin.rpc('update_professional_balance_atomic', {
+    p_professional_id: professionalId,
+    p_available_delta: Number(update.availableDelta ?? ZERO),
+    p_withheld_delta: Number(update.withheldDelta ?? ZERO),
+    p_pending_delta: Number(update.pendingDelta ?? ZERO),
+    p_debt_delta: Number(update.debtDelta ?? ZERO),
+  })
 
   if (error) {
     throw new Error(
@@ -166,13 +132,23 @@ export async function updateProfessionalBalance(
     )
   }
 
+  if (!data || (Array.isArray(data) && data.length === 0)) {
+    throw new Error(
+      `Balance update returned no data for professional ${professionalId}`,
+    )
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+
   return {
-    ...current,
-    availableBalance: newAvailable,
-    withheldBalance: newWithheld,
-    pendingBalance: newPending,
-    totalDebt: newDebt,
-    lastCalculatedAt: new Date().toISOString(),
+    professionalId: row.professional_id,
+    availableBalance: BigInt(row.available_balance),
+    withheldBalance: BigInt(row.withheld_balance),
+    pendingBalance: BigInt(row.pending_balance),
+    totalDebt: BigInt(row.total_debt),
+    currency: row.currency || 'BRL',
+    lastPayoutAt: row.last_payout_at,
+    lastCalculatedAt: row.last_calculated_at,
   }
 }
 
