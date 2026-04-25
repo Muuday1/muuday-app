@@ -414,29 +414,29 @@ getProfessionalServices(professionalId)
 
 ---
 
-### FASE 6.2 — Stripe Pay-in Completion ⏳ PRÓXIMA
+### FASE 6.2 — Stripe Pay-in Completion ✅ COMPLETA
 
 #### 6.2.1 PaymentIntent para Bookings
-- [ ] `POST /api/stripe/payment-intent` — cria PaymentIntent com `capture_method: 'manual'`
-- [ ] Pré-autoriza no momento do booking (hold funds)
-- [ ] Captura automática 24h antes da sessão ou após confirmação
+- [x] `POST /api/stripe/payment-intent` — cria PaymentIntent com `capture_method: 'manual'`
+- [x] Pré-autoriza no momento do booking (hold funds)
+- [x] Captura automática 24h antes da sessão ou após confirmação
 
 #### 6.2.2 Stripe Checkout (fallback)
-- [ ] `POST /api/stripe/checkout-session/booking` — Stripe Checkout para clientes sem cartão salvo
-- [ ] Stripe Customer creation/reuse por `profiles.id`
+- [x] `POST /api/stripe/checkout-session/booking` — Stripe Checkout para clientes sem cartão salvo
+- [x] Stripe Customer creation/reuse por `profiles.id`
 
 #### 6.2.3 Webhook Processing
-- [ ] `payment_intent.succeeded` → `payments.status = 'captured'` + ledger entry (`createPaymentCapturedEntry`)
-- [ ] `payment_intent.payment_failed` → cancela booking + notifica cliente
-- [ ] `charge.refunded` → atualiza `payments.refunded_amount_minor` + ledger entry (`createRefundEntry`)
+- [x] `payment_intent.succeeded` → `payments.status = 'captured'` + ledger entry (`createPaymentCapturedEntry`)
+- [x] `payment_intent.payment_failed` → cancela booking + notifica cliente
+- [x] `charge.refunded` → atualiza `payments.refunded_amount_minor` + ledger entry (`createRefundEntry`)
 
 #### 6.2.4 Ledger Integration
-- [ ] Hook em webhook handler para chamar `createPaymentCapturedEntry()`
-- [ ] Atualiza `professional_balances` (pending → available após cooldown)
+- [x] Hook em webhook handler para chamar `createPaymentCapturedEntry()`
+- [x] Atualiza `professional_balances` (pending → available após cooldown)
 
 ---
 
-### FASE 6.3 — Stripe Settlement → Revolut ⏳ PENDENTE
+### FASE 6.3 — Stripe Settlement → Revolut ⏳ PRÓXIMA
 
 #### 6.3.1 Settlement Tracking
 - [ ] Stripe payout reconciliation ( Stripe → Revolut bank account )
@@ -520,8 +520,8 @@ getProfessionalServices(professionalId)
 | Server actions novas | 8 arquivos |
 | API routes novas | 3 rotas |
 | Inngest functions adicionadas | 2 funções |
-| Testes novos | 4 arquivos |
-| Testes totais passando | 55/55 ✅ |
+| Testes novos | 8 arquivos |
+| Testes totais passando | 368/368 ✅ |
 | TypeScript typecheck | ✅ Limpo |
 | Arquivos de declaração de tipo | 2 (`posthog-node`, `web-push`) |
 | Env vars novas | 2 (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) |

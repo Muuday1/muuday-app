@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-24
+Last updated: 2026-04-25
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -9,7 +9,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Wave 0: Done
 - Wave 1: Done
 - Wave 2: Done (closed 2026-04-10)
-- Payment engine (Phases 1–6): Implemented, build passes, awaiting production migration + E2E testing
+- Payment engine (Phases 1–6): Fase 6.1 (Ledger Foundation) ✅ + Fase 6.2 (Stripe Pay-in) ✅ completa. Fase 6.3 (Stripe Settlement → Revolut) é a próxima. Awaiting E2E testing before Wave 3 launch.
 - Stabilization and UX refinement: In progress
 - Wave 3 real-money execution: Blocked on E2E validation + compliance freeze
 
@@ -40,17 +40,24 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 6. Public/member PT-BR cleanup and search currency-filter corrections have shipped.
 7. Structured admin review adjustments + per-term legal acceptance flow shipped end-to-end.
 8. Onboarding modal performance split (`modal-context` by scope) shipped with non-blocking optional data.
+9. Stripe Pay-in Completion (Fase 6.2) fully implemented with test coverage: PaymentIntent API, Checkout Session API, webhook receiver, and ledger integration.
 
 ## Active gaps
 
 1. Professional operations UX still needs refinement, especially around calendar and scheduling experience.
-2. Financial infrastructure implemented; compliance hardening and E2E testing remain open before Wave 3 launch.
+2. Financial infrastructure implemented; Stripe pay-in + ledger integration tested. Compliance hardening and E2E testing remain open before Wave 3 launch.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
 4. Documentation drift identified in comprehensive audit (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md` for full findings.
 
 ## Recently closed
 
-1. Two-tier availability architecture fully aligned:
+1. Payment stack test coverage delivered:
+   - 38 tests for `lib/payments/ledger/` (entries + balance)
+   - 10 tests for `lib/stripe/webhook-handlers` (capture, refund, settlement, dispute)
+   - 21 tests for `app/api/stripe/*` routes (PaymentIntent + Checkout Session)
+   - 10 tests for `app/api/webhooks/stripe` (webhook receiver)
+   - Total project test suite: **368 tests passing in 47 files**
+2. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
    - Modal-context route prefers `availability_rules` with legacy fallback.

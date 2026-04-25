@@ -1,6 +1,6 @@
 # Next Steps
 
-Last updated: 2026-04-24
+Last updated: 2026-04-25
 
 Execute in order. Keep changes batchable, validated, and documented.
 
@@ -20,7 +20,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 2. ~~Implement real Revolut webhook HMAC verification~~ ✅ **Done** — `lib/payments/revolut/client.ts`
 3. ~~Apply migrations 070-076 to production Supabase~~ ✅ **Applied** — confirmed by operator
 4. **Test Trolley sandbox onboarding end-to-end** — PayPal recipient creation, KYC flow
-5. **Test Stripe sandbox pay-in → ledger → payout flow** — full money movement validation
+5. ~~**Test Stripe sandbox pay-in → ledger → payout flow**~~ ✅ **Unit tests delivered** — 79 new tests cover PaymentIntent API, Checkout Session API, webhook receiver, webhook handlers, and ledger integration. E2E sandbox validation remains open.
 6. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
 7. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
 
@@ -31,7 +31,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 3. Keep RLS audit evidence current for critical private tables.
 4. Keep secrets rotation, sync audit, and DB pooling validation operational.
 5. Keep Stripe resilience foundation aligned with DB migrations and operational tables, without opening real-money execution early.
-6. Payment engine code is build-stable; focus shifts to E2E validation and production migration.
+6. Payment engine code is build-stable and unit-tested; focus shifts to E2E validation and production migration.
 
 ## Wave 3 opening criteria
 

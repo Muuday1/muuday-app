@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-24
+Last updated: 2026-04-25
 
 ## Operational truth
 
@@ -21,12 +21,13 @@ Last updated: 2026-04-24
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
+8. Payment stack test coverage delivered: 368 tests passing across 47 files (includes 79 new tests for ledger, Stripe webhook handlers, and API routes).
 
 ### In progress
 
 1. Professional operations UX polish, especially calendar and scheduling ergonomics.
 2. Remaining copy and consistency cleanup on member and admin surfaces.
-3. Pre-Wave-3 financial and compliance hardening — payment engine code complete, needs production migration + E2E validation.
+3. Pre-Wave-3 financial and compliance hardening — payment engine code complete and tested. Needs E2E validation and production migration.
 
 ### Not open yet
 
@@ -41,7 +42,7 @@ Last updated: 2026-04-24
 4. Upstash-backed rate limiting and Sentry/Checkly monitoring baselines are active.
 5. Supabase DB webhooks feed `/api/webhooks/supabase-db` and enqueue async processing safely.
 6. Calendar OAuth groundwork exists; full provider lifecycle remains an active implementation track.
-7. Payment engine infrastructure complete: 9 ledger tables, 8 TS modules, 2 webhooks, 4 Inngest functions, admin finance dashboard with 5 pages.
+7. Payment engine infrastructure complete: 9 ledger tables, 8 TS modules, 2 webhooks, 4 Inngest functions, admin finance dashboard with 5 pages. Test coverage added for ledger entries/balance, webhook handlers, and Stripe API routes.
 
 ## Recently stabilized
 
@@ -64,7 +65,14 @@ Last updated: 2026-04-24
     - Availability exceptions render visually on the professional calendar (day/week/month).
     - Slot-filtering and availability-merge utilities extracted with full unit-test coverage.
 15. Payment engine build fixes committed and pushed to `main` — TypeScript clean, lint clean, 186 pages generated.
-14. Comprehensive documentation audit completed (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md`.
+16. Comprehensive documentation audit completed (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md`.
+17. **Stripe Pay-in test coverage batch (2026-04-25):**
+    - `lib/payments/ledger/entries.test.ts` — 19 tests (validation, transaction templates, RPC mocking)
+    - `lib/payments/ledger/balance.test.ts` — 19 tests (queries, RPC updates, pure validation)
+    - `lib/stripe/webhook-handlers.test.ts` — 10 tests (PI succeeded/failed, refund, payout, dispute)
+    - `app/api/stripe/payment-intent/route.test.ts` — 12 tests (auth, state checks, PI creation/reuse)
+    - `app/api/stripe/checkout-session/booking/route.test.ts` — 9 tests (auth, state checks, session creation)
+    - `app/api/webhooks/stripe/route.test.ts` — 10 tests (CORS, rate limit, signature, persistence, enqueue)
 
 ## Open risks
 
