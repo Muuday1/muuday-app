@@ -80,6 +80,9 @@
 - [ ] `TROLLEY_API_KEY` / `TROLLEY_API_SECRET` — valid
 - [ ] `TROLLEY_WEBHOOK_SECRET` — matches endpoint configuration
 - [ ] `MINIMUM_TREASURY_BUFFER_MINOR` — appropriate for current volume
+- [ ] `MONTHLY_SUBSCRIPTION_FEE_MINOR` — correct amount (default 29900 = R$ 299.00)
+- [ ] `MONTHLY_SUBSCRIPTION_TRIAL_DAYS` — correct trial period (default 14)
+- [ ] `STRIPE_SUBSCRIPTION_PRODUCT_NAME` — product name in Stripe Dashboard
 
 ---
 
