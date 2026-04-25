@@ -29,10 +29,7 @@ import {
   isActiveSlotCollision,
 } from '@/lib/booking/request-validation'
 import type { SessionSlot } from '@/lib/booking/payload-builders'
-
-export type BookingCreateResult =
-  | { success: true; bookingId: string; createdBookingIds: string[]; usedAtomicPath: boolean; professionalEmail: string | null; professionalName: string | null }
-  | { success: false; error: string; reasonCode?: string }
+import type { BookingCreateResult, PersistResult } from './creation/types'
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
 const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
