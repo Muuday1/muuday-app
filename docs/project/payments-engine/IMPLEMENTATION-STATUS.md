@@ -1,7 +1,7 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-24
-> **Status:** Phases 1–6 ✅ IMPLEMENTED — 24 bug fixes committed, build passes, lint passes, E2E passes, deployed to production
+> **Status:** Phases 1–6 ✅ IMPLEMENTED — 28 bug fixes + 1 feature committed, build passes, lint passes, E2E passes, deployed to production
 
 ---
 
@@ -109,7 +109,7 @@
 - **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel. Optional `TROLLEY_API_BASE=https://api.sandbox.trolley.com/v1` for sandbox mode.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
-- **Migrations applied**: 070-079 applied to production Supabase (confirmed 2026-04-24).
+- **Migrations applied**: 070-080 applied to production Supabase (confirmed 2026-04-24).
 - **Migrations pending**: None.
 
 ---
@@ -131,7 +131,7 @@
 
 1. ~~Trolley webhook signature verification~~ ✅ **Implemented** — HMAC-SHA256 with timing-safe comparison
 2. ~~Revolut webhook signature verification~~ ✅ **Implemented** — HMAC-SHA256 with multiple signature support (rotation)
-3. **Professional periodicity setting** — Hardcoded to weekly batch schedule, needs UI + DB column
+3. ~~**Professional periodicity setting**~~ ✅ **Implemented** — Migration 080 adds `payout_periodicity` to `professional_settings`. Eligibility engine filters by `last_payout_at` + periodicity. UI selector on `/financeiro`. Email template uses dynamic label.
 4. ~~**Ledger entry atomicity**~~ ✅ **Fixed** — `create_ledger_transaction_atomic` RPC (migration 078) replaces sequential inserts
 5. ~~**Balance update atomicity**~~ ✅ **Fixed** — `update_professional_balance_atomic` RPC (migration 077) replaces read-modify-write
 6. ~~**Admin force actions unprotected**~~ ✅ **Fixed** — Rate limiting added to `forcePayout`, `forceRefund`, `adjustProfessionalBalance`
@@ -147,6 +147,7 @@
 16. ~~**last_payout_at race condition**~~ ✅ **Fixed** — Added `p_last_payout_at` to atomic RPC (migration 079)
 17. ~~**SELECT * in payment queries**~~ ✅ **Fixed** — Explicit column lists in balance, ledger, payout queries
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
+8. ~~**Payout notification email hardcoded 'semanal'**~~ ✅ **Fixed** — `sendPayoutSentEmail` now accepts `periodicity` parameter with dynamic label
 6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-079 confirmed in production
 7. ~~Trolley webhook professional linking bug~~ ✅ **Fixed** — `professionals.email` query corrected to `profiles` → `professionals` by `user_id`
 
