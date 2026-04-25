@@ -14,6 +14,8 @@ import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 import { PayoutStatusCard } from '@/components/finance/PayoutStatusCard'
 import { PayoutHistoryTable } from '@/components/finance/PayoutHistoryTable'
 import { PayoutPeriodicitySelector } from '@/components/finance/PayoutPeriodicitySelector'
+import { SubscriptionStatusCard } from '@/components/finance/SubscriptionStatusCard'
+import { getProfessionalSubscription } from '@/lib/actions/professional/subscription'
 
 export default async function FinanceiroPage() {
   const supabase = await createClient()
@@ -61,6 +63,10 @@ export default async function FinanceiroPage() {
   // Fetch payout status from payments engine
   const payoutData = professionalId ? await getPayoutStatus() : null
 
+  // Fetch subscription status
+  const subscriptionResult = professionalId ? await getProfessionalSubscription() : null
+  const subscription = subscriptionResult?.success ? subscriptionResult.subscription : null
+
   const currency = profile.currency || 'BRL'
   const capturedPayments = (payments || []).filter((payment: any) => payment.status === 'captured')
   const grossTotal = capturedPayments.reduce(
@@ -94,6 +100,11 @@ export default async function FinanceiroPage() {
           <p className="text-2xl font-semibold text-slate-900">{activeBookings}</p>
         </AppCard>
       </div>
+
+      {/* Subscription section */}
+      {subscription && (
+        <SubscriptionStatusCard subscription={subscription} />
+      )}
 
       {/* Payout section */}
       {payoutData && !('error' in payoutData) ? (

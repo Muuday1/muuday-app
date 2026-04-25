@@ -151,6 +151,7 @@
 9. ~~**Missing operational runbooks**~~ ✅ **Created** — 4 runbooks (payout-failure, dispute-after-payout, treasury-insufficient, ledger-reconciliation) + 2 checklists (pre-deploy, post-deploy)
 6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-079 confirmed in production
 7. ~~Trolley webhook professional linking bug~~ ✅ **Fixed** — `professionals.email` query corrected to `profiles` → `professionals` by `user_id`
+8. ~~**Monthly subscription fee (Stripe)**~~ ✅ **Implemented** — Migration 081 creates `professional_subscriptions` table. Stripe subscription lifecycle manager. Webhook handlers. Admin subscriptions page. Professional subscription card on `/financeiro` with Stripe Customer Portal. Auto-creation on professional approval.
 
 ---
 

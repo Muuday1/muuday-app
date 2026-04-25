@@ -383,13 +383,19 @@
 - [x] `customer.subscription.deleted` → syncs cancellation to DB
 - [x] All subscription events enqueue to `stripe_subscription_check_queue` for resilience
 
-### 6.2.4 Admin Dashboard
+### 6.2.4 Professional Dashboard
+- [x] Subscription status card on `/financeiro`
+- [x] Shows status, trial end, next payment, failure count
+- [x] Stripe Customer Portal integration — professionals can add/update payment method
+- [x] Server actions: `getProfessionalSubscription`, `createCustomerPortalSession`
+
+### 6.2.5 Admin Dashboard
 - [x] `/admin/finance/subscriptions` — list all subscriptions with status, period, trial, failures
 - [x] Filter by status (trialing, active, past_due, canceled)
 - [x] Pagination (20 per page)
 - [x] Server actions: `loadProfessionalSubscriptions`, `adminCancelSubscription`, `adminCreateSubscriptionForProfessional`
 
-### 6.2.5 Professional Approval Integration
+### 6.2.6 Professional Approval Integration
 - [x] Auto-creates Stripe subscription when admin approves professional (non-blocking)
 - [x] Approval succeeds even if subscription creation fails — admin can retry later
 
