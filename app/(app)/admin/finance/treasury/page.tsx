@@ -23,10 +23,31 @@ export default async function AdminTreasuryPage() {
     try {
       const treasury = await getTreasuryBalance()
 
-      const { data: pendingBatches } = await admin
-        .from('payout_batches')
-        .select('net_amount')
-        .in('status', ['submitted', 'processing'])
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      const [
+        { data: pendingBatches },
+        { data: snapshots },
+        { data: settlements },
+      ] = await Promise.all([
+        admin
+          .from('payout_batches')
+          .select('net_amount')
+          .in('status', ['submitted', 'processing']),
+        admin
+          .from('revolut_treasury_snapshots')
+          .select('snapshot_at, balance')
+          .gte('snapshot_at', thirtyDaysAgo.toISOString())
+          .order('snapshot_at', { ascending: true })
+          .limit(1000),
+        admin
+          .from('stripe_settlements')
+          .select('stripe_payout_id, amount, fee, net_amount, status, settlement_date, created_at')
+          .gte('created_at', thirtyDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ])
 
       const pendingPayoutsTotal = (pendingBatches || []).reduce(
         (sum, b) => sum + BigInt(b.net_amount || 0),
@@ -34,23 +55,6 @@ export default async function AdminTreasuryPage() {
       )
 
       const minBuffer = BigInt(env.MINIMUM_TREASURY_BUFFER_MINOR)
-
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-      const { data: snapshots } = await admin
-        .from('revolut_treasury_snapshots')
-        .select('snapshot_at, balance')
-        .gte('snapshot_at', thirtyDaysAgo.toISOString())
-        .order('snapshot_at', { ascending: true })
-        .limit(1000)
-
-      const { data: settlements } = await admin
-        .from('stripe_settlements')
-        .select('stripe_payout_id, amount, fee, net_amount, status, settlement_date, created_at')
-        .gte('created_at', thirtyDaysAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(50)
 
       data = {
         currentBalance: treasury?.balance?.toString() || null,

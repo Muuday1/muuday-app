@@ -31,20 +31,19 @@ export default async function ConversationPage({
     redirect('/mensagens')
   }
 
-  // Get conversation and booking info
-  const { data: conversation } = await supabase
-    .from('conversations')
-    .select('id, booking_id')
-    .eq('id', conversationId)
-    .single()
-
-  // Get other participant info
-  const { data: otherParticipant } = await supabase
-    .from('conversation_participants')
-    .select('user_id, role')
-    .eq('conversation_id', conversationId)
-    .neq('user_id', user.id)
-    .maybeSingle()
+  // Get conversation and other participant info in parallel
+  const [
+    { data: conversation },
+    { data: otherParticipant },
+  ] = await Promise.all([
+    supabase.from('conversations').select('id, booking_id').eq('id', conversationId).single(),
+    supabase
+      .from('conversation_participants')
+      .select('user_id, role')
+      .eq('conversation_id', conversationId)
+      .neq('user_id', user.id)
+      .maybeSingle(),
+  ])
 
   const { data: otherProfile } = await supabase
     .from('profiles')
@@ -54,12 +53,12 @@ export default async function ConversationPage({
 
   const otherName = otherProfile?.full_name || 'Usuário'
 
-  // Load messages
-  const messagesResult = await getMessagesAction(conversationId, { limit: 50 })
+  // Load messages and mark as read in parallel
+  const [messagesResult, _markReadResult] = await Promise.all([
+    getMessagesAction(conversationId, { limit: 50 }),
+    markConversationAsReadAction(conversationId),
+  ])
   const messages = messagesResult.success ? messagesResult.data.messages : []
-
-  // Mark as read
-  await markConversationAsReadAction(conversationId)
 
   return (
     <div className="mx-auto flex h-[calc(100vh-80px)] max-w-3xl flex-col px-4 py-4 md:h-[calc(100vh-0px)] md:px-8 md:py-6">

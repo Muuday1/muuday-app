@@ -53,31 +53,35 @@ export default async function AdminReviewProfessionalPage({
     )
   }
 
-  const { data: services } = await supabase
-    .from('professional_services')
-    .select('name,description,duration_minutes,price_brl,is_active')
-    .eq('professional_id', professional.id)
-    .order('created_at', { ascending: true })
-
-  const { data: application } = await supabase
-    .from('professional_applications')
-    .select(
-      'headline,category,specialty_name,specialty_custom,specialty_validation_message,focus_areas,primary_language,secondary_languages,target_audiences,taxonomy_suggestions,qualifications_structured,other_languages',
-    )
-    .eq('professional_id', professional.id)
-    .maybeSingle()
-
-  const { data: credentials } = await supabase
-    .from('professional_credentials')
-    .select('id,file_url,file_name,credential_type,verified,uploaded_at,scan_status,scan_checked_at')
-    .eq('professional_id', professional.id)
-    .order('uploaded_at', { ascending: false })
-
-  const { count: openAdjustmentCount } = await supabase
-    .from('professional_review_adjustments')
-    .select('id', { head: true, count: 'exact' })
-    .eq('professional_id', professional.id)
-    .in('status', ['open', 'reopened'])
+  const [
+    { data: services },
+    { data: application },
+    { data: credentials },
+    { count: openAdjustmentCount },
+  ] = await Promise.all([
+    supabase
+      .from('professional_services')
+      .select('name,description,duration_minutes,price_brl,is_active')
+      .eq('professional_id', professional.id)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('professional_applications')
+      .select(
+        'headline,category,specialty_name,specialty_custom,specialty_validation_message,focus_areas,primary_language,secondary_languages,target_audiences,taxonomy_suggestions,qualifications_structured,other_languages',
+      )
+      .eq('professional_id', professional.id)
+      .maybeSingle(),
+    supabase
+      .from('professional_credentials')
+      .select('id,file_url,file_name,credential_type,verified,uploaded_at,scan_status,scan_checked_at')
+      .eq('professional_id', professional.id)
+      .order('uploaded_at', { ascending: false }),
+    supabase
+      .from('professional_review_adjustments')
+      .select('id', { head: true, count: 'exact' })
+      .eq('professional_id', professional.id)
+      .in('status', ['open', 'reopened']),
+  ])
 
   const result = parseResultMessage(searchResult)
   const owner = Array.isArray(professional.profiles) ? professional.profiles[0] : professional.profiles

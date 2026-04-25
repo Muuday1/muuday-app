@@ -16,22 +16,19 @@ export default async function SolicitarHorarioPage({ params }: { params: Promise
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=/solicitar/${id}`)
 
-  const { data: userProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  // Fetch user profile and professional in parallel
+  const [
+    { data: userProfile },
+    { data: professional },
+  ] = await Promise.all([
+    supabase.from('profiles').select('role, timezone').eq('id', user.id).single(),
+    supabase.from('professionals').select('id,user_id,public_code,status,tier,session_duration_minutes').eq('id', id).single(),
+  ])
 
   // Professional accounts are provider-only workspaces and cannot purchase sessions.
   if (userProfile?.role === 'profissional') {
     redirect('/dashboard?erro=conta-profissional-nao-pode-contratar')
   }
-
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id,user_id,public_code,status,tier,session_duration_minutes')
-    .eq('id', id)
-    .single()
 
   if (!professional || professional.status !== 'approved') {
     notFound()
@@ -61,12 +58,6 @@ export default async function SolicitarHorarioPage({ params }: { params: Promise
     redirect(`${professionalProfileHref}?erro=primeiro-agendamento-bloqueado`)
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone')
-    .eq('id', user.id)
-    .single()
-
   const professionalTimezoneFallback = professionalProfile?.timezone || 'America/Sao_Paulo'
 
   const { data: settingsRow, error: settingsError } = await supabase
@@ -88,7 +79,7 @@ export default async function SolicitarHorarioPage({ params }: { params: Promise
       profileHref={professionalProfileHref}
       professionalName={professionalProfile?.full_name || 'Profissional'}
       professionalTimezone={bookingSettings.timezone}
-      userTimezone={profile?.timezone || 'America/Sao_Paulo'}
+      userTimezone={userProfile?.timezone || 'America/Sao_Paulo'}
       defaultDurationMinutes={
         bookingSettings.sessionDurationMinutes || professional.session_duration_minutes || 60
       }
