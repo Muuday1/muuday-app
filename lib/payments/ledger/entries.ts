@@ -53,7 +53,7 @@ export interface LedgerTransactionResult {
 // Validation
 // ---------------------------------------------------------------------------
 
-function validateTransactionEntries(entries: LedgerEntryInput[]): void {
+export function validateTransactionEntries(entries: LedgerEntryInput[]): void {
   if (entries.length < 2) {
     throw new Error(
       `Ledger transaction must have at least 2 entries (debit + credit). Got ${entries.length}.`,
