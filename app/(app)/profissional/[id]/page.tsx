@@ -398,19 +398,90 @@ export default async function ProfissionalPage({
     }
   }
 
-  const { data: availabilityRulesRows, error: availabilityRulesError } = await readClient
-    .from('availability_rules')
-    .select('weekday, start_time_local, end_time_local, is_active')
-    .eq('professional_id', professional.id)
-    .eq('is_active', true)
-    .order('weekday')
+  const nowIso = new Date().toISOString()
+  const firstBookingRelevantStatuses = [
+    'pending',
+    'pending_confirmation',
+    'confirmed',
+    'completed',
+    'no_show',
+    'rescheduled',
+  ]
 
-  const { data: legacyAvailability } = await readClient
-    .from('availability')
-    .select('id,day_of_week,start_time,end_time,is_active')
-    .eq('professional_id', professional.id)
-    .eq('is_active', true)
-    .order('day_of_week')
+  const [
+    { data: availabilityRulesRows, error: availabilityRulesError },
+    { data: legacyAvailability },
+    { data: existingBookings },
+    { data: availabilityExceptions },
+    { data: externalCalendarBusySlots },
+    { data: reviews },
+    { count: verifiedCredentialsCount },
+    { data: professionalSpecialtyLinks },
+    { count: existingAcceptedBookingsCount },
+    { data: recommendationCandidatesRaw, error: recommendationCandidatesError },
+  ] = await Promise.all([
+    readClient
+      .from('availability_rules')
+      .select('weekday, start_time_local, end_time_local, is_active')
+      .eq('professional_id', professional.id)
+      .eq('is_active', true)
+      .order('weekday'),
+    readClient
+      .from('availability')
+      .select('id,day_of_week,start_time,end_time,is_active')
+      .eq('professional_id', professional.id)
+      .eq('is_active', true)
+      .order('day_of_week'),
+    readClient
+      .from('bookings')
+      .select('scheduled_at,duration_minutes')
+      .eq('professional_id', professional.id)
+      .in('status', ['pending_confirmation', 'confirmed'])
+      .gte('scheduled_at', nowIso),
+    readClient
+      .from('availability_exceptions')
+      .select('date_local,is_available,start_time_local,end_time_local')
+      .eq('professional_id', professional.id)
+      .eq('is_available', false),
+    readClient
+      .from('external_calendar_busy_slots')
+      .select('start_utc,end_utc')
+      .eq('professional_id', professional.id)
+      .gte('end_utc', nowIso)
+      .limit(200),
+    readClient
+      .from('reviews')
+      .select('id,rating,comment,professional_response,profiles(full_name)')
+      .eq('professional_id', professional.id)
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(20),
+    readClient
+      .from('professional_credentials')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professional.id)
+      .eq('verified', true),
+    readClient
+      .from('professional_specialties')
+      .select('specialty_id')
+      .eq('professional_id', professional.id),
+    readClient
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professional.id)
+      .in('status', firstBookingRelevantStatuses),
+    readClient
+      .from('professionals')
+      .select(
+        'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role),category,subcategories',
+      )
+      .eq('status', 'approved')
+      .eq('is_publicly_visible', true)
+      .eq('profiles.role', 'profissional')
+      .neq('id', professional.id)
+      .order('rating', { ascending: false })
+      .limit(24),
+  ])
 
   const availability =
     !availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0
@@ -421,43 +492,6 @@ export default async function ProfissionalPage({
           end_time: rule.end_time_local,
         }))
       : (legacyAvailability || []) as AvailabilitySlotRow[]
-
-  const { data: existingBookings } = await readClient
-    .from('bookings')
-    .select('scheduled_at,duration_minutes')
-    .eq('professional_id', professional.id)
-    .in('status', ['pending_confirmation', 'confirmed'])
-
-  const { data: availabilityExceptions } = await readClient
-    .from('availability_exceptions')
-    .select('date_local,is_available,start_time_local,end_time_local')
-    .eq('professional_id', professional.id)
-    .eq('is_available', false)
-
-  const { data: externalCalendarBusySlots } = await readClient
-    .from('external_calendar_busy_slots')
-    .select('start_utc,end_utc')
-    .eq('professional_id', professional.id)
-    .gte('end_utc', new Date().toISOString())
-
-  const { data: reviews } = await readClient
-    .from('reviews')
-    .select('id,rating,comment,professional_response,profiles(full_name)')
-    .eq('professional_id', professional.id)
-    .eq('is_visible', true)
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  const { count: verifiedCredentialsCount } = await readClient
-    .from('professional_credentials')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professional.id)
-    .eq('verified', true)
-
-  const { data: professionalSpecialtyLinks } = await readClient
-    .from('professional_specialties')
-    .select('specialty_id')
-    .eq('professional_id', professional.id)
 
   const specialtyIds = Array.from(
     new Set(
@@ -484,35 +518,8 @@ export default async function ProfissionalPage({
     ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
   }
 
-  const firstBookingRelevantStatuses = [
-    'pending',
-    'pending_confirmation',
-    'confirmed',
-    'completed',
-    'no_show',
-    'rescheduled',
-  ]
-
-  const { count: existingAcceptedBookingsCount } = await readClient
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('professional_id', professional.id)
-    .in('status', firstBookingRelevantStatuses)
-
   const firstBookingBlocked =
     !professional.first_booking_enabled && (existingAcceptedBookingsCount || 0) === 0
-
-  const { data: recommendationCandidatesRaw, error: recommendationCandidatesError } = await readClient
-    .from('professionals')
-    .select(
-      'id,public_code,session_price_brl,session_duration_minutes,rating,total_reviews,tier,tags,bio,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role),category,subcategories',
-    )
-    .eq('status', 'approved')
-    .eq('is_publicly_visible', true)
-    .eq('profiles.role', 'profissional')
-    .neq('id', professional.id)
-    .order('rating', { ascending: false })
-    .limit(24)
 
   let recommendationCandidates: PublicProfessionalRecord[] =
     (recommendationCandidatesRaw || []) as unknown as PublicProfessionalRecord[]
