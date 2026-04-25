@@ -23,7 +23,7 @@ export default function PrivacidadePage() {
         <h1 className="mt-6 font-display text-3xl font-black uppercase tracking-tight text-slate-900 md:text-4xl">
           Política de Privacidade
         </h1>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-slate-500" suppressHydrationWarning>
           Última atualização: {new Date().toLocaleDateString('pt-BR')}
         </p>
 

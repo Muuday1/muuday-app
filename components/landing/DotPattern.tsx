@@ -1,5 +1,7 @@
 'use client'
 
+import { useId } from 'react'
+
 interface DotPatternProps {
   className?: string
   dotColor?: string
@@ -13,6 +15,9 @@ export function DotPattern({
   spacing = 24,
   dotSize = 2,
 }: DotPatternProps) {
+  const id = useId()
+  const patternId = `dotPattern-${id}`
+
   return (
     <svg
       className={`pointer-events-none absolute inset-0 h-full w-full ${className}`}
@@ -20,7 +25,7 @@ export function DotPattern({
     >
       <defs>
         <pattern
-          id={`dotPattern-${spacing}-${dotSize}`}
+          id={patternId}
           width={spacing}
           height={spacing}
           patternUnits="userSpaceOnUse"
@@ -28,7 +33,7 @@ export function DotPattern({
           <circle cx={spacing / 2} cy={spacing / 2} r={dotSize / 2} fill={dotColor} opacity="0.15" />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill={`url(#dotPattern-${spacing}-${dotSize})`} />
+      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
     </svg>
   )
 }

@@ -29,6 +29,9 @@ import type { BookingSettingsForm } from '@/components/settings/BookingSettingsC
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { AppCard } from '@/components/ui/AppCard'
 import { PageContainer, PageHeader } from '@/components/ui/AppShell'
+import { Suspense } from 'react'
+import ProfessionalAgendaLoader from '@/components/agenda/ProfessionalAgendaLoader'
+import ProfessionalAgendaSkeleton from '@/components/agenda/ProfessionalAgendaSkeleton'
 
 type RequestBookingStatus =
   | 'open'
@@ -205,31 +208,36 @@ export default async function AgendaPage({
             .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
             .eq('user_id', user.id)
 
-  const { data: upcomingBookings, error: upcomingError } = upcomingQuery
-    ? await upcomingQuery
-        .in('status', ['pending', 'pending_confirmation', 'confirmed'])
-        .gte('scheduled_at', nowIso)
-        .order('scheduled_at', { ascending: true })
-        .limit(50)
-    : { data: [] as any[], error: null }
+  const [
+    { data: upcomingBookings, error: upcomingError },
+    { data: pastBookings, error: pastError },
+    { data: requestBookings, error: requestError },
+  ] = await Promise.all([
+    upcomingQuery
+      ? upcomingQuery
+          .in('status', ['pending', 'pending_confirmation', 'confirmed'])
+          .gte('scheduled_at', nowIso)
+          .order('scheduled_at', { ascending: true })
+          .limit(50)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    pastQuery
+      ? pastQuery
+          .in('status', ['completed', 'cancelled', 'no_show', 'pending', 'pending_confirmation', 'confirmed'])
+          .lt('scheduled_at', nowIso)
+          .order('scheduled_at', { ascending: false })
+          .limit(20)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    requestBookingsQuery
+      ? requestBookingsQuery.order('created_at', { ascending: false }).limit(30)
+      : Promise.resolve({ data: [] as any[], error: null }),
+  ])
+
   if (upcomingError) {
     console.error('[agenda] upcoming bookings query error:', upcomingError.message, upcomingError.code)
   }
-
-  const { data: pastBookings, error: pastError } = pastQuery
-    ? await pastQuery
-        .in('status', ['completed', 'cancelled', 'no_show', 'pending', 'pending_confirmation', 'confirmed'])
-        .lt('scheduled_at', nowIso)
-        .order('scheduled_at', { ascending: false })
-        .limit(20)
-    : { data: [] as any[], error: null }
   if (pastError) {
     console.error('[agenda] past bookings query error:', pastError.message, pastError.code)
   }
-
-  const { data: requestBookings, error: requestError } = requestBookingsQuery
-    ? await requestBookingsQuery.order('created_at', { ascending: false }).limit(30)
-    : { data: [] as any[], error: null }
   if (requestError) {
     console.error('[agenda] request bookings query error:', requestError.message, requestError.code)
   }
@@ -503,27 +511,20 @@ export default async function AgendaPage({
     return (
       <>
         <BookingRealtimeListener />
-        <ProfessionalAgendaPage
-        activeView={activeView as 'overview' | 'inbox' | 'availability_rules'}
-        inboxFilter={inboxFilter}
-        userTimezone={userTimezone}
-        pendingConfirmations={pendingConfirmations}
-        upcoming={upcoming}
-        past={past}
-        activeRequests={activeRequests}
-        calendarTimezone={calendarTimezone}
-        activeAvailabilityCount={activeAvailabilityCount}
-        calendarIntegrationConnected={calendarIntegrationConnected}
-        calendarIntegrationProvider={calendarIntegrationProvider}
-        calendarIntegrationStatus={calendarIntegrationStatus}
-        calendarIntegrationLastSyncAt={calendarIntegrationLastSyncAt}
-        calendarIntegrationAccountEmail={calendarIntegrationAccountEmail}
-        calendarIntegrationLastSyncError={calendarIntegrationLastSyncError}
-        overviewAvailabilityRules={overviewAvailabilityRules}
-        overviewAvailabilityExceptions={overviewAvailabilityExceptions}
-        overviewCalendarBookings={overviewCalendarBookings}
-        professionalBookingRulesPanelProps={professionalBookingRulesPanelProps}
-      />
+        <Suspense fallback={<ProfessionalAgendaSkeleton />}>
+          <ProfessionalAgendaLoader
+            userId={user.id}
+            professionalId={professionalId}
+            professional={professional}
+            activeView={activeView as 'overview' | 'inbox' | 'availability_rules'}
+            inboxFilter={inboxFilter}
+            userTimezone={userTimezone}
+            pendingConfirmations={pendingConfirmations}
+            upcoming={upcoming}
+            past={past}
+            activeRequests={activeRequests}
+          />
+        </Suspense>
       </>
     )
   }
