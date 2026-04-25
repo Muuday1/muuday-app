@@ -116,6 +116,20 @@ test.describe('Admin Finance Dashboard', () => {
     await expect(page.getByRole('heading', { name: 'Disputas' })).toBeVisible()
     await expect(page.locator('table')).toBeVisible()
   })
+
+  test('subscriptions page loads with table and filters', async ({ page }) => {
+    await loginAsAdmin(page)
+    await page.goto('/admin/finance/subscriptions')
+    await page.waitForLoadState('domcontentloaded')
+
+    await expect(page.getByRole('heading', { name: 'Assinaturas' })).toBeVisible()
+    await expect(page.locator('table')).toBeVisible()
+    // Status filter chips
+    await expect(page.getByText('Trial')).toBeVisible()
+    await expect(page.getByText('Ativa')).toBeVisible()
+    await expect(page.getByText('Inadimplente')).toBeVisible()
+    await expect(page.getByText('Cancelada')).toBeVisible()
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -235,6 +249,37 @@ test.describe('Trolley Payout Onboarding', () => {
 
     // Page should load without crashing
     await expect(page.locator('body')).toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Professional Subscription
+// ---------------------------------------------------------------------------
+
+test.describe('Professional Subscription', () => {
+  test.skip(!hasUserConfig, 'Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run subscription tests.')
+
+  test('financeiro page loads with subscription section', async ({ page }) => {
+    await loginAsUser(page)
+    await page.goto('/financeiro')
+    await page.waitForLoadState('domcontentloaded')
+
+    // Page should load without crashing
+    await expect(page.getByRole('heading', { name: 'Financeiro' })).toBeVisible()
+
+    // Subscription card may or may not be present depending on approval status
+    const subscriptionHeading = page.getByRole('heading', { name: 'Assinatura Muuday Pro' })
+    const subscriptionVisible = await subscriptionHeading.isVisible().catch(() => false)
+
+    if (subscriptionVisible) {
+      // If professional is approved, subscription card should show status
+      const statusBadge = page.locator('span[class*="rounded-full"]').first()
+      await expect(statusBadge).toBeVisible()
+
+      // Manage payment button should be present
+      const manageButton = page.getByRole('button', { name: /Gerenciar pagamento|Adicionar método de pagamento/i })
+      await expect(manageButton).toBeVisible()
+    }
   })
 })
 
