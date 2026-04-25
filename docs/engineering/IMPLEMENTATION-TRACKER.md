@@ -386,7 +386,7 @@ getProfessionalServices(professionalId)
 >
 > **NÃO usa Stripe Connect para payouts.** NÃO usa Airwallex como rail principal. Airwallex/dLocal permanecem como contingência operacional.
 >
-> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Pronto para iniciar Fase 2 (Stripe Pay-in Completion).
+> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Fase 2 (Stripe Pay-in) ✅ COMPLETA. Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA. Próxima: Fase 4 (Professional Payout via Trolley).
 
 ---
 
@@ -436,17 +436,24 @@ getProfessionalServices(professionalId)
 
 ---
 
-### FASE 6.3 — Stripe Settlement → Revolut ⏳ PRÓXIMA
+### FASE 6.3 — Stripe Settlement → Revolut ✅ COMPLETA
 
 #### 6.3.1 Settlement Tracking
-- [ ] Stripe payout reconciliation ( Stripe → Revolut bank account )
-- [ ] Webhook `payout.paid` → marca settlement como completo
-- [ ] Ledger entry: `createStripeSettlementEntry()` (Stripe Receivable → Cash)
+- [x] Stripe payout reconciliation (`lib/payments/revolut/reconciliation.ts`)
+- [x] Webhook `payout.paid` → grava settlement (`lib/stripe/webhook-handlers.ts`)
+- [x] Ledger entry: `buildStripeSettlementTransaction()` (Stripe Receivable → Cash)
 
 #### 6.3.2 Treasury Automation
-- [ ] Revolut balance snapshot já ativo (Inngest a cada 15min)
-- [ ] Alerta se saldo < `MINIMUM_TREASURY_BUFFER_MINOR` (R$ 10.000)
-- [ ] Dashboard admin com histórico de saldo
+- [x] Revolut balance snapshot ativo (Inngest `treasury-balance-snapshot` a cada 15min)
+- [x] Alerta se saldo < `MINIMUM_TREASURY_BUFFER_MINOR` (R$ 10.000)
+- [x] Reconciliação diária automática (Inngest `treasury-reconciliation`)
+
+**Testes entregues (Fase 6.3):**
+- `lib/payments/revolut/client.test.ts` — 18 tests (API client, auth refresh, webhook signature, treasury balance)
+- `lib/payments/revolut/reconciliation.test.ts` — 10 tests (auto-match, tolerance, manual reconcile, deduplication)
+- `app/api/webhooks/revolut/route.test.ts` — 10 tests (CORS, rate limit, signature, JSON parse, enqueue)
+- `inngest/functions/treasury-snapshot.test.ts` — 6 tests (skip, alert, snapshot insert, webhook source)
+- `inngest/functions/treasury-reconciliation.test.ts` — 5 tests (handler, mismatch warn, summary log)
 
 ---
 
@@ -521,7 +528,7 @@ getProfessionalServices(professionalId)
 | API routes novas | 3 rotas |
 | Inngest functions adicionadas | 2 funções |
 | Testes novos | 8 arquivos |
-| Testes totais passando | 368/368 ✅ |
+| Testes totais passando | 417/417 ✅ |
 | TypeScript typecheck | ✅ Limpo |
 | Arquivos de declaração de tipo | 2 (`posthog-node`, `web-push`) |
 | Env vars novas | 2 (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) |

@@ -21,7 +21,7 @@ Last updated: 2026-04-25
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
-8. Payment stack test coverage delivered: 368 tests passing across 47 files (includes 79 new tests for ledger, Stripe webhook handlers, and API routes).
+8. Payment stack test coverage delivered: 417 tests passing across 52 files (includes 128 new tests for ledger, Stripe webhook handlers, API routes, and Revolut settlement infrastructure).
 
 ### In progress
 
@@ -73,6 +73,12 @@ Last updated: 2026-04-25
     - `app/api/stripe/payment-intent/route.test.ts` — 12 tests (auth, state checks, PI creation/reuse)
     - `app/api/stripe/checkout-session/booking/route.test.ts` — 9 tests (auth, state checks, session creation)
     - `app/api/webhooks/stripe/route.test.ts` — 10 tests (CORS, rate limit, signature, persistence, enqueue)
+18. **Stripe Settlement → Revolut test coverage batch (2026-04-25):**
+    - `lib/payments/revolut/client.test.ts` — 18 tests (API client, auth refresh, webhook signature, treasury balance, health check)
+    - `lib/payments/revolut/reconciliation.test.ts` — 10 tests (auto-match, tolerance, manual reconcile, deduplication, non-eligible tx filtering)
+    - `app/api/webhooks/revolut/route.test.ts` — 10 tests (CORS, rate limit, signature verification, JSON parse, enqueue)
+    - `inngest/functions/treasury-snapshot.test.ts` — 6 tests (skip unconfigured, alert below buffer, snapshot insert, webhook source)
+    - `inngest/functions/treasury-reconciliation.test.ts` — 5 tests (handler invocation, mismatch warning, summary logging)
 
 ## Open risks
 
