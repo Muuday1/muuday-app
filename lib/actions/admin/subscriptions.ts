@@ -51,7 +51,7 @@ export async function loadProfessionalSubscriptions(options: {
 
   let query = supabase
     .from('professional_subscriptions')
-    .select('id, professional_id, stripe_subscription_id, stripe_customer_id, status, current_period_start, current_period_end, cancel_at_period_end, trial_end, amount_minor, currency, failure_count, last_payment_at, last_failure_at, created_at')
+    .select('id, professional_id, stripe_subscription_id, stripe_customer_id, status, current_period_start, current_period_end, cancel_at_period_end, trial_end, amount_minor, currency, failure_count, last_payment_at, last_failure_at, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
 
   if (options.status) {

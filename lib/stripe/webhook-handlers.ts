@@ -602,9 +602,10 @@ async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Eve
     const invoiceRaw = invoice as unknown as Record<string, unknown>
     const subscriptionId = asString(invoiceRaw.subscription)
     if (subscriptionId) {
+      const attemptCount = typeof invoiceRaw.attempt_count === 'number' ? invoiceRaw.attempt_count : 0
       await recordSubscriptionPaymentFailure(admin, subscriptionId, {
         failedAt: new Date().toISOString(),
-        reason: asString(invoiceRaw.attempt_count) + ' failed attempts',
+        reason: `${attemptCount} failed payment attempt(s)`,
       })
       return { outcome: 'processed', subscriptionFailureRecorded: true }
     }
