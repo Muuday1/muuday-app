@@ -41,6 +41,54 @@ function isRscRequest(request: NextRequest) {
   return request.headers.get('rsc') === '1'
 }
 
+type SessionCacheEntry = {
+  user: { id: string; email?: string | null; app_metadata?: Record<string, unknown>; raw_app_meta_data?: Record<string, unknown> } | null
+  expiresAt: number
+  cookieHash: string
+}
+
+const SESSION_CACHE = new Map<string, SessionCacheEntry>()
+const SESSION_CACHE_TTL_MS = 5000
+const MAX_CACHE_SIZE = 1000
+
+function hashCookies(cookies: { name: string; value: string }[]): string {
+  let hash = 0
+  for (const c of cookies) {
+    if (c.name.includes('sb-') && c.name.includes('-auth-token')) {
+      for (let i = 0; i < c.value.length; i++) {
+        hash = (hash * 31 + c.value.charCodeAt(i)) >>> 0
+      }
+    }
+  }
+  return String(hash)
+}
+
+function getCachedSession(cookieHash: string): SessionCacheEntry | null {
+  const now = Date.now()
+  // Clean expired entries occasionally
+  if (SESSION_CACHE.size > MAX_CACHE_SIZE) {
+    for (const [key, entry] of SESSION_CACHE) {
+      if (entry.expiresAt < now) {
+        SESSION_CACHE.delete(key)
+      }
+    }
+  }
+  const entry = SESSION_CACHE.get(cookieHash)
+  if (!entry || entry.expiresAt < now) {
+    SESSION_CACHE.delete(cookieHash)
+    return null
+  }
+  return entry
+}
+
+function setCachedSession(cookieHash: string, user: SessionCacheEntry['user']) {
+  SESSION_CACHE.set(cookieHash, {
+    user,
+    expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+    cookieHash,
+  })
+}
+
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -88,6 +136,8 @@ export async function updateSession(request: NextRequest) {
 
   const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
   const supabaseResponse = NextResponse.next({ request })
+  const cookieHash = hashCookies(request.cookies.getAll())
+  let didRefreshTokens = false
 
   const supabase = createServerClient(
     supabaseUrl,
@@ -101,6 +151,7 @@ export async function updateSession(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          didRefreshTokens = true
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
             pendingCookies.push({ name, value, options })
@@ -117,7 +168,18 @@ export async function updateSession(request: NextRequest) {
     return response
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Try cache first; skip cache if tokens were refreshed (setAll was called)
+  let user: { id: string; email?: string | null; app_metadata?: Record<string, unknown>; raw_app_meta_data?: Record<string, unknown> } | null
+  const cached = getCachedSession(cookieHash)
+  if (cached && !didRefreshTokens) {
+    user = cached.user
+  } else {
+    const { data: { user: freshUser } } = await supabase.auth.getUser()
+    user = freshUser
+    if (!didRefreshTokens) {
+      setCachedSession(cookieHash, user)
+    }
+  }
   const jwtClaimRole = normalizeProfileRole(
     user?.app_metadata?.role ??
     (user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role
