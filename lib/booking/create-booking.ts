@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { withTimeout } from './with-timeout'
 import {
   createBookingWithPaymentAtomic,
   createBatchBookingsWithPaymentAtomic,
@@ -64,15 +65,6 @@ function logBookingEvent(
     tags: { area: 'booking_create' },
     extra: context,
   })
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, context: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout after ${ms}ms: ${context}`)), ms),
-    ),
-  ])
 }
 
 const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.')
