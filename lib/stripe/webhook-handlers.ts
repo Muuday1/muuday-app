@@ -9,6 +9,11 @@ import {
   createLedgerTransaction,
 } from '@/lib/payments/ledger/entries'
 import { updateProfessionalBalance } from '@/lib/payments/ledger/balance'
+import {
+  syncSubscriptionFromStripe,
+  recordSubscriptionPayment,
+  recordSubscriptionPaymentFailure,
+} from '@/lib/payments/subscription/manager'
 
 const DEFAULT_MAX_WEBHOOK_ATTEMPTS = 8
 
@@ -555,23 +560,58 @@ async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Eve
     return { outcome: 'processed', disputeId: dispute.id }
   }
 
-  if (
-    event.type === 'invoice.payment_failed' ||
-    event.type === 'invoice.paid' ||
-    event.type === 'customer.subscription.updated' ||
-    event.type === 'customer.subscription.deleted'
-  ) {
+  // ── Subscription events (monthly fee billing) ─────────────────────
+  if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
     const subscriptionId = asString(eventObject.id)
-    const professionalId = asString(metadata.professional_id)
     if (subscriptionId) {
+      const syncResult = await syncSubscriptionFromStripe(admin, subscriptionId)
+      // Also enqueue the legacy check for billing_card_on_file
+      const professionalId = asString(metadata.professional_id)
       await enqueueSubscriptionCheck(admin, subscriptionId, professionalId, {
         source: 'webhook',
         stripe_event_id: event.id,
         stripe_event_type: event.type,
+        sync_result: syncResult.success,
       })
-      return { outcome: 'processed', subscriptionCheckQueued: true }
+      return {
+        outcome: syncResult.success ? 'processed' : 'failed',
+        subscriptionSynced: syncResult.success,
+        subscriptionCheckQueued: true,
+      }
     }
   }
+
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice
+    const invoiceRaw = invoice as unknown as Record<string, unknown>
+    const subscriptionId = asString(invoiceRaw.subscription)
+    const amountPaid = invoice.amount_paid || 0
+    if (subscriptionId && amountPaid > 0) {
+      await recordSubscriptionPayment(admin, subscriptionId, {
+        amountMinor: amountPaid,
+        currency: asString(invoice.currency) || 'brl',
+        paidAt: new Date().toISOString(),
+        invoiceId: invoice.id,
+      })
+      return { outcome: 'processed', subscriptionPaymentRecorded: true }
+    }
+  }
+
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = event.data.object as Stripe.Invoice
+    const invoiceRaw = invoice as unknown as Record<string, unknown>
+    const subscriptionId = asString(invoiceRaw.subscription)
+    if (subscriptionId) {
+      await recordSubscriptionPaymentFailure(admin, subscriptionId, {
+        failedAt: new Date().toISOString(),
+        reason: asString(invoiceRaw.attempt_count) + ' failed attempts',
+      })
+      return { outcome: 'processed', subscriptionFailureRecorded: true }
+    }
+  }
+
+  // Note: All subscription events above already enqueue legacy subscription checks
+  // where needed. No fallback block required here.
 
   // We keep unsupported events as ignored instead of failing retries forever.
   return { outcome: 'ignored' }

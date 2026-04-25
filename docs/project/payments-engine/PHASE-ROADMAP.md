@@ -8,7 +8,8 @@
 > **Phase 4 Status**: ✅ COMPLETE
 > **Phase 5 Status**: ✅ COMPLETE
 > **Phase 6 Status**: ✅ COMPLETE
-> **Next**: E2E sandbox testing + monthly subscription fee (Phase 6.2)
+> **Phase 6.2 Status**: ✅ COMPLETE — Monthly subscription fee via Stripe
+> **Next**: E2E sandbox testing
 
 ---
 
@@ -237,7 +238,7 @@
 - [x] Ledger entries for debt deduction (`buildPayoutWithDebtTransaction`)
 - [x] Trolley fee absorbed by Muuday (`trolley_fee_absorbed` field + `buildTrolleyFeeTransaction`)
 - [x] Professional sees net amount in dashboard (`getPayoutStatus` server action)
-- [ ] **Monthly subscription fee** (Stripe) — Phase 6 scope, NOT deducted from payouts. Requires product decision on pricing.
+- [x] **Monthly subscription fee** (Stripe) — Phase 6.2 implemented. R$ 299/month with 14-day trial. NOT deducted from payouts.
 
 ### 4.4 Payout Notification
 - [x] Email to professional: "Seu pagamento foi enviado" (`sendPayoutSentEmail` Resend template)
@@ -356,6 +357,48 @@
 - [ ] CSV exports contain correct data — requires preview env
 - [x] Force actions create audit trail
 - [x] Observability metrics accurate
+
+---
+
+## Phase 6.2 — Monthly Subscription Fee (Stripe) ✅ COMPLETE
+
+**Goal**: Bill professionals a flat monthly fee via Stripe subscriptions, separate from payouts.
+
+### 6.2.1 Subscription Infrastructure
+- [x] Migration `081` — `professional_subscriptions` table with RLS policies
+- [x] Env vars: `MONTHLY_SUBSCRIPTION_FEE_MINOR`, `MONTHLY_SUBSCRIPTION_TRIAL_DAYS`, `STRIPE_SUBSCRIPTION_PRODUCT_NAME`
+- [x] Stripe Product + Price creation with `lookup_key` (`muuday-professional-monthly`)
+
+### 6.2.2 Subscription Lifecycle
+- [x] `createProfessionalSubscription()` — creates Stripe subscription with trial period
+- [x] `cancelProfessionalSubscription()` — cancels at period end or immediately
+- [x] `syncSubscriptionFromStripe()` — syncs status, period dates, trial dates
+- [x] `recordSubscriptionPayment()` — records successful invoice payment
+- [x] `recordSubscriptionPaymentFailure()` — increments failure count, sets grace period
+
+### 6.2.3 Webhook Integration
+- [x] `invoice.paid` → records payment, resets failure count
+- [x] `invoice.payment_failed` → records failure, increments failure count
+- [x] `customer.subscription.updated` → syncs status to DB
+- [x] `customer.subscription.deleted` → syncs cancellation to DB
+- [x] All subscription events enqueue to `stripe_subscription_check_queue` for resilience
+
+### 6.2.4 Admin Dashboard
+- [x] `/admin/finance/subscriptions` — list all subscriptions with status, period, trial, failures
+- [x] Filter by status (trialing, active, past_due, canceled)
+- [x] Pagination (20 per page)
+- [x] Server actions: `loadProfessionalSubscriptions`, `adminCancelSubscription`, `adminCreateSubscriptionForProfessional`
+
+### 6.2.5 Professional Approval Integration
+- [x] Auto-creates Stripe subscription when admin approves professional (non-blocking)
+- [x] Approval succeeds even if subscription creation fails — admin can retry later
+
+### Phase 6.2 Quality Gates
+- [x] TypeScript typecheck clean
+- [x] Build passes
+- [x] Lint passes
+- [ ] Stripe subscription webhook tested with Stripe CLI — requires preview env
+- [ ] Trial period verified end-to-end — requires preview env
 
 ---
 

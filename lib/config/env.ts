@@ -54,8 +54,10 @@ const envSchema = z.object({
   PAYOUT_BATCH_SCHEDULE_CRON: z.string().default('0 8 * * 1'),
   MINIMUM_TREASURY_BUFFER_MINOR: z.coerce.number().min(0).default(1_000_000),
   MAX_PROFESSIONAL_DEBT_MINOR: z.coerce.number().min(0).default(50_000),
-  // Note: per-payout fees were removed. Monthly subscription fee is billed
-  // separately via Stripe subscription (Phase 6).
+  // Monthly subscription fee (Phase 6) — billed separately via Stripe
+  MONTHLY_SUBSCRIPTION_FEE_MINOR: z.coerce.number().min(0).default(29_900), // Default: R$ 299.00
+  MONTHLY_SUBSCRIPTION_TRIAL_DAYS: z.coerce.number().min(0).default(14), // 14-day free trial
+  STRIPE_SUBSCRIPTION_PRODUCT_NAME: z.string().default('Muuday Pro'),
 
   // Mobile app
   MOBILE_API_KEY: optionalString,

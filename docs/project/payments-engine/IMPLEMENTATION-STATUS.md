@@ -68,7 +68,7 @@
 - Edge cases: insufficient treasury blocking, Trolley API retry via Inngest, Stripe webhook idempotency
 
 ### Phase 6 — Admin Finance Dashboard & Observability ✅ COMPLETE
-- Admin pages: `/admin/finance`, `/admin/finance/ledger`, `/admin/finance/payouts`, `/admin/finance/treasury`, `/admin/finance/disputes`
+- Admin pages: `/admin/finance`, `/admin/finance/ledger`, `/admin/finance/payouts`, `/admin/finance/treasury`, `/admin/finance/disputes`, `/admin/finance/subscriptions`
 - Server actions: ledger browser, payout batch listing, treasury status, disputes, CSV export
 - Force actions: `forcePayout`, `forceRefund`, `adjustProfessionalBalance` (all with audit trail ledger entries)
 - Observability: treasury buffer %, avg payout time, dispute rate (`lib/payments/metrics.ts`)
@@ -110,7 +110,7 @@
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
 - **Migrations applied**: 070-080 applied to production Supabase (confirmed 2026-04-24).
-- **Migrations pending**: None.
+- **Migrations pending**: 081 (professional subscriptions) — pending Supabase Management API application.
 
 ---
 
@@ -120,7 +120,7 @@
 |------|--------|
 | TypeScript typecheck | ✅ PASS |
 | Lint | ✅ PASS |
-| Next.js build | ✅ PASS (186 pages generated) |
+| Next.js build | ✅ PASS (187 pages generated) |
 | Trolley sandbox onboarding | ⏳ Pending (needs test credentials) |
 | Payout batch ledger balance | ✅ Verified (debits = credits) |
 | Fee deduction math | ✅ Verified (100% to pro, debt deducted) |

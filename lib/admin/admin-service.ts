@@ -17,6 +17,7 @@ import {
 } from '@/lib/email/resend'
 import { emitProfessionalProfileApproved } from '@/lib/email/resend-events'
 import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
+import { createProfessionalSubscription } from '@/lib/payments/subscription/manager'
 import {
   REVIEW_ADJUSTMENT_STAGE_LABELS,
   SUPPORTED_REVIEW_ADJUSTMENT_KEYS,
@@ -509,6 +510,18 @@ export async function reviewProfessionalDecisionService(
         await rollbackProfessionalUpdate()
         return { success: false, error: 'Nao foi possivel concluir os ajustes antes da aprovacao.' }
       }
+
+      // Create Stripe subscription for monthly fee (non-blocking)
+      // If this fails, the approval still succeeds — admin can retry later
+      createProfessionalSubscription(supabase, parsed.data.professionalId)
+        .then((result) => {
+          if (!result.success) {
+            console.error('[admin/reviewDecision] subscription creation failed:', result.error)
+          }
+        })
+        .catch((err) => {
+          console.error('[admin/reviewDecision] subscription creation exception:', err)
+        })
     } else {
       const { error: closeExistingError } = await supabase
         .from('professional_review_adjustments')
