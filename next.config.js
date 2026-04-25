@@ -40,7 +40,7 @@ const nextConfig = {
           },
           // Prevent cross-origin attacks (isolate browsing context)
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
-          // Note: Content-Security-Policy is set dynamically in middleware.ts with per-request nonces
+          // Note: Content-Security-Policy is set dynamically in proxy.ts with per-request nonces
         ],
       },
     ]
