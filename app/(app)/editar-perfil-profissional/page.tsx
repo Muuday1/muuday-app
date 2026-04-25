@@ -44,6 +44,7 @@ export default async function EditarPerfilProfissionalPage() {
     .select('file_url')
     .eq('professional_id', professional.id)
     .order('uploaded_at', { ascending: false })
+    .limit(50)
 
   const initialData = {
     professionalId: professional.id || '',

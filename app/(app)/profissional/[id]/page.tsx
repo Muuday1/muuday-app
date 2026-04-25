@@ -437,12 +437,14 @@ export default async function ProfissionalPage({
       .select('scheduled_at,duration_minutes')
       .eq('professional_id', professional.id)
       .in('status', ['pending_confirmation', 'confirmed'])
-      .gte('scheduled_at', nowIso),
+      .gte('scheduled_at', nowIso)
+      .limit(200),
     readClient
       .from('availability_exceptions')
       .select('date_local,is_available,start_time_local,end_time_local')
       .eq('professional_id', professional.id)
-      .eq('is_available', false),
+      .eq('is_available', false)
+      .limit(200),
     readClient
       .from('external_calendar_busy_slots')
       .select('start_utc,end_utc')

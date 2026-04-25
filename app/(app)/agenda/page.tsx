@@ -322,7 +322,8 @@ export default async function AgendaPage({
         .from('availability_exceptions')
         .select('date_local, is_available, start_time_local, end_time_local')
         .eq('professional_id', professionalId)
-        .eq('is_available', false),
+        .eq('is_available', false)
+        .limit(200),
       loadPlanConfigMap(),
     ])
 
@@ -446,6 +447,7 @@ export default async function AgendaPage({
       .from('conversations')
       .select('id, booking_id')
       .in('booking_id', allBookingIds)
+      .limit(100)
     ;(conversationsData || []).forEach((c: any) => {
       if (c.booking_id) conversationMap.set(c.booking_id, c.id)
     })
@@ -458,6 +460,7 @@ export default async function AgendaPage({
       .select('booking_id')
       .in('booking_id', completedBookingIds)
       .eq('user_id', user.id)
+      .limit(200)
 
     if (reviewsError) {
       console.error('[agenda] failed to load existing reviews:', reviewsError.message)

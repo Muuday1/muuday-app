@@ -57,24 +57,19 @@ export default async function AgendarPage({
     redirect(`/login?redirect=${encodeURIComponent(targetPath)}`)
   }
 
-  const { data: userProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  // Fetch user profile and professional in parallel
+  const [
+    { data: userProfile },
+    { data: professional },
+  ] = await Promise.all([
+    supabase.from('profiles').select('role, timezone, currency, full_name').eq('id', user.id).single(),
+    supabase.from('professionals').select('id,user_id,status,public_code,category,session_duration_minutes,session_price_brl').eq('id', id).single(),
+  ])
 
   // Professional accounts are provider-only workspaces and cannot purchase sessions.
   if (userProfile?.role === 'profissional') {
     redirect('/dashboard?erro=conta-profissional-nao-pode-contratar')
   }
-
-  // Fetch professional first. Profile is loaded separately to avoid ambiguous embed joins
-  // when multiple foreign keys exist between professionals and profiles.
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id,user_id,status,public_code,category,session_duration_minutes,session_price_brl')
-    .eq('id', id)
-    .single()
 
   if (!professional || professional.status !== 'approved') {
     notFound()
@@ -101,18 +96,12 @@ export default async function AgendarPage({
     redirect(`${professionalProfileHref}?erro=primeiro-agendamento-bloqueado`)
   }
 
-  // Fetch user profile, settings, and availability in parallel
+  // Fetch settings and availability in parallel
   const [
-    { data: profile },
     { data: settingsRow, error: settingsError },
     { data: availabilityRulesRows, error: availabilityRulesError },
     { data: legacyAvailability },
   ] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('timezone, currency, full_name')
-      .eq('id', user.id)
-      .single(),
     supabase
       .from('professional_settings')
       .select(
@@ -178,7 +167,8 @@ export default async function AgendarPage({
       .from('availability_exceptions')
       .select('date_local, is_available, start_time_local, end_time_local')
       .eq('professional_id', professional.id)
-      .eq('is_available', false),
+      .eq('is_available', false)
+      .limit(200),
   ])
 
   const existingBookings = [
@@ -266,8 +256,8 @@ export default async function AgendarPage({
             end_time_local: string | null
           }[]
         }
-        userTimezone={profile?.timezone || 'America/Sao_Paulo'}
-        userCurrency={profile?.currency || 'BRL'}
+        userTimezone={userProfile?.timezone || 'America/Sao_Paulo'}
+        userCurrency={userProfile?.currency || 'BRL'}
         professionalTimezone={bookingSettings.timezone}
         minimumNoticeHours={bookingSettings.minimumNoticeHours}
         maxBookingWindowDays={bookingSettings.maxBookingWindowDays}

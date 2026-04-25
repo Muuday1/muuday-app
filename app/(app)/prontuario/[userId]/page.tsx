@@ -23,15 +23,12 @@ export default async function ProntuarioClientePage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { data: professional }] = await Promise.all([
+    supabase.from('profiles').select('role, full_name').eq('id', user.id).single(),
+    getPrimaryProfessionalForUser(supabase, user.id, 'id'),
+  ])
 
   if (profile?.role !== 'profissional') redirect('/perfil')
-
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (!professional) redirect('/completar-perfil')
 
   // Fetch client data, records, notes, and latest booking in parallel

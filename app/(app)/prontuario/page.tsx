@@ -15,15 +15,12 @@ export default async function ProntuarioPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { data: professional }] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    getPrimaryProfessionalForUser(supabase, user.id, 'id'),
+  ])
 
   if (profile?.role !== 'profissional') redirect('/perfil')
-
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (!professional) redirect('/completar-perfil')
 
   // Fetch distinct clients from completed bookings
@@ -32,6 +29,7 @@ export default async function ProntuarioPage() {
     .select('user_id, profiles!bookings_user_id_fkey(id, full_name)')
     .eq('professional_id', professional.id)
     .in('status', ['completed', 'confirmed'])
+    .limit(500)
 
   const clientMap = new Map<string, { id: string; full_name: string }>()
   for (const b of bookings || []) {

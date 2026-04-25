@@ -42,6 +42,7 @@ export default async function FavoritosPage() {
       .select('*, profiles(*)')
       .in('id', ids)
       .eq('status', 'approved')
+      .limit(200)
 
     professionals = (data as unknown as Professional[]) || []
   }

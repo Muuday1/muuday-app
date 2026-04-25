@@ -12,15 +12,12 @@ export default async function ServicosPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { data: professional }] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    getPrimaryProfessionalForUser(supabase, user.id, 'id'),
+  ])
 
   if (profile?.role !== 'profissional') redirect('/perfil')
-
-  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (!professional) redirect('/completar-perfil')
 
   const servicesResult = await getProfessionalServices(professional.id)

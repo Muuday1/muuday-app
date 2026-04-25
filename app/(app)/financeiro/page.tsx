@@ -63,6 +63,7 @@ export default async function FinanceiroPage() {
           .select('status')
           .eq('professional_id', professionalId)
           .in('status', ['confirmed', 'completed', 'pending_confirmation'])
+          .limit(500)
       : Promise.resolve({ data: [] as any[] }),
     professionalId ? getPayoutStatus() : Promise.resolve(null),
     professionalId ? getProfessionalSubscription() : Promise.resolve(null),

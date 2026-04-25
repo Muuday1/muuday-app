@@ -39,10 +39,19 @@ export default async function DisputaDetalhePage({
 }) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const [
+    { data: { user } },
+    caseResult,
+    messagesResult,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    getCaseById(id),
+    getCaseMessages(id),
+  ])
+
   if (!user) redirect('/login')
 
-  const caseResult = await getCaseById(id)
   if (!caseResult.success) {
     redirect('/disputas')
   }
@@ -50,7 +59,6 @@ export default async function DisputaDetalhePage({
   const caseData = caseResult.data
   const status = STATUS_LABELS[caseData.status] || STATUS_LABELS.open
 
-  const messagesResult = await getCaseMessages(id)
   const messages = messagesResult.success ? (messagesResult.data.messages as any[]) : []
 
   return (

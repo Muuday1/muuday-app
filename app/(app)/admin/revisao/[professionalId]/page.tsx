@@ -33,16 +33,18 @@ export default async function AdminReviewProfessionalPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-  if (profile?.role !== 'admin') redirect('/buscar')
+  const [{ data: profile }, { data: professional }] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('professionals')
+      .select(
+        'id,user_id,status,tier,category,subcategories,tags,bio,session_price_brl,whatsapp_number,cover_photo_url,video_intro_url,social_links,admin_review_notes,created_at,profiles!professionals_user_id_fkey(full_name,email,country,timezone,avatar_url)',
+      )
+      .eq('id', professionalId)
+      .maybeSingle(),
+  ])
 
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select(
-      'id,user_id,status,tier,category,subcategories,tags,bio,session_price_brl,whatsapp_number,cover_photo_url,video_intro_url,social_links,admin_review_notes,created_at,profiles!professionals_user_id_fkey(full_name,email,country,timezone,avatar_url)',
-    )
-    .eq('id', professionalId)
-    .maybeSingle()
+  if (profile?.role !== 'admin') redirect('/buscar')
 
   if (!professional) {
     return (
@@ -63,7 +65,8 @@ export default async function AdminReviewProfessionalPage({
       .from('professional_services')
       .select('name,description,duration_minutes,price_brl,is_active')
       .eq('professional_id', professional.id)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .limit(100),
     supabase
       .from('professional_applications')
       .select(
