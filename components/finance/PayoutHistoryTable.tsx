@@ -2,6 +2,7 @@
 
 import { ArrowDownLeft, ArrowUpRight, Minus } from 'lucide-react'
 import { formatMinorUnits, formatPayoutStatus } from '@/lib/payments/format-utils'
+import type { PayoutPeriodicity } from '@/lib/payments/fees/calculator'
 
 interface PayoutItem {
   id: string
@@ -14,9 +15,18 @@ interface PayoutItem {
 
 interface PayoutHistoryTableProps {
   payouts: PayoutItem[]
+  periodicity?: PayoutPeriodicity
 }
 
-export function PayoutHistoryTable({ payouts }: PayoutHistoryTableProps) {
+const PERIODICITY_LABELS: Record<PayoutPeriodicity, string> = {
+  weekly: 'semanal',
+  biweekly: 'quinzenal',
+  monthly: 'mensal',
+}
+
+export function PayoutHistoryTable({ payouts, periodicity = 'weekly' }: PayoutHistoryTableProps) {
+  const periodLabel = PERIODICITY_LABELS[periodicity]
+
   if (payouts.length === 0) {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-6 text-center">
@@ -25,7 +35,7 @@ export function PayoutHistoryTable({ payouts }: PayoutHistoryTableProps) {
         </div>
         <p className="text-sm text-slate-600">Nenhum payout registrado ainda.</p>
         <p className="text-xs text-slate-400 mt-1">
-          Os payouts aparecem aqui após o processamento semanal.
+          Os payouts aparecem aqui após o processamento {periodLabel}.
         </p>
       </div>
     )

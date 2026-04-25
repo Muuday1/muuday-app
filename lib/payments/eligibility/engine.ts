@@ -13,6 +13,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { getProfessionalBalance, canReceivePayouts } from '../ledger/balance'
 import { THRESHOLDS } from '../bigint-constants'
+import type { PayoutPeriodicity } from '../fees/calculator'
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -209,6 +210,43 @@ export interface ProfessionalEligibilityResult {
   bookingIds: string[]
 }
 
+// ---------------------------------------------------------------------------
+// Periodicity check
+// ---------------------------------------------------------------------------
+
+/**
+ * Determine if a professional should receive a payout now based on their
+ * chosen periodicity and last payout date.
+ *
+ * - weekly:  eligible if last payout was >= 7 days ago (or never)
+ * - biweekly: eligible if last payout was >= 14 days ago (or never)
+ * - monthly:  eligible if last payout was >= 30 days ago (or never)
+ */
+export function shouldProfessionalReceivePayoutNow(
+  periodicity: PayoutPeriodicity,
+  lastPayoutAt: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!lastPayoutAt) {
+    return true // First payout — always eligible
+  }
+
+  const last = new Date(lastPayoutAt)
+  const msSince = now.getTime() - last.getTime()
+
+  switch (periodicity) {
+    case 'weekly':
+      return msSince >= 7 * 24 * 60 * 60 * 1000
+    case 'biweekly':
+      return msSince >= 14 * 24 * 60 * 60 * 1000
+    case 'monthly':
+      return msSince >= 30 * 24 * 60 * 60 * 1000
+    default:
+      // Unknown periodicity — default to weekly behavior
+      return msSince >= 7 * 24 * 60 * 60 * 1000
+  }
+}
+
 /**
  * Check if a professional is eligible to receive payouts.
  *
@@ -221,6 +259,7 @@ export async function checkProfessionalEligibility(
   admin: SupabaseClient,
   professionalId: string,
   config: EligibilityConfig = DEFAULT_ELIGIBILITY_CONFIG,
+  now: Date = new Date(),
 ): Promise<ProfessionalEligibilityResult> {
   // Check balance/debt
   const balance = await getProfessionalBalance(admin, professionalId)
@@ -234,6 +273,31 @@ export async function checkProfessionalEligibility(
         totalEligibleAmount: BigInt(0),
         bookingIds: [],
       }
+    }
+  }
+
+  // Check payout periodicity
+  const { data: settings } = await admin
+    .from('professional_settings')
+    .select('payout_periodicity')
+    .eq('professional_id', professionalId)
+    .maybeSingle()
+
+  const periodicity = (settings?.payout_periodicity || 'weekly') as PayoutPeriodicity
+  const lastPayoutAt = balance?.lastPayoutAt
+
+  if (!shouldProfessionalReceivePayoutNow(periodicity, lastPayoutAt, now)) {
+    const nextPayout = new Date(
+      new Date(lastPayoutAt!).getTime() +
+        (periodicity === 'biweekly' ? 14 : periodicity === 'monthly' ? 30 : 7) *
+          24 * 60 * 60 * 1000,
+    )
+    return {
+      eligible: false,
+      professionalId,
+      reason: `Payout periodicity is '${periodicity}'. Next eligible payout: ${nextPayout.toISOString()}`,
+      totalEligibleAmount: BigInt(0),
+      bookingIds: [],
     }
   }
 

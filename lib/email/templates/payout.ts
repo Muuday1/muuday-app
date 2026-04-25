@@ -2,6 +2,13 @@ import { sendEmail } from '@/lib/email/client'
 import { emailLayout, cta, signoff, from, infoBox } from '@/lib/email/theme'
 import { APP_URL } from '@/lib/email/theme'
 import { formatMinorUnits } from '@/lib/payments/format-utils'
+import type { PayoutPeriodicity } from '@/lib/payments/fees/calculator'
+
+const PERIODICITY_LABELS: Record<PayoutPeriodicity, string> = {
+  weekly: 'semanal',
+  biweekly: 'quinzenal',
+  monthly: 'mensal',
+}
 
 // ─── 20. Pagamento enviado (profissional) ─────────────────────────────────
 export async function sendPayoutSentEmail(
@@ -13,9 +20,10 @@ export async function sendPayoutSentEmail(
     netAmount: bigint
     payoutBatchId: string
     expectedArrival?: string
+    periodicity?: PayoutPeriodicity
   },
 ) {
-  const { amount, debtDeducted, netAmount, expectedArrival } = params
+  const { amount, debtDeducted, netAmount, expectedArrival, periodicity = 'weekly' } = params
 
   const rows: { label: string; value: string }[] = [
     { label: 'Valor bruto', value: formatMinorUnits(amount) },
@@ -32,6 +40,8 @@ export async function sendPayoutSentEmail(
     ? `<p class="bt">O valor deve chegar até <strong>${expectedArrival}</strong>, dependendo do processamento do PayPal.</p>`
     : `<p class="bt">O valor deve chegar em até <strong>3 dias úteis</strong>, dependendo do processamento do PayPal.</p>`
 
+  const periodLabel = PERIODICITY_LABELS[periodicity]
+
   return sendEmail({
     from: from(),
     to,
@@ -40,7 +50,7 @@ export async function sendPayoutSentEmail(
       'Pagamento',
       'Seu pagamento foi enviado!',
       `<p class="greet">Oi, ${professionalName}!</p>
-      <p class="bt">Acabamos de enviar seu pagamento semanal. Aqui estão os detalhes:</p>
+      <p class="bt">Acabamos de enviar seu pagamento ${periodLabel}. Aqui estão os detalhes:</p>
       ${infoBox(rows)}
       ${arrivalText}
       <div class="success">

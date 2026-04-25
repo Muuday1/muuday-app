@@ -17,6 +17,8 @@ import { formatMinorUnits } from '@/lib/payments/format-utils'
 // Types
 // ---------------------------------------------------------------------------
 
+import type { PayoutPeriodicity } from '@/lib/payments/fees/calculator'
+
 export interface PayoutNotificationPayload {
   professionalId: string
   professionalEmail: string
@@ -29,6 +31,7 @@ export interface PayoutNotificationPayload {
   status: 'submitted' | 'completed' | 'failed' | 'returned'
   reason?: string
   expectedArrival?: string
+  periodicity?: PayoutPeriodicity
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +108,7 @@ async function sendEmailNotification(
         netAmount: payload.netAmount,
         payoutBatchId: payload.payoutBatchId,
         expectedArrival: payload.expectedArrival,
+        periodicity: payload.periodicity,
       })
       break
     case 'completed':
@@ -178,34 +182,57 @@ export async function notifyProfessionalsOnBatchSubmitted(
 
   if (!items || items.length === 0) return
 
-  // Fetch professional emails and names in batch
+  // Fetch professional emails, names, and periodicity in batch
   const professionalIds = items.map((i) => i.professional_id)
+
+  // Get profiles via professionals(user_id) for name + email
   const { data: professionals } = await admin
     .from('professionals')
-    .select('id, email, name')
+    .select('id, user_id')
     .in('id', professionalIds)
 
-  const proMap = new Map(
-    (professionals ?? []).map((p) => [
+  const userIds = (professionals ?? []).map((p) => p.user_id).filter(Boolean)
+  const { data: profiles } = await admin
+    .from('profiles')
+    .select('id, email, first_name, last_name')
+    .in('id', userIds)
+
+  const { data: settings } = await admin
+    .from('professional_settings')
+    .select('professional_id, payout_periodicity')
+    .in('professional_id', professionalIds)
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [
       p.id,
-      { email: p.email || '', name: p.name || 'Profissional' },
+      {
+        email: p.email || '',
+        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Profissional',
+      },
     ]),
   )
 
+  const proToUser = new Map((professionals ?? []).map((p) => [p.id, p.user_id]))
+  const settingsMap = new Map(
+    (settings ?? []).map((s) => [s.professional_id, s.payout_periodicity]),
+  )
+
   for (const item of items) {
-    const pro = proMap.get(item.professional_id)
-    if (!pro || !pro.email) continue
+    const userId = proToUser.get(item.professional_id)
+    const profile = userId ? profileMap.get(userId) : null
+    if (!profile || !profile.email) continue
 
     void notifyProfessionalAboutPayout(admin, {
       professionalId: item.professional_id,
-      professionalEmail: pro.email,
-      professionalName: pro.name,
+      professionalEmail: profile.email,
+      professionalName: profile.name,
       amount: BigInt(item.amount),
       debtDeducted: BigInt(item.debt_deducted || 0),
       netAmount: BigInt(item.net_amount),
       payoutBatchId: batchId,
       payoutBatchItemId: item.id,
       status: 'submitted',
+      periodicity: (settingsMap.get(item.professional_id) || 'weekly') as PayoutPeriodicity,
     }).catch(() => {
       // Individual notification failures are non-blocking
     })

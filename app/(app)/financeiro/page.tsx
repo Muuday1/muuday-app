@@ -13,6 +13,7 @@ import { AppCard } from '@/components/ui/AppCard'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 import { PayoutStatusCard } from '@/components/finance/PayoutStatusCard'
 import { PayoutHistoryTable } from '@/components/finance/PayoutHistoryTable'
+import { PayoutPeriodicitySelector } from '@/components/finance/PayoutPeriodicitySelector'
 
 export default async function FinanceiroPage() {
   const supabase = await createClient()
@@ -101,7 +102,15 @@ export default async function FinanceiroPage() {
             payoutStatus={payoutData.payoutStatus}
             balance={payoutData.balance}
           />
-          <PayoutHistoryTable payouts={payoutData.recentPayouts} />
+          <AppCard>
+            <PayoutPeriodicitySelector
+              currentPeriodicity={payoutData.periodicity || 'weekly'}
+            />
+          </AppCard>
+          <PayoutHistoryTable
+            payouts={payoutData.recentPayouts}
+            periodicity={payoutData.periodicity || 'weekly'}
+          />
         </div>
       ) : (
         <AppCard className="mb-6">

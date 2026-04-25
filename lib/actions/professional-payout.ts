@@ -9,6 +9,7 @@ import {
   syncTrolleyRecipientStatus,
 } from '@/lib/payments/trolley/onboarding'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import type { PayoutPeriodicity } from '@/lib/payments/fees/calculator'
 
 /**
  * Initiate Trolley payout setup for the current professional.
@@ -73,6 +74,13 @@ export async function getPayoutStatus() {
     .eq('professional_id', professional.id)
     .maybeSingle()
 
+  // Fetch payout periodicity preference
+  const { data: settings } = await supabase
+    .from('professional_settings')
+    .select('payout_periodicity')
+    .eq('professional_id', professional.id)
+    .maybeSingle()
+
   return {
     success: true,
     payoutStatus: status,
@@ -86,6 +94,7 @@ export async function getPayoutStatus() {
           lastPayoutAt: balance.last_payout_at,
         }
       : null,
+    periodicity: (settings?.payout_periodicity || 'weekly') as PayoutPeriodicity,
   }
 }
 
@@ -116,4 +125,39 @@ export async function refreshPayoutStatus() {
     kycStatus: result.kycStatus,
     isActive: result.isActive,
   }
+}
+
+/**
+ * Update the professional's payout periodicity preference.
+ *
+ * Allowed values: 'weekly' | 'biweekly' | 'monthly'
+ */
+export async function updatePayoutPeriodicity(periodicity: PayoutPeriodicity) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
+
+  const rl = await rateLimit('payoutPeriodicityUpdate', user.id)
+  if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  const validValues: PayoutPeriodicity[] = ['weekly', 'biweekly', 'monthly']
+  if (!validValues.includes(periodicity)) {
+    return { error: 'Periodicidade inválida. Use: weekly, biweekly, ou monthly.' }
+  }
+
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id)
+  if (!professional) {
+    return { error: 'Perfil profissional não encontrado.' }
+  }
+
+  const { error } = await supabase
+    .from('professional_settings')
+    .update({ payout_periodicity: periodicity, updated_at: new Date().toISOString() })
+    .eq('professional_id', professional.id)
+
+  if (error) {
+    return { error: `Erro ao atualizar periodicidade: ${error.message}` }
+  }
+
+  return { success: true, periodicity }
 }
