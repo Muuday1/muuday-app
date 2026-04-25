@@ -8,7 +8,7 @@
 > **Phase 4 Status**: ✅ COMPLETE
 > **Phase 5 Status**: ✅ COMPLETE
 > **Phase 6 Status**: ✅ COMPLETE
-> **Next**: Production migration (070-075) + E2E sandbox testing + webhook signature hardening
+> **Next**: E2E sandbox testing + monthly subscription fee (Phase 6.2)
 
 ---
 
@@ -237,7 +237,7 @@
 - [x] Ledger entries for debt deduction (`buildPayoutWithDebtTransaction`)
 - [x] Trolley fee absorbed by Muuday (`trolley_fee_absorbed` field + `buildTrolleyFeeTransaction`)
 - [x] Professional sees net amount in dashboard (`getPayoutStatus` server action)
-- [ ] **Monthly subscription fee** (Stripe) — Phase 6 scope, NOT deducted from payouts
+- [ ] **Monthly subscription fee** (Stripe) — Phase 6 scope, NOT deducted from payouts. Requires product decision on pricing.
 
 ### 4.4 Payout Notification
 - [x] Email to professional: "Seu pagamento foi enviado" (`sendPayoutSentEmail` Resend template)

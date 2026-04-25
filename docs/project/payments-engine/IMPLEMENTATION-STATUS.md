@@ -148,6 +148,7 @@
 17. ~~**SELECT * in payment queries**~~ ✅ **Fixed** — Explicit column lists in balance, ledger, payout queries
 5. **Trolley API error retry** — Inngest handles retries at function level; per-item failures are logged but not individually retried
 8. ~~**Payout notification email hardcoded 'semanal'**~~ ✅ **Fixed** — `sendPayoutSentEmail` now accepts `periodicity` parameter with dynamic label
+9. ~~**Missing operational runbooks**~~ ✅ **Created** — 4 runbooks (payout-failure, dispute-after-payout, treasury-insufficient, ledger-reconciliation) + 2 checklists (pre-deploy, post-deploy)
 6. ~~Migrations not applied in production~~ ✅ **Applied** — 070-079 confirmed in production
 7. ~~Trolley webhook professional linking bug~~ ✅ **Fixed** — `professionals.email` query corrected to `profiles` → `professionals` by `user_id`
 

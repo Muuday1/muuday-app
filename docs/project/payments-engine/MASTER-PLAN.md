@@ -31,13 +31,13 @@ MASTER-PLAN.md (this file)
 ├── Decisions:
 │   └── DECISIONS.md (ADR-style decisions with rationale)
 ├── Runbooks:
-│   ├── RUNBOOK-payout-failure.md
-│   ├── RUNBOOK-dispute-after-payout.md
-│   ├── RUNBOOK-treasury-insufficient.md
-│   └── RUNBOOK-ledger-reconciliation.md
+│   ├── RUNBOOK-payout-failure.md ✅
+│   ├── RUNBOOK-dispute-after-payout.md ✅
+│   ├── RUNBOOK-treasury-insufficient.md ✅
+│   └── RUNBOOK-ledger-reconciliation.md ✅
 └── Checklists:
-    ├── CHECKLIST-pre-deploy.md
-    └── CHECKLIST-post-deploy.md
+    ├── CHECKLIST-pre-deploy.md ✅
+    └── CHECKLIST-post-deploy.md ✅
 ```
 
 ---
