@@ -2,6 +2,7 @@
 
 > **Last Updated:** 2026-04-25
 > **Status:** Phases 1–6.2 ✅ IMPLEMENTED — 28 bug fixes + Phase 6.2 subscription feature, build passes, lint passes
+> **Last Commit:** `6b0b561` — Fixed `invoice.attempt_count` type cast + added `count: 'exact'` for subscription pagination
 
 ---
 
