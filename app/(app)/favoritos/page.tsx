@@ -25,18 +25,12 @@ export default async function FavoritosPage() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('currency')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { data: favs }] = await Promise.all([
+    supabase.from('profiles').select('currency').eq('id', user.id).single(),
+    supabase.from('favorites').select('professional_id').eq('user_id', user.id),
+  ])
 
   const userCurrency = profile?.currency || 'BRL'
-
-  const { data: favs } = await supabase
-    .from('favorites')
-    .select('professional_id')
-    .eq('user_id', user.id)
 
   const ids = favs?.map(f => f.professional_id) || []
 

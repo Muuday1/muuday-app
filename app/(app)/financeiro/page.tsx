@@ -43,29 +43,32 @@ export default async function FinanceiroPage() {
 
   const professionalId = professional?.id || null
 
-  const { data: payments } = professionalId
-    ? await supabase
-        .from('payments')
-        .select('amount_total, currency, status, created_at')
-        .eq('professional_id', professionalId)
-        .order('created_at', { ascending: false })
-        .limit(100)
-    : { data: [] as any[] }
+  const [
+    { data: payments },
+    { data: bookings },
+    payoutData,
+    subscriptionResult,
+  ] = await Promise.all([
+    professionalId
+      ? supabase
+          .from('payments')
+          .select('amount_total, currency, status, created_at')
+          .eq('professional_id', professionalId)
+          .order('created_at', { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as any[] }),
+    professionalId
+      ? supabase
+          .from('bookings')
+          .select('status')
+          .eq('professional_id', professionalId)
+          .in('status', ['confirmed', 'completed', 'pending_confirmation'])
+      : Promise.resolve({ data: [] as any[] }),
+    professionalId ? getPayoutStatus() : Promise.resolve(null),
+    professionalId ? getProfessionalSubscription() : Promise.resolve(null),
+  ])
 
-  const { data: bookings } = professionalId
-    ? await supabase
-        .from('bookings')
-        .select('status')
-        .eq('professional_id', professionalId)
-        .in('status', ['confirmed', 'completed', 'pending_confirmation'])
-    : { data: [] as any[] }
-
-  // Fetch payout status from payments engine
-  const payoutData = professionalId ? await getPayoutStatus() : null
-
-  // Fetch subscription status
-  const subscriptionResult = professionalId ? await getProfessionalSubscription() : null
-  const subscription = subscriptionResult?.success ? subscriptionResult.subscription : null
+  const subscription = (subscriptionResult as any)?.success ? (subscriptionResult as any).subscription : null
 
   const currency = profile.currency || 'BRL'
   const capturedPayments = (payments || []).filter((payment: any) => payment.status === 'captured')

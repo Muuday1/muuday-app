@@ -21,14 +21,11 @@ export default async function PlanosPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser()
 
   if (!authError && user) {
-    const { data: sessionData } = await supabase.auth.getSession()
+    const [{ data: sessionData }, { data: profile }] = await Promise.all([
+      supabase.auth.getSession(),
+      supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+    ])
     sessionToken = sessionData.session?.access_token || null
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
 
     if (profile?.role === 'profissional') {
       const { data: professional } = await supabase

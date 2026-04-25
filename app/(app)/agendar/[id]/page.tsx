@@ -101,40 +101,43 @@ export default async function AgendarPage({
     redirect(`${professionalProfileHref}?erro=primeiro-agendamento-bloqueado`)
   }
 
-  // Fetch user profile for timezone and currency
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone, currency, full_name')
-    .eq('id', user.id)
-    .single()
-
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from('professional_settings')
-    .select(
-      'timezone, session_duration_minutes, buffer_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose'
-    )
-    .eq('professional_id', professional.id)
-    .maybeSingle()
+  // Fetch user profile, settings, and availability in parallel
+  const [
+    { data: profile },
+    { data: settingsRow, error: settingsError },
+    { data: availabilityRulesRows, error: availabilityRulesError },
+    { data: legacyAvailability },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('timezone, currency, full_name')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('professional_settings')
+      .select(
+        'timezone, session_duration_minutes, buffer_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose'
+      )
+      .eq('professional_id', professional.id)
+      .maybeSingle(),
+    supabase
+      .from('availability_rules')
+      .select('weekday, start_time_local, end_time_local, is_active')
+      .eq('professional_id', professional.id)
+      .eq('is_active', true)
+      .order('weekday'),
+    supabase
+      .from('availability')
+      .select('id, day_of_week, start_time, end_time')
+      .eq('professional_id', professional.id)
+      .eq('is_active', true)
+      .order('day_of_week'),
+  ])
 
   const bookingSettings = normalizeProfessionalSettingsRow(
     settingsError ? null : (settingsRow as Record<string, unknown> | null),
     professionalProfile?.timezone || 'America/Sao_Paulo'
   )
-
-  // Fetch professional's weekly availability
-  const { data: availabilityRulesRows, error: availabilityRulesError } = await supabase
-    .from('availability_rules')
-    .select('weekday, start_time_local, end_time_local, is_active')
-    .eq('professional_id', professional.id)
-    .eq('is_active', true)
-    .order('weekday')
-
-  const { data: legacyAvailability } = await supabase
-    .from('availability')
-    .select('id, day_of_week, start_time, end_time')
-    .eq('professional_id', professional.id)
-    .eq('is_active', true)
-    .order('day_of_week')
 
   const availability =
     !availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0

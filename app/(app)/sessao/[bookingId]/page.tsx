@@ -31,16 +31,20 @@ export default async function VideoSessionPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('id,role,timezone').eq('id', user.id).maybeSingle()
-
-  // Load booking with lightweight professional join (no nested profile join)
-  const { data: booking } = await supabase
-    .from('bookings')
-    .select(
-      'id,user_id,professional_id,status,scheduled_at,start_time_utc,end_time_utc,duration_minutes,professionals!bookings_professional_id_fkey(user_id)',
-    )
-    .eq('id', bookingId)
-    .maybeSingle()
+  // Load profile and booking in parallel
+  const [
+    { data: profile },
+    { data: booking },
+  ] = await Promise.all([
+    supabase.from('profiles').select('id,role,timezone').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('bookings')
+      .select(
+        'id,user_id,professional_id,status,scheduled_at,start_time_utc,end_time_utc,duration_minutes,professionals!bookings_professional_id_fkey(user_id)',
+      )
+      .eq('id', bookingId)
+      .maybeSingle(),
+  ])
 
   if (!booking) notFound()
 
