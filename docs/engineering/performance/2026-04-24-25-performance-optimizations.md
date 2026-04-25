@@ -251,6 +251,8 @@ All tested pages return expected status codes:
 | `1359ded` | Extract persist and record-payment modules |
 | `0a6c343` | Refactor orchestrator to delegate to creation modules |
 | `76589f2` | Unit tests for all 10 extracted creation modules (+70 tests) |
+| `20f4839` | Unit tests for manage-booking-service (validateBookingId, confirm, detail, refund) |
+| `ae708a8` | Migrate `middleware.ts` → `proxy.ts` (Next.js 16 convention) |
 
 ### Refactoring: `executeBookingCreation` (761 lines → ~300 lines)
 
@@ -295,8 +297,9 @@ After extraction, each module received dedicated unit tests:
 | `persist-batch.test.ts` | 4 | Atomic success, fallback insert, collision detection |
 | `record-payment.test.ts` | 3 | Successful insert, failure + booking cancellation |
 | `logging.test.ts` | 4 | Sentry calls, dev console conditional |
+| `manage-booking-service.test.ts` | 19 | validateBookingId, confirm, detail, refund, recurring deadlines |
 
-**Total booking tests: 64 → 134 (+70 new). All TypeScript clean.**
+**Total booking tests: 64 → 153 (+89 new). All TypeScript clean.**
 
 ---
 
