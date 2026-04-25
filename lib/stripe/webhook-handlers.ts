@@ -352,7 +352,7 @@ async function createStripeSettlementEntry(
   await createLedgerTransaction(admin, ledgerInput)
 }
 
-async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Event) {
+export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Stripe.Event) {
   const paymentIntentId = extractPaymentIntentIdFromStripeEvent(event)
   const eventObject = asRecord(event.data.object as unknown)
   const metadata = asRecord(eventObject.metadata)
