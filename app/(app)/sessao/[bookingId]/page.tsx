@@ -33,10 +33,11 @@ export default async function VideoSessionPage({
 
   const { data: profile } = await supabase.from('profiles').select('id,role,timezone').eq('id', user.id).maybeSingle()
 
+  // Load booking with lightweight professional join (no nested profile join)
   const { data: booking } = await supabase
     .from('bookings')
     .select(
-      'id,user_id,professional_id,status,scheduled_at,start_time_utc,end_time_utc,duration_minutes,professionals!bookings_professional_id_fkey(user_id,profiles!professionals_user_id_fkey(full_name)),profiles!bookings_user_id_fkey(full_name)',
+      'id,user_id,professional_id,status,scheduled_at,start_time_utc,end_time_utc,duration_minutes,professionals!bookings_professional_id_fkey(user_id)',
     )
     .eq('id', bookingId)
     .maybeSingle()
@@ -46,19 +47,29 @@ export default async function VideoSessionPage({
   const professionalOwnerId = Array.isArray(booking.professionals)
     ? booking.professionals[0]?.user_id
     : (booking.professionals as { user_id?: string } | null)?.user_id
-  const professionalRelation = Array.isArray(booking.professionals)
-    ? booking.professionals[0]
-    : (booking.professionals as {
-        user_id?: string
-        profiles?: { full_name?: string } | Array<{ full_name?: string }>
-      } | null)
-  const professionalProfile = Array.isArray(professionalRelation?.profiles)
-    ? professionalRelation?.profiles[0]
-    : professionalRelation?.profiles
-  const bookingUserProfile = Array.isArray((booking as any).profiles) ? (booking as any).profiles[0] : (booking as any).profiles
 
   const isParticipant = booking.user_id === user.id || professionalOwnerId === user.id || profile?.role === 'admin'
   if (!isParticipant) redirect('/agenda')
+
+  // Load names in parallel
+  const userIds = [booking.user_id, professionalOwnerId].filter(Boolean) as string[]
+  let userName = 'Cliente'
+  let professionalName = 'Profissional'
+
+  if (userIds.length > 0) {
+    const { data: nameProfiles } = await supabase
+      .from('profiles')
+      .select('id,full_name')
+      .in('id', userIds)
+
+    const nameMap = new Map<string, string>()
+    ;(nameProfiles || []).forEach((p: any) => {
+      if (p.id && p.full_name) nameMap.set(p.id, p.full_name)
+    })
+
+    userName = nameMap.get(booking.user_id) || 'Cliente'
+    professionalName = professionalOwnerId ? (nameMap.get(professionalOwnerId) || 'Profissional') : 'Profissional'
+  }
 
   const timezone = profile?.timezone || 'America/Sao_Paulo'
   const startAt = parseDate(booking.start_time_utc) || parseDate(booking.scheduled_at)
@@ -91,9 +102,6 @@ export default async function VideoSessionPage({
   const joinEnd = new Date(endAt.getTime() + JOIN_WINDOW_AFTER_MINUTES * 60 * 1000)
   const now = new Date()
   const canJoin = now >= joinStart && now <= joinEnd
-
-  const userName = bookingUserProfile?.full_name || 'Cliente'
-  const professionalName = professionalProfile?.full_name || 'Profissional'
 
   return (
     <div className="mx-auto max-w-5xl p-6 md:p-8">
