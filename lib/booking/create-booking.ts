@@ -29,7 +29,15 @@ import {
   isActiveSlotCollision,
 } from '@/lib/booking/request-validation'
 import type { SessionSlot } from '@/lib/booking/payload-builders'
-import type { BookingCreateResult, PersistResult } from './creation/types'
+import {
+  createBookingInputSchema,
+  type BookingCreateResult,
+  type CreateBookingInput,
+  type PersistResult,
+} from './creation/types'
+
+export { createBookingInputSchema }
+export type { CreateBookingInput }
 
 const MANUAL_CONFIRMATION_SLA_HOURS = 24
 const ACTIVE_BOOKING_SLOT_UNIQUE_INDEX = 'bookings_unique_active_professional_start_idx'
@@ -63,25 +71,6 @@ function logBookingEvent(
     extra: context,
   })
 }
-
-const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.')
-
-export const createBookingInputSchema = z.object({
-  professionalId: z.string().uuid('Identificador de profissional inválido.'),
-  scheduledAt: localDateTimeSchema.optional(),
-  notes: z.string().trim().max(500, 'Observações muito longas.').optional(),
-  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessão muito longo.').optional(),
-  bookingType: z.enum(['one_off', 'recurring', 'batch']).default('one_off').optional(),
-  recurringPeriodicity: z.enum(['weekly', 'biweekly', 'monthly', 'custom_days']).optional(),
-  recurringIntervalDays: z.number().int().min(1).max(365).optional(),
-  recurringOccurrences: z.number().int().min(2).max(52).optional(),
-  recurringSessionsCount: z.number().int().min(2).max(52).optional(),
-  recurringEndDate: localDateSchema.optional(),
-  recurringAutoRenew: z.boolean().optional(),
-  batchDates: z.array(localDateTimeSchema).min(2).max(20).optional(),
-})
-
-export type CreateBookingInput = z.infer<typeof createBookingInputSchema>
 
 function parseSlotFromLocalDateTime(
   localDateTime: string,

@@ -1,6 +1,27 @@
+import { z } from 'zod'
+import { localDateTimeSchema } from '@/lib/booking/request-validation'
 import type { BookingSettings, SessionSlot } from '@/lib/booking/payload-builders'
 
 export type { BookingSettings, SessionSlot }
+
+const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.')
+
+export const createBookingInputSchema = z.object({
+  professionalId: z.string().uuid('Identificador de profissional inválido.'),
+  scheduledAt: localDateTimeSchema.optional(),
+  notes: z.string().trim().max(500, 'Observações muito longas.').optional(),
+  sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessão muito longo.').optional(),
+  bookingType: z.enum(['one_off', 'recurring', 'batch']).default('one_off').optional(),
+  recurringPeriodicity: z.enum(['weekly', 'biweekly', 'monthly', 'custom_days']).optional(),
+  recurringIntervalDays: z.number().int().min(1).max(365).optional(),
+  recurringOccurrences: z.number().int().min(2).max(52).optional(),
+  recurringSessionsCount: z.number().int().min(2).max(52).optional(),
+  recurringEndDate: localDateSchema.optional(),
+  recurringAutoRenew: z.boolean().optional(),
+  batchDates: z.array(localDateTimeSchema).min(2).max(20).optional(),
+})
+
+export type CreateBookingInput = z.infer<typeof createBookingInputSchema>
 
 export type BookingCreateResult =
   | { success: true; bookingId: string; createdBookingIds: string[]; usedAtomicPath: boolean; professionalEmail: string | null; professionalName: string | null }
