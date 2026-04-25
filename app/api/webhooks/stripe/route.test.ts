@@ -17,8 +17,8 @@ import { POST, OPTIONS } from './route'
 vi.mock('@/lib/http/cors', () => ({
   WEBHOOK_API_CORS_POLICY: {},
   evaluateCorsRequest: vi.fn(),
-  applyCorsHeaders: vi.fn((response) => response),
-  createCorsErrorResponse: vi.fn((_req, _policy) => new Response('CORS error', { status: 400 })),
+  applyCorsHeaders: vi.fn((response: any) => response),
+  createCorsErrorResponse: vi.fn((_req, _policy) => new Response('CORS error', { status: 400 }) as any),
   createCorsPreflightResponse: vi.fn(() => new Response(null, { status: 204 })),
 }))
 
@@ -40,7 +40,7 @@ vi.mock('@/lib/ops/stripe-resilience', () => ({
 
 vi.mock('@/inngest/client', () => ({
   inngest: {
-    send: vi.fn(),
+    send: vi.fn().mockResolvedValue({ ids: [] }),
   },
 }))
 
@@ -66,11 +66,11 @@ describe('POST /api/webhooks/stripe', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedEvaluateCorsRequest.mockReturnValue({ allowed: true, headers: {} } as any)
-    mockedApplyCorsHeaders.mockImplementation((response) => response)
+    mockedApplyCorsHeaders.mockImplementation((response: any) => response as any)
     mockedRateLimit.mockResolvedValue({ allowed: true, retryAfterSeconds: 0, limit: 100, remaining: 99, source: 'memory' } as any)
     mockedCreateAdminClient.mockReturnValue({} as any)
     mockedRecordStripeWebhookEvent.mockResolvedValue({ id: 'evt-row-1', status: 'pending', inserted: true })
-    mockedInngestSend.mockResolvedValue(undefined)
+    mockedInngestSend.mockResolvedValue({ ids: [] } as any)
     mockConstructEvent.mockReturnValue({ id: 'evt_123', type: 'payment_intent.succeeded' })
     process.env.STRIPE_SECRET_KEY = 'sk_test_123'
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_123'
