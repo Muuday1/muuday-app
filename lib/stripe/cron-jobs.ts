@@ -242,17 +242,18 @@ export async function runStripeSubscriptionRenewalChecks(
         if (!professionalId) {
           missingProfessional += 1
         } else {
-          const billingCardOnFile = !['incomplete_expired', 'unpaid'].includes(subscription.status)
+          // Sync legacy billing_card_on_file flag (must match syncBillingCardOnFile in manager.ts)
+          const billingCardOnFile = !['incomplete_expired', 'unpaid', 'canceled'].includes(subscription.status)
           const { error: settingsUpdateError } = await admin
             .from('professional_settings')
-            .update({
+            .upsert({
+              professional_id: professionalId,
               billing_card_on_file: billingCardOnFile,
               updated_at: new Date().toISOString(),
-            })
-            .eq('professional_id', professionalId)
+            }, { onConflict: 'professional_id' })
 
           if (settingsUpdateError) {
-            console.error('[stripe/subscription-check] failed to update professional settings:', settingsUpdateError.message)
+            console.error('[stripe/subscription-check] failed to sync billing_card_on_file:', settingsUpdateError.message)
           }
         }
 
