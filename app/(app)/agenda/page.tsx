@@ -210,6 +210,7 @@ export default async function AgendaPage({
         .in('status', ['pending', 'pending_confirmation', 'confirmed'])
         .gte('scheduled_at', nowIso)
         .order('scheduled_at', { ascending: true })
+        .limit(50)
     : { data: [] as any[], error: null }
   if (upcomingError) {
     console.error('[agenda] upcoming bookings query error:', upcomingError.message, upcomingError.code)

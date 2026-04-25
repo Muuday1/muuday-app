@@ -116,6 +116,10 @@ export async function createCustomerPortalSession(): Promise<{
       return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.muuday.com'}/financeiro`,
     })
 
+    if (!session.url) {
+      return { success: false, error: 'URL do portal não retornada pelo Stripe.' }
+    }
+
     return { success: true, url: session.url }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
