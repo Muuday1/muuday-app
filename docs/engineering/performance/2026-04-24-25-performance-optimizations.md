@@ -244,6 +244,59 @@ All tested pages return expected status codes:
 | `a32c90d` | Query limits across 11+ pages |
 | `c3c46b4` | TypeScript Promise.all inference fix |
 | `d74f7dd` | Offline page Client Component extraction |
+| `3676033` | Extract `withTimeout` to dedicated module |
+| `b4b7e47` | Extract shared creation types |
+| `6ef12da` | Extract `lookup-context` with parallel queries |
+| `caba9f6` | Extract prepare-slots, calculate-price, prepare-payment |
+| `1359ded` | Extract persist and record-payment modules |
+| `0a6c343` | Refactor orchestrator to delegate to creation modules |
+| `76589f2` | Unit tests for all 10 extracted creation modules (+70 tests) |
+
+### Refactoring: `executeBookingCreation` (761 lines → ~300 lines)
+
+The booking creation function was a 761-line "god function" mixing validation, DB queries, slot preparation, pricing, payment preparation, and 3 distinct persistence paths (one_off, recurring, batch). Post-refactor architecture:
+
+```
+lib/booking/
+  create-booking.ts          # Orchestrator (~300 lines)
+  with-timeout.ts            # Generic timeout utility
+  creation/
+    types.ts                 # Shared types + Zod schema
+    lookup-context.ts        # Parallel data lookup
+    prepare-slots.ts         # Slot parsing for all 3 types
+    calculate-price.ts       # Exchange rate + price computation
+    prepare-payment.ts       # Payment payload + PII guard
+    persist-one-off.ts       # Atomic + fallback persistence
+    persist-recurring.ts     # Atomic + fallback with rollback
+    persist-batch.ts         # Atomic + fallback persistence
+    record-payment.ts        # Payment insert + cancellation
+    logging.ts               # Shared Sentry helpers
+```
+
+**Impact:**
+- Each module has a single, well-defined responsibility
+- Independent testability of each step
+- Easier to reason about the booking flow
+- Zero behavioral changes — all 168 unit tests pass
+
+### Test Coverage for Extracted Modules
+
+After extraction, each module received dedicated unit tests:
+
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| `types.test.ts` | 17 | Zod schema validation (UUID, lengths, ranges, formats) |
+| `calculate-price.test.ts` | 8 | Exchange rates, rounding, null handling |
+| `prepare-payment.test.ts` | 5 | Payment payload structure, PII guard failure |
+| `prepare-slots.test.ts` | 13 | one_off, recurring, batch parsing + past-date guards |
+| `lookup-context.test.ts` | 7 | Professional validation, eligibility, settings checks |
+| `persist-one-off.test.ts` | 5 | Atomic success, fallback insert, collision detection |
+| `persist-recurring.test.ts` | 4 | Atomic success, fallback with rollback |
+| `persist-batch.test.ts` | 4 | Atomic success, fallback insert, collision detection |
+| `record-payment.test.ts` | 3 | Successful insert, failure + booking cancellation |
+| `logging.test.ts` | 4 | Sentry calls, dev console conditional |
+
+**Total booking tests: 64 → 134 (+70 new). All TypeScript clean.**
 
 ---
 
