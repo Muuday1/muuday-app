@@ -243,7 +243,7 @@ export async function runStripeSubscriptionRenewalChecks(
           missingProfessional += 1
         } else {
           // Sync legacy billing_card_on_file flag (must match syncBillingCardOnFile in manager.ts)
-          const billingCardOnFile = !['incomplete_expired', 'unpaid', 'canceled'].includes(subscription.status)
+          const billingCardOnFile = !['incomplete', 'incomplete_expired', 'unpaid', 'canceled'].includes(subscription.status)
           const { error: settingsUpdateError } = await admin
             .from('professional_settings')
             .upsert({

@@ -281,16 +281,17 @@ export async function createProfessionalSubscription(
 
 /**
  * Sync the legacy billing_card_on_file flag in professional_settings.
- * A subscription has a "card on file" if it's in a state that implies
- * a payment method exists (trialing, active, past_due) or if it was
- * ever successfully paid.
+ * A subscription has a "card on file" only when it's in a healthy state
+ * that implies a valid payment method exists: trialing, active, past_due,
+ * or paused. All other states (incomplete, incomplete_expired, unpaid,
+ * canceled) mean no valid payment method is on file.
  */
 async function syncBillingCardOnFile(
   admin: SupabaseClient,
   professionalId: string,
   subscriptionStatus: string,
 ) {
-  const hasBillingCard = !['incomplete_expired', 'unpaid', 'canceled'].includes(subscriptionStatus)
+  const hasBillingCard = !['incomplete', 'incomplete_expired', 'unpaid', 'canceled'].includes(subscriptionStatus)
   const { error } = await admin
     .from('professional_settings')
     .upsert(
