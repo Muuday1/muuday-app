@@ -162,13 +162,15 @@ export default async function AgendarPage({
       .eq('professional_id', professional.id)
       .in('status', ['pending', 'pending_confirmation', 'confirmed'])
       .gte('scheduled_at', now.toISOString())
-      .lte('scheduled_at', bookingWindowEnd.toISOString()),
+      .lte('scheduled_at', bookingWindowEnd.toISOString())
+      .limit(200),
     supabase
       .from('external_calendar_busy_slots')
       .select('start_time_utc, end_time_utc')
       .eq('professional_id', professional.id)
       .gte('start_time_utc', now.toISOString())
-      .lte('start_time_utc', bookingWindowEnd.toISOString()),
+      .lte('start_time_utc', bookingWindowEnd.toISOString())
+      .limit(200),
     supabase
       .from('availability_exceptions')
       .select('date_local, is_available, start_time_local, end_time_local')
