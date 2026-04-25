@@ -36,10 +36,10 @@ export default async function ProntuarioClientePage({
 
   // Fetch client data, records, notes, and latest booking in parallel
   const [
-    { data: clientProfile },
+    clientProfileResult,
     recordResult,
     notesResult,
-    { data: latestBooking },
+    latestBookingResult,
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
     getClientRecordByUser(userId),
@@ -54,6 +54,8 @@ export default async function ProntuarioClientePage({
       .maybeSingle(),
   ])
 
+  const clientProfile = clientProfileResult.data
+  const latestBooking = latestBookingResult.data
   const record = recordResult.success ? (recordResult.data.record as any) : null
   const notes = notesResult.success ? (notesResult.data.notes as any[]) : []
 
@@ -68,7 +70,7 @@ export default async function ProntuarioClientePage({
           Voltar para prontuários
         </Link>
         <h1 className="font-display text-2xl font-bold text-slate-900 md:text-3xl">
-          {clientProfile.data?.full_name || 'Cliente'}
+          {clientProfile?.full_name || 'Cliente'}
         </h1>
         <p className="mt-1 text-sm text-slate-500">Prontuário e histórico de sessões.</p>
       </div>
