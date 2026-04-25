@@ -42,6 +42,15 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
   - `/api/health/rls` — lightweight runtime RLS sanity check
 - **Secret rotation register**: `docs/engineering/runbooks/secrets-rotation-register.json` tracks rotation cadences. The `secrets-rotation-reminder.yml` workflow runs daily and fails on overdue items.
 
+## Performance practices for this codebase
+
+- **Parallelize independent Supabase queries**: Always use `Promise.all([q1, q2, q3])` instead of sequential `await` for queries with no data dependencies. See `app/(app)/profissional/[id]/page.tsx` for the canonical pattern.
+- **Add `.limit()` to all unbounded queries**: Every `.select()` on tables that grow over time must have a limit. Default guidance: user-facing lists 20-50, internal lookups 100-200, calendar/exceptions 200.
+- **Never use browser APIs in Server Component event handlers**: `window.*` and `document.*` inside `onClick` handlers in Server Components can cause SSR errors in production. Extract to a dedicated `'use client'` component. See `app/offline/ReloadButton.tsx`.
+- **Use `count: 'exact', head: true`** when only the count is needed — avoids fetching full rows.
+- **Debounce realtime listeners**: `router.refresh()` from Supabase realtime must be debounced (750ms) and rate-limited (max 1/5s, 10/min) to prevent refresh storms.
+- **Cache middleware auth checks**: The `SESSION_CACHE` in `lib/supabase/middleware.ts` reduces `getUser()` latency by ~80% on repeated requests. Do not remove without measuring impact.
+
 ## CI / DevOps practices
 
 - **Node version**: `.nvmrc` specifies Node 20. `package.json` has `engines.node >=20.0.0`. CI uses `node-version-file: '.nvmrc'`.
