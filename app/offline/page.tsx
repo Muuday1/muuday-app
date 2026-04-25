@@ -1,3 +1,5 @@
+import { ReloadButton } from './ReloadButton'
+
 export const metadata = {
   title: 'Offline — Muuday',
   description: 'Você está offline. Alguns recursos podem não estar disponíveis.',
@@ -12,12 +14,7 @@ export default function OfflinePage() {
         ainda funcionam, mas para agendar sessões e acessar seu perfil você precisa
         estar online.
       </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="rounded-lg bg-emerald-600 px-6 py-3 font-medium text-white hover:bg-emerald-700"
-      >
-        Tentar novamente
-      </button>
+      <ReloadButton />
     </div>
   )
 }
