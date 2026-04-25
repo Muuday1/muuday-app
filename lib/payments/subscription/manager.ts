@@ -259,6 +259,9 @@ export async function createProfessionalSubscription(
       console.error('[subscription/manager] failed to persist subscription:', insertError.message)
     }
 
+    // Sync legacy billing_card_on_file flag
+    await syncBillingCardOnFile(admin, professionalId, subscription.status)
+
     return {
       success: true,
       subscriptionId: subscription.id,
@@ -269,6 +272,38 @@ export async function createProfessionalSubscription(
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[subscription/manager] createProfessionalSubscription failed:', msg)
     return { success: false, error: msg }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy Sync: billing_card_on_file
+// ---------------------------------------------------------------------------
+
+/**
+ * Sync the legacy billing_card_on_file flag in professional_settings.
+ * A subscription has a "card on file" if it's in a state that implies
+ * a payment method exists (trialing, active, past_due) or if it was
+ * ever successfully paid.
+ */
+async function syncBillingCardOnFile(
+  admin: SupabaseClient,
+  professionalId: string,
+  subscriptionStatus: string,
+) {
+  const hasBillingCard = !['incomplete_expired', 'unpaid', 'canceled'].includes(subscriptionStatus)
+  const { error } = await admin
+    .from('professional_settings')
+    .upsert(
+      {
+        professional_id: professionalId,
+        billing_card_on_file: hasBillingCard,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'professional_id' },
+    )
+
+  if (error) {
+    console.error('[subscription/manager] failed to sync billing_card_on_file:', error.message)
   }
 }
 
@@ -366,6 +401,14 @@ export async function syncSubscriptionFromStripe(
       }
     }
 
+    // Sync legacy billing_card_on_file flag
+    const proId = existing
+      ? (await admin.from('professional_subscriptions').select('professional_id').eq('id', existing.id).maybeSingle())?.data?.professional_id
+      : subscription.metadata?.professional_id
+    if (proId) {
+      await syncBillingCardOnFile(admin, proId as string, subscription.status)
+    }
+
     return {
       success: true,
       status: subscription.status,
@@ -421,6 +464,16 @@ export async function recordSubscriptionPayment(
 
   if (error) {
     console.error('[subscription/manager] failed to record payment:', error.message)
+  } else {
+    // Sync legacy billing_card_on_file flag on successful payment
+    const { data: sub } = await admin
+      .from('professional_subscriptions')
+      .select('professional_id, status')
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+      .maybeSingle()
+    if (sub?.professional_id) {
+      await syncBillingCardOnFile(admin, sub.professional_id, sub.status)
+    }
   }
 }
 
@@ -458,6 +511,16 @@ export async function recordSubscriptionPaymentFailure(
 
   if (error) {
     console.error('[subscription/manager] failed to record failure:', error.message)
+  } else {
+    // Sync legacy billing_card_on_file flag on payment failure
+    const { data: sub } = await admin
+      .from('professional_subscriptions')
+      .select('professional_id, status')
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+      .maybeSingle()
+    if (sub?.professional_id) {
+      await syncBillingCardOnFile(admin, sub.professional_id, sub.status)
+    }
   }
 }
 
