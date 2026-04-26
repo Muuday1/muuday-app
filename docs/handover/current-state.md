@@ -21,7 +21,7 @@ Last updated: 2026-04-25
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
-8. Payment stack test coverage delivered: 417 tests passing across 52 files (includes 128 new tests for ledger, Stripe webhook handlers, API routes, and Revolut settlement infrastructure).
+8. Payment stack test coverage delivered: 468 tests passing across 57 files (includes 179 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, and Trolley payout infrastructure).
 
 ### In progress
 
@@ -79,6 +79,12 @@ Last updated: 2026-04-25
     - `app/api/webhooks/revolut/route.test.ts` — 10 tests (CORS, rate limit, signature verification, JSON parse, enqueue)
     - `inngest/functions/treasury-snapshot.test.ts` — 6 tests (skip unconfigured, alert below buffer, snapshot insert, webhook source)
     - `inngest/functions/treasury-reconciliation.test.ts` — 5 tests (handler invocation, mismatch warning, summary logging)
+19. **Professional Payout via Trolley test coverage batch (2026-04-25):**
+    - `lib/payments/trolley/client.test.ts` — 15 tests (API client, recipient/payment/batch creation, webhook HMAC signature, health check)
+    - `lib/payments/trolley/onboarding.test.ts` — 12 tests (create recipient, idempotency, profile lookup, status sync, status mapping)
+    - `app/api/webhooks/trolley/route.test.ts` — 9 tests (CORS, rate limit, signature, JSON parse, enqueue)
+    - `inngest/functions/trolley-webhook-processor.test.ts` — 8 tests (recipient created/updated, payment updated, batch updated, unhandled)
+    - `inngest/functions/payout-batch-create.test.ts` — 7 tests (no eligible, no trolley recipients, insufficient funds, trolley payment failure, batch failure, success with debt deduction)
 
 ## Open risks
 

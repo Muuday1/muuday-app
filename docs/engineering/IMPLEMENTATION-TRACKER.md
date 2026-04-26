@@ -386,7 +386,7 @@ getProfessionalServices(professionalId)
 >
 > **NÃO usa Stripe Connect para payouts.** NÃO usa Airwallex como rail principal. Airwallex/dLocal permanecem como contingência operacional.
 >
-> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Fase 2 (Stripe Pay-in) ✅ COMPLETA. Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA. Próxima: Fase 4 (Professional Payout via Trolley).
+> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Fase 2 (Stripe Pay-in) ✅ COMPLETA. Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA. Fase 4 (Professional Payout via Trolley) ✅ COMPLETA. Próxima: Fase 5 (Refund & Dispute Engine).
 
 ---
 
@@ -457,23 +457,31 @@ getProfessionalServices(professionalId)
 
 ---
 
-### FASE 6.4 — Professional Payout via Trolley ⏳ PENDENTE
+### FASE 6.4 — Professional Payout via Trolley ✅ COMPLETA
 
 #### 6.4.1 Trolley Onboarding
-- [ ] Profissional completa KYC no Trolley (via embed ou redirect)
-- [ ] Webhook `recipient.created` / `recipient.updated` → sync `trolley_recipients`
-- [ ] Status tracking: `pending_kyc` → `active` → `suspended`
+- [x] `lib/payments/trolley/onboarding.ts` — `createProfessionalTrolleyRecipient`, `getProfessionalPayoutStatus`, `syncTrolleyRecipientStatus`
+- [x] Webhook `recipient.created` / `recipient.updated` → sync `trolley_recipients` (`inngest/functions/trolley-webhook-processor.ts`)
+- [x] Status tracking: `pending_kyc` → `in_review` → `approved` / `rejected`
 
 #### 6.4.2 Payout Batch Execution
-- [ ] Eligibility scan semanal (já implementado em `payout-batch-create`)
-- [ ] Treasury check: Revolut balance ≥ batch total + safety buffer
-- [ ] Trolley batch submission via API
-- [ ] Webhook `payment.updated` → atualiza status `payout_batch_items`
+- [x] Eligibility scan semanal (`inngest/functions/payout-batch-create.ts`)
+- [x] Treasury check: Revolut balance ≥ batch total + safety buffer
+- [x] Trolley batch submission via API (`createTrolleyPayment` → `createTrolleyBatch` → `processTrolleyBatch`)
+- [x] Webhook `payment.updated` → atualiza status `payout_batch_items` e batch completion
+- [x] Batch status sync (`batch.updated` webhook)
 
 #### 6.4.3 Fee Deduction
-- [ ] Dedução automática de fee por periodicidade (weekly/biweekly/monthly)
-- [ ] Dedução de dívida profissional (disputas pós-payout)
-- [ ] Ledger entries para cada dedução
+- [x] Dedução de dívida profissional (disputas pós-payout) em `calculatePayout`
+- [x] Ledger entries para cada payout (`buildPayoutTransaction`, `buildPayoutWithDebtTransaction`, `buildTrolleyFeeTransaction`)
+- [x] Balance atomic update após payout
+
+**Testes entregues (Fase 6.4):**
+- `lib/payments/trolley/client.test.ts` — 15 tests (API client, payment/batch creation, webhook signature, health)
+- `lib/payments/trolley/onboarding.test.ts` — 12 tests (create recipient, idempotency, status sync, status mapping)
+- `app/api/webhooks/trolley/route.test.ts` — 9 tests (CORS, rate limit, signature, JSON parse, enqueue)
+- `inngest/functions/trolley-webhook-processor.test.ts` — 8 tests (recipient created/updated, payment updated, batch updated, unhandled)
+- `inngest/functions/payout-batch-create.test.ts` — 7 tests (no eligible, no trolley, insufficient funds, trolley fail, success path)
 
 ---
 
@@ -528,7 +536,7 @@ getProfessionalServices(professionalId)
 | API routes novas | 3 rotas |
 | Inngest functions adicionadas | 2 funções |
 | Testes novos | 8 arquivos |
-| Testes totais passando | 417/417 ✅ |
+| Testes totais passando | 468/468 ✅ |
 | TypeScript typecheck | ✅ Limpo |
 | Arquivos de declaração de tipo | 2 (`posthog-node`, `web-push`) |
 | Env vars novas | 2 (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) |
