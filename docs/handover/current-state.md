@@ -21,7 +21,7 @@ Last updated: 2026-04-25
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
-8. Payment stack test coverage delivered: 569 tests passing across 64 files (includes 280 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, and dispute API routes).
+8. Payment stack test coverage delivered: **635 tests passing across 67 files** (includes 346 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, dispute API routes, fee calculator, eligibility engine, and debt monitor).
 
 ### In progress
 
@@ -85,6 +85,19 @@ Last updated: 2026-04-25
     - `app/api/webhooks/trolley/route.test.ts` — 9 tests (CORS, rate limit, signature, JSON parse, enqueue)
     - `inngest/functions/trolley-webhook-processor.test.ts` — 8 tests (recipient created/updated, payment updated, batch updated, unhandled)
     - `inngest/functions/payout-batch-create.test.ts` — 7 tests (no eligible, no trolley recipients, insufficient funds, trolley payment failure, batch failure, success with debt deduction)
+20. **Refund & Dispute Engine test coverage batch (2026-04-25):**
+    - `lib/payments/refund/engine.test.ts` — 14 tests (invalid percentage, no payment, not captured, exceeds refundable, Stripe not configured, API failure, pre-payout refund, post-payout dispute with debt, payment update failure, ledger failure, idempotency key, 100% refund, status update)
+    - `lib/disputes/dispute-service.test.ts` — 33 tests (openCase validation/participant check, addCaseMessage validation/access control, resolveCase with/without refund, refund failure, getCaseById, getCaseMessages, listCases)
+    - `lib/actions/admin/refund.test.ts` — 9 tests (not admin, rate limit, invalid inputs, admin client missing, success, failure, dispute resolution id)
+    - `lib/actions/disputes.test.ts` — 13 tests (all server action wrappers: openCase, addCaseMessage, resolveCase, getCaseById, getCaseMessages, listCases)
+21. **Dispute API routes test coverage batch (2026-04-25):**
+    - `app/api/v1/disputes/route.test.ts` — 10 tests (POST/GET, rate limit, auth, invalid JSON, invalid body, success)
+    - `app/api/v1/disputes/[caseId]/route.test.ts` — 11 tests (GET/PATCH, rate limit, auth, admin required for PATCH, invalid caseId, not found, success)
+    - `app/api/v1/disputes/[caseId]/messages/route.test.ts` — 11 tests (POST/GET, rate limit, auth, invalid body, not found, success)
+22. **Payment support modules test coverage batch (2026-04-25):**
+    - `lib/payments/fees/calculator.test.ts` — 23 tests (calculatePayout debt deduction, zero/negative cases, trolley fee estimation, formatMinorUnits, parseToMinorUnits, validatePayoutCalculation invariants)
+    - `lib/payments/eligibility/engine.test.ts` — 23 tests (shouldProfessionalReceivePayoutNow weekly/biweekly/monthly/unknown, checkBookingEligibility all 6 criteria, checkProfessionalEligibility balance/periodicity/minimum, scanPayoutEligibility empty/scans all)
+    - `lib/payments/debt/monitor.test.ts` — 20 tests (getMaxProfessionalDebtThreshold env/default, checkDebtThresholds filtering/sorting/name resolution/fallbacks/error handling, alertAdminOnDebtThreshold notification creation, runDebtMonitoring end-to-end pipeline)
 
 ## Open risks
 

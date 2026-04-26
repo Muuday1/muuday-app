@@ -24,8 +24,11 @@ Execute in order. Keep changes batchable, validated, and documented.
 6. ~~**Professional Payout via Trolley test coverage**~~ ✅ **Done** — 51 tests across 5 files covering Trolley client, onboarding, webhook receiver, webhook processor, and payout batch creation. Test suite: 468/57.
 7. ~~**Refund & Dispute Engine test coverage**~~ ✅ **Done** — 69 tests across 4 files covering refund engine (Stripe API, ledger, pre/post-payout), dispute service (cases, messages, resolution), admin refund action, and dispute actions. Test suite: 537/61.
 8. ~~**Dispute API routes test coverage**~~ ✅ **Done** — 32 tests across 3 files covering `POST/GET /api/v1/disputes`, `GET/PATCH /api/v1/disputes/:caseId`, and `POST/GET /api/v1/disputes/:caseId/messages`. Test suite: 569/64.
-9. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
-10. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
+9. ~~**Fee calculator test coverage**~~ ✅ **Done** — 23 tests for `lib/payments/fees/calculator.ts`. Test suite: 592/65.
+10. ~~**Eligibility engine test coverage**~~ ✅ **Done** — 23 tests for `lib/payments/eligibility/engine.ts`. Test suite: 615/66.
+11. ~~**Debt monitor test coverage**~~ ✅ **Done** — 20 tests for `lib/payments/debt/monitor.ts`. Test suite: 635/67.
+12. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
+13. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
 
 ## Pre-Wave-3 hardening
 

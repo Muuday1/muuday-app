@@ -56,7 +56,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - 10 tests for `lib/stripe/webhook-handlers` (capture, refund, settlement, dispute)
    - 21 tests for `app/api/stripe/*` routes (PaymentIntent + Checkout Session)
    - 10 tests for `app/api/webhooks/stripe` (webhook receiver)
-   - Total project test suite: **569 tests passing in 64 files**
+   - 69 tests for Refund & Dispute Engine (refund engine, dispute service, admin refund action, dispute actions)
+   - 32 tests for Dispute API routes (`/api/v1/disputes/*`)
+   - 23 tests for Fee calculator (`lib/payments/fees/calculator`)
+   - 23 tests for Eligibility engine (`lib/payments/eligibility/engine`)
+   - 20 tests for Debt monitor (`lib/payments/debt/monitor`)
+   - Total project test suite: **635 tests passing in 67 files**
 2. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
