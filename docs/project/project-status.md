@@ -67,6 +67,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - 15 tests for Financial metrics (`lib/payments/metrics`)
    - 21 tests for Subscription manager (`lib/payments/subscription/manager`)
    - Total project test suite: **736 tests passing in 72 files**
+   - Vercel production env vars: all 9 payment-rail secrets configured (Revolut 5 + Trolley 4)
 2. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.

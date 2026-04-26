@@ -28,8 +28,8 @@ Execute in order. Keep changes batchable, validated, and documented.
 10. ~~**Eligibility engine test coverage**~~ ✅ **Done** — 23 tests for `lib/payments/eligibility/engine.ts`. Test suite: 615/66.
 11. ~~**Debt monitor test coverage**~~ ✅ **Done** — 20 tests for `lib/payments/debt/monitor.ts`. Test suite: 635/67.
 12. ~~**Payment core modules test coverage**~~ ✅ **Done** — 100 tests across 5 files: bigint-constants (18), format-utils (26), ledger/accounts (20), metrics (15), subscription/manager (21). Test suite: 736/72.
-13. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
-14. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
+13. ~~**Configure Vercel env vars**~~ ✅ **Done** — All 9 production secrets verified via `vercel env ls`: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`, `TROLLEY_WEBHOOK_URL`.
+14. ~~**Fix `.env.local`**~~ ✅ **Done** — Removed duplicate empty `SUPABASE_DB_DIRECT_URL` and `SUPABASE_DB_WEBHOOK_SECRET` lines. Added missing `REVOLUT_REFRESH_TOKEN` placeholder.
 
 ## Pre-Wave-3 hardening
 
