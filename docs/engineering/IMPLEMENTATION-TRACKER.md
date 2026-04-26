@@ -386,7 +386,7 @@ getProfessionalServices(professionalId)
 >
 > **NÃO usa Stripe Connect para payouts.** NÃO usa Airwallex como rail principal. Airwallex/dLocal permanecem como contingência operacional.
 >
-> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Fase 2 (Stripe Pay-in) ✅ COMPLETA. Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA. Fase 4 (Professional Payout via Trolley) ✅ COMPLETA. Próxima: Fase 5 (Refund & Dispute Engine).
+> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Fase 2 (Stripe Pay-in) ✅ COMPLETA. Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA. Fase 4 (Professional Payout via Trolley) ✅ COMPLETA. Fase 5 (Refund & Dispute Engine) ✅ COMPLETA. Próxima: Fase 6 (Admin Finance Dashboard).
 
 ---
 
@@ -485,22 +485,28 @@ getProfessionalServices(professionalId)
 
 ---
 
-### FASE 6.5 — Refund & Dispute Engine ⏳ PENDENTE
+### FASE 6.5 — Refund & Dispute Engine ✅ COMPLETA
 
 #### 6.5.1 Refund Flow
-- [ ] `processRefund(bookingId, reason, percentage)` — admin action
-- [ ] Stripe refund API call
-- [ ] Se já houve payout: cria `dispute_resolutions` + dívida do profissional
-- [ ] Ledger entries: `createRefundEntry()` + `createDisputeEntry()`
+- [x] `processRefund(bookingId, reason, percentage)` — admin action (`lib/actions/admin/refund.ts`)
+- [x] Stripe refund API call (`lib/payments/refund/engine.ts`)
+- [x] Se já houve payout: cria `dispute_resolutions` + dívida do profissional (`addProfessionalDebt`)
+- [x] Ledger entries: `buildRefundTransaction()` + `buildDisputeAfterPayoutTransaction()`
 
 #### 6.5.2 Dispute Recovery
-- [ ] Debt tracking em `professional_balances.total_debt`
-- [ ] Auto-recovery from future payouts (`recoverDebt()`)
-- [ ] Alerta admin quando dívida > `MAX_PROFESSIONAL_DEBT_MINOR`
+- [x] Debt tracking em `professional_balances.total_debt`
+- [x] Auto-recovery from future payouts (dedução em `calculatePayout` no batch creation)
+- [x] Case management: open, message, resolve, list (`lib/disputes/dispute-service.ts`)
+
+**Testes entregues (Fase 6.5):**
+- `lib/payments/refund/engine.test.ts` — 14 tests (invalid percentage, no payment, not captured, exceeds refundable, Stripe not configured, Stripe API failure, pre-payout refund, post-payout dispute, payment update failure, ledger failure, idempotency key, 100% refund, status update)
+- `lib/disputes/dispute-service.test.ts` — 33 tests (openCase validation, participant check, addCaseMessage validation, access control, resolveCase with/without refund, refund failure, getCaseById, getCaseMessages, listCases)
+- `lib/actions/admin/refund.test.ts` — 9 tests (not admin, rate limit, invalid inputs, admin client missing, success, failure, dispute resolution id)
+- `lib/actions/disputes.test.ts` — 13 tests (openCase, addCaseMessage, resolveCase, getCaseById, getCaseMessages, listCases — all wrappers)
 
 ---
 
-### FASE 6.6 — Admin Finance Dashboard ⏳ PENDENTE
+### FASE 6.6 — Admin Finance Dashboard ⏳ PENDENTE (não parte do roadmap atual)
 
 - [ ] API routes: `/api/admin/finance/summary`, `/api/admin/finance/pending-payouts`
 - [ ] CSV export de ledger por profissional

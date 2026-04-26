@@ -21,7 +21,7 @@ Last updated: 2026-04-25
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
-8. Payment stack test coverage delivered: 468 tests passing across 57 files (includes 179 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, and Trolley payout infrastructure).
+8. Payment stack test coverage delivered: 537 tests passing across 61 files (includes 248 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, and Refund & Dispute infrastructure).
 
 ### In progress
 
