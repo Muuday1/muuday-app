@@ -92,17 +92,17 @@ describe('getMaxProfessionalDebtThreshold', () => {
   it('falls back to default when env value is invalid', async () => {
     const { env } = await import('@/lib/config/env')
     const original = env.MAX_PROFESSIONAL_DEBT_MINOR
-    env.MAX_PROFESSIONAL_DEBT_MINOR = 'not_a_number'
+    ;(env as any).MAX_PROFESSIONAL_DEBT_MINOR = 'not_a_number'
     expect(getMaxProfessionalDebtThreshold()).toBe(BigInt(500000))
-    env.MAX_PROFESSIONAL_DEBT_MINOR = original
+    ;(env as any).MAX_PROFESSIONAL_DEBT_MINOR = original
   })
 
   it('falls back to default when env value is empty', async () => {
     const { env } = await import('@/lib/config/env')
     const original = env.MAX_PROFESSIONAL_DEBT_MINOR
-    env.MAX_PROFESSIONAL_DEBT_MINOR = ''
+    ;(env as any).MAX_PROFESSIONAL_DEBT_MINOR = ''
     expect(getMaxProfessionalDebtThreshold()).toBe(BigInt(500000))
-    env.MAX_PROFESSIONAL_DEBT_MINOR = original
+    ;(env as any).MAX_PROFESSIONAL_DEBT_MINOR = original
   })
 
   it('returns correct type (bigint)', () => {

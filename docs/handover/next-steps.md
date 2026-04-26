@@ -30,6 +30,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 12. ~~**Payment core modules test coverage**~~ ✅ **Done** — 100 tests across 5 files: bigint-constants (18), format-utils (26), ledger/accounts (20), metrics (15), subscription/manager (21). Test suite: 736/72.
 13. ~~**Configure Vercel env vars**~~ ✅ **Done** — All 9 production secrets verified via `vercel env ls`: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`, `TROLLEY_WEBHOOK_URL`.
 14. ~~**Fix `.env.local`**~~ ✅ **Done** — Removed duplicate empty `SUPABASE_DB_DIRECT_URL` and `SUPABASE_DB_WEBHOOK_SECRET` lines. Added missing `REVOLUT_REFRESH_TOKEN` placeholder.
+15. ~~**Booking engine test coverage**~~ ✅ **Done** — 49 tests across 3 files: slot-locks (10), recurrence-engine (15), availability-engine (24). Test suite: 785/75.
 
 ## Pre-Wave-3 hardening
 

@@ -36,8 +36,8 @@ describe('treasuryBalanceSnapshot', () => {
   function makeEvent(overrides?: Record<string, unknown>) {
     return {
       name: 'revolut/webhook.received',
-      data: { eventType: 'transaction.created', ...overrides?.data },
-      ...overrides,
+      data: { eventType: 'transaction.created', ...(overrides?.data ?? {}) },
+      ...(overrides ?? {}),
     } as any
   }
 
@@ -57,14 +57,14 @@ describe('treasuryBalanceSnapshot', () => {
     mockedCreateAdminClient.mockReturnValue(null)
 
     await expect(
-      treasuryBalanceSnapshot.fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
+      (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
     ).rejects.toThrow('Admin client not configured')
   })
 
   it('skips when Revolut is not configured', async () => {
     mockedGetTreasuryBalance.mockResolvedValue(null)
 
-    const result = await treasuryBalanceSnapshot.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.skipped).toBe(true)
     expect(result.reason).toBe('revolut_not_configured')
@@ -77,7 +77,7 @@ describe('treasuryBalanceSnapshot', () => {
       currency: 'BRL',
     })
 
-    const result = await treasuryBalanceSnapshot.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.skipped).toBe(false)
     expect(result.accountId).toBe('acc-1')
@@ -93,7 +93,7 @@ describe('treasuryBalanceSnapshot', () => {
       currency: 'BRL',
     })
 
-    const result = await treasuryBalanceSnapshot.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.isBelowBuffer).toBe(true)
     expect(result.alertFired).toBe(true)
@@ -116,7 +116,7 @@ describe('treasuryBalanceSnapshot', () => {
       from: vi.fn().mockReturnValue({ insert: insertMock }),
     } as any)
 
-    await treasuryBalanceSnapshot.fn({
+    await (treasuryBalanceSnapshot as any).fn({
       step: mockStep,
       event: makeEvent({ name: 'revolut/webhook.received', data: { eventType: 'transaction.created' } }),
       logger: mockLogger,
@@ -144,7 +144,7 @@ describe('treasuryBalanceSnapshot', () => {
     } as any)
 
     await expect(
-      treasuryBalanceSnapshot.fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
+      (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
     ).rejects.toThrow('DB write failed')
   })
 })

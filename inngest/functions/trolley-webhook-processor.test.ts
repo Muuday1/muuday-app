@@ -146,7 +146,7 @@ describe('processTrolleyWebhook', () => {
       }
     })
 
-    return { from: fromMock, insert: insertMock, update: updateMock }
+    return { from: fromMock, insert: insertMock, update: updateMock } as any
   }
 
   beforeEach(() => {
@@ -164,14 +164,14 @@ describe('processTrolleyWebhook', () => {
     mockedCreateAdminClient.mockReturnValue(null)
 
     await expect(
-      processTrolleyWebhook.fn({ step: mockStep, event: makeEvent('recipient.created'), logger: mockLogger }),
+      (processTrolleyWebhook as any).fn({ step: mockStep, event: makeEvent('recipient.created'), logger: mockLogger }),
     ).rejects.toThrow('Admin client not configured')
   })
 
   it('handles recipient.created and inserts linked record when profile found', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('profile_found'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('recipient.created', { id: 'rec-1', email: 'pro@example.com', firstName: 'John', lastName: 'Doe' }),
       logger: mockLogger,
@@ -185,7 +185,7 @@ describe('processTrolleyWebhook', () => {
   it('handles recipient.created and inserts unlinked record when profile not found', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('recipient_not_found'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('recipient.created', { id: 'rec-1', email: 'unknown@example.com' }),
       logger: mockLogger,
@@ -198,7 +198,7 @@ describe('processTrolleyWebhook', () => {
   it('handles recipient.created as already exists when duplicate', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('recipient_exists'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('recipient.created', { id: 'rec-1', email: 'pro@example.com' }),
       logger: mockLogger,
@@ -211,7 +211,7 @@ describe('processTrolleyWebhook', () => {
   it('handles recipient.updated with active status', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('recipient_exists'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('recipient.updated', { id: 'rec-1', status: 'active', payoutMethod: 'paypal', paypalEmail: 'pro@example.com' }),
       logger: mockLogger,
@@ -224,7 +224,7 @@ describe('processTrolleyWebhook', () => {
   it('handles payment.updated with completed status and updates batch', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('all_completed'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('payment.updated', { id: 'pay-1', status: 'completed', recipient: { id: 'rec-1' } }),
       logger: mockLogger,
@@ -237,7 +237,7 @@ describe('processTrolleyWebhook', () => {
   it('handles batch.updated with completed status', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('batch_found'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('batch.updated', { id: 'batch-1', status: 'completed' }),
       logger: mockLogger,
@@ -251,7 +251,7 @@ describe('processTrolleyWebhook', () => {
   it('returns unhandled for unknown event types', async () => {
     mockedCreateAdminClient.mockReturnValue(buildAdminClient('recipient_not_found'))
 
-    const result = await processTrolleyWebhook.fn({
+    const result = await (processTrolleyWebhook as any).fn({
       step: mockStep,
       event: makeEvent('unknown.event'),
       logger: mockLogger,

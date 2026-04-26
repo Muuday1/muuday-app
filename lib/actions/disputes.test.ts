@@ -7,6 +7,7 @@ import {
   getCaseMessages,
   listCases,
 } from './disputes'
+import type { DisputeResult } from '@/lib/disputes/dispute-service'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,16 @@ const mockedGetCaseByIdService = vi.mocked(disputeService.getCaseById)
 const mockedGetCaseMessagesService = vi.mocked(disputeService.getCaseMessages)
 const mockedListCasesService = vi.mocked(disputeService.listCases)
 
+// ─── Type Assertion Helpers ───────────────────────────────────────────────
+
+function assertSuccess<T>(result: DisputeResult<T>): asserts result is { success: true; data: T } {
+  expect(result.success).toBe(true)
+}
+
+function assertError<T>(result: DisputeResult<T>): asserts result is { success: false; error: string } {
+  expect(result.success).toBe(false)
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function makeSupabaseClient(role: string | null, userId: string = 'user-1') {
@@ -62,7 +73,7 @@ function makeSupabaseClient(role: string | null, userId: string = 'user-1') {
         error: null,
       }),
     })),
-  } as unknown as ReturnType<typeof createClient>
+  } as unknown as Awaited<ReturnType<typeof createClient>>
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────
@@ -70,23 +81,23 @@ function makeSupabaseClient(role: string | null, userId: string = 'user-1') {
 describe('openCase action', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, limit: 100, retryAfterSeconds: 0, source: 'memory' as const })
     mockedOpenCaseService.mockResolvedValue({ success: true, data: { caseId: 'case-1' } })
   })
 
   it('returns caseId on success', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
     const result = await openCase('book-1', 'refund_request', 'Valid reason here')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.caseId).toBe('case-1')
     expect(mockedOpenCaseService).toHaveBeenCalled()
   })
 
   it('returns rate limit error', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
-    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, limit: 100, retryAfterSeconds: 60, source: 'memory' as const })
     const result = await openCase('book-1', 'refund_request', 'Valid reason here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('tentativas')
   })
 })
@@ -94,21 +105,21 @@ describe('openCase action', () => {
 describe('addCaseMessage action', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, limit: 100, retryAfterSeconds: 0, source: 'memory' as const })
     mockedAddCaseMessageService.mockResolvedValue({ success: true, data: { messageId: 'msg-1' } })
   })
 
   it('returns messageId on success for reporter', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
     const result = await addCaseMessage('case-1', 'Hello')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.messageId).toBe('msg-1')
   })
 
   it('returns messageId on success for admin', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('admin'))
     const result = await addCaseMessage('case-1', 'Hello admin')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.messageId).toBe('msg-1')
     expect(mockedAddCaseMessageService).toHaveBeenCalledWith(
       expect.anything(),
@@ -121,9 +132,9 @@ describe('addCaseMessage action', () => {
 
   it('returns rate limit error', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
-    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, limit: 100, retryAfterSeconds: 60, source: 'memory' as const })
     const result = await addCaseMessage('case-1', 'Hello')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('mensagens')
   })
 })
@@ -131,7 +142,7 @@ describe('addCaseMessage action', () => {
 describe('resolveCase action', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, limit: 100, retryAfterSeconds: 0, source: 'memory' as const })
     mockedResolveCaseService.mockResolvedValue({
       success: true,
       data: { resolvedAt: new Date().toISOString() },
@@ -141,14 +152,14 @@ describe('resolveCase action', () => {
   it('returns error when not admin', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
     const result = await resolveCase('case-1', 'Resolution here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('Acesso restrito')
   })
 
   it('resolves case successfully', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('admin', 'admin-1'))
     const result = await resolveCase('case-1', 'Resolution here', 50)
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(mockedResolveCaseService).toHaveBeenCalledWith(
       expect.anything(),
       'admin-1',
@@ -160,9 +171,9 @@ describe('resolveCase action', () => {
 
   it('returns rate limit error', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('admin'))
-    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, limit: 100, retryAfterSeconds: 60, source: 'memory' as const })
     const result = await resolveCase('case-1', 'Resolution here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('tentativas')
   })
 })
@@ -179,7 +190,7 @@ describe('getCaseById action', () => {
       data: { id: 'case-1', reporter_id: 'user-1' } as any,
     })
     const result = await getCaseById('case-1')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.id).toBe('case-1')
   })
 
@@ -190,7 +201,7 @@ describe('getCaseById action', () => {
       data: { id: 'case-1', reporter_id: 'other-user' } as any,
     })
     const result = await getCaseById('case-1')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(mockedGetCaseByIdService).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
@@ -212,7 +223,7 @@ describe('getCaseMessages action', () => {
       data: { messages: [{ id: 'msg-1', content: 'Hello' }] },
     })
     const result = await getCaseMessages('case-1')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.messages).toHaveLength(1)
   })
 })
@@ -220,7 +231,7 @@ describe('getCaseMessages action', () => {
 describe('listCases action', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: true, remaining: 100, limit: 100, retryAfterSeconds: 0, source: 'memory' as const })
     mockedListCasesService.mockResolvedValue({
       success: true,
       data: { cases: [{ id: 'case-1' }], nextCursor: null },
@@ -230,15 +241,15 @@ describe('listCases action', () => {
   it('returns cases successfully', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
     const result = await listCases()
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.cases).toHaveLength(1)
   })
 
   it('returns rate limit error', async () => {
     mockedCreateClient.mockResolvedValue(makeSupabaseClient('member'))
-    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: Date.now() + 60000 })
+    mockedRateLimit.mockResolvedValue({ allowed: false, remaining: 0, limit: 100, retryAfterSeconds: 60, source: 'memory' as const })
     const result = await listCases()
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('requisições')
   })
 })

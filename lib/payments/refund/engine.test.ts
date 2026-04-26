@@ -136,7 +136,16 @@ describe('processRefund', () => {
     mockedCreateLedgerTransaction.mockResolvedValue({ transactionId: 'tx-1', entryIds: [] })
     mockedBuildRefundTransaction.mockReturnValue({ entries: [] })
     mockedBuildDisputeAfterPayoutTransaction.mockReturnValue({ entries: [] })
-    mockedAddProfessionalDebt.mockResolvedValue(undefined)
+    mockedAddProfessionalDebt.mockResolvedValue({
+      professionalId: 'pro-1',
+      availableBalance: BigInt(0),
+      withheldBalance: BigInt(0),
+      pendingBalance: BigInt(0),
+      totalDebt: BigInt(10000),
+      currency: 'BRL',
+      lastPayoutAt: null,
+      lastCalculatedAt: new Date().toISOString(),
+    })
   })
 
   it('returns error for invalid percentage (0)', async () => {

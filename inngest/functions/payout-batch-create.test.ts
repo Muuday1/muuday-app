@@ -185,7 +185,7 @@ describe('payoutBatchCreate', () => {
   it('returns early when no eligible professionals', async () => {
     mockScanEligibility.mockResolvedValue({ eligibleProfessionals: [], ineligibleProfessionals: [] })
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(false)
     expect(result.reason).toBe('no_eligible_professionals')
@@ -211,7 +211,7 @@ describe('payoutBatchCreate', () => {
     })
     mockedCreateAdminClient.mockReturnValue(admin as any)
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(false)
     expect(result.reason).toBe('no_professionals_with_trolley_recipients')
@@ -220,7 +220,7 @@ describe('payoutBatchCreate', () => {
   it('blocks batch when treasury has insufficient funds', async () => {
     mockGetTreasuryBalance.mockResolvedValue({ accountId: 'acc-1', balance: BigInt(1000), currency: 'BRL' })
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(true)
     expect(result.submitted).toBe(false)
@@ -230,7 +230,7 @@ describe('payoutBatchCreate', () => {
   it('fails batch when all trolley payments fail', async () => {
     mockCreateTrolleyPayment.mockRejectedValue(new Error('Trolley API error'))
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(true)
     expect(result.submitted).toBe(false)
@@ -240,7 +240,7 @@ describe('payoutBatchCreate', () => {
   it('fails batch when trolley batch creation fails', async () => {
     mockCreateTrolleyBatch.mockRejectedValue(new Error('Batch creation failed'))
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(true)
     expect(result.submitted).toBe(false)
@@ -251,7 +251,7 @@ describe('payoutBatchCreate', () => {
     mockCalculatePayout.mockReturnValue({ netAmount: BigInt(8000), professionalDebt: BigInt(2000), trolleyFee: BigInt(500) })
     mockBuildPayoutWithDebtTransaction.mockReturnValue({ entries: [{ account: { code: '3100' }, entryType: 'debit', amount: BigInt(8000) }] })
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(true)
     expect(result.submitted).toBe(true)
@@ -265,7 +265,7 @@ describe('payoutBatchCreate', () => {
   it('skips revolut when not configured and blocks batch', async () => {
     mockGetTreasuryBalance.mockResolvedValue(null)
 
-    const result = await payoutBatchCreate.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (payoutBatchCreate as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(result.batchCreated).toBe(true)
     expect(result.submitted).toBe(false)

@@ -68,7 +68,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - 21 tests for Subscription manager (`lib/payments/subscription/manager`)
    - Total project test suite: **736 tests passing in 72 files**
    - Vercel production env vars: all 9 payment-rail secrets configured (Revolut 5 + Trolley 4)
-2. Two-tier availability architecture fully aligned:
+2. **Booking engine test coverage batch (2026-04-25):**
+   - `lib/booking/slot-locks.test.ts` — 10 tests (acquire lock, renew own lock, locked by other, error handling, TTL, unique violation)
+   - `lib/booking/recurrence-engine.test.ts` — 15 tests (weekly/biweekly/monthly/custom recurrence generation, booking window limits, end date limits, conflict detection)
+   - `lib/booking/availability-engine.test.ts` — 24 tests (working hours validation, legacy rule mapping, buffered conflict detection, recurring slot generation)
+   - Total project test suite: **785 tests passing in 75 files**
+3. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
    - Modal-context route prefers `availability_rules` with legacy fallback.

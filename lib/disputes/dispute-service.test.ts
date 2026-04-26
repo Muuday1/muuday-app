@@ -6,6 +6,7 @@ import {
   getCaseById,
   getCaseMessages,
   listCases,
+  type DisputeResult,
 } from './dispute-service'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
@@ -26,6 +27,16 @@ const mockedProcessRefund = vi.mocked(processRefund)
 
 const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000'
 const VALID_UUID2 = '550e8400-e29b-41d4-a716-446655440001'
+
+// ─── Type Assertion Helpers ───────────────────────────────────────────────
+
+function assertSuccess<T>(result: DisputeResult<T>): asserts result is { success: true; data: T } {
+  expect(result.success).toBe(true)
+}
+
+function assertError<T>(result: DisputeResult<T>): asserts result is { success: false; error: string } {
+  expect(result.success).toBe(false)
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -104,21 +115,21 @@ describe('openCase', () => {
   it('returns error for invalid bookingId', async () => {
     const client = buildClient()
     const result = await openCase(client, 'user-1', 'not-a-uuid', 'refund_request', 'reason here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('inválido')
   })
 
   it('returns error for invalid case type', async () => {
     const client = buildClient()
     const result = await openCase(client, 'user-1', VALID_UUID, 'invalid_type', 'reason here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('inválido')
   })
 
   it('returns error for too short reason', async () => {
     const client = buildClient()
     const result = await openCase(client, 'user-1', VALID_UUID, 'refund_request', 'short')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('10 caracteres')
   })
 
@@ -126,7 +137,7 @@ describe('openCase', () => {
     const client = buildClient()
     ;(client as any).__seedRow('bookings', null, null)
     const result = await openCase(client, 'user-1', VALID_UUID, 'refund_request', 'Valid reason here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('não encontrado')
   })
 
@@ -139,7 +150,7 @@ describe('openCase', () => {
     })
     ;(client as any).__seedRow('professionals', null, null)
     const result = await openCase(client, 'user-1', VALID_UUID, 'refund_request', 'Valid reason here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('acesso')
   })
 
@@ -151,7 +162,7 @@ describe('openCase', () => {
       professional_id: 'prof-1',
     })
     const result = await openCase(client, 'user-1', VALID_UUID, 'refund_request', 'Valid reason here')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.caseId).toBe('inserted-1')
   })
 
@@ -164,7 +175,7 @@ describe('openCase', () => {
     })
     ;(client as any).__seedRow('professionals', { id: 'prof-1' })
     const result = await openCase(client, 'user-1', VALID_UUID, 'quality_issue', 'Valid reason here')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.caseId).toBe('inserted-1')
   })
 })
@@ -177,14 +188,14 @@ describe('addCaseMessage', () => {
   it('returns error for invalid caseId', async () => {
     const client = buildClient()
     const result = await addCaseMessage(client, 'user-1', 'not-a-uuid', 'Hello', false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('inválido')
   })
 
   it('returns error for empty content', async () => {
     const client = buildClient()
     const result = await addCaseMessage(client, 'user-1', VALID_UUID, '', false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('vazia')
   })
 
@@ -192,7 +203,7 @@ describe('addCaseMessage', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', null, null)
     const result = await addCaseMessage(client, 'user-1', VALID_UUID, 'Hello', false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('não encontrado')
   })
 
@@ -200,7 +211,7 @@ describe('addCaseMessage', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'other-user' })
     const result = await addCaseMessage(client, 'user-1', VALID_UUID, 'Hello', false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('não pode participar')
   })
 
@@ -208,7 +219,7 @@ describe('addCaseMessage', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'user-1' })
     const result = await addCaseMessage(client, 'user-1', VALID_UUID, 'Hello', false)
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.messageId).toBe('inserted-1')
   })
 
@@ -216,7 +227,7 @@ describe('addCaseMessage', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'other-user' })
     const result = await addCaseMessage(client, 'user-1', VALID_UUID, 'Hello', true)
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.messageId).toBe('inserted-1')
   })
 })
@@ -235,14 +246,14 @@ describe('resolveCase', () => {
   it('returns error for invalid caseId', async () => {
     const client = buildClient()
     const result = await resolveCase(client, 'admin-1', 'not-a-uuid', 'Resolution here')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('inválido')
   })
 
   it('returns error for too short resolution', async () => {
     const client = buildClient()
     const result = await resolveCase(client, 'admin-1', VALID_UUID, 'short')
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('10 caracteres')
   })
 
@@ -250,7 +261,7 @@ describe('resolveCase', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, booking_id: VALID_UUID2, type: 'refund_request' })
     const result = await resolveCase(client, 'admin-1', VALID_UUID, 'Valid resolution here')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.resolvedAt).toBeTruthy()
     expect(mockedProcessRefund).not.toHaveBeenCalled()
   })
@@ -264,7 +275,7 @@ describe('resolveCase', () => {
 
     const result = await resolveCase(client, 'admin-1', VALID_UUID, 'Valid resolution here', 50)
 
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(mockedProcessRefund).toHaveBeenCalledWith(adminClient, expect.objectContaining({
       bookingId: VALID_UUID2,
       reason: 'Valid resolution here',
@@ -282,7 +293,7 @@ describe('resolveCase', () => {
 
     const result = await resolveCase(client, 'admin-1', VALID_UUID, 'Valid resolution here', 100)
 
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('card_declined')
   })
 
@@ -321,7 +332,7 @@ describe('resolveCase', () => {
     })
 
     const result = await resolveCase(client, 'admin-1', VALID_UUID, 'Valid resolution here')
-    expect(result.success).toBe(true)
+    assertSuccess(result)
   })
 })
 
@@ -333,7 +344,7 @@ describe('getCaseById', () => {
   it('returns error for invalid caseId', async () => {
     const client = buildClient()
     const result = await getCaseById(client, 'user-1', 'not-a-uuid', false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('inválido')
   })
 
@@ -341,7 +352,7 @@ describe('getCaseById', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', null, null)
     const result = await getCaseById(client, 'user-1', VALID_UUID, false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('não encontrado')
   })
 
@@ -349,7 +360,7 @@ describe('getCaseById', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'other-user' })
     const result = await getCaseById(client, 'user-1', VALID_UUID, false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('acesso')
   })
 
@@ -357,7 +368,7 @@ describe('getCaseById', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'user-1', booking_id: VALID_UUID2, type: 'refund_request', status: 'open', reason: 'test', resolution: null, refund_amount: null, resolved_at: null, created_at: '2026-01-01' })
     const result = await getCaseById(client, 'user-1', VALID_UUID, false)
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.id).toBe(VALID_UUID)
   })
 
@@ -365,7 +376,7 @@ describe('getCaseById', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'other-user', booking_id: VALID_UUID2, type: 'refund_request', status: 'open', reason: 'test', resolution: null, refund_amount: null, resolved_at: null, created_at: '2026-01-01' })
     const result = await getCaseById(client, 'user-1', VALID_UUID, true)
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.id).toBe(VALID_UUID)
   })
 })
@@ -378,7 +389,7 @@ describe('getCaseMessages', () => {
   it('returns error for invalid caseId', async () => {
     const client = buildClient()
     const result = await getCaseMessages(client, 'user-1', 'not-a-uuid', false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('inválido')
   })
 
@@ -386,7 +397,7 @@ describe('getCaseMessages', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', null, null)
     const result = await getCaseMessages(client, 'user-1', VALID_UUID, false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('não encontrado')
   })
 
@@ -394,7 +405,7 @@ describe('getCaseMessages', () => {
     const client = buildClient()
     ;(client as any).__seedRow('cases', { id: VALID_UUID, reporter_id: 'other-user' })
     const result = await getCaseMessages(client, 'user-1', VALID_UUID, false)
-    expect(result.success).toBe(false)
+    assertError(result)
     expect(result.error).toContain('acesso')
   })
 
@@ -405,7 +416,7 @@ describe('getCaseMessages', () => {
       { id: 'msg-1', sender_id: 'user-1', content: 'Hello', created_at: '2026-01-01' },
     ])
     const result = await getCaseMessages(client, 'user-1', VALID_UUID, false)
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     expect(result.data?.messages).toHaveLength(1)
   })
 
@@ -416,8 +427,8 @@ describe('getCaseMessages', () => {
       { id: 'msg-1', sender_id: 'other-user', content: 'Hello', created_at: '2026-01-01' },
     ])
     const result = await getCaseMessages(client, 'user-1', VALID_UUID, true)
-    expect(result.success).toBe(true)
-    expect(result.data?.messages).toHaveLength(1)
+    assertSuccess(result)
+    expect(result.data.messages).toHaveLength(1)
   })
 })
 
@@ -433,18 +444,18 @@ describe('listCases', () => {
       { id: VALID_UUID2, status: 'resolved', created_at: '2026-01-01' },
     ])
     const result = await listCases(client, 'user-1', true, { status: 'open' })
-    expect(result.success).toBe(true)
+    assertSuccess(result)
     // Note: mock does not actually filter, just returns seeded array
-    expect(result.data?.cases).toHaveLength(2)
+    expect(result.data.cases).toHaveLength(2)
   })
 
   it('returns empty list when no cases', async () => {
     const client = buildClient()
     ;(client as any).__seedArray('cases', [])
     const result = await listCases(client, 'user-1', true)
-    expect(result.success).toBe(true)
-    expect(result.data?.cases).toHaveLength(0)
-    expect(result.data?.nextCursor).toBeNull()
+    assertSuccess(result)
+    expect(result.data.cases).toHaveLength(0)
+    expect(result.data.nextCursor).toBeNull()
   })
 
   it('limits results and provides cursor', async () => {
@@ -456,9 +467,9 @@ describe('listCases', () => {
     }))
     ;(client as any).__seedArray('cases', cases)
     const result = await listCases(client, 'user-1', true, { limit: 5 })
-    expect(result.success).toBe(true)
-    expect(result.data?.cases).toHaveLength(5)
-    expect(result.data?.nextCursor).toBeTruthy()
+    assertSuccess(result)
+    expect(result.data.cases).toHaveLength(5)
+    expect(result.data.nextCursor).toBeTruthy()
   })
 
   it('filters by reporter for non-admin', async () => {
@@ -467,7 +478,7 @@ describe('listCases', () => {
       { id: VALID_UUID, reporter_id: 'user-1', status: 'open', created_at: '2026-01-01' },
     ])
     const result = await listCases(client, 'user-1', false)
-    expect(result.success).toBe(true)
-    expect(result.data?.cases).toHaveLength(1)
+    assertSuccess(result)
+    expect(result.data.cases).toHaveLength(1)
   })
 })

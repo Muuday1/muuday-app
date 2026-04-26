@@ -115,7 +115,7 @@ describe('createProfessionalSubscription', () => {
   })
 
   it('returns error when Stripe is not configured', async () => {
-    mockGetStripeClient.mockReturnValueOnce(null)
+    mockGetStripeClient.mockReturnValueOnce(null as any)
     const { createProfessionalSubscription } = await import('./manager')
     const admin = createMockAdmin()
     const result = await createProfessionalSubscription(admin, 'pro-1')
@@ -290,7 +290,7 @@ describe('syncSubscriptionFromStripe', () => {
   })
 
   it('returns error when Stripe not configured', async () => {
-    mockGetStripeClient.mockReturnValueOnce(null)
+    mockGetStripeClient.mockReturnValueOnce(null as any)
     const { syncSubscriptionFromStripe } = await import('./manager')
     const admin = createMockAdmin()
     const result = await syncSubscriptionFromStripe(admin, 'stripe_sub_1')
@@ -466,7 +466,7 @@ describe('cancelProfessionalSubscription', () => {
   })
 
   it('returns error when Stripe not configured', async () => {
-    mockGetStripeClient.mockReturnValueOnce(null)
+    mockGetStripeClient.mockReturnValueOnce(null as any)
     const { cancelProfessionalSubscription } = await import('./manager')
     const admin = createMockAdmin()
     const result = await cancelProfessionalSubscription(admin, 'pro-1')

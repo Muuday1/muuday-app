@@ -52,7 +52,7 @@ describe('treasuryReconciliation', () => {
     mockedCreateAdminClient.mockReturnValue(null)
 
     await expect(
-      treasuryReconciliation.fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
+      (treasuryReconciliation as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
     ).rejects.toThrow('Admin client not configured')
   })
 
@@ -66,7 +66,7 @@ describe('treasuryReconciliation', () => {
       mismatches: [],
     })
 
-    const result = await treasuryReconciliation.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    const result = await (treasuryReconciliation as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(mockRunReconciliation).toHaveBeenCalledTimes(1)
     expect(result.ok).toBe(true)
@@ -88,7 +88,7 @@ describe('treasuryReconciliation', () => {
       ],
     })
 
-    await treasuryReconciliation.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    await (treasuryReconciliation as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(mockLogger.warn).toHaveBeenCalledWith(
       'Treasury reconciliation found mismatches.',
@@ -104,7 +104,7 @@ describe('treasuryReconciliation', () => {
       unmatchedSettlements: 0,
     })
 
-    await treasuryReconciliation.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    await (treasuryReconciliation as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(mockLogger.warn).not.toHaveBeenCalled()
   })
@@ -117,7 +117,7 @@ describe('treasuryReconciliation', () => {
       unmatchedSettlements: 1,
     })
 
-    await treasuryReconciliation.fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
+    await (treasuryReconciliation as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger })
 
     expect(mockLogger.info).toHaveBeenCalledWith(
       'Treasury reconciliation complete.',
