@@ -503,6 +503,9 @@ getProfessionalServices(professionalId)
 - `lib/disputes/dispute-service.test.ts` — 33 tests (openCase validation, participant check, addCaseMessage validation, access control, resolveCase with/without refund, refund failure, getCaseById, getCaseMessages, listCases)
 - `lib/actions/admin/refund.test.ts` — 9 tests (not admin, rate limit, invalid inputs, admin client missing, success, failure, dispute resolution id)
 - `lib/actions/disputes.test.ts` — 13 tests (openCase, addCaseMessage, resolveCase, getCaseById, getCaseMessages, listCases — all wrappers)
+- `app/api/v1/disputes/route.test.ts` — 10 tests (POST rate limit, auth, invalid JSON, validation error, success; GET rate limit, auth, user cases, admin cases with filters, error)
+- `app/api/v1/disputes/[caseId]/route.test.ts` — 11 tests (GET rate limit, auth, user access, admin access, error; PATCH rate limit, admin auth, invalid JSON, validation error, resolve with refund, resolve without refund)
+- `app/api/v1/disputes/[caseId]/messages/route.test.ts` — 11 tests (POST rate limit, auth, invalid JSON, error, user message, admin message; GET rate limit, auth, user messages, admin messages, error)
 
 ---
 
@@ -542,7 +545,7 @@ getProfessionalServices(professionalId)
 | API routes novas | 3 rotas |
 | Inngest functions adicionadas | 2 funções |
 | Testes novos | 8 arquivos |
-| Testes totais passando | 468/468 ✅ |
+| Testes totais passando | 569/569 ✅ |
 | TypeScript typecheck | ✅ Limpo |
 | Arquivos de declaração de tipo | 2 (`posthog-node`, `web-push`) |
 | Env vars novas | 2 (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) |

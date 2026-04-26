@@ -9,7 +9,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Wave 0: Done
 - Wave 1: Done
 - Wave 2: Done (closed 2026-04-10)
-- Payment engine (Phases 1–6): Fase 6.1–6.5 (Ledger, Stripe Pay-in, Revolut Settlement, Trolley Payout, Refund & Dispute) ✅ completas. Awaiting E2E testing before Wave 3 launch.
+- Payment engine (Phases 1–6): Fase 6.1–6.5 (Ledger, Stripe Pay-in, Revolut Settlement, Trolley Payout, Refund & Dispute) ✅ completas, incluindo rotas de API. Awaiting E2E testing before Wave 3 launch.
 - Stabilization and UX refinement: In progress
 - Wave 3 real-money execution: Blocked on E2E validation + compliance freeze
 
@@ -56,7 +56,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - 10 tests for `lib/stripe/webhook-handlers` (capture, refund, settlement, dispute)
    - 21 tests for `app/api/stripe/*` routes (PaymentIntent + Checkout Session)
    - 10 tests for `app/api/webhooks/stripe` (webhook receiver)
-   - Total project test suite: **537 tests passing in 61 files**
+   - Total project test suite: **569 tests passing in 64 files**
 2. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
