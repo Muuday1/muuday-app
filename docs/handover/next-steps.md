@@ -27,8 +27,9 @@ Execute in order. Keep changes batchable, validated, and documented.
 9. ~~**Fee calculator test coverage**~~ ✅ **Done** — 23 tests for `lib/payments/fees/calculator.ts`. Test suite: 592/65.
 10. ~~**Eligibility engine test coverage**~~ ✅ **Done** — 23 tests for `lib/payments/eligibility/engine.ts`. Test suite: 615/66.
 11. ~~**Debt monitor test coverage**~~ ✅ **Done** — 20 tests for `lib/payments/debt/monitor.ts`. Test suite: 635/67.
-12. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
-13. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
+12. ~~**Payment core modules test coverage**~~ ✅ **Done** — 100 tests across 5 files: bigint-constants (18), format-utils (26), ledger/accounts (20), metrics (15), subscription/manager (21). Test suite: 736/72.
+13. **Configure Vercel env vars** for production: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`
+14. **Fix `.env.local`** locally — remove duplicate live Stripe key lines
 
 ## Pre-Wave-3 hardening
 

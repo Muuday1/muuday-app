@@ -61,7 +61,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - 23 tests for Fee calculator (`lib/payments/fees/calculator`)
    - 23 tests for Eligibility engine (`lib/payments/eligibility/engine`)
    - 20 tests for Debt monitor (`lib/payments/debt/monitor`)
-   - Total project test suite: **635 tests passing in 67 files**
+   - 18 tests for BigInt constants (`lib/payments/bigint-constants`)
+   - 26 tests for Format utils (`lib/payments/format-utils`)
+   - 20 tests for Ledger accounts (`lib/payments/ledger/accounts`)
+   - 15 tests for Financial metrics (`lib/payments/metrics`)
+   - 21 tests for Subscription manager (`lib/payments/subscription/manager`)
+   - Total project test suite: **736 tests passing in 72 files**
 2. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.

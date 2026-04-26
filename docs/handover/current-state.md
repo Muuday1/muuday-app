@@ -21,7 +21,7 @@ Last updated: 2026-04-25
 5. Booking lifecycle, request booking, recurring foundations, and dual-gate onboarding model are implemented.
 6. Public and member role routing are enforced in middleware and app surfaces.
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
-8. Payment stack test coverage delivered: **635 tests passing across 67 files** (includes 346 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, dispute API routes, fee calculator, eligibility engine, and debt monitor).
+8. Payment stack test coverage delivered: **736 tests passing across 72 files** (includes 447 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, dispute API routes, fee calculator, eligibility engine, debt monitor, bigint constants, format utils, ledger accounts, financial metrics, and subscription manager).
 
 ### In progress
 
@@ -98,6 +98,12 @@ Last updated: 2026-04-25
     - `lib/payments/fees/calculator.test.ts` — 23 tests (calculatePayout debt deduction, zero/negative cases, trolley fee estimation, formatMinorUnits, parseToMinorUnits, validatePayoutCalculation invariants)
     - `lib/payments/eligibility/engine.test.ts` — 23 tests (shouldProfessionalReceivePayoutNow weekly/biweekly/monthly/unknown, checkBookingEligibility all 6 criteria, checkProfessionalEligibility balance/periodicity/minimum, scanPayoutEligibility empty/scans all)
     - `lib/payments/debt/monitor.test.ts` — 20 tests (getMaxProfessionalDebtThreshold env/default, checkDebtThresholds filtering/sorting/name resolution/fallbacks/error handling, alertAdminOnDebtThreshold notification creation, runDebtMonitoring end-to-end pipeline)
+23. **Payment core modules test coverage batch (2026-04-25):**
+    - `lib/payments/bigint-constants.test.ts` — 18 tests (B, FEES, THRESHOLDS, PERCENT constant values and types)
+    - `lib/payments/format-utils.test.ts` — 26 tests (formatMinorUnits BRL/USD/negative/zero, minorToMajor, formatPayoutStatus all states, formatKycStatus all states and fallbacks)
+    - `lib/payments/ledger/accounts.test.ts` — 20 tests (all 11 account constants, getLedgerAccountByCode, getAllLedgerAccounts, validateLedgerAccountCode)
+    - `lib/payments/metrics.test.ts` — 15 tests (treasury buffer, avg payout time, dispute rate, ledger aggregates for revenue/payouts/refunds/fees, empty/edge cases)
+    - `lib/payments/subscription/manager.test.ts` — 21 tests (createProfessionalSubscription with Stripe product/customer/subscription, syncSubscriptionFromStripe update/backfill, recordSubscriptionPayment, recordSubscriptionPaymentFailure, cancelProfessionalSubscription immediate/at-period-end, error handling)
 
 ## Open risks
 
