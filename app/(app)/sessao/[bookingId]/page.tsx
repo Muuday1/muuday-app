@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Sessao de video | Muuday' }
+export const metadata = { title: 'Sessão de Vídeo | Muuday' }
 
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -80,7 +80,7 @@ export default async function VideoSessionPage({
   if (!startAt) {
     return (
       <div className="mx-auto max-w-4xl p-6 md:p-8">
-        <h1 className="text-xl font-bold text-slate-900">Sessao indisponivel</h1>
+        <h1 className="text-xl font-bold text-slate-900">Sessão indisponível</h1>
         <p className="mt-2 text-sm text-slate-600">Nao foi possivel identificar o horario da sessao.</p>
       </div>
     )
@@ -117,7 +117,7 @@ export default async function VideoSessionPage({
       <div className="mb-5 rounded-lg border border-slate-200 bg-white p-5">
         <div className="flex items-center gap-2">
           <Video className="h-5 w-5 text-[#9FE870]" />
-          <h1 className="text-xl font-bold text-slate-900">Sessao por video</h1>
+          <h1 className="text-xl font-bold text-slate-900">Sessão por vídeo</h1>
         </div>
         <p className="mt-2 text-sm text-slate-600">
           {userName} com {professionalName}

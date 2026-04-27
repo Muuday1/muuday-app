@@ -116,7 +116,7 @@ export default async function PerfilPage() {
             <div className="flex items-center gap-3 p-3 bg-slate-50/70 rounded-md">
               <Mail className="w-4 h-4 text-slate-400" />
               <div>
-                <p className="text-xs text-slate-400">Email</p>
+                <p className="text-xs text-slate-400">E-mail</p>
                 <p className="text-sm font-medium text-slate-700">{profile?.email}</p>
               </div>
             </div>
@@ -172,7 +172,7 @@ export default async function PerfilPage() {
           {professional.bio ? (
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-400 mb-1">Bio</p>
+                <p className="text-xs text-slate-400 mb-1">Biografia</p>
                 <p className="text-sm text-slate-700 leading-relaxed">{professional.bio}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">

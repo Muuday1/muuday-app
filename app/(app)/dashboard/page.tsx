@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Dashboard | Muuday' }
+export const metadata = { title: 'Painel | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -304,7 +304,7 @@ export default async function DashboardPage({
 
       <div className={onboardingIncomplete ? 'pointer-events-none select-none blur-[1px] opacity-80' : ''}>
       <PageHeader
-        title="Dashboard"
+        title="Painel"
         subtitle="Veja o que precisa de ação agora e acompanhe agenda, ganhos e saúde da conta."
       >
         <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">

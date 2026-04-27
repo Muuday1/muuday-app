@@ -772,7 +772,7 @@ export default async function ProfissionalPage({
         }
       >
         <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Rating</h2>
+          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">Avaliações</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-md border border-slate-200/80 bg-slate-50/70 px-4 py-3">
               <p className="text-xs text-slate-500">Avaliação média</p>
