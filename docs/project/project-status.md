@@ -90,6 +90,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 5. **PT-BR cleanup batch (2026-04-25):**
    - `app/(app)/agenda/page.tsx` — fixed mojibake (`confirma??o` → `confirmação`), added missing accents (`Visão geral`, `Pendências`, `sessões`, `solicitações`, `avançadas`, `Histórico`), translated English labels (`Requests` → `Solicitações`, `Business setup` → `Configurações do negócio`, `Control center` → `Central de controle`)
    - `components/admin/AdminPlanConfigForm.tsx` — translated English feature labels (`Sync Outlook` → `Sincronização Outlook`, `Export CSV` → `Exportar CSV`, `Export PDF` → `Exportar PDF`)
+   - `components/agenda/ProfessionalAgendaPage.tsx` — added missing accents across 17 strings (`Conexão`, `Operação`, `rápida`, `calendário`, `pendências`, `única`, `edição`, `Próximas sessões`, `já está`, `ocupações`, `Confirmações`, `Confirmação`)
 6. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
