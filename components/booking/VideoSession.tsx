@@ -129,9 +129,9 @@ export default function VideoSession({
   const scheduledAt = useMemo(() => new Date(scheduledAtIso), [scheduledAtIso])
 
   const statusLabel = useMemo(() => {
-    if (error) return 'Falha ao iniciar video'
-    if (isLoading) return 'Conectando a sessao...'
-    if (joined) return 'Voce esta na sessao'
+    if (error) return 'Falha ao iniciar vídeo'
+    if (isLoading) return 'Conectando à sessão...'
+    if (joined) return 'Você está na sessão'
     return 'Pronto para entrar'
   }, [error, isLoading, joined])
 
@@ -436,7 +436,7 @@ export default function VideoSession({
         {isProfessional && (
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <p className="text-sm text-slate-700">
-              Voce e o profissional desta sessao. Clique abaixo para liberar a entrada do cliente e conectar.
+              Você é o profissional desta sessão. Clique abaixo para liberar a entrada do cliente e conectar.
             </p>
             <button
               type="button"
@@ -547,7 +547,7 @@ export default function VideoSession({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-slate-950 p-2">
-          <p className="mb-2 px-1 text-xs font-medium text-slate-300">Voce</p>
+          <p className="mb-2 px-1 text-xs font-medium text-slate-300">Você</p>
           <video
             ref={localVideoRef}
             autoPlay

@@ -33,9 +33,9 @@ export function PayoutHistoryTable({ payouts, periodicity = 'weekly' }: PayoutHi
         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 mb-3">
           <Minus className="w-5 h-5 text-slate-400" />
         </div>
-        <p className="text-sm text-slate-600">Nenhum payout registrado ainda.</p>
+        <p className="text-sm text-slate-600">Nenhum repasse registrado ainda.</p>
         <p className="text-xs text-slate-400 mt-1">
-          Os payouts aparecem aqui após o processamento {periodLabel}.
+          Os repasses aparecem aqui após o processamento {periodLabel}.
         </p>
       </div>
     )
@@ -44,7 +44,7 @@ export function PayoutHistoryTable({ payouts, periodicity = 'weekly' }: PayoutHi
   return (
     <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-100">
-        <h3 className="text-sm font-semibold text-slate-900">Histórico de Payouts</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Histórico de Repasses</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

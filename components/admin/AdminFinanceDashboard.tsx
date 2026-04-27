@@ -87,13 +87,13 @@ export function AdminFinanceDashboard({ data }: Props) {
                 subtitle={treasury.currency}
               />
               <StatCard
-                title="Payouts Pendentes"
+                title="Repasses Pendentes"
                 value={formatMinorUnits(treasury.pendingPayoutsTotal)}
                 subtitle={`${payouts.pendingCount} batch(s)`}
                 href="/admin/finance/payouts"
               />
               <StatCard
-                title="Disponível após Payouts"
+                title="Disponível após Repasses"
                 value={treasury.availableAfterPayouts ? formatMinorUnits(treasury.availableAfterPayouts) : '—'}
                 subtitle={`Buffer: ${formatMinorUnits(treasury.safetyBuffer)}`}
                 danger={treasury.isBelowBuffer === true}
@@ -106,9 +106,9 @@ export function AdminFinanceDashboard({ data }: Props) {
             </div>
           </section>
 
-          {/* Payouts */}
+          {/* Repasses */}
           <section>
-            <h2 className="mb-4 text-lg font-semibold text-slate-800">Payouts</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-800">Repasses</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Pendentes"
@@ -172,7 +172,7 @@ export function AdminFinanceDashboard({ data }: Props) {
                 href="/admin/finance/payouts"
                 className="rounded-lg bg-slate-100 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
               >
-                Ver Payouts →
+                Ver Repasses →
               </Link>
               <Link
                 href="/admin/finance/treasury"
@@ -208,7 +208,7 @@ export function AdminFinanceDashboard({ data }: Props) {
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-medium text-slate-600">Profissional</th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-slate-600">E-mail</th>
                     <th className="px-4 py-3 text-right font-medium text-slate-600">Dívida</th>
                   </tr>
                 </thead>

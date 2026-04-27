@@ -154,10 +154,10 @@ export function PayoutStatusCard({ payoutStatus, balance }: PayoutStatusCardProp
 
       {/* Info */}
       <div className="mt-4 text-xs text-slate-500 space-y-1">
-        <p>Payouts são processados toda segunda-feira às 8h UTC.</p>
+        <p>Repasses são processados toda segunda-feira às 8h UTC.</p>
         <p>Período de segurança: 48h após o término da sessão.</p>
         {balance?.lastPayoutAt && (
-          <p>Último payout: {new Date(balance.lastPayoutAt).toLocaleDateString('pt-BR')}</p>
+          <p>Último repasse: {new Date(balance.lastPayoutAt).toLocaleDateString('pt-BR')}</p>
         )}
       </div>
     </AppCard>

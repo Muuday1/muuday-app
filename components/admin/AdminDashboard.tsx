@@ -351,7 +351,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                           <div className="space-y-3">
                             <div>
-                              <p className="text-xs font-medium text-slate-400 uppercase mb-1">Bio</p>
+                              <p className="text-xs font-medium text-slate-400 uppercase mb-1">Biografia</p>
                               <p className="text-sm text-slate-700">{pro.bio || 'Sem bio'}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -370,7 +370,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                                 <p className="text-sm text-slate-700">{pro.years_experience} anos</p>
                               </div>
                               <div>
-                                <p className="text-xs font-medium text-slate-400 uppercase mb-1">Rating</p>
+                                <p className="text-xs font-medium text-slate-400 uppercase mb-1">Avaliação</p>
                                 <p className="text-sm text-slate-700">★ {pro.rating} ({pro.total_reviews})</p>
                               </div>
                             </div>
@@ -552,7 +552,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm font-medium text-slate-900">
-                        {review.profiles?.full_name || 'Utilizador'}
+                        {review.profiles?.full_name || 'Usuário'}
                       </p>
                       <span className="text-slate-300">→</span>
                       <p className="text-sm text-slate-600">
@@ -632,7 +632,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
             <AppTable>
               <AppTableHeader>
                 <AppTableRow>
-                  <AppTableHeadCell>Utilizador</AppTableHeadCell>
+                  <AppTableHeadCell>Usuário</AppTableHeadCell>
                   <AppTableHeadCell>Profissional</AppTableHeadCell>
                   <AppTableHeadCell>Data</AppTableHeadCell>
                   <AppTableHeadCell>Status</AppTableHeadCell>
