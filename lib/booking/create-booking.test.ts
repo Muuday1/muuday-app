@@ -132,7 +132,19 @@ describe('executeBookingCreation', () => {
       perSessionPriceUserCurrency: 150,
       totalPriceUserCurrency: 150,
     })
-    mockedPrepareBookingPayment.mockReturnValue({ paymentData: { amount: 150 } })
+    mockedPrepareBookingPayment.mockReturnValue({
+      paymentData: {
+        user_id: 'user-1',
+        professional_id: 'pro-1',
+        provider: 'stripe' as const,
+        amount_total: 150,
+        currency: 'BRL',
+        status: 'requires_payment' as const,
+        metadata: {},
+        captured_at: null,
+      },
+      paymentMetadata: {},
+    })
     mockedPersistOneOffBooking.mockResolvedValue({
       bookingId: 'book-1',
       paymentAnchorBookingId: 'book-1',
