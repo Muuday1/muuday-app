@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -109,6 +109,13 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - `NotificationPreferences` type evolved from flat booleans to structured `{ categories: Record<category, { channels }>, quiet_hours }` schema
    - Backward-compatible fallback to legacy flat boolean preferences
    - Link from main settings page to advanced notification preferences
+8. **Calendar UX & scheduling-rule clarity polish (2026-04-27):**
+   - Fixed invalid Tailwind classes (`bg-slate-50/70/50`, `bg-slate-50/70/40`) across 7 components
+   - Added missing PT-BR accents across `ProfessionalAgendaPage` and `agenda/page` (Visão, Pendências, Recorrência, Várias, Último, Preferência, Histórico)
+   - Added "Bloqueado" legend to `ProfessionalAvailabilityCalendar`
+   - Month view now shows partial exception indicators ("Parcialmente bloqueado")
+   - `ProfessionalAvailabilityWorkspace` now loads and passes exceptions to calendar preview
+   - Removed redundant duplicate context cards in embedded availability workspace variant
 
 ## Blockers
 

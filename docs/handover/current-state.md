@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 ## Operational truth
 
@@ -27,6 +27,7 @@ Last updated: 2026-04-27
 11. Notification preferences & inbox (P1.8) complete: dedicated `/configuracoes/notificacoes` page with per-category channel toggles and quiet hours; enhanced `/notificacoes` inbox with date grouping, category filter tabs, unread indicators, and context-aware deep links.
 12. Professional financial overview (P1.7) complete: transaction list with filters, earnings sparkline, payout status card with next payout calculation.
 13. Recurring booking UX (P1.6) complete: recurring type selection, calendar preview, conflict warnings, `.ics` export, cancel-scope modal, recurring package card in agenda.
+14. Calendar UX polish complete: fixed invalid Tailwind classes across 7 components, restored PT-BR accents in agenda surfaces, added exception legend and partial-block indicators to month view, wired exception loading into availability workspace.
 9. Vercel production environment fully configured: all 9 payment-rail secrets verified (Revolut ×5, Trolley ×4).
 
 ### In progress
