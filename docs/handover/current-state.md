@@ -115,6 +115,7 @@ Last updated: 2026-04-25
     - `lib/booking/create-booking.test.ts` — 18 tests (one_off/recurring/batch success paths, lookup context fail, prepare slots fail, slot validation fail, lock conflict, lock error, price zero, prepare payment throw, persist fail, fallback record payment, record payment throw, lock release on success/error, profiles array shape, manual confirmation deadline)
 25. **PT-BR cleanup batch (2026-04-25):**
     - `app/(app)/agenda/page.tsx` — fixed mojibake (`confirma??o` → `confirmação`), added missing accents (`Visão geral`, `Pendências`, `sessões`, `solicitações`, `avançadas`, `Histórico`), translated English labels (`Requests` → `Solicitações`, `Business setup` → `Configurações do negócio`, `Control center` → `Central de controle`)
+    - `components/admin/AdminPlanConfigForm.tsx` — translated English feature labels (`Sync Outlook` → `Sincronização Outlook`, `Export CSV` → `Exportar CSV`, `Export PDF` → `Exportar PDF`)
 
 ## Open risks
 
