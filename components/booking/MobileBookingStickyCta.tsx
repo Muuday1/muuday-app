@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Calendar, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { captureEvent } from '@/lib/analytics/posthog-client'
 
 type MobileBookingStickyCtaProps = {
   isLoggedIn: boolean
@@ -63,7 +64,10 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
         ) : (
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setOpen(true)
+              captureEvent('booking_intent_auth_modal_shown', { action: 'book', source: 'mobile_sticky_cta' })
+            }}
             className="bg-[#9FE870] hover:bg-[#8ed85f] text-white font-semibold px-6 py-3 rounded-md text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
             aria-label="Entrar para agendar"
           >

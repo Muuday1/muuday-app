@@ -24,6 +24,7 @@ type LoginFormProps = {
   subtitle?: string
   onSuccess?: () => void
   idPrefix?: string
+  redirectPath?: string
 }
 
 function normalizeRole(value: unknown) {
@@ -52,14 +53,15 @@ async function resolveLoginHint(email: string): Promise<AuthLoginHint> {
   }
 }
 
-export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: LoginFormProps) {
+export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix, redirectPath }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectParam = searchParams.get('redirect')
   const safeRedirectPath =
-    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && redirectParam !== '/'
+    redirectPath ||
+    (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && redirectParam !== '/'
       ? redirectParam
-      : ''
+      : '')
   const resolvedIdPrefix = idPrefix || 'login'
   const emailId = `${resolvedIdPrefix}-email`
   const passwordId = `${resolvedIdPrefix}-password`
@@ -248,7 +250,7 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix }: Log
       <p className={compact ? 'mt-4 text-center text-xs text-slate-500' : 'mt-6 text-center text-sm text-slate-500'}>
         {t('auth.login.noAccount')}{' '}
         <Link
-          href="/cadastro"
+          href={safeRedirectPath ? `/cadastro?redirect=${encodeURIComponent(safeRedirectPath)}` : '/cadastro'}
           className="rounded-md font-medium text-[#3d6b1f] hover:text-[#3d6b1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
         >
           {t('auth.login.createAccount')}

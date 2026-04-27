@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Calendar, MessageCircle } from 'lucide-react'
 import { AuthOverlay } from '@/components/auth/AuthOverlay'
 import { LoginForm } from '@/components/auth/LoginForm'
+import { captureEvent } from '@/lib/analytics/posthog-client'
 
 type SearchBookingCtasProps = {
   isLoggedIn: boolean
@@ -33,6 +34,7 @@ export function SearchBookingCtas({
         if (isLoggedIn) return
         setPendingAction('book')
         setOpen(true)
+        captureEvent('booking_intent_auth_modal_shown', { action: 'book', source: 'search_cta' })
       }}
       className="inline-flex items-center gap-1.5 rounded-lg bg-[#9FE870] px-3.5 py-2 text-xs font-semibold text-white transition-all hover:bg-[#8ed85f] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30"
     >
@@ -48,6 +50,7 @@ export function SearchBookingCtas({
         if (isLoggedIn) return
         setPendingAction('message')
         setOpen(true)
+        captureEvent('booking_intent_auth_modal_shown', { action: 'message', source: 'search_cta' })
       }}
       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
     >
@@ -91,6 +94,7 @@ export function SearchBookingCtas({
           compact
           idPrefix={`search-modal-${pendingAction}`}
           onSuccess={() => setOpen(false)}
+          redirectPath={pendingAction === 'book' ? bookHref : messageHref}
         />
       </AuthOverlay>
     </>
