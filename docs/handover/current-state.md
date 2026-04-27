@@ -24,6 +24,9 @@ Last updated: 2026-04-27
 8. Payment stack test coverage delivered: **736 tests passing across 72 files** (includes 447 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, dispute API routes, fee calculator, eligibility engine, debt monitor, bigint constants, format utils, ledger accounts, financial metrics, and subscription manager).
 9. Booking engine test coverage delivered: **785 tests passing across 75 files** (added 49 tests for slot locks, recurrence engine, and availability engine).
 10. Booking support modules test coverage delivered: **845 tests passing across 80 files** (added 60 tests for with-timeout, request-booking state machine, recurring deadlines, availability checks, and slot validation).
+11. Notification preferences & inbox (P1.8) complete: dedicated `/configuracoes/notificacoes` page with per-category channel toggles and quiet hours; enhanced `/notificacoes` inbox with date grouping, category filter tabs, unread indicators, and context-aware deep links.
+12. Professional financial overview (P1.7) complete: transaction list with filters, earnings sparkline, payout status card with next payout calculation.
+13. Recurring booking UX (P1.6) complete: recurring type selection, calendar preview, conflict warnings, `.ics` export, cancel-scope modal, recurring package card in agenda.
 9. Vercel production environment fully configured: all 9 payment-rail secrets verified (Revolut ×5, Trolley ×4).
 
 ### In progress

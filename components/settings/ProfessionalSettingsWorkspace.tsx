@@ -290,6 +290,21 @@ export default function ProfessionalSettingsWorkspace() {
           onToggle={handleToggle}
         />
 
+        <div className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-white px-6 py-4">
+          <div>
+            <p className="text-sm font-medium text-slate-700">Preferências avançadas</p>
+            <p className="text-xs text-slate-400">
+              Canais por categoria, horário de descanso e frequência de digest
+            </p>
+          </div>
+          <a
+            href="/configuracoes/notificacoes"
+            className="text-sm font-medium text-[#3d6b1f] hover:underline"
+          >
+            Gerenciar →
+          </a>
+        </div>
+
         <PushNotificationToggle />
 
         <SecuritySettings

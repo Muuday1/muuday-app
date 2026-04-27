@@ -17,7 +17,7 @@ export function NotificationSettings({ preferences, onToggle }: NotificationSett
       </div>
       <div className="divide-y divide-slate-100/80">
         {NOTIFICATION_ITEMS.map(item => {
-          const active = preferences[item.key]
+          const active = !!preferences[item.key]
           return (
             <div
               key={item.key}

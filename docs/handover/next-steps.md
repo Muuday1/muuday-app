@@ -10,9 +10,10 @@ Execute in order. Keep changes batchable, validated, and documented.
 2. ~~Sprint 5 — Remaining APIs extraction~~ ✅ **Complete** — `lib/actions/admin.ts` (172 lines), `admin-plans.ts` (31 lines), `admin-taxonomy.ts` (47 lines), and `email.ts` (270 lines) are all thin wrappers delegating to dedicated service modules (`lib/admin/admin-service.ts`, `lib/email/email-action-service.ts`). No god files remain in `actions/`.
 3. Continue professional operations polish with focus on calendar UX and scheduling-rule clarity in `/disponibilidade`.
 4. Keep onboarding tracker copy/progression consistent and avoid reintroducing blocking optional fetches in modal open path.
-5. Close remaining PT-BR cleanup on lower-traffic admin/member surfaces. ✅ **Partial** — Fixed mojibake (`confirma??o` → `confirmação`), missing accents, and English labels in `app/(app)/agenda/page.tsx`. Continue sweep on admin/finance and other lower-traffic surfaces.
+5. Close remaining PT-BR cleanup on lower-traffic admin/member surfaces. ✅ **Complete** — Fixed mojibake, missing accents, and English labels across `agenda`, `AdminPlanConfigForm`, `ProfessionalAgendaPage`, `admin/finance`, and `member/finance` surfaces.
 6. ~~Evaluate and either merge or archive `feat/landing-page-redesign` explicitly~~ ✅ **Archived** — branch was 12 days behind main, would have reverted months of work (API v1, E2E tests, services, migrations). Main already has a superior LandingPage component with animations, carousels, and multi-section layout.
 7. ~~Apply migration 062 in production to sync `availability_rules` for professionals who saved availability before the dual-write fix~~ ✅ **Applied** — confirmed in `session-log.md` Entry 84.
+8. ~~Notification Preferences & Inbox (P1.8 / CROSS-03)~~ ✅ **Complete** — `/configuracoes/notificacoes` with per-category channel toggles and quiet hours; `/notificacoes` inbox with date grouping, category filters, unread indicators, and context-aware deep links.
 
 ## Payment Engine — Next Tasks (in order)
 

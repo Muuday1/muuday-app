@@ -9,6 +9,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   getUnreadNotificationCount,
+  type NotificationCategory,
 } from '@/lib/notifications/notification-service'
 
 const notificationIdSchema = z.string().uuid('Identificador de notificação inválido.')
@@ -28,15 +29,17 @@ export async function getNotificationsAction({
   limit = 20,
   cursor,
   unreadOnly = false,
+  category,
 }: {
   limit?: number
   cursor?: string
   unreadOnly?: boolean
+  category?: NotificationCategory
 } = {}): Promise<NotificationResult<{ notifications: unknown[]; nextCursor: string | null }>> {
   const { supabase, userId } = await getAuthenticatedUser()
   const rl = await rateLimit('notificationRead', userId)
   if (!rl.allowed) return { success: false, error: 'Muitas requisições. Tente novamente em breve.' }
-  return getNotifications(supabase, userId, { limit, cursor, unreadOnly })
+  return getNotifications(supabase, userId, { limit, cursor, unreadOnly, category })
 }
 
 export async function markNotificationAsReadAction(

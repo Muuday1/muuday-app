@@ -1,8 +1,22 @@
+export type NotificationChannel = 'in_app' | 'email' | 'push'
+
+export type NotificationCategoryPrefs = {
+  channels: NotificationChannel[]
+}
+
+export type NotificationCategoryKey = 'bookings' | 'sessions' | 'finance' | 'marketing'
+
 export type NotificationPreferences = {
   booking_emails: boolean
   session_reminders: boolean
   news_promotions: boolean
   chat_messages: boolean
+  categories?: Partial<Record<NotificationCategoryKey, NotificationCategoryPrefs>>
+  quiet_hours?: {
+    enabled: boolean
+    start: string
+    end: string
+  }
 }
 
 export type UserRole = 'usuario' | 'profissional' | 'admin' | null
@@ -31,6 +45,17 @@ export const DEFAULT_NOTIFICATIONS: NotificationPreferences = {
   session_reminders: true,
   news_promotions: true,
   chat_messages: true,
+  categories: {
+    bookings: { channels: ['in_app', 'email', 'push'] },
+    sessions: { channels: ['in_app', 'email', 'push'] },
+    finance: { channels: ['in_app', 'email'] },
+    marketing: { channels: ['email'] },
+  },
+  quiet_hours: {
+    enabled: false,
+    start: '22:00',
+    end: '08:00',
+  },
 }
 
 export const NOTIFICATION_ITEMS: {
@@ -57,6 +82,38 @@ export const NOTIFICATION_ITEMS: {
     key: 'news_promotions',
     label: 'Novidades e promoções',
     desc: 'Atualizações da plataforma, dicas e ofertas',
+  },
+]
+
+export const NOTIFICATION_CATEGORIES: {
+  key: NotificationCategoryKey
+  label: string
+  desc: string
+  defaultChannels: NotificationChannel[]
+}[] = [
+  {
+    key: 'bookings',
+    label: 'Agendamentos',
+    desc: 'Confirmações, cancelamentos, solicitações de horário',
+    defaultChannels: ['in_app', 'email', 'push'],
+  },
+  {
+    key: 'sessions',
+    label: 'Sessões',
+    desc: 'Lembretes, início e fim de sessão',
+    defaultChannels: ['in_app', 'email', 'push'],
+  },
+  {
+    key: 'finance',
+    label: 'Financeiro',
+    desc: 'Repasse processado, pagamento falhou',
+    defaultChannels: ['in_app', 'email'],
+  },
+  {
+    key: 'marketing',
+    label: 'Novidades e promoções',
+    desc: 'Atualizações da plataforma, dicas e ofertas',
+    defaultChannels: ['email'],
   },
 ]
 

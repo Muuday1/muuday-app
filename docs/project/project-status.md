@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-25
+Last updated: 2026-04-27
 
 Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
@@ -99,6 +99,16 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - Modal-context route prefers `availability_rules` with legacy fallback.
    - Backfill migration (062) ensures professionals with pre-fix onboarding data are synced.
    - Availability exceptions render on professional calendar and filter all slot pickers.
+7. **Notification Preferences & Inbox (P1.8 / CROSS-03) complete (2026-04-27):**
+   - Dedicated `/configuracoes/notificacoes` page with per-category channel toggles (in-app/email/push)
+   - Quiet hours configuration with time range selectors
+   - Enhanced in-app inbox (`/notificacoes`) with date grouping (Hoje/Ontem/Esta semana/Mais antigas)
+   - Category filter tabs: Todas / Não lidas / Agendamentos / Sistema
+   - Blue unread dot indicator with opacity difference for read notifications
+   - Context-aware deep links derived from `payload` + `type` via `deriveActionUrl` in `notification-service.ts`
+   - `NotificationPreferences` type evolved from flat booleans to structured `{ categories: Record<category, { channels }>, quiet_hours }` schema
+   - Backward-compatible fallback to legacy flat boolean preferences
+   - Link from main settings page to advanced notification preferences
 
 ## Blockers
 
