@@ -11,6 +11,7 @@ import {
   Clock,
   Layers,
   MessageCircle,
+  Package,
   Settings,
   Star,
   Video,
@@ -32,6 +33,7 @@ import { PageContainer, PageHeader } from '@/components/ui/AppShell'
 import { Suspense } from 'react'
 import ProfessionalAgendaLoader from '@/components/agenda/ProfessionalAgendaLoader'
 import ProfessionalAgendaSkeleton from '@/components/agenda/ProfessionalAgendaSkeleton'
+import { RecurringPackageCard } from '@/components/agenda/RecurringPackageCard'
 
 type RequestBookingStatus =
   | 'open'
@@ -114,6 +116,25 @@ function bookingModeMeta(booking: Record<string, any>) {
     return { label: 'Várias datas', className: 'bg-purple-50 text-purple-700' }
   }
   return null
+}
+
+function groupRecurringBookings(bookings: any[]) {
+  const recurringGroups: Record<string, any[]> = {}
+  const oneOffBookings: any[] = []
+
+  for (const booking of bookings) {
+    const groupId = booking.recurrence_group_id
+    if (groupId) {
+      if (!recurringGroups[groupId]) {
+        recurringGroups[groupId] = []
+      }
+      recurringGroups[groupId].push(booking)
+    } else {
+      oneOffBookings.push(booking)
+    }
+  }
+
+  return { recurringGroups, oneOffBookings }
 }
 
 export default async function AgendaPage({
@@ -820,108 +841,145 @@ export default async function AgendaPage({
             )}
           </AppCard>
         ) : (
-          <div className="space-y-3">
-            {upcomingVisible.map((booking: any) => {
-              const otherPerson = isProfessional
-                ? booking.profiles?.full_name
-                : booking.professionals?.profiles?.full_name
-              const confirmationDeadline =
-                booking.status === 'pending_confirmation' ? getConfirmationDeadline(booking) : null
-              const slaLabel = confirmationDeadline ? getSlaLabel(confirmationDeadline) : null
-
-              const statusLabel =
-                booking.status === 'confirmed'
-                  ? 'Confirmado'
-                  : booking.status === 'pending_confirmation'
-                    ? 'Aguardando confirmação'
-                    : 'Pendente'
+          <div className="space-y-6">
+            {(() => {
+              const { recurringGroups, oneOffBookings } = groupRecurringBookings(upcomingVisible)
+              const hasRecurring = Object.keys(recurringGroups).length > 0
+              const hasOneOff = oneOffBookings.length > 0
 
               return (
-                <AppCard key={booking.id}>
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 font-bold text-[#3d6b1f] font-display">
-                      {otherPerson?.charAt(0) || '?'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900">{otherPerson || 'Profissional'}</p>
-                      <div className="mt-1.5 flex items-center gap-3 text-sm text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {formatInTimeZone(
-                            new Date(booking.scheduled_at),
-                            userTimezone,
-                            'EEE, d MMM HH:mm',
-                            { locale: ptBR },
-                          )}
-                        </span>
-                        <span>{booking.duration_minutes || 50}min</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {bookingModeMeta(booking) ? (
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${bookingModeMeta(booking)?.className}`}
-                        >
-                          {bookingModeMeta(booking)?.label}
-                        </span>
-                      ) : null}
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          booking.status === 'confirmed'
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {statusLabel}
-                      </span>
-                      {slaLabel && (
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            slaLabel === 'SLA expirado'
-                              ? 'bg-red-50 text-red-700'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {slaLabel}
-                        </span>
-                      )}
-                      {booking.status === 'confirmed' ? (
-                        <>
-                          <Link
-                            href={`/sessao/${booking.id}`}
-                            className="flex items-center gap-1.5 rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#8ed85f]"
-                          >
-                            <Video className="h-3.5 w-3.5" />
-                            Entrar na sessão
-                          </Link>
-                          {conversationMap.has(booking.id) && (
-                            <Link
-                              href={`/mensagens/${conversationMap.get(booking.id)}`}
-                              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
-                            >
-                              <MessageCircle className="h-3.5 w-3.5" />
-                              Mensagens
-                            </Link>
-                          )}
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                  {slaLabel && (
-                    <div className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                      Prazo de confirmação: {confirmationDeadline?.toLocaleString('pt-BR', { hour12: false })}
+                <>
+                  {hasRecurring && (
+                    <div className="space-y-3">
+                      <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Package className="h-4 w-4 text-blue-500" />
+                        Pacotes recorrentes
+                      </h3>
+                      {Object.entries(recurringGroups).map(([groupId, groupBookings]) => (
+                        <RecurringPackageCard
+                          key={groupId}
+                          bookings={groupBookings}
+                          isProfessional={isProfessional}
+                          userTimezone={userTimezone}
+                        />
+                      ))}
                     </div>
                   )}
-                  <BookingActions
-                    bookingId={booking.id}
-                    status={booking.status}
-                    sessionLink={booking.session_link}
-                    scheduledAt={booking.scheduled_at}
-                    isProfessional={isProfessional}
-                  />
-                </AppCard>
+
+                  {hasOneOff && (
+                    <div className="space-y-3">
+                      {hasRecurring && (
+                        <h3 className="text-sm font-semibold text-slate-700">Sessões avulsas</h3>
+                      )}
+                      {oneOffBookings.map((booking: any) => {
+                        const otherPerson = isProfessional
+                          ? booking.profiles?.full_name
+                          : booking.professionals?.profiles?.full_name
+                        const confirmationDeadline =
+                          booking.status === 'pending_confirmation' ? getConfirmationDeadline(booking) : null
+                        const slaLabel = confirmationDeadline ? getSlaLabel(confirmationDeadline) : null
+
+                        const statusLabel =
+                          booking.status === 'confirmed'
+                            ? 'Confirmado'
+                            : booking.status === 'pending_confirmation'
+                              ? 'Aguardando confirmação'
+                              : 'Pendente'
+
+                        return (
+                          <AppCard key={booking.id}>
+                            <div className="flex items-start gap-4">
+                              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#9FE870]/8 font-bold text-[#3d6b1f] font-display">
+                                {otherPerson?.charAt(0) || '?'}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-slate-900">{otherPerson || 'Profissional'}</p>
+                                <div className="mt-1.5 flex items-center gap-3 text-sm text-slate-500">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    {formatInTimeZone(
+                                      new Date(booking.scheduled_at),
+                                      userTimezone,
+                                      'EEE, d MMM HH:mm',
+                                      { locale: ptBR },
+                                    )}
+                                  </span>
+                                  <span>{booking.duration_minutes || 50}min</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {bookingModeMeta(booking) ? (
+                                  <span
+                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${bookingModeMeta(booking)?.className}`}
+                                  >
+                                    {bookingModeMeta(booking)?.label}
+                                  </span>
+                                ) : null}
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                    booking.status === 'confirmed'
+                                      ? 'bg-green-50 text-green-700'
+                                      : 'bg-amber-50 text-amber-700'
+                                  }`}
+                                >
+                                  {statusLabel}
+                                </span>
+                                {slaLabel && (
+                                  <span
+                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                      slaLabel === 'SLA expirado'
+                                        ? 'bg-red-50 text-red-700'
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}
+                                  >
+                                    {slaLabel}
+                                  </span>
+                                )}
+                                {booking.status === 'confirmed' ? (
+                                  <>
+                                    <Link
+                                      href={`/sessao/${booking.id}`}
+                                      className="flex items-center gap-1.5 rounded-full bg-[#9FE870] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#8ed85f]"
+                                    >
+                                      <Video className="h-3.5 w-3.5" />
+                                      Entrar na sessão
+                                    </Link>
+                                    {conversationMap.has(booking.id) && (
+                                      <Link
+                                        href={`/mensagens/${conversationMap.get(booking.id)}`}
+                                        className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
+                                      >
+                                        <MessageCircle className="h-3.5 w-3.5" />
+                                        Mensagens
+                                      </Link>
+                                    )}
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                            {slaLabel && (
+                              <div className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                                Prazo de confirmação: {confirmationDeadline?.toLocaleString('pt-BR', { hour12: false })}
+                              </div>
+                            )}
+                            <BookingActions
+                              bookingId={booking.id}
+                              status={booking.status}
+                              sessionLink={booking.session_link}
+                              scheduledAt={booking.scheduled_at}
+                              isProfessional={isProfessional}
+                              bookingType={booking.booking_type}
+                              recurrenceGroupId={booking.recurrence_group_id}
+                              professionalName={otherPerson}
+                            />
+                          </AppCard>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               )
-            })}
+            })()}
           </div>
         )}
         </div>
@@ -1005,6 +1063,9 @@ export default async function AgendaPage({
                         sessionLink={booking.session_link}
                         scheduledAt={booking.scheduled_at}
                         isProfessional={isProfessional}
+                        bookingType={booking.booking_type}
+                        recurrenceGroupId={booking.recurrence_group_id}
+                        professionalName={otherPerson}
                       />
                       <Link
                         href={`/sessao/${booking.id}`}

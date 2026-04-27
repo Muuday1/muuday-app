@@ -14,12 +14,14 @@ import {
 import {
   confirmBooking,
   cancelBooking,
+  cancelBookingWithScope,
   addSessionLink,
   completeBooking,
   rescheduleBooking,
   reportProfessionalNoShow,
   markUserNoShow,
 } from '@/lib/actions/manage-booking'
+import { CancelScopeModal } from './CancelScopeModal'
 
 interface BookingActionsProps {
   bookingId: string
@@ -27,6 +29,9 @@ interface BookingActionsProps {
   sessionLink?: string | null
   scheduledAt?: string
   isProfessional: boolean
+  bookingType?: string | null
+  recurrenceGroupId?: string | null
+  professionalName?: string | null
 }
 
 function toDatetimeLocalValue(value?: string) {
@@ -47,6 +52,9 @@ export default function BookingActions({
   sessionLink,
   scheduledAt,
   isProfessional,
+  bookingType,
+  recurrenceGroupId,
+  professionalName,
 }: BookingActionsProps) {
   const [isPending, startTransition] = useTransition()
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -56,7 +64,10 @@ export default function BookingActions({
   const [cancelReason, setCancelReason] = useState('')
   const [showReschedule, setShowReschedule] = useState(false)
   const [rescheduleAt, setRescheduleAt] = useState(toDatetimeLocalValue(scheduledAt))
+  const [showCancelScopeModal, setShowCancelScopeModal] = useState(false)
   const fallbackErrorMessage = 'Não foi possível concluir a ação. Tente novamente.'
+
+  const isRecurring = Boolean(recurrenceGroupId || bookingType?.startsWith('recurring'))
 
   const isPastSession = useMemo(() => {
     if (!scheduledAt) return false
@@ -100,6 +111,28 @@ export default function BookingActions({
         setShowCancelConfirm(false)
         setCancelReason('')
         setFeedback({ type: 'success', message: 'Agendamento cancelado.' })
+      }
+      return result
+    })
+  }
+
+  function handleCancelWithScope(scope: 'this' | 'future' | 'series', reason: string) {
+    runAction(async () => {
+      const result = await cancelBookingWithScope(bookingId, scope, reason || undefined)
+      if (result.success) {
+        setShowCancelScopeModal(false)
+        setFeedback({
+          type: 'success',
+          message:
+            scope === 'this'
+              ? 'Sessão cancelada.'
+              : scope === 'future'
+                ? 'Sessões futuras canceladas.'
+                : 'Pacote cancelado.',
+        })
+      } else {
+        setShowCancelScopeModal(false)
+        setFeedback({ type: 'error', message: result.error || fallbackErrorMessage })
       }
       return result
     })
@@ -187,7 +220,13 @@ export default function BookingActions({
             Confirmar
           </button>
           <button
-            onClick={() => setShowCancelConfirm(true)}
+            onClick={() => {
+              if (isRecurring) {
+                setShowCancelScopeModal(true)
+              } else {
+                setShowCancelConfirm(true)
+              }
+            }}
             disabled={isPending}
             className="flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
           >
@@ -235,7 +274,13 @@ export default function BookingActions({
             </>
           ) : (
             <button
-              onClick={() => setShowCancelConfirm(true)}
+              onClick={() => {
+                if (isRecurring) {
+                  setShowCancelScopeModal(true)
+                } else {
+                  setShowCancelConfirm(true)
+                }
+              }}
               disabled={isPending}
               className="flex items-center gap-1.5 rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
             >
@@ -343,7 +388,7 @@ export default function BookingActions({
         </div>
       )}
 
-      {showCancelConfirm && (
+      {showCancelConfirm && !isRecurring && (
         <div className="space-y-2 rounded-md border border-red-100 bg-red-50 p-3">
           <p className="text-xs font-semibold text-red-700">Tem certeza que deseja cancelar?</p>
           <input
@@ -375,6 +420,15 @@ export default function BookingActions({
           </div>
         </div>
       )}
+
+      <CancelScopeModal
+        isOpen={showCancelScopeModal}
+        onClose={() => setShowCancelScopeModal(false)}
+        onConfirm={handleCancelWithScope}
+        isPending={isPending}
+        professionalName={professionalName || 'Profissional'}
+        scheduledAt={scheduledAt}
+      />
     </div>
   )
 }

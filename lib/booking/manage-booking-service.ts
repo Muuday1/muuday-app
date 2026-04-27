@@ -169,6 +169,103 @@ export async function confirmBookingService(
   return { success: true }
 }
 
+async function executeCancelSingleBooking(
+  supabase: SupabaseClient,
+  userId: string,
+  professionalId: string | null,
+  booking: {
+    id: string
+    status: string
+    professional_id: string
+    user_id: string
+    scheduled_at: string
+    booking_type: string | null
+    metadata: Record<string, unknown> | null
+  },
+  normalizedReason?: string,
+): Promise<ManageBookingResult> {
+  const isBookingUser = booking.user_id === userId
+  const isBookingProfessional = professionalId ? booking.professional_id === professionalId : false
+  if (!isBookingUser && !isBookingProfessional) {
+    return { success: false, error: 'Você não tem permissão para cancelar este agendamento.' }
+  }
+
+  const transition = assertBookingTransition(booking.status as Parameters<typeof assertBookingTransition>[0], 'cancelled')
+  if (!transition.ok) return { success: false, error: 'Este agendamento não pode ser cancelado.' }
+
+  if (booking.booking_type === 'recurring_parent' || booking.booking_type === 'recurring_child') {
+    const deadlineDecision = evaluateRecurringPauseDeadline(booking.scheduled_at)
+    if (!deadlineDecision.allowed) {
+      const message =
+        booking.booking_type === 'recurring_parent'
+          ? 'Pausa de pacote recorrente fora do prazo de 7 dias.'
+          : 'Pausa de sessão recorrente fora do prazo de 7 dias.'
+      return recurringDeadlineBlockedResult(message, deadlineDecision)
+    }
+  }
+
+  const hoursUntilSession = getHoursUntilSession(booking.scheduled_at)
+  const refundDecision = isBookingUser
+    ? getUserCancellationRefundDecision(hoursUntilSession)
+    : getProfessionalCancellationRefundDecision()
+
+  const currentMetadata = booking.metadata || {}
+  const updateData: Record<string, unknown> = {
+    status: 'cancelled',
+    metadata: {
+      ...currentMetadata,
+      cancelled_by: isBookingUser ? 'user' : 'professional',
+      cancelled_at: new Date().toISOString(),
+      refund_percentage: refundDecision.refundPercentage,
+      refund_rule: refundDecision.rule,
+    },
+  }
+
+  if (normalizedReason) {
+    updateData.cancellation_reason = normalizedReason
+  }
+
+  let cancelQuery = supabase
+    .from('bookings')
+    .update(updateData)
+    .eq('id', booking.id)
+    .in('status', ['pending', 'pending_confirmation', 'confirmed'])
+
+  if (isBookingUser) {
+    cancelQuery = cancelQuery.eq('user_id', userId)
+  } else if (professionalId) {
+    cancelQuery = cancelQuery.eq('professional_id', professionalId)
+  }
+
+  const { data: cancelledBooking, error } = await cancelQuery.select('id').maybeSingle()
+
+  if (error || !cancelledBooking) {
+    return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
+  }
+
+  await applyPaymentRefund(supabase, booking.id, refundDecision.refundPercentage)
+  await enqueueBookingCalendarSync({
+    bookingId: booking.id,
+    action: 'cancel_booking',
+    source: 'booking.cancel',
+  })
+
+  const cancelledBy = isBookingUser ? 'user' : 'professional'
+  const { data: cancelledUserProfile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', isBookingUser ? userId : booking.user_id)
+    .maybeSingle()
+  if (cancelledUserProfile?.email) {
+    emitUserCancelledBooking(cancelledUserProfile.email, {
+      booking_id: booking.id,
+      cancelled_by: cancelledBy,
+    })
+  }
+
+  return { success: true }
+}
+
 export async function cancelBookingService(
   supabase: SupabaseClient,
   userId: string,
@@ -200,84 +297,108 @@ export async function cancelBookingService(
 
   if (!booking) return { success: false, error: 'Agendamento não encontrado.' }
 
-  const isBookingUser = booking.user_id === userId
-  const isBookingProfessional = professionalId ? booking.professional_id === professionalId : false
+  return executeCancelSingleBooking(supabase, userId, professionalId, booking, normalizedReason)
+}
+
+export async function cancelBookingWithScopeService(
+  supabase: SupabaseClient,
+  userId: string,
+  professionalId: string | null,
+  bookingId: string,
+  scope: 'this' | 'future' | 'series',
+  reason?: string,
+): Promise<ManageBookingResult> {
+  const bookingIdValidation = validateBookingId(bookingId)
+  if (!bookingIdValidation.ok) return bookingIdValidation.result
+  const safeBookingId = bookingIdValidation.id
+
+  let normalizedReason: string | undefined
+  if (typeof reason === 'string' && reason.trim()) {
+    const parsedReason = cancelReasonSchema.safeParse(reason)
+    if (!parsedReason.success) {
+      return {
+        success: false,
+        error: parsedReason.error.issues[0]?.message || 'Motivo de cancelamento inválido.',
+      }
+    }
+    normalizedReason = parsedReason.data
+  }
+
+  const { data: targetBooking } = await supabase
+    .from('bookings')
+    .select('id, status, professional_id, user_id, scheduled_at, booking_type, metadata, recurrence_group_id')
+    .eq('id', safeBookingId)
+    .single()
+
+  if (!targetBooking) return { success: false, error: 'Agendamento não encontrado.' }
+
+  if (scope === 'this') {
+    return executeCancelSingleBooking(supabase, userId, professionalId, targetBooking, normalizedReason)
+  }
+
+  if (!targetBooking.recurrence_group_id) {
+    return { success: false, error: 'Este agendamento não faz parte de um pacote recorrente.' }
+  }
+
+  const isBookingUser = targetBooking.user_id === userId
+  const isBookingProfessional = professionalId ? targetBooking.professional_id === professionalId : false
   if (!isBookingUser && !isBookingProfessional) {
     return { success: false, error: 'Você não tem permissão para cancelar este agendamento.' }
   }
 
-  const transition = assertBookingTransition(booking.status, 'cancelled')
-  if (!transition.ok) return { success: false, error: 'Este agendamento não pode ser cancelado.' }
-
-  if (booking.booking_type === 'recurring_parent' || booking.booking_type === 'recurring_child') {
-    const deadlineDecision = evaluateRecurringPauseDeadline(booking.scheduled_at)
-    if (!deadlineDecision.allowed) {
-      const message =
-        booking.booking_type === 'recurring_parent'
-          ? 'Pausa de pacote recorrente fora do prazo de 7 dias.'
-          : 'Pausa de sessão recorrente fora do prazo de 7 dias.'
-      return recurringDeadlineBlockedResult(message, deadlineDecision)
-    }
-  }
-
-  const hoursUntilSession = getHoursUntilSession(booking.scheduled_at)
-  const refundDecision = isBookingUser
-    ? getUserCancellationRefundDecision(hoursUntilSession)
-    : getProfessionalCancellationRefundDecision()
-
-  const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
-  const updateData: Record<string, unknown> = {
-    status: 'cancelled',
-    metadata: {
-      ...currentMetadata,
-      cancelled_by: isBookingUser ? 'user' : 'professional',
-      cancelled_at: new Date().toISOString(),
-      refund_percentage: refundDecision.refundPercentage,
-      refund_rule: refundDecision.rule,
-    },
-  }
-
-  if (normalizedReason) {
-    updateData.cancellation_reason = normalizedReason
-  }
-
-  let cancelQuery = supabase
+  let siblingsQuery = supabase
     .from('bookings')
-    .update(updateData)
-    .eq('id', safeBookingId)
+    .select('id, status, professional_id, user_id, scheduled_at, booking_type, metadata')
+    .eq('recurrence_group_id', targetBooking.recurrence_group_id)
     .in('status', ['pending', 'pending_confirmation', 'confirmed'])
 
   if (isBookingUser) {
-    cancelQuery = cancelQuery.eq('user_id', userId)
+    siblingsQuery = siblingsQuery.eq('user_id', userId)
   } else if (professionalId) {
-    cancelQuery = cancelQuery.eq('professional_id', professionalId)
+    siblingsQuery = siblingsQuery.eq('professional_id', professionalId)
   }
 
-  let { data: cancelledBooking, error } = await cancelQuery.select('id').maybeSingle()
-
-  if (error || !cancelledBooking) {
-    return { success: false, error: 'Erro ao cancelar agendamento. Tente novamente.' }
+  if (scope === 'future') {
+    siblingsQuery = siblingsQuery.gte('scheduled_at', targetBooking.scheduled_at)
   }
 
-  await applyPaymentRefund(supabase, safeBookingId, refundDecision.refundPercentage)
-  await enqueueBookingCalendarSync({
-    bookingId: safeBookingId,
-    action: 'cancel_booking',
-    source: 'booking.cancel',
+  const { data: bookingsToCancel, error: siblingsError } = await siblingsQuery.order('scheduled_at', {
+    ascending: true,
   })
 
-  // Emit Resend automation event (non-blocking)
-  const cancelledBy = isBookingUser ? 'user' : 'professional'
-  const { data: cancelledUserProfile } = await supabase
-    .from('profiles')
-    .select('email')
-    .eq('id', isBookingUser ? userId : booking.user_id)
-    .maybeSingle()
-  if (cancelledUserProfile?.email) {
-    emitUserCancelledBooking(cancelledUserProfile.email, {
-      booking_id: safeBookingId,
-      cancelled_by: cancelledBy,
-    })
+  if (siblingsError || !bookingsToCancel) {
+    return { success: false, error: 'Erro ao buscar sessões do pacote. Tente novamente.' }
+  }
+
+  if (bookingsToCancel.length === 0) {
+    return { success: false, error: 'Não há sessões elegíveis para cancelamento no escopo selecionado.' }
+  }
+
+  const results: { id: string; result: ManageBookingResult }[] = []
+  for (const b of bookingsToCancel) {
+    const result = await executeCancelSingleBooking(supabase, userId, professionalId, b, normalizedReason)
+    results.push({ id: b.id, result })
+  }
+
+  const successCount = results.filter(r => r.result.success).length
+  const failureCount = results.length - successCount
+
+  if (successCount === 0) {
+    const firstErrorResult = results.find(r => !r.result.success)?.result
+    const firstError = firstErrorResult && firstErrorResult.success === false ? firstErrorResult : null
+    return {
+      success: false,
+      error: firstError?.error || 'Não foi possível cancelar as sessões.',
+      reasonCode: firstError?.reasonCode,
+      deadlineAtUtc: firstError?.deadlineAtUtc,
+    }
+  }
+
+  if (failureCount > 0) {
+    return {
+      success: true,
+      error: `${successCount} sessão(ões) cancelada(s). ${failureCount} não pôde(ram) ser cancelada(s) (fora do prazo ou já concluídas).`,
+    } as ManageBookingResult
   }
 
   return { success: true }

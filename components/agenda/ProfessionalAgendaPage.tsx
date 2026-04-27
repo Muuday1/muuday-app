@@ -495,6 +495,9 @@ export function ProfessionalAgendaPage({
                         sessionLink={booking.session_link}
                         scheduledAt={booking.scheduled_at}
                         isProfessional
+                        bookingType={booking.booking_type}
+                        recurrenceGroupId={booking.recurrence_group_id}
+                        professionalName={otherPerson}
                       />
                     </div>
                   )

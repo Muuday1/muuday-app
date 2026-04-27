@@ -8,6 +8,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import {
   confirmBookingService,
   cancelBookingService,
+  cancelBookingWithScopeService,
   rescheduleBookingService,
   addSessionLinkService,
   completeBookingService,
@@ -54,6 +55,23 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
   if (!rl.allowed) return RATE_LIMIT_ERROR
 
   const result = await cancelBookingService(supabase, user.id, professionalId, bookingId, reason)
+  if (result.success) {
+    revalidatePath('/agenda')
+    revalidatePath('/dashboard')
+  }
+  return result
+}
+
+export async function cancelBookingWithScope(
+  bookingId: string,
+  scope: 'this' | 'future' | 'series',
+  reason?: string,
+): Promise<ActionResult> {
+  const { supabase, user, professionalId } = await getAuthenticatedContext()
+  const rl = await rateLimit('bookingManage', user.id)
+  if (!rl.allowed) return RATE_LIMIT_ERROR
+
+  const result = await cancelBookingWithScopeService(supabase, user.id, professionalId, bookingId, scope, reason)
   if (result.success) {
     revalidatePath('/agenda')
     revalidatePath('/dashboard')
