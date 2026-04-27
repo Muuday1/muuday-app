@@ -113,6 +113,8 @@ Last updated: 2026-04-25
     - `lib/booking/external-calendar-conflicts.test.ts` — 5 tests (busy conflict true/false, DB error fail-open, null count, query filters)
     - `lib/booking/payload-builders.test.ts` — 7 tests (one_off payload fields, recurring parent/child payloads, sessions payload, batch payloads, null fallbacks, metadata shape)
     - `lib/booking/create-booking.test.ts` — 18 tests (one_off/recurring/batch success paths, lookup context fail, prepare slots fail, slot validation fail, lock conflict, lock error, price zero, prepare payment throw, persist fail, fallback record payment, record payment throw, lock release on success/error, profiles array shape, manual confirmation deadline)
+25. **PT-BR cleanup batch (2026-04-25):**
+    - `app/(app)/agenda/page.tsx` — fixed mojibake (`confirma??o` → `confirmação`), added missing accents (`Visão geral`, `Pendências`, `sessões`, `solicitações`, `avançadas`, `Histórico`), translated English labels (`Requests` → `Solicitações`, `Business setup` → `Configurações do negócio`, `Control center` → `Central de controle`)
 
 ## Open risks
 

@@ -87,7 +87,9 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - `lib/booking/payload-builders.test.ts` — 7 tests (one_off payload fields, recurring parent/child payloads, sessions payload, batch payloads, null fallbacks, metadata shape)
    - `lib/booking/create-booking.test.ts` — 18 tests (one_off/recurring/batch success paths, lookup context fail, prepare slots fail, slot validation fail, lock conflict, lock error, price zero, prepare payment throw, persist fail, fallback record payment, record payment throw, lock release on success/error, profiles array shape, manual confirmation deadline)
    - Total project test suite: **891 tests passing in 85 files**
-5. Two-tier availability architecture fully aligned:
+5. **PT-BR cleanup batch (2026-04-25):**
+   - `app/(app)/agenda/page.tsx` — fixed mojibake (`confirma??o` → `confirmação`), added missing accents (`Visão geral`, `Pendências`, `sessões`, `solicitações`, `avançadas`, `Histórico`), translated English labels (`Requests` → `Solicitações`, `Business setup` → `Configurações do negócio`, `Control center` → `Central de controle`)
+6. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
    - Modal-context route prefers `availability_rules` with legacy fallback.
