@@ -18,11 +18,17 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createBooking } from '@/lib/actions/booking'
 import { cn, formatCurrency } from '@/lib/utils'
 import { captureEvent } from '@/lib/analytics/posthog-client'
+import { generateIcsContent, downloadIcsFile } from '@/lib/calendar/ics-generator'
 import { FEATURE_FLAGS } from '@/lib/analytics/feature-flags'
 import {
   isSlotBlockedByException,
   hasUtcBookingConflict,
 } from '@/lib/booking/slot-filtering'
+import {
+  generateRecurrenceSlots,
+  detectRecurrenceConflicts,
+} from '@/lib/booking/recurrence-engine'
+import { RecurringPreview } from './RecurringPreview'
 
 interface AvailabilitySlot {
   id: string
@@ -309,6 +315,30 @@ export default function BookingForm({
       : Boolean(selectedDate && selectedTime) && hasValidRecurringDuration)
 
   const canUseRecurring = enableRecurring && recurringFlagEnabled !== false
+
+  const recurringConflicts = useMemo(() => {
+    if (bookingType !== 'recurring' || !selectedDate || !selectedTime || !hasValidRecurringDuration) return []
+
+    const selectedDateStr = toLocalDateStr(selectedDate)
+    const startUtc = fromZonedTime(`${selectedDateStr}T${selectedTime}:00`, userTimezone)
+    const endUtc = new Date(startUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
+
+    const { slots } = generateRecurrenceSlots({
+      startDateUtc: startUtc,
+      endDateUtc: endUtc,
+      periodicity: recurringPeriodicity,
+      intervalDays: recurringIntervalDays,
+      occurrences: resolvedRecurringSessionsCount,
+      bookingWindowDays: maxBookingWindowDays,
+    })
+
+    const existing = existingBookings.map(b => {
+      const s = new Date(b.scheduled_at)
+      return { startUtc: s, endUtc: new Date(s.getTime() + b.duration_minutes * 60 * 1000) }
+    })
+
+    return detectRecurrenceConflicts(slots, existing, [])
+  }, [bookingType, selectedDate, selectedTime, hasValidRecurringDuration, userTimezone, professional.session_duration_minutes, recurringPeriodicity, recurringIntervalDays, resolvedRecurringSessionsCount, maxBookingWindowDays, existingBookings])
 
   const submitLabel =
     confirmationMode === 'manual'
@@ -599,6 +629,41 @@ export default function BookingForm({
           </div>
         )}
 
+        {bookingType === 'recurring' && selectedDate && selectedTime && (
+          <button
+            onClick={() => {
+              const selectedDateStr = toLocalDateStr(selectedDate)
+              const startUtc = fromZonedTime(`${selectedDateStr}T${selectedTime}:00`, userTimezone)
+              const endUtc = new Date(startUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
+              const { slots } = generateRecurrenceSlots({
+                startDateUtc: startUtc,
+                endDateUtc: endUtc,
+                periodicity: recurringPeriodicity,
+                intervalDays: recurringIntervalDays,
+                occurrences: resolvedRecurringSessionsCount,
+                bookingWindowDays: maxBookingWindowDays,
+              })
+              const events = slots.map((slot, i) => ({
+                uid: `${professional.id}-${i + 1}@muuday.com`,
+                startUtc: slot.startUtc,
+                endUtc: slot.endUtc,
+                summary: `Sessão com ${profileName}`,
+                description: `Sessão de ${professional.session_duration_minutes} minutos agendada via Muuday`,
+                url: `${typeof window !== 'undefined' ? window.location.origin : ''}/agenda`,
+              }))
+              const ics = generateIcsContent(events)
+              downloadIcsFile(`muuday-sessoes-${profileName.replace(/\s+/g, '-')}.ics`, ics)
+              captureEvent('booking_ics_downloaded', {
+                professional_id: professional.id,
+                sessions_count: slots.length,
+              })
+            }}
+            className="mb-4 w-full rounded-md border border-slate-200 bg-white py-3 text-center text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50/70"
+          >
+            📅 Baixar calendário (.ics)
+          </button>
+        )}
+
         <div className="flex w-full flex-col gap-3 sm:flex-row">
           <Link
             href="/agenda"
@@ -768,6 +833,21 @@ export default function BookingForm({
                   />
                   Renovar automaticamente após o término deste pacote
                 </label>
+
+                {/* Recurrence preview */}
+                {selectedDate && selectedTime && hasValidRecurringDuration && (
+                  <RecurringPreview
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                    durationMinutes={professional.session_duration_minutes}
+                    periodicity={recurringPeriodicity}
+                    intervalDays={recurringIntervalDays}
+                    occurrences={recurringDurationMode === 'occurrences' ? recurringSessionsCount : resolvedRecurringSessionsCount}
+                    bookingWindowDays={maxBookingWindowDays}
+                    existingBookings={existingBookings}
+                    userTimezone={userTimezone}
+                  />
+                )}
               </div>
             )}
 
@@ -1111,6 +1191,18 @@ export default function BookingForm({
                 ))}
               </div>
             </div>
+
+            {recurringConflicts.length > 0 && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/70 p-3 text-sm text-amber-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">Atenção: conflitos detectados</p>
+                  <p className="mt-0.5">
+                    {recurringConflicts.length} sessão(ões) conflitam com agendamentos existentes. O profissional pode recusar ou ajustar.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {bookingResult && !bookingResult.success && (
               <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50/70 p-3 text-sm text-red-700">

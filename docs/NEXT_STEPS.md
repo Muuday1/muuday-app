@@ -159,10 +159,10 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 - **Source:** `docs/product/IMPLEMENTATION-ROADMAP.md` Phase 4, `docs/product/journeys/recurring-booking-journey.md`
 - **Owner:** Frontend
 - **Acceptance:**
-  - [ ] User can select recurring type (weekly, biweekly, monthly, custom)
-  - [ ] Calendar preview shows all generated sessions
-  - [ ] Conflict warnings displayed before checkout
-  - [ ] .ics export available on confirmation
+  - [x] User can select recurring type (weekly, biweekly, monthly, custom)
+  - [x] Calendar preview shows all generated sessions
+  - [x] Conflict warnings displayed before checkout
+  - [x] .ics export available on confirmation
   - [ ] Management modal allows cancel scope (this only / all future / entire series)
   - [ ] Recurring package card visible in agenda
 
