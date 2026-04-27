@@ -122,6 +122,16 @@ Special case: `CRON_SECRET`
 2. Webhook endpoint verifies signature with new `STRIPE_WEBHOOK_SECRET`.
 3. Trolley payout onboarding path still works.
 
+## Current rotation status
+
+> **⚠️ ALL 28 SECRETS ARE OVERDUE as of 2026-04-27.**
+> See `docs/engineering/runbooks/SECRETS-ROTATION-EXECUTION-2026-04-27.md` for the complete execution checklist.
+
+Run the check locally:
+```bash
+npm run secrets:rotation:check -- --warn-window-days 14 --fail-on overdue
+```
+
 ## Rotation register (must update every rotation)
 
 Canonical register file:

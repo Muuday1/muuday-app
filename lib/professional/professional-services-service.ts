@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { loadPlanConfigMap, getPlanConfigForTier } from '@/lib/plan-config'
 
 const serviceIdSchema = z.string().uuid('Identificador de serviço inválido.')
 const nameSchema = z.string().trim().min(1, 'Nome é obrigatório.').max(100, 'Nome muito longo.')
@@ -35,6 +36,38 @@ export async function createProfessionalService(
   const priceParsed = z.number().min(0).safeParse(priceBrl)
   if (!priceParsed.success) {
     return { success: false, error: 'Preço inválido.' }
+  }
+
+  const [
+    { data: professionalRow, error: tierError },
+    { count: activeServicesCount, error: countError },
+  ] = await Promise.all([
+    supabase.from('professionals').select('tier').eq('id', professionalId).maybeSingle(),
+    supabase
+      .from('professional_services')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', professionalId)
+      .eq('is_active', true),
+  ])
+
+  if (tierError || countError) {
+    console.error('[createProfessionalService] tier/count query failed', {
+      professionalId,
+      tierError: tierError?.message,
+      countError: countError?.message,
+    })
+    return { success: false, error: 'Erro ao validar limite do plano.' }
+  }
+
+  const planConfigMap = await loadPlanConfigMap()
+  const tierConfig = getPlanConfigForTier(planConfigMap, professionalRow?.tier)
+  const currentActiveServices = Number(activeServicesCount || 0)
+
+  if (currentActiveServices >= tierConfig.limits.services) {
+    return {
+      success: false,
+      error: `Seu plano permite até ${tierConfig.limits.services} serviço(s). Você já tem ${currentActiveServices} ativo(s). Edite um existente ou exclua antes de criar outro.`,
+    }
   }
 
   const { data, error } = await supabase
