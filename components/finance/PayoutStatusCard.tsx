@@ -21,9 +21,43 @@ interface PayoutStatusCardProps {
     debt: number
     lastPayoutAt: string | null
   } | null
+  periodicity?: 'weekly' | 'biweekly' | 'monthly'
 }
 
-export function PayoutStatusCard({ payoutStatus, balance }: PayoutStatusCardProps) {
+function calculateNextPayoutDate(
+  lastPayoutAt: string | null,
+  periodicity: 'weekly' | 'biweekly' | 'monthly',
+): Date {
+  const now = new Date()
+  // Payouts happen at 8h UTC on Mondays (weekly/biweekly) or 1st of month (monthly)
+  if (periodicity === 'monthly') {
+    // Next 1st of month
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1, 8, 0, 0)
+    return next
+  }
+
+  // Find next Monday at 8h UTC
+  const nextMonday = new Date(now)
+  nextMonday.setUTCHours(8, 0, 0, 0)
+  const day = nextMonday.getUTCDay() // 0=Sun, 1=Mon
+  const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day
+  nextMonday.setUTCDate(nextMonday.getUTCDate() + daysUntilMonday)
+
+  if (periodicity === 'biweekly') {
+    // If last payout was recent, skip to the Monday after next
+    if (lastPayoutAt) {
+      const last = new Date(lastPayoutAt)
+      const daysSinceLastPayout = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24)
+      if (daysSinceLastPayout < 10) {
+        nextMonday.setUTCDate(nextMonday.getUTCDate() + 7)
+      }
+    }
+  }
+
+  return nextMonday
+}
+
+export function PayoutStatusCard({ payoutStatus, balance, periodicity = 'weekly' }: PayoutStatusCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,7 +136,29 @@ export function PayoutStatusCard({ payoutStatus, balance }: PayoutStatusCardProp
         </div>
       )}
 
-      {/* Onboarding status */}
+      {/* Next payout */}
+      {balance && balance.available > 0 && (
+        <div className="mb-5 rounded-md border border-green-100 bg-green-50/70 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-medium text-green-700">Próximo repasse estimado</p>
+              <p className="text-sm font-semibold text-green-900">
+                {formatMinorUnits(balance.available)} em{' '}
+                {calculateNextPayoutDate(balance.lastPayoutAt, periodicity).toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </p>
+            </div>
+            <span className="rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-semibold text-green-800 uppercase tracking-wide">
+              {periodicity === 'weekly' ? 'Semanal' : periodicity === 'biweekly' ? 'Quinzenal' : 'Mensal'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding status -->
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${kyc.color}`}>

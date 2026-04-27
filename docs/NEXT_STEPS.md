@@ -163,8 +163,8 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
   - [x] Calendar preview shows all generated sessions
   - [x] Conflict warnings displayed before checkout
   - [x] .ics export available on confirmation
-  - [ ] Management modal allows cancel scope (this only / all future / entire series)
-  - [ ] Recurring package card visible in agenda
+  - [x] Management modal allows cancel scope (this only / all future / entire series)
+  - [x] Recurring package card visible in agenda
 
 ### P1.7 Professional Financial Overview Page (WORK-03)
 - **What:** Build `/financeiro` with transactions, payout status, fees, and subscription management.
@@ -172,11 +172,11 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 - **Source:** `docs/product/IMPLEMENTATION-ROADMAP.md` Phase 6, `docs/product/journeys/financial-overview-journey.md`
 - **Owner:** Frontend
 - **Acceptance:**
-  - [ ] Transaction list with filterable table
-  - [ ] Payout status card (next payout, pending amount)
-  - [ ] Subscription status with Stripe Customer Portal link
-  - [ ] Earnings analytics (sparkline, trend)
-  - [ ] Responsive layout
+  - [x] Transaction list with filterable table
+  - [x] Payout status card (next payout, pending amount)
+  - [x] Subscription status with Stripe Customer Portal link
+  - [x] Earnings analytics (sparkline, trend)
+  - [x] Responsive layout
 
 ### P1.8 Notification Preferences & Inbox (CROSS-03)
 - **What:** Notification preferences page and in-app inbox placeholder replacement.

@@ -4,7 +4,7 @@ export const metadata = { title: 'Financeiro | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Wallet, Calendar, Receipt, ArrowRight } from 'lucide-react'
+import { Wallet, Calendar, Receipt, ArrowRight, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -16,6 +16,62 @@ import { PayoutHistoryTable } from '@/components/finance/PayoutHistoryTable'
 import { PayoutPeriodicitySelector } from '@/components/finance/PayoutPeriodicitySelector'
 import { SubscriptionStatusCard } from '@/components/finance/SubscriptionStatusCard'
 import { getProfessionalSubscription } from '@/lib/actions/professional/subscription'
+import { TransactionList } from '@/components/finance/TransactionList'
+import { EarningsSparkline } from '@/components/finance/EarningsSparkline'
+
+function groupPaymentsByDay(payments: any[]): { label: string; value: number }[] {
+  const map = new Map<string, number>()
+  const today = new Date()
+  // Last 30 days
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    map.set(key, 0)
+  }
+
+  for (const p of payments) {
+    if (p.status !== 'captured') continue
+    const dateKey = new Date(p.created_at).toISOString().slice(0, 10)
+    if (map.has(dateKey)) {
+      map.set(dateKey, (map.get(dateKey) || 0) + Number(p.amount_total || 0))
+    }
+  }
+
+  return Array.from(map.entries()).map(([date, value]) => ({
+    label: `${String(new Date(date).getDate()).padStart(2, '0')}/${String(new Date(date).getMonth() + 1).padStart(2, '0')}`,
+    value,
+  }))
+}
+
+function calculateTrend(payments: any[]): { direction: 'up' | 'down' | 'flat'; percentage: number } {
+  const now = new Date()
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  const thisMonthTotal = payments
+    .filter((p: any) => p.status === 'captured' && new Date(p.created_at) >= thisMonthStart)
+    .reduce((sum: number, p: any) => sum + Number(p.amount_total || 0), 0)
+
+  const lastMonthTotal = payments
+    .filter(
+      (p: any) =>
+        p.status === 'captured' &&
+        new Date(p.created_at) >= lastMonthStart &&
+        new Date(p.created_at) < thisMonthStart,
+    )
+    .reduce((sum: number, p: any) => sum + Number(p.amount_total || 0), 0)
+
+  if (lastMonthTotal === 0) {
+    return thisMonthTotal > 0 ? { direction: 'up', percentage: 100 } : { direction: 'flat', percentage: 0 }
+  }
+
+  const pct = ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100
+  return {
+    direction: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat',
+    percentage: Math.abs(pct),
+  }
+}
 
 export default async function FinanceiroPage() {
   const supabase = await createClient()
@@ -45,17 +101,25 @@ export default async function FinanceiroPage() {
 
   const [
     { data: payments },
-    { data: bookings },
+    { data: bookingsWithClients },
+    { data: activeBookings },
     payoutData,
     subscriptionResult,
   ] = await Promise.all([
     professionalId
       ? supabase
           .from('payments')
-          .select('amount_total, currency, status, created_at')
+          .select('id, amount_total, platform_fee_brl_minor, currency, status, created_at, booking_id')
           .eq('professional_id', professionalId)
           .order('created_at', { ascending: false })
           .limit(100)
+      : Promise.resolve({ data: [] as any[] }),
+    professionalId
+      ? supabase
+          .from('bookings')
+          .select('id, user_id, profiles!bookings_user_id_fkey(full_name)')
+          .eq('professional_id', professionalId)
+          .limit(500)
       : Promise.resolve({ data: [] as any[] }),
     professionalId
       ? supabase
@@ -72,15 +136,50 @@ export default async function FinanceiroPage() {
   const subscription = (subscriptionResult as any)?.success ? (subscriptionResult as any).subscription : null
 
   const currency = profile.currency || 'BRL'
+
+  // Build client name lookup from bookings
+  const clientNameMap = new Map<string, string>()
+  for (const b of bookingsWithClients || []) {
+    const name = b.profiles?.full_name
+    if (name && b.id) {
+      clientNameMap.set(b.id, name)
+    }
+  }
+
+  // Transaction data
+  const transactions = (payments || []).map((p: any) => {
+    const platformFee = (p.platform_fee_brl_minor || 0) / 100
+    const amountTotal = Number(p.amount_total || 0)
+    return {
+      id: p.id,
+      createdAt: p.created_at,
+      clientName: clientNameMap.get(p.booking_id) || '—',
+      bookingId: p.booking_id,
+      amountTotal,
+      platformFee,
+      netAmount: amountTotal - platformFee,
+      currency: p.currency || 'BRL',
+      status: p.status,
+    }
+  })
+
   const capturedPayments = (payments || []).filter((payment: any) => payment.status === 'captured')
   const grossTotal = capturedPayments.reduce(
     (total: number, payment: any) => total + Number(payment.amount_total || 0),
     0,
   )
+  const netTotal = capturedPayments.reduce(
+    (total: number, payment: any) =>
+      total + Number(payment.amount_total || 0) - (payment.platform_fee_brl_minor || 0) / 100,
+    0,
+  )
   const pendingPayments = (payments || []).filter((payment: any) =>
     ['pending', 'requires_action'].includes(String(payment.status)),
   )
-  const activeBookings = (bookings || []).length
+  const activeBookingCount = (activeBookings || []).length
+
+  const trend = calculateTrend(payments || [])
+  const sparklineData = groupPaymentsByDay(payments || [])
 
   return (
     <PageContainer maxWidth="lg">
@@ -90,37 +189,76 @@ export default async function FinanceiroPage() {
       />
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <AppCard>
-          <p className="mb-1 text-xs text-slate-500">Total capturado</p>
+          <p className="mb-1 text-xs text-slate-500">Total capturado (bruto)</p>
           <p className="text-2xl font-semibold text-slate-900">{formatCurrency(grossTotal, currency)}</p>
         </AppCard>
         <AppCard>
-          <p className="mb-1 text-xs text-slate-500">Pagamentos pendentes</p>
+          <p className="mb-1 text-xs text-slate-500">Total líquido</p>
+          <p className="text-2xl font-semibold text-green-700">{formatCurrency(netTotal, currency)}</p>
+        </AppCard>
+        <AppCard>
+          <div className="flex items-center justify-between">
+            <p className="mb-1 text-xs text-slate-500">Pagamentos pendentes</p>
+            {pendingPayments.length > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                {pendingPayments.length}
+              </span>
+            )}
+          </div>
           <p className="text-2xl font-semibold text-slate-900">{pendingPayments.length}</p>
         </AppCard>
         <AppCard>
-          <p className="mb-1 text-xs text-slate-500">Agendamentos ativos</p>
-          <p className="text-2xl font-semibold text-slate-900">{activeBookings}</p>
+          <div className="flex items-center justify-between">
+            <p className="mb-1 text-xs text-slate-500">Agendamentos ativos</p>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                trend.direction === 'up'
+                  ? 'bg-green-100 text-green-700'
+                  : trend.direction === 'down'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {trend.direction === 'up' ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : trend.direction === 'down' ? (
+                <TrendingDown className="h-3 w-3" />
+              ) : null}
+              {trend.percentage.toFixed(0)}% vs mês anterior
+            </span>
+          </div>
+          <p className="text-2xl font-semibold text-slate-900">{activeBookingCount}</p>
         </AppCard>
       </div>
 
       {/* Subscription section */}
-      {subscription && (
-        <SubscriptionStatusCard subscription={subscription} />
+      {subscription && <SubscriptionStatusCard subscription={subscription} />}
+
+      {/* Earnings chart */}
+      {sparklineData.length > 1 && (
+        <div className="mb-6">
+          <AppCard>
+            <div className="mb-4 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-[#9FE870]" />
+              <h2 className="font-semibold text-slate-900">Ganhos — últimos 30 dias</h2>
+            </div>
+            <EarningsSparkline data={sparklineData} />
+          </AppCard>
+        </div>
       )}
 
       {/* Payout section */}
       {payoutData && !('error' in payoutData) ? (
-        <div className="space-y-4 mb-6">
+        <div className="mb-6 space-y-4">
           <PayoutStatusCard
             payoutStatus={payoutData.payoutStatus}
             balance={payoutData.balance}
+            periodicity={payoutData.periodicity || 'weekly'}
           />
           <AppCard>
-            <PayoutPeriodicitySelector
-              currentPeriodicity={payoutData.periodicity || 'weekly'}
-            />
+            <PayoutPeriodicitySelector currentPeriodicity={payoutData.periodicity || 'weekly'} />
           </AppCard>
           <PayoutHistoryTable
             payouts={payoutData.recentPayouts}
@@ -129,8 +267,8 @@ export default async function FinanceiroPage() {
         </div>
       ) : (
         <AppCard className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Wallet className="w-4 h-4 text-[#9FE870]" />
+          <div className="mb-3 flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-[#9FE870]" />
             <h2 className="font-semibold text-slate-900">Saldo e Recebimentos</h2>
           </div>
           <p className="text-sm text-slate-600">
@@ -139,37 +277,44 @@ export default async function FinanceiroPage() {
         </AppCard>
       )}
 
+      {/* Transaction list */}
+      {transactions.length > 0 && (
+        <div className="mb-6">
+          <AppCard>
+            <div className="mb-4 flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-[#9FE870]" />
+              <h2 className="font-semibold text-slate-900">Transações</h2>
+            </div>
+            <TransactionList transactions={transactions} currency={currency} />
+          </AppCard>
+        </div>
+      )}
+
       {/* Quick links */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <AppCard hover padding="sm">
-          <Link
-            href="/agenda"
-            className="flex items-center justify-between"
-          >
+          <Link href="/agenda" className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-[#9FE870]" />
+              <Calendar className="h-4 w-4 text-[#9FE870]" />
               <div>
                 <p className="text-sm font-medium text-slate-900">Ver bookings</p>
                 <p className="text-xs text-slate-500">Acompanhar agenda e status</p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <ArrowRight className="h-4 w-4 text-slate-400" />
           </Link>
         </AppCard>
 
         <AppCard hover padding="sm">
-          <Link
-            href="/configuracoes"
-            className="flex items-center justify-between"
-          >
+          <Link href="/configuracoes" className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Receipt className="w-4 h-4 text-[#9FE870]" />
+              <Receipt className="h-4 w-4 text-[#9FE870]" />
               <div>
                 <p className="text-sm font-medium text-slate-900">Preferências da conta</p>
                 <p className="text-xs text-slate-500">Moeda, notificações e segurança</p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <ArrowRight className="h-4 w-4 text-slate-400" />
           </Link>
         </AppCard>
       </div>
