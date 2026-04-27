@@ -16,11 +16,11 @@ const FEATURE_OPTIONS = [
   { key: 'whatsapp_profile', label: 'WhatsApp no perfil' },
   { key: 'social_links', label: 'Links sociais' },
   { key: 'extended_bio', label: 'Bio estendida' },
-  { key: 'outlook_sync', label: 'Sync Outlook' },
+  { key: 'outlook_sync', label: 'Sincronização Outlook' },
   { key: 'whatsapp_notifications', label: 'Notificações WhatsApp' },
   { key: 'promotions', label: 'Promoções' },
-  { key: 'csv_export', label: 'Export CSV' },
-  { key: 'pdf_export', label: 'Export PDF' },
+  { key: 'csv_export', label: 'Exportar CSV' },
+  { key: 'pdf_export', label: 'Exportar PDF' },
 ] as const
 
 const TIERS: Array<{ key: keyof PlanConfigMap; label: string }> = [
