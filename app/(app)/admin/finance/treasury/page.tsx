@@ -100,7 +100,7 @@ export default async function AdminTreasuryPage() {
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <p className="text-sm font-medium text-slate-500">Payouts Pendentes</p>
+              <p className="text-sm font-medium text-slate-500">Repasses Pendentes</p>
               <p className="mt-2 text-3xl font-bold text-slate-900">
                 {formatMinorUnits(BigInt(String(data.pendingPayoutsTotal || 0)), String(data.currency || 'BRL'))}
               </p>
@@ -153,13 +153,13 @@ export default async function AdminTreasuryPage() {
 
           {/* Recent settlements */}
           <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 text-lg font-semibold text-slate-800">Settlements Recentes (Stripe → Revolut)</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-800">Liquidações Recentes (Stripe → Revolut)</h2>
             {Array.isArray(data.recentSettlements) && data.recentSettlements.length > 0 ? (
               <div className="overflow-x-auto scrollbar-hide">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left font-medium text-slate-600">Stripe Payout ID</th>
+                      <th className="px-4 py-3 text-left font-medium text-slate-600">ID do Repasse Stripe</th>
                       <th className="px-4 py-3 text-right font-medium text-slate-600">Bruto</th>
                       <th className="px-4 py-3 text-right font-medium text-slate-600">Taxa</th>
                       <th className="px-4 py-3 text-right font-medium text-slate-600">Líquido</th>
@@ -183,7 +183,7 @@ export default async function AdminTreasuryPage() {
                           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                             s.status === 'paid' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                           }`}>
-                            {String(s.status)}
+                            {s.status === 'paid' ? 'Pago' : s.status === 'pending' ? 'Pendente' : String(s.status)}
                           </span>
                         </td>
                       </tr>

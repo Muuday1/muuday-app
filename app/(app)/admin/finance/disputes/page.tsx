@@ -45,13 +45,18 @@ export default async function AdminDisputesPage({
           <p className="text-slate-500">{total} disputas no total</p>
         </div>
         <div className="flex gap-2">
-          {['open', 'recovered', 'written_off', 'waived'].map((s) => (
+          {[
+            { key: 'open', label: 'Aberta' },
+            { key: 'recovered', label: 'Recuperada' },
+            { key: 'written_off', label: 'Perdida' },
+            { key: 'waived', label: 'Dispensada' },
+          ].map(({ key, label }) => (
             <a
-              key={s}
-              href={`?status=${s}`}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${status === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              key={key}
+              href={`?status=${key}`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${status === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              {s === 'written_off' ? 'perdida' : s === 'waived' ? 'dispensada' : s}
+              {label}
             </a>
           ))}
           {status && (
@@ -85,7 +90,7 @@ export default async function AdminDisputesPage({
                     d.status === 'recovered' ? 'bg-green-50 text-green-700' :
                     'bg-slate-50 text-slate-700'
                   }`}>
-                    {d.status}
+                    {d.status === 'open' ? 'Aberta' : d.status === 'recovered' ? 'Recuperada' : d.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-900">{d.professionalName || d.professionalId.slice(0, 8)}</td>

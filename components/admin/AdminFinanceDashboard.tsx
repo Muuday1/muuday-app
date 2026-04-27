@@ -89,7 +89,7 @@ export function AdminFinanceDashboard({ data }: Props) {
               <StatCard
                 title="Repasses Pendentes"
                 value={formatMinorUnits(treasury.pendingPayoutsTotal)}
-                subtitle={`${payouts.pendingCount} batch(s)`}
+                subtitle={`${payouts.pendingCount} lote(s)`}
                 href="/admin/finance/payouts"
               />
               <StatCard
@@ -166,7 +166,7 @@ export function AdminFinanceDashboard({ data }: Props) {
                 href="/admin/finance/ledger"
                 className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
               >
-                Ver Ledger →
+                Ver Livro Razão →
               </Link>
               <Link
                 href="/admin/finance/payouts"

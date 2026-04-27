@@ -39,7 +39,7 @@ export default async function AdminSubscriptionsPage({
   const totalPages = Math.ceil(total / pageSize)
 
   const statusLabel: Record<string, string> = {
-    trialing: 'Trial',
+    trialing: 'Em teste',
     active: 'Ativa',
     past_due: 'Inadimplente',
     canceled: 'Cancelada',
@@ -94,7 +94,7 @@ export default async function AdminSubscriptionsPage({
               <th className="px-4 py-3 text-left font-medium text-slate-600">Status</th>
               <th className="px-4 py-3 text-right font-medium text-slate-600">Valor</th>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Período atual</th>
-              <th className="px-4 py-3 text-left font-medium text-slate-600">Trial</th>
+              <th className="px-4 py-3 text-left font-medium text-slate-600">Teste</th>
               <th className="px-4 py-3 text-right font-medium text-slate-600">Falhas</th>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Criada</th>
             </tr>

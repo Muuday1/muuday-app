@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { loadPayoutBatches } from '@/lib/actions/admin/finance'
 import { formatMinorUnits } from '@/lib/payments/fees/calculator'
 
-export const metadata = { title: 'Payouts | Admin | Muuday' }
+export const metadata = { title: 'Repasses | Admin | Muuday' }
 
 export default async function AdminPayoutsPage({
   searchParams,
@@ -41,17 +41,22 @@ export default async function AdminPayoutsPage({
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Payouts</h1>
-          <p className="text-slate-500">{total} batches no total</p>
+          <h1 className="text-2xl font-bold text-slate-900">Repasses</h1>
+          <p className="text-slate-500">{total} lotes no total</p>
         </div>
         <div className="flex gap-2">
-          {['submitted', 'processing', 'completed', 'failed'].map((s) => (
+          {[
+            { key: 'submitted', label: 'Submetido' },
+            { key: 'processing', label: 'Processando' },
+            { key: 'completed', label: 'Concluído' },
+            { key: 'failed', label: 'Falhou' },
+          ].map(({ key, label }) => (
             <a
-              key={s}
-              href={`?status=${s}`}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${status === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              key={key}
+              href={`?status=${key}`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${status === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              {s}
+              {label}
             </a>
           ))}
           {status && (
@@ -85,7 +90,7 @@ export default async function AdminPayoutsPage({
                     b.status === 'processing' ? 'bg-blue-50 text-blue-700' :
                     'bg-amber-50 text-amber-700'
                   }`}>
-                    {b.status}
+                    {b.status === 'completed' ? 'Concluído' : b.status === 'failed' ? 'Falhou' : b.status === 'processing' ? 'Processando' : b.status === 'submitted' ? 'Submetido' : b.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right font-medium text-slate-900">
@@ -101,7 +106,7 @@ export default async function AdminPayoutsPage({
             )) : (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  Nenhum batch encontrado.
+                  Nenhum lote encontrado.
                 </td>
               </tr>
             )}

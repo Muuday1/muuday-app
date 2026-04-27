@@ -74,7 +74,7 @@ test.describe('Admin Finance Dashboard', () => {
 
     await expect(page.getByRole('heading', { name: 'Tesouraria' })).toBeVisible()
     await expect(page.getByText('Saldo Atual')).toBeVisible()
-    await expect(page.getByText('Payouts Pendentes')).toBeVisible()
+    await expect(page.getByText('Repasses Pendentes')).toBeVisible()
     await expect(page.getByText('Disponível', { exact: true })).toBeVisible()
     await expect(page.getByText('Buffer de Segurança')).toBeVisible()
   })
@@ -84,7 +84,7 @@ test.describe('Admin Finance Dashboard', () => {
     await page.goto('/admin/finance/ledger')
     await page.waitForLoadState('domcontentloaded')
 
-    await expect(page.getByRole('heading', { name: 'Ledger' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Livro Razão' })).toBeVisible()
     await expect(page.locator('table')).toBeVisible()
     // Table should have headers
     await expect(page.locator('th:has-text("Data")')).toBeVisible()
@@ -99,13 +99,13 @@ test.describe('Admin Finance Dashboard', () => {
     await page.goto('/admin/finance/payouts')
     await page.waitForLoadState('domcontentloaded')
 
-    await expect(page.getByRole('heading', { name: 'Payouts' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Repasses' })).toBeVisible()
     await expect(page.locator('table')).toBeVisible()
     // Status filter buttons
-    await expect(page.getByText('submitted')).toBeVisible()
-    await expect(page.getByText('processing')).toBeVisible()
-    await expect(page.getByText('completed')).toBeVisible()
-    await expect(page.getByText('failed')).toBeVisible()
+    await expect(page.getByText('Submetido')).toBeVisible()
+    await expect(page.getByText('Processando')).toBeVisible()
+    await expect(page.getByText('Concluído')).toBeVisible()
+    await expect(page.getByText('Falhou')).toBeVisible()
   })
 
   test('disputes page loads with table', async ({ page }) => {

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { loadLedgerEntries } from '@/lib/actions/admin/finance'
 import { formatMinorUnits } from '@/lib/payments/fees/calculator'
 
-export const metadata = { title: 'Ledger | Admin | Muuday' }
+export const metadata = { title: 'Livro Razão | Admin | Muuday' }
 
 export default async function AdminLedgerPage({
   searchParams,
@@ -41,7 +41,7 @@ export default async function AdminLedgerPage({
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ledger</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Livro Razão</h1>
           <p className="text-slate-500">{total} entradas no total</p>
         </div>
       </div>
