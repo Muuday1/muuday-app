@@ -446,6 +446,20 @@ export async function POST(request: Request) {
           : inferredSubcategory
             ? [inferredSubcategory]
             : []
+
+      // Enforce specialty limit (P0.4): subcategories are the de-facto specialty storage
+      // until the full professional_specialties write path is built.
+      const clampedSubcategories = mirrorSubcategories.slice(0, tierLimits.specialties)
+      if (clampedSubcategories.length < mirrorSubcategories.length) {
+        console.warn('[onboarding/save][identity] subcategories clamped to tier limit', {
+          professionalId,
+          tier: normalizedTier,
+          limit: tierLimits.specialties,
+          before: mirrorSubcategories.length,
+          after: clampedSubcategories.length,
+        })
+      }
+
       const previousDisplayName = String(existingApplication?.display_name || profile?.full_name || '').trim()
       if (previousDisplayName !== effectiveDisplayName) {
         resolvedAdjustmentFieldKeys.add('display_name')
@@ -491,8 +505,8 @@ export async function POST(request: Request) {
         category: applicationCategory,
         updated_at: new Date().toISOString(),
       }
-      if (mirrorSubcategories.length > 0) {
-        professionalMirrorUpdate.subcategories = mirrorSubcategories
+      if (clampedSubcategories.length > 0) {
+        professionalMirrorUpdate.subcategories = clampedSubcategories
       }
 
       const { error: professionalError } = await db

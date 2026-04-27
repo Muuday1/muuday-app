@@ -23,6 +23,10 @@ export type TierLimits = {
   specialties: number
   tags: number
   services: number
+  // TODO(P0.4): serviceOptionsPerService limit is configured but the feature
+  // (service options / variants per professional_service) is not yet exposed
+  // in the professional-facing UI. When built, enforce this limit at the
+  // professional services write path.
   serviceOptionsPerService: number
   bookingWindowDays: number
 }

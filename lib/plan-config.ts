@@ -110,6 +110,8 @@ function toPlanConfig(row: Partial<PlanConfigRow>, fallback: PlanConfig): PlanCo
     specialties: toPositiveInt(row.specialties_limit, fallback.limits.specialties, 0),
     tags: toPositiveInt(row.tags_limit, fallback.limits.tags, 0),
     services: toPositiveInt(row.services_limit, fallback.limits.services, 0),
+    // TODO(P0.4): serviceOptionsPerService is stored but not enforced because
+    // the service options/variants feature is not yet built.
     serviceOptionsPerService: toPositiveInt(
       row.service_options_per_service_limit,
       fallback.limits.serviceOptionsPerService,

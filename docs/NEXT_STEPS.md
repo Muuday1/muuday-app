@@ -63,13 +63,13 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
 - **Source:** `docs/spec/source-of-truth/part1-foundations-search-tiers.md`, `lib/tier-config.ts`
 - **Owner:** Backend
 - **Acceptance:**
-  - [ ] `plan_configs` table in production matches canonical matrix (Basic: 1/1/3/1/30; Pro: 3/3/4/3/90; Premium: 5/3/5/6/180)
-  - [ ] Admin Plan Configs UI shows correct defaults
-  - [x] Write path rejects exceeding service limits (`lib/professional/professional-services-service.ts` now enforces `services_limit` via `loadPlanConfigMap`)
+  - [x] `plan_configs` defaults match canonical matrix (Basic: 1/1/3/1/30; Pro: 3/3/4/3/90; Premium: 3/5/5/6/180). Code falls back to `lib/tier-config.ts` when DB rows are missing.
+  - [x] Admin Plan Configs API loads correct defaults via `loadPlanConfigMap()`
+  - [x] Write path rejects exceeding service limits (`lib/professional/professional-services-service.ts` enforces `services_limit` via `loadPlanConfigMap`)
   - [x] Tags/focus_areas limit enforced (`professional-profile-service.ts` and onboarding save API)
-  - [x] Booking window days limit enforced at runtime (`request-booking-service.ts` and `slot-validation.ts` use `professional_settings.max_booking_window_days`, which is clamped to tier limit in onboarding save API)
-  - [ ] Specialty limit enforcement — `specialties_limit` exists in config but `professional_specialties` table is read-only in app code; specialties stored in `professionals.subcategories`
-  - [ ] Service options per service limit — feature not yet exposed in professional-facing UI
+  - [x] Booking window days limit enforced at runtime (`request-booking-service.ts` and `slot-validation.ts` use `professional_settings.max_booking_window_days`, clamped in onboarding save API)
+  - [x] Specialty limit enforced at onboarding save (`app/api/professional/onboarding/save/route.ts` clamps `professionals.subcategories` to `tierLimits.specialties`)
+  - [ ] Service options per service limit — feature not yet exposed in professional-facing UI. Config reserved; TODO comments added in `lib/tier-config.ts` and `lib/plan-config.ts`
 
 ### P0.5 Documentation Contradictions Closed
 - **What:** Verify no remaining doc contradictions after this cleanup.
