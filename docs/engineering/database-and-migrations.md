@@ -9,7 +9,7 @@ Ordered SQL migrations under `db/sql/migrations` are the authoritative DB evolut
 ## Important note
 
 Ordered migrations remain canonical runtime truth.
-`db/sql/schema/supabase-schema.sql` was updated to reflect migrations through `014`, and should stay synchronized whenever a migration is added.
+`db/sql/schema/supabase-schema.sql` was updated to reflect migrations through `069`, and should stay synchronized whenever a migration is added.
 
 ## Key migration milestones
 
@@ -120,6 +120,45 @@ Ordered migrations remain canonical runtime truth.
 28. `069-unified-push-native-tokens.sql`
     - Unified push notification token storage (native + web)
 
+### Wave 3 payments engine (ledger + payouts)
+29. `070-payments-ledger-schema.sql`
+    - Double-entry ledger, payout batch system, Trolley recipients, Revolut treasury, dispute resolution tables
+
+30. `071-payments-bigint-migration.sql`
+    - Adds `_minor` suffixed BIGINT columns alongside DECIMAL for atomic currency handling
+
+31. `072-payments-ledger-accounts-bootstrap.sql`
+    - Initial chart of accounts for the double-entry ledger
+
+32. `073-payments-booking-functions-minor.sql`
+    - Updates booking transaction RPC functions to populate `_minor` columns
+
+33. `074-payments-stripe-settlements.sql`
+    - Tracks Stripe payouts (settlements) landing in Revolut for treasury reconciliation
+
+34. `075-payments-phase4-payout-enhancement.sql`
+    - Debt tracking and Trolley fee absorption fields on payout_batch_items
+
+35. `076-payments-force-completed-status.sql`
+    - Adds `force_completed` status to payout_batches + item_count column
+
+36. `077-payments-atomic-balance-rpc.sql`
+    - Atomic professional balance update RPC (eliminates read-modify-write races)
+
+37. `078-payments-atomic-ledger-rpc.sql`
+    - Atomic ledger transaction RPC (single-function multi-entry insert)
+
+38. `079-payments-atomic-balance-last-payout-at.sql`
+    - Atomically updates `last_payout_at` inside the balance RPC
+
+39. `080-professional-payout-periodicity.sql`
+    - Adds `payout_periodicity` to professional_settings (weekly/biweekly/monthly)
+
+### Wave 3 (pending)
+40. `081-professional-subscriptions.sql`
+    - Stripe subscription lifecycle for professional monthly billing
+    - **Status:** Pending production application (requires Supabase Management API)
+
 ## Migration safety rules
 
 1. Prefer additive and reversible migration steps.
@@ -156,10 +195,16 @@ npm run db:validate-pooling
 - `client_records`, `session_notes`
 - `cases`, `case_messages`, `case_actions`
 - `professional_services`
-- `stripe_webhook_events`, `stripe_payment_retry_queue`, `stripe_subscription_check_queue`, `stripe_job_runs`
+- `stripe_webhook_events`, `stripe_payment_retry_queue`, `stripe_subscription_check_queue`, `stripe_job_runs`, `stripe_settlements`
 - `search_sessions`
 - `kyc_verifications`
 - `admin_audit_log`
+- `ledger_accounts`, `ledger_entries`
+- `payout_batches`, `payout_batch_items`, `booking_payout_items`
+- `professional_balances`
+- `trolley_recipients`
+- `revolut_treasury_snapshots`
+- `dispute_resolutions`
 
 ## Active DB cron jobs
 

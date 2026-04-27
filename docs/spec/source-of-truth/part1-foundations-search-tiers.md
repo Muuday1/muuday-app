@@ -1456,11 +1456,11 @@ These events help answer:
 
 11.3 Limits summary
 
-* Booking window: 60 / 90 / 180 days
-* Services: 3 / 10 / 20
-* Options per service: 3 / 6 / 10
-* Specialties: 2 / 3 / 5
-* Tags: 3 / 5 / 10
+* Booking window: 30 / 90 / 180 days
+* Services: 1 / 3 / 5
+* Options per service: 1 / 3 / 6
+* Specialties: 1 / 3 / 3
+* Tags: 3 / 4 / 5
 
 11.4 Search summary
 

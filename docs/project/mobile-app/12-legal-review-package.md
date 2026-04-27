@@ -88,7 +88,7 @@ A Muuday mudou a jurisdição contratual de **São Paulo, Brasil** para **Englan
 
 **Pontos de atenção para o advogado:**
 1. ✅ Jurisdição UK já aplicada em todos os 4 documentos
-2. ⚠️ **PENDENTE:** Payment Terms menciona "Stripe Connect" como intermediador — precisa atualizar para UK single-region?
+2. 🔄 **ATUALIZADO (2026-04-27):** Payment Terms foi atualizado para refletir a arquitetura Stripe UK → Revolut Business → Trolley. Requer revisão jurídica antes da publicação.
 3. ⚠️ **PENDENTE:** Regulated Scope Terms menciona "conselhos profissionais no Brasil" — precisa generalizar para "regulatory bodies in the applicable jurisdiction"?
 4. ⚠️ **PENDENTE:** Não há menção a UK Modern Slavery Act, Bribery Act 2010, ou outras leis UK específicas
 5. ⚠️ **PENDENTE:** Termos de indemnidade e limitation of liability — precisam ser revistos sob common law UK?

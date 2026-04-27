@@ -524,7 +524,7 @@ Required before go-live:
 - working days/hours
 - timezone confirmation
 - minimum notice (Basic 2h-48h, Professional 1h-72h, Premium 30min-168h)
-- maximum booking window (Basic 60 days, Professional 90 days, Premium 180 days)
+- maximum booking window (Basic 30 days, Professional 90 days, Premium 180 days)
 - auto-accept or manual-accept choice (manual-accept only for Professional and Premium)
 - blocked times baseline
 - buffer time between sessions (Basic: fixed 15min, Professional/Premium: configurable 5-60min)
@@ -677,13 +677,13 @@ These were already decided in Part 1 and must be enforced here operationally.
 
 Service count limit:
 - Basic: 1 service
-- Professional: 5 services
-- Premium: 10 services
+- Professional: 3 services
+- Premium: 5 services
 
 Option/duration count per service:
-- Basic: 3 options
-- Professional: 6 options
-- Premium: 10 options
+- Basic: 1 option
+- Professional: 3 options
+- Premium: 6 options
 
 Specialty limit:
 - Basic: 1
@@ -692,11 +692,11 @@ Specialty limit:
 
 Tag limit:
 - Basic: 3
-- Professional: 5
-- Premium: 10
+- Professional: 4
+- Premium: 5
 
 Booking window limit by tier:
-- Basic: 60 days
+- Basic: 30 days
 - Professional: 90 days
 - Premium: 180 days
 
@@ -775,7 +775,7 @@ User receives:
 
 4.4 Booking window rule by tier
 Already decided and must be enforced in booking logic:
-- Basic: next 60 days only
+- Basic: next 30 days only
 - Professional: next 90 days only
 - Premium: next 180 days only
 

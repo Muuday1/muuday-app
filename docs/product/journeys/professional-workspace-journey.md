@@ -476,7 +476,7 @@ ready_to_book ──[active]──→ active_professional
 |------|---------|-----|
 | Buffer time | 15 min | Tier-dependent (Basic: 30, Pro: 60) |
 | Min notice | 24h | 72h |
-| Max booking window | 60 days | Tier-dependent (Basic: 60, Pro: 90) |
+| Max booking window | 30 days | Tier-dependent (Basic: 30, Pro: 90, Premium: 180) |
 
 ### Earnings Display
 

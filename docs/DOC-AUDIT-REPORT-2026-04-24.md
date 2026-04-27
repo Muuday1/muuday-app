@@ -99,7 +99,9 @@ This is the most dangerous architectural controversy in the documentation.
 | `lib/tier-config.ts` line 36 | **30 days** |
 | `docs/engineering/onboarding-and-tiers-implementation-plan.md` | **30 days** |
 
-**Status:** ✅ RESOLVED 2026-04-24 — User confirmed **60 days**. `lib/tier-config.ts` updated from 30 → 60. `onboarding-and-tiers-implementation-plan.md` updated. `professional-workspace-journey.md` updated.
+**Status:** ✅ RESOLVED 2026-04-24 — User initially confirmed **60 days**. `lib/tier-config.ts` updated from 30 → 60. `onboarding-and-tiers-implementation-plan.md` updated. `professional-workspace-journey.md` updated.
+
+> **Reversal (2026-04-27):** After cross-checking with migration 045 (`plan_configs` table defaults), the Basic booking window was reverted to **30 days** to maintain consistency with the DB-enforced canonical values. All docs and `lib/tier-config.ts` now agree: Basic = 30, Professional = 90, Premium = 180.
 
 **Recommended action:** Decide the intended value. If 30 is correct, update the spec. If 60 is correct, update the code and the onboarding plan.
 

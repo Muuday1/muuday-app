@@ -38,6 +38,8 @@ Use this for meaningful checkpoints only.
   - `grep` confirms zero remaining "30-day Basic window" references in docs.
   - `npm run typecheck` → pass (tier-config change is a literal value swap, no type impact).
 
+> **Nota de reversão (2026-04-27):** A janela de agendamento Basic foi revertida de 60 dias para **30 dias** para alinhar com a migration 045 (`plan_configs` table) e `lib/tier-config.ts`. A decisão de 60 dias foi corrigida após verificação de que o banco de dados já tinha 30 dias como default canônico. Ver `docs/NEXT_STEPS.md` P0.4 e P0.5.
+
 ## 2026-04-22
 
 ### Entry 85 (2026-04-22) — Sala de Espera + jogo "O Expat" para sessões de video

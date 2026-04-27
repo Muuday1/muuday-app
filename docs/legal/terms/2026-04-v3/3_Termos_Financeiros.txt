@@ -213,23 +213,36 @@ automáticas subsequentes à contratação inicial.
 comunicadas com antecedência mínima de 30 (trinta) dias.
 
 ==============================================================================
-7. INTERMEDIÁRIO DE PAGAMENTO (STRIPE CONNECT)
+7. PROCESSAMENTO DE PAGAMENTOS E PAYOUTS
 ==============================================================================
 
-7.1. O processamento dos pagamentos dos Clientes e o repasse ao
-Profissional ocorrem por meio do Stripe Connect Express (ou solução
-equivalente), em conta própria do Profissional configurada na
-Plataforma.
+> ⚠️ **REVISÃO LEGAL PENDENTE (2026-04-27):** Esta seção foi atualizada
+> para refletir a arquitetura de pagamentos ativa (Stripe UK → Revolut
+> Business → Trolley). Requer revisão jurídica antes da publicação.
 
-7.2. Adesão aos termos da Stripe. Ao se cadastrar, o Profissional
-ADERE aos termos da Stripe aplicáveis (disponíveis em
-https://stripe.com/legal/connect-account) e autoriza o
-compartilhamento de dados necessários à operação, KYC e prevenção
-à fraude.
+7.1. Arquitetura de pagamentos. O processamento ocorre em três
+camadas:
+   (a) **Cobrança do Cliente:** processada pela Stripe UK Ltd
+   (intermediadora de pagamentos autorizada no Reino Unido);
+   (b) **Tesouraria:** valores recebidos são depositados em conta
+   da Muuday na Revolut Business;
+   (c) **Repasse ao Profissional:** realizado pela Trolley Inc.
+   (plataforma de payouts em massa), mediante cadastro do
+   Profissional na Trolley e configuração de dados bancários.
+   O Profissional NÃO precisa criar conta Stripe para receber
+   payouts.
+
+7.2. Adesão aos termos dos provedores. Ao se cadastrar, o
+Profissional autoriza a Muuday a:
+   (a) processar pagamentos de Clientes via Stripe;
+   (b) realizar repasses via Trolley, sujeito ao KYC e aos termos
+   de serviço da Trolley;
+   (c) compartilhar dados necessários à operação, KYC e prevenção
+   à fraude com os provedores de pagamento.
 
 7.3. A Muuday NÃO retém em nome próprio os valores do Cliente
-destinados ao Profissional, atuando apenas como interface
-tecnológica entre o Profissional e o Intermediário de Pagamento.
+destinados ao Profissional, atuando como interface tecnológica
+entre Cliente, Profissional e os provedores de pagamento.
 
 ==============================================================================
 8. PAYOUTS (RECEBIMENTOS DO PROFISSIONAL)

@@ -64,7 +64,11 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
 - **Acceptance:**
   - [ ] `plan_configs` table in production matches canonical matrix (Basic: 1/1/3/1/30; Pro: 3/3/4/3/90; Premium: 5/3/5/6/180)
   - [ ] Admin Plan Configs UI shows correct defaults
-  - [ ] Write path rejects exceeding limits with correct error messages
+  - [x] Write path rejects exceeding service limits (`lib/professional/professional-services-service.ts` now enforces `services_limit` via `loadPlanConfigMap`)
+  - [x] Tags/focus_areas limit enforced (`professional-profile-service.ts` and onboarding save API)
+  - [x] Booking window days limit enforced at runtime (`request-booking-service.ts` and `slot-validation.ts` use `professional_settings.max_booking_window_days`, which is clamped to tier limit in onboarding save API)
+  - [ ] Specialty limit enforcement — `specialties_limit` exists in config but `professional_specialties` table is read-only in app code; specialties stored in `professionals.subcategories`
+  - [ ] Service options per service limit — feature not yet exposed in professional-facing UI
 
 ### P0.5 Documentation Contradictions Closed
 - **What:** Verify no remaining doc contradictions after this cleanup.
@@ -72,10 +76,12 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
 - **Source:** `docs/DOC-AUDIT-REPORT-2026-04-24.md`
 - **Owner:** Any contributor
 - **Acceptance:**
-  - [ ] `journey-coverage-matrix.md` accurately reflects backend-complete systems
-  - [ ] No file references Stripe Connect for payouts except in archived/historical context
-  - [ ] No file claims Next.js 14 or React 18 as current
-  - [ ] Tier limits are identical across part1, CODEX, onboarding plan, and tier-config.ts
+  - [x] `journey-coverage-matrix.md` accurately reflects backend-complete systems (verified 2026-04-27)
+  - [x] No file references Stripe Connect for payouts except in archived/historical context — `docs/legal/terms/2026-04-v3/3_Termos_Financeiros.txt` updated to Stripe UK → Revolut → Trolley; remaining references are all explicitly marked ARCHIVED or describe evaluated-and-rejected options
+  - [x] No file claims Next.js 14 or React 18 as current (only archive files and accurate React 19 API references)
+  - [x] Tier limits are identical across part1, CODEX, onboarding plan, tier-config.ts, and migration 045
+  - [x] `database-and-migrations.md` updated with migrations 070-081 and new runtime entities
+  - [x] `docs/product/journeys/professional-workspace-journey.md` Basic booking window fixed (60 → 30 days)
 
 ---
 
@@ -389,6 +395,8 @@ These cannot be resolved by engineering alone.
 | C10 | Removed 12 duplicate `figma-export/frames/*.md` files | `docs/product/design-system/frames/*.md` |
 | C11 | Updated `docs/README.md`, `context-map.md`, `current-state.md`, `next-steps.md`, `project-status.md` with mobile app and international expansion cross-links | Various |
 | C12 | Fixed `lib/tier-config.ts` Basic `bookingWindowDays` from 60 → 30 | Migration 045 |
+| C13 | **P0.4** — Fixed `part1-foundations-search-tiers.md` and `part2-onboarding-booking-lifecycle.md` tier limit contradictions; added service limit enforcement to `lib/professional/professional-services-service.ts` | `lib/tier-config.ts`, migration 045 |
+| C14 | **P0.5** — Closed remaining doc contradictions: updated legal terms (Stripe Connect → Trolley), updated `database-and-migrations.md` (070-081), fixed `professional-workspace-journey.md` Basic window (60→30), verified journey-coverage-matrix accuracy | DOC-AUDIT-REPORT-2026-04-24 |
 
 ---
 
