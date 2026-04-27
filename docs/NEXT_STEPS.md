@@ -109,10 +109,10 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 - **Source:** `docs/handover/next-steps.md`, `docs/product/journeys/professional-workspace-journey.md`
 - **Owner:** Frontend
 - **Acceptance:**
-  - [ ] `/disponibilidade` calendar UX tested with 5+ real professionals
-  - [ ] Onboarding tracker modal has zero blocking optional fetches on open
-  - [ ] PT-BR cleanup complete on admin/finance surfaces
-  - [ ] No mojibake or English labels in member-facing pages
+  - [ ] `/disponibilidade` calendar UX tested with 5+ real professionals (requires human testing with 5+ professionals)
+  - [x] Onboarding tracker modal has zero blocking optional fetches on open (verified: optional fetch runs after `setLoadingContext(false)`, wrapped in try/catch, non-blocking by design)
+  - [x] PT-BR cleanup complete on admin/finance surfaces (page titles, table headers, status badges, filter buttons, empty states, pagination)
+  - [x] No mojibake or English labels in member-facing pages (verified no mojibake; fixed: Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão/Sessão de Vídeo)
 
 ### P1.3 Landing Page Redesign Completion
 - **What:** Stakeholder-approved landing page matching Wise.com richness (images, animations, blue accent, all 8 categories).
@@ -398,6 +398,7 @@ These cannot be resolved by engineering alone.
 | C12 | Fixed `lib/tier-config.ts` Basic `bookingWindowDays` from 60 → 30 | Migration 045 |
 | C13 | **P0.4** — Fixed `part1-foundations-search-tiers.md` and `part2-onboarding-booking-lifecycle.md` tier limit contradictions; added service limit enforcement to `lib/professional/professional-services-service.ts` | `lib/tier-config.ts`, migration 045 |
 | C14 | **P0.5** — Closed remaining doc contradictions: updated legal terms (Stripe Connect → Trolley), updated `database-and-migrations.md` (070-081), fixed `professional-workspace-journey.md` Basic window (60→30), verified journey-coverage-matrix accuracy | DOC-AUDIT-REPORT-2026-04-24 |
+| C15 | **P1.2** — PT-BR cleanup on admin/finance surfaces (Ledger→Livro Razão, Payouts→Repasses, Trial→Em teste, Settlements→Liquidações, etc.) and member-facing pages (Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão de Vídeo). Verified onboarding tracker modal optional fetches are non-blocking. | `app/(app)/admin/finance/*`, `app/(app)/dashboard/page.tsx`, `app/(app)/perfil/page.tsx`, `app/(app)/profissional/[id]/page.tsx`, `app/(app)/sessao/[bookingId]/page.tsx` |
 
 ---
 
