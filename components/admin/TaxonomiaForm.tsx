@@ -73,7 +73,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     })
     if (!result.success) {
        
-      console.error('Failed to add subcategory:', result.error)
+      console.error('Falha ao adicionar subcategoria:', result.error)
     }
     setAddItem(null)
     setActionLoading(null)
@@ -94,7 +94,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     })
     if (!result.success) {
        
-      console.error('Failed to add specialty:', result.error)
+      console.error('Falha ao adicionar especialidade:', result.error)
     }
     setAddItem(null)
     setActionLoading(null)
@@ -118,7 +118,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     })
     if (!result.success) {
        
-      console.error('Failed to update taxonomy item:', result.error)
+      console.error('Falha ao atualizar item de taxonomia:', result.error)
     }
     setEditItem(null)
     setActionLoading(null)
@@ -137,7 +137,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     const result = await toggleTaxonomyActive(taxonomyType as TaxonomyType, id, currentActive)
     if (!result.success) {
        
-      console.error('Failed to toggle active:', result.error)
+      console.error('Falha ao alternar ativo:', result.error)
     }
     setActionLoading(null)
     reloadAll()
@@ -157,7 +157,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     })
     if (!result.success) {
        
-      console.error('Failed to add service option:', result.error)
+      console.error('Falha ao adicionar opção de serviço:', result.error)
     }
     setAddItem(null)
     setActionLoading(null)
@@ -169,7 +169,7 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     const result = await reviewTagSuggestion(id, status)
     if (!result.success) {
        
-      console.error('Failed to review tag:', result.error)
+      console.error('Falha ao revisar tag:', result.error)
     }
     setActionLoading(null)
     reloadAll()

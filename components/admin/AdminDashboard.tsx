@@ -220,7 +220,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon={<Users className="w-5 h-5" />} label="Utilizadores" value={stats.totalUsers} color="brand" />
+            <StatCard icon={<Users className="w-5 h-5" />} label="Usuários" value={stats.totalUsers} color="brand" />
             <StatCard icon={<Shield className="w-5 h-5" />} label="Profissionais" value={stats.totalProfessionals} color="brand" />
             <StatCard icon={<Calendar className="w-5 h-5" />} label="Agendamentos" value={stats.totalBookings} color="accent" />
             <StatCard icon={<Star className="w-5 h-5" />} label="Avaliações" value={stats.totalReviews} color="amber" />
