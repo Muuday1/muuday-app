@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-25
+Last updated: 2026-04-27
 
 ## Operational truth
 
@@ -36,6 +36,8 @@ Last updated: 2026-04-25
 
 1. Wave 3 real-money execution (blocked on E2E + compliance).
 2. Final compliance/legal freeze for sensitive categories.
+3. Mobile app development (blocked on API-first refactor completion and App Store readiness).
+4. International expansion beyond PT-BR baseline (blocked on market detection implementation and content localisation).
 
 ## Infrastructure state
 
@@ -45,6 +47,8 @@ Last updated: 2026-04-25
 4. Upstash-backed rate limiting and Sentry/Checkly monitoring baselines are active.
 5. Supabase DB webhooks feed `/api/webhooks/supabase-db` and enqueue async processing safely.
 6. Calendar OAuth groundwork exists; full provider lifecycle remains an active implementation track.
+7. Mobile app API-first refactor: Sprints 3–5 complete. All major Server Actions extracted to `/api/v1/*` routes with CORS coverage. Mobile app not yet started.
+8. International expansion documentation complete (`docs/project/international-expansion/`). Market detection middleware and CMS (Sanity) not yet implemented.
 7. Payment engine infrastructure complete: 9 ledger tables, 8 TS modules, 2 webhooks, 4 Inngest functions, admin finance dashboard with 5 pages. Test coverage added for ledger entries/balance, webhook handlers, and Stripe API routes.
 
 ## Recently stabilized

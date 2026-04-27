@@ -1,6 +1,6 @@
 # Dependency Audit Runbook
 
-Last updated: 2026-04-17
+Last updated: 2026-04-27
 
 ## Objective
 
@@ -26,9 +26,14 @@ npm run test:unit
 npm run build
 ```
 
-## Current status (2026-04-17)
+## Current status (2026-04-27)
 
-### Safe patches applied
+### Framework versions (source of truth: package.json)
+- **Next.js**: `^16.2.4`
+- **React**: `^19`
+- **Tailwind CSS**: `^3.4.1`
+
+### Safe patches applied through 2026-04-17
 - `brace-expansion`, `dompurify`, `follow-redirects`, `lodash`, `protobufjs` (via `npm audit fix`)
 - `eslint-config-next` 14 → 15.5.15 (dev-only, fixes `glob` transitive vulnerability)
 - `checkly` 7.7.0 → 7.11.0
@@ -47,16 +52,15 @@ npm run build
 
 | Package | CVE range | Risk | Fix path |
 |---|---|---|---|
-| `next` 14.2.35 | GHSA-9g9p-9gw9-jx7f, GHSA-h25m-26qc-wcjf, GHSA-ggv3-7p47-pfv8, GHSA-3x4c-7xq6-9pq8, GHSA-q4gf-8mx6-5v3 | Runtime DoS / request smuggling | Upgrade to `next@15.5.15+` or `16.x`. This is a **major upgrade** requiring dedicated QA. |
 | `glob` 10.3.10 | GHSA-5j98-mcp5-4vw2 | CLI command injection (dev-only via `checkly → archiver-utils`) | Wait for `archiver-utils` to update `glob`, or override resolution. |
+
+> **Note:** The `next` 14.2.35 CVEs previously listed here were resolved by the Next.js 16.2.4 upgrade (completed 2026-04-19). See `docs/archive/2026-04-19-nextjs-14-to-16-upgrade.md` for historical context.
 
 ### Major upgrades planned (out of scope for routine patches)
 
 | Package | Current | Target | Notes |
 |---|---|---|---|
-| next | 14.2.35 | 15.5.15+ | High CVE exposure; needs full E2E regression |
-| react / react-dom | 18.3.1 | 19.x | Usually coupled with Next.js upgrade |
-| tailwindcss | 3.4.19 | 4.x | Breaking config changes |
+| tailwindcss | 3.4.1 | 4.x | Breaking config changes |
 | eslint | 8.57.1 | 10.x | Breaking plugin ecosystem |
 | typescript | 5.9.3 | 6.x | Wait for ecosystem maturity |
 | zod | 3.25.76 | 4.x | Optional; 3.x is still maintained |
@@ -70,4 +74,4 @@ npm run build
 
 ---
 
-> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. Updated 2026-04-27 to reflect Next.js 16.2.4 upgrade completion.

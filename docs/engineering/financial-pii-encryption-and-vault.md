@@ -1,6 +1,6 @@
 # Financial PII Encryption and Vault
 
-Last updated: 2026-04-01
+Last updated: 2026-04-27
 
 ## Scope
 
@@ -28,7 +28,7 @@ This document defines the mandatory data-protection posture for finance-sensitiv
 ## Payout PII policy (Wave 3)
 
 Preferred path:
-1. Keep payout bank/KYC data only in Stripe Connect account objects.
+1. Keep payout bank/KYC data only in Trolley recipient objects (Stripe is UK pay-in only; payouts are via Trolley).
 2. Store in Muuday only operational status/flags and non-sensitive display fields (for example last4, bank country, verification status).
 
 If local payout PII storage is required by product/legal operations:
@@ -48,7 +48,7 @@ If local payout PII storage is required by product/legal operations:
 1. Stripe integration paths use tokenized identifiers only (no card data fields).
 2. DB audit passes for forbidden card fields.
 3. Payout PII decision resolved:
-- Stripe-only data (recommended), or
+- Trolley-only data (recommended), or
 - encrypted local columns + Vault-backed key path.
 4. Admin/data-access audit trail active for sensitive finance actions.
 5. RLS + service-role boundaries validated for all finance tables.

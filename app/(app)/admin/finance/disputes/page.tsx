@@ -63,7 +63,8 @@ export default async function AdminDisputesPage({
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="w-full text-sm">
           <thead className="bg-slate-50">
             <tr>
               <th className="px-4 py-3 text-left font-medium text-slate-600">Status</th>
@@ -109,6 +110,7 @@ export default async function AdminDisputesPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="flex justify-between">

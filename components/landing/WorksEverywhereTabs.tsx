@@ -45,7 +45,7 @@ export function WorksEverywhereTabs() {
   return (
     <div className="mt-10 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
       {/* Tabs */}
-      <div className="flex gap-0 overflow-x-auto border-b border-slate-200">
+      <div className="flex gap-0 overflow-x-auto scrollbar-hide border-b border-slate-200">
         {TABS.map((t) => (
           <button
             key={t.key}

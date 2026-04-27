@@ -128,10 +128,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <button
                     type="submit"
                     aria-label="Sair da conta"
-                    className="h-8 px-2.5 rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-1"
+                    className="h-8 w-8 rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center justify-center"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="text-xs font-medium">Sair</span>
                   </button>
                 </form>
                 <div className="w-8 h-8 rounded-md bg-[#9FE870]/10 flex items-center justify-center text-[#3d6b1f] font-semibold text-sm">

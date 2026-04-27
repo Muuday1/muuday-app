@@ -1,7 +1,7 @@
 # AI Agent Instructions — Muuday Implementation
 
 **For:** Kimi Code CLI (or any AI coding agent)  
-**Context:** Next.js 14 App Router + Supabase + Stripe + Agora + Inngest  
+**Context:** Next.js 16 App Router + Supabase + Stripe + Agora + Inngest  
 **Constraint:** Read AGENTS.md before any code change. No shortcuts.
 
 ---

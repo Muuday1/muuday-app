@@ -48,15 +48,17 @@ Muuday’s commercial model is a marketplace where:
   - monthly service models
 - The platform must support international customers and mostly Brazil-based professionals.
 
-The preferred payment architecture is:
+The canonical payment architecture (post-2026-04-24) is:
 - Muuday UK company as platform entity
-- Stripe as primary payments provider
-- Stripe Connect for marketplace flows
-- Stripe Billing for professional subscriptions and recurring client subscriptions where relevant
-- Separate Charges and Transfers as the preferred funds flow
-- Express-style / hosted connected account onboarding for professionals
+- **Stripe** for customer pay-in (Payment Intents, not Connect)
+- **Revolut Business** for treasury and settlement
+- **Trolley** for professional onboarding and payouts
+- Airwallex/dLocal as **contingency only** if Trolley fails for BR corridor
+- Internal double-entry ledger tracks every financial movement
 - Customer-facing localized pricing where possible
 - Professional payout delayed and released under Muuday’s payout rules
+
+> ⚠️ **Historical references to Stripe Connect, Separate Charges and Transfers, and connected-account onboarding in this document are ARCHIVED.** They describe the evaluated-and-rejected architecture. Do not implement Stripe Connect for payouts. See `docs/project/payments-engine/MASTER-PLAN.md` for the active build spec.
 
 Critical caveat (ARCHIVED — 2026-04-24):
 The UK-platform-to-Brazil-professional payout via Stripe Connect was evaluated and **rejected**. Trolley is the primary payout provider. Airwallex/dLocal remain as contingency if Trolley fails for the BR corridor.

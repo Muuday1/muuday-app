@@ -33,7 +33,7 @@ export const TIER_LIMITS: Record<ProfessionalTier, TierLimits> = {
     tags: 3,
     services: 1,
     serviceOptionsPerService: 1,
-    bookingWindowDays: 60,
+    bookingWindowDays: 30,
   },
   professional: {
     specialties: 3,

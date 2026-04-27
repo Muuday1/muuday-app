@@ -11,9 +11,9 @@ Canonical refs: `docs/spec/source-of-truth/part1-foundations-search-tiers.md`, `
 1. Product is video-only (Agora for now). No in-person delivery.
 2. No service jurisdiction. Professionals can serve globally.
 3. Tier limits are runtime-configurable from `plan_configs` (Admin > Planos), with safe defaults:
-   - Basic: `1 service / 1 specialty / 3 tags / 60-day window`
-   - Professional: `3 / 3 / 4 / 90 days`
-   - Premium: `5 / 3 / 5 / 180 days`
+   - Basic: `1 service / 1 specialty / 3 tags / 1 option/service / 30-day window`
+   - Professional: `3 / 3 / 4 / 3 options/service / 90 days`
+   - Premium: `5 / 3 / 5 / 6 options/service / 180 days`
 4. Annual = `10x` monthly.
 5. Basic is paid (`BRL 49.99` and `USD/GBP/EUR 9.99`) with 3-month trial starting at go-live.
 6. C8 `submit_review` depends on onboarding readiness (C2..C6 + terms); payout/billing remains enforced for go-live/financial operations, not as C8 hard blocker.
@@ -219,9 +219,9 @@ Exit criteria:
 
 ## Appendix B - Canonical tier matrix
 
-1. Basic: 1 service, 1 specialty, 3 tags, 60-day booking window.
-2. Professional: 3 services, 3 specialties, 4 tags, 90 days.
-3. Premium: 5 services, 3 specialties, 5 tags, 180 days.
+1. Basic: 1 service, 1 specialty, 3 tags, 1 option/service, 30-day booking window.
+2. Professional: 3 services, 3 specialties, 4 tags, 3 options/service, 90 days.
+3. Premium: 5 services, 3 specialties, 5 tags, 6 options/service, 180 days.
 
 ## Appendix C - Onboarding stages C1-C9
 

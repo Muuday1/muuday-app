@@ -31,10 +31,10 @@ Apply this pattern to ALL tier-locked features in edit profile, settings, schedu
 
 - **All sessions are VIDEO (Agora).** There is no in-person option. Do not add delivery_method, in_person, or presencial anywhere.
 - **No service jurisdiction.** Professionals serve globally. Do not add service_jurisdictions field.
-- **Tier limits (source of truth):**
-  - Basic: 1 service, 1 specialty, 3 tags, 3 options/service, 60-day window
-  - Professional: 5 services, 3 specialties, 5 tags, 6 options/service, 90-day window
-  - Premium: 10 services, 3 specialties, 10 tags, 10 options/service, 180-day window
+- **Tier limits (source of truth: `lib/tier-config.ts` + `db/sql/migrations/045-wave2-admin-plan-configs.sql`):**
+  - Basic: 1 service, 1 specialty, 3 tags, 1 option/service, 30-day window
+  - Professional: 3 services, 3 specialties, 4 tags, 3 options/service, 90-day window
+  - Premium: 5 services, 3 specialties, 5 tags, 6 options/service, 180-day window
 - **Annual = 10x monthly** (not 15% discount)
 - **Buffer time:** Basic fixed 15min, Professional/Premium configurable 5-60min
 - **Manual-accept:** Professional/Premium only. Basic is auto-accept only.
@@ -116,10 +116,12 @@ Create:
 Update:
 - `app/(app)/agenda/page.tsx` — "Entrar na sessao" button
 
-### PHASE 12 — Stripe Dual-Platform
+### PHASE 12 — Stripe Pay-in (UK Only)
 Update:
-- `lib/stripe/client.ts` — add getStripeClientForRegion()
-- Routing logic based on professional country (BR → Stripe BR, others → Stripe UK)
+- `lib/stripe/client.ts` — single Stripe UK client (no region switching)
+- All customer pay-in routed through Stripe UK
+- Payouts handled by Trolley (not Stripe Connect)
+- See `docs/project/payments-engine/MASTER-PLAN.md` for canonical architecture
 
 ### PHASE 13 — Admin
 Update `app/(app)/admin/page.tsx` — show credentials in review queue

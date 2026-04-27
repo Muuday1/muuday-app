@@ -2,7 +2,7 @@
 
 ## Context
 
-The Muuday platform currently runs as a **web-first** Next.js 14+ App Router application with Supabase (PostgreSQL + Auth), Stripe, Agora (video), and Tailwind CSS. The product team has decided to build a **native mobile app** (React Native / Expo) that will be **login-only** — no public marketing pages, no SEO content, no guest browsing. Both clients (`usuario`) and professionals (`profissional`) will use the same app.
+The Muuday platform currently runs as a **web-first** Next.js 16 App Router application with Supabase (PostgreSQL + Auth), Stripe, Agora (video), and Tailwind CSS. The product team has decided to build a **native mobile app** (React Native / Expo) that will be **login-only** — no public marketing pages, no SEO content, no guest browsing. Both clients (`usuario`) and professionals (`profissional`) will use the same app.
 
 ## Key Finding: The Codebase Is Not Ready Today
 

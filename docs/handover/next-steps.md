@@ -1,6 +1,6 @@
 # Next Steps
 
-Last updated: 2026-04-25
+Last updated: 2026-04-27
 
 Execute in order. Keep changes batchable, validated, and documented.
 
@@ -42,6 +42,18 @@ Execute in order. Keep changes batchable, validated, and documented.
 4. Keep secrets rotation, sync audit, and DB pooling validation operational.
 5. Keep Stripe resilience foundation aligned with DB migrations and operational tables, without opening real-money execution early.
 6. Payment engine code is build-stable and unit-tested; focus shifts to E2E validation and production migration.
+
+## Mobile app & API-first refactor
+
+1. Mobile app development is **not open** until API refactor is fully hardened.
+2. Next mobile-app prerequisite: E2E validation of `/api/v1/*` surface with realistic mobile payloads.
+3. See `docs/project/mobile-app/08-master-backlog.md` for unified backlog across mobile + international tracks.
+
+## International expansion
+
+1. Market detection middleware (`docs/project/international-expansion/08-market-routing-implementation.md`) is documented but not implemented.
+2. Sanity CMS integration for localised content is planned but not started.
+3. Portuguese (PT) and Spanish (MX) content strategies are defined in `docs/project/international-expansion/04-cms-recommendation.md`.
 
 ## Wave 3 opening criteria
 

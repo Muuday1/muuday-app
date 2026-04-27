@@ -1,6 +1,6 @@
 # Secrets Rotation Runbook
 
-Last updated: 2026-04-17
+Last updated: 2026-04-27
 
 ## Objective
 
@@ -14,8 +14,8 @@ This runbook covers all entries in `secrets-rotation-register.json`, including:
 4. `SUPABASE_DB_WEBHOOK_SECRET`
 5. `RESEND_API_KEY`
 6. `UPSTASH_REDIS_REST_TOKEN`
-7. `STRIPE_SECRET_KEY` / `STRIPE_BR_SECRET_KEY`
-8. `STRIPE_WEBHOOK_SECRET` / `STRIPE_BR_WEBHOOK_SECRET`
+7. `STRIPE_SECRET_KEY`
+8. `STRIPE_WEBHOOK_SECRET`
 9. `OPENAI_API_KEY` / `OPENAI_API_KEY_SERVICE`
 10. `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ANALYTICS_TOKEN`
 11. `GITHUB_TOKEN`
@@ -43,7 +43,8 @@ This runbook covers all entries in `secrets-rotation-register.json`, including:
 | `UPSTASH_REDIS_REST_TOKEN` | Every 90 days | suspected leak, unauthorized token use |
 | `STRIPE_SECRET_KEY` | Every 90 days | suspected leak, Stripe security event |
 | `STRIPE_WEBHOOK_SECRET` | Every 90 days | webhook endpoint changes, suspected replay/injection |
-| `STRIPE_CONNECT_CLIENT_ID` | Every 180 days review | app reconfiguration/security review |
+| `TROLLEY_API_KEY` | Every 180 days | suspected leak, Trolley security event |
+| `TROLLEY_WEBHOOK_SECRET` | Every 180 days | webhook endpoint changes, suspected replay/injection |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | With Stripe key rollovers | publishable key drift with secret key rollover |
 
 ## Rotation workflow (production-safe)
@@ -119,7 +120,7 @@ Special case: `CRON_SECRET`
 
 1. Checkout intent creation works in test flow.
 2. Webhook endpoint verifies signature with new `STRIPE_WEBHOOK_SECRET`.
-3. Connect onboarding path still works.
+3. Trolley payout onboarding path still works.
 
 ## Rotation register (must update every rotation)
 

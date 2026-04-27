@@ -210,7 +210,7 @@ export function PublicHeader({
             <span className={`font-display text-2xl font-black tracking-tight ${isDarkHeader ? 'text-white' : 'text-slate-900'}`}>muuday</span>
           </Link>
 
-          <nav className="hidden flex-1 items-center gap-2 overflow-x-auto md:flex">
+          <nav className="hidden flex-1 items-center gap-2 overflow-x-auto scrollbar-hide md:flex">
             {resolvedNavItems.map(item => (
               <Link key={item.href} href={item.href} className={navItemClass(item.href)}>
                 {item.label}
@@ -292,7 +292,7 @@ export function PublicHeader({
               value="pt-BR"
               onChange={event => handleLanguageChange(event.target.value)}
               disabled={!hasLanguageChoice}
-              className={`h-8 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+              className={`h-8 max-w-[90px] rounded-md border px-2.5 py-1.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
                 isDarkHeader
                   ? 'border-white/20 bg-white/10 text-white'
                   : 'border-slate-200 bg-white text-slate-700'
@@ -309,7 +309,7 @@ export function PublicHeader({
               <select
                 value={activeCurrency}
                 onChange={event => handleCurrencyChange(event.target.value)}
-                className={`h-8 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                className={`h-8 max-w-[90px] rounded-md border px-2.5 py-1.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
                   isDarkHeader
                     ? 'border-white/20 bg-white/10 text-white'
                     : 'border-slate-200 bg-white text-slate-700'

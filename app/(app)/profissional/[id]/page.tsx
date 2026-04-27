@@ -833,7 +833,7 @@ export default async function ProfissionalPage({
             <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
               Pessoas que você também pode gostar
             </h2>
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+            <div className="-mx-1 flex gap-3 overflow-x-auto scrollbar-hide px-1 pb-1">
               {recommendations.map((item: any) => {
                 const itemSpecialty =
                   recommendationSpecialtyContext.primaryByProfessionalId.get(String(item.id)) ||

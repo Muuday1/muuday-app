@@ -1,5 +1,11 @@
 ﻿# User Journey: Session Management
 
+> **⚠️ DEPRECATED — merged into `session-lifecycle.md`**
+>
+> This document was consolidated into `session-lifecycle.md` during the 2026-04-24 documentation audit.
+> All canonical session-management rules, state machines, and UI specs now live there.
+> This file is retained for historical context only.
+
 Last updated: 2026-03-29
 
 ## Goal

@@ -1,6 +1,6 @@
 # Open Validations Before Architecture Freeze
 
-Last updated: 2026-04-10
+Last updated: 2026-04-27
 Source: Part 3 and Part 5
 
 ## 1) BR rail provider final selection (RESOLVED — 2026-04-24)

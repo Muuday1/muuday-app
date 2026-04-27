@@ -299,8 +299,8 @@ Specialties per tier:
 Tags per tier:
 
 * Basic: up to 3 tags
-* Professional: up to 5 tags
-* Premium: up to 10 tags
+* Professional: up to 4 tags
+* Premium: up to 5 tags
 
 3.11 User-side requirements for taxonomy
 The user must be able to:
@@ -490,21 +490,21 @@ Examples:
 
 4.11 Booking window by tier
 
-* Basic: 60 days
+* Basic: 30 days
 * Professional: 90 days
 * Premium: 180 days
 
 4.12 Service type count by tier (distinct service offerings within a profile)
 
 * Basic: 1 service type
-* Professional: 5 service types
-* Premium: 10 service types
+* Professional: 3 service types
+* Premium: 5 service types
 
 4.13 Service option count (durations / service variants) by tier
 
-* Basic: up to 3 options per service
-* Professional: up to 6 options per service
-* Premium: up to 10 options per service
+* Basic: up to 1 option per service
+* Professional: up to 3 options per service
+* Premium: up to 6 options per service
 
 4.14 Recurring/plan sophistication by tier
 All tiers support:
@@ -558,8 +558,8 @@ PUBLIC PROFILE settings by tier:
 SCHEDULING settings by tier:
 * Auto-accept mode: all tiers yes
 * Manual-accept (request booking): Basic no | Professional yes | Premium yes
-* Minimum notice range: Basic 2h-48h | Professional 1h-72h | Premium 30min-168h
-* Buffer time between sessions: Basic fixed 15min | Professional configurable 5-60min | Premium configurable 5-60min
+* Minimum notice range: Basic 0h-48h | Professional 0h-96h | Premium 0h-168h
+* Buffer time between sessions: Basic fixed 15min | Professional configurable 15-120min | Premium configurable 15-120min
 * Calendar sync Google: all tiers yes
 * Calendar sync Outlook: Basic no | Professional yes | Premium yes
 

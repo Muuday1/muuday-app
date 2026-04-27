@@ -60,7 +60,7 @@ export function PwaInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-40 md:bottom-4 md:left-auto md:right-4 md:w-80">
+    <div className="fixed bottom-[4.5rem] left-4 right-4 z-40 safe-area-bottom md:bottom-4 md:left-auto md:right-4 md:w-80 md:pb-0">
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">

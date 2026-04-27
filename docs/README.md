@@ -1,16 +1,16 @@
 # Muuday Documentation
 
-Last updated: 2026-04-14
+Last updated: 2026-04-27
 
 This folder is the operational source of truth for current product state, engineering status, handover continuity, and active roadmap decisions.
 
 ## Start here
 
-1. `docs/handover/control-snapshot.md` - one-page operational truth.
-2. `docs/handover/current-state.md` - current product, infra, and risks.
-3. `docs/handover/next-steps.md` - ordered execution queue.
-4. `docs/project/roadmap.md` - active wave model.
-5. `docs/spec/README.md` - canonical product baseline.
+1. `docs/handover/current-state.md` - current product, infra, and risks.
+2. `docs/handover/next-steps.md` - ordered execution queue.
+3. `docs/project/roadmap.md` - active wave model.
+4. `docs/spec/README.md` - canonical product baseline.
+5. `docs/NEXT_STEPS.md` - consolidated, prioritised source of truth for all upcoming work.
 
 ## Canonical baseline
 
@@ -38,7 +38,7 @@ Do not silently override source-of-truth decisions. If implementation differs, r
 
 - `docs/spec/` - canonical product baseline and execution model.
 - `docs/handover/` - current operating context and continuity.
-- `docs/project/` - roadmap, overview, and status.
+- `docs/project/` - roadmap, overview, and status (includes `international-expansion/` and `mobile-app/` sub-plans).
 - `docs/architecture/` - system and stack decisions.
 - `docs/engineering/` - setup, deployment, quality, and runbooks.
 - `docs/integrations/` - third-party service implementation state.

@@ -126,7 +126,7 @@ export default async function AdminTreasuryPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Histórico (últimos 30 dias)</h2>
             {Array.isArray(data.snapshots) && data.snapshots.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto scrollbar-hide">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
@@ -155,7 +155,7 @@ export default async function AdminTreasuryPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Settlements Recentes (Stripe → Revolut)</h2>
             {Array.isArray(data.recentSettlements) && data.recentSettlements.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto scrollbar-hide">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>

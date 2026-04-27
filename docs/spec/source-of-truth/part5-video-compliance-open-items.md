@@ -63,9 +63,10 @@ A. Final video provider selection
 - Fallback provider discussion is no longer active in this version.
 - Reason for deferral: this can be left until later in implementation, once product, cost, and speed-to-launch priorities are clearer.
 
-B. Final BR rail provider validation (Airwallex vs dLocal) for BR payouts
-- This is the biggest external validation item.
-- Product logic is clear; corridor support and the exact Stripe-supported structure must still be confirmed.
+B. ~~Final BR rail provider validation (Airwallex vs dLocal) for BR payouts~~ → **RESOLVED 2026-04-24**
+- Trolley is the **primary** payout provider for all corridors including BR.
+- Airwallex vs dLocal is now a **contingency-only** evaluation (fallback if Trolley fails for BR corridor).
+- See `docs/project/payments-engine/MASTER-PLAN.md` for canonical architecture.
 
 C. Final legal wording for sensitive categories and cross-border service positioning
 - Product principles are set.
@@ -599,18 +600,19 @@ What is already decided conceptually:
 - Muuday charges users and later pays professionals,
 - Connect + Billing + separate charges and transfers is the preferred model.
 
-What is not yet guaranteed:
-- whether the exact UK-platform-to-Brazil payout corridor is supported in the needed way,
-- whether Muuday qualifies for the right Stripe payout structure,
-- what exact workaround or alternate flow Stripe recommends if not.
+What is not yet guaranteed (contingency-only):
+- whether Trolley supports the exact UK-platform-to-Brazil payout corridor in the needed way,
+- what exact fallback path (Airwallex → dLocal) is required if Trolley does not support the corridor.
 
-What to ask Stripe explicitly:
-1. Can a UK-based platform process user payments and pay Brazilian professionals in the intended marketplace structure?
-2. Does the platform qualify for the needed cross-border payout product / path?
-3. What is the recommended Connect configuration for this corridor?
-4. Is separate charges and transfers the right model for the corridor, or does Stripe recommend a different funds flow?
-5. Are there restrictions on holding funds before payout in this scenario?
-6. What is the recommended fallback structure if this exact corridor is not supported?
+> ⚠️ The Stripe Connect corridor questions below are **ARCHIVED**. They describe the evaluated-and-rejected architecture. Do not implement Stripe Connect for payouts.
+
+What to validate with Trolley (primary) and Stripe (pay-in only):
+1. Can a UK-based platform process user payments via Stripe and pay Brazilian professionals via Trolley?
+2. Does Trolley support the BR corridor with the required KYC and compliance model?
+3. What is the recommended fallback if Trolley does not support the BR corridor?
+4. Are there restrictions on holding funds before payout in this scenario?
+
+> Historical Stripe Connect questions removed — Connect was rejected for payouts in 2026-04-24.
 
 What to prepare before contacting Stripe:
 - one-page architecture summary,
@@ -906,7 +908,7 @@ Nothing critical is missing from the product and operational model.
 
 What remains missing is not product definition, but the following specific items:
 
-1. Final external validation with Stripe on UK platform / Brazil payouts.
+1. ~~Final external validation with Stripe on UK platform / Brazil payouts.~~ → **RESOLVED:** Trolley primary; Stripe is pay-in only. Validate Trolley BR corridor before Wave 3.
 2. Final provider selection between Agora and Agora.
 3. Final legal wording for sensitive categories, regulated-scope disclaimers, and terms.
 4. Final tax/accounting review for the chosen entity structure.

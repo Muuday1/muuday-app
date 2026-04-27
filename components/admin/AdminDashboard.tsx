@@ -193,7 +193,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
         </div>
       )}
 
-      <div className="flex gap-1 mb-6 bg-white rounded-md border border-slate-200/80 p-1 overflow-x-auto">
+      <div className="flex gap-1 mb-6 bg-white rounded-md border border-slate-200/80 p-1 overflow-x-auto scrollbar-hide">
         {tabs.map(tab => (
           <button
             key={tab.id}

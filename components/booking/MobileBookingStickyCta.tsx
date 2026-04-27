@@ -46,7 +46,7 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
 
   return (
     <>
-      <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-4 py-3 flex items-center justify-between gap-3 safe-area-bottom">
+      <div className="lg:hidden fixed bottom-[4.5rem] left-0 right-0 z-20 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-4 py-3 flex items-center justify-between gap-3 safe-area-bottom">
         <div>
           <p className="text-lg font-bold text-slate-900">{priceText}</p>
           <p className="text-xs text-slate-500">{durationText}</p>

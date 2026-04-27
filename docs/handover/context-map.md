@@ -20,7 +20,9 @@ Last updated: 2026-04-24
   - canonical product baseline (source files + consolidated execution docs)
 
 - `docs/project/`
-  - strategy status, roadmap, and execution alignment
+  - strategy status, roadmap, and wave planning
+  - `docs/project/international-expansion/` — i18n, market detection, CMS, payments/fiscal for new markets
+  - `docs/project/mobile-app/` — API-first refactor, mobile app requirements, implementation roadmap
 
 - `docs/product/journeys/`
   - journey-by-journey implementation and gaps
@@ -47,6 +49,8 @@ Last updated: 2026-04-24
 1. Canonical decision baseline: `docs/spec/source-of-truth/`
 2. Unified decision view: `docs/spec/consolidated/master-spec.md`
 3. Ordered build plan: `docs/spec/consolidated/execution-plan.md`
+4. International expansion plan: `docs/project/international-expansion/00-master-plan.md`
+5. Mobile app roadmap: `docs/project/mobile-app/00-executive-summary.md`
 4. External validation blockers: `docs/spec/consolidated/open-validations.md`
 5. Current implementation reality: `docs/handover/current-state.md`
 6. Immediate execution queue: `docs/handover/next-steps.md`

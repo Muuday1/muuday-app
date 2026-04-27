@@ -204,7 +204,8 @@ export function AdminFinanceDashboard({ data }: Props) {
             <p className="text-slate-500">Nenhum profissional com dívida acima do limite.</p>
           ) : (
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto scrollbar-hide">
+                <table className="w-full text-sm">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-medium text-slate-600">Profissional</th>
@@ -224,6 +225,7 @@ export function AdminFinanceDashboard({ data }: Props) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </section>

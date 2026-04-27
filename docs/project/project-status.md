@@ -12,6 +12,8 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Payment engine (Phases 1–6): Fase 6.1–6.5 (Ledger, Stripe Pay-in, Revolut Settlement, Trolley Payout, Refund & Dispute) ✅ completas, incluindo rotas de API. Awaiting E2E testing before Wave 3 launch.
 - Stabilization and UX refinement: In progress
 - Wave 3 real-money execution: Blocked on E2E validation + compliance freeze
+- Mobile app API refactor: Sprints 3–5 complete; mobile app dev not open
+- International expansion: Docs complete; implementation not started
 
 ## Production state
 

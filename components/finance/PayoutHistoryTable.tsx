@@ -46,7 +46,7 @@ export function PayoutHistoryTable({ payouts, periodicity = 'weekly' }: PayoutHi
       <div className="px-4 py-3 border-b border-slate-100">
         <h3 className="text-sm font-semibold text-slate-900">Histórico de Repasses</h3>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-hide">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">

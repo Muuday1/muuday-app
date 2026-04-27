@@ -38,12 +38,12 @@ export function MobileNav({
 }) {
   const pathname = usePathname()
 
-  // Show max 5 items on mobile
-  const mobileItems = navItems.slice(0, 5)
+  // Show all items on mobile (scrollable if needed)
+  const mobileItems = navItems
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200/80 safe-area-bottom">
-      <div className="flex items-center justify-around px-2 py-2">
+      <div className="flex items-center overflow-x-auto scrollbar-hide px-1 py-2">
         {mobileItems.map(({ href, icon, label }) => {
           const Icon = iconMap[icon] || LayoutDashboard
           const isActive = pathname === href || pathname.startsWith(`${href}/`)
@@ -55,7 +55,7 @@ export function MobileNav({
               key={href}
               href={href}
               prefetch={false}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-all min-w-[60px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-md transition-all flex-shrink-0 min-w-[48px] ${
                 isActive
                   ? 'text-[#3d6b1f]'
                   : 'text-slate-400 hover:text-slate-600'

@@ -85,7 +85,7 @@ export function CookieConsentRoot({ country }: Props) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[60]" role="dialog" aria-modal="true" aria-label="Preferências de cookies">
+    <div className="fixed bottom-0 left-0 right-0 z-[60] safe-area-bottom pb-16 md:pb-0" role="dialog" aria-modal="true" aria-label="Preferências de cookies">
       {/* Backdrop for customize mode */}
       {isCustomize && (
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" onClick={() => setIsOpen(false)} />

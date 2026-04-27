@@ -1778,7 +1778,7 @@ export function OnboardingTrackerModal({
                 </div>
               </div>
 
-              <nav className="flex gap-2 overflow-x-auto pb-1 md:hidden">
+              <nav className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:hidden">
                 {stageItems.map(item => {
                   const isActive = item.id === activeStageId
                   return (

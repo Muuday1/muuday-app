@@ -442,7 +442,7 @@ export function ProfessionalAvailabilityCalendar({
           </div>
         </div>
       ) : (
-        <div className="overflow-auto p-3 md:p-4">
+        <div className="overflow-auto max-w-full p-3 md:p-4">
           <div
             className="grid min-w-[760px] border border-slate-200/80"
             style={{ gridTemplateColumns: `64px repeat(${visibleDayColumns.length}, minmax(0, 1fr))` }}

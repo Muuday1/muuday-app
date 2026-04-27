@@ -1,6 +1,6 @@
 # Human Decision Backlog
 
-Last updated: 2026-04-01
+Last updated: 2026-04-27
 
 This list includes decisions and validations that should be owned by a human decision-maker.
 Ordered by execution impact.
@@ -20,11 +20,11 @@ Ordered by execution impact.
 - Sev 2 ack <= 4h, mitigate <= 24h
 - Sev 3 ack next business block, mitigate <= 3 business days
 
-2. Search scaling strategy (Wave 2)
+3. Search scaling strategy (Wave 2)
 - Resolved: 2026-04-01
 - Decision: keep Postgres-first search with `pg_trgm + GIN` now; migrate to Typesense only after `> 2k` active professionals (or if latency remains > 500ms p95 after tuning).
 
-3. Secrets rotation policy baseline
+4. Secrets rotation policy baseline
 - Resolved: 2026-04-01
 - Decision: periodic rotation is mandatory (not only incident-driven), including Supabase service/admin key, CRON secret, Resend, Upstash token, and Stripe keys.
 
@@ -81,17 +81,17 @@ Ordered by execution impact.
 - Owner: ops.
 - Status: **Done (2026-03-30)**. Keep policy updated if ownership changes.
 
-5. Background job orchestrator lock
+3. Background job orchestrator lock
 - Decision: Inngest account created and selected as preferred orchestrator baseline.
 - Owner: ops/engineering.
-- Next action: wire first non-critical workflow and validate retries/idempotency before broader adoption.
+- Status: **In progress** — first workflows wired, cron fallback still active.
 
-3. Data retention and privacy policy operationalization
+4. Data retention and privacy policy operationalization
 - Policy baseline already documented in `docs/engineering/data-governance-and-lifecycle.md`.
 - Approve final retention windows and legal-hold exceptions by jurisdiction.
 - Owner: legal/compliance + ops.
 
-4. Refund/dispute authority matrix
+5. Refund/dispute authority matrix
 - Approve who can trigger refunds, partial refunds, manual overrides, and exceptions.
 - Owner: operations lead.
 
