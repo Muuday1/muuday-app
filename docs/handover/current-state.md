@@ -107,6 +107,12 @@ Last updated: 2026-04-25
     - `lib/payments/ledger/accounts.test.ts` — 20 tests (all 11 account constants, getLedgerAccountByCode, getAllLedgerAccounts, validateLedgerAccountCode)
     - `lib/payments/metrics.test.ts` — 15 tests (treasury buffer, avg payout time, dispute rate, ledger aggregates for revenue/payouts/refunds/fees, empty/edge cases)
     - `lib/payments/subscription/manager.test.ts` — 21 tests (createProfessionalSubscription with Stripe product/customer/subscription, syncSubscriptionFromStripe update/backfill, recordSubscriptionPayment, recordSubscriptionPaymentFailure, cancelProfessionalSubscription immediate/at-period-end, error handling)
+24. **Booking engine final support modules test coverage batch (2026-04-25):**
+    - `lib/booking/request-eligibility.test.ts` — 6 tests (approved + tier checks, first-booking eligibility delegation, basic tier rejection, pending status rejection)
+    - `lib/booking/request-helpers.test.ts` — 8 tests (toRequestBookingStatus valid/invalid/edge types, expireRequestIfNeeded offered→expired, future expiry unchanged, invalid date unchanged, DB error fallback, transition guard)
+    - `lib/booking/external-calendar-conflicts.test.ts` — 5 tests (busy conflict true/false, DB error fail-open, null count, query filters)
+    - `lib/booking/payload-builders.test.ts` — 7 tests (one_off payload fields, recurring parent/child payloads, sessions payload, batch payloads, null fallbacks, metadata shape)
+    - `lib/booking/create-booking.test.ts` — 18 tests (one_off/recurring/batch success paths, lookup context fail, prepare slots fail, slot validation fail, lock conflict, lock error, price zero, prepare payment throw, persist fail, fallback record payment, record payment throw, lock release on success/error, profiles array shape, manual confirmation deadline)
 
 ## Open risks
 
