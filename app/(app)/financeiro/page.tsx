@@ -100,7 +100,7 @@ export default async function FinanceiroPage() {
           <p className="text-2xl font-semibold text-slate-900">{pendingPayments.length}</p>
         </AppCard>
         <AppCard>
-          <p className="mb-1 text-xs text-slate-500">Bookings ativos</p>
+          <p className="mb-1 text-xs text-slate-500">Agendamentos ativos</p>
           <p className="text-2xl font-semibold text-slate-900">{activeBookings}</p>
         </AppCard>
       </div>
