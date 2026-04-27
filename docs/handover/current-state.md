@@ -23,6 +23,7 @@ Last updated: 2026-04-25
 7. Payment engine Phases 1–6 fully implemented: double-entry ledger, Stripe pay-in, Revolut settlement, Trolley payouts, refunds/disputes, admin finance dashboard.
 8. Payment stack test coverage delivered: **736 tests passing across 72 files** (includes 447 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, dispute API routes, fee calculator, eligibility engine, debt monitor, bigint constants, format utils, ledger accounts, financial metrics, and subscription manager).
 9. Booking engine test coverage delivered: **785 tests passing across 75 files** (added 49 tests for slot locks, recurrence engine, and availability engine).
+10. Booking support modules test coverage delivered: **845 tests passing across 80 files** (added 60 tests for with-timeout, request-booking state machine, recurring deadlines, availability checks, and slot validation).
 9. Vercel production environment fully configured: all 9 payment-rail secrets verified (Revolut ×5, Trolley ×4).
 
 ### In progress

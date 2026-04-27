@@ -73,7 +73,14 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - `lib/booking/recurrence-engine.test.ts` — 15 tests (weekly/biweekly/monthly/custom recurrence generation, booking window limits, end date limits, conflict detection)
    - `lib/booking/availability-engine.test.ts` — 24 tests (working hours validation, legacy rule mapping, buffered conflict detection, recurring slot generation)
    - Total project test suite: **785 tests passing in 75 files**
-3. Two-tier availability architecture fully aligned:
+3. **Booking support modules test coverage batch (2026-04-25):**
+   - `lib/booking/with-timeout.test.ts` — 4 tests (resolve, timeout, propagate rejection, fast promise)
+   - `lib/booking/request-booking-state-machine.test.ts` — 17 tests (all status transitions, terminal states, same-state, unknown states, assert transition)
+   - `lib/booking/recurring-deadlines.test.ts` — 14 tests (change/pause/release deadlines, allowed/blocked, missing reference, invalid date)
+   - `lib/booking/availability-checks.test.ts` — 15 tests (slot within rules, exceptions allow/block, fail-closed on DB error, internal conflict detection)
+   - `lib/booking/slot-validation.test.ts` — 10 tests (all checks pass, minimum notice, max window, working hours, exception block, internal conflict, external conflict, custom errors)
+   - Total project test suite: **845 tests passing in 80 files**
+4. Two-tier availability architecture fully aligned:
    - All read surfaces prefer `availability_rules` with fallback to legacy `availability`.
    - Onboarding save route dual-writes to both tables with symmetric rollback.
    - Modal-context route prefers `availability_rules` with legacy fallback.
