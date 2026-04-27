@@ -397,6 +397,9 @@ export function ProfessionalAvailabilityCalendar({
         <span className="inline-flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-amber-500" /> Ocupado
         </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-red-400" /> Bloqueado
+        </span>
       </div>
 
       {view === 'month' ? (
@@ -415,6 +418,7 @@ export function ProfessionalAvailabilityCalendar({
               const bookedCount = (bookingsByDate.get(key) || []).length
               const dayExceptions = exceptionsByDate.get(key) || []
               const hasFullDayBlock = dayExceptions.some(exc => exc.startMinutes === 0 && exc.endMinutes === 24 * 60)
+              const hasPartialBlock = dayExceptions.some(exc => !(exc.startMinutes === 0 && exc.endMinutes === 24 * 60))
               return (
                 <button
                   key={key}
@@ -424,12 +428,14 @@ export function ProfessionalAvailabilityCalendar({
                     setView('day')
                   }}
                   className={`min-h-[74px] rounded-lg border p-2 text-left ${
-                    isToday ? 'border-[#9FE870]/40 bg-[#9FE870]/8' : 'border-slate-200/80 bg-slate-50/70/40 hover:bg-slate-100'
+                    isToday ? 'border-[#9FE870]/40 bg-[#9FE870]/8' : 'border-slate-200/80 bg-slate-50/40 hover:bg-slate-100'
                   }`}
                 >
                   <p className="text-xs font-semibold text-slate-800">{formatInTimeZone(day, timezone, 'd')}</p>
                   {hasFullDayBlock ? (
                     <p className="mt-1 text-[11px] font-medium text-red-600">Bloqueado</p>
+                  ) : hasPartialBlock ? (
+                    <p className="mt-1 text-[11px] font-medium text-red-500">Parcialmente bloqueado</p>
                   ) : (
                     <p className="mt-1 text-[11px] text-[#3d6b1f]">
                       {availabilityCount > 0 ? `${availabilityCount} bloco(s)` : 'Sem disponibilidade'}

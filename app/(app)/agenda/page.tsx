@@ -989,7 +989,7 @@ export default async function AgendaPage({
         <div>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 font-display">
             <Clock className="h-5 w-5 text-slate-400" />
-            Historico
+            Histórico
           </h2>
           <div className="space-y-2">
             {past.map((booking: any) => {

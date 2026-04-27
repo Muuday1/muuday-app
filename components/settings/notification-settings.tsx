@@ -21,7 +21,7 @@ export function NotificationSettings({ preferences, onToggle }: NotificationSett
           return (
             <div
               key={item.key}
-              className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/70/50"
+              className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/50"
             >
               <div className="mr-4 flex-1">
                 <p className="text-sm font-medium text-slate-700">{item.label}</p>

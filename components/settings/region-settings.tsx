@@ -25,7 +25,7 @@ export function RegionSettings({
         <h2 className="font-display font-bold text-slate-900">Idioma e região</h2>
       </div>
       <div className="divide-y divide-slate-100/80">
-        <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/70/50">
+        <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/50">
           <div>
             <p className="text-sm font-medium text-slate-700">Idioma</p>
             <p className="mt-0.5 text-xs text-slate-400">Português (BR)</p>
@@ -35,7 +35,7 @@ export function RegionSettings({
           </span>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/70/50">
+        <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/50">
           <div className="mr-4 flex-1">
             <p className="text-sm font-medium text-slate-700">Fuso horário</p>
           </div>
@@ -59,7 +59,7 @@ export function RegionSettings({
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/70/50">
+        <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/50">
           <div className="mr-4 flex-1">
             <p className="text-sm font-medium text-slate-700">Moeda preferida</p>
           </div>

@@ -205,7 +205,7 @@ export function ProfileAccountSettings() {
           {NOTIFICATION_ITEMS.map(item => (
             <div
               key={item.key}
-              className="flex cursor-pointer items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/70/50"
+              className="flex cursor-pointer items-center justify-between px-6 py-4 transition-colors hover:bg-slate-50/50"
               onClick={() => handleToggle(item.key)}
             >
               <div className="mr-6 flex-1">

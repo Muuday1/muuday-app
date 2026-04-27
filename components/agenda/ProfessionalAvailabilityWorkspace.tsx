@@ -40,6 +40,9 @@ export function ProfessionalAvailabilityWorkspace({
   const [upcomingBookings, setUpcomingBookings] = useState<
     Array<{ id: string; start_utc: string; end_utc: string; status: string }>
   >([])
+  const [availabilityExceptions, setAvailabilityExceptions] = useState<
+    Array<{ date_local: string; is_available: boolean; start_time_local: string | null; end_time_local: string | null }>
+  >([])
 
   const loadAvailability = useCallback(async () => {
     setLoading(true)
@@ -89,7 +92,7 @@ export function ProfessionalAvailabilityWorkspace({
     const tierLimits = tierConfig.limits
     const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
 
-    const [{ data: settingsRow }, { data: calendarRow }, { data: bookingRows }, { data: externalBusyRows }] = await Promise.all([
+    const [{ data: settingsRow }, { data: calendarRow }, { data: bookingRows }, { data: externalBusyRows }, { data: exceptionRows }] = await Promise.all([
       supabase
         .from('professional_settings')
         .select('timezone, buffer_minutes, buffer_time_minutes, max_booking_window_days')
@@ -115,6 +118,14 @@ export function ProfessionalAvailabilityWorkspace({
         .gte('start_time_utc', new Date().toISOString())
         .order('start_time_utc', { ascending: true })
         .limit(300),
+      supabase
+        .from('availability_exceptions')
+        .select('date_local, is_available, start_time_local, end_time_local')
+        .eq('professional_id', professional.id)
+        .eq('is_available', false)
+        .gte('date_local', new Date().toISOString().slice(0, 10))
+        .order('date_local', { ascending: true })
+        .limit(200),
     ])
 
     const savedBufferMinutes = Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15)
@@ -122,6 +133,14 @@ export function ProfessionalAvailabilityWorkspace({
     setCalendarTimezone(String(settingsRow?.timezone || 'America/Sao_Paulo'))
     setMaxWindowDays(Number(settingsRow?.max_booking_window_days || tierLimits.bookingWindowDays))
     setCalendarConnected(Boolean(calendarRow?.sync_enabled))
+    setAvailabilityExceptions(
+      (exceptionRows || []).map((row: Record<string, unknown>) => ({
+        date_local: String(row.date_local || ''),
+        is_available: Boolean(row.is_available),
+        start_time_local: row.start_time_local ? String(row.start_time_local) : null,
+        end_time_local: row.end_time_local ? String(row.end_time_local) : null,
+      })),
+    )
     setUpcomingBookings(
       [
         ...(bookingRows || []).map((row: Record<string, unknown>) => {
@@ -414,31 +433,12 @@ export function ProfessionalAvailabilityWorkspace({
               ? 'Ajuste buffer, confirmação, janela máxima e outras regras fora do editor semanal.'
               : 'As regras detalhadas ficam logo abaixo, mas estes números já resumem o impacto operacional atual.'}
           </p>
-          {variant === 'standalone' ? (
-            <Link
-              href="/configuracoes-agendamento"
-              className="mt-4 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:border-slate-300 hover:text-slate-900"
-            >
-              Ajustar regras de agendamento
-            </Link>
-          ) : (
-            <div className="mt-4 space-y-2 rounded-md border border-slate-200/80 bg-slate-50/70 p-4 text-sm text-slate-700">
-              <div className="flex items-center justify-between gap-3">
-                <span>Buffer ativo</span>
-                <strong className="font-semibold text-slate-900">{bufferMinutes} min</strong>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Janela máxima</span>
-                <strong className="font-semibold text-slate-900">{maxWindowDays} dias</strong>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Sync externo</span>
-                <strong className="font-semibold text-slate-900">
-                  {calendarConnected ? 'Conectado' : 'Não conectado'}
-                </strong>
-              </div>
-            </div>
-          )}
+          <Link
+            href="/configuracoes-agendamento"
+            className="mt-4 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:border-slate-300 hover:text-slate-900"
+          >
+            Ajustar regras de agendamento
+          </Link>
         </div>
       </div>
 
@@ -469,6 +469,7 @@ export function ProfessionalAvailabilityWorkspace({
             is_active: availability[day.value].is_available,
           }))}
           bookings={upcomingBookings}
+          exceptions={availabilityExceptions}
         />
       </div>
 

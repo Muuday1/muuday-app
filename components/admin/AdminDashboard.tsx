@@ -317,7 +317,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                 return (
                   <div key={pro.id} className="bg-white rounded-lg border border-slate-200/80 overflow-hidden transition-all">
                     <div
-                      className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/70/50 transition-colors"
+                      className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 transition-colors"
                       onClick={() => setExpandedId(isExpanded ? null : pro.id)}
                     >
                       <AdminProfessionalIdentityBadge

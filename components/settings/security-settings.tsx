@@ -23,7 +23,7 @@ export function SecuritySettings({
         <button
           type="button"
           onClick={onOpenPassword}
-          className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-slate-50/70/50"
+          className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-slate-50/50"
         >
           <div className="flex items-center gap-3">
             <Lock className="h-4 w-4 text-slate-300" />
@@ -37,7 +37,7 @@ export function SecuritySettings({
         <button
           type="button"
           onClick={onOpenVisibility}
-          className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-slate-50/70/50"
+          className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-slate-50/50"
         >
           <div className="flex items-center gap-3">
             <Eye className="h-4 w-4 text-slate-300" />

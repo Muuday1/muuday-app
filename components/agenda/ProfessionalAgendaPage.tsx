@@ -116,10 +116,10 @@ function getDurationMinutes(startValue: string | null, endValue: string | null) 
 function bookingModeMeta(booking: Record<string, any>) {
   const bookingType = String(booking.booking_type || '')
   if (booking.recurrence_group_id || bookingType.startsWith('recurring')) {
-    return { label: 'Recorrencia', className: 'bg-blue-50 text-blue-700' }
+    return { label: 'Recorrência', className: 'bg-blue-50 text-blue-700' }
   }
   if (booking.batch_booking_group_id) {
-    return { label: 'Varias datas', className: 'bg-purple-50 text-purple-700' }
+    return { label: 'Várias datas', className: 'bg-purple-50 text-purple-700' }
   }
   return null
 }
@@ -225,13 +225,13 @@ export function ProfessionalAgendaPage({
             href="/agenda?view=overview"
             className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'overview')}`}
           >
-            Visao geral
+            Visão geral
           </Link>
           <Link
             href="/agenda?view=inbox&filter=all"
             className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'inbox')}`}
           >
-            Pendencias
+            Pendências
           </Link>
           <Link
             href="/agenda?view=availability_rules"
@@ -340,7 +340,7 @@ export function ProfessionalAgendaPage({
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Visao geral
+                  Visão geral
                 </p>
                 <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
                   Calendário completo em primeiro plano
@@ -370,7 +370,7 @@ export function ProfessionalAgendaPage({
                 </div>
                 {calendarIntegrationLastSyncAt ? (
                   <p className="text-xs text-slate-500">
-                    Ultimo sync: {new Date(calendarIntegrationLastSyncAt).toLocaleString('pt-BR', { hour12: false })}
+                    Último sync: {new Date(calendarIntegrationLastSyncAt).toLocaleString('pt-BR', { hour12: false })}
                   </p>
                 ) : null}
                 {calendarIntegrationLastSyncError ? (
@@ -400,10 +400,10 @@ export function ProfessionalAgendaPage({
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Pendencias
+                  Pendências
                 </p>
                 <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
-                  Inbox unica de confirmacoes e requests
+                  Inbox única de confirmações e solicitações
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -528,7 +528,7 @@ export function ProfessionalAgendaPage({
                       <div>
                         <p className="font-semibold text-slate-900">{otherPerson || 'Cliente'}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Preferencia enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso nao definido'}
+                          Preferência enviada por {request.user_timezone?.replaceAll('_', ' ') || 'fuso não definido'}
                         </p>
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusUi.className}`}>
