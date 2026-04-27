@@ -187,7 +187,7 @@ export function ProfessionalAgendaPage({
     calendarIntegrationStatus === 'connected'
       ? `${calendarIntegrationProvider === 'outlook' ? 'Outlook' : calendarIntegrationProvider === 'apple' ? 'Apple' : 'Google'} conectado`
       : calendarIntegrationStatus === 'pending'
-        ? 'Conexao pendente'
+        ? 'Conexão pendente'
         : calendarIntegrationStatus === 'error'
           ? 'Sync com erro'
           : 'Sem sync externo'
@@ -214,10 +214,10 @@ export function ProfessionalAgendaPage({
             Agenda profissional
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold text-slate-950">
-            Operacao de agenda mais clara e mais rapida de navegar
+            Operação de agenda mais clara e mais rápida de navegar
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">
-            O calendario completo fica na frente, as pendencias viram uma inbox unica e as regras ficam concentradas em uma unica area de edicao.
+            O calendário completo fica na frente, as pendências viram uma inbox única e as regras ficam concentradas em uma única área de edição.
           </p>
         </div>
         <div className="flex flex-wrap gap-2" data-testid="professional-agenda-view-switcher">
@@ -245,19 +245,19 @@ export function ProfessionalAgendaPage({
       <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Confirmacoes pendentes
+            Confirmações pendentes
           </p>
           <p className="mt-2 text-2xl font-bold text-slate-950">{pendingConfirmations.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Requests em aberto
+            Solicitações em aberto
           </p>
           <p className="mt-2 text-2xl font-bold text-slate-950">{activeRequests.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Proximas sessoes
+            Próximas sessões
           </p>
           <p className="mt-2 text-2xl font-bold text-slate-950">{upcoming.length}</p>
         </div>
@@ -269,20 +269,20 @@ export function ProfessionalAgendaPage({
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Proximas sessoes
+                  Próximas sessões
                 </p>
                 <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
-                  Proximas 5 sessoes
+                  Próximas 5 sessões
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                  Veja o que ja esta reservado antes de mexer na disponibilidade ou responder novas pendencias.
+                  Veja o que já está reservado antes de mexer na disponibilidade ou responder novas pendências.
                 </p>
               </div>
             </div>
 
             {upcoming.length === 0 ? (
               <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-sm text-slate-500">
-                Nenhuma sessao futura agendada no momento.
+                Nenhuma sessão futura agendada no momento.
               </div>
             ) : (
               <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-5">
@@ -343,10 +343,10 @@ export function ProfessionalAgendaPage({
                   Visao geral
                 </p>
                 <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">
-                  Calendario completo em primeiro plano
+                  Calendário completo em primeiro plano
                 </h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Acompanhe disponibilidade base, sessoes confirmadas e ocupacoes externas sem sair da agenda.
+                  Acompanhe disponibilidade base, sessões confirmadas e ocupações externas sem sair da agenda.
                 </p>
               </div>
               <div className="flex flex-col items-start gap-2 lg:items-end">
@@ -425,7 +425,7 @@ export function ProfessionalAgendaPage({
                       : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                   }`}
                 >
-                  Confirmacoes
+                  Confirmações
                 </Link>
                 <Link
                   href="/agenda?view=inbox&filter=requests"
@@ -435,7 +435,7 @@ export function ProfessionalAgendaPage({
                       : 'border-slate-200 bg-white text-slate-600 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
                   }`}
                 >
-                  Requests
+                  Solicitações
                 </Link>
               </div>
             </div>
@@ -443,7 +443,7 @@ export function ProfessionalAgendaPage({
 
           {filteredInboxItems.length === 0 ? (
             <div className="rounded-lg border border-slate-200/80 bg-white p-8 text-center">
-              <p className="font-semibold text-slate-900">Nenhuma pendencia neste filtro.</p>
+              <p className="font-semibold text-slate-900">Nenhuma pendência neste filtro.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -464,7 +464,7 @@ export function ProfessionalAgendaPage({
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-semibold text-slate-900">{otherPerson || 'Cliente'}</p>
                             <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-                              Confirmacao pendente
+                              Confirmação pendente
                             </span>
                             {slaLabel ? (
                               <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
@@ -483,7 +483,7 @@ export function ProfessionalAgendaPage({
                           </div>
                           {confirmationDeadline ? (
                             <p className="mt-2 text-xs text-amber-700">
-                              Prazo de confirmacao:{' '}
+                              Prazo de confirmação:{' '}
                               {confirmationDeadline.toLocaleString('pt-BR', { hour12: false })}
                             </p>
                           ) : null}
