@@ -15,6 +15,12 @@ Run strictly in this order:
 5. **057-wave4-dispute-system-foundation.sql**
 6. **058-wave4-multi-service-booking.sql**
 
+### Wave 3 payments (individual)
+
+7. **081-professional-subscriptions.sql**
+   - Run only after all prior migrations (053–080) are confirmed applied.
+   - See `scripts/ops/apply-migration-081-production.md` for detailed runbook.
+
 ## Troubleshooting
 
 ### Error: `column "conversation_id" does not exist`

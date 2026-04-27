@@ -1,6 +1,6 @@
 # Database and Migrations
 
-Last updated: 2026-04-24
+Last updated: 2026-04-27
 
 ## Source of truth
 
@@ -157,7 +157,7 @@ Ordered migrations remain canonical runtime truth.
 ### Wave 3 (pending)
 40. `081-professional-subscriptions.sql`
     - Stripe subscription lifecycle for professional monthly billing
-    - **Status:** Pending production application (requires Supabase Management API)
+    - **Status:** Runbook ready (`scripts/ops/apply-migration-081-production.md`). Pending operator execution in Supabase SQL Editor.
 
 ## Migration safety rules
 
@@ -189,6 +189,7 @@ npm run db:validate-pooling
 - `payments`
 - `notifications`
 - `professional_settings`
+- `plan_configs`
 - `calendar_integrations`
 - `conversations`, `conversation_participants`, `messages`
 - `push_subscriptions`
@@ -202,6 +203,7 @@ npm run db:validate-pooling
 - `ledger_accounts`, `ledger_entries`
 - `payout_batches`, `payout_batch_items`, `booking_payout_items`
 - `professional_balances`
+- `professional_subscriptions`
 - `trolley_recipients`
 - `revolut_treasury_snapshots`
 - `dispute_resolutions`

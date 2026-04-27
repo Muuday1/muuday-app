@@ -48,11 +48,12 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
 
 ### P0.3 Apply Migration 081 to Production
 - **What:** `professional_subscriptions` table + Stripe subscription lifecycle.
-- **Why:** Required for professional billing (Wave 3). Already implemented in code; pending Supabase Management API application.
+- **Why:** Required for professional billing (Wave 3). Already implemented in code; pending operator execution.
 - **Source:** `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`
-- **Owner:** Backend
+- **Owner:** Backend (runbook ready) → Operator (execution)
+- **Status:** Runbook created at `scripts/ops/apply-migration-081-production.md`. Code verified: manager, webhook handler, admin page, Inngest functions all implemented.
 - **Acceptance:**
-  - [ ] Migration 081 applied to production Supabase
+  - [ ] Migration 081 applied to production Supabase (operator: follow runbook)
   - [ ] Stripe subscription webhook handlers tested
   - [ ] Admin subscriptions page loads real data
 
