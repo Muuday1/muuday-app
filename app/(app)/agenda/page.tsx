@@ -537,20 +537,20 @@ export default async function AgendaPage({
       <BookingRealtimeListener />
       <PageHeader
         title="Agenda"
-        subtitle={isProfessional ? 'Control center das suas sessoes e solicitacoes.' : 'Suas sessoes agendadas'}
+        subtitle={isProfessional ? 'Central de controle das suas sessões e solicitações.' : 'Suas sessões agendadas'}
       />
 
       {isProfessional && (
         <section className="mb-6">
           <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="professional-agenda-view-switcher">
             <Link href="/agenda?view=overview" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'overview')}`}>
-              Visao geral
+              Visão geral
             </Link>
             <Link href="/agenda?view=pending" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'pending')}`}>
-              Pendencias
+              Pendências
             </Link>
             <Link href="/agenda?view=requests" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'requests')}`}>
-              Requests
+              Solicitações
             </Link>
             <Link href="/agenda?view=settings" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'settings')}`}>
               Regras e calendário
@@ -633,14 +633,14 @@ export default async function AgendaPage({
               className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
             >
               <Layers className="h-4 w-4" />
-              Regras avancadas
+              Regras avançadas
             </Link>
             <Link
               href="/configuracoes"
               className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]"
             >
               <Settings className="h-4 w-4" />
-              Business setup
+              Configurações do negócio
             </Link>
           </div>
         </AppCard>
@@ -738,7 +738,7 @@ export default async function AgendaPage({
             {closedRequests.length > 0 && (
               <AppCard>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Historico de solicitacoes
+                  Histórico de solicitações
                 </p>
                 <div className="space-y-2">
                   {closedRequests.slice(0, 8).map((request: any) => {
@@ -833,7 +833,7 @@ export default async function AgendaPage({
                 booking.status === 'confirmed'
                   ? 'Confirmado'
                   : booking.status === 'pending_confirmation'
-                    ? 'Aguardando confirma??o'
+                    ? 'Aguardando confirmação'
                     : 'Pendente'
 
               return (
@@ -945,7 +945,7 @@ export default async function AgendaPage({
                 no_show: { label: 'Não compareceu', className: 'bg-slate-100 text-slate-500' },
                 confirmed: { label: 'Confirmado (passado)', className: 'bg-amber-50 text-amber-700' },
                 pending_confirmation: {
-                  label: 'Aguardando confirma??o',
+                  label: 'Aguardando confirmação',
                   className: 'bg-amber-50 text-amber-700',
                 },
                 pending: { label: 'Pendente (passado)', className: 'bg-amber-50 text-amber-700' },
