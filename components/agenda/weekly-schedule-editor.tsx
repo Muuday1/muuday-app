@@ -1,19 +1,30 @@
 'use client'
 
-import { AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle, Copy, Check } from 'lucide-react'
 import { DAYS_OF_WEEK, TIME_OPTIONS, type AvailabilityState, isValidTimeRange } from './availability-workspace-helpers'
 
 interface WeeklyScheduleEditorProps {
   availability: AvailabilityState
   onToggleDay: (dayValue: number) => void
   onUpdateTime: (dayValue: number, field: 'start_time' | 'end_time', value: string) => void
+  onCopyDay?: (fromDayValue: number, toDayValues: number[]) => void
 }
 
 export function WeeklyScheduleEditor({
   availability,
   onToggleDay,
   onUpdateTime,
+  onCopyDay,
 }: WeeklyScheduleEditorProps) {
+  const [copiedDay, setCopiedDay] = useState<number | null>(null)
+
+  function handleCopy(fromDayValue: number, toDayValues: number[]) {
+    onCopyDay?.(fromDayValue, toDayValues)
+    setCopiedDay(fromDayValue)
+    setTimeout(() => setCopiedDay(null), 1500)
+  }
+
   return (
     <div className="mb-6 space-y-3">
       {DAYS_OF_WEEK.map(day => {
@@ -63,7 +74,7 @@ export function WeeklyScheduleEditor({
                 )}
               </div>
 
-              {/* Time selectors */}
+              {/* Time selectors + copy */}
               {isEnabled && (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <div className="flex items-center gap-2">
@@ -97,6 +108,16 @@ export function WeeklyScheduleEditor({
                       ))}
                     </select>
                   </div>
+
+                  {/* Copy-to dropdown */}
+                  {onCopyDay && (
+                    <CopyDayDropdown
+                      fromDay={day}
+                      availability={availability}
+                      copiedDay={copiedDay}
+                      onCopy={handleCopy}
+                    />
+                  )}
                 </div>
               )}
 
@@ -118,6 +139,101 @@ export function WeeklyScheduleEditor({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function CopyDayDropdown({
+  fromDay,
+  availability,
+  copiedDay,
+  onCopy,
+}: {
+  fromDay: (typeof DAYS_OF_WEEK)[number]
+  availability: AvailabilityState
+  copiedDay: number | null
+  onCopy: (from: number, to: number[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+
+  const otherDays = DAYS_OF_WEEK.filter(d => d.value !== fromDay.value)
+  const isCopied = copiedDay === fromDay.value
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(prev => !prev)
+          setSelected(new Set())
+        }}
+        title="Copiar horário para outros dias"
+        className={`inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-all ${
+          isCopied
+            ? 'border-green-200 bg-green-50 text-green-700'
+            : 'border-slate-200 text-slate-500 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
+        }`}
+      >
+        {isCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+        <span className="hidden sm:inline">{isCopied ? 'Copiado' : 'Copiar'}</span>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+            <p className="mb-2 text-xs font-semibold text-slate-700">Copiar para:</p>
+            <div className="space-y-1.5">
+              {otherDays.map(d => (
+                <label
+                  key={d.value}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(d.value)}
+                    onChange={e => {
+                      setSelected(prev => {
+                        const next = new Set(prev)
+                        if (e.target.checked) next.add(d.value)
+                        else next.delete(d.value)
+                        return next
+                      })
+                    }}
+                    className="h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]"
+                  />
+                  <span className="text-xs">{d.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onCopy(fromDay.value, Array.from(selected))
+                  setOpen(false)
+                  setSelected(new Set())
+                }}
+                disabled={selected.size === 0}
+                className="flex-1 rounded-md bg-[#9FE870] px-2 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Aplicar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  setSelected(new Set())
+                }}
+                className="rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

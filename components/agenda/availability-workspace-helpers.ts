@@ -9,7 +9,7 @@ export const DAYS_OF_WEEK = [
 ] as const
 
 export const TIME_OPTIONS: string[] = []
-for (let h = 6; h <= 23; h++) {
+for (let h = 5; h <= 23; h++) {
   for (const m of [0, 30]) {
     const hh = String(h).padStart(2, '0')
     const mm = String(m).padStart(2, '0')

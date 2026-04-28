@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Check, Clock, AlertCircle, ChevronLeft } from 'lucide-react'
+import { Loader2, Check, Clock, AlertCircle, ChevronLeft, Save } from 'lucide-react'
 import Link from 'next/link'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
@@ -22,11 +22,24 @@ type ProfessionalAvailabilityWorkspaceProps = {
   variant?: 'standalone' | 'embedded'
 }
 
+function availabilityEqual(a: AvailabilityState, b: AvailabilityState): boolean {
+  for (const day of DAYS_OF_WEEK) {
+    const av = a[day.value]
+    const bv = b[day.value]
+    if (!av || !bv) return false
+    if (av.is_available !== bv.is_available) return false
+    if (av.start_time !== bv.start_time) return false
+    if (av.end_time !== bv.end_time) return false
+  }
+  return true
+}
+
 export function ProfessionalAvailabilityWorkspace({
   variant = 'standalone',
 }: ProfessionalAvailabilityWorkspaceProps) {
   const router = useRouter()
   const [availability, setAvailability] = useState<AvailabilityState>(buildDefaultState())
+  const initialAvailabilityRef = useRef<AvailabilityState>(buildDefaultState())
   const [loading, setLoading] = useState(true)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [errorMessage, setErrorMessage] = useState('')
@@ -43,6 +56,20 @@ export function ProfessionalAvailabilityWorkspace({
   const [availabilityExceptions, setAvailabilityExceptions] = useState<
     Array<{ date_local: string; is_available: boolean; start_time_local: string | null; end_time_local: string | null }>
   >([])
+
+  const hasUnsavedChanges = !availabilityEqual(availability, initialAvailabilityRef.current)
+
+  // Warn before closing tab with unsaved changes
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (hasUnsavedChanges && saveStatus !== 'saving') {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges, saveStatus])
 
   const loadAvailability = useCallback(async () => {
     setLoading(true)
@@ -191,18 +218,22 @@ export function ProfessionalAvailabilityWorkspace({
         }))
       : (legacyRows || [])
 
+    let loadedState: AvailabilityState
     if (rows.length > 0) {
-      const newState = buildDefaultState()
+      loadedState = buildDefaultState()
       for (const row of rows) {
-        newState[row.day_of_week] = {
+        loadedState[row.day_of_week] = {
           is_available: Boolean(row.is_active),
           start_time: String(row.start_time || '09:00').slice(0, 5), // "HH:MM:SS" -> "HH:MM"
           end_time: String(row.end_time || '17:00').slice(0, 5),
         }
       }
-      setAvailability(newState)
+    } else {
+      loadedState = buildDefaultState()
     }
 
+    setAvailability(loadedState)
+    initialAvailabilityRef.current = loadedState
     setLoading(false)
   }, [planConfigs, router])
 
@@ -228,6 +259,17 @@ export function ProfessionalAvailabilityWorkspace({
         [field]: value,
       },
     }))
+  }
+
+  function handleCopyDay(fromDayValue: number, toDayValues: number[]) {
+    setAvailability(prev => {
+      const next = { ...prev }
+      const source = prev[fromDayValue]
+      for (const to of toDayValues) {
+        next[to] = { ...source }
+      }
+      return next
+    })
   }
 
   const hasErrors = DAYS_OF_WEEK.some(d => !isValidTimeRange(availability[d.value]))
@@ -267,7 +309,7 @@ export function ProfessionalAvailabilityWorkspace({
       .eq('professional_id', professionalId)
 
     if (deleteLegacyError) {
-      setErrorMessage('Erro ao salvar. Tente novamente.')
+      setErrorMessage(`Erro ao limpar dados anteriores: ${deleteLegacyError.message}`)
       setSaveStatus('error')
       return
     }
@@ -279,7 +321,7 @@ export function ProfessionalAvailabilityWorkspace({
       .eq('professional_id', professionalId)
 
     if (deleteModernError) {
-      setErrorMessage('Erro ao salvar. Tente novamente.')
+      setErrorMessage(`Erro ao limpar regras anteriores: ${deleteModernError.message}`)
       setSaveStatus('error')
       return
     }
@@ -289,7 +331,7 @@ export function ProfessionalAvailabilityWorkspace({
       .insert(legacyRows)
 
     if (insertLegacyError) {
-      setErrorMessage('Erro ao salvar. Tente novamente.')
+      setErrorMessage(`Erro ao salvar disponibilidade: ${insertLegacyError.message}`)
       setSaveStatus('error')
       return
     }
@@ -299,16 +341,23 @@ export function ProfessionalAvailabilityWorkspace({
       .insert(modernRows)
 
     if (insertModernError) {
-      setErrorMessage('Erro ao salvar. Tente novamente.')
+      setErrorMessage(`Erro ao salvar regras modernas: ${insertModernError.message}`)
       setSaveStatus('error')
       return
     }
 
-    await fetch('/api/professional/recompute-visibility', {
+    const visibilityRes = await fetch('/api/professional/recompute-visibility', {
       method: 'POST',
       credentials: 'include',
     })
 
+    if (!visibilityRes.ok) {
+      // Non-blocking warning — data is saved but visibility may be stale
+      console.warn('[AvailabilityWorkspace] recompute-visibility failed:', visibilityRes.status)
+    }
+
+    // Update initial state so hasUnsavedChanges becomes false
+    initialAvailabilityRef.current = { ...availability }
     setSaveStatus('success')
     setTimeout(() => setSaveStatus('idle'), 3000)
   }
@@ -365,11 +414,18 @@ export function ProfessionalAvailabilityWorkspace({
                 Defina seus horários recorrentes de trabalho e concentre aqui as integrações do seu calendário.
               </p>
             </div>
-            {activeDaysCount > 0 ? (
-              <span className="flex-shrink-0 rounded-full bg-[#9FE870]/8 px-3 py-1.5 text-xs font-medium text-[#3d6b1f]">
-                {activeDaysCount} {activeDaysCount === 1 ? 'dia ativo' : 'dias ativos'}
-              </span>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {activeDaysCount > 0 ? (
+                <span className="flex-shrink-0 rounded-full bg-[#9FE870]/8 px-3 py-1.5 text-xs font-medium text-[#3d6b1f]">
+                  {activeDaysCount} {activeDaysCount === 1 ? 'dia ativo' : 'dias ativos'}
+                </span>
+              ) : null}
+              {hasUnsavedChanges && (
+                <span className="flex-shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                  Alterações não salvas
+                </span>
+              )}
+            </div>
           </div>
         </div>
       ) : (
@@ -393,6 +449,11 @@ export function ProfessionalAvailabilityWorkspace({
               <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
                 Fuso {calendarTimezone.replaceAll('_', ' ')}
               </span>
+              {hasUnsavedChanges && (
+                <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                  Alterações não salvas
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -446,6 +507,7 @@ export function ProfessionalAvailabilityWorkspace({
         availability={availability}
         onToggleDay={toggleDay}
         onUpdateTime={updateTime}
+        onCopyDay={handleCopyDay}
       />
 
       <div className="mb-6 rounded-lg border border-slate-200/80 bg-white p-5">
@@ -475,45 +537,56 @@ export function ProfessionalAvailabilityWorkspace({
 
       <AvailabilityQuickSelect onChange={setAvailability} />
 
-      {/* Error message */}
-      {saveStatus === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-600 mb-4 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {errorMessage}
-        </div>
-      )}
+      {/* Sticky save bar */}
+      <div className="sticky bottom-4 z-30 -mx-2 rounded-xl border border-slate-200/80 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:mx-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            {hasUnsavedChanges ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                <span className="text-sm font-medium text-amber-700">Alterações não salvas</span>
+              </>
+            ) : saveStatus === 'success' ? (
+              <>
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">Tudo salvo</span>
+              </>
+            ) : (
+              <>
+                <span className="h-2 w-2 rounded-full bg-slate-300" />
+                <span className="text-sm text-slate-500">Nenhuma alteração</span>
+              </>
+            )}
+          </div>
 
-      {/* Success message */}
-      {saveStatus === 'success' && (
-        <div className="bg-green-50 border border-green-200 rounded-md px-4 py-3 text-sm text-green-700 mb-4 flex items-center gap-2">
-          <Check className="w-4 h-4 flex-shrink-0" />
-          Horas de trabalho salvas com sucesso!
+          <div className="flex items-center gap-3">
+            {saveStatus === 'error' && (
+              <div className="flex items-center gap-1.5 text-xs text-red-600">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="max-w-[200px] truncate sm:max-w-xs">{errorMessage}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveStatus === 'saving' || hasErrors || !professionalId || !hasUnsavedChanges}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[#9FE870] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Salvar
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      )}
-
-      {/* Save button */}
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saveStatus === 'saving' || hasErrors || !professionalId}
-        className="w-full flex items-center justify-center gap-2 bg-[#9FE870] hover:bg-[#8ed85f] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-md transition-all text-sm"
-      >
-        {saveStatus === 'saving' ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Salvando...
-          </>
-        ) : saveStatus === 'success' ? (
-          <>
-            <Check className="w-4 h-4" />
-            Salvo!
-          </>
-        ) : (
-          'Salvar horas de trabalho'
-        )}
-      </button>
+      </div>
     </div>
   )
 }
-
-
