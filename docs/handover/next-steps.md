@@ -1,15 +1,15 @@
 # Next Steps
 
-Last updated: 2026-04-28
+Last updated: 2026-04-27
 
 Execute in order. Keep changes batchable, validated, and documented.
 
 ## Immediate queue
 
-1. Run production smoke for onboarding review loop (`admin -> solicitar ajustes -> profissional corrige -> reenviar`) after each publish batch.
+1. ~~Run production smoke for onboarding review loop~~ ✅ **Complete** — 47 unit tests added covering `reviewProfessionalDecisionService` (21 tests), `submitProfessionalForReview` (7 tests), and both API routes (19 tests). PT-BR copy fixes applied across admin-service.ts, submit-review.ts, and route files. Test suite: 938/89.
 2. ~~Sprint 5 — Remaining APIs extraction~~ ✅ **Complete** — `lib/actions/admin.ts` (172 lines), `admin-plans.ts` (31 lines), `admin-taxonomy.ts` (47 lines), and `email.ts` (270 lines) are all thin wrappers delegating to dedicated service modules (`lib/admin/admin-service.ts`, `lib/email/email-action-service.ts`). No god files remain in `actions/`.
 3. ~~Continue professional operations polish with focus on calendar UX and scheduling-rule clarity in `/disponibilidade`~~ ✅ **Complete** — Invalid Tailwind classes fixed, PT-BR accents restored, calendar legend/exception indicators added, exception loading wired into availability workspace, redundant duplicate cards removed from embedded variant.
-4. Keep onboarding tracker copy/progression consistent and avoid reintroducing blocking optional fetches in modal open path.
+4. ~~Keep onboarding tracker copy/progression consistent~~ ✅ **Complete** — PT-BR accent fixes applied to OnboardingTrackerModal.tsx, constants.ts, and professional-workspace-section.tsx. Optional fetch non-blocking verified (try/catch wrapper with 3.5s timeout).
 5. Close remaining PT-BR cleanup on lower-traffic admin/member surfaces. ✅ **Complete** — Fixed mojibake, missing accents, and English labels across `agenda`, `AdminPlanConfigForm`, `ProfessionalAgendaPage`, `admin/finance`, and `member/finance` surfaces.
 6. ~~Evaluate and either merge or archive `feat/landing-page-redesign` explicitly~~ ✅ **Archived** — branch was 12 days behind main, would have reverted months of work (API v1, E2E tests, services, migrations). Main already has a superior LandingPage component with animations, carousels, and multi-section layout.
 7. ~~Apply migration 062 in production to sync `availability_rules` for professionals who saved availability before the dual-write fix~~ ✅ **Applied** — confirmed in `session-log.md` Entry 84.
@@ -34,6 +34,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 15. ~~**Booking engine test coverage**~~ ✅ **Done** — 49 tests across 3 files: slot-locks (10), recurrence-engine (15), availability-engine (24). Test suite: 785/75.
 16. ~~**Booking support modules test coverage**~~ ✅ **Done** — 60 tests across 5 files: with-timeout (4), request-booking-state-machine (17), recurring-deadlines (14), availability-checks (15), slot-validation (10). Test suite: 845/80.
 17. ~~**Booking engine final support modules test coverage**~~ ✅ **Done** — 46 tests across 5 files: request-eligibility (6), request-helpers (8), external-calendar-conflicts (5), payload-builders (7), create-booking (18). Test suite: 891/85. Booking engine now fully covered (types.ts excluded as pure type definitions).
+18. ~~**Onboarding review loop test coverage**~~ ✅ **Done** — 47 tests across 4 files: admin-service (21), submit-review (7), review-decision API route (6), submit-review API route (13). Test suite: 938/89.
 
 ## Pre-Wave-3 hardening
 
