@@ -1,8 +1,8 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-28
-> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — Trolley API authentication fixed (HMAC-SHA256 `prsign`), sandbox E2E script passes 10/10, batch-first payout flow corrected
-> **Last Commit:** `TBD` — P0.2 Trolley HMAC signing fix, batch-first payment creation, sandbox E2E validation
+> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — P0.3 complete (migration 081 verified, subscription tests added). Trolley API authentication fixed (HMAC-SHA256 `prsign`), sandbox E2E script passes 10/10, batch-first payout flow corrected.
+> **Last Commit:** `b19466d` — P0.3: Complete migration 081 verification (subscription tests + TS fixes)
 
 ---
 
@@ -110,8 +110,7 @@
 - **Trolley**: ✅ Sandbox API working. Previous HTTP 403 was caused by incorrect authentication (raw `Access-Key`/`Secret-Key` headers instead of HMAC-SHA256 `prsign` request signing). Fixed 2026-04-28. Sandbox E2E script passes 10/10: health check, recipient CRUD, PayPal payout method update, empty batch creation, payment creation within batch, batch start-processing (expected 400 in sandbox due to no KYC/funds), webhook signature verification. Correct flow: create empty batch → add payments via `/batches/{id}/payments` → start processing via `/batches/{id}/start-processing`.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
-- **Migrations applied**: 070-080 applied to production Supabase (confirmed 2026-04-24).
-- **Migrations pending**: 081 (professional subscriptions) — pending Supabase Management API application.
+- **Migrations applied**: 070-083 applied to production Supabase (confirmed 2026-04-28).
 
 ---
 

@@ -32,13 +32,13 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
   - [ ] `secrets-rotation-reminder.yml` passes for 3 consecutive days
   - [ ] Smoke checks pass after each rotated secret (auth, booking, cron, email, cache)
 
-### P0.2 E2E Payment Validation (Wave 3 Gate)
+### P0.2 E2E Payment Validation (Wave 3 Gate) — IN PROGRESS
 - **What:** End-to-end sandbox validation of the full payment chain: Stripe pay-in → ledger → Revolut settlement → Trolley payout.
 - **Why:** Wave 3 (real-money) is explicitly blocked until this passes. 275 unit tests + 16 Trolley client tests pass.
 - **Source:** `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`, `docs/handover/next-steps.md`
 - **Owner:** Backend + Founder
 - **Dependencies:** P0.1 (secrets current), P0.3 (migration 081 applied)
-- **Status:** Trolley API authentication fixed 2026-04-28. Sandbox script passes 10/10.
+- **Status:** Trolley API authentication fixed 2026-04-28. Sandbox script passes 10/10. Next: Stripe sandbox pay-in E2E.
 - **Acceptance:**
   - [x] Trolley sandbox onboarding: PayPal recipient creation + KYC flow works end-to-end (HMAC signing fixed; recipient CRUD, PayPal update, batch creation, payment-in-batch, batch start-processing all verified against live sandbox)
   - [ ] Stripe sandbox pay-in → ledger → payout flow verified with real sandbox transactions
@@ -47,16 +47,16 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
   - [ ] Dispute-after-payout scenario tested: debt created, deducted from next payout
   - [ ] Refund flow tested: Stripe refund + ledger entries + balance update
 
-### P0.3 Apply Migration 081 to Production
+### P0.3 Apply Migration 081 to Production ✅ COMPLETE
 - **What:** `professional_subscriptions` table + Stripe subscription lifecycle.
 - **Why:** Required for professional billing (Wave 3). Already implemented in code; pending operator execution.
 - **Source:** `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`
 - **Owner:** Backend (runbook ready) → Operator (execution)
-- **Status:** Runbook created at `scripts/ops/apply-migration-081-production.md`. Code verified: manager, webhook handler, admin page, Inngest functions all implemented.
+- **Status:** COMPLETE 2026-04-28. Operator confirmed migrations 081–083 applied. All code paths verified.
 - **Acceptance:**
-  - [ ] Migration 081 applied to production Supabase (operator: follow runbook)
-  - [ ] Stripe subscription webhook handlers tested
-  - [ ] Admin subscriptions page loads real data
+  - [x] Migration 081 applied to production Supabase (operator confirmed 081–083 applied 2026-04-28)
+  - [x] Stripe subscription webhook handlers tested (15 tests in `lib/stripe/webhook-handlers.test.ts`)
+  - [x] Admin subscriptions page loads real data (E2E strengthened in `tests/e2e/payments-engine.spec.ts`; 6 admin action tests in `lib/actions/admin/subscriptions.test.ts`; 6 professional action tests in `lib/actions/professional/subscription.test.ts`)
 
 ### P0.4 Tier Limit Code-Doc Consistency
 - **What:** `lib/tier-config.ts` fallback for Basic `bookingWindowDays` was 60 (now fixed to 30). Verify no other code/docs drift on tier limits.
