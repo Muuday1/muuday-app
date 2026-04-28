@@ -126,10 +126,11 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 - **Why:** `LANDING-WISE-GAP-LIST.md` documents 10 gaps. Current landing is "flat minimal" vs target.
 - **Source:** `docs/product/design-system/review/LANDING-WISE-GAP-LIST.md`, `docs/product/design-system/review/WISE-REFACTOR-GAPS.md`
 - **Owner:** Frontend + Designer
+- **Status:** Partially complete 2026-04-28. Blue accent integrated, payment copy updated, guides section simplified, testimonials spacing fixed, nav merged.
 - **Acceptance:**
   - [ ] Framer Motion animations added
   - [ ] Mobile/tablet/desktop responsive refinement
-  - [ ] Blue accent color integrated
+  - [x] Blue accent color integrated (stats icons, growth numbers, feature cards)
   - [ ] Stakeholder sign-off
 
 ### P1.4 Design System Alignment ✅ COMPLETE
@@ -409,6 +410,7 @@ These cannot be resolved by engineering alone.
 | C15 | **P1.2** — PT-BR cleanup on admin/finance surfaces (Ledger→Livro Razão, Payouts→Repasses, Trial→Em teste, Settlements→Liquidações, etc.) and member-facing pages (Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão de Vídeo). Verified onboarding tracker modal optional fetches are non-blocking. | `app/(app)/admin/finance/*`, `app/(app)/dashboard/page.tsx`, `app/(app)/perfil/page.tsx`, `app/(app)/profissional/[id]/page.tsx`, `app/(app)/sessao/[bookingId]/page.tsx` |
 | C16 | **P1.5** — Auth & Booking Handoff: LoginForm gains `redirectPath` prop to preserve booking context through login modal; SearchBookingCtas passes `bookHref`/`messageHref` as redirect and fires PostHog `booking_intent_auth_modal_shown`; signup link preserves redirect parameter. | `components/auth/LoginForm.tsx`, `components/search/SearchBookingCtas.tsx`, `components/booking/MobileBookingStickyCta.tsx` |
 | C17 | **P1.2** — Professional availability workspace UX polish: beforeunload protection, unsaved-changes indicator, sticky save bar, per-day 'Copiar para...' schedule copy, specific Supabase error messages, TIME_OPTIONS extended to 05:00. TypeScript clean, 1005/1005 tests pass, 190 pages build. | `components/agenda/ProfessionalAvailabilityWorkspace.tsx`, `components/agenda/weekly-schedule-editor.tsx`, `components/agenda/availability-workspace-helpers.ts` |
+| C18 | **UI/UX sweep** — Landing page spacing, flags sizing, payment section (Card/Apple Pay/PayPal only), 'Gravação opcional' → 'Agenda sincronizada', guides link to index with free-access messaging, blue accent on stats/growth icons, remove 'Pix' from comparison, merge Guias+Blog nav into `/recursos`. Blog nav dark text on white bg. Professional 'Receita estimada' white text for contrast. About page world map SVG improved, guides section removed. Auth: Facebook + Apple login added, OAuth proxy endpoint (`/api/auth/oauth`) to mask Supabase URL. | `components/landing/*`, `components/public/PublicHeader.tsx`, `components/auth/SocialAuthButtons.tsx`, `app/registrar-profissional/page.tsx`, `app/sobre/page.tsx`, `app/recursos/page.tsx`, `app/api/auth/oauth/route.ts` |
 
 ---
 
