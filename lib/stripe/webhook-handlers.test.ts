@@ -46,6 +46,16 @@ const mockedGetStripeClient = vi.mocked(getStripeClient)
 const mockedCreateLedgerTransaction = vi.mocked(createLedgerTransaction)
 const mockedUpdateProfessionalBalance = vi.mocked(updateProfessionalBalance)
 
+import {
+  syncSubscriptionFromStripe,
+  recordSubscriptionPayment,
+  recordSubscriptionPaymentFailure,
+} from '@/lib/payments/subscription/manager'
+
+const mockedSyncSubscription = vi.mocked(syncSubscriptionFromStripe)
+const mockedRecordSubPayment = vi.mocked(recordSubscriptionPayment)
+const mockedRecordSubFailure = vi.mocked(recordSubscriptionPaymentFailure)
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 /**
@@ -421,6 +431,203 @@ describe('handleStripeWebhookEvent', () => {
 
     const caseInsert = inserts.find((i) => i.table === 'cases')
     expect(caseInsert).toBeDefined()
+  })
+
+  // ── Subscription events ────────────────────────────────────────────────
+
+  it('processes customer.subscription.updated: syncs subscription and enqueues check', async () => {
+    const admin = buildAdminClient()
+    const inserts: Array<{ table: string; data: unknown }> = []
+
+    const customFrom = vi.fn().mockImplementation((table: string) => {
+      return {
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockImplementation((data: unknown) => {
+          inserts.push({ table, data })
+          return { select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 'q-1' }, error: null }) }
+        }),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }
+    })
+
+    const event = {
+      id: 'evt_sub_updated',
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          id: 'sub_123',
+          metadata: { professional_id: 'prof-1' },
+        } as unknown as Stripe.Subscription,
+      },
+      api_version: '2026-03-25.dahlia',
+      livemode: false,
+      created: Date.now(),
+      object: 'event',
+      request: null,
+      pending_webhooks: 0,
+    } as Stripe.Event
+
+    const result = await handleStripeWebhookEvent({ ...admin, from: customFrom } as unknown as Parameters<typeof handleStripeWebhookEvent>[0], event)
+
+    expect(result.outcome).toBe('processed')
+    expect(mockedSyncSubscription).toHaveBeenCalledWith(expect.anything(), 'sub_123')
+
+    const queueInsert = inserts.find((i) => i.table === 'stripe_subscription_check_queue')
+    expect(queueInsert).toBeDefined()
+    expect((queueInsert!.data as Record<string, unknown>).stripe_subscription_id).toBe('sub_123')
+  })
+
+  it('processes customer.subscription.deleted: syncs subscription and enqueues check', async () => {
+    const admin = buildAdminClient()
+    const inserts: Array<{ table: string; data: unknown }> = []
+
+    const customFrom = vi.fn().mockImplementation((table: string) => {
+      return {
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockImplementation((data: unknown) => {
+          inserts.push({ table, data })
+          return { select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 'q-1' }, error: null }) }
+        }),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }
+    })
+
+    const event = {
+      id: 'evt_sub_deleted',
+      type: 'customer.subscription.deleted',
+      data: {
+        object: {
+          id: 'sub_456',
+          metadata: { professional_id: 'prof-2' },
+        } as unknown as Stripe.Subscription,
+      },
+      api_version: '2026-03-25.dahlia',
+      livemode: false,
+      created: Date.now(),
+      object: 'event',
+      request: null,
+      pending_webhooks: 0,
+    } as Stripe.Event
+
+    const result = await handleStripeWebhookEvent({ ...admin, from: customFrom } as unknown as Parameters<typeof handleStripeWebhookEvent>[0], event)
+
+    expect(result.outcome).toBe('processed')
+    expect(mockedSyncSubscription).toHaveBeenCalledWith(expect.anything(), 'sub_456')
+
+    const queueInsert = inserts.find((i) => i.table === 'stripe_subscription_check_queue')
+    expect(queueInsert).toBeDefined()
+  })
+
+  it('processes invoice.paid: records subscription payment', async () => {
+    const admin = buildAdminClient()
+
+    const event = {
+      id: 'evt_inv_paid',
+      type: 'invoice.paid',
+      data: {
+        object: {
+          id: 'inv_123',
+          subscription: 'sub_789',
+          amount_paid: 29900,
+          currency: 'brl',
+        } as unknown as Stripe.Invoice,
+      },
+      api_version: '2026-03-25.dahlia',
+      livemode: false,
+      created: Date.now(),
+      object: 'event',
+      request: null,
+      pending_webhooks: 0,
+    } as Stripe.Event
+
+    const result = await handleStripeWebhookEvent(admin, event)
+
+    expect(result.outcome).toBe('processed')
+    expect(mockedRecordSubPayment).toHaveBeenCalledWith(
+      expect.anything(),
+      'sub_789',
+      expect.objectContaining({
+        amountMinor: 29900,
+        currency: 'brl',
+        invoiceId: 'inv_123',
+      }),
+    )
+  })
+
+  it('processes invoice.payment_failed: records subscription failure', async () => {
+    const admin = buildAdminClient()
+
+    const event = {
+      id: 'evt_inv_failed',
+      type: 'invoice.payment_failed',
+      data: {
+        object: {
+          id: 'inv_456',
+          subscription: 'sub_abc',
+          attempt_count: 2,
+        } as unknown as Stripe.Invoice,
+      },
+      api_version: '2026-03-25.dahlia',
+      livemode: false,
+      created: Date.now(),
+      object: 'event',
+      request: null,
+      pending_webhooks: 0,
+    } as Stripe.Event
+
+    const result = await handleStripeWebhookEvent(admin, event)
+
+    expect(result.outcome).toBe('processed')
+    expect(mockedRecordSubFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      'sub_abc',
+      expect.objectContaining({
+        reason: '2 failed payment attempt(s)',
+      }),
+    )
+  })
+
+  it('returns failed when subscription sync fails', async () => {
+    mockedSyncSubscription.mockResolvedValueOnce({ success: false, status: 'error', updated: false, error: 'Sync failed' })
+
+    const admin = buildAdminClient()
+    const customFrom = vi.fn().mockImplementation((table: string) => {
+      return {
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }
+    })
+
+    const event = {
+      id: 'evt_sub_updated',
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          id: 'sub_fail',
+          metadata: {},
+        } as unknown as Stripe.Subscription,
+      },
+      api_version: '2026-03-25.dahlia',
+      livemode: false,
+      created: Date.now(),
+      object: 'event',
+      request: null,
+      pending_webhooks: 0,
+    } as Stripe.Event
+
+    const result = await handleStripeWebhookEvent({ ...admin, from: customFrom } as unknown as Parameters<typeof handleStripeWebhookEvent>[0], event)
+
+    expect(result.outcome).toBe('failed')
   })
 
   // ── Unsupported event ──────────────────────────────────────────────────

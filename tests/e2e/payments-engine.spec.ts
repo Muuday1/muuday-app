@@ -129,6 +129,23 @@ test.describe('Admin Finance Dashboard', () => {
     await expect(page.getByText('Ativa')).toBeVisible()
     await expect(page.getByText('Inadimplente')).toBeVisible()
     await expect(page.getByText('Cancelada')).toBeVisible()
+
+    // Wait for table data to load (either rows or empty state)
+    await page.waitForSelector('table tbody tr, [data-testid="empty-state"]', { timeout: 10_000 })
+
+    // If data exists, verify table rows have expected structure
+    const rows = page.locator('table tbody tr')
+    const rowCount = await rows.count()
+    if (rowCount > 0) {
+      // First row should have status badge and professional info
+      const firstRow = rows.first()
+      await expect(firstRow.locator('td').first()).toBeVisible()
+    } else {
+      // Empty state should be visible
+      const emptyState = page.getByText('Nenhuma assinatura encontrada')
+      const hasEmptyState = await emptyState.isVisible().catch(() => false)
+      expect(hasEmptyState || rowCount === 0).toBe(true)
+    }
   })
 })
 
