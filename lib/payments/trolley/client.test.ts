@@ -106,8 +106,9 @@ describe('createTrolleyRecipient', () => {
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
-          'Access-Key': 'test-api-key',
-          'Secret-Key': 'test-api-secret',
+          'Authorization': expect.stringMatching(/^prsign test-api-key:/),
+          'X-PR-Timestamp': expect.any(String),
+          'Content-Type': 'application/json',
         }),
       }),
     )
@@ -184,7 +185,7 @@ describe('createTrolleyPayment', () => {
     fetchSpy.mockRestore()
   })
 
-  it('creates a payment with recipient and amount', async () => {
+  it('creates a payment within a batch with recipient and amount', async () => {
     fetchSpy.mockResolvedValue(
       new Response(
         JSON.stringify({ id: 'pay-1', recipient: { id: 'rec-1' }, amount: '100.00', currency: 'BRL' }),
@@ -193,12 +194,15 @@ describe('createTrolleyPayment', () => {
     )
 
     const result = await createTrolleyPayment({
+      batchId: 'batch-1',
       recipientId: 'rec-1',
       amount: '100.00',
       currency: 'BRL',
     })
 
     expect(result.id).toBe('pay-1')
+    const url = fetchSpy.mock.calls[0][0] as string
+    expect(url).toContain('/batches/batch-1/payments')
     const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string)
     expect(body).toMatchObject({
       recipient: { id: 'rec-1' },
@@ -231,6 +235,20 @@ describe('createTrolleyBatch', () => {
     expect(result.id).toBe('batch-1')
     const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string)
     expect(body.payments).toEqual([{ id: 'pay-1' }, { id: 'pay-2' }])
+  })
+
+  it('creates an empty batch when no payment ids provided', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({ id: 'batch-2', status: 'open', payments: [] }),
+        { status: 200 },
+      ),
+    )
+
+    const result = await createTrolleyBatch()
+    expect(result.id).toBe('batch-2')
+    const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string)
+    expect(body).toEqual({})
   })
 })
 
@@ -269,7 +287,7 @@ describe('processTrolleyBatch', () => {
     fetchSpy.mockRestore()
   })
 
-  it('posts to batch process endpoint', async () => {
+  it('posts to batch start-processing endpoint', async () => {
     fetchSpy.mockResolvedValue(
       new Response(
         JSON.stringify({ id: 'batch-1', status: 'pending', payments: [] }),
@@ -279,7 +297,7 @@ describe('processTrolleyBatch', () => {
 
     const result = await processTrolleyBatch('batch-1')
     expect(fetchSpy).toHaveBeenCalledWith(
-      'https://api.trolley.com/v1/batches/batch-1/process',
+      'https://api.trolley.com/v1/batches/batch-1/start-processing',
       expect.objectContaining({ method: 'POST' }),
     )
   })

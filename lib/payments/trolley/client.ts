@@ -6,6 +6,12 @@
  *
  * API Docs: https://trolley.com/docs/api
  * Environment vars: TROLLEY_API_KEY, TROLLEY_API_SECRET, TROLLEY_WEBHOOK_SECRET
+ *
+ * Authentication: HMAC-SHA256 request signing (prsign scheme)
+ *   Message = timestamp + '\n' + METHOD + '\n' + requestPath + '\n' + body + '\n'
+ *   Signature = HMAC-SHA256(secret, message)
+ *   Authorization: prsign <ACCESS_KEY>:<SIGNATURE>
+ *   X-PR-Timestamp: <timestamp>
  */
 
 import crypto from 'crypto'
@@ -39,12 +45,12 @@ export interface TrolleyBatch {
 }
 
 // ---------------------------------------------------------------------------
-// Client
+// Auth & Signing
 // ---------------------------------------------------------------------------
 
 const TROLLEY_API_BASE = env.TROLLEY_API_BASE
 
-function getAuthHeaders(): Record<string, string> {
+function getCredentials(): { key: string; secret: string } {
   const key = env.TROLLEY_API_KEY
   const secret = env.TROLLEY_API_SECRET
 
@@ -52,27 +58,66 @@ function getAuthHeaders(): Record<string, string> {
     throw new Error('Trolley API credentials not configured')
   }
 
-  // Trolley uses Access-Key + Secret-Key headers
+  return { key, secret }
+}
+
+/**
+ * Build the HMAC-SHA256 signature for a Trolley API request.
+ *
+ * Docs: https://developers.trolley.com/api/
+ * Message format: timestamp + '\n' + method + '\n' + requestPath + '\n' + body + '\n'
+ */
+function signRequest(
+  method: string,
+  requestPath: string,
+  body: string,
+  secret: string,
+  timestamp: number,
+): string {
+  const message = `${timestamp}\n${method.toUpperCase()}\n${requestPath}\n${body}\n`
+  return crypto.createHmac('sha256', secret).update(message, 'utf8').digest('hex')
+}
+
+function buildAuthHeaders(
+  method: string,
+  requestPath: string,
+  body: string,
+): Record<string, string> {
+  const { key, secret } = getCredentials()
+  const timestamp = Math.floor(Date.now() / 1000)
+  const signature = signRequest(method, requestPath, body, secret, timestamp)
+
   return {
     'Content-Type': 'application/json',
-    'Access-Key': key,
-    'Secret-Key': secret,
+    'Authorization': `prsign ${key}:${signature}`,
+    'X-PR-Timestamp': String(timestamp),
   }
 }
 
+// ---------------------------------------------------------------------------
+// HTTP Client
+// ---------------------------------------------------------------------------
+
 async function trolleyFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${TROLLEY_API_BASE}${path}`
+  const method = options.method || 'GET'
+  const body = options.body ? String(options.body) : ''
+
+  // requestPath for signing must include the /v1 prefix
+  const apiVersionPrefix = '/v1'
+  const requestPath = path.startsWith(apiVersionPrefix) ? path : `${apiVersionPrefix}${path}`
+
   const response = await fetch(url, {
     ...options,
     headers: {
-      ...getAuthHeaders(),
+      ...buildAuthHeaders(method, requestPath, body),
       ...(options.headers || {}),
     },
   })
 
   if (!response.ok) {
-    const body = await response.text().catch(() => 'unknown')
-    throw new Error(`Trolley API error ${response.status}: ${body}`)
+    const bodyText = await response.text().catch(() => 'unknown')
+    throw new Error(`Trolley API error ${response.status}: ${bodyText}`)
   }
 
   return response.json() as Promise<T>
@@ -119,13 +164,14 @@ export async function updateTrolleyRecipient(
 // ---------------------------------------------------------------------------
 
 export async function createTrolleyPayment(params: {
+  batchId: string
   recipientId: string
   amount: string
   currency: string
   sourceAmount?: string
   sourceCurrency?: string
 }): Promise<TrolleyPayment> {
-  return trolleyFetch('/payments', {
+  return trolleyFetch(`/batches/${params.batchId}/payments`, {
     method: 'POST',
     body: JSON.stringify({
       recipient: { id: params.recipientId },
@@ -137,12 +183,14 @@ export async function createTrolleyPayment(params: {
   })
 }
 
-export async function createTrolleyBatch(paymentIds: string[]): Promise<TrolleyBatch> {
+export async function createTrolleyBatch(paymentIds?: string[]): Promise<TrolleyBatch> {
+  const body: Record<string, unknown> = {}
+  if (paymentIds && paymentIds.length > 0) {
+    body.payments = paymentIds.map((id) => ({ id }))
+  }
   return trolleyFetch('/batches', {
     method: 'POST',
-    body: JSON.stringify({
-      payments: paymentIds.map((id) => ({ id })),
-    }),
+    body: JSON.stringify(body),
   })
 }
 
@@ -151,7 +199,7 @@ export async function getTrolleyBatch(batchId: string): Promise<TrolleyBatch> {
 }
 
 export async function processTrolleyBatch(batchId: string): Promise<TrolleyBatch> {
-  return trolleyFetch(`/batches/${batchId}/process`, {
+  return trolleyFetch(`/batches/${batchId}/start-processing`, {
     method: 'POST',
   })
 }

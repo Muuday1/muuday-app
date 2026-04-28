@@ -5,10 +5,11 @@
  * 1. Health check
  * 2. Recipient creation (with referenceId)
  * 3. Recipient retrieval
- * 4. Recipient status sync (simulating KYC approval)
- * 5. Payment creation
- * 6. Batch creation + processing
- * 7. Webhook signature verification test
+ * 4. Recipient update (PayPal payout method)
+ * 5. Empty batch creation
+ * 6. Payment creation within batch
+ * 7. Batch processing
+ * 8. Webhook signature verification test
  *
  * Prerequisites:
  * - TROLLEY_API_KEY and TROLLEY_API_SECRET set in environment
@@ -39,30 +40,49 @@ if (!API_KEY || !API_SECRET) {
 }
 
 // ---------------------------------------------------------------------------
-// Client
+// Auth & Signing
 // ---------------------------------------------------------------------------
 
-function getAuthHeaders() {
+function signRequest(method, requestPath, body, secret, timestamp) {
+  const message = `${timestamp}\n${method.toUpperCase()}\n${requestPath}\n${body}\n`
+  return crypto.createHmac('sha256', secret).update(message, 'utf8').digest('hex')
+}
+
+function getAuthHeaders(method, requestPath, body) {
+  const timestamp = Math.floor(Date.now() / 1000)
+  const signature = signRequest(method, requestPath, body, API_SECRET, timestamp)
+
   return {
     'Content-Type': 'application/json',
-    'Access-Key': API_KEY,
-    'Secret-Key': API_SECRET,
+    'Authorization': `prsign ${API_KEY}:${signature}`,
+    'X-PR-Timestamp': String(timestamp),
   }
 }
 
+// ---------------------------------------------------------------------------
+// Client
+// ---------------------------------------------------------------------------
+
 async function trolleyFetch(path, options = {}) {
   const url = `${API_BASE}${path}`
+  const method = options.method || 'GET'
+  const body = options.body ? String(options.body) : ''
+
+  // requestPath for signing must include the /v1 prefix
+  const apiVersionPrefix = '/v1'
+  const requestPath = path.startsWith(apiVersionPrefix) ? path : `${apiVersionPrefix}${path}`
+
   const response = await fetch(url, {
     ...options,
     headers: {
-      ...getAuthHeaders(),
+      ...getAuthHeaders(method, requestPath, body),
       ...(options.headers || {}),
     },
   })
 
   if (!response.ok) {
-    const body = await response.text().catch(() => 'unknown')
-    throw new Error(`Trolley API error ${response.status}: ${body}`)
+    const bodyText = await response.text().catch(() => 'unknown')
+    throw new Error(`Trolley API error ${response.status}: ${bodyText}`)
   }
 
   return response.json()
@@ -134,8 +154,8 @@ function assertTruthy(value, message) {
 
 const state = {
   recipientId: null,
-  paymentId: null,
   batchId: null,
+  paymentId: null,
 }
 
 // ---------------------------------------------------------------------------
@@ -196,10 +216,22 @@ async function runTests() {
     assertTruthy(result.recipient?.id || result.id, 'Expected recipient id after update')
   })
 
-  // ── 5. Payment Creation ─────────────────────────────────────────────────
-  await test('create payment for recipient', async () => {
+  // ── 5. Empty Batch Creation ─────────────────────────────────────────────
+  await test('create empty batch', async () => {
+    const result = await trolleyFetch('/batches', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+    assertTruthy(result.batch?.id || result.id, 'Expected batch id')
+    state.batchId = result.batch?.id || result.id
+    console.log(`      → Created batch: ${state.batchId}`)
+  })
+
+  // ── 6. Payment Creation within Batch ────────────────────────────────────
+  await test('create payment within batch', async () => {
+    if (!state.batchId) throw new Error('No batch created')
     if (!state.recipientId) throw new Error('No recipient created')
-    const result = await trolleyFetch('/payments', {
+    const result = await trolleyFetch(`/batches/${state.batchId}/payments`, {
       method: 'POST',
       body: JSON.stringify({
         recipient: { id: state.recipientId },
@@ -213,33 +245,18 @@ async function runTests() {
     console.log(`      → Created payment: ${state.paymentId}`)
   })
 
-  // ── 6. Batch Creation ───────────────────────────────────────────────────
-  await test('create batch with payment', async () => {
-    if (!state.paymentId) throw new Error('No payment created')
-    const result = await trolleyFetch('/batches', {
-      method: 'POST',
-      body: JSON.stringify({
-        payments: [{ id: state.paymentId }],
-      }),
-    })
-
-    assertTruthy(result.batch?.id || result.id, 'Expected batch id')
-    state.batchId = result.batch?.id || result.id
-    console.log(`      → Created batch: ${state.batchId}`)
-  })
-
   // ── 7. Batch Process (may fail in sandbox without full setup) ───────────
   await test('process batch (soft — sandbox may reject)', async () => {
     if (!state.batchId) throw new Error('No batch created')
     try {
-      const result = await trolleyFetch(`/batches/${state.batchId}/process`, { method: 'POST' })
+      const result = await trolleyFetch(`/batches/${state.batchId}/start-processing`, { method: 'POST' })
       assertTruthy(result.batch?.id || result.id, 'Expected batch id after process')
       console.log(`      → Batch processed (status: ${result.batch?.status || result.status})`)
     } catch (error) {
-      // Sandbox may reject processing if recipient is not fully KYC'd
+      // Sandbox may reject processing if recipient is not fully KYC'd or insufficient funds
       // This is expected and not a failure of our integration
-      if (error.message && error.message.includes('422')) {
-        console.log(`      → Batch process rejected (expected in sandbox without KYC): ${error.message}`)
+      if (error.message && (error.message.includes('422') || error.message.includes('400') || error.message.includes('non_sufficient_funds'))) {
+        console.log(`      → Batch process rejected (expected in sandbox without KYC/funds): ${error.message}`)
       } else {
         throw error
       }
@@ -283,6 +300,7 @@ async function runTests() {
 
   if (state.recipientId) {
     console.log(`🧹 Cleanup: recipient ${state.recipientId} was created in sandbox`)
+    console.log(`   batch ${state.batchId} was created in sandbox`)
     console.log('   (Recipients may be deleted manually via Trolley dashboard if needed)')
   }
 

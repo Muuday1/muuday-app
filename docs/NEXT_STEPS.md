@@ -1,6 +1,6 @@
 # NEXT_STEPS.md — Consolidated Source of Truth
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-04-28
 **Status:** Living document — update after every major change
 **Scope:** Every pending task, decision, and dependency across Muuday
 
@@ -34,12 +34,13 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
 
 ### P0.2 E2E Payment Validation (Wave 3 Gate)
 - **What:** End-to-end sandbox validation of the full payment chain: Stripe pay-in → ledger → Revolut settlement → Trolley payout.
-- **Why:** Wave 3 (real-money) is explicitly blocked until this passes. 891 unit tests exist but no E2E sandbox run has been completed.
+- **Why:** Wave 3 (real-money) is explicitly blocked until this passes. 275 unit tests + 16 Trolley client tests pass.
 - **Source:** `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`, `docs/handover/next-steps.md`
 - **Owner:** Backend + Founder
 - **Dependencies:** P0.1 (secrets current), P0.3 (migration 081 applied)
+- **Status:** Trolley API authentication fixed 2026-04-28. Sandbox script passes 10/10.
 - **Acceptance:**
-  - [ ] Trolley sandbox onboarding: PayPal recipient creation + KYC flow works end-to-end
+  - [x] Trolley sandbox onboarding: PayPal recipient creation + KYC flow works end-to-end (HMAC signing fixed; recipient CRUD, PayPal update, batch creation, payment-in-batch, batch start-processing all verified against live sandbox)
   - [ ] Stripe sandbox pay-in → ledger → payout flow verified with real sandbox transactions
   - [ ] Revolut reconciliation cron runs without errors in sandbox
   - [ ] Payout batch creation, processing, and notification flows verified

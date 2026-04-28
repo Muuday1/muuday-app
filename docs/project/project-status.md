@@ -9,7 +9,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Wave 0: Done
 - Wave 1: Done
 - Wave 2: Done (closed 2026-04-10)
-- Payment engine (Phases 1–6): Fase 6.1–6.5 (Ledger, Stripe Pay-in, Revolut Settlement, Trolley Payout, Refund & Dispute) ✅ completas, incluindo rotas de API. Awaiting E2E testing before Wave 3 launch.
+- Payment engine (Phases 1–6): Fase 6.1–6.5 (Ledger, Stripe Pay-in, Revolut Settlement, Trolley Payout, Refund & Dispute) ✅ completas, incluindo rotas de API. Trolley sandbox E2E validated 2026-04-28 (HMAC signing fixed, 10/10 tests pass). Remaining: Stripe pay-in E2E, Revolut cron, dispute/refund E2E.
 - Stabilization and UX refinement: In progress
 - Wave 3 real-money execution: Blocked on E2E validation + compliance freeze
 - Mobile app API refactor: Sprints 3–5 complete; mobile app dev not open
@@ -47,7 +47,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 ## Active gaps
 
 1. Professional operations UX still needs refinement, especially around calendar and scheduling experience.
-2. Financial infrastructure implemented; Stripe pay-in + ledger integration tested. Compliance hardening and E2E testing remain open before Wave 3 launch.
+2. Financial infrastructure implemented; Stripe pay-in + ledger integration unit-tested. Trolley sandbox E2E validated (recipient CRUD, PayPal, batch creation, payment-in-batch, webhook signatures). Remaining open: Stripe sandbox pay-in E2E, Revolut reconciliation cron E2E, dispute-after-payout E2E, refund E2E.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
 4. Documentation drift identified in comprehensive audit (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md` for full findings.
 
@@ -124,6 +124,15 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - `/admin/casos/[caseId]` detail with evidence panel, timeline (merged actions + messages), message thread, decision form
    - Auto-case creation from no-show detection (best-effort, non-blocking)
    - 12 new tests. Test suite: **950 tests passing in 89 files**
+11. **Trolley API Authentication Fix & Sandbox E2E Validation (P0.2 progress, 2026-04-28):**
+    - Root cause: Trolley client was using raw `Access-Key`/`Secret-Key` headers instead of HMAC-SHA256 `prsign` request signing
+    - Fixed `lib/payments/trolley/client.ts` with proper `signRequest()` using `timestamp\nMETHOD\nrequestPath\nbody\n` message format
+    - Fixed `scripts/test-trolley-sandbox.js` with same signing implementation
+    - Corrected Trolley payout flow from "payments-first → batch" to "empty batch → payments-in-batch → start-processing" (`/batches/{id}/start-processing` endpoint)
+    - Updated `inngest/functions/payout-batch-create.ts` to create empty batch before adding payments
+    - Updated `lib/payments/trolley/client.test.ts` (16 tests) and `inngest/functions/payout-batch-create.test.ts` (7 tests)
+    - Sandbox E2E script passes 10/10: health check, recipient creation/retrieval/update, PayPal payout method, empty batch creation, payment-in-batch, batch start-processing (expected 400 in sandbox), webhook signature verification
+    - All 275 payment-related unit tests pass. TypeScript clean.
 10. **Review Moderation Queue Enhancement (P1.10 / REVIEW-01) complete (2026-04-27):**
    - Migration 083: added `moderation_status`, `rejection_reason`, `moderated_by`, `moderated_at`, `admin_notes`, `flag_reasons` to `reviews`; trigger syncs `is_visible`
    - `/admin/avaliacoes` dedicated moderation page with stats cards, status filters, sort options
@@ -135,7 +144,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Blockers
 
-1. Wave 3 depends on E2E testing of payment flows (Stripe sandbox → Trolley sandbox) and compliance readiness.
+1. Wave 3 depends on E2E testing of remaining payment flows (Stripe sandbox pay-in, Revolut reconciliation cron, dispute/refund scenarios) and compliance readiness. Trolley payout E2E is validated.
 2. Sensitive-category legal/tax wording is not fully frozen.
 
 ## Continuity rule

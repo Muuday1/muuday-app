@@ -244,7 +244,7 @@ describe('payoutBatchCreate', () => {
 
     expect(result.batchCreated).toBe(true)
     expect(result.submitted).toBe(false)
-    expect(result.reason).toBe('trolley_batch_failed')
+    expect(result.reason).toBe('trolley_batch_creation_failed')
   })
 
   it('completes full success path with debt deduction', async () => {

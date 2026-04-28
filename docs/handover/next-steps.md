@@ -1,6 +1,6 @@
 # Next Steps
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 Execute in order. Keep changes batchable, validated, and documented.
 
@@ -20,7 +20,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 1. ~~Implement real Trolley webhook HMAC verification~~ ✅ **Done** — `lib/payments/trolley/client.ts`
 2. ~~Implement real Revolut webhook HMAC verification~~ ✅ **Done** — `lib/payments/revolut/client.ts`
 3. ~~Apply migrations 070-076 to production Supabase~~ ✅ **Applied** — confirmed by operator
-4. ~~**Test Trolley sandbox onboarding end-to-end**~~ ✅ **Code complete** — Sandbox test script (`scripts/test-trolley-sandbox.js`) validates recipient lifecycle, payment, batch, and webhook signature verification. Webhook crypto tests pass (3/3). API calls return 403 — Trolley credentials likely need account activation/permission grant from Trolley support. Not a code blocker.
+4. ~~**Test Trolley sandbox onboarding end-to-end**~~ ✅ **Done** — Sandbox test script (`scripts/test-trolley-sandbox.js`) passes 10/10 against live Trolley sandbox. Previous 403 was caused by incorrect auth (raw headers instead of HMAC-SHA256 `prsign` request signing). Fixed 2026-04-28. Validates: recipient CRUD, PayPal payout method update, empty batch creation, payment creation within batch, batch start-processing (expected 400 in sandbox due to no KYC/funds), webhook signature verification. Batch-first payout flow corrected in `lib/payments/trolley/client.ts` and `inngest/functions/payout-batch-create.ts`.
 5. ~~**Test Stripe sandbox pay-in → ledger → payout flow**~~ ✅ **Unit tests delivered** — 128 new tests cover PaymentIntent API, Checkout Session API, Stripe webhook receiver/handlers, ledger integration, Revolut client/reconciliation, Revolut webhook receiver, and treasury Inngest functions. E2E sandbox validation remains open.
 6. ~~**Professional Payout via Trolley test coverage**~~ ✅ **Done** — 51 tests across 5 files covering Trolley client, onboarding, webhook receiver, webhook processor, and payout batch creation. Test suite: 468/57.
 7. ~~**Refund & Dispute Engine test coverage**~~ ✅ **Done** — 69 tests across 4 files covering refund engine (Stripe API, ledger, pre/post-payout), dispute service (cases, messages, resolution), admin refund action, and dispute actions. Test suite: 537/61.

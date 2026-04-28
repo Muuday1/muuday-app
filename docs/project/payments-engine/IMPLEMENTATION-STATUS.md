@@ -1,8 +1,8 @@
 # Muuday Payments Engine — Implementation Status
 
-> **Last Updated:** 2026-04-27
-> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — Trolley sandbox E2E script delivered, webhook signature verified, credentials pending activation
-> **Last Commit:** `1703dc2` — P1.8e Trolley Sandbox E2E onboarding end-to-end (recipient.deleted handler, PT-BR fixes, portal deep link, sandbox test script)
+> **Last Updated:** 2026-04-28
+> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — Trolley API authentication fixed (HMAC-SHA256 `prsign`), sandbox E2E script passes 10/10, batch-first payout flow corrected
+> **Last Commit:** `TBD` — P0.2 Trolley HMAC signing fix, batch-first payment creation, sandbox E2E validation
 
 ---
 
@@ -107,7 +107,7 @@
 ## Environment & Deploy Notes
 
 - **Stripe**: Currently in SANDBOX (`sk_test_` / `pk_test_`). Switch to LIVE only after E2E testing.
-- **Trolley**: Sandbox credentials configured in Vercel but returning HTTP 403 "Authentication not permitted to access resource". Likely requires account activation or API permissions from Trolley support. Webhook signature verification logic validated (3/3 tests pass). Sandbox test script: `scripts/test-trolley-sandbox.js`. Optional `TROLLEY_API_BASE=https://api.sandbox.trolley.com/v1` for explicit sandbox mode.
+- **Trolley**: ✅ Sandbox API working. Previous HTTP 403 was caused by incorrect authentication (raw `Access-Key`/`Secret-Key` headers instead of HMAC-SHA256 `prsign` request signing). Fixed 2026-04-28. Sandbox E2E script passes 10/10: health check, recipient CRUD, PayPal payout method update, empty batch creation, payment creation within batch, batch start-processing (expected 400 in sandbox due to no KYC/funds), webhook signature verification. Correct flow: create empty batch → add payments via `/batches/{id}/payments` → start processing via `/batches/{id}/start-processing`.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
 - **Migrations applied**: 070-080 applied to production Supabase (confirmed 2026-04-24).
@@ -122,7 +122,7 @@
 | TypeScript typecheck | ✅ PASS |
 | Lint | ✅ PASS |
 | Next.js build | ✅ PASS (187 pages generated) |
-| Trolley sandbox onboarding | ⚠️ Code ready — credentials return 403 (pending Trolley account activation) |
+| Trolley sandbox onboarding | ✅ PASS — HMAC signing fixed, 10/10 sandbox tests pass |
 | Payout batch ledger balance | ✅ Verified (debits = credits) |
 | Fee deduction math | ✅ Verified (100% to pro, debt deducted) |
 

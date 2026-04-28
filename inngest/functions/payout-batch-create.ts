@@ -345,6 +345,30 @@ export const payoutBatchCreate = inngest.createFunction(
         throw new Error('No batch items found for Trolley submission.')
       }
 
+      // Create an empty batch in Trolley first
+      let trolleyBatchId: string | null = null
+      try {
+        const trolleyBatch = await createTrolleyBatch()
+        trolleyBatchId = trolleyBatch.id
+      } catch (batchError) {
+        const errorMsg = batchError instanceof Error ? batchError.message : String(batchError)
+        logger.error('Failed to create Trolley batch.', {
+          batchId: batchDraft.batchId,
+          error: errorMsg,
+        })
+
+        await admin
+          .from('payout_batches')
+          .update({
+            status: 'failed',
+            failure_reason: `Trolley batch creation failed: ${errorMsg}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', batchDraft.batchId)
+
+        return { success: false as const, reason: 'trolley_batch_creation_failed', error: errorMsg }
+      }
+
       const trolleyPayments: TrolleyPayment[] = []
       const paymentIdMapping: Array<{ itemId: string; trolleyPaymentId: string }> = []
 
@@ -368,6 +392,7 @@ export const payoutBatchCreate = inngest.createFunction(
           const amountStr = amountMajor.toFixed(2)
 
           const payment = await createTrolleyPayment({
+            batchId: trolleyBatchId,
             recipientId: pro.trolleyRecipientId,
             amount: amountStr,
             currency: 'BRL',
@@ -426,28 +451,23 @@ export const payoutBatchCreate = inngest.createFunction(
           .eq('id', mapping.itemId)
       }
 
-      // Create batch in Trolley
-      let trolleyBatchId: string | null = null
+      // Process the batch
       try {
-        const trolleyBatch = await createTrolleyBatch(trolleyPayments.map((p) => p.id))
-        trolleyBatchId = trolleyBatch.id
-
-        // Process the batch
-        await processTrolleyBatch(trolleyBatch.id)
+        await processTrolleyBatch(trolleyBatchId)
 
         // Update our batch record
         await admin
           .from('payout_batches')
           .update({
             status: 'processing',
-            trolley_batch_id: trolleyBatch.id,
+            trolley_batch_id: trolleyBatchId,
             updated_at: new Date().toISOString(),
           })
           .eq('id', batchDraft.batchId)
 
         return {
           success: true as const,
-          trolleyBatchId: trolleyBatch.id,
+          trolleyBatchId,
           paymentsCreated: trolleyPayments.length,
           totalItems: batchItems.length,
         }
