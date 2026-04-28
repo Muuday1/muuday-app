@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const ip = getClientIp(request as never)
   const rl = await rateLimit('onboardingSubmitReview', `onboarding-submit-review:${ip}`)
   if (!rl.allowed) {
-    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+    return NextResponse.json({ error: 'Muitas requisições. Tente novamente mais tarde.' }, { status: 429 })
   }
 
   const supabase = await createClient()
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   try {
     rawBody = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Payload JSON invalido.' }, { status: 400 })
+    return NextResponse.json({ error: 'Payload JSON inválido.' }, { status: 400 })
   }
 
   const body = typeof rawBody === 'object' && rawBody !== null

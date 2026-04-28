@@ -174,7 +174,7 @@ export async function updateProfessionalStatusService(
       return { success: false, error: previousProfessionalError.message }
     }
     if (!previousProfessional) {
-      return { success: false, error: 'Profissional nao encontrado.' }
+      return { success: false, error: 'Profissional não encontrado.' }
     }
 
     const nowIso = new Date().toISOString()
@@ -248,7 +248,7 @@ export async function updateFirstBookingGateService(
       return { success: false, error: previousProfessionalError.message }
     }
     if (!previousProfessional) {
-      return { success: false, error: 'Profissional nao encontrado.' }
+      return { success: false, error: 'Profissional não encontrado.' }
     }
 
     const { error } = await supabase
@@ -320,7 +320,7 @@ export async function toggleReviewVisibilityService(
       return { success: false, error: previousReviewError.message }
     }
     if (!previousReview) {
-      return { success: false, error: 'Avaliacao nao encontrada.' }
+      return { success: false, error: 'Avaliação não encontrada.' }
     }
 
     const { error } = await supabase
@@ -377,7 +377,7 @@ export async function deleteReviewService(
       return { success: false, error: previousReviewError.message }
     }
     if (!previousReview) {
-      return { success: false, error: 'Avaliacao nao encontrada.' }
+      return { success: false, error: 'Avaliação não encontrada.' }
     }
 
     const { error } = await supabase
@@ -438,7 +438,7 @@ export async function reviewProfessionalDecisionService(
       return { success: false, error: currentProfessionalError.message }
     }
     if (!currentProfessional) {
-      return { success: false, error: 'Profissional nao encontrado.' }
+      return { success: false, error: 'Profissional não encontrado.' }
     }
 
     const structuredAdjustments = parsed.data.adjustments || []
@@ -451,7 +451,7 @@ export async function reviewProfessionalDecisionService(
       item => !SUPPORTED_REVIEW_ADJUSTMENT_KEYS.has(`${String(item.stageId)}::${String(item.fieldKey)}`),
     )
     if (invalidAdjustment) {
-      return { success: false, error: 'Foi enviado um ajuste invalido para uma etapa indisponivel no tracker.' }
+      return { success: false, error: 'Foi enviado um ajuste inválido para uma etapa indisponível no tracker.' }
     }
 
     const targetStatus = parsed.data.decision
@@ -508,7 +508,7 @@ export async function reviewProfessionalDecisionService(
 
       if (closeAdjustmentsError) {
         await rollbackProfessionalUpdate()
-        return { success: false, error: 'Nao foi possivel concluir os ajustes antes da aprovacao.' }
+        return { success: false, error: 'Não foi possível concluir os ajustes antes da aprovação.' }
       }
 
       // Create Stripe subscription for monthly fee (non-blocking)
@@ -536,7 +536,7 @@ export async function reviewProfessionalDecisionService(
 
       if (closeExistingError) {
         await rollbackProfessionalUpdate()
-        return { success: false, error: 'Nao foi possivel atualizar os ajustes anteriores.' }
+        return { success: false, error: 'Não foi possível atualizar os ajustes anteriores.' }
       }
 
       const uniqueAdjustments = new Map<string, (typeof structuredAdjustments)[number]>()
@@ -568,7 +568,7 @@ export async function reviewProfessionalDecisionService(
 
       if (insertAdjustmentsError) {
         await rollbackProfessionalUpdate()
-        return { success: false, error: 'Nao foi possivel registrar os ajustes estruturados.' }
+        return { success: false, error: 'Não foi possível registrar os ajustes estruturados.' }
       }
     }
 
@@ -862,7 +862,7 @@ export async function restoreLatestReviewAdjustmentsService(
       return { success: false, error: professionalError.message }
     }
     if (!professional) {
-      return { success: false, error: 'Profissional nao encontrado.' }
+      return { success: false, error: 'Profissional não encontrado.' }
     }
 
     const normalizedStatus = String(professional.status || '').toLowerCase()
@@ -884,7 +884,7 @@ export async function restoreLatestReviewAdjustmentsService(
       return { success: false, error: openRowsError.message }
     }
     if ((openRows || []).length > 0) {
-      return { success: false, error: 'Este perfil ja possui ajustes estruturados abertos.' }
+      return { success: false, error: 'Este perfil já possui ajustes estruturados abertos.' }
     }
 
     const { data: historicalRows, error: historicalRowsError } = await supabase
@@ -911,7 +911,7 @@ export async function restoreLatestReviewAdjustmentsService(
     if (adjustmentIds.length === 0) {
       return {
         success: false,
-        error: 'Nao ha uma rodada anterior de ajustes suportados para restaurar. Crie uma nova revisao estruturada.',
+        error: 'Não há uma rodada anterior de ajustes suportados para restaurar. Crie uma nova revisão estruturada.',
       }
     }
 

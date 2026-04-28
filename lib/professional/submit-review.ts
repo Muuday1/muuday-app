@@ -23,7 +23,7 @@ export async function submitProfessionalForReview(
     return {
       ok: false,
       code: 'missing_state',
-      error: 'Nao foi possivel carregar o estado atual do onboarding.',
+      error: 'Não foi possível carregar o estado atual do onboarding.',
     }
   }
 
@@ -40,7 +40,7 @@ export async function submitProfessionalForReview(
     return {
       ok: false,
       code: 'blocked',
-      error: 'Ainda existem pendencias obrigatorias antes do envio para analise.',
+      error: 'Ainda existem pendências obrigatórias antes do envio para análise.',
     }
   }
 
@@ -63,7 +63,7 @@ export async function submitProfessionalForReview(
     return {
       ok: false,
       code: 'update_failed',
-      error: 'Nao foi possivel enviar o perfil para analise agora.',
+      error: 'Não foi possível enviar o perfil para análise agora.',
     }
   }
 
@@ -76,7 +76,7 @@ export async function submitProfessionalForReview(
     return {
       ok: false,
       code: 'missing_state',
-      error: 'Perfil enviado, mas nao foi possivel atualizar o tracker.',
+      error: 'Perfil enviado, mas não foi possível atualizar o tracker.',
     }
   }
 
