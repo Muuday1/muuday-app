@@ -313,7 +313,7 @@ export function createV1Client(config: ApiClientConfig) {
         client.patch<{ data: { updatedCount: number } }>('/notifications'),
 
       unreadCount: () =>
-        client.post<{ data: { count: number } }>('/notifications/unread-count'),
+        client.get<{ data: { count: number } }>('/notifications/unread-count'),
     },
 
     // --- Disputes ---

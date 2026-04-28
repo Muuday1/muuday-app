@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { CheckCheck, Loader2 } from 'lucide-react'
-import { markAllNotificationsAsReadAction } from '@/lib/actions/notifications'
+import { webV1 } from '@/lib/api-client/web'
 
 export function MarkAllReadButton() {
   const [isPending, startTransition] = useTransition()
@@ -10,7 +10,7 @@ export function MarkAllReadButton() {
   function handleClick() {
     startTransition(async () => {
       try {
-        await markAllNotificationsAsReadAction()
+        await webV1.notifications.markAllAsRead()
         window.location.reload()
       } catch {
         // Fail silently — refresh will show current state

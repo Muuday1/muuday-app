@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { Check, Loader2 } from 'lucide-react'
-import { markNotificationAsReadAction } from '@/lib/actions/notifications'
+import { webV1 } from '@/lib/api-client/web'
 
 export function NotificationMarkReadButton({ notificationId }: { notificationId: string }) {
   const [isPending, startTransition] = useTransition()
@@ -10,7 +10,7 @@ export function NotificationMarkReadButton({ notificationId }: { notificationId:
   function handleClick() {
     startTransition(async () => {
       try {
-        await markNotificationAsReadAction(notificationId)
+        await webV1.notifications.markAsRead(notificationId)
       } catch {
         // Fail silently — marking read is non-critical
       }
