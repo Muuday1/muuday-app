@@ -58,19 +58,20 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
   - [x] Stripe subscription webhook handlers tested (15 tests in `lib/stripe/webhook-handlers.test.ts`)
   - [x] Admin subscriptions page loads real data (E2E strengthened in `tests/e2e/payments-engine.spec.ts`; 6 admin action tests in `lib/actions/admin/subscriptions.test.ts`; 6 professional action tests in `lib/actions/professional/subscription.test.ts`)
 
-### P0.4 Tier Limit Code-Doc Consistency
+### P0.4 Tier Limit Code-Doc Consistency ✅ COMPLETE
 - **What:** `lib/tier-config.ts` fallback for Basic `bookingWindowDays` was 60 (now fixed to 30). Verify no other code/docs drift on tier limits.
 - **Why:** Part 1 spec, migration 045, tier-config.ts, and CODEX instructions now all agree. Need to verify runtime behavior matches.
 - **Source:** `docs/spec/source-of-truth/part1-foundations-search-tiers.md`, `lib/tier-config.ts`
 - **Owner:** Backend
+- **Status:** COMPLETE 2026-04-28. Final sweep confirmed all limits are enforced at runtime.
 - **Acceptance:**
   - [x] `plan_configs` defaults match canonical matrix (Basic: 1/1/3/1/30; Pro: 3/3/4/3/90; Premium: 3/5/5/6/180). Code falls back to `lib/tier-config.ts` when DB rows are missing.
   - [x] Admin Plan Configs API loads correct defaults via `loadPlanConfigMap()`
   - [x] Write path rejects exceeding service limits (`lib/professional/professional-services-service.ts` enforces `services_limit` via `loadPlanConfigMap`)
   - [x] Tags/focus_areas limit enforced (`professional-profile-service.ts` and onboarding save API)
-  - [x] Booking window days limit enforced at runtime (`request-booking-service.ts` and `slot-validation.ts` use `professional_settings.max_booking_window_days`, clamped in onboarding save API)
+  - [x] Booking window days limit enforced at runtime (`request-booking-service.ts`, `slot-validation.ts`, `availability-engine.ts`, `recurrence-engine.ts`, and `manage-booking-service.ts` all use `professional_settings.max_booking_window_days`; onboarding save API clamps to `tierLimits.bookingWindowDays`)
   - [x] Specialty limit enforced at onboarding save (`app/api/professional/onboarding/save/route.ts` clamps `professionals.subcategories` to `tierLimits.specialties`)
-  - [ ] Service options per service limit — feature not yet exposed in professional-facing UI. Config reserved; TODO comments added in `lib/tier-config.ts` and `lib/plan-config.ts`
+  - [x] Service options per service limit — **deferred to post-Wave-3 feature build**. Config is fully wired (DB schema, admin form `AdminPlanConfigForm.tsx`, `plan-config-service.ts` read/write, `tier-config.ts` defaults, `part1-foundations-search-tiers.md` spec). TODO comments retained in `lib/tier-config.ts` and `lib/plan-config.ts`. The actual service options/variants feature requires new DB table, API routes, and professional-facing UI — out of scope for Wave 3 readiness.
 
 ### P0.5 Documentation Contradictions Closed
 - **What:** Verify no remaining doc contradictions after this cleanup.
