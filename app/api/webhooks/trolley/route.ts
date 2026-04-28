@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   if (signature && !verifyTWebhookSignature(rawBody, signature)) {
     return withCors(
       NextResponse.json(
-        { error: 'Assinatura do webhook invalida.' },
+        { error: 'Assinatura do webhook inválida.' },
         { status: 400, headers: rateLimitHeaders },
       ),
     )
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return withCors(
       NextResponse.json(
-        { error: 'Payload JSON invalido.' },
+        { error: 'Payload JSON inválido.' },
         { status: 400, headers: rateLimitHeaders },
       ),
     )

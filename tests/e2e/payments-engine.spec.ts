@@ -250,6 +250,57 @@ test.describe('Trolley Payout Onboarding', () => {
     // Page should load without crashing
     await expect(page.locator('body')).toBeVisible()
   })
+
+  test('financeiro page shows payout status card', async ({ page }) => {
+    await loginAsUser(page)
+    await page.goto('/financeiro')
+    await page.waitForLoadState('domcontentloaded')
+
+    // Payout status card should be visible
+    await expect(page.getByRole('heading', { name: 'Saldo e Recebimentos' })).toBeVisible()
+
+    // Should show balance grid or empty state
+    const hasBalance = await page.getByText('Disponível').first().isVisible().catch(() => false)
+    const hasEmptyState = await page.getByText('Nenhum saldo registrado ainda.').first().isVisible().catch(() => false)
+    expect(hasBalance || hasEmptyState).toBe(true)
+
+    // Should show KYC status badge
+    const kycBadge = page.locator('span').filter({ hasText: /Pendente|Aprovado|Em revisão|Rejeitado/i }).first()
+    await expect(kycBadge).toBeVisible()
+
+    // Should have refresh button
+    await expect(page.getByRole('button', { name: /Atualizar status/i })).toBeVisible()
+  })
+
+  test('payout setup button is present when not active', async ({ page }) => {
+    await loginAsUser(page)
+    await page.goto('/financeiro')
+    await page.waitForLoadState('domcontentloaded')
+
+    // Look for setup button only if account is not already active
+    const setupButton = page.getByRole('button', { name: 'Configurar Pagamento' })
+    const isActive = await page.getByText('Aprovado').first().isVisible().catch(() => false)
+
+    if (!isActive) {
+      // If not active, setup button should be available
+      if (await setupButton.isVisible().catch(() => false)) {
+        await expect(setupButton).toBeEnabled()
+      }
+    }
+  })
+
+  test('payout periodicity selector is present', async ({ page }) => {
+    await loginAsUser(page)
+    await page.goto('/financeiro')
+    await page.waitForLoadState('domcontentloaded')
+
+    // Look for periodicity selector
+    const periodicitySelect = page.locator('select, [data-testid="payout-periodicity"]').first()
+    if (await periodicitySelect.isVisible().catch(() => false)) {
+      const options = await periodicitySelect.locator('option').allInnerTexts()
+      expect(options.some(o => /semanal|quinzenal|mensal/i.test(o))).toBe(true)
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------

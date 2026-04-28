@@ -86,6 +86,7 @@ export async function createTrolleyRecipient(params: {
   email: string
   firstName: string
   lastName: string
+  referenceId?: string
 }): Promise<TrolleyRecipient> {
   return trolleyFetch('/recipients', {
     method: 'POST',
@@ -94,6 +95,7 @@ export async function createTrolleyRecipient(params: {
       firstName: params.firstName,
       lastName: params.lastName,
       type: 'individual',
+      referenceId: params.referenceId,
     }),
   })
 }

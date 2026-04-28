@@ -93,6 +93,7 @@ export async function createProfessionalTrolleyRecipient(
       email,
       firstName: firstName || fullName?.split(' ')[0] || 'Profissional',
       lastName: lastName || fullName?.split(' ').slice(1).join(' ') || 'Muuday',
+      referenceId: professionalId,
     })
 
     // Insert into local database
@@ -209,7 +210,7 @@ export async function syncTrolleyRecipientStatus(
         kycStatus = 'pending'
     }
 
-    await admin
+    const { error: updateError } = await admin
       .from('trolley_recipients')
       .update({
         kyc_status: kycStatus,
@@ -220,6 +221,10 @@ export async function syncTrolleyRecipientStatus(
         ...(isActive ? { activated_at: new Date().toISOString() } : {}),
       })
       .eq('professional_id', professionalId)
+
+    if (updateError) {
+      return { success: false, error: `Failed to update local record: ${updateError.message}` }
+    }
 
     return {
       success: true,

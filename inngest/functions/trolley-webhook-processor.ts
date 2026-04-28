@@ -483,6 +483,74 @@ async function handleBatchUpdated(
   return { action: 'updated', batchId: trolleyBatchId }
 }
 
+async function handleRecipientDeleted(
+  admin: ReturnType<typeof createAdminClient>,
+  payload: TrolleyRecipientPayload,
+): Promise<{ action: string; recipientId: string | null }> {
+  if (!admin) throw new Error('Admin client not available')
+
+  const trolleyRecipientId = asString(payload.id)
+  if (!trolleyRecipientId) {
+    return { action: 'skipped_no_id', recipientId: null }
+  }
+
+  const { data: recipient } = await admin
+    .from('trolley_recipients')
+    .select('professional_id')
+    .eq('trolley_recipient_id', trolleyRecipientId)
+    .maybeSingle()
+
+  if (!recipient) {
+    return { action: 'not_found', recipientId: trolleyRecipientId }
+  }
+
+  // Mark as inactive/rejected and clear activation
+  await admin
+    .from('trolley_recipients')
+    .update({
+      is_active: false,
+      kyc_status: 'rejected',
+      activated_at: null,
+      updated_at: new Date().toISOString(),
+      metadata: {
+        source: 'trolley_webhook',
+        event: 'recipient.deleted',
+        deletedAt: new Date().toISOString(),
+      },
+    })
+    .eq('trolley_recipient_id', trolleyRecipientId)
+
+  // If linked to a professional, hold any pending payouts
+  if (recipient.professional_id) {
+    try {
+      const { data: pendingItems } = await admin
+        .from('payout_batch_items')
+        .select('id')
+        .eq('professional_id', recipient.professional_id)
+        .eq('status', 'processing')
+
+      if (pendingItems && pendingItems.length > 0) {
+        for (const item of pendingItems) {
+          await admin
+            .from('payout_batch_items')
+            .update({
+              status: 'failed',
+              failure_reason: 'Professional Trolley account was deleted — funds held',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', item.id)
+        }
+      }
+    } catch (holdError) {
+      console.error('[trolley/webhook] failed to hold payouts for deleted recipient:',
+        holdError instanceof Error ? holdError.message : holdError,
+      )
+    }
+  }
+
+  return { action: 'marked_inactive', recipientId: trolleyRecipientId }
+}
+
 // ---------------------------------------------------------------------------
 // Inngest Function
 // ---------------------------------------------------------------------------
@@ -537,6 +605,15 @@ export const processTrolleyWebhook = inngest.createFunction(
       case 'batch.updated': {
         const result = await step.run('handle-batch-updated', async () => {
           return handleBatchUpdated(admin, data as TrolleyBatchPayload)
+        }) as unknown as HandlerResult
+
+        logger.info('Trolley webhook processed.', { eventType, ...result })
+        return { ok: true, source: 'inngest', handled: true, eventType, ...result }
+      }
+
+      case 'recipient.deleted': {
+        const result = await step.run('handle-recipient-deleted', async () => {
+          return handleRecipientDeleted(admin, data as TrolleyRecipientPayload)
         }) as unknown as HandlerResult
 
         logger.info('Trolley webhook processed.', { eventType, ...result })
