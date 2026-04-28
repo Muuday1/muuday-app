@@ -1,8 +1,8 @@
 # Muuday Payments Engine — Implementation Status
 
-> **Last Updated:** 2026-04-25
-> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — 28 bug fixes + Phase 6.2 subscription feature, build passes, lint passes
-> **Last Commit:** `619a391` — Fixed `billing_card_on_file` logic to include `incomplete` state; consistent across manager.ts and cron-jobs.ts
+> **Last Updated:** 2026-04-27
+> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — Trolley sandbox E2E script delivered, webhook signature verified, credentials pending activation
+> **Last Commit:** `1703dc2` — P1.8e Trolley Sandbox E2E onboarding end-to-end (recipient.deleted handler, PT-BR fixes, portal deep link, sandbox test script)
 
 ---
 
@@ -107,7 +107,7 @@
 ## Environment & Deploy Notes
 
 - **Stripe**: Currently in SANDBOX (`sk_test_` / `pk_test_`). Switch to LIVE only after E2E testing.
-- **Trolley**: Sandbox recommended for testing. Need `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET` in Vercel. Optional `TROLLEY_API_BASE=https://api.sandbox.trolley.com/v1` for sandbox mode.
+- **Trolley**: Sandbox credentials configured in Vercel but returning HTTP 403 "Authentication not permitted to access resource". Likely requires account activation or API permissions from Trolley support. Webhook signature verification logic validated (3/3 tests pass). Sandbox test script: `scripts/test-trolley-sandbox.js`. Optional `TROLLEY_API_BASE=https://api.sandbox.trolley.com/v1` for explicit sandbox mode.
 - **Revolut**: Need `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `REVOLUT_PRIVATE_KEY` in Vercel.
 - **Env vars**: All documented in `.env.local.example`.
 - **Migrations applied**: 070-080 applied to production Supabase (confirmed 2026-04-24).
@@ -122,7 +122,7 @@
 | TypeScript typecheck | ✅ PASS |
 | Lint | ✅ PASS |
 | Next.js build | ✅ PASS (187 pages generated) |
-| Trolley sandbox onboarding | ⏳ Pending (needs test credentials) |
+| Trolley sandbox onboarding | ⚠️ Code ready — credentials return 403 (pending Trolley account activation) |
 | Payout batch ledger balance | ✅ Verified (debits = credits) |
 | Fee deduction math | ✅ Verified (100% to pro, debt deducted) |
 
