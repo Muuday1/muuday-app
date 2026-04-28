@@ -148,6 +148,62 @@ export type Booking = {
   professional_name?: string
 }
 
+export type ProfessionalSearchResult = {
+  id: string
+  user_id: string
+  public_code: number
+  status: string
+  bio: string | null
+  category: string
+  subcategories: string[]
+  tags: string[]
+  languages: string[]
+  years_experience: number
+  session_price_brl: number
+  session_duration_minutes: number
+  rating: number
+  total_reviews: number
+  total_bookings: number
+  tier: string
+  first_booking_enabled: boolean
+  cover_photo_url: string | null
+  video_intro_url: string | null
+  whatsapp_number: string | null
+  social_links: Record<string, unknown> | null
+  market_code: string
+  session_price: number | null
+  session_price_currency: string | null
+  profiles: {
+    full_name: string | null
+    country: string | null
+    avatar_url: string | null
+    role: string | null
+  } | null
+}
+
+export type ProfessionalSearchResponse = {
+  data: ProfessionalSearchResult[]
+  nextCursor: string | null
+  total: number
+}
+
+export type Review = {
+  id: string
+  rating: number
+  comment: string | null
+  professional_response: string | null
+  profiles: {
+    full_name: string | null
+  } | null
+}
+
+export type ProfessionalDetailResponse = {
+  data: {
+    professional: ProfessionalSearchResult
+    reviews: Review[]
+  }
+}
+
 export const apiV1 = {
   auth: {
     signIn: (email: string, password: string) =>
@@ -183,5 +239,21 @@ export const apiV1 = {
       api.post<{ success: true; data: { messageId: string; sentAt: string } }>(`/api/v1/conversations/${id}/messages`, { body: { content } }),
     markAsRead: (id: string) =>
       api.patch<{ success: true; data: { updated: boolean } }>(`/api/v1/conversations/${id}/read`),
+  },
+
+  professionals: {
+    search: (query?: {
+      q?: string
+      category?: string
+      specialty?: string
+      language?: string
+      location?: string
+      market?: string
+      minPrice?: number
+      maxPrice?: number
+      cursor?: string
+      limit?: number
+    }) => api.get<ProfessionalSearchResponse>('/api/v1/professionals/search', { query }),
+    getById: (id: string) => api.get<ProfessionalDetailResponse>(`/api/v1/professionals/${id}`),
   },
 }

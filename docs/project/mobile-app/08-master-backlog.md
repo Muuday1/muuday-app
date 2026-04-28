@@ -232,8 +232,8 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
 | 5.1 | **Home / Dashboard** — Resumo de bookings, próximas sessões, notificações. | `📱 APP` | 2 dias | Mobile | 🔲 |
-| 5.2 | **Search professionals** — Consumir `/api/v1/professionals/search`. Infinite scroll. Filtros (categoria, preço). | `📱 APP` | 3 dias | Mobile | 🔲 |
-| 5.3 | **Professional detail** — Perfil, reviews, disponibilidade, botão "Agendar". | `📱 APP` | 2 dias | Mobile | 🔲 |
+| 5.2 | **Search professionals** — Consumir `/api/v1/professionals/search`. Infinite scroll. Filtros (categoria, preço). | `📱 APP` | 3 dias | Mobile | ✅ |
+| 5.3 | **Professional detail** — Perfil, reviews, disponibilidade, botão "Agendar". | `📱 APP` | 2 dias | Mobile | ✅ |
 | 5.4 | **Booking flow (one-off)** — Selecionar horário, confirmar, pagamento (Stripe PaymentSheet webview). | `📱 APP` | 3 dias | Mobile | 🔲 |
 | 5.5 | **My bookings list** — Estados: confirmado, pendente, cancelado, realizado. | `📱 APP` | 2 dias | Mobile | 🔲 |
 | 5.6 | **Push token registration** — Enviar Expo push token para `POST /api/v1/push/subscribe`. | `📱 APP` | 0.5 dia | Mobile | 🔲 |
@@ -249,10 +249,11 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 5.9 | **Bug fixes e ajustes na API v1** — Resolver issues encontradas pelo mobile team. | `📱 APP` | contínuo | Backend (0.5) | 🔲 |
+| 5.9 | **Bug fixes e ajustes na API v1** — Resolver issues encontradas pelo mobile team. | `📱 APP` | contínuo | Backend (0.5) | ✅ (parcial: criado GET /api/v1/professionals/{id}) |
 
 **Sprint 5 — Entregáveis:**
-- [ ] App: cliente pode buscar, ver perfil, e agendar
+- [x] App: cliente pode buscar e ver perfil
+- [ ] App: agendar (próximo: booking flow)
 - [ ] App: lista de bookings funcionando
 - [ ] App: push notifications recebidas
 - [ ] 50%+ do conteúdo mexicano escrito
