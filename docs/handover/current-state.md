@@ -24,7 +24,7 @@ Last updated: 2026-04-28
 8. Payment stack test coverage delivered: **736 tests passing across 72 files** (includes 447 new tests for ledger, Stripe webhook handlers, API routes, Revolut settlement, Trolley payout, Refund & Dispute infrastructure, dispute API routes, fee calculator, eligibility engine, debt monitor, bigint constants, format utils, ledger accounts, financial metrics, and subscription manager).
 9. Booking engine test coverage delivered: **785 tests passing across 75 files** (added 49 tests for slot locks, recurrence engine, and availability engine).
 10. Booking support modules test coverage delivered: **845 tests passing across 80 files** (added 60 tests for with-timeout, request-booking state machine, recurring deadlines, availability checks, and slot validation).
-11. Notification preferences & inbox (P1.8) complete: dedicated `/configuracoes/notificacoes` page with per-category channel toggles and quiet hours; enhanced `/notificacoes` inbox with date grouping, category filter tabs, unread indicators, and context-aware deep links.
+11. Notification preferences & inbox (P1.8) complete: dedicated `/configuracoes/notificacoes` page with per-category channel toggles and quiet hours (UI + backend enforcement); enhanced `/notificacoes` inbox with date grouping, category filter tabs, unread indicators, and context-aware deep links.
 12. Professional financial overview (P1.7) complete: transaction list with filters, earnings sparkline, payout status card with next payout calculation.
 13. Recurring booking UX (P1.6) complete: recurring type selection, calendar preview, conflict warnings, `.ics` export, cancel-scope modal, recurring package card in agenda.
 14. Calendar UX polish complete: fixed invalid Tailwind classes across 7 components, restored PT-BR accents in agenda surfaces, added exception legend and partial-block indicators to month view, wired exception loading into availability workspace.
@@ -37,7 +37,7 @@ Last updated: 2026-04-28
 1. Professional operations UX polish, especially calendar and scheduling ergonomics.
 2. Remaining copy and consistency cleanup on member and admin surfaces.
 3. Pre-Wave-3 financial and compliance hardening — payment engine code complete and tested. Needs E2E validation and production migration.
-4. Quiet hours configuration (part of P1.8) — UI exists but backend enforcement not yet wired.
+4. ~~Quiet hours configuration (part of P1.8) — UI exists but backend enforcement not yet wired.~~ ✅ **Complete** — Backend enforcement added: `canSendPush` blocks push, review-reminder and payout emails are skipped during quiet hours; in-app always delivered.
 
 ### Not open yet
 

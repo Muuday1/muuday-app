@@ -178,16 +178,16 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
   - [x] Earnings analytics (sparkline, trend)
   - [x] Responsive layout
 
-### P1.8 Notification Preferences & Inbox (CROSS-03)
+### P1.8 Notification Preferences & Inbox (CROSS-03) ✅ COMPLETE
 - **What:** Notification preferences page and in-app inbox placeholder replacement.
 - **Why:** `notification-inbox-lifecycle.md` specifies full taxonomy. Currently email-only with inbox placeholder.
 - **Source:** `docs/product/journeys/notification-inbox-lifecycle.md`
 - **Owner:** Frontend + Backend
 - **Acceptance:**
-  - [ ] Notification preferences page (`/configuracoes/notificacoes`) with channel toggles
-  - [ ] In-app inbox list view with unread indicators
-  - [ ] Deep links from notifications to relevant pages
-  - [ ] Quiet hours configuration
+  - [x] Notification preferences page (`/configuracoes/notificacoes`) with channel toggles
+  - [x] In-app inbox list view with unread indicators
+  - [x] Deep links from notifications to relevant pages
+  - [x] Quiet hours configuration (UI + backend enforcement for push and email)
 
 ### P1.9 Operator Case Resolution System (ADMIN-01)
 - **What:** Case queue, detail view, decision system for disputes, refunds, and trust flags.

@@ -102,6 +102,8 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 7. **Notification Preferences & Inbox (P1.8 / CROSS-03) complete (2026-04-27):**
    - Dedicated `/configuracoes/notificacoes` page with per-category channel toggles (in-app/email/push)
    - Quiet hours configuration with time range selectors
+   - **Backend quiet-hours enforcement**: push notifications blocked via `canSendPush`, review-reminder and payout emails skipped during rest periods; in-app notifications always delivered
+   - Timezone-aware enforcement using user's `profiles.timezone` (defaults to `America/Sao_Paulo`)
    - Enhanced in-app inbox (`/notificacoes`) with date grouping (Hoje/Ontem/Esta semana/Mais antigas)
    - Category filter tabs: Todas / Não lidas / Agendamentos / Sistema
    - Blue unread dot indicator with opacity difference for read notifications
