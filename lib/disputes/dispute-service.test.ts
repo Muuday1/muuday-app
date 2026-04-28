@@ -482,3 +482,155 @@ describe('listCases', () => {
     expect(result.data.cases).toHaveLength(1)
   })
 })
+
+
+describe('assignCase', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns error for invalid caseId', async () => {
+    const { assignCase } = await import('./dispute-service')
+    const client = buildClient()
+    const result = await assignCase(client, 'admin-1', 'not-a-uuid', 'user-1')
+    assertError(result)
+    expect(result.error).toContain('inválido')
+  })
+
+  it('assigns case successfully', async () => {
+    const { assignCase } = await import('./dispute-service')
+    const client = buildClient()
+    const result = await assignCase(client, 'admin-1', VALID_UUID, 'user-1')
+    assertSuccess(result)
+    expect(result.data.assignedTo).toBe('user-1')
+  })
+})
+
+describe('updateCaseStatus', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns error for invalid caseId', async () => {
+    const { updateCaseStatus } = await import('./dispute-service')
+    const client = buildClient()
+    const result = await updateCaseStatus(client, 'admin-1', 'not-a-uuid', 'under_review')
+    assertError(result)
+    expect(result.error).toContain('inválido')
+  })
+
+  it('returns error for invalid transition', async () => {
+    const { updateCaseStatus } = await import('./dispute-service')
+    const client = buildClient()
+    ;(client as any).__seedRow('cases', { id: VALID_UUID, status: 'resolved' })
+    const result = await updateCaseStatus(client, 'admin-1', VALID_UUID, 'open')
+    assertError(result)
+    expect(result.error).toContain('Transição inválida')
+  })
+
+  it('transitions status successfully', async () => {
+    const { updateCaseStatus } = await import('./dispute-service')
+    const client = buildClient()
+    ;(client as any).__seedRow('cases', { id: VALID_UUID, status: 'open' })
+    const result = await updateCaseStatus(client, 'admin-1', VALID_UUID, 'under_review')
+    assertSuccess(result)
+    expect(result.data.status).toBe('under_review')
+  })
+})
+
+describe('getCaseEvidence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns error for invalid caseId', async () => {
+    const { getCaseEvidence } = await import('./dispute-service')
+    const client = buildClient()
+    const result = await getCaseEvidence(client, 'not-a-uuid')
+    assertError(result)
+    expect(result.error).toContain('inválido')
+  })
+
+  it('returns evidence for existing case', async () => {
+    const { getCaseEvidence } = await import('./dispute-service')
+    const client = buildClient()
+    ;(client as any).__seedRow('cases', { id: VALID_UUID, booking_id: VALID_UUID2, reporter_id: 'user-1' })
+    ;(client as any).__seedRow('bookings', {
+      id: VALID_UUID2,
+      scheduled_at: '2026-01-01T10:00:00Z',
+      status: 'confirmed',
+      price_brl: 150,
+      session_type: 'video',
+      user_id: 'user-2',
+      professional_id: 'prof-1',
+    })
+    ;(client as any).__seedRow('payments', { id: 'pay-1', status: 'captured', amount_brl: 150, stripe_payment_intent_id: 'pi_123' })
+    ;(client as any).__seedRow('profiles', { full_name: 'Reporter', email: 'reporter@test.com' })
+    const result = await getCaseEvidence(client, VALID_UUID)
+    assertSuccess(result)
+    expect(result.data.booking).not.toBeNull()
+    expect(result.data.booking?.price_brl).toBe(150)
+  })
+})
+
+describe('getCaseTimeline', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns error for invalid caseId', async () => {
+    const { getCaseTimeline } = await import('./dispute-service')
+    const client = buildClient()
+    const result = await getCaseTimeline(client, 'not-a-uuid')
+    assertError(result)
+    expect(result.error).toContain('inválido')
+  })
+
+  it('returns merged timeline', async () => {
+    const { getCaseTimeline } = await import('./dispute-service')
+    const client = buildClient()
+    ;(client as any).__seedArray('case_actions', [
+      { id: 'a1', action_type: 'resolved', performed_by: 'admin-1', metadata: {}, created_at: '2026-01-02T10:00:00Z' },
+    ])
+    ;(client as any).__seedArray('case_messages', [
+      { id: 'm1', sender_id: 'user-1', content: 'Hello', created_at: '2026-01-01T10:00:00Z' },
+    ])
+    const result = await getCaseTimeline(client, VALID_UUID)
+    assertSuccess(result)
+    expect(result.data.events).toHaveLength(2)
+    expect(result.data.events[0].event_type).toBe('message')
+    expect(result.data.events[1].event_type).toBe('action')
+  })
+})
+
+describe('autoCreateCase', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns error for invalid bookingId', async () => {
+    const { autoCreateCase } = await import('./dispute-service')
+    const client = buildClient()
+    const result = await autoCreateCase(client, 'not-a-uuid', 'no_show_claim', 'reason here', 'user-1')
+    assertError(result)
+    expect(result.error).toContain('inválido')
+  })
+
+  it('returns existing caseId when duplicate open case exists', async () => {
+    const { autoCreateCase } = await import('./dispute-service')
+    const client = buildClient()
+    ;(client as any).__seedRow('cases', { id: 'existing-case', booking_id: VALID_UUID, type: 'no_show_claim', status: 'open' })
+    const result = await autoCreateCase(client, VALID_UUID, 'no_show_claim', 'reason here', 'user-1')
+    assertSuccess(result)
+    expect(result.data.caseId).toBe('existing-case')
+  })
+
+  it('creates case with computed priority and SLA', async () => {
+    const { autoCreateCase } = await import('./dispute-service')
+    const client = buildClient()
+    ;(client as any).__seedRow('cases', null)
+    const result = await autoCreateCase(client, VALID_UUID, 'cancelation_dispute', 'reason here', 'user-1')
+    assertSuccess(result)
+    expect(result.data.caseId).toBe('inserted-1')
+  })
+})

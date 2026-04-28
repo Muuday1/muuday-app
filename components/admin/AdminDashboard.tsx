@@ -183,6 +183,12 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
           >
             <Shield className="w-4 h-4" /> Planos
           </Link>
+          <Link
+            href="/admin/casos"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50/70 transition-all"
+          >
+            <MessageSquare className="w-4 h-4" /> Casos
+          </Link>
         </div>
       </div>
 

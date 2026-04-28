@@ -10,6 +10,11 @@ import {
   getCaseById as getCaseByIdService,
   getCaseMessages as getCaseMessagesService,
   listCases as listCasesService,
+  assignCase as assignCaseService,
+  updateCaseStatus as updateCaseStatusService,
+  getCaseEvidence as getCaseEvidenceService,
+  getCaseTimeline as getCaseTimelineService,
+  autoCreateCase as autoCreateCaseService,
 } from '@/lib/disputes/dispute-service'
 
 export type DisputeResult<T = unknown> =
@@ -119,10 +124,16 @@ export async function getCaseMessages(
 export async function listCases(
   {
     status,
+    type,
+    priority,
+    assignedTo,
     limit = 50,
     cursor,
   }: {
     status?: string
+    type?: string
+    priority?: string
+    assignedTo?: string
     limit?: number
     cursor?: string
   } = {},
@@ -133,5 +144,72 @@ export async function listCases(
   if (!rl.allowed) return { success: false, error: 'Muitas requisições. Tente novamente em breve.' }
 
   const isAdmin = await requireAdmin(supabase)
-  return listCasesService(supabase, userId, isAdmin.success, { status, limit, cursor })
+  return listCasesService(supabase, userId, isAdmin.success, { status, type, priority, assignedTo, limit, cursor })
+}
+
+export async function assignCase(
+  caseId: string,
+  assigneeId: string | null,
+): Promise<DisputeResult<{ assignedTo: string | null }>> {
+  const supabase = await createClient()
+  const adminCheck = await requireAdmin(supabase)
+  if (!adminCheck.success) {
+    return { success: false, error: adminCheck.error }
+  }
+
+  const rl = await rateLimit('bookingManage', adminCheck.userId)
+  if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  return assignCaseService(supabase, adminCheck.userId, caseId, assigneeId)
+}
+
+export async function updateCaseStatus(
+  caseId: string,
+  newStatus: string,
+): Promise<DisputeResult<{ status: string }>> {
+  const supabase = await createClient()
+  const adminCheck = await requireAdmin(supabase)
+  if (!adminCheck.success) {
+    return { success: false, error: adminCheck.error }
+  }
+
+  const rl = await rateLimit('bookingManage', adminCheck.userId)
+  if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  return updateCaseStatusService(supabase, adminCheck.userId, caseId, newStatus)
+}
+
+export async function getCaseEvidence(
+  caseId: string,
+): Promise<DisputeResult<{
+  booking: { id: string; scheduled_at: string; status: string; price_brl: number; session_type: string; user_id: string; professional_id: string } | null
+  payment: { id: string; status: string; amount_brl: number; stripe_payment_intent_id: string | null } | null
+  reporter: { full_name: string | null; email: string | null } | null
+  professional: { full_name: string | null; email: string | null } | null
+  user: { full_name: string | null; email: string | null } | null
+}>> {
+  const { supabase, userId } = await getAuthenticatedUser()
+  const isAdmin = await requireAdmin(supabase)
+  return getCaseEvidenceService(supabase, caseId)
+}
+
+export async function getCaseTimeline(
+  caseId: string,
+): Promise<DisputeResult<{ events: unknown[] }>> {
+  const { supabase, userId } = await getAuthenticatedUser()
+  const isAdmin = await requireAdmin(supabase)
+  return getCaseTimelineService(supabase, caseId)
+}
+
+export async function autoCreateCase(
+  bookingId: string,
+  type: string,
+  reason: string,
+): Promise<DisputeResult<{ caseId: string }>> {
+  const { supabase, userId } = await getAuthenticatedUser()
+
+  const rl = await rateLimit('bookingManage', userId)
+  if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  return autoCreateCaseService(supabase, bookingId, type as any, reason, userId)
 }

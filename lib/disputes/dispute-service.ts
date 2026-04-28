@@ -342,17 +342,23 @@ export async function listCases(
   isAdmin: boolean,
   {
     status,
+    type,
+    priority,
+    assignedTo,
     limit = 50,
     cursor,
   }: {
     status?: string
+    type?: string
+    priority?: string
+    assignedTo?: string
     limit?: number
     cursor?: string
   } = {},
 ): Promise<DisputeResult<{ cases: unknown[]; nextCursor: string | null }>> {
   let query = supabase
     .from('cases')
-    .select('id, booking_id, reporter_id, type, status, reason, resolution, refund_amount, resolved_at, created_at')
+    .select('id, booking_id, reporter_id, type, status, reason, resolution, refund_amount, resolved_at, created_at, updated_at, assigned_to, priority, sla_deadline, summary, profiles!cases_reporter_id_fkey(full_name, email)')
     .order('created_at', { ascending: false })
     .limit(limit + 1)
 
@@ -363,6 +369,17 @@ export async function listCases(
   if (status) {
     query = query.eq('status', status)
   }
+  if (type) {
+    query = query.eq('type', type)
+  }
+  if (priority) {
+    query = query.eq('priority', priority)
+  }
+  if (assignedTo === 'me') {
+    query = query.eq('assigned_to', userId)
+  } else if (assignedTo === 'unassigned') {
+    query = query.is('assigned_to', null)
+  }
 
   if (cursor) {
     query = query.lt('created_at', cursor)
@@ -371,6 +388,7 @@ export async function listCases(
   const { data, error } = await query
 
   if (error) {
+    console.error('[disputes/listCases] query error:', error.message)
     return { success: false, error: 'Erro ao carregar casos.' }
   }
 
@@ -382,4 +400,296 @@ export async function listCases(
     : null
 
   return { success: true, data: { cases: trimmed, nextCursor } }
+}
+
+// ---------------------------------------------------------------------------
+// Case Assignment
+// ---------------------------------------------------------------------------
+
+export async function assignCase(
+  supabase: SupabaseClient,
+  adminId: string,
+  caseId: string,
+  assigneeId: string | null,
+): Promise<DisputeResult<{ assignedTo: string | null }>> {
+  const idParsed = caseIdSchema.safeParse(caseId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const { error } = await supabase
+    .from('cases')
+    .update({ assigned_to: assigneeId })
+    .eq('id', idParsed.data)
+
+  if (error) {
+    console.error('[disputes/assignCase] update error:', error.message)
+    return { success: false, error: 'Erro ao atribuir caso.' }
+  }
+
+  // Record action
+  await supabase.from('case_actions').insert({
+    case_id: idParsed.data,
+    action_type: assigneeId ? 'assigned' : 'unassigned',
+    performed_by: adminId,
+    metadata: { assignee_id: assigneeId },
+  })
+
+  return { success: true, data: { assignedTo: assigneeId } }
+}
+
+// ---------------------------------------------------------------------------
+// Case Status Transition
+// ---------------------------------------------------------------------------
+
+const validStatusTransitions: Record<string, string[]> = {
+  open: ['under_review', 'waiting_info', 'resolved', 'closed'],
+  under_review: ['waiting_info', 'resolved', 'closed'],
+  waiting_info: ['under_review', 'resolved', 'closed'],
+  resolved: ['closed'],
+  closed: [],
+}
+
+export async function updateCaseStatus(
+  supabase: SupabaseClient,
+  adminId: string,
+  caseId: string,
+  newStatus: string,
+): Promise<DisputeResult<{ status: string }>> {
+  const idParsed = caseIdSchema.safeParse(caseId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  // Load current status
+  const { data: caseRow } = await supabase
+    .from('cases')
+    .select('status')
+    .eq('id', idParsed.data)
+    .maybeSingle()
+
+  if (!caseRow) {
+    return { success: false, error: 'Caso não encontrado.' }
+  }
+
+  const allowed = validStatusTransitions[caseRow.status] || []
+  if (!allowed.includes(newStatus)) {
+    return { success: false, error: `Transição inválida: ${caseRow.status} → ${newStatus}.` }
+  }
+
+  const { error } = await supabase
+    .from('cases')
+    .update({ status: newStatus })
+    .eq('id', idParsed.data)
+
+  if (error) {
+    console.error('[disputes/updateCaseStatus] update error:', error.message)
+    return { success: false, error: 'Erro ao atualizar status do caso.' }
+  }
+
+  await supabase.from('case_actions').insert({
+    case_id: idParsed.data,
+    action_type: 'status_changed',
+    performed_by: adminId,
+    metadata: { from_status: caseRow.status, to_status: newStatus },
+  })
+
+  return { success: true, data: { status: newStatus } }
+}
+
+// ---------------------------------------------------------------------------
+// Case Evidence (auto-collected)
+// ---------------------------------------------------------------------------
+
+export interface CaseEvidence {
+  booking: {
+    id: string
+    scheduled_at: string
+    status: string
+    price_brl: number
+    session_type: string
+    user_id: string
+    professional_id: string
+  } | null
+  payment: {
+    id: string
+    status: string
+    amount_brl: number
+    stripe_payment_intent_id: string | null
+  } | null
+  reporter: { full_name: string | null; email: string | null } | null
+  professional: { full_name: string | null; email: string | null } | null
+  user: { full_name: string | null; email: string | null } | null
+}
+
+export async function getCaseEvidence(
+  supabase: SupabaseClient,
+  caseId: string,
+): Promise<DisputeResult<CaseEvidence>> {
+  const idParsed = caseIdSchema.safeParse(caseId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const { data: caseRow } = await supabase
+    .from('cases')
+    .select('booking_id, reporter_id')
+    .eq('id', idParsed.data)
+    .maybeSingle()
+
+  if (!caseRow) {
+    return { success: false, error: 'Caso não encontrado.' }
+  }
+
+  // Load booking
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('id, scheduled_at, status, price_brl, session_type, user_id, professional_id')
+    .eq('id', caseRow.booking_id)
+    .maybeSingle()
+
+  // Load payment
+  const { data: payment } = booking
+    ? await supabase
+        .from('payments')
+        .select('id, status, amount_brl, stripe_payment_intent_id')
+        .eq('booking_id', booking.id)
+        .maybeSingle()
+    : { data: null }
+
+  // Load profiles
+  const { data: reporter } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', caseRow.reporter_id)
+    .maybeSingle()
+
+  const { data: professional } = booking?.professional_id
+    ? await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', booking.professional_id)
+        .maybeSingle()
+    : { data: null }
+
+  const { data: user } = booking?.user_id
+    ? await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', booking.user_id)
+        .maybeSingle()
+    : { data: null }
+
+  return {
+    success: true,
+    data: {
+      booking: booking || null,
+      payment: payment || null,
+      reporter: reporter || null,
+      professional: professional || null,
+      user: user || null,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Case Timeline (actions + messages)
+// ---------------------------------------------------------------------------
+
+export async function getCaseTimeline(
+  supabase: SupabaseClient,
+  caseId: string,
+): Promise<DisputeResult<{ events: unknown[] }>> {
+  const idParsed = caseIdSchema.safeParse(caseId)
+  if (!idParsed.success) {
+    return { success: false, error: idParsed.error.issues[0]?.message || 'Identificador inválido.' }
+  }
+
+  const { data: actions, error: actionsError } = await supabase
+    .from('case_actions')
+    .select('id, action_type, performed_by, metadata, created_at, profiles!case_actions_performed_by_fkey(full_name)')
+    .eq('case_id', idParsed.data)
+    .order('created_at', { ascending: true })
+
+  const { data: messages, error: messagesError } = await supabase
+    .from('case_messages')
+    .select('id, sender_id, content, created_at, profiles!case_messages_sender_id_fkey(full_name)')
+    .eq('case_id', idParsed.data)
+    .order('created_at', { ascending: true })
+
+  if (actionsError || messagesError) {
+    console.error('[disputes/getCaseTimeline] error:', actionsError?.message || messagesError?.message)
+    return { success: false, error: 'Erro ao carregar timeline.' }
+  }
+
+  const events = [
+    ...(actions || []).map(a => ({ ...a, event_type: 'action' as const })),
+    ...(messages || []).map(m => ({ ...m, event_type: 'message' as const })),
+  ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+  return { success: true, data: { events } }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-create case (for system triggers like no-show)
+// ---------------------------------------------------------------------------
+
+export async function autoCreateCase(
+  supabase: SupabaseClient,
+  bookingId: string,
+  type: 'no_show_claim' | 'cancelation_dispute' | 'quality_issue' | 'refund_request',
+  reason: string,
+  reporterId: string,
+): Promise<DisputeResult<{ caseId: string }>> {
+  const bookingParsed = bookingIdSchema.safeParse(bookingId)
+  const typeParsed = caseTypeSchema.safeParse(type)
+  const reasonParsed = reasonSchema.safeParse(reason)
+
+  if (!bookingParsed.success) {
+    return { success: false, error: bookingParsed.error.issues[0]?.message || 'Agendamento inválido.' }
+  }
+  if (!typeParsed.success) {
+    return { success: false, error: 'Tipo de disputa inválido.' }
+  }
+  if (!reasonParsed.success) {
+    return { success: false, error: reasonParsed.error.issues[0]?.message || 'Motivo inválido.' }
+  }
+
+  // Check for duplicate open case
+  const { data: existing } = await supabase
+    .from('cases')
+    .select('id')
+    .eq('booking_id', bookingParsed.data)
+    .eq('type', typeParsed.data)
+    .in('status', ['open', 'under_review', 'waiting_info'])
+    .maybeSingle()
+
+  if (existing) {
+    return { success: true, data: { caseId: existing.id } }
+  }
+
+  const priority = type === 'cancelation_dispute' ? 'P0' : 'P1'
+  const slaHours = type === 'cancelation_dispute' ? 24 : type === 'no_show_claim' ? 24 : 48
+  const slaDeadline = new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await supabase
+    .from('cases')
+    .insert({
+      booking_id: bookingParsed.data,
+      reporter_id: reporterId,
+      type: typeParsed.data,
+      reason: reasonParsed.data,
+      priority,
+      sla_deadline: slaDeadline,
+      summary: reasonParsed.data.slice(0, 200),
+    })
+    .select('id')
+    .single()
+
+  if (error || !data) {
+    console.error('[disputes/autoCreateCase] insert error:', error?.message)
+    return { success: false, error: 'Erro ao criar caso automaticamente.' }
+  }
+
+  return { success: true, data: { caseId: data.id } }
 }

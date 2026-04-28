@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendPushToUser } from '@/lib/push/sender'
+import { autoCreateCase } from '@/lib/disputes/dispute-service'
 
 /**
  * Auto-detect no-show bookings that passed their scheduled end time
@@ -63,6 +64,17 @@ export async function runNoShowDetection(
         refunded++
         detected++
       }
+      // Ensure case exists for operator review
+      const caseResult = await autoCreateCase(
+        admin,
+        booking.id,
+        'no_show_claim',
+        `Usuário reportou no-show do profissional para sessão em ${new Date(booking.scheduled_at).toLocaleDateString('pt-BR')}.`,
+        booking.user_id,
+      )
+      if (!caseResult.success) {
+        console.error(`[no-show-detection] failed to auto-create case for booking ${booking.id}:`, caseResult.error)
+      }
       continue
     }
 
@@ -104,6 +116,18 @@ export async function runNoShowDetection(
     const professionalUserId = await resolveProfessionalUserId(admin, booking.professional_id)
     if (professionalUserId) {
       await insertNoShowNotification(admin, professionalUserId, booking.id, 'professional', nowIso)
+    }
+
+    // Auto-create case for operator review
+    const caseResult = await autoCreateCase(
+      admin,
+      booking.id,
+      'no_show_claim',
+      `No-show detectado automaticamente: sessão agendada para ${new Date(booking.scheduled_at).toLocaleDateString('pt-BR')} não teve participação confirmada.`,
+      booking.user_id,
+    )
+    if (!caseResult.success) {
+      console.error(`[no-show-detection] failed to auto-create case for booking ${booking.id}:`, caseResult.error)
     }
 
     detected++
