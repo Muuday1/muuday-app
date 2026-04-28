@@ -9,11 +9,21 @@ import {
   reviewProfessionalDecisionService,
   loadAdminDashboardDataService,
   restoreLatestReviewAdjustmentsService,
+  listReviewsForModerationService,
+  moderateReviewService,
+  batchModerateReviewsService,
 } from '@/lib/admin/admin-service'
 import type { AdminDashboardData } from '@/lib/admin/admin-service'
-import { type AdminActionResult, requireAdmin } from './admin/shared'
+import {
+  type AdminActionResult,
+  requireAdmin,
+  adminModerateReviewInputSchema,
+  adminBatchModerateReviewsInputSchema,
+  getFirstValidationError,
+} from './admin/shared'
 import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
 import { AdminAuthError } from '@/lib/admin/auth-helper'
+import type { ReviewModerationStatus } from '@/lib/admin/review-moderation-types'
 
 export type { AdminDashboardData } from '@/lib/admin/admin-service'
 export type { AdminActionResult } from './admin/shared'
@@ -167,6 +177,104 @@ export async function adminRestoreLatestReviewAdjustments(
       return { success: false, error: error.message }
     }
     console.error('[adminRestoreLatestReviewAdjustments] unexpected error')
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
+  }
+}
+
+// ─── Review Moderation Actions (REVIEW-01) ─────────────────────────────────
+
+export async function adminListReviewsForModeration(filters?: {
+  status?: ReviewModerationStatus | 'all'
+  sort?: 'newest' | 'lowest_rating' | 'longest_comment' | 'flagged'
+  limit?: number
+  cursor?: string | null
+}) {
+  try {
+    const { supabase } = await requireAdmin()
+    return listReviewsForModerationService(supabase, filters)
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminListReviewsForModeration] unexpected error')
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
+  }
+}
+
+export async function adminModerateReview(
+  reviewId: string,
+  action: 'approve' | 'reject' | 'flag',
+  options?: {
+    rejectionReason?: string
+    adminNotes?: string
+  },
+): Promise<AdminActionResult> {
+  const parsed = adminModerateReviewInputSchema.safeParse({
+    reviewId,
+    action,
+    rejectionReason: options?.rejectionReason,
+    adminNotes: options?.adminNotes,
+  })
+  if (!parsed.success) {
+    return { success: false, error: getFirstValidationError(parsed.error) }
+  }
+
+  try {
+    const { supabase, userId } = await requireAdmin()
+    const result = await moderateReviewService(supabase, userId, reviewId, action, {
+      rejectionReason: parsed.data.rejectionReason as any,
+      adminNotes: parsed.data.adminNotes,
+    })
+    if (result.success) {
+      revalidatePath('/admin')
+      revalidatePath('/admin/avaliacoes')
+      revalidateTag('public-profiles', {})
+    }
+    return result
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminModerateReview] unexpected error')
+    return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
+  }
+}
+
+export async function adminBatchModerateReviews(
+  reviewIds: string[],
+  action: 'approve' | 'reject',
+  options?: {
+    rejectionReason?: string
+    adminNotes?: string
+  },
+): Promise<AdminActionResult> {
+  const parsed = adminBatchModerateReviewsInputSchema.safeParse({
+    reviewIds,
+    action,
+    rejectionReason: options?.rejectionReason,
+    adminNotes: options?.adminNotes,
+  })
+  if (!parsed.success) {
+    return { success: false, error: getFirstValidationError(parsed.error) }
+  }
+
+  try {
+    const { supabase, userId } = await requireAdmin()
+    const result = await batchModerateReviewsService(supabase, userId, reviewIds, action, {
+      rejectionReason: parsed.data.rejectionReason as any,
+      adminNotes: parsed.data.adminNotes,
+    })
+    if (result.success) {
+      revalidatePath('/admin')
+      revalidatePath('/admin/avaliacoes')
+      revalidateTag('public-profiles', {})
+    }
+    return result
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      return { success: false, error: error.message }
+    }
+    console.error('[adminBatchModerateReviews] unexpected error')
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }

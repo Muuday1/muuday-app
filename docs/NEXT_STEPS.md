@@ -204,12 +204,15 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 - **What:** Structured moderation UI with rejection reasons, batch approve/reject, auto-flags.
 - **Why:** Reviews are live but moderation workflow is minimal.
 - **Source:** `docs/product/IMPLEMENTATION-ROADMAP.md` Phase 9
-- **Owner:** Frontend
+- **Owner:** Frontend + Backend
 - **Acceptance:**
-  - [ ] Admin review queue with status filters
-  - [ ] Batch approve/reject actions
-  - [ ] Rejection reason selection + custom text
-  - [ ] Auto-flag rules (suspicious patterns, repeated rejections)
+  - [x] Admin review queue with status filters (Pending, Approved, Rejected, Flagged, All)
+  - [x] Batch approve/reject actions with checkbox selection
+  - [x] Rejection reason selection (6 structured reasons) + custom admin notes
+  - [x] Auto-flag rules: profanity filter, conflicts_with_outcome (no-show + high rating), suspected_fake (new account + generic text)
+  - [x] Migration 083: `moderation_status`, `rejection_reason`, `moderated_by`, `moderated_at`, `admin_notes`, `flag_reasons` on `reviews`
+  - [x] Dedicated `/admin/avaliacoes` page with stats cards, sort options, reviewer/professional/booking context
+  - [x] 14 new unit tests in `lib/admin/admin-service.test.ts` (964 total)
 
 ---
 

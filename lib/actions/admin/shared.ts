@@ -54,6 +54,34 @@ export const adminToggleReviewVisibilityInputSchema = adminReviewActionInputSche
   visible: z.boolean(),
 })
 
+export const adminModerateReviewInputSchema = z.object({
+  reviewId: z.string().uuid('Identificador de avaliação inválido.'),
+  action: z.enum(['approve', 'reject', 'flag']),
+  rejectionReason: z.enum([
+    'inappropriate_language',
+    'off_topic',
+    'conflicts_with_outcome',
+    'suspected_fake',
+    'personal_information',
+    'custom',
+  ]).optional(),
+  adminNotes: z.string().trim().max(1000, 'Nota muito longa.').optional(),
+})
+
+export const adminBatchModerateReviewsInputSchema = z.object({
+  reviewIds: z.array(z.string().uuid('Identificador de avaliação inválido.')).min(1).max(100),
+  action: z.enum(['approve', 'reject']),
+  rejectionReason: z.enum([
+    'inappropriate_language',
+    'off_topic',
+    'conflicts_with_outcome',
+    'suspected_fake',
+    'personal_information',
+    'custom',
+  ]).optional(),
+  adminNotes: z.string().trim().max(1000, 'Nota muito longa.').optional(),
+})
+
 export function getFirstValidationError(error: z.ZodError) {
   return error.issues[0]?.message || 'Dados inválidos.'
 }

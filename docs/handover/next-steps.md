@@ -36,6 +36,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 17. ~~**Booking engine final support modules test coverage**~~ ✅ **Done** — 46 tests across 5 files: request-eligibility (6), request-helpers (8), external-calendar-conflicts (5), payload-builders (7), create-booking (18). Test suite: 891/85.
 18. ~~**Onboarding review loop test coverage**~~ ✅ **Done** — 47 tests across 4 files. Test suite: 938/89.
 19. ~~**Operator Case Resolution System (ADMIN-01)**~~ ✅ **Done** — Migration 082 extends cases table with priority, assigned_to, sla_deadline. `/admin/casos` queue page with filtering, sorting, SLA indicators. `/admin/casos/[caseId]` detail with evidence, timeline, messages, decision form. Auto-creation from no-show detection. 12 new tests. Test suite: 950/89.
+20. ~~**Review Moderation Queue Enhancement (REVIEW-01)**~~ ✅ **Done** — Migration 083 adds `moderation_status`, `rejection_reason`, `moderated_by`, `flag_reasons` to `reviews`. `/admin/avaliacoes` page with status filters, sort options, batch approve/reject, structured rejection reasons (6 options), auto-flags (profanity, conflicts_with_outcome, suspected_fake). 14 new tests. Test suite: 964/89.
 
 ## Pre-Wave-3 hardening
 

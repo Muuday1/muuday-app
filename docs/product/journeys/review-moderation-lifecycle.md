@@ -140,56 +140,50 @@ Reviews are a **trust cornerstone** of the marketplace. Today, reviews are submi
 
 #### Frame 2.1: Admin Moderation Queue
 
-**Where:** `components/admin/AdminDashboard.tsx` — Reviews tab  
-**Current State:** Review cards with star rating, comment, date. Actions: Aprovar, Rejeitar, Ocultar.
+**Where:** `app/(app)/admin/avaliacoes/page.tsx` + `components/admin/ReviewModerationClient.tsx`  
+**Current State:** Dedicated moderation page with structured workflow.
 
 **Frame-by-frame:**
 ```
-[Admin Dashboard — Reviews Tab]
-    ├── Review cards:
-    │   ├── User → Professional mapping
-    │   ├── Star rating
-    │   ├── Date
-    │   ├── Comment text
-    │   ├── Status badge (visible/hidden)
-    │   └── Actions: [Aprovar] [Rejeitar] [Ocultar]
-    └── NO: moderation guidelines, rejection reasons, structured review
-```
-
-**Problems identified:**
-1. **No moderation guidelines visible** — Admin must rely on memory/training
-2. **No rejection reason required** — "Rejeitar" just deletes, no audit trail
-3. **No structured dimensions to review** — Only sees overall rating + comment
-4. **No professional context** — Cannot see if this is pro's first bad review or pattern
-5. **No batch actions** — Must approve one by one
-
-**Recommended Frame 2.1 (Target):**
-```
 [Admin Moderation — Reviews]
-    ├── Filter: [Pending] [Approved] [Rejected] [Flagged]
-    ├── Sort: [Newest] [Lowest rating] [Longest comment] [Flagged]
+    ├── Stats cards: Pendentes, Aprovadas, Rejeitadas, Sinalizadas
+    ├── Filter: [Todas] [Pendentes] [Sinalizadas] [Aprovadas] [Rejeitadas]
+    ├── Sort: [Mais recentes] [Menor nota] [Maior comentário] [Sinalizadas primeiro]
     ├── Review card:
     │   ├── Reviewer: name, history ("3 reviews submitted, 2 approved")
     │   ├── Professional: name, total reviews, avg rating
     │   ├── Session context: date, duration, completed/cancelled/no-show
-    │   ├── Ratings: Overall + structured dimensions
+    │   ├── Ratings: Overall star rating
     │   ├── Comment
-    │   ├── Private feedback (if any)
-    │   ├── Auto-flags: "Contains profanity", "Suspected fake", "Conflicts with session outcome"
-    │   └── [Approve] [Request edit] [Reject]
+    │   ├── Auto-flags: "Linguagem inadequada", "Suspeita de falsa", "Conflita com sessão"
+    │   └── [Aprovar] [Rejeitar] [Sinalizar]
     │
     ├── [Reject] flow:
     │   ├── Reason select:
-    │   │   ├── Inappropriate language
-    │   │   ├── Off-topic / irrelevant
-    │   │   ├── Conflicts with verified session outcome
-    │   │   ├── Suspected fake / not genuine
-    │   │   └── Contains personal information
-    │   ├── Optional note to reviewer
-    │   └── [Confirm rejection]
+    │   │   ├── Linguagem inadequada
+    │   │   ├── Fora do contexto / irrelevante
+    │   │   ├── Conflita com resultado verificado da sessão
+    │   │   ├── Suspeita de avaliação falsa
+    │   │   ├── Contém informações pessoais
+    │   │   └── Outro motivo
+    │   ├── Optional internal note
+    │   └── [Confirmar rejeição]
     │
-    └── Batch select: checkbox + [Approve selected] [Reject selected]
+    └── Batch select: checkbox + [Aprovar selecionadas] [Rejeitar selecionadas]
 ```
+
+**Implementation:**
+- Migration `083-review-moderation-enhancement.sql`: adds `moderation_status`, `rejection_reason`, `moderated_by`, `moderated_at`, `admin_notes`, `flag_reasons` to `reviews`; trigger keeps `is_visible` in sync
+- `lib/admin/admin-service.ts`: `listReviewsForModerationService`, `moderateReviewService`, `batchModerateReviewsService`
+- `lib/actions/admin.ts`: `adminListReviewsForModeration`, `adminModerateReview`, `adminBatchModerateReviews`
+- Auto-flags computed on-the-fly: profanity (PT-BR + EN word list), conflicts_with_outcome (no-show + rating ≥4), suspected_fake (new account + generic text ≤1 review)
+
+**Remaining gaps:**
+1. No "Request edit" flow (user cannot edit and resubmit rejected reviews yet)
+2. No notification to reviewer on moderation decision
+3. No PII regex auto-flag (only profanity list)
+4. No structured rating dimensions (punctuality, expertise, communication) — review form is still overall-only
+5. No private feedback channel from reviewer to platform
 
 ---
 

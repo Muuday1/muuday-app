@@ -450,17 +450,20 @@ Phase N: [Name]
 
 #### REVIEW-01: Admin Moderation Queue Enhancement ⭐ P1
 - **Source:** `review-moderation-lifecycle.md` §C3 + §H1
-- **What:** Structured moderation UI with rejection reasons
+- **What:** Structured moderation UI with rejection reasons, batch actions, auto-flags
 - **Files:**
-  - `components/admin/AdminDashboard.tsx` (Reviews tab)
-  - `lib/actions/admin.ts`
+  - `app/(app)/admin/avaliacoes/page.tsx`
+  - `components/admin/ReviewModerationClient.tsx`
+  - `lib/admin/admin-service.ts` (list/moderate/batch functions)
+  - `lib/actions/admin.ts` (server actions)
+  - `db/sql/migrations/083-review-moderation-enhancement.sql`
 - **Acceptance:**
-  - [ ] Review cards show structured dimensions
-  - [ ] Reject requires reason selection (dropdown)
-  - [ ] Optional note to reviewer
-  - [ ] Batch approve/reject
-  - [ ] Auto-flags: profanity, PII, fake suspicion
-- **Status:** 🔄 Partial — admin review queue exists. Structured rejection reasons and auto-flags may need enhancement.
+  - [x] Review cards with reviewer history, pro context, booking context
+  - [x] Reject requires reason selection (6 structured reasons) + custom admin note
+  - [x] Batch approve/reject with checkbox selection
+  - [x] Auto-flags: profanity, conflicts_with_outcome, suspected_fake
+  - [x] Status filters (Pending, Approved, Rejected, Flagged, All) + sort options
+- **Status:** ✅ Implemented — migration 083, `/admin/avaliacoes` page, 14 new tests
 
 #### REVIEW-02: Professional Response to Reviews ⭐ P1
 - **Source:** `review-moderation-lifecycle.md` §C2

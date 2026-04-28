@@ -598,8 +598,8 @@ describe('getCaseTimeline', () => {
     const result = await getCaseTimeline(client, VALID_UUID)
     assertSuccess(result)
     expect(result.data.events).toHaveLength(2)
-    expect(result.data.events[0].event_type).toBe('message')
-    expect(result.data.events[1].event_type).toBe('action')
+    expect((result.data.events as any[])[0].event_type).toBe('message')
+    expect((result.data.events as any[])[1].event_type).toBe('action')
   })
 })
 
