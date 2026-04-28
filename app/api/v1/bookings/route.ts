@@ -7,6 +7,7 @@ import { executeBookingCreation, createBookingInputSchema } from '@/lib/booking/
 import { listBookingsService } from '@/lib/booking/manage-booking-service'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
+import { maybeCachedResponse } from '@/lib/http/cache-headers'
 import {
   emitProfessionalReceivedBooking,
   emitUserStartedCheckout,
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  return NextResponse.json({ data: result.data })
+  return maybeCachedResponse(request, { data: result.data }, { cacheControl: 'private, max-age=30, must-revalidate' })
 }
 
 export async function POST(request: NextRequest) {

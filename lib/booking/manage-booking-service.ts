@@ -868,7 +868,7 @@ export async function listBookingsService(
     offset?: number
   },
 ): Promise<
-  | { success: true; data: unknown[] }
+  | { success: true; data: { bookings: unknown[]; total: number } }
   | { success: false; error: string }
 > {
   const limit = Math.min(100, Math.max(1, options?.limit || 50))
@@ -877,7 +877,8 @@ export async function listBookingsService(
   let query = supabase
     .from('bookings')
     .select(
-      'id, user_id, professional_id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, session_link, timezone_user, timezone_professional, booking_type, metadata, cancellation_reason, created_at, updated_at'
+      'id, user_id, professional_id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, session_link, timezone_user, timezone_professional, booking_type, metadata, cancellation_reason, created_at, updated_at',
+      { count: 'exact' }
     )
     .or(`user_id.eq.${userId}${professionalId ? `,professional_id.eq.${professionalId}` : ''}`)
     .order('scheduled_at', { ascending: false })
@@ -888,14 +889,14 @@ export async function listBookingsService(
     query = query.in('status', statuses)
   }
 
-  const { data, error } = await query
+  const { data, error, count } = await query
 
   if (error) {
     console.error('[booking/list] failed to load bookings:', error.message)
     return { success: false, error: 'Erro ao carregar agendamentos.' }
   }
 
-  return { success: true, data: data || [] }
+  return { success: true, data: { bookings: data || [], total: count || 0 } }
 }
 
 export async function getBookingDetailService(

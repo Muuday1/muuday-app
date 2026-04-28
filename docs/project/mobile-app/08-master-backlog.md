@@ -151,8 +151,8 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 | 3.6 | **Migrar Agora token → `/api/v1/sessions/{id}/token`** | `📱 APP` | 0.5 dia | Backend | 🔲 |
 | 3.7 | **Migrar session status → `/api/v1/sessions/{id}/status`** | `📱 APP` | 0.5 dia | Backend | 🔲 |
 | 3.8 | **Extrair review, favorites, disputes, client-records** | `📱 APP` | 2 dias | Backend | 🔲 |
-| 3.9 | **Adicionar `Cache-Control` + `ETag` em list endpoints** | `📱 APP` | 0.5 dia | Backend | 🔲 |
-| 3.10 | **OpenAPI schema + contract tests** — Documentar `/api/v1/*` com Zod-to-OpenAPI. Testes de contrato no CI. | `📱 APP` | 1 dia | Backend | 🔲 |
+| 3.9 | **Adicionar `Cache-Control` + `ETag` em list endpoints** | `📱 APP` | 0.5 dia | Backend | ✅ |
+| 3.10 | **OpenAPI schema + contract tests** — Documentar `/api/v1/*` com Zod-to-OpenAPI. Testes de contrato no CI. | `📱 APP` | 1 dia | Backend | ✅ |
 
 ### Frontend / Web
 

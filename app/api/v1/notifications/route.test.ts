@@ -83,8 +83,8 @@ describe('GET /api/v1/notifications', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.data).toHaveLength(1)
-    expect(body.nextCursor).toBeNull()
+    expect(body.data.notifications).toHaveLength(1)
+    expect(body.data.nextCursor).toBeNull()
     expect(mockedGetNotifications).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',

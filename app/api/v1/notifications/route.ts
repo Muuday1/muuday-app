@@ -4,6 +4,7 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getNotifications, markAllNotificationsAsRead } from '@/lib/notifications/notification-service'
+import { maybeCachedResponse } from '@/lib/http/cache-headers'
 
 export async function GET(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'notifications', message: 'GET /api/v1/notifications', level: 'info' })
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  return NextResponse.json({ data: result.data.notifications, nextCursor: result.data.nextCursor })
+  return maybeCachedResponse(request, { data: { notifications: result.data.notifications, nextCursor: result.data.nextCursor } }, { cacheControl: 'private, max-age=15, must-revalidate' })
 }
 
 export async function PATCH(request: NextRequest) {

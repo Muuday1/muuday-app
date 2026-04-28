@@ -237,8 +237,8 @@ These tracks can start in parallel with Wave 3 but are not launch blockers.
   - [x] `POST /api/v1/conversations/{id}/read` functional (new route + tests)
   - [x] `GET /api/v1/notifications` functional (completed previous session)
   - [x] Web components migrated from Server Actions to `fetch()` for booking (`BookingForm.tsx`) and chat (`MessageThread.tsx`)
-  - [ ] OpenAPI schema + contract tests in CI
-  - [ ] `Cache-Control` + `ETag` on list endpoints
+  - [x] OpenAPI schema + contract tests in CI
+  - [x] `Cache-Control` + `ETag` on list endpoints
 
 ### P2.2 Mobile App Development (Sprints 4–6)
 - **What:** Expo React Native app with auth, search, booking, video, and professional workspace.
@@ -247,14 +247,15 @@ These tracks can start in parallel with Wave 3 but are not launch blockers.
 - **Owner:** Mobile engineers
 - **Dependencies:** P2.1
 - **Acceptance:**
-  - [ ] Expo project initialized with TypeScript, Expo Router, NativeWind, TanStack Query
-  - [ ] Supabase Auth with password + Google OAuth
+  - [x] Expo project initialized with TypeScript, Expo Router, NativeWind, TanStack Query
+  - [x] Supabase Auth with password + SecureStore session persistence
+  - [ ] Google OAuth (deferred to Sprint 5)
   - [ ] Search professionals with infinite scroll
   - [ ] Booking flow (one-off) with Stripe PaymentSheet
   - [ ] Push notifications (Expo Push Service)
   - [ ] Professional dashboard + calendar management
   - [ ] Agora video session integration
-  - [ ] Deep links (`muuday://`) configured
+  - [x] Deep links (`muuday://`) configured in `app.json`
 
 ### P2.3 International Expansion Implementation
 - **What:** Market detection middleware, Sanity CMS, locale routing (`/br/`, `/mx/`), content localisation.
@@ -413,6 +414,8 @@ These cannot be resolved by engineering alone.
 | C17 | **P1.2** — Professional availability workspace UX polish: beforeunload protection, unsaved-changes indicator, sticky save bar, per-day 'Copiar para...' schedule copy, specific Supabase error messages, TIME_OPTIONS extended to 05:00. TypeScript clean, 1005/1005 tests pass, 190 pages build. | `components/agenda/ProfessionalAvailabilityWorkspace.tsx`, `components/agenda/weekly-schedule-editor.tsx`, `components/agenda/availability-workspace-helpers.ts` |
 | C18 | **UI/UX sweep** — Landing page spacing, flags sizing, payment section (Card/Apple Pay/PayPal only), 'Gravação opcional' → 'Agenda sincronizada', guides link to index with free-access messaging, blue accent on stats/growth icons, remove 'Pix' from comparison, merge Guias+Blog nav into `/recursos`. Blog nav dark text on white bg. Professional 'Receita estimada' white text for contrast. About page world map SVG improved, guides section removed. Auth: Facebook + Apple login added, OAuth proxy endpoint (`/api/auth/oauth`) to mask Supabase URL. | `components/landing/*`, `components/public/PublicHeader.tsx`, `components/auth/SocialAuthButtons.tsx`, `app/registrar-profissional/page.tsx`, `app/sobre/page.tsx`, `app/recursos/page.tsx`, `app/api/auth/oauth/route.ts` |
 | C19 | **P2.1** — Chat API routes created: `GET/POST /api/v1/conversations/{id}/messages`, `POST /api/v1/conversations/{id}/read`. Booking API route already existed; `BookingForm.tsx` migrated behind `use_api_v1_bookings` PostHog flag. `MessageThread.tsx` migrated to API v1 for send + mark-read. 18 new integration tests. TypeScript clean. | `app/api/v1/conversations/[id]/messages/route.ts`, `app/api/v1/conversations/[id]/read/route.ts`, `components/chat/MessageThread.tsx`, `components/booking/BookingForm.tsx`, `lib/analytics/feature-flags.ts` |
+| C20 | **P2.2 Sprint 4 Foundation** — Mobile app scaffold: Expo Router file-based routing, NativeWind theming, Supabase AuthProvider with SecureStore, TanStack Query hooks (`useUser`, `useBookings`, `useConversations`), typed API client (`apiV1`) with Bearer + session headers. Tab layout (Início, Explorar, Agenda, Mensagens, Perfil). Login screen with email/password. Home, Bookings, Messages screens wired to API v1. TypeScript clean. | `mobile/app/*`, `mobile/components/AuthProvider.tsx`, `mobile/hooks/*`, `mobile/lib/api.ts`, `mobile/lib/supabase.ts` |
+| C21 | **P2.1 Completion** — Fixed API response shape mismatches: `GET /api/v1/bookings` now returns `{ data: { bookings, total } }` (was `{ data: [...] }`); `GET /api/v1/notifications` now returns `{ data: { notifications, nextCursor } }` (was flat). Created `lib/schemas/api-v1.ts` with 19 Zod schemas for core endpoints. Generated OpenAPI 3.1 document served at `/api/openapi.json`. Added 13 contract tests (`lib/schemas/api-v1.contract.test.ts`). Added `Cache-Control` + `ETag` to 5 list endpoints (bookings, conversations, messages, notifications, professionals/search). 444 tests pass. | `lib/schemas/*`, `lib/openapi/*`, `app/api/openapi.json/*`, `lib/http/cache-headers.ts`, `app/api/v1/bookings/route.ts`, `app/api/v1/notifications/route.ts` |
 
 ---
 

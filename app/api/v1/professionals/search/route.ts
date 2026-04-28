@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { maybeCachedResponse } from '@/lib/http/cache-headers'
 
 const querySchema = z.object({
   q: z.string().optional().default(''),
@@ -129,11 +130,11 @@ export async function GET(request: NextRequest) {
       return ia - ib
     })
 
-    return NextResponse.json({
+    return maybeCachedResponse(request, {
       data: sorted,
       nextCursor,
       total: candidateIds.length,
-    })
+    }, { cacheControl: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' })
   } catch (err) {
     console.error('[api/v1/professionals/search] unexpected error:', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
