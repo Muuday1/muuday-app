@@ -834,7 +834,7 @@ export function OnboardingTrackerModal({
       setTimeout(() => setPlanActionState('idle'), 2200)
     } else if (checkoutState === 'cancelled') {
       setPlanActionState('error')
-      setPlanActionError('Selecao de plano cancelada. Voce pode tentar novamente.')
+      setPlanActionError('Seleção de plano cancelada. Você pode tentar novamente.')
     }
 
     params.delete('planCheckout')
@@ -969,7 +969,7 @@ export function OnboardingTrackerModal({
       if (checks.faceCentered === 'fail') {
         URL.revokeObjectURL(imageMeta.previewUrl)
         setPhotoUploadState('error')
-        setPhotoUploadError('Nao foi possivel validar o rosto centralizado. Escolha outra foto com o rosto bem enquadrado.')
+        setPhotoUploadError('Não foi possível validar o rosto centralizado. Escolha outra foto com o rosto bem enquadrado.')
         return
       }
       if (checks.neutralBackground === 'fail') {
@@ -1038,10 +1038,10 @@ export function OnboardingTrackerModal({
     const nextUrl = String(payload.signedUrl || '').trim()
     const nextPath = String(payload.path || '').trim()
     if (!nextUrl) {
-      throw new Error('A foto foi enviada, mas a URL final nao foi retornada.')
+      throw new Error('A foto foi enviada, mas a URL final não foi retornada.')
     }
     if (!nextPath) {
-      throw new Error('A foto foi enviada, mas o caminho interno nao foi retornado.')
+      throw new Error('A foto foi enviada, mas o caminho interno não foi retornado.')
     }
 
     setCoverPhotoUrl(nextUrl)
@@ -1352,7 +1352,7 @@ export function OnboardingTrackerModal({
           focusAreas: identityFocusAreas,
           qualifications: identityQualifications,
         },
-        'Nao foi possivel salvar identidade profissional.',
+        'Não foi possível salvar identidade profissional.',
         { autoAdvance: false },
       )
       setIdentitySaveState('saved')
@@ -1394,7 +1394,7 @@ export function OnboardingTrackerModal({
           avatarUrl: nextPhoto.avatarUrl.trim(),
           avatarPath: nextPhoto.avatarPath.trim(),
         },
-        'Nao foi possivel salvar o perfil publico.',
+        'Não foi possível salvar o perfil público.',
         { autoAdvance: false },
       )
       setPhotoUploadState('saved')
@@ -1407,7 +1407,7 @@ export function OnboardingTrackerModal({
     } catch (error) {
       setPhotoUploadState('error')
       setBioSaveState('error')
-      setBioError(error instanceof Error ? error.message : 'Nao foi possivel salvar o perfil publico.')
+      setBioError(error instanceof Error ? error.message : 'Não foi possível salvar o perfil público.')
       return false
     }
   }
@@ -1468,7 +1468,7 @@ export function OnboardingTrackerModal({
           operation: 'delete',
           serviceId,
         },
-        'Nao foi possivel remover o servico.',
+        'Não foi possível remover o serviço.',
         { autoAdvance: false },
       )
       const removedId = String(result.deletedServiceId || serviceId)
@@ -1548,7 +1548,7 @@ export function OnboardingTrackerModal({
           priceBrl: Number(priceBrl.toFixed(2)),
           durationMinutes: duration,
         },
-        isEditing ? 'Nao foi possivel atualizar o servico.' : 'Nao foi possivel criar o servico.',
+        isEditing ? 'Não foi possível atualizar o serviço.' : 'Não foi possível criar o serviço.',
         { autoAdvance: false },
       )
 
@@ -1609,7 +1609,7 @@ export function OnboardingTrackerModal({
           allowMultiSession,
           requireSessionPurpose,
         },
-        'Nao foi possivel salvar disponibilidade e regras.',
+        'Não foi possível salvar disponibilidade e regras.',
       )
       setAvailabilitySaveState('saved')
       setTimeout(() => setAvailabilitySaveState('idle'), 2000)

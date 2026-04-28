@@ -73,7 +73,7 @@ export function ProfessionalWorkspaceSection({
           </div>
           <div className="grid grid-cols-1 gap-3 text-sm text-slate-700 sm:grid-cols-2">
             <p>Pendências de confirmação: {summary.pendingConfirmations}</p>
-            <p>Requests abertos: {summary.openRequests}</p>
+            <p>Solicitações em aberto: {summary.openRequests}</p>
             <p>Disponibilidade ativa: {summary.availabilityCount}</p>
             <p>Confirmação: {summary.confirmationMode}</p>
             <p>Antecedência mínima: {summary.minNoticeHours}h</p>
@@ -165,7 +165,7 @@ export function ProfessionalWorkspaceSection({
         >
           <div className="mb-2 flex items-center gap-2 text-slate-800">
             <Briefcase className="h-4 w-4 text-[#9FE870]" />
-            <p className="text-sm font-semibold">Perfil e servicos</p>
+            <p className="text-sm font-semibold">Perfil e serviços</p>
           </div>
           <p className="text-xs text-slate-500">Categoria, bio, idiomas, preço e duração.</p>
         </Link>
@@ -200,7 +200,7 @@ export function ProfessionalWorkspaceSection({
             <Wallet className="h-4 w-4 text-[#9FE870]" />
             <p className="text-sm font-semibold">Financeiro</p>
           </div>
-          <p className="text-xs text-slate-500">Receitas operacionais (stub Wave 2) e saude financeira.</p>
+          <p className="text-xs text-slate-500">Receitas operacionais (stub Wave 2) e saúde financeira.</p>
         </Link>
       </div>
 
