@@ -116,6 +116,20 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - Month view now shows partial exception indicators ("Parcialmente bloqueado")
    - `ProfessionalAvailabilityWorkspace` now loads and passes exceptions to calendar preview
    - Removed redundant duplicate context cards in embedded availability workspace variant
+9. **Operator Case Resolution System (P1.9 / ADMIN-01) complete (2026-04-27):**
+   - Migration 082: enhanced `cases` table with `priority`, `severity`, `assigned_to`, `sla_deadline`, `summary`, `decision_notes`, `resolution_outcome`; created `case_evidence` table
+   - `/admin/casos` queue page with filters (type, status, priority, assignee), sorting, SLA indicators, pagination
+   - `/admin/casos/[caseId]` detail with evidence panel, timeline (merged actions + messages), message thread, decision form
+   - Auto-case creation from no-show detection (best-effort, non-blocking)
+   - 12 new tests. Test suite: **950 tests passing in 89 files**
+10. **Review Moderation Queue Enhancement (P1.10 / REVIEW-01) complete (2026-04-27):**
+   - Migration 083: added `moderation_status`, `rejection_reason`, `moderated_by`, `moderated_at`, `admin_notes`, `flag_reasons` to `reviews`; trigger syncs `is_visible`
+   - `/admin/avaliacoes` dedicated moderation page with stats cards, status filters, sort options
+   - Batch approve/reject with checkbox selection and batch action bar
+   - Structured rejection reasons (6 options: inappropriate_language, off_topic, conflicts_with_outcome, suspected_fake, personal_information, custom) + optional admin notes
+   - Auto-flags computed on-the-fly: profanity (PT-BR + EN word list), conflicts_with_outcome (no-show + rating ≥4), suspected_fake (new account + generic text)
+   - Reviewer history, professional context, and booking context per review card
+   - 14 new tests. Test suite: **964 tests passing in 89 files**
 
 ## Blockers
 

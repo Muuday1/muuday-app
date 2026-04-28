@@ -28,13 +28,16 @@ Last updated: 2026-04-28
 12. Professional financial overview (P1.7) complete: transaction list with filters, earnings sparkline, payout status card with next payout calculation.
 13. Recurring booking UX (P1.6) complete: recurring type selection, calendar preview, conflict warnings, `.ics` export, cancel-scope modal, recurring package card in agenda.
 14. Calendar UX polish complete: fixed invalid Tailwind classes across 7 components, restored PT-BR accents in agenda surfaces, added exception legend and partial-block indicators to month view, wired exception loading into availability workspace.
-9. Vercel production environment fully configured: all 9 payment-rail secrets verified (Revolut ×5, Trolley ×4).
+15. Operator Case Resolution System (P1.9) complete: migration 082 enhanced cases with priority/assignment/SLA/evidence; `/admin/casos` queue and detail pages; auto-case creation from no-show detection.
+16. Review Moderation Queue Enhancement (P1.10) complete: migration 083 added `moderation_status`/`rejection_reason`/`flag_reasons` to `reviews`; `/admin/avaliacoes` page with batch actions, structured rejection reasons (6 options), auto-flags (profanity, conflicts_with_outcome, suspected_fake).
+17. Vercel production environment fully configured: all 9 payment-rail secrets verified (Revolut ×5, Trolley ×4).
 
 ### In progress
 
 1. Professional operations UX polish, especially calendar and scheduling ergonomics.
 2. Remaining copy and consistency cleanup on member and admin surfaces.
 3. Pre-Wave-3 financial and compliance hardening — payment engine code complete and tested. Needs E2E validation and production migration.
+4. Quiet hours configuration (part of P1.8) — UI exists but backend enforcement not yet wired.
 
 ### Not open yet
 
