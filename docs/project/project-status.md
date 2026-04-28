@@ -10,7 +10,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 - Wave 1: Done
 - Wave 2: Done (closed 2026-04-10)
 - Payment engine (Phases 1–6): Fase 6.1–6.5 (Ledger, Stripe Pay-in, Revolut Settlement, Trolley Payout, Refund & Dispute) ✅ completas, incluindo rotas de API. Trolley sandbox E2E validated 2026-04-28 (HMAC signing fixed, 10/10 tests pass). Remaining: Stripe pay-in E2E, Revolut cron, dispute/refund E2E.
-- Stabilization and UX refinement: In progress
+- Stabilization and UX refinement: In progress (P1.2 calendar UX code complete, human testing pending; P1.1 legal freeze pending)
 - Wave 3 real-money execution: Blocked on E2E validation + compliance freeze
 - Mobile app API refactor: Sprints 3–5 complete; mobile app dev not open
 - International expansion: Docs complete; implementation not started
@@ -46,7 +46,7 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
 
 ## Active gaps
 
-1. Professional operations UX still needs refinement, especially around calendar and scheduling experience.
+1. Professional operations UX code improvements committed 2026-04-28 (beforeunload, unsaved-changes indicator, sticky save bar, copy-day, better errors, 05:00 start time). Human testing with 5+ professionals pending.
 2. Financial infrastructure implemented; Stripe pay-in + ledger integration unit-tested. Trolley sandbox E2E validated (recipient CRUD, PayPal, batch creation, payment-in-batch, webhook signatures). Remaining open: Stripe sandbox pay-in E2E, Revolut reconciliation cron E2E, dispute-after-payout E2E, refund E2E.
 3. Some lower-traffic surfaces still need copy and consistency cleanup.
 4. Documentation drift identified in comprehensive audit (2026-04-24) — see `docs/DOC-AUDIT-REPORT-2026-04-24.md` for full findings.
@@ -124,6 +124,12 @@ Spec baseline: `docs/spec/source-of-truth/part1..part5`
    - `/admin/casos/[caseId]` detail with evidence panel, timeline (merged actions + messages), message thread, decision form
    - Auto-case creation from no-show detection (best-effort, non-blocking)
    - 12 new tests. Test suite: **950 tests passing in 89 files**
+12. **Availability Workspace UX Polish (P1.2 code complete, 2026-04-28):**
+    - `ProfessionalAvailabilityWorkspace.tsx`: beforeunload handler prevents accidental tab close with unsaved changes; sticky save bar with live status (unsaved / saved / idle); specific Supabase error messages per operation step
+    - `weekly-schedule-editor.tsx`: per-day 'Copiar para...' dropdown copies schedule to any combination of other days with checkboxes + Apply/Cancel
+    - `availability-workspace-helpers.ts`: TIME_OPTIONS extended from 06:00 to 05:00 start for early-start professionals
+    - Save button disabled when no unsaved changes; non-blocking recompute-visibility warning
+    - TypeScript clean, 1005/1005 tests pass, 190 pages build
 11. **Trolley API Authentication Fix & Sandbox E2E Validation (P0.2 progress, 2026-04-28):**
     - Root cause: Trolley client was using raw `Access-Key`/`Secret-Key` headers instead of HMAC-SHA256 `prsign` request signing
     - Fixed `lib/payments/trolley/client.ts` with proper `signRequest()` using `timestamp\nMETHOD\nrequestPath\nbody\n` message format

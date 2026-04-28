@@ -105,13 +105,18 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
   - [ ] Terms, privacy policy, and cookie policy versioned and deployed
   - [ ] `docs/legal/terms/` updated with approved v3 text
 
-### P1.2 Professional Operations UX Polish
+### P1.2 Professional Operations UX Polish — CODE COMPLETE, HUMAN TESTING PENDING
 - **What:** Calendar/scheduling ergonomics, onboarding tracker copy consistency, PT-BR cleanup on lower-traffic surfaces.
 - **Why:** Current in-progress work. Must be stable before Wave 3 opens.
 - **Source:** `docs/handover/next-steps.md`, `docs/product/journeys/professional-workspace-journey.md`
 - **Owner:** Frontend
+- **Status:** Code-level improvements committed 2026-04-28. Human testing with 5+ professionals pending.
 - **Acceptance:**
-  - [ ] `/disponibilidade` calendar UX tested with 5+ real professionals (requires human testing with 5+ professionals)
+  - [x] **Code:** beforeunload protection + unsaved-changes indicator + sticky save bar (`ProfessionalAvailabilityWorkspace.tsx`)
+  - [x] **Code:** 'Copiar para...' per-day schedule copy (`weekly-schedule-editor.tsx`)
+  - [x] **Code:** Specific Supabase error messages surfaced (replaces generic 'Erro ao salvar')
+  - [x] **Code:** TIME_OPTIONS extended to 05:00 start for early-start professionals
+  - [ ] `/disponibilidade` calendar UX tested with 5+ real professionals — **REQUIRES HUMAN ACTION**
   - [x] Onboarding tracker modal has zero blocking optional fetches on open (verified: optional fetch runs after `setLoadingContext(false)`, wrapped in try/catch, non-blocking by design)
   - [x] PT-BR cleanup complete on admin/finance surfaces (page titles, table headers, status badges, filter buttons, empty states, pagination)
   - [x] No mojibake or English labels in member-facing pages (verified no mojibake; fixed: Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão/Sessão de Vídeo)
@@ -403,6 +408,7 @@ These cannot be resolved by engineering alone.
 | C14 | **P0.5** — Closed remaining doc contradictions: updated legal terms (Stripe Connect → Trolley), updated `database-and-migrations.md` (070-081), fixed `professional-workspace-journey.md` Basic window (60→30), verified journey-coverage-matrix accuracy | DOC-AUDIT-REPORT-2026-04-24 |
 | C15 | **P1.2** — PT-BR cleanup on admin/finance surfaces (Ledger→Livro Razão, Payouts→Repasses, Trial→Em teste, Settlements→Liquidações, etc.) and member-facing pages (Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão de Vídeo). Verified onboarding tracker modal optional fetches are non-blocking. | `app/(app)/admin/finance/*`, `app/(app)/dashboard/page.tsx`, `app/(app)/perfil/page.tsx`, `app/(app)/profissional/[id]/page.tsx`, `app/(app)/sessao/[bookingId]/page.tsx` |
 | C16 | **P1.5** — Auth & Booking Handoff: LoginForm gains `redirectPath` prop to preserve booking context through login modal; SearchBookingCtas passes `bookHref`/`messageHref` as redirect and fires PostHog `booking_intent_auth_modal_shown`; signup link preserves redirect parameter. | `components/auth/LoginForm.tsx`, `components/search/SearchBookingCtas.tsx`, `components/booking/MobileBookingStickyCta.tsx` |
+| C17 | **P1.2** — Professional availability workspace UX polish: beforeunload protection, unsaved-changes indicator, sticky save bar, per-day 'Copiar para...' schedule copy, specific Supabase error messages, TIME_OPTIONS extended to 05:00. TypeScript clean, 1005/1005 tests pass, 190 pages build. | `components/agenda/ProfessionalAvailabilityWorkspace.tsx`, `components/agenda/weekly-schedule-editor.tsx`, `components/agenda/availability-workspace-helpers.ts` |
 
 ---
 

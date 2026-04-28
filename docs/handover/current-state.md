@@ -34,7 +34,7 @@ Last updated: 2026-04-28
 
 ### In progress
 
-1. Professional operations UX polish, especially calendar and scheduling ergonomics.
+1. Professional operations UX polish — code improvements committed 2026-04-28 (beforeunload protection, unsaved-changes indicator, sticky save bar, per-day schedule copy, specific error messages, 05:00 start time). Human testing with 5+ real professionals pending.
 2. Remaining copy and consistency cleanup on member and admin surfaces.
 3. Pre-Wave-3 financial and compliance hardening — payment engine code complete and tested. Needs E2E validation and production migration.
 4. ~~Quiet hours configuration (part of P1.8) — UI exists but backend enforcement not yet wired.~~ ✅ **Complete** — Backend enforcement added: `canSendPush` blocks push, review-reminder and payout emails are skipped during quiet hours; in-app always delivered.
