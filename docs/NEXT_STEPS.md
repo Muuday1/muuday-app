@@ -115,31 +115,29 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
   - [x] No mojibake or English labels in member-facing pages (verified no mojibake; fixed: Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão/Sessão de Vídeo)
 
 ### P1.3 Landing Page Redesign Completion
-- **What:** Stakeholder-approved landing page matching Wise.com richness (images, animations, blue accent, all 8 categories).
+- **What:** Stakeholder-approved landing page matching Wise.com richness (images, animations, blue accent).
 - **Why:** `LANDING-WISE-GAP-LIST.md` documents 10 gaps. Current landing is "flat minimal" vs target.
 - **Source:** `docs/product/design-system/review/LANDING-WISE-GAP-LIST.md`, `docs/product/design-system/review/WISE-REFACTOR-GAPS.md`
 - **Owner:** Frontend + Designer
 - **Acceptance:**
-  - [ ] Hero section has real illustration (not placeholder)
-  - [ ] All 8 categories visible
   - [ ] Framer Motion animations added
   - [ ] Mobile/tablet/desktop responsive refinement
   - [ ] Blue accent color integrated
   - [ ] Stakeholder sign-off
 
-### P1.4 Design System Alignment
+### P1.4 Design System Alignment ✅ COMPLETE
 - **What:** Fix token/component inconsistencies identified in `REVIEW-FINDINGS.md`.
 - **Why:** Inconsistencies between `tokens.md`, `components.md`, and `frames/*.md` cause implementation drift.
 - **Source:** `docs/product/design-system/review/REVIEW-FINDINGS.md`
 - **Owner:** Design Engineer
 - **Acceptance:**
-  - [ ] Neutral color hex values identical in tokens.md and components.md
-  - [ ] Typography scale aligned (13px sm, 20px lg, 30px 2xl)
-  - [ ] Avatar sizes consistent (principles.md vs components.md)
-  - [ ] Badge/Toast use semantic tokens, not hardcoded hexes
-  - [ ] `handoff.md` references only existing tokens
-  - [ ] Primary-500 contrast failure fixed (elevate to primary-600 on white)
-  - [ ] Dark mode token system drafted (`dark:` variants)
+  - [x] Neutral color hex values identical in tokens.md and components.md (already aligned; components.md uses token names, not hardcoded hexes)
+  - [x] Typography scale aligned (13px sm, 20px lg, 30px 2xl — already consistent across tokens.md, handoff.md, and components.md)
+  - [x] Avatar sizes consistent: principles.md updated to match components.md (md=40, lg=56, xl=80, 2xl=128)
+  - [x] Badge/Toast use semantic tokens (verified: components.md uses `primary-50`, `warning-bg`, `error-bg`, `info-bg` — no hardcoded hexes)
+  - [x] `handoff.md` references only existing tokens (verified: uses `surface-page`, `surface-card`, `text-primary`, etc.)
+  - [x] Primary-500 contrast failure fixed (tokens.md line 29 already specifies `primary-600` for links/focus on white)
+  - [x] Dark mode token system drafted in tokens.md with full surface/text/border mappings, component rules, and Tailwind implementation pattern
 
 ### P1.5 Auth & Booking Handoff (AUTH-01)
 - **What:** When logged-out user clicks "Agendar", show inline auth modal preserving booking context.

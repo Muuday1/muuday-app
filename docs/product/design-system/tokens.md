@@ -312,6 +312,87 @@ For automated tooling and Figma Tokens Studio:
 
 ---
 
+## Dark Mode Token System
+
+> **Status**: Draft — ready for implementation when dark mode is prioritized (see P3.5 in NEXT_STEPS.md).
+
+### Philosophy
+
+Dark mode is not a simple inversion. Surfaces lighten progressively toward the user (darkest at the back, lighter on top), and text maintains the same semantic relationships with adjusted contrast.
+
+### Color Mapping
+
+| Light Token | Light Value | Dark Token | Dark Value | Rationale |
+|-------------|-------------|------------|------------|-----------|
+| `surface-page` | `#f4f8f5` | `dark:surface-page` | `#0c0a09` | Deepest neutral — page background |
+| `surface-page-alt` | `#fafaf9` | `dark:surface-page-alt` | `#141210` | Slightly lifted for alternating sections |
+| `surface-card` | `#ffffff` | `dark:surface-card` | `#1c1917` | Card backgrounds — neutral-900 |
+| `surface-elevated` | `#ffffff` | `dark:surface-elevated` | `#292524` | Modals, dropdowns, toasts — neutral-800 |
+| `surface-overlay` | `rgba(28,25,23,0.5)` | `dark:surface-overlay` | `rgba(0,0,0,0.7)` | Darker overlay for better focus trapping |
+| `text-primary` | `#1c1917` | `dark:text-primary` | `#f5f5f4` | Primary text — neutral-100 |
+| `text-secondary` | `#57534e` | `dark:text-secondary` | `#a8a29e` | Body text — neutral-400 |
+| `text-muted` | `#78716c` | `dark:text-muted` | `#78716c` | Captions stay the same (mid-neutral works in both) |
+| `text-inverse` | `#ffffff` | `dark:text-inverse` | `#1c1917` | Text on light surfaces in dark mode |
+| `border-default` | `#e7e5e4` | `dark:border-default` | `#292524` | Subtle borders — neutral-800 |
+| `border-strong` | `#d6d3d1` | `dark:border-strong` | `#44403c` | Focus borders — neutral-700 |
+
+### Semantic Colors in Dark Mode
+
+Semantic colors (primary, success, warning, error, info) remain **unchanged in hue** but may shift in usage:
+
+| Token | Dark Mode Behavior |
+|-------|-------------------|
+| `primary-500` | Same hex `#22c55e`; used for active borders, focus rings, and interactive elements |
+| `primary-600` | Same hex `#16a34a`; links on dark backgrounds (contrast against `#1c1917` = 5.8:1 ✅) |
+| `success-500` | Same hex `#22c55e`; success states |
+| `warning-500` | Same hex `#e8950f`; warning states |
+| `error-500` | Same hex `#ef4444`; error states |
+| `info-500` | Same hex `#3b82f6`; info states |
+
+> **Brand-bright** (`#9FE870`) is preserved for accents but used more sparingly in dark mode to avoid glare.
+
+### Component Dark Mode Rules
+
+| Component | Dark Rule |
+|-----------|-----------|
+| Card | `bg-surface-card` + `border-default` (subtle border for definition) |
+| Button Primary | Same `primary-500` bg, `primary-950` text (7.1:1 ✅) |
+| Button Secondary | `bg-neutral-800` + `text-primary` |
+| Input | `bg-surface-page-alt` + `border-default`, focus → `border-strong` |
+| Avatar | No change to image; fallback initials use `neutral-700` bg |
+| Modal | `bg-surface-elevated`, `dark:surface-overlay` backdrop |
+| Toast | `bg-surface-elevated`, semantic border-left for variant |
+| Tooltip | `bg-neutral-700` + `text-primary` (invert of light mode) |
+
+### Tailwind Implementation Pattern
+
+```css
+/* globals.css or tailwind.config dark mode plugin */
+.dark {
+  --mu-surface-page: #0c0a09;
+  --mu-surface-card: #1c1917;
+  --mu-surface-elevated: #292524;
+  --mu-text-primary: #f5f5f4;
+  --mu-text-secondary: #a8a29e;
+  --mu-border-default: #292524;
+}
+```
+
+```tsx
+/* Component usage */
+<div className="bg-surface-page dark:bg-[var(--mu-surface-page)]">
+  <Card className="bg-surface-card dark:bg-[var(--mu-surface-card)] border-border-default dark:border-[var(--mu-border-default)]">
+```
+
+### Accessibility
+
+- All dark mode combinations must meet WCAG AA 4.5:1 for normal text.
+- `prefers-color-scheme: dark` is the default trigger; manual toggle overrides.
+- Respect `prefers-reduced-motion` for any dark mode transition animations.
+- Avoid pure black (`#000000`) — use `#0c0a09` (neutral-950) to reduce eye strain.
+
+---
+
 ## Token Reconciliation Notes
 
 The following corrections were applied to resolve inconsistencies found during review:
@@ -323,6 +404,9 @@ The following corrections were applied to resolve inconsistencies found during r
 5. **text-lg**: 20px (not 18px)
 6. **Shadows**: Cards use `none`; floating elements use `sm/md/lg/xl`
 7. **radius-full**: Reserved for avatars and badges only
+8. **Avatar sizes**: Aligned to components.md scale (md=40, lg=56, xl=80, 2xl=128)
+9. **Badge/Toast**: Already use semantic tokens (`primary-50`, `warning-bg`, etc.); no hardcoded hexes in components.md
+10. **Dark mode**: Draft token system added with full surface/text/border mappings and component rules
 
 ---
 

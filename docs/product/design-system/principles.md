@@ -107,12 +107,10 @@ Motion guides attention and provides feedback — never entertains.
 |------|-----------|-------|
 | xs | 24px | Inline mentions, lists |
 | sm | 32px | Compact cards, tables |
-| md | 48px | Profile headers, reviews |
-| lg | 64px | Hero profiles |
-| xl | 96px | Empty states, onboarding |
+| md | 40px | Profile headers, reviews |
+| lg | 56px | Hero profiles |
+| xl | 80px | Empty states, onboarding |
 | 2xl | 128px | Cover images, large displays |
-
-> ⚠️ **Note**: `components.md` uses md=40, lg=56, xl=80. Use `components.md` values for implementation; this table reflects the original intent.
 
 ---
 
