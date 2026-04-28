@@ -12,6 +12,7 @@ import {
   sendPayoutFailedEmail,
 } from '@/lib/email/templates/payout'
 import { formatMinorUnits } from '@/lib/payments/format-utils'
+import { isQuietHoursForUser } from '@/lib/notifications/quiet-hours'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +22,7 @@ import type { PayoutPeriodicity } from '@/lib/payments/fees/calculator'
 
 export interface PayoutNotificationPayload {
   professionalId: string
+  userId: string
   professionalEmail: string
   professionalName: string
   amount: bigint
@@ -96,8 +98,17 @@ async function insertInAppNotification(
 // ---------------------------------------------------------------------------
 
 async function sendEmailNotification(
+  admin: SupabaseClient,
   payload: PayoutNotificationPayload,
+  now: Date = new Date(),
 ): Promise<void> {
+  // Respect quiet hours — skip email during rest periods
+  const quietHoursActive = await isQuietHoursForUser(admin, payload.userId, now)
+  if (quietHoursActive) {
+    console.info(`[payout-notification] skipped email for user ${payload.userId} due to quiet hours`)
+    return
+  }
+
   const { professionalEmail, professionalName, status } = payload
 
   switch (status) {
@@ -155,7 +166,7 @@ export async function notifyProfessionalAboutPayout(
 
   // Send email notification
   try {
-    await sendEmailNotification(payload)
+    await sendEmailNotification(admin, payload)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[payout-notification] email failed:', {
@@ -224,6 +235,7 @@ export async function notifyProfessionalsOnBatchSubmitted(
 
     void notifyProfessionalAboutPayout(admin, {
       professionalId: item.professional_id,
+      userId: userId,
       professionalEmail: profile.email,
       professionalName: profile.name,
       amount: BigInt(item.amount),

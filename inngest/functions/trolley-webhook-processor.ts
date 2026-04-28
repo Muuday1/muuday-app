@@ -389,9 +389,11 @@ async function handlePaymentUpdated(
       const proEmail = asString(proProfile?.email)
       const proName = asString(proProfile?.full_name) || asString(proProfile?.first_name) || 'Profissional'
 
-      if (itemDetails && proEmail) {
+      const proUserId = asString(pro?.user_id)
+      if (itemDetails && proEmail && proUserId) {
         void notifyProfessionalAboutPayout(admin, {
           professionalId: itemDetails.professional_id,
+          userId: proUserId,
           professionalEmail: proEmail,
           professionalName: proName,
           amount: BigInt(itemDetails.amount || 0),

@@ -4,10 +4,18 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 function createMockAdmin(overrides?: {
   notification_preferences?: Record<string, boolean> | null
+  quietHours?: { enabled: boolean; start: string; end: string } | null
+  timezone?: string | null
   error?: boolean
 }) {
   const prefs = overrides?.notification_preferences ?? null
+  const quietHours = overrides?.quietHours ?? null
+  const timezone = overrides?.timezone ?? 'UTC'
   const shouldError = overrides?.error ?? false
+
+  const notification_preferences = quietHours
+    ? { ...(prefs || {}), quiet_hours: quietHours }
+    : prefs
 
   return {
     from: vi.fn().mockReturnValue({
@@ -16,7 +24,7 @@ function createMockAdmin(overrides?: {
           single: vi.fn().mockResolvedValue(
             shouldError
               ? { data: null, error: { message: 'db error' } }
-              : { data: { notification_preferences: prefs }, error: null },
+              : { data: { notification_preferences, timezone }, error: null },
           ),
         }),
       }),
@@ -92,5 +100,62 @@ describe('canSendPush', () => {
   it('returns true on database error (fail-open)', async () => {
     const admin = createMockAdmin({ error: true })
     expect(await canSendPush(admin, 'user-1', 'session_reminders')).toBe(true)
+  })
+
+  // Quiet hours integration
+
+  it('returns false during active quiet hours even when preference is enabled', async () => {
+    const admin = createMockAdmin({
+      notification_preferences: { session_reminders: true },
+      quietHours: { enabled: true, start: '22:00', end: '08:00' },
+      timezone: 'UTC',
+    })
+    // 23:00 UTC is inside 22:00-08:00 quiet hours
+    const now = new Date('2024-01-15T23:00:00Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    expect(await canSendPush(admin, 'user-1', 'session_reminders')).toBe(false)
+    vi.useRealTimers()
+  })
+
+  it('returns true when quiet hours are inactive', async () => {
+    const admin = createMockAdmin({
+      notification_preferences: { session_reminders: true },
+      quietHours: { enabled: true, start: '22:00', end: '08:00' },
+      timezone: 'UTC',
+    })
+    // 12:00 UTC is outside 22:00-08:00 quiet hours
+    const now = new Date('2024-01-15T12:00:00Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    expect(await canSendPush(admin, 'user-1', 'session_reminders')).toBe(true)
+    vi.useRealTimers()
+  })
+
+  it('returns false when preference is disabled regardless of quiet hours', async () => {
+    const admin = createMockAdmin({
+      notification_preferences: { session_reminders: false },
+      quietHours: { enabled: true, start: '22:00', end: '08:00' },
+      timezone: 'UTC',
+    })
+    // 12:00 UTC is outside quiet hours, but preference is disabled
+    const now = new Date('2024-01-15T12:00:00Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    expect(await canSendPush(admin, 'user-1', 'session_reminders')).toBe(false)
+    vi.useRealTimers()
+  })
+
+  it('returns true when quiet hours are disabled', async () => {
+    const admin = createMockAdmin({
+      notification_preferences: { session_reminders: true },
+      quietHours: { enabled: false, start: '22:00', end: '08:00' },
+      timezone: 'UTC',
+    })
+    const now = new Date('2024-01-15T23:00:00Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    expect(await canSendPush(admin, 'user-1', 'session_reminders')).toBe(true)
+    vi.useRealTimers()
   })
 })

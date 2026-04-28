@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/email/client'
 import { emailLayout, cta, signoff, from } from '@/lib/email/theme'
 import { APP_URL } from '@/lib/email/theme'
+import { isQuietHoursForUser } from '@/lib/notifications/quiet-hours'
 
 /**
  * Send review request emails for bookings completed ~24h ago that have no review yet.
@@ -79,10 +80,18 @@ export async function runReviewReminderSync(
   const professionalById = new Map((professionals || []).map((p) => [p.id, p]))
 
   let sent = 0
+  let skippedQuietHours = 0
   for (const booking of pendingBookings) {
     const user = profileById.get(booking.user_id)
     const professional = professionalById.get(booking.professional_id)
     if (!user?.email || !professional) continue
+
+    // Respect quiet hours — skip email during rest periods
+    const quietHoursActive = await isQuietHoursForUser(admin, booking.user_id, now)
+    if (quietHoursActive) {
+      skippedQuietHours++
+      continue
+    }
 
     const professionalName = professional.bio || 'seu profissional'
 
@@ -104,6 +113,10 @@ export async function runReviewReminderSync(
     if (!result.error) {
       sent++
     }
+  }
+
+  if (skippedQuietHours > 0) {
+    console.info(`[review-reminders] skipped ${skippedQuietHours} emails due to quiet hours`)
   }
 
   return { checked: pendingBookings.length, sent, at: nowIso }

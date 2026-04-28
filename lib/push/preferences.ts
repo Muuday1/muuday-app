@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isQuietHoursForUser } from '@/lib/notifications/quiet-hours'
 
 /**
  * Preference keys used for push notifications.
@@ -50,7 +51,8 @@ export function notifTypeToPreferenceKey(type: string): PushNotifKey | null {
 /**
  * Check if push notifications are enabled for a user + category.
  * Returns true if push should be sent (default opt-in).
- * Returns false only if user has explicitly disabled the category.
+ * Returns false only if user has explicitly disabled the category
+ * OR quiet hours are currently active for the user.
  */
 export async function canSendPush(
   admin: SupabaseClient,
@@ -72,7 +74,15 @@ export async function canSendPush(
 
     const prefs = data?.notification_preferences as Record<string, boolean> | null
     if (!prefs) return true
-    return prefs[key] !== false
+
+    // Category opt-out check
+    if (prefs[key] === false) return false
+
+    // Quiet-hours check — suppress push during rest periods
+    const quietHoursActive = await isQuietHoursForUser(admin, userId)
+    if (quietHoursActive) return false
+
+    return true
   } catch (e) {
     console.warn('[push/preferences] unexpected error:', e)
     return true
