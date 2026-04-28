@@ -29,6 +29,7 @@ export const FEATURE_FLAGS = {
 
   // Mobile / International
   mobileApiEnabled: 'mobile_api_enabled',
+  useApiV1Bookings: 'use_api_v1_bookings',
   marketIsolationEnabled: 'market_isolation_enabled',
   ukLandingEnabled: 'uk_landing_enabled',
 } as const
@@ -68,6 +69,7 @@ export const DEFAULT_FEATURE_FLAGS: Record<FeatureFlagValue, boolean> = {
   [FEATURE_FLAGS.pushNotificationsEnabled]: false,
   [FEATURE_FLAGS.disputeSystemEnabled]: false,
   [FEATURE_FLAGS.mobileApiEnabled]: false,
+  [FEATURE_FLAGS.useApiV1Bookings]: false,
   [FEATURE_FLAGS.marketIsolationEnabled]: false,
   [FEATURE_FLAGS.ukLandingEnabled]: false,
 }

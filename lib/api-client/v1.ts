@@ -296,7 +296,7 @@ export function createV1Client(config: ApiClientConfig) {
         }>(`/conversations/${id}/messages`, { body }),
 
       markAsRead: (id: string) =>
-        client.post<{ success: true; data: { updated: boolean } }>(`/conversations/${id}/read`),
+        client.patch<{ success: true; data: { updated: boolean } }>(`/conversations/${id}/read`),
     },
 
     // --- Notifications ---

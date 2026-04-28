@@ -115,6 +115,7 @@ export default function BookingForm({
   const slotSelectionTracked = useRef(false)
   const prefillApplied = useRef(false)
   const recurringFlagEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.bookingRecurringEnabled)
+  const useApiV1Bookings = useFeatureFlagEnabled(FEATURE_FLAGS.useApiV1Bookings)
 
   const today = useMemo(() => {
     const date = new Date()
@@ -516,32 +517,72 @@ export default function BookingForm({
           selectedDate && selectedTime
             ? buildScheduledAt(toLocalDateStr(selectedDate), selectedTime)
             : undefined
-        const result = await createBooking({
-          professionalId: professional.id,
-          scheduledAt,
-          notes: sessionPurpose.trim() || undefined,
-          sessionPurpose: sessionPurpose.trim() || undefined,
-          bookingType,
-          recurringSessionsCount:
-            bookingType === 'recurring' && recurringDurationMode === 'occurrences'
-              ? recurringSessionsCount
-              : undefined,
-          recurringOccurrences:
-            bookingType === 'recurring' && recurringDurationMode === 'end_date'
-              ? Math.max(2, resolvedRecurringSessionsCount)
-              : undefined,
-          recurringPeriodicity: bookingType === 'recurring' ? recurringPeriodicity : undefined,
-          recurringIntervalDays:
-            bookingType === 'recurring' && recurringPeriodicity === 'custom_days'
-              ? recurringIntervalDays
-              : undefined,
-          recurringEndDate:
-            bookingType === 'recurring' && recurringDurationMode === 'end_date'
-              ? recurringEndDate
-              : undefined,
-          recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
-          batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
-        })
+        let result: { success: true; bookingId: string } | { success: false; error: string }
+        if (useApiV1Bookings) {
+          const res = await fetch('/api/v1/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              professionalId: professional.id,
+              scheduledAt,
+              notes: sessionPurpose.trim() || undefined,
+              sessionPurpose: sessionPurpose.trim() || undefined,
+              bookingType,
+              recurringSessionsCount:
+                bookingType === 'recurring' && recurringDurationMode === 'occurrences'
+                  ? recurringSessionsCount
+                  : undefined,
+              recurringOccurrences:
+                bookingType === 'recurring' && recurringDurationMode === 'end_date'
+                  ? Math.max(2, resolvedRecurringSessionsCount)
+                  : undefined,
+              recurringPeriodicity: bookingType === 'recurring' ? recurringPeriodicity : undefined,
+              recurringIntervalDays:
+                bookingType === 'recurring' && recurringPeriodicity === 'custom_days'
+                  ? recurringIntervalDays
+                  : undefined,
+              recurringEndDate:
+                bookingType === 'recurring' && recurringDurationMode === 'end_date'
+                  ? recurringEndDate
+                  : undefined,
+              recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
+              batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
+            }),
+          })
+          const data = await res.json()
+          if (!res.ok) {
+            result = { success: false, error: data.error || 'Erro ao criar agendamento.' }
+          } else {
+            result = { success: true, bookingId: data.bookingId }
+          }
+        } else {
+          result = await createBooking({
+            professionalId: professional.id,
+            scheduledAt,
+            notes: sessionPurpose.trim() || undefined,
+            sessionPurpose: sessionPurpose.trim() || undefined,
+            bookingType,
+            recurringSessionsCount:
+              bookingType === 'recurring' && recurringDurationMode === 'occurrences'
+                ? recurringSessionsCount
+                : undefined,
+            recurringOccurrences:
+              bookingType === 'recurring' && recurringDurationMode === 'end_date'
+                ? Math.max(2, resolvedRecurringSessionsCount)
+                : undefined,
+            recurringPeriodicity: bookingType === 'recurring' ? recurringPeriodicity : undefined,
+            recurringIntervalDays:
+              bookingType === 'recurring' && recurringPeriodicity === 'custom_days'
+                ? recurringIntervalDays
+                : undefined,
+            recurringEndDate:
+              bookingType === 'recurring' && recurringDurationMode === 'end_date'
+                ? recurringEndDate
+                : undefined,
+            recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
+            batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
+          })
+        }
         clearBookingTimeout()
         setBookingResult(result)
         if (result.success) {

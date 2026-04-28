@@ -3,14 +3,18 @@ import * as Sentry from '@sentry/nextjs'
 import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
-import { getMessages, sendMessage } from '@/lib/chat/chat-service'
+import { sendMessage, getMessages } from '@/lib/chat/chat-service'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params
-  Sentry.addBreadcrumb({ category: 'chat', message: `GET /api/v1/conversations/${id}/messages`, level: 'info' })
+  const { id: conversationId } = await params
+  Sentry.addBreadcrumb({
+    category: 'chat',
+    message: `GET /api/v1/conversations/${conversationId}/messages`,
+    level: 'info',
+  })
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()
@@ -25,23 +29,31 @@ export async function GET(
   }
 
   const { searchParams } = new URL(request.url)
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
+  const limit = parseInt(searchParams.get('limit') || '50', 10)
   const cursor = searchParams.get('cursor') || undefined
 
-  const result = await getMessages(supabase, user.id, id, { limit, cursor })
+  const result = await getMessages(supabase, user.id, conversationId, {
+    limit: Number.isNaN(limit) ? 50 : Math.min(Math.max(limit, 1), 100),
+    cursor,
+  })
+
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  return NextResponse.json({ data: result.data.messages, nextCursor: result.data.nextCursor })
+  return NextResponse.json({ success: true, data: result.data })
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params
-  Sentry.addBreadcrumb({ category: 'chat', message: `POST /api/v1/conversations/${id}/messages`, level: 'info' })
+  const { id: conversationId } = await params
+  Sentry.addBreadcrumb({
+    category: 'chat',
+    message: `POST /api/v1/conversations/${conversationId}/messages`,
+    level: 'info',
+  })
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()
@@ -67,10 +79,11 @@ export async function POST(
     return NextResponse.json({ error: 'content is required' }, { status: 400 })
   }
 
-  const result = await sendMessage(supabase, user.id, id, content)
+  const result = await sendMessage(supabase, user.id, conversationId, content)
+
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  return NextResponse.json({ data: result.data }, { status: 201 })
+  return NextResponse.json({ success: true, data: result.data }, { status: 201 })
 }

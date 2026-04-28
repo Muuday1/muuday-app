@@ -217,6 +217,7 @@ export const RATE_LIMITS = {
   apiV1ConversationsCreate: { limit: 10, windowSeconds: 60 },
   apiV1MessagesRead: { limit: 60, windowSeconds: 60 },
   apiV1MessagesSend: { limit: 30, windowSeconds: 60 },
+  apiV1ConversationRead: { limit: 60, windowSeconds: 60 },
   apiV1NotificationsRead: { limit: 60, windowSeconds: 60 },
   apiV1NotificationsWrite: { limit: 15, windowSeconds: 60 },
   apiV1PushSubscribe: { limit: 10, windowSeconds: 60 },

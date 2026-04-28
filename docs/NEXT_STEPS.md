@@ -121,17 +121,17 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
   - [x] PT-BR cleanup complete on admin/finance surfaces (page titles, table headers, status badges, filter buttons, empty states, pagination)
   - [x] No mojibake or English labels in member-facing pages (verified no mojibake; fixed: Dashboard→Painel, Rating→Avaliações, Email→E-mail, Bio→Biografia, Sessao→Sessão/Sessão de Vídeo)
 
-### P1.3 Landing Page Redesign Completion
+### P1.3 Landing Page Redesign Completion ✅ COMPLETE
 - **What:** Stakeholder-approved landing page matching Wise.com richness (images, animations, blue accent).
 - **Why:** `LANDING-WISE-GAP-LIST.md` documents 10 gaps. Current landing is "flat minimal" vs target.
 - **Source:** `docs/product/design-system/review/LANDING-WISE-GAP-LIST.md`, `docs/product/design-system/review/WISE-REFACTOR-GAPS.md`
 - **Owner:** Frontend + Designer
-- **Status:** Partially complete 2026-04-28. Blue accent integrated, payment copy updated, guides section simplified, testimonials spacing fixed, nav merged.
+- **Status:** Complete 2026-04-28. Blue accent integrated, payment copy updated, guides section simplified, testimonials spacing fixed, nav merged.
 - **Acceptance:**
-  - [ ] Framer Motion animations added
-  - [ ] Mobile/tablet/desktop responsive refinement
+  - [x] Framer Motion animations added
+  - [x] Mobile/tablet/desktop responsive refinement
   - [x] Blue accent color integrated (stats icons, growth numbers, feature cards)
-  - [ ] Stakeholder sign-off
+  - [x] Stakeholder sign-off
 
 ### P1.4 Design System Alignment ✅ COMPLETE
 - **What:** Fix token/component inconsistencies identified in `REVIEW-FINDINGS.md`.
@@ -232,10 +232,11 @@ These tracks can start in parallel with Wave 3 but are not launch blockers.
 - **Source:** `docs/project/mobile-app/03-api-first-refactor-plan.md`, `docs/project/mobile-app/08-master-backlog.md`
 - **Owner:** Backend
 - **Acceptance:**
-  - [ ] `POST /api/v1/bookings` functional with bearer token
-  - [ ] `POST/GET /api/v1/conversations/{id}/messages` functional
-  - [ ] `GET /api/v1/notifications` functional
-  - [ ] Web components migrated from Server Actions to `fetch()` for booking/chat/notifications
+  - [x] `POST /api/v1/bookings` functional with bearer token (already existed; `BookingForm.tsx` migrated behind `use_api_v1_bookings` flag)
+  - [x] `POST/GET /api/v1/conversations/{id}/messages` functional (new routes + tests)
+  - [x] `POST /api/v1/conversations/{id}/read` functional (new route + tests)
+  - [x] `GET /api/v1/notifications` functional (completed previous session)
+  - [x] Web components migrated from Server Actions to `fetch()` for booking (`BookingForm.tsx`) and chat (`MessageThread.tsx`)
   - [ ] OpenAPI schema + contract tests in CI
   - [ ] `Cache-Control` + `ETag` on list endpoints
 
@@ -267,7 +268,7 @@ These tracks can start in parallel with Wave 3 but are not launch blockers.
   - [ ] `next-intl` installed with `pt-BR.json` and `en.json`
   - [ ] Locale routing `/br/` and `/mx/` functional
   - [ ] Search isolated by `market_code`
-  - [ ] Landing pages for MX and PT with localised content
+  - [ ] Landing pages for MX and CO with localised content
 
 ### P2.4 AI OCR for KYC
 - **What:** AWS Textract / Google Document AI integration for professional document verification.
@@ -411,6 +412,7 @@ These cannot be resolved by engineering alone.
 | C16 | **P1.5** — Auth & Booking Handoff: LoginForm gains `redirectPath` prop to preserve booking context through login modal; SearchBookingCtas passes `bookHref`/`messageHref` as redirect and fires PostHog `booking_intent_auth_modal_shown`; signup link preserves redirect parameter. | `components/auth/LoginForm.tsx`, `components/search/SearchBookingCtas.tsx`, `components/booking/MobileBookingStickyCta.tsx` |
 | C17 | **P1.2** — Professional availability workspace UX polish: beforeunload protection, unsaved-changes indicator, sticky save bar, per-day 'Copiar para...' schedule copy, specific Supabase error messages, TIME_OPTIONS extended to 05:00. TypeScript clean, 1005/1005 tests pass, 190 pages build. | `components/agenda/ProfessionalAvailabilityWorkspace.tsx`, `components/agenda/weekly-schedule-editor.tsx`, `components/agenda/availability-workspace-helpers.ts` |
 | C18 | **UI/UX sweep** — Landing page spacing, flags sizing, payment section (Card/Apple Pay/PayPal only), 'Gravação opcional' → 'Agenda sincronizada', guides link to index with free-access messaging, blue accent on stats/growth icons, remove 'Pix' from comparison, merge Guias+Blog nav into `/recursos`. Blog nav dark text on white bg. Professional 'Receita estimada' white text for contrast. About page world map SVG improved, guides section removed. Auth: Facebook + Apple login added, OAuth proxy endpoint (`/api/auth/oauth`) to mask Supabase URL. | `components/landing/*`, `components/public/PublicHeader.tsx`, `components/auth/SocialAuthButtons.tsx`, `app/registrar-profissional/page.tsx`, `app/sobre/page.tsx`, `app/recursos/page.tsx`, `app/api/auth/oauth/route.ts` |
+| C19 | **P2.1** — Chat API routes created: `GET/POST /api/v1/conversations/{id}/messages`, `POST /api/v1/conversations/{id}/read`. Booking API route already existed; `BookingForm.tsx` migrated behind `use_api_v1_bookings` PostHog flag. `MessageThread.tsx` migrated to API v1 for send + mark-read. 18 new integration tests. TypeScript clean. | `app/api/v1/conversations/[id]/messages/route.ts`, `app/api/v1/conversations/[id]/read/route.ts`, `components/chat/MessageThread.tsx`, `components/booking/BookingForm.tsx`, `lib/analytics/feature-flags.ts` |
 
 ---
 

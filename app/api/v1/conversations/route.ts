@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  return NextResponse.json({ data: result.data.conversations })
+  return NextResponse.json({ success: true, data: result.data })
 }
 
 export async function POST(request: NextRequest) {

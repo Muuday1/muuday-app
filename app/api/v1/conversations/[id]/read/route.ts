@@ -9,8 +9,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params
-  Sentry.addBreadcrumb({ category: 'chat', message: `PATCH /api/v1/conversations/${id}/read`, level: 'info' })
+  const { id: conversationId } = await params
+  Sentry.addBreadcrumb({
+    category: 'chat',
+    message: `PATCH /api/v1/conversations/${conversationId}/read`,
+    level: 'info',
+  })
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,15 +23,16 @@ export async function PATCH(
   }
 
   const ip = getClientIp(request)
-  const rl = await rateLimit('apiV1MessagesRead', ip)
+  const rl = await rateLimit('apiV1ConversationRead', ip)
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }
 
-  const result = await markConversationAsRead(supabase, user.id, id)
+  const result = await markConversationAsRead(supabase, user.id, conversationId)
+
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  return NextResponse.json({ data: result.data })
+  return NextResponse.json({ success: true, data: result.data })
 }

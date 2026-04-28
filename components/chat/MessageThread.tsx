@@ -4,8 +4,31 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { Send, Loader2 } from 'lucide-react'
-import { sendMessageAction, getMessagesAction, markConversationAsReadAction } from '@/lib/actions/chat'
 import { createClient } from '@/lib/supabase/client'
+
+async function sendMessageViaApi(conversationId: string, content: string) {
+  const res = await fetch(`/api/v1/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    return { success: false as const, error: data.error || 'Erro ao enviar mensagem.' }
+  }
+  return {
+    success: true as const,
+    data: { messageId: data.data.messageId as string, sentAt: data.data.sentAt as string },
+  }
+}
+
+async function markAsReadViaApi(conversationId: string) {
+  try {
+    await fetch(`/api/v1/conversations/${conversationId}/read`, { method: 'PATCH' })
+  } catch {
+    // fail silently
+  }
+}
 
 interface Message {
   id: string
@@ -66,7 +89,7 @@ export function MessageThread({
             )
           })
           // Mark as read since user is actively viewing the thread
-          void markConversationAsReadAction(conversationId)
+          void markAsReadViaApi(conversationId)
         },
       )
       .subscribe()
@@ -78,7 +101,7 @@ export function MessageThread({
 
   // Also mark as read on mount (in case user navigated here with unread messages)
   useEffect(() => {
-    void markConversationAsReadAction(conversationId)
+    void markAsReadViaApi(conversationId)
   }, [conversationId])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -100,7 +123,7 @@ export function MessageThread({
     setMessages(prev => [...prev, optimisticMessage])
     setInput('')
 
-    const result = await sendMessageAction(conversationId, content)
+    const result = await sendMessageViaApi(conversationId, content)
 
     if (result.success) {
       setMessages(prev =>

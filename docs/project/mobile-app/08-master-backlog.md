@@ -95,9 +95,9 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 2.1 | **Extrair booking service** — Mover lógica de `lib/actions/booking.ts` (824 linhas) para `lib/services/booking/create-booking.ts`. Criar `POST /api/v1/bookings`. | `📱 APP` `🔀 BOTH` `⛔ BLOCKS` app mobile | 4 dias | Backend | 🔲 |
-| 2.2 | **Extrair chat service** — Mover `lib/actions/chat.ts` para `lib/services/chat/*.ts`. Criar `POST/GET /api/v1/conversations/{id}/messages`. | `📱 APP` `🔀 BOTH` | 2 dias | Backend | 🔲 |
-| 2.3 | **Extrair notification service** — Mover `lib/actions/notifications.ts` para `lib/services/notifications/*.ts`. Criar `GET /api/v1/notifications`. | `📱 APP` `🔀 BOTH` | 1 dia | Backend | 🔲 |
+| 2.1 | **Extrair booking service** — Mover lógica de `lib/actions/booking.ts` (824 linhas) para `lib/services/booking/create-booking.ts`. Criar `POST /api/v1/bookings`. | `📱 APP` `🔀 BOTH` `⛔ BLOCKS` app mobile | 4 dias | Backend | ✅ |
+| 2.2 | **Extrair chat service** — Mover `lib/actions/chat.ts` para `lib/services/chat/*.ts`. Criar `POST/GET /api/v1/conversations/{id}/messages` + `POST /api/v1/conversations/{id}/read`. | `📱 APP` `🔀 BOTH` | 2 dias | Backend | ✅ |
+| 2.3 | **Extrair notification service** — Mover `lib/actions/notifications.ts` para `lib/services/notifications/*.ts`. Criar `GET /api/v1/notifications`. | `📱 APP` `🔀 BOTH` | 1 dia | Backend | ✅ |
 | 2.4 | **Criar `GET /api/v1/users/me`** — Endpoint funcional com `createApiClient()` (cookies + Bearer). Retorna perfil + professional. Rate limit `apiV1UsersMe`. | `📱 APP` | 0.5 dia | Backend | ✅ |
 | 2.5 | **Criar `GET /api/v1/professionals/search`** — Cursor-based pagination. Usa RPC `search_public_professionals_pgtrgm` com `p_market`. Query params: `q`, `category`, `specialty`, `language`, `location`, `market`, `minPrice`, `maxPrice`, `cursor`, `limit`. Rate limit `apiV1ProfessionalsSearch`. | `📱 APP` `🌍 INT` `🔀 BOTH` | 2 dias | Backend | ✅ |
 | 2.6 | **Implementar AI OCR para KYC** — Estrutura criada: `lib/kyc/ocr-pipeline.ts`, `lib/kyc/scoring.ts`, `lib/kyc/providers/textract.ts`, `lib/kyc/providers/document-ai.ts`. Migration `068-kyc-ocr-fields.sql` adiciona `ocr_status`, `ocr_score`, `ocr_extracted_data`, `ocr_provider`, `ocr_checked_at`. Endpoint `POST /api/v1/kyc/scan` funcional. Providers AWS/Google são stubs (pendente instalação SDK). | `🌍 INT` `⛔ BLOCKS` scaling profissionais | 3 dias | Backend | 🔄 (estrutura pronta, SDKs pendentes) |
@@ -108,7 +108,7 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 2.9 | **Migrar web para chamar `/api/v1/*`** — Atualizar componentes de booking, chat, notificações para usar `fetch` em vez de Server Actions. | `📱 APP` | 2 dias | Frontend | 🔲 |
+| 2.9 | **Migrar web para chamar `/api/v1/*`** — Atualizar componentes de booking, chat, notificações para usar `fetch` em vez de Server Actions. | `📱 APP` | 2 dias | Frontend | 🔄 |
 | 2.10 | **Admin dashboard: mostrar dados OCR pré-preenchidos** — Adaptar review de profissionais para exibir score OCR e campos extraídos. | `🌍 INT` | 2 dias | Frontend | 🔲 |
 | 2.11 | **Migrar guias para Sanity** — Mover `lib/guides-data.ts` para CMS. Landing page consumir do Sanity. | `🌍 INT` | 2 dias | Frontend | 🔲 |
 
@@ -123,9 +123,10 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 **Sprint 2 — Entregáveis:**
 - [x] `GET /api/v1/users/me` funcional com bearer token
 - [x] `GET /api/v1/professionals/search` funcional com cursor-based pagination
-- [ ] `POST /api/v1/bookings` funcional com bearer token
-- [ ] `POST/GET /api/v1/conversations/{id}/messages` funcional
-- [ ] `GET /api/v1/notifications` funcional
+- [x] `POST /api/v1/bookings` funcional com bearer token
+- [x] `POST/GET /api/v1/conversations/{id}/messages` funcional
+- [x] `POST /api/v1/conversations/{id}/read` funcional
+- [x] `GET /api/v1/notifications` funcional
 - [x] AI OCR pipeline estruturado (endpoint + scoring + migration)
 - [ ] AI OCR com AWS Textract/Google Document AI em staging
 - [ ] Sanity CMS com schemas criados e guias migradas
