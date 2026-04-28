@@ -26,15 +26,15 @@ const TABS = [
     label: 'Atender',
     title: 'Videochamada integrada e segura',
     body: 'Sessões por vídeo direto na plataforma. Sem precisar de Zoom, Teams ou WhatsApp. Tudo em um só lugar.',
-    features: ['Videochamada HD integrada', 'Chat durante a sessão', 'Compartilhamento de tela', 'Gravação opcional'],
+    features: ['Videochamada HD integrada', 'Chat durante a sessão', 'Compartilhamento de tela', 'Agenda sincronizada'],
   },
   {
     key: 'pagar',
     icon: CreditCard,
     label: 'Pagar',
-    title: 'Pagamento seguro e parcelado',
-    body: 'Pague com cartão de crédito, débito ou Pix. O valor só é liberado para o profissional após a sessão.',
-    features: ['Cartão, Pix e boleto', 'Parcelamento em até 12x', 'Dinheiro protegido até a sessão', 'Nota fiscal automática'],
+    title: 'Pagamento seguro e simples',
+    body: 'Pague com cartão, Apple Pay ou PayPal. O valor só é liberado para o profissional após a sessão.',
+    features: ['Cartão, Apple Pay e PayPal', 'Dinheiro protegido até a sessão', 'Conversão de moeda automática', 'Nota fiscal automática'],
   },
 ]
 

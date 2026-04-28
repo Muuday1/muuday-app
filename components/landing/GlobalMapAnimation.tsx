@@ -54,26 +54,36 @@ export function GlobalMapAnimation() {
           }}
         />
 
-        {/* World map silhouette (simplified as decorative continents) */}
+        {/* World map with recognizable continent shapes */}
         <svg
-          className="absolute inset-0 h-full w-full opacity-[0.08]"
+          className="absolute inset-0 h-full w-full opacity-[0.12]"
           viewBox="0 0 100 60"
           fill="none"
           preserveAspectRatio="none"
         >
-          {/* Americas */}
+          {/* North America */}
           <path
-            d="M18 15 L22 12 L26 14 L28 18 L25 22 L28 28 L26 35 L22 40 L20 50 L18 58 L14 55 L12 48 L14 40 L12 32 L14 24 L16 18 Z"
+            d="M8 18 L12 14 L18 12 L24 14 L28 18 L26 24 L28 28 L24 32 L20 30 L16 32 L12 28 L10 24 L8 20 Z"
             fill="white"
           />
-          {/* Europe/Africa */}
+          {/* South America */}
           <path
-            d="M42 18 L46 16 L50 18 L52 22 L50 26 L54 28 L56 32 L54 38 L50 42 L48 48 L44 50 L42 45 L44 38 L42 32 L44 26 L42 22 Z"
+            d="M22 36 L26 34 L30 36 L32 42 L30 50 L26 56 L22 54 L20 48 L18 42 L20 38 Z"
+            fill="white"
+          />
+          {/* Europe */}
+          <path
+            d="M44 20 L48 18 L52 20 L54 24 L52 28 L48 30 L44 28 L42 24 Z"
+            fill="white"
+          />
+          {/* Africa */}
+          <path
+            d="M44 32 L48 30 L52 32 L54 38 L52 46 L48 52 L44 50 L42 44 L40 38 L42 34 Z"
             fill="white"
           />
           {/* Asia */}
           <path
-            d="M58 16 L64 14 L72 16 L78 20 L82 26 L80 32 L76 36 L70 34 L64 32 L60 28 L58 22 Z"
+            d="M56 16 L62 14 L70 16 L78 20 L84 26 L82 32 L78 36 L72 34 L66 32 L60 28 L56 22 Z"
             fill="white"
           />
           {/* Australia */}

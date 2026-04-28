@@ -72,7 +72,7 @@ export function EarningsCalculator() {
         {/* Result */}
         <div className="rounded-md bg-slate-900 p-5 text-center">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Receita estimada</p>
-          <p className="mt-1 font-display text-3xl font-black text-[#9FE870]">
+          <p className="mt-1 font-display text-3xl font-black text-white">
             R$ {monthlyRevenue.toLocaleString('pt-BR')}
             <span className="text-lg font-bold text-slate-400">/mês</span>
           </p>

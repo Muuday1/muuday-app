@@ -34,8 +34,7 @@ function useNavItems(): NavItem[] {
     { href: '/', label: t('header.nav.home') },
     { href: '/buscar', label: t('header.nav.search') },
     { href: '/registrar-profissional', label: t('header.nav.register') },
-    { href: '/guias', label: t('header.nav.guides') },
-    { href: '/blog', label: t('header.nav.blog') },
+    { href: '/recursos', label: t('header.nav.resources') },
     { href: '/sobre', label: t('header.nav.about') },
   ]
 }
@@ -176,11 +175,18 @@ export function PublicHeader({
 
   function navItemClass(href: string) {
     const isActive = pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
+    if (isDarkHeader) {
+      return `whitespace-nowrap text-sm font-semibold transition ${
+        isActive
+          ? 'text-white'
+          : 'text-white/80 hover:text-white'
+      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-md px-2 py-1`
+    }
     return `whitespace-nowrap text-sm font-semibold transition ${
       isActive
-        ? 'text-white'
-        : 'text-white/80 hover:text-white'
-    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-md px-2 py-1`
+        ? 'text-[#3d6b1f]'
+        : 'text-slate-600 hover:text-slate-900'
+    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/30 rounded-md px-2 py-1`
   }
 
   const navItems = useNavItems()
@@ -191,7 +197,7 @@ export function PublicHeader({
     return item
   })
 
-  const isDarkHeader = pathname === '/' || pathname === '/registrar-profissional' || pathname.startsWith('/guias')
+  const isDarkHeader = pathname === '/' || pathname === '/registrar-profissional' || pathname.startsWith('/guias') || pathname === '/recursos'
 
   return (
     <header

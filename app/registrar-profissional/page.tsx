@@ -124,7 +124,7 @@ const UPCOMING = [
 const COMPARISON = [
   { traditional: 'Sua cidade', muuday: '50+ países' },
   { traditional: 'WhatsApp manual', muuday: 'Automática com conversão de fuso' },
-  { traditional: 'Boleto, atraso, inadimplência', muuday: 'Cartão/Pix, protegido, na conta' },
+  { traditional: 'Boleto, atraso, inadimplência', muuday: 'Cartão seguro, na conta' },
   { traditional: 'Zoom pessoal', muuday: 'Videochamada HD integrada' },
   { traditional: 'Indicação boca a boca', muuday: 'Busca pública + filtros' },
 ]
@@ -296,8 +296,8 @@ export default async function RegistrarProfissionalPage() {
               return (
                 <StaggerItem key={stat.label}>
                   <div className="group flex flex-col items-center text-center">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#9FE870] to-emerald-500 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
-                      <Icon className="h-8 w-8 text-slate-900" />
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
+                      <Icon className="h-8 w-8 text-white" />
                     </div>
                     <p className="mt-4 font-display text-4xl font-black text-slate-900">
                       {stat.prefix && <span>{stat.prefix}</span>}

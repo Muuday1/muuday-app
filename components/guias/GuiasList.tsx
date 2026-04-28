@@ -90,7 +90,7 @@ export default function GuiasList() {
       </FadeIn>
 
       {/* Category filters */}
-      <section className="border-b border-slate-200 bg-white">
+      <section className="border-b border-slate-200 bg-white mt-8">
         <div className="mu-shell py-6">
           <FadeIn direction="up">
             <div className="flex flex-wrap items-center gap-2">

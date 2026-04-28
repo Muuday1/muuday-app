@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, BookOpen, FileText, Star, Video } from 'lucide-react'
+import { ArrowRight, BookOpen, Star, Video } from 'lucide-react'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { FaqAccordion } from '@/components/landing/FaqAccordion'
 import { FadeIn } from '@/components/landing/FadeIn'
@@ -18,7 +18,7 @@ import { TestimonialCarousel } from '@/components/landing/TestimonialCarousel'
 import { ParallaxSection } from '@/components/landing/ParallaxSection'
 import { WorksEverywhereTabs } from '@/components/landing/WorksEverywhereTabs'
 import { SearchCard } from '@/components/landing/SearchCard'
-import { GUIDES, GUIDE_CATEGORIES } from '@/lib/guides-data'
+import { GUIDES } from '@/lib/guides-data'
 import {
   HERO_AVATARS,
   STATS,
@@ -124,7 +124,7 @@ export function LandingPage() {
               return (
                 <StaggerItem key={stat.label}>
                   <div className="group flex flex-col items-center text-center">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
                       <Icon className="h-8 w-8 text-white" />
                     </div>
                     <p className="mt-4 font-display text-4xl font-black text-slate-900">
@@ -321,7 +321,7 @@ export function LandingPage() {
       </section>
 
       {/* ========== TESTIMONIALS (Wise style big cards) ========== */}
-      <section className="mu-section bg-[#f2f4f7]">
+      <section className="mu-section bg-[#f2f4f7] pt-20 md:pt-28">
         <div className="mu-shell">
           <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
@@ -363,7 +363,7 @@ export function LandingPage() {
                 key={country}
                 className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#9FE870] hover:shadow-sm"
               >
-                <span>{flag}</span>
+                <span className="text-base leading-none">{flag}</span>
                 <span className="font-medium">{country}</span>
               </div>
             ))}
@@ -411,49 +411,23 @@ export function LandingPage() {
                 Guias para brasileiros no exterior
               </h2>
               <p className="mt-4 text-lg text-slate-600">
-                De CPF a aposentadoria, de impostos a imoveis. Tudo o que voce precisa saber para viver bem fora do Brasil.
+                De CPF a aposentadoria, de impostos a imóveis. Acesso gratuito a todos os guias —
+                sem cadastro, sem pagamento.
               </p>
             </div>
           </ScrollReveal>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {GUIDES.slice(0, 6).map((guide) => {
-              const cat = GUIDE_CATEGORIES.find((c) => c.id === guide.category)
-              return (
-                <Link
-                  key={guide.slug}
-                  href={`/guias/${guide.slug}`}
-                  className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-[#9FE870] hover:shadow-md"
-                >
-                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#9FE870]/20 text-slate-900">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-sm font-bold leading-snug text-slate-900 transition group-hover:text-[#4a7c2f]">
-                    {guide.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
-                    {guide.excerpt}
-                  </p>
-                  <div className="mt-auto flex items-center justify-between pt-4">
-                    <span className="text-xs font-medium text-slate-400">{guide.readTime}</span>
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[#4a7c2f] transition group-hover:gap-2">
-                      Ler
-                      <ArrowRight className="h-3 w-3" />
-                    </span>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <Link
               href="/guias"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
             >
-              Ver todos os {GUIDES.length} guias
-              <ArrowRight className="h-4 w-4" />
+              Acessar todos os {GUIDES.length} guias gratuitos
+              <ArrowRight className="h-5 w-5" />
             </Link>
+            <p className="mt-3 text-sm text-slate-500">
+              Artigos, checklists e passo a passo escritos por especialistas.
+            </p>
           </div>
         </div>
       </section>
