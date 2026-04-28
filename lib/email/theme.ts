@@ -10,10 +10,10 @@ export const THEME = {
   from:           'Muuday <noreply@muuday.com>',
 
   // Brand colors
-  primary:        '#22c55e',   // green — hero bg, CTA button, logo, links
-  primaryLight:   '#dcfce7',   // light green — highlight box bg, feature icons
-  primaryDark:    '#14532d',   // dark green — highlight box text
-  primaryMid:     '#22c55e',   // border accent on highlight box
+  primary:        '#9FE870',   // brand green — hero bg, CTA button, logo, links
+  primaryLight:   '#f6fef0',   // light green — highlight box bg, feature icons
+  primaryDark:    '#2d5016',   // dark green — highlight box text
+  primaryMid:     '#8ed85f',   // border accent on highlight box
 
   // Backgrounds
   pageBg:         '#f8fafc',   // outer page background

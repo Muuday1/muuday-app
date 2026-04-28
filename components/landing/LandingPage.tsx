@@ -18,6 +18,7 @@ import { TestimonialCarousel } from '@/components/landing/TestimonialCarousel'
 import { ParallaxSection } from '@/components/landing/ParallaxSection'
 import { WorksEverywhereTabs } from '@/components/landing/WorksEverywhereTabs'
 import { SearchCard } from '@/components/landing/SearchCard'
+import { HeroIllustration } from '@/components/landing/HeroIllustration'
 import { GUIDES, GUIDE_CATEGORIES } from '@/lib/guides-data'
 import {
   HERO_AVATARS,
@@ -34,10 +35,10 @@ export function LandingPage() {
   return (
     <PublicPageLayout>
       {/* ========== HERO ========== */}
-      <section className="relative overflow-hidden bg-[#9FE870]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#9FE870] via-[#8ed85f] to-[#6bb346]">
         {/* Animated blur blobs */}
         <BlurBlob className="-top-20 -right-20 h-96 w-96" color="bg-white/30" delay={0} duration={10} />
-        <BlurBlob className="bottom-0 left-0 h-72 w-72" color="bg-[#2563eb]/15" delay={1} duration={12} />
+        <BlurBlob className="bottom-0 left-0 h-72 w-72" color="bg-secondary-500/20" delay={1} duration={12} />
         <BlurBlob className="top-1/3 right-1/4 h-48 w-48" color="bg-[#a3e635]/40" delay={2} duration={8} />
         <BlurBlob className="top-10 left-1/4 h-32 w-32" color="bg-white/20" delay={0.5} duration={9} />
 
@@ -47,56 +48,64 @@ export function LandingPage() {
         <Sparkle className="absolute bottom-32 left-[25%]" size={14} delay={0.8} />
         <Sparkle className="absolute top-1/2 right-[10%]" size={10} delay={1.8} color="#fff" />
 
-        <div className="mu-shell relative pt-16 pb-8 md:pt-24 md:pb-12 lg:pt-32 lg:pb-16">
-          <FadeIn direction="up">
-            <div className="mx-auto max-w-4xl text-center">
-              <h1 className="font-display text-4xl font-black uppercase leading-[0.92] tracking-tight text-slate-900 sm:text-5xl md:text-6xl lg:text-7xl">
-                Especialistas brasileiros, onde você estiver
-              </h1>
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-800 md:text-xl">
-                Psicólogos, advogados, contadores, nutricionistas do Brasil — atendendo você onde quer que esteja. No seu idioma, no seu fuso horário, com segurança.
-              </p>
-              <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <MagneticButton strength={0.2}>
-                  <Link
-                    href="/buscar"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
-                  >
-                    Encontrar profissionais
-                    <ArrowRight className="h-5 w-5" />
-                  </Link>
-                </MagneticButton>
-                <Link
-                  href="/registrar-profissional"
-                  className="inline-flex items-center justify-center gap-2 text-base font-bold text-slate-900 underline underline-offset-4 transition hover:text-slate-700"
-                >
-                  Quero atender pela Muuday
-                </Link>
-              </div>
-              <div className="mt-10 flex items-center justify-center gap-3">
-                <div className="flex -space-x-3">
-                  {[
-                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
-                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-                    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80',
-                    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80',
-                  ].map((src, i) => (
-                    <Image
-                      key={i}
-                      src={src}
-                      alt=""
-                      width={48}
-                      height={48}
-                      className="h-10 w-10 rounded-full border-2 border-[#9FE870] object-cover"
-                    />
-                  ))}
-                </div>
-                <p className="text-sm font-medium text-slate-800">
-                  <span className="font-bold text-slate-900">+200 profissionais</span> ativos
+        <div className="mu-shell relative pt-16 pb-8 md:pt-24 md:pb-12 lg:pt-28 lg:pb-16">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+            <FadeIn direction="up">
+              <div className="text-center lg:text-left">
+                <h1 className="font-display text-4xl font-black uppercase leading-[0.92] tracking-tight text-slate-900 sm:text-5xl md:text-6xl lg:text-[4rem] xl:text-7xl">
+                  Especialistas brasileiros, onde você estiver
+                </h1>
+                <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800 md:text-xl lg:mx-0">
+                  Psicólogos, advogados, contadores, nutricionistas do Brasil — atendendo você onde quer que esteja. No seu idioma, no seu fuso horário, com segurança.
                 </p>
+                <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+                  <MagneticButton strength={0.2}>
+                    <Link
+                      href="/buscar"
+                      className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
+                    >
+                      Encontrar profissionais
+                      <ArrowRight className="h-5 w-5" />
+                    </Link>
+                  </MagneticButton>
+                  <Link
+                    href="/registrar-profissional"
+                    className="inline-flex items-center justify-center gap-2 text-base font-bold text-slate-900 underline underline-offset-4 transition hover:text-slate-700"
+                  >
+                    Quero atender pela Muuday
+                  </Link>
+                </div>
+                <div className="mt-10 flex items-center justify-center gap-3 lg:justify-start">
+                  <div className="flex -space-x-3">
+                    {[
+                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
+                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
+                      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80',
+                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80',
+                    ].map((src, i) => (
+                      <Image
+                        key={i}
+                        src={src}
+                        alt=""
+                        width={48}
+                        height={48}
+                        className="h-10 w-10 rounded-full border-2 border-[#9FE870] object-cover"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm font-medium text-slate-800">
+                    <span className="font-bold text-slate-900">+200 profissionais</span> ativos
+                  </p>
+                </div>
               </div>
-            </div>
-          </FadeIn>
+            </FadeIn>
+
+            <FadeIn direction="left" delay={0.2}>
+              <div className="hidden lg:block">
+                <HeroIllustration />
+              </div>
+            </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -124,10 +133,10 @@ export function LandingPage() {
               return (
                 <StaggerItem key={stat.label}>
                   <div className="group flex flex-col items-center text-center">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
-                      <Icon className="h-8 w-8 text-white" />
+                    <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-[#9FE870] to-emerald-500 shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg]">
+                      <Icon className="h-8 w-8 text-slate-900" />
                     </div>
-                    <p className="mt-4 font-display text-4xl font-black text-slate-900">
+                    <p className="mt-4 font-display text-4xl font-black text-slate-900 md:text-5xl">
                       <AnimatedCounter target={stat.value} suffix={stat.suffix} duration={2} />
                     </p>
                     <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
@@ -140,7 +149,7 @@ export function LandingPage() {
       </section>
 
       {/* ========== WHY SECTION (green, bold headline) ========== */}
-      <section className="relative mu-section bg-[#9FE870] overflow-hidden">
+      <section className="relative mu-section bg-gradient-to-b from-[#9FE870] to-[#8ed85f] overflow-hidden">
         <DotPattern className="opacity-30" dotColor="#0f172a" spacing={32} dotSize={2} />
 
         <div className="mu-shell relative">
@@ -156,7 +165,7 @@ export function LandingPage() {
                 <MagneticButton strength={0.15}>
                   <Link
                     href="/buscar"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-8 py-4 text-base font-bold text-white transition hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20"
                   >
                     Buscar agora
                     <ArrowRight className="h-5 w-5" />
@@ -174,7 +183,7 @@ export function LandingPage() {
 
           {/* Comparison table style */}
           <ScrollReveal variant="scale" delay={0.15}>
-            <div className="mx-auto mt-14 max-w-xl overflow-hidden rounded-3xl bg-white shadow-xl">
+            <div className="mx-auto mt-14 max-w-xl overflow-hidden rounded-xl bg-white shadow-xl">
               <div className="flex items-center justify-between bg-slate-900 px-6 py-4">
                 <span className="text-sm font-semibold text-white/70 line-through">Busca tradicional</span>
                 <ArrowRight className="h-4 w-4 text-white/30" />
@@ -202,7 +211,7 @@ export function LandingPage() {
       </section>
 
       {/* Wave divider */}
-      <div className="relative h-16 bg-[#9FE870]">
+      <div className="relative h-16 bg-gradient-to-b from-[#8ed85f] to-[#9FE870]">
         <WaveDivider fillColor="#ffffff" flip />
       </div>
 
@@ -222,7 +231,7 @@ export function LandingPage() {
               {FOR_WHO.map((item, i) => (
                 <StaggerItem key={item.title}>
                   <ScrollReveal variant="scale" delay={i * 0.1}>
-                    <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white transition hover:shadow-2xl hover:shadow-slate-900/10 hover:-translate-y-1">
+                    <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:shadow-2xl hover:shadow-slate-900/10 hover:-translate-y-1">
                       <div className="aspect-[4/3] overflow-hidden">
                         <Image
                           src={item.image}
@@ -246,7 +255,7 @@ export function LandingPage() {
       </section>
 
       {/* ========== HOW IT WORKS ========== */}
-      <section className="relative mu-section bg-[#9FE870] overflow-hidden">
+      <section className="relative mu-section bg-gradient-to-b from-[#9FE870] to-[#8ed85f] overflow-hidden">
         <DotPattern className="opacity-20" dotColor="#0f172a" spacing={40} dotSize={2} />
 
         <div className="mu-shell relative">
@@ -265,7 +274,7 @@ export function LandingPage() {
                 const isLast = index === HOW_STEPS.length - 1
                 return (
                   <ScrollReveal key={item.step} variant="slideUp" delay={index * 0.15}>
-                    <div className="relative rounded-3xl bg-white p-8 shadow-sm transition hover:shadow-xl hover:shadow-slate-900/10 hover:-translate-y-1">
+                    <div className="relative rounded-xl bg-white p-8 shadow-sm transition hover:shadow-xl hover:shadow-slate-900/10 hover:-translate-y-1">
                     {/* Connector line */}
                     {!isLast && (
                       <div className="pointer-events-none absolute top-16 -right-3 hidden h-0.5 w-6 md:block">
@@ -279,9 +288,9 @@ export function LandingPage() {
                     <span className="absolute right-6 top-6 font-display text-7xl font-black text-slate-100">
                       {item.step}
                     </span>
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg] ${
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-xl shadow-lg transition group-hover:scale-110 group-hover:rotate-[5deg] ${
                       item.color === 'green' ? 'bg-gradient-to-br from-[#9FE870] to-emerald-500 text-slate-900' :
-                      item.color === 'blue' ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white' :
+                      item.color === 'blue' ? 'bg-gradient-to-br from-secondary-500 to-secondary-700 text-white' :
                       'bg-gradient-to-br from-slate-800 to-slate-900 text-white'
                     }`}>
                       <Icon className="h-6 w-6" />
@@ -298,7 +307,7 @@ export function LandingPage() {
       </section>
 
       {/* Wave divider */}
-      <div className="relative h-16 bg-[#9FE870]">
+      <div className="relative h-16 bg-gradient-to-b from-[#8ed85f] to-[#9FE870]">
         <WaveDivider fillColor="#ffffff" flip />
       </div>
 
@@ -361,7 +370,7 @@ export function LandingPage() {
             {COUNTRIES.map(([flag, country]) => (
               <div
                 key={country}
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#9FE870] hover:shadow-sm"
+                className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:border-[#9FE870] hover:shadow-sm"
               >
                 <span>{flag}</span>
                 <span className="font-medium">{country}</span>
@@ -383,7 +392,7 @@ export function LandingPage() {
               <MagneticButton strength={0.15} className="mt-6 inline-block">
                 <Link
                   href="/ajuda"
-                  className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
+                  className="inline-flex items-center gap-2 rounded-md border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
                 >
                   Fale com a equipe
                   <ArrowRight className="h-4 w-4" />
@@ -403,7 +412,7 @@ export function LandingPage() {
         <div className="mu-shell">
           <ScrollReveal variant="slideUp">
             <div className="mx-auto max-w-2xl text-center">
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-600">
+              <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-600">
                 <BookOpen className="h-3.5 w-3.5" />
                 Base de conhecimento
               </span>
@@ -423,12 +432,12 @@ export function LandingPage() {
                 <Link
                   key={guide.slug}
                   href={`/guias/${guide.slug}`}
-                  className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-[#9FE870] hover:shadow-md"
+                  className="group flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-[#9FE870] hover:shadow-md"
                 >
-                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#9FE870]/20 text-slate-900">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#9FE870]/20 text-slate-900">
                     <FileText className="h-5 w-5" />
                   </div>
-                  <h3 className="text-sm font-bold leading-snug text-slate-900 transition group-hover:text-[#4a7c2f]">
+                  <h3 className="text-sm font-bold leading-snug text-slate-900 transition group-hover:text-[#3d6b1f]">
                     {guide.title}
                   </h3>
                   <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
@@ -436,7 +445,7 @@ export function LandingPage() {
                   </p>
                   <div className="mt-auto flex items-center justify-between pt-4">
                     <span className="text-xs font-medium text-slate-400">{guide.readTime}</span>
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[#4a7c2f] transition group-hover:gap-2">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[#3d6b1f] transition group-hover:gap-2">
                       Ler
                       <ArrowRight className="h-3 w-3" />
                     </span>
@@ -449,7 +458,7 @@ export function LandingPage() {
           <div className="mt-8 text-center">
             <Link
               href="/guias"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-md border-2 border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-900 transition hover:border-[#9FE870] hover:text-slate-700 hover:shadow-md"
             >
               Ver todos os {GUIDES.length} guias
               <ArrowRight className="h-4 w-4" />
@@ -459,12 +468,12 @@ export function LandingPage() {
       </section>
 
       {/* ========== FINAL CTA ========== */}
-      <section className="relative mu-section bg-[#9FE870] overflow-hidden">
+      <section className="relative mu-section bg-gradient-to-br from-[#9FE870] via-[#8ed85f] to-[#6bb346] overflow-hidden">
         <DotPattern className="opacity-20" dotColor="#0f172a" spacing={48} dotSize={2} />
 
         <div className="mu-shell relative">
           <ScrollReveal variant="scale">
-            <div className="relative mx-auto max-w-4xl overflow-hidden rounded-[2.5rem] bg-slate-900 px-8 py-16 text-center md:px-16 md:py-24">
+            <div className="relative mx-auto max-w-4xl overflow-hidden rounded-2xl bg-slate-900 px-8 py-16 text-center md:px-16 md:py-24">
               {/* Decorative rings */}
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.08]">
                 <div className="h-80 w-80 rounded-full border border-white/30" />
@@ -493,7 +502,7 @@ export function LandingPage() {
                   <MagneticButton strength={0.2}>
                     <Link
                       href="/buscar"
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#9FE870] px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-xl hover:shadow-[#9FE870]/25"
+                      className="inline-flex items-center justify-center gap-2 rounded-md bg-[#9FE870] px-8 py-4 text-base font-bold text-slate-900 transition hover:bg-[#8fd65f] hover:shadow-xl hover:shadow-[#9FE870]/25"
                     >
                       Ver especialistas
                       <ArrowRight className="h-5 w-5" />
@@ -501,7 +510,7 @@ export function LandingPage() {
                   </MagneticButton>
                   <Link
                     href="/cadastro?role=profissional"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/20 px-8 py-4 text-base font-bold text-white transition hover:border-white/40 hover:bg-white/5"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border-2 border-white/20 px-8 py-4 text-base font-bold text-white transition hover:border-white/40 hover:bg-white/5"
                   >
                     Criar perfil profissional
                   </Link>
