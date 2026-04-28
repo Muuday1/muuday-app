@@ -195,10 +195,10 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 - **Source:** `docs/product/IMPLEMENTATION-ROADMAP.md` Phase 8, `docs/product/journeys/operator-case-resolution.md`
 - **Owner:** Frontend
 - **Acceptance:**
-  - [ ] Case queue page with filtering, sorting, SLA indicators
-  - [ ] Case detail view with evidence panel, timeline, message thread
-  - [ ] Decision form with approval/rejection/reason capture
-  - [ ] Auto-creation from disputed bookings, no-shows, and trust flags
+  - [x] Case queue page with filtering, sorting, SLA indicators
+  - [x] Case detail view with evidence panel, timeline, message thread
+   - [x] Decision form with approval/rejection/reason capture
+  - [x] Auto-creation from disputed bookings, no-shows, and trust flags
 
 ### P1.10 Review Moderation Queue Enhancement (REVIEW-01)
 - **What:** Structured moderation UI with rejection reasons, batch approve/reject, auto-flags.

@@ -29,12 +29,13 @@ Execute in order. Keep changes batchable, validated, and documented.
 10. ~~**Eligibility engine test coverage**~~ ✅ **Done** — 23 tests for `lib/payments/eligibility/engine.ts`. Test suite: 615/66.
 11. ~~**Debt monitor test coverage**~~ ✅ **Done** — 20 tests for `lib/payments/debt/monitor.ts`. Test suite: 635/67.
 12. ~~**Payment core modules test coverage**~~ ✅ **Done** — 100 tests across 5 files: bigint-constants (18), format-utils (26), ledger/accounts (20), metrics (15), subscription/manager (21). Test suite: 736/72.
-13. ~~**Configure Vercel env vars**~~ ✅ **Done** — All 9 production secrets verified via `vercel env ls`: `REVOLUT_PRIVATE_KEY`, `REVOLUT_CLIENT_ID`, `REVOLUT_API_KEY`, `REVOLUT_REFRESH_TOKEN`, `REVOLUT_ACCOUNT_ID`, `TROLLEY_API_KEY`, `TROLLEY_API_SECRET`, `TROLLEY_WEBHOOK_SECRET`, `TROLLEY_WEBHOOK_URL`.
+13. ~~**Configure Vercel env vars**~~ ✅ **Done** — All 9 production secrets verified via `vercel env ls`.
 14. ~~**Fix `.env.local`**~~ ✅ **Done** — Removed duplicate empty `SUPABASE_DB_DIRECT_URL` and `SUPABASE_DB_WEBHOOK_SECRET` lines. Added missing `REVOLUT_REFRESH_TOKEN` placeholder.
 15. ~~**Booking engine test coverage**~~ ✅ **Done** — 49 tests across 3 files: slot-locks (10), recurrence-engine (15), availability-engine (24). Test suite: 785/75.
 16. ~~**Booking support modules test coverage**~~ ✅ **Done** — 60 tests across 5 files: with-timeout (4), request-booking-state-machine (17), recurring-deadlines (14), availability-checks (15), slot-validation (10). Test suite: 845/80.
-17. ~~**Booking engine final support modules test coverage**~~ ✅ **Done** — 46 tests across 5 files: request-eligibility (6), request-helpers (8), external-calendar-conflicts (5), payload-builders (7), create-booking (18). Test suite: 891/85. Booking engine now fully covered (types.ts excluded as pure type definitions).
-18. ~~**Onboarding review loop test coverage**~~ ✅ **Done** — 47 tests across 4 files: admin-service (21), submit-review (7), review-decision API route (6), submit-review API route (13). Test suite: 938/89.
+17. ~~**Booking engine final support modules test coverage**~~ ✅ **Done** — 46 tests across 5 files: request-eligibility (6), request-helpers (8), external-calendar-conflicts (5), payload-builders (7), create-booking (18). Test suite: 891/85.
+18. ~~**Onboarding review loop test coverage**~~ ✅ **Done** — 47 tests across 4 files. Test suite: 938/89.
+19. ~~**Operator Case Resolution System (ADMIN-01)**~~ ✅ **Done** — Migration 082 extends cases table with priority, assigned_to, sla_deadline. `/admin/casos` queue page with filtering, sorting, SLA indicators. `/admin/casos/[caseId]` detail with evidence, timeline, messages, decision form. Auto-creation from no-show detection. 12 new tests. Test suite: 950/89.
 
 ## Pre-Wave-3 hardening
 

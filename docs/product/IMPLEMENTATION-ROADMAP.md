@@ -417,16 +417,18 @@ Phase N: [Name]
 - **Files:**
   - `app/(app)/admin/casos/page.tsx`
   - `app/(app)/admin/casos/[caseId]/page.tsx`
-  - `components/admin/CaseQueue.tsx`
-  - `components/admin/CaseDecisionForm.tsx`
-  - `lib/cases/auto-create.ts`
+  - `components/admin/CaseQueueClient.tsx`
+  - `components/admin/CaseDetailClient.tsx`
+  - `db/sql/migrations/082-case-resolution-enhancement.sql`
+  - `lib/disputes/dispute-service.ts`
 - **Acceptance:**
-  - [ ] Cases table with filters, sorting, SLA tracking
-  - [ ] Case detail with evidence tabs
-  - [ ] Structured decision form per case type
-  - [ ] Auto-collect booking/session/payment evidence
-  - [ ] Communication templates for decisions
-- **Status:** 🔄 Backend complete — dispute/case system (migration `057`, `lib/actions/disputes.ts`, `cases` table with `case_messages` and `case_actions`). Admin UI at `/admin/casos` exists but may need enhancement.
+  - [x] Cases table with filters, sorting, SLA tracking
+  - [x] Case detail with evidence tabs
+  - [x] Structured decision form per case type
+  - [x] Auto-collect booking/session/payment evidence
+  - [x] Communication templates for decisions
+  - [x] Auto-creation from no-show detection
+- **Status:** ✅ Implemented — Migration 082 adds priority/assignment/SLA. Queue and detail pages built. Evidence auto-collected. No-show detection auto-creates cases. 950/89 tests.
 
 #### ADMIN-02: Admin Navigation Alignment ⭐ P2
 - **Source:** `journey-implementation-map.md` §ADMIN-02

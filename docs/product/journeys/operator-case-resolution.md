@@ -1,7 +1,8 @@
 # Journey: Operator Case Resolution
 
-**Status:** New canonical document  
-**Last updated:** 2026-04-19  
+**Status:** ✅ Implemented (P1.9 / ADMIN-01)  
+**Last updated:** 2026-04-27  
+**Implementation commit:** `83f8d5b`  
 **Scope:** End-to-end admin/ops experience for handling disputes, exceptions, and operational cases  
 **Actors:** Admin/Ops (operator), User (via evidence), Professional (via evidence), System  
 
