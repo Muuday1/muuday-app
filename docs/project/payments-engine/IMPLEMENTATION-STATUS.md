@@ -1,8 +1,8 @@
 # Muuday Payments Engine — Implementation Status
 
 > **Last Updated:** 2026-04-28
-> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — P0.3 complete (migration 081 verified, subscription tests added). Trolley API authentication fixed (HMAC-SHA256 `prsign`), sandbox E2E script passes 10/10, batch-first payout flow corrected.
-> **Last Commit:** `b19466d` — P0.3: Complete migration 081 verification (subscription tests + TS fixes)
+> **Status:** Phases 1–6.2 ✅ IMPLEMENTED — P0.3 complete. P0.2 partial: Stripe pay-in validated (15/15 sandbox tests), Trolley API validated (10/10 sandbox tests), Revolut blocked on expired token.
+> **Last Commit:** `f03595e` — P0.2: Revolut health check script, document token expiry blocker
 
 ---
 
@@ -122,6 +122,8 @@
 | Lint | ✅ PASS |
 | Next.js build | ✅ PASS (187 pages generated) |
 | Trolley sandbox onboarding | ✅ PASS — HMAC signing fixed, 10/10 sandbox tests pass |
+| Stripe sandbox pay-in | ✅ PASS — 15/15 sandbox tests (customer, PI create/confirm/capture, fee retrieval, refund) |
+| Revolut API health | ⏸️ BLOCKED — access token expired (401), refresh token empty. Requires operator re-auth. |
 | Payout batch ledger balance | ✅ Verified (debits = credits) |
 | Fee deduction math | ✅ Verified (100% to pro, debt deducted) |
 
