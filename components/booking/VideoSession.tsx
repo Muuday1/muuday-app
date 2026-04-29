@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, Loader2, Mic, MicOff, Video, VideoOff, Play } from 'lucide-react'
 import WaitingRoomGame from './WaitingRoomGame'
@@ -277,7 +278,9 @@ export default function VideoSession({
         unsubscribers.push(
           adapter.onEvent('error', (err) => {
             if (cancelledRef.current) return
-            console.error('[VideoSession] adapter error:', err)
+            Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+              tags: { area: 'video_session', context: 'adapter-error' },
+            })
           })
         )
 

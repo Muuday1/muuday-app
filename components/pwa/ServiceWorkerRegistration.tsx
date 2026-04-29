@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 
 async function syncPushSubscription(registration: ServiceWorkerRegistration) {
@@ -66,7 +67,9 @@ export function ServiceWorkerRegistration() {
         })
       })
       .catch((err) => {
-        console.error('[SW] Registration failed:', err)
+        Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+          tags: { area: 'service_worker_registration', context: 'register' },
+        })
       })
   }, [])
 

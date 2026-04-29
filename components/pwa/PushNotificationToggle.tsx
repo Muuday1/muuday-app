@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, BellOff, BellRing, Loader2, Send } from 'lucide-react'
 
@@ -80,7 +81,9 @@ export function PushNotificationToggle() {
         console.warn('[PushNotificationToggle] Subscribe API failed:', res.status)
       }
     } catch (err) {
-      console.error('[PushNotificationToggle] Subscribe error:', err)
+      Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+        tags: { area: 'push_notification_toggle', context: 'subscribe' },
+      })
     } finally {
       setLoading(false)
     }
@@ -103,7 +106,9 @@ export function PushNotificationToggle() {
 
       setSubscribed(false)
     } catch (err) {
-      console.error('[PushNotificationToggle] Unsubscribe error:', err)
+      Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+        tags: { area: 'push_notification_toggle', context: 'unsubscribe' },
+      })
     } finally {
       setLoading(false)
     }

@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -219,7 +220,10 @@ export default function ProfessionalSettingsWorkspace() {
     if (!userId) return
     const result = await updateProfileField(field, value)
     if (result.error) {
-      console.error(`[configuracoes] saveField error: ${result.error}`)
+      Sentry.captureMessage(`[configuracoes] saveField error: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'professional_settings_workspace', context: 'save-field' },
+      })
       return
     }
     setSavedField(field)

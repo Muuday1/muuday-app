@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Bell, Check, Lock } from 'lucide-react'
@@ -124,7 +125,10 @@ export function ProfileAccountSettings() {
 
     const result = await updateProfileField(field, value)
     if (result.error) {
-      console.error('[ProfileAccountSettings] saveField error:', result.error)
+      Sentry.captureMessage(`[ProfileAccountSettings] saveField error: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'profile_account_settings', context: 'save-field' },
+      })
       return
     }
     setSavedField(field)

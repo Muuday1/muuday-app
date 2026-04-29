@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -79,7 +80,9 @@ export default async function AdminTreasuryPage() {
         })),
       }
     } catch (e) {
-      console.error('[admin/treasury] failed to load treasury data:', e)
+      Sentry.captureException(e instanceof Error ? e : new Error(String(e)), {
+        tags: { area: 'admin_treasury_page', context: 'load-data' },
+      })
     }
   }
 

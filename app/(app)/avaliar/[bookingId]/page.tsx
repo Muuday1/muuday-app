@@ -1,5 +1,6 @@
 export const metadata = { title: 'Avaliar Sessão | Muuday' }
 
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
@@ -23,7 +24,9 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
     .single()
 
   if (bookingError) {
-    console.error('[avaliar] failed to load booking:', bookingError.message)
+    Sentry.captureException(bookingError, {
+      tags: { area: 'avaliar_page', context: 'booking-load' },
+    })
   }
 
   if (!booking) notFound()
@@ -42,7 +45,9 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
     .single()
 
   if (reviewError && !reviewError.message?.includes('0 rows')) {
-    console.error('[avaliar] failed to load existing review:', reviewError.message)
+    Sentry.captureException(reviewError, {
+      tags: { area: 'avaliar_page', context: 'review-load' },
+    })
   }
 
   const professional = booking.professionals as any

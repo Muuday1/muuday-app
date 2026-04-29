@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useState } from 'react'
 import {
   updateTaxonomyItem,
@@ -72,8 +73,10 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       sortOrder: maxOrder,
     })
     if (!result.success) {
-       
-      console.error('Falha ao adicionar subcategoria:', result.error)
+      Sentry.captureMessage(`Falha ao adicionar subcategoria: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'taxonomy_form', context: 'add-subcategory' },
+      })
     }
     setAddItem(null)
     setActionLoading(null)
@@ -93,8 +96,10 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       sortOrder: maxOrder,
     })
     if (!result.success) {
-       
-      console.error('Falha ao adicionar especialidade:', result.error)
+      Sentry.captureMessage(`Falha ao adicionar especialidade: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'taxonomy_form', context: 'add-specialty' },
+      })
     }
     setAddItem(null)
     setActionLoading(null)
@@ -117,8 +122,10 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       slug: editItem.slug,
     })
     if (!result.success) {
-       
-      console.error('Falha ao atualizar item de taxonomia:', result.error)
+      Sentry.captureMessage(`Falha ao atualizar item de taxonomia: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'taxonomy_form', context: 'update-item' },
+      })
     }
     setEditItem(null)
     setActionLoading(null)
@@ -136,8 +143,10 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
           : 'specialty'
     const result = await toggleTaxonomyActive(taxonomyType as TaxonomyType, id, currentActive)
     if (!result.success) {
-       
-      console.error('Falha ao alternar ativo:', result.error)
+      Sentry.captureMessage(`Falha ao alternar ativo: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'taxonomy_form', context: 'toggle-active' },
+      })
     }
     setActionLoading(null)
     reloadAll()
@@ -156,8 +165,10 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
       sortOrder: maxOrder,
     })
     if (!result.success) {
-       
-      console.error('Falha ao adicionar opção de serviço:', result.error)
+      Sentry.captureMessage(`Falha ao adicionar opção de serviço: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'taxonomy_form', context: 'add-service-option' },
+      })
     }
     setAddItem(null)
     setActionLoading(null)
@@ -168,8 +179,10 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
     setActionLoading(id)
     const result = await reviewTagSuggestion(id, status)
     if (!result.success) {
-       
-      console.error('Falha ao revisar tag:', result.error)
+      Sentry.captureMessage(`Falha ao revisar tag: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'taxonomy_form', context: 'review-tag' },
+      })
     }
     setActionLoading(null)
     reloadAll()
