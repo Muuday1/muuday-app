@@ -29,7 +29,8 @@
     "checkly:plan": "checkly account plan --output json",
     "check:encoding": "node scripts/ops/check-mojibake.cjs",
     "test:smoke": "python scripts/smoke_test.py",
-    "test:unit:watch": "vitest"
+    "test:unit:watch": "vitest",
+    "db:gen-types": "npx supabase gen types typescript --project-id jbbnbbrroifghrshplsq --schema public > types/supabase-generated.ts"
   },
   "dependencies": {
     "@aws-sdk/client-textract": "^3.1035.0",

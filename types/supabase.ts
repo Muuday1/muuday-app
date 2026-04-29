@@ -37,3 +37,7 @@ export interface SearchPublicProfessionalsPgTrgmParams {
   p_limit?: number
   p_market?: MarketCode | null
 }
+
+// Re-export auto-generated Supabase Database type for convenience.
+// Run `npm run db:gen-types` to regenerate after schema changes.
+export type { Database } from './supabase-generated'
