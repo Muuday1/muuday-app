@@ -374,9 +374,9 @@ export async function listReviewsForModerationService(
     }
 
     let mapped = rows.map((row) => {
-      const profile = row.profiles || {}
-      const pro = row.professionals || {}
-      const proProfile = pro.profiles || {}
+      const profile = (row.profiles || {}) as { id?: string; full_name?: string; email?: string; created_at?: string }
+      const pro = (row.professionals || {}) as { id?: string; rating?: number; total_reviews?: number; profiles?: { full_name?: string } | null }
+      const proProfile = (pro.profiles || {}) as { full_name?: string }
       const booking = bookingsMap.get(row.booking_id) || null
       const reviewerStats = reviewerStatsMap.get(profile.id) || { review_count: 0, approved_count: 0, rejected_count: 0 }
 
