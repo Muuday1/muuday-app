@@ -163,28 +163,21 @@ The definitions are **identical at runtime**. There is no divergence — only a 
 ---
 
 ### 2.9 Mutação de metadata ad-hoc e duplicada
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟡 **PARTIALLY FIXED**
 
-Every location follows the same anti-pattern:
-```ts
-const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
-await supabase.from('bookings').update({
-  status: '...',
-  metadata: { ...currentMetadata, newKey: 'newValue' }
-})
-```
+All 9 sites that **read existing metadata and spread it** have been consolidated into `patchBookingMetadata()` in `lib/booking/metadata.ts`:
 
-| File | Lines | Context |
+| File | Sites | Context |
 |------|-------|---------|
-| `lib/booking/manage-booking-service.ts` | 212-222 | Cancellation metadata |
-| `lib/booking/manage-booking-service.ts` | 557-574 | Reschedule metadata |
-| `lib/booking/manage-booking-service.ts` | 748-757 | No-show metadata |
-| `lib/booking/manage-booking-service.ts` | 829-837 | No-show metadata |
-| `lib/booking/request-booking-service.ts` | 739-746 | Rollback metadata |
-| `lib/booking/creation/record-payment.ts` | 28-33 | Payment failure metadata |
-| `lib/actions/admin/finance.ts` | 589, 612, 640, 701, 718, 817 | Payout/refund metadata |
+| `lib/booking/manage-booking-service.ts` | 4 | Cancel, reschedule, no-show (professional), no-show (user) |
+| `lib/ops/abandoned-checkout.ts` | 2 | Abandoned checkout marking |
+| `lib/ops/no-show-detection.ts` | 1 | No-show auto-resolution |
+| `lib/ops/pending-payment-timeout.ts` | 1 | Auto-cancel after payment timeout |
+| `lib/ops/recurring-slot-release.ts` | 1 | Recurring slot release |
 
-There is **no centralized metadata builder or schema**. Each mutation site manually spreads the existing metadata and adds domain-specific keys.
+**Concurrency warning:** `patchBookingMetadata` is **not atomic**. It reads metadata in memory and writes a merged object back. Concurrent updates can still overwrite each other. True atomicity requires a PostgreSQL JSONB merge function (future migration).
+
+The remaining sites in `lib/booking/request-booking-service.ts`, `lib/booking/creation/record-payment.ts`, and `lib/actions/admin/finance.ts` were **not** spreading existing metadata — they set new metadata on insert/override, so they do not have the same concurrency risk.
 
 ---
 
@@ -513,7 +506,7 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 2.5 Supabase generated types | 🔴 STILL PRESENT | No `supabase gen types` script; all clients untyped |
 | 2.6 BookingStatus duplicated | 🟢 FIXED | `types/index.ts` is a pure re-export of `lib/booking/types.ts` |
 | 2.8 Rollbacks without transactions | 🔴 STILL PRESENT | Manual rollback in 3 files; no DB transactions |
-| 2.9 Metadata ad-hoc mutation | 🔴 STILL PRESENT | 10+ locations manually spread `...currentMetadata` |
+| 2.9 Metadata ad-hoc mutation | 🟡 PARTIALLY FIXED | 9 sites centralized into `patchBookingMetadata`; concurrency risk documented |
 | 2.13 Single-file component dirs | 🟡 PARTIALLY FIXED | 3 consolidated; 5 feature-specific dirs remain |
 | 3.7 API/integration tests | 🟢 FIXED | 97 `.test.ts` files including 21+ API route tests |
 | 3.9 E2E login duplication | 🟢 FIXED | Consolidated into shared `tests/e2e/helpers.ts` |
