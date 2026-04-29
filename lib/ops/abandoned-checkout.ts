@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { emitUserAbandonedCheckout } from '@/lib/email/resend-events'
+import { patchBookingMetadata } from '@/lib/booking/metadata'
 
 export type AbandonedCheckoutResult = {
   checked: number
@@ -73,7 +74,7 @@ export async function runAbandonedCheckoutSync(
       await admin
         .from('bookings')
         .update({
-          metadata: { ...metadata, abandoned_checkout_emitted_at: nowIso, abandoned_checkout_no_email: true },
+          metadata: patchBookingMetadata(metadata, { abandoned_checkout_emitted_at: nowIso, abandoned_checkout_no_email: true }),
           updated_at: nowIso,
         })
         .eq('id', bookingId)
@@ -88,7 +89,7 @@ export async function runAbandonedCheckoutSync(
     await admin
       .from('bookings')
       .update({
-        metadata: { ...metadata, abandoned_checkout_emitted_at: nowIso },
+        metadata: patchBookingMetadata(metadata, { abandoned_checkout_emitted_at: nowIso }),
         updated_at: nowIso,
       })
       .eq('id', bookingId)

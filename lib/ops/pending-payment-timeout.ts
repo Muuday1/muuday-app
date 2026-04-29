@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendPushToUser } from '@/lib/push/sender'
+import { patchBookingMetadata } from '@/lib/booking/metadata'
 
 export type PendingPaymentTimeoutResult = {
   checked: number
@@ -110,19 +111,16 @@ async function cancelBooking(
   reasonCode: string,
   timeoutMinutes: number,
 ): Promise<boolean> {
-  const metadata = (booking.metadata as Record<string, unknown> | null) || {}
-
   const { data: updatedBooking, error: updateError } = await admin
     .from('bookings')
     .update({
       status: 'cancelled',
       cancellation_reason: `Agendamento cancelado automaticamente apos ${timeoutMinutes} minutos sem pagamento.`,
-      metadata: {
-        ...metadata,
+      metadata: patchBookingMetadata(booking.metadata, {
         auto_cancelled_at: nowIso,
         auto_cancel_reason: reasonCode,
         auto_cancel_timeout_minutes: timeoutMinutes,
-      },
+      }),
       updated_at: nowIso,
     })
     .eq('id', booking.id)

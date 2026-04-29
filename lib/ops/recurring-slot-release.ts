@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { evaluateRecurringReleaseDeadline } from '@/lib/booking/recurring-deadlines'
+import { patchBookingMetadata } from '@/lib/booking/metadata'
 
 type BookingSessionRow = {
   id: string
@@ -83,18 +84,16 @@ export async function runRecurringReservedSlotRelease(
     }
 
     for (const childBooking of childBookings as ChildBookingRow[]) {
-      const metadata = childBooking.metadata || {}
       const { data: updatedChild, error: childUpdateError } = await admin
         .from('bookings')
         .update({
           status: 'cancelled',
           cancellation_reason: 'Slot recorrente liberado automaticamente (deadline 7 dias).',
-          metadata: {
-            ...metadata,
+          metadata: patchBookingMetadata(childBooking.metadata, {
             recurring_slot_released_at: nowIso,
             recurring_slot_release_reason_code: releaseDecision.reason_code,
             recurring_slot_release_deadline_utc: releaseDecision.deadline_at_utc,
-          },
+          }),
         })
         .eq('id', childBooking.id)
         .in('status', PENDING_CHILD_BOOKING_STATUSES)

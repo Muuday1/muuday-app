@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendPushToUser } from '@/lib/push/sender'
 import { autoCreateCase } from '@/lib/disputes/dispute-service'
+import { patchBookingMetadata } from '@/lib/booking/metadata'
 
 /**
  * Auto-detect no-show bookings that passed their scheduled end time
@@ -154,19 +155,16 @@ async function applyNoShowResolution(
     return false
   }
 
-  const metadata = (booking?.metadata as Record<string, unknown> | null) || {}
-
   const { error: updateError } = await admin
     .from('bookings')
     .update({
       status: 'no_show',
-      metadata: {
-        ...metadata,
+      metadata: patchBookingMetadata(booking?.metadata, {
         no_show_resolved_at: nowIso,
         no_show_responsible_party: responsibleParty,
         no_show_refund_percent: refundPercent,
         no_show_refund_status: refundPercent > 0 ? 'pending' : 'none',
-      },
+      }),
       updated_at: nowIso,
     })
     .eq('id', bookingId)

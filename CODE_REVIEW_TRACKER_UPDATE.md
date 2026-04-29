@@ -189,20 +189,25 @@ There is **no centralized metadata builder or schema**. Each mutation site manua
 ---
 
 ### 2.13 Diretórios de componentes com 1 arquivo só
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟡 **PARTIALLY FIXED**
 
-8 component directories contain only a single file:
+3 directories were consolidated into related multi-file directories:
 
-| Directory | Single File |
-|-----------|-------------|
-| `components/analytics` | `PostHogProvider.tsx` |
-| `components/blog` | `BlogEngagement.tsx` |
-| `components/calendar` | `ProfessionalAvailabilityCalendar.tsx` |
-| `components/chat` | `MessageThread.tsx` |
-| `components/disputes` | `CaseMessageForm.tsx` |
-| `components/favorites` | `FavoritesList.tsx` |
-| `components/plans` | `PlanSelector.tsx` |
-| `components/tier` | `TierLockedOverlay.tsx` |
+| Old Location | New Location |
+|--------------|--------------|
+| `components/analytics/PostHogProvider.tsx` | `components/layout/PostHogProvider.tsx` |
+| `components/calendar/ProfessionalAvailabilityCalendar.tsx` | `components/agenda/ProfessionalAvailabilityCalendar.tsx` |
+| `components/tier/TierLockedOverlay.tsx` | `components/professional/TierLockedOverlay.tsx` |
+
+5 feature-specific single-file directories remain. These map 1:1 to app routes and represent clear domain boundaries; consolidating them would reduce discoverability:
+
+| Directory | Single File | App Route |
+|-----------|-------------|-----------|
+| `components/blog` | `BlogEngagement.tsx` | `/blog/[slug]` |
+| `components/chat` | `MessageThread.tsx` | `/mensagens/[conversationId]` |
+| `components/disputes` | `CaseMessageForm.tsx` | `/disputas/[id]` |
+| `components/favorites` | `FavoritesList.tsx` | `/favoritos` |
+| `components/plans` | `PlanSelector.tsx` | `/planos` |
 
 ---
 
@@ -509,9 +514,9 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 2.6 BookingStatus duplicated | 🟢 FIXED | `types/index.ts` is a pure re-export of `lib/booking/types.ts` |
 | 2.8 Rollbacks without transactions | 🔴 STILL PRESENT | Manual rollback in 3 files; no DB transactions |
 | 2.9 Metadata ad-hoc mutation | 🔴 STILL PRESENT | 10+ locations manually spread `...currentMetadata` |
-| 2.13 Single-file component dirs | 🔴 STILL PRESENT | 8 directories with exactly 1 file |
+| 2.13 Single-file component dirs | 🟡 PARTIALLY FIXED | 3 consolidated; 5 feature-specific dirs remain |
 | 3.7 API/integration tests | 🟢 FIXED | 97 `.test.ts` files including 21+ API route tests |
-| 3.9 E2E login duplication | 🔴 STILL PRESENT | 4 different login helpers across 5 spec files |
+| 3.9 E2E login duplication | 🟢 FIXED | Consolidated into shared `tests/e2e/helpers.ts` |
 | 3.10 Portuguese E2E selectors | 🔴 STILL PRESENT | `getByRole('button', { name: 'Aceitar' })` etc. |
 | 3.11 Playwright .env parsing | 🔴 STILL PRESENT | Naive `indexOf('=')` breaks on values with `=` |
 | 3.20 Dependabot/Renovate | 🔴 STILL PRESENT | No config file found |

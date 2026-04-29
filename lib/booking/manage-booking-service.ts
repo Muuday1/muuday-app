@@ -3,6 +3,7 @@ import { fromZonedTime } from 'date-fns-tz'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { assertBookingTransition } from '@/lib/booking/state-machine'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import { patchBookingMetadata } from '@/lib/booking/metadata'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import {
   getHoursUntilSession,
@@ -209,16 +210,14 @@ async function executeCancelSingleBooking(
     ? getUserCancellationRefundDecision(hoursUntilSession)
     : getProfessionalCancellationRefundDecision()
 
-  const currentMetadata = booking.metadata || {}
   const updateData: Record<string, unknown> = {
     status: 'cancelled',
-    metadata: {
-      ...currentMetadata,
+    metadata: patchBookingMetadata(booking.metadata, {
       cancelled_by: isBookingUser ? 'user' : 'professional',
       cancelled_at: new Date().toISOString(),
       refund_percentage: refundDecision.refundPercentage,
       refund_rule: refundDecision.rule,
-    },
+    }),
   }
 
   if (normalizedReason) {
@@ -554,7 +553,6 @@ export async function rescheduleBookingService(
     }
   }
 
-  const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
   const newStatus = settings.confirmationMode === 'manual' ? 'pending_confirmation' : 'confirmed'
   const { error: updateError } = await supabase
     .from('bookings')
@@ -566,11 +564,10 @@ export async function rescheduleBookingService(
       timezone_user: userTimezone,
       timezone_professional: settings.timezone,
       status: newStatus,
-      metadata: {
-        ...currentMetadata,
+      metadata: patchBookingMetadata(booking.metadata, {
         rescheduled_at: new Date().toISOString(),
         rescheduled_by: 'user',
-      },
+      }),
     })
     .eq('id', booking.id)
     .eq('user_id', userId)
@@ -745,15 +742,13 @@ export async function reportProfessionalNoShowService(
     return { success: false, error: 'A sessão ainda não iniciou.' }
   }
 
-  const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
   const patch = {
     status: 'no_show',
-    metadata: {
-      ...currentMetadata,
+    metadata: patchBookingMetadata(booking.metadata, {
       no_show_actor: 'professional',
       flagged_for_support: true,
       no_show_reported_at: new Date().toISOString(),
-    },
+    }),
   }
 
   let { data: updated, error } = await supabase
@@ -826,14 +821,12 @@ export async function markUserNoShowService(
     return { success: false, error: 'A sessão ainda não iniciou.' }
   }
 
-  const currentMetadata = (booking.metadata as Record<string, unknown> | null) || {}
   const patch = {
     status: 'no_show',
-    metadata: {
-      ...currentMetadata,
+    metadata: patchBookingMetadata(booking.metadata, {
       no_show_actor: 'user',
       no_show_reported_at: new Date().toISOString(),
-    },
+    }),
   }
 
   let { data: updated, error } = await supabase
