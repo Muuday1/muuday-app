@@ -197,14 +197,18 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 ### Mobile
 
+> **Arquitetura decisiva:** Após o login, o app detecta se o usuário possui registro na tabela `professionals`. Se sim → monta a **tab bar do profissional**. Se não → monta a **tab bar do cliente**. Isso acontece no `RootLayoutNav` antes de renderizar qualquer tela. Não há "switch de modo" dentro do app.
+
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
 | 4.6 | **Inicializar projeto Expo** — TypeScript, Expo Router, NativeWind, TanStack Query. | `📱 APP` | 1 dia | Mobile | ✅ |
 | 4.7 | **Design tokens + theme** — Cores, spacing, typography compartilhados com web. | `📱 APP` | 1 dia | Mobile | ✅ |
 | 4.8 | **Integrar Supabase Auth** — Password login. `expo-secure-store` para tokens. | `📱 APP` | 2 dias | Mobile | ✅ |
+| 4.8a | **Role detection no login** — Após autenticação, query `professionals.user_id = auth.uid()`. Determina se o app monta tab bar de **cliente** (Explore, Bookings, Messages, Profile) ou **profissional** (Dashboard, Calendar, Clients, Messages, Profile). ⛔ **BLOCKS todos os fluxos de tela.** | `📱 APP` `⛔ BLOCKS` | 0.5 dia | Mobile | 🔲 |
 | 4.9 | **Google native OAuth** — `expo-auth-session` ou `expo-google-sign-in`. `signInWithIdToken`. | `📱 APP` | 2 dias | Mobile | 🔲 |
 | 4.10 | **Deep links** — Configurar `muuday://` scheme. Testar em iOS e Android. | `📱 APP` | 1 dia | Mobile | ✅ |
-| 4.11 | **Navigation + tab bars** — Cliente (Explore, Bookings, Messages, Profile) e Profissional (Dashboard, Calendar, Messages, Profile). | `📱 APP` | 2 dias | Mobile | ✅ |
+| 4.11 | **Tab bar do cliente** — Implementar: Explore, Bookings, Messages, Profile. | `📱 APP` | 1 dia | Mobile | ✅ |
+| 4.11a | **Tab bar do profissional** — Implementar: Dashboard, Calendar, Clients, Messages, Profile. | `📱 APP` | 1 dia | Mobile | 🔲 |
 | 4.12 | **Biometric login** — Face ID / Touch ID / fingerprint após primeiro login. | `📱 APP` | 1 dia | Mobile | 🔲 |
 
 ### Frontend / Web
@@ -231,11 +235,11 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 5.1 | **Home / Dashboard** — Resumo de bookings, próximas sessões, notificações. | `📱 APP` | 2 dias | Mobile | 🔲 |
+| 5.1 | **Home / Dashboard (cliente)** — Resumo de bookings, próximas sessões, notificações. | `📱 APP` | 2 dias | Mobile | 🔲 |
 | 5.2 | **Search professionals** — Consumir `/api/v1/professionals/search`. Infinite scroll. Filtros (categoria, preço). | `📱 APP` | 3 dias | Mobile | ✅ |
 | 5.3 | **Professional detail** — Perfil, reviews, disponibilidade, botão "Agendar". | `📱 APP` | 2 dias | Mobile | ✅ |
 | 5.4 | **Booking flow (one-off)** — Selecionar horário, confirmar, pagamento (Stripe PaymentSheet). | `📱 APP` | 3 dias | Mobile | ✅ |
-| 5.5 | **My bookings list** — Estados: confirmado, pendente, cancelado, realizado. | `📱 APP` | 2 dias | Mobile | ✅ |
+| 5.5 | **My bookings list (cliente)** — Estados: confirmado, pendente, cancelado, realizado. | `📱 APP` | 2 dias | Mobile | ✅ |
 | 5.6 | **Push token registration** — Enviar Expo push token para `POST /api/v1/push/subscribe`. | `📱 APP` | 0.5 dia | Mobile | 🔄 |
 
 ### Conteúdo / Marketing (Paralelo)
@@ -252,9 +256,10 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 | 5.9 | **Bug fixes e ajustes na API v1** — Resolver issues encontradas pelo mobile team. | `📱 APP` | contínuo | Backend (0.5) | ✅ (parcial: criado GET /api/v1/professionals/{id}) |
 
 **Sprint 5 — Entregáveis:**
+- [x] App: role detection no login funciona (cliente vs profissional)
 - [x] App: cliente pode buscar e ver perfil
-- [x] App: agendar com Stripe PaymentSheet
-- [x] App: lista de bookings funcionando
+- [x] App: cliente pode agendar com Stripe PaymentSheet
+- [x] App: lista de bookings do cliente funcionando
 - [ ] App: push notifications recebidas
 - [ ] 50%+ do conteúdo mexicano escrito
 - [ ] Design da landing MX pronto
@@ -266,6 +271,8 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 **Meta:** App com fluxo do profissional. Web pronto para receber locale routing.
 
 ### Mobile
+
+> **Nota:** O fluxo do profissional só começa depois que o fluxo do cliente está completo (Sprint 5). A tab bar do profissional já foi criada no Sprint 4 (item 4.11a), mas as telas internas são construídas agora.
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|

@@ -10,6 +10,34 @@ This dramatically simplifies scope:
 - **No marketing content** (guides, blog, testimonials) in the app.
 - **No cookie consent banners** (native apps use platform permission dialogs).
 
+## Role-Based Login Routing
+
+> **Decisão arquitetural:** A separação entre cliente e profissional acontece **no momento do login**, não dentro do app.
+
+Após autenticação bem-sucedida no Supabase, o app executa:
+
+```ts
+const { data: professional } = await supabase
+  .from('professionals')
+  .select('id, status')
+  .eq('user_id', user.id)
+  .single()
+
+if (professional && professional.status === 'active') {
+  // Monta tab bar do profissional
+  router.replace('/(tabs-professional)')
+} else {
+  // Monta tab bar do cliente
+  router.replace('/(tabs)')
+}
+```
+
+**Consequências:**
+- Não há "switch de modo" dentro do app (diferente de apps como Uber que têm Driver/Passenger toggle).
+- Um mesmo usuário com conta de cliente e conta de profissional precisa fazer logout/login para trocar.
+- Deep links (`muuday://bookings/{id}`) funcionam independentemente do role, mas a navegação pós-deep-link respeita a tab bar ativa.
+- A decisão de role é cacheada no `AuthProvider` para evitar flicker na reinicialização do app.
+
 ## User Journeys
 
 ### Client Journey

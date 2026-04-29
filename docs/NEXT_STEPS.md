@@ -249,11 +249,13 @@ These tracks can start in parallel with Wave 3 but are not launch blockers.
 - **Acceptance:**
   - [x] Expo project initialized with TypeScript, Expo Router, NativeWind, TanStack Query
   - [x] Supabase Auth with password + SecureStore session persistence
+  - [ ] **Role-based login routing** — after auth, detect if user has `professionals` record; route to client tab bar or professional tab bar. **Must be built before Sprint 5 client flows.**
   - [ ] Google OAuth (deferred to Sprint 5)
   - [x] Search professionals with infinite scroll
   - [x] Booking flow (one-off) with Stripe PaymentSheet
   - [ ] Push notifications (Expo Push Service)
-  - [ ] Professional dashboard + calendar management
+  - [ ] **Client tab bar + core flows** — Home, Explore, Bookings, Messages, Profile (Sprint 5)
+  - [ ] **Professional tab bar + workspace** — Dashboard, Calendar, Clients, Messages, Profile (Sprint 6)
   - [ ] Agora video session integration
   - [x] Deep links (`muuday://`) configured in `app.json`
 

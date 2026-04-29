@@ -81,6 +81,7 @@ This roadmap splits the mobile preparation work into **5 phases**. Only Phases A
 - [ ] Initialize Expo project with TypeScript.
 - [ ] Set up navigation (Expo Router), theme, and design tokens.
 - [ ] Integrate Supabase Auth (password + Google native OAuth).
+- [ ] **Role detection on login** — After auth, query `professionals.user_id`. If found and active → mount **professional tab bar** (Dashboard, Calendar, Clients, Messages, Profile). If not → mount **client tab bar** (Explore, Bookings, Messages, Profile). This happens in `RootLayoutNav` before any screen renders.
 - [ ] Integrate TanStack Query for data fetching.
 - [ ] Build auth screens (login, signup, password reset).
 - [ ] Configure deep links (`muuday://`).
