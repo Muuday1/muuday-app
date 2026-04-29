@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { login } from './helpers'
 
 const email = process.env.E2E_USER_EMAIL
 const password = process.env.E2E_USER_PASSWORD
@@ -21,41 +22,15 @@ type OpenBookingResult = {
   reason?: 'same_professional' | 'professional_not_found'
 }
 
-async function login(page: Page) {
-  await page.goto('/login')
-  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 3_000 }).catch(() => {})
-
-  const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
-  const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
-  const submitButton = page.locator('button[type="submit"]').first()
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await emailInput.fill(email || '')
-    await passwordInput.fill(password || '')
-    await submitButton.click()
-
-    try {
-      await page.waitForURL(/\/(buscar|dashboard)/, { timeout: 30_000 })
-      return
-    } catch {
-      const rateLimited = await page.locator('[data-testid="login-error"][data-error-type="rate-limited"]').count()
-      if (rateLimited > 0 && attempt < 2) {
-        await page.waitForTimeout(2_500)
-        continue
-      }
-
-      const invalidCredentials = await page.locator('[data-testid="login-error"][data-error-type="invalid-credentials"]').count()
-      if (invalidCredentials > 0) {
-        throw new Error('E2E login failed: invalid credentials for configured user.')
-      }
-
-      throw new Error(`E2E login failed: no redirect after submit (url=${page.url()}).`)
-    }
+async function loginAsConfiguredUser(page: Page) {
+  if (!email || !password) {
+    throw new Error('Missing E2E_USER_EMAIL or E2E_USER_PASSWORD environment variables.')
   }
+  await login(page, email, password, { maxAttempts: 3, rateLimitDelayMs: 2_500 })
 }
 
 async function openBookingPage(page: Page, targetProfessionalId: string) {
-  await login(page)
+  await loginAsConfiguredUser(page)
   await page.goto(`/agendar/${targetProfessionalId}`)
   await page.waitForLoadState('domcontentloaded')
 

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { loginViaApi } from './helpers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -9,30 +10,6 @@ const isCi = process.env.CI === 'true'
 function failOrSkip(message: string) {
   if (isCi) throw new Error(message)
   test.skip(true, message)
-}
-
-async function loginViaApi(request: typeof test.prototype.request): Promise<{ token: string; sessionJson: string }> {
-  const response = await request.post(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': supabaseAnonKey!,
-    },
-    data: { email, password },
-  })
-  expect(response.status()).toBe(200)
-  const body = await response.json()
-  expect(body).toHaveProperty('access_token')
-
-  const sessionJson = JSON.stringify({
-    access_token: body.access_token,
-    refresh_token: body.refresh_token,
-    expires_in: body.expires_in,
-    expires_at: body.expires_at,
-    token_type: body.token_type,
-    user: body.user,
-  })
-
-  return { token: body.access_token as string, sessionJson }
 }
 
 test.describe('API v1 smoke tests', () => {

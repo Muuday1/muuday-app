@@ -1,4 +1,5 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test'
+import { loginAsAdmin, loginAsUser } from './helpers'
 
 const baseUrl = process.env.E2E_BASE_URL || 'http://localhost:3000'
 const adminEmail = process.env.E2E_ADMIN_EMAIL
@@ -16,47 +17,6 @@ function failOrSkip(message: string, options?: { allowCiSkip?: boolean }) {
 
 const hasAdminConfig = Boolean(adminEmail && adminPassword)
 const hasUserConfig = Boolean(userEmail && userPassword)
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function loginAsAdmin(page: Page) {
-  await page.goto('/login')
-  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 3_000 }).catch(() => {})
-
-  const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
-  const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
-  const submitButton = page.locator('button[type="submit"]').first()
-
-  await emailInput.fill(adminEmail || '')
-  await passwordInput.fill(adminPassword || '')
-  await submitButton.click()
-
-  await page.waitForURL(/\/admin/, { timeout: 30_000 }).catch(async () => {
-    // Some admins land on /buscar and navigate manually
-    const url = page.url()
-    if (!url.includes('/admin')) {
-      await page.goto('/admin')
-      await page.waitForLoadState('domcontentloaded')
-    }
-  })
-}
-
-async function loginAsUser(page: Page) {
-  await page.goto('/login')
-  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 3_000 }).catch(() => {})
-
-  const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
-  const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
-  const submitButton = page.locator('button[type="submit"]').first()
-
-  await emailInput.fill(userEmail || '')
-  await passwordInput.fill(userPassword || '')
-  await submitButton.click()
-
-  await page.waitForURL(/\/(buscar|dashboard)/, { timeout: 30_000 })
-}
 
 // ---------------------------------------------------------------------------
 // Admin Finance Pages
