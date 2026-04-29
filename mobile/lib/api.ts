@@ -146,6 +146,45 @@ export type Booking = {
   scheduled_at: string
   professional_id: string
   professional_name?: string
+  price_total?: number
+  user_currency?: string
+}
+
+export type AvailabilityRule = {
+  weekday: number
+  start_time_local: string
+  end_time_local: string
+  is_active: boolean
+}
+
+export type AvailabilityException = {
+  date_local: string
+  is_available: boolean
+  start_time_local: string | null
+  end_time_local: string | null
+}
+
+export type ExistingBooking = {
+  scheduled_at: string
+  duration_minutes: number
+}
+
+export type ProfessionalAvailabilityResponse = {
+  data: {
+    rules: AvailabilityRule[]
+    exceptions: AvailabilityException[]
+    existingBookings: ExistingBooking[]
+    timezone: string
+    minimumNoticeHours: number
+    maxBookingWindowDays: number
+    sessionDurationMinutes: number
+  }
+}
+
+export type PaymentIntentResponse = {
+  clientSecret: string
+  paymentIntentId: string
+  status: string
 }
 
 export type ProfessionalSearchResult = {
@@ -255,5 +294,12 @@ export const apiV1 = {
       limit?: number
     }) => api.get<ProfessionalSearchResponse>('/api/v1/professionals/search', { query }),
     getById: (id: string) => api.get<ProfessionalDetailResponse>(`/api/v1/professionals/${id}`),
+    getAvailability: (id: string, query?: { startDate?: string; endDate?: string }) =>
+      api.get<ProfessionalAvailabilityResponse>(`/api/v1/professionals/${id}/availability`, { query }),
+  },
+
+  payments: {
+    createPaymentIntent: (body: { bookingId: string }) =>
+      api.post<PaymentIntentResponse>('/api/v1/payments/payment-intent', { body }),
   },
 }

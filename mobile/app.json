@@ -25,6 +25,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "com.muuday.app",
+          "enableGooglePay": true
+        }
+      ]
+    ],
+    "scheme": "muuday"
   }
 }
