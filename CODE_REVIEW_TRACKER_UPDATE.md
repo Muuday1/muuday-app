@@ -1,8 +1,23 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-29 (Pass 20)
+**Last cleanup pass:** 2026-04-29 (Pass 21)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 21 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **console.error** in `app/(app)/` pages + `components/` (remaining 16 calls) | Replaced 16 `console.error` calls with `Sentry.captureException`/`captureMessage` in 9 files: `app/(app)/avaliar/[bookingId]/page.tsx` (2), `app/(app)/admin/finance/treasury/page.tsx` (1), `components/booking/VideoSession.tsx` (1), `components/admin/TaxonomiaForm.tsx` (6), `components/settings/ProfessionalSettingsWorkspace.tsx` (1), `components/settings/NotificationPreferencesPage.tsx` (1), `components/pwa/ServiceWorkerRegistration.tsx` (1), `components/pwa/PushNotificationToggle.tsx` (2), `components/profile/ProfileAccountSettings.tsx` (1). Added `import * as Sentry from '@sentry/nextjs'` to all 9 files. | 9 files |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+- Deployed live to https://app.muuday.com
 
 ---
 
