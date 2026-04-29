@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPrimaryProfessionalForUser } from './current-professional'
@@ -76,7 +77,7 @@ async function upsertPrimaryService(args: {
     .maybeSingle()
 
   if (serviceError) {
-    console.error('[professional/upsertPrimaryService] service query error:', serviceError.message)
+    Sentry.captureException(serviceError, { tags: { area: 'professional_upsert_primary_service' } })
     return
   }
 
@@ -100,14 +101,14 @@ async function upsertPrimaryService(args: {
       .update(payload)
       .eq('id', existingService.id)
     if (updateError) {
-      console.error('[professional/upsertPrimaryService] update error:', updateError.message)
+      Sentry.captureException(updateError, { tags: { area: 'professional_upsert_primary_service' } })
     }
     return
   }
 
   const { error: insertError } = await args.supabase.from('professional_services').insert(payload)
   if (insertError) {
-    console.error('[professional/upsertPrimaryService] insert error:', insertError.message)
+    Sentry.captureException(insertError, { tags: { area: 'professional_upsert_primary_service' } })
   }
 }
 
@@ -146,7 +147,7 @@ export async function createOrUpdateProfessionalProfile(
     'id, tier',
   )
   if (existingError) {
-    console.error('[professional/create] getPrimaryProfessionalForUser error:', existingError.message)
+    Sentry.captureException(existingError, { tags: { area: 'professional_create' } })
   }
 
   const tierForValidation = String(existing?.tier || 'basic').toLowerCase()
@@ -256,7 +257,7 @@ export async function saveProfessionalProfileDraft(
     'id,tier',
   )
   if (profError) {
-    console.error('[professional/saveDraft] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'professional_save_draft' } })
   }
   if (!professional || professional.id !== parsed.data.professionalId) {
     return { error: 'Perfil profissional inválido para este usuário.' }
@@ -329,7 +330,7 @@ export async function saveProfessionalProfileDraft(
     .delete()
     .eq('professional_id', parsed.data.professionalId)
   if (credDeleteError) {
-    console.error('[professional/saveDraft] credentials delete error:', credDeleteError.message)
+    Sentry.captureException(credDeleteError, { tags: { area: 'professional_save_draft' } })
     return { error: 'Erro ao atualizar credenciais.' }
   }
 
@@ -366,7 +367,7 @@ export async function updateAvailability(
     'id',
   )
   if (profError) {
-    console.error('[professional/updateAvailability] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'professional_update_availability' } })
   }
 
   if (!professional) return { error: 'Perfil profissional não encontrado' }
@@ -384,7 +385,7 @@ export async function updateAvailability(
     .eq('professional_id', professional.id)
 
   if (deleteLegacyError) {
-    console.error('[professional/updateAvailability] delete availability error:', deleteLegacyError.message)
+    Sentry.captureException(deleteLegacyError, { tags: { area: 'professional_update_availability' } })
     return { error: 'Erro ao remover disponibilidade anterior.' }
   }
 
@@ -394,7 +395,7 @@ export async function updateAvailability(
     .eq('professional_id', professional.id)
 
   if (deleteModernError) {
-    console.error('[professional/updateAvailability] delete availability_rules error:', deleteModernError.message)
+    Sentry.captureException(deleteModernError, { tags: { area: 'professional_update_availability' } })
     return { error: 'Erro ao remover regras de disponibilidade anteriores.' }
   }
 
@@ -447,7 +448,7 @@ export async function saveBookingSettings(
     'id',
   )
   if (profError) {
-    console.error('[professional/saveBookingSettings] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'professional_save_booking_settings' } })
   }
 
   if (!professional) return { error: 'Perfil profissional não encontrado' }
@@ -473,7 +474,7 @@ export async function saveBookingSettings(
   )
 
   if (settingsError) {
-    console.error('[professional/saveBookingSettings] upsert professional_settings error:', settingsError.message)
+    Sentry.captureException(settingsError, { tags: { area: 'professional_save_booking_settings' } })
     return { error: 'Erro ao salvar configurações de agendamento.' }
   }
 
@@ -486,7 +487,7 @@ export async function saveBookingSettings(
     .eq('id', professional.id)
 
   if (professionalError) {
-    console.error('[professional/saveBookingSettings] update professionals error:', professionalError.message)
+    Sentry.captureException(professionalError, { tags: { area: 'professional_save_booking_settings' } })
     return { error: 'Configurações salvas, mas houve falha ao sincronizar a duração no perfil.' }
   }
 
@@ -499,7 +500,7 @@ export async function saveBookingSettings(
     .eq('id', userId)
 
   if (profileError) {
-    console.error('[professional/saveBookingSettings] update profiles error:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'professional_save_booking_settings' } })
     return { error: 'Configurações salvas, mas houve falha ao sincronizar o fuso no perfil.' }
   }
 
@@ -535,7 +536,7 @@ export async function saveProfessionalAvailability(
     'id',
   )
   if (profError) {
-    console.error('[professional/saveProfessionalAvailability] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'professional_save_availability' } })
   }
 
   if (!professional) return { error: 'Perfil profissional não encontrado' }
@@ -561,9 +562,9 @@ export async function saveProfessionalAvailability(
   ])
 
   if (deleteLegacyError || deleteModernError) {
-    console.error(
-      '[professional/saveProfessionalAvailability] delete error:',
-      deleteLegacyError?.message || deleteModernError?.message,
+    Sentry.captureMessage(
+      `[professional/saveProfessionalAvailability] delete error: ${deleteLegacyError?.message || deleteModernError?.message}`,
+      'error',
     )
     return { error: 'Erro ao remover disponibilidade anterior.' }
   }
@@ -585,7 +586,7 @@ export async function saveProfessionalAvailability(
   const { error: insertLegacyError } = await supabase.from('availability').insert(legacyRows)
 
   if (insertLegacyError) {
-    console.error('[professional/saveProfessionalAvailability] insert legacy error:', insertLegacyError.message)
+    Sentry.captureException(insertLegacyError, { tags: { area: 'professional_save_availability' } })
     // Attempt restore
     let restored = false
     if (backupLegacy && backupLegacy.length > 0) {
@@ -600,7 +601,7 @@ export async function saveProfessionalAvailability(
       )
       restored = !restoreError
       if (restoreError) {
-        console.error('[professional/saveProfessionalAvailability] restore legacy failed:', restoreError.message)
+        Sentry.captureException(restoreError, { tags: { area: 'professional_save_availability' } })
       }
     }
     return { error: `Erro ao salvar disponibilidade: ${insertLegacyError.message}`, restored }
@@ -619,7 +620,7 @@ export async function saveProfessionalAvailability(
   const { error: insertModernError } = await supabase.from('availability_rules').insert(modernRows)
 
   if (insertModernError) {
-    console.error('[professional/saveProfessionalAvailability] insert modern error:', insertModernError.message)
+    Sentry.captureException(insertModernError, { tags: { area: 'professional_save_availability' } })
     // Attempt restore both tables to ensure consistency
     let restored = false
     const restoreLegacy = backupLegacy && backupLegacy.length > 0
@@ -649,10 +650,10 @@ export async function saveProfessionalAvailability(
     const [{ error: restoreLegacyError }, { error: restoreModernError }] = await Promise.all([restoreLegacy, restoreModern])
     restored = !restoreLegacyError && !restoreModernError
     if (restoreLegacyError) {
-      console.error('[professional/saveProfessionalAvailability] restore legacy failed:', restoreLegacyError.message)
+      Sentry.captureException(restoreLegacyError, { tags: { area: 'professional_save_availability' } })
     }
     if (restoreModernError) {
-      console.error('[professional/saveProfessionalAvailability] restore modern failed:', restoreModernError.message)
+      Sentry.captureException(restoreModernError, { tags: { area: 'professional_save_availability' } })
     }
     return { error: `Erro ao salvar regras modernas: ${insertModernError.message}`, restored }
   }

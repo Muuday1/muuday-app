@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { asRecord, asString, asIdFromStringOrObject, truncateErrorMessage, buildNextRetryDate } from './helpers'
@@ -55,7 +56,7 @@ export async function recordStripeWebhookEvent(
     .maybeSingle()
 
   if (existingError) {
-    console.error('[stripe/webhook] failed to check existing event:', existingError.message)
+    Sentry.captureException(existingError, { tags: { area: 'stripe_webhook' } })
   }
 
   if (existing?.id) {
@@ -245,7 +246,7 @@ async function fetchStripeFeeForPaymentIntent(
       }
     }
   } catch (error) {
-    console.error(`[stripe/webhook] failed to fetch fee for PI ${paymentIntentId}:`, error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'stripe_webhook' } })
   }
 
   // Fallback estimate
@@ -389,10 +390,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
           pendingDelta: amountMinor - platformFeeMinor,
         })
       } catch (ledgerError) {
-        console.error(
-          `[stripe/webhook] ledger/balance error for payment ${payment.id}:`,
-          ledgerError instanceof Error ? ledgerError.message : ledgerError,
-        )
+        Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), { tags: { area: 'stripe_webhook', subArea: 'ledger_balance' } })
         // Non-blocking: webhook should still succeed even if ledger fails
         // The ledger can be reconstructed later from the payment data
       }
@@ -414,7 +412,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
       .eq('provider_payment_id', paymentIntentId)
 
     if (paymentRowsError) {
-      console.error('[stripe/webhook] failed to load payment rows for retry:', paymentRowsError.message)
+      Sentry.captureException(paymentRowsError, { tags: { area: 'stripe_webhook' } })
     }
 
     const paymentId = paymentRows?.[0]?.id ? String(paymentRows[0].id) : null
@@ -445,10 +443,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
         })
         await createLedgerTransaction(admin, ledgerInput)
       } catch (ledgerError) {
-        console.error(
-          `[stripe/webhook] ledger error for refund ${payment.id}:`,
-          ledgerError instanceof Error ? ledgerError.message : ledgerError,
-        )
+        Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), { tags: { area: 'stripe_webhook', subArea: 'ledger_refund' } })
       }
     }
 
@@ -465,10 +460,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
       try {
         await createStripeSettlementEntry(admin, payout)
       } catch (ledgerError) {
-        console.error(
-          `[stripe/webhook] ledger error for settlement ${payout.id}:`,
-          ledgerError instanceof Error ? ledgerError.message : ledgerError,
-        )
+        Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), { tags: { area: 'stripe_webhook', subArea: 'ledger_settlement' } })
       }
     }
 
@@ -479,11 +471,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
     const payout = event.data.object as Stripe.Payout
     const settlement = await recordStripeSettlement(admin, payout, 'failed')
 
-    // TODO: Send alert to ops team
-    console.error(`[stripe/webhook] Payout failed: ${payout.id}`, {
-      failure_code: payout.failure_code,
-      failure_message: payout.failure_message,
-    })
+    Sentry.captureMessage(`[stripe/webhook] Payout failed: ${payout.id} — ${payout.failure_code}: ${payout.failure_message}`, 'error')
 
     return { outcome: 'processed', settlementId: settlement.id, created: settlement.created }
   }
@@ -551,9 +539,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
           }
         }
       } catch (disputeError) {
-        console.error(`[stripe/webhook] dispute handling error for ${dispute.id}:`,
-          disputeError instanceof Error ? disputeError.message : disputeError,
-        )
+        Sentry.captureException(disputeError instanceof Error ? disputeError : new Error(String(disputeError)), { tags: { area: 'stripe_webhook', subArea: 'dispute' } })
       }
     }
 
