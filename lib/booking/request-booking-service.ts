@@ -734,7 +734,7 @@ export async function acceptRequestBookingService(
           bookingId: booking.id,
         },
       })
-      await supabase
+      const { error: cancelError } = await supabase
         .from('bookings')
         .update({
           status: 'cancelled',
@@ -744,6 +744,17 @@ export async function acceptRequestBookingService(
           },
         })
         .eq('id', booking.id)
+
+      if (cancelError) {
+        Sentry.captureException(cancelError, {
+          tags: { area: 'request_booking_accept', flow: 'rollback' },
+          extra: {
+            requestBookingId: freshRequest.id,
+            bookingId: booking.id,
+            reason: 'booking_cancellation_failed_after_payment_error',
+          },
+        })
+      }
 
       const requestRecoveryPatch = {
         status: 'open',
@@ -756,12 +767,23 @@ export async function acceptRequestBookingService(
         accepted_at: null,
         updated_at: new Date().toISOString(),
       }
-      await supabase
+      const { error: recoveryError } = await supabase
         .from('request_bookings')
         .update(requestRecoveryPatch)
         .eq('id', String(freshRequest.id))
         .eq('user_id', userId)
         .eq('status', currentStatus)
+
+      if (recoveryError) {
+        Sentry.captureException(recoveryError, {
+          tags: { area: 'request_booking_accept', flow: 'rollback' },
+          extra: {
+            requestBookingId: freshRequest.id,
+            bookingId: booking.id,
+            reason: 'request_booking_recovery_failed_after_payment_error',
+          },
+        })
+      }
 
       return {
         success: false,

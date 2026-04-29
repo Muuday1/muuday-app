@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { reportBookingError, logBookingEvent } from './logging'
 import type { PaymentData } from './prepare-payment'
@@ -33,23 +34,40 @@ export async function recordBookingPayment(
     }
 
     const bookingIdsToCancel = Array.from(new Set(createdBookingIds.filter(Boolean)))
+    let cancelError: { message: string } | null = null
     if (bookingIdsToCancel.length > 0) {
-      await supabase
+      const { error } = await supabase
         .from('bookings')
         .update(cancellationPatch)
         .in('id', bookingIdsToCancel)
+      cancelError = error
     } else {
-      await supabase
+      const { error } = await supabase
         .from('bookings')
         .update(cancellationPatch)
         .eq('id', paymentAnchorBookingId)
+      cancelError = error
     }
 
-    if (batchBookingGroupId) {
-      await supabase
+    if (batchBookingGroupId && !cancelError) {
+      const { error } = await supabase
         .from('bookings')
         .update(cancellationPatch)
         .eq('batch_booking_group_id', batchBookingGroupId)
+      cancelError = error
+    }
+
+    if (cancelError) {
+      Sentry.captureException(cancelError, {
+        tags: { area: 'booking', flow: 'payment_fallback_rollback' },
+        extra: {
+          paymentAnchorBookingId,
+          bookingIdsToCancel,
+          batchBookingGroupId,
+          reason: 'payment_record_failed_booking_cancellation_failed',
+        },
+      })
+      throw new Error('Falha ao processar pagamento e ao cancelar agendamentos pendentes. Revisão manual necessária.')
     }
 
     throw new Error('Falha ao processar pagamento. Nenhum agendamento foi confirmado.')

@@ -79,11 +79,6 @@ export async function persistRecurringBooking(
       parent_booking_id: parentBooking.id,
     }))
 
-    const { error: cleanupError } = await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
-    if (cleanupError) {
-      console.error('[booking] cleanup child bookings error:', cleanupError.message)
-    }
-
     const { data: childRows, error: childError } = await supabase
       .from('bookings')
       .insert(childrenWithParentId)
@@ -93,7 +88,10 @@ export async function persistRecurringBooking(
       if (isActiveSlotCollision(childError, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
         const { error: rollbackError } = await supabase.from('bookings').delete().eq('id', parentBooking.id)
         if (rollbackError) {
-          console.error('[booking] rollback parent booking error:', rollbackError.message)
+          Sentry.captureException(rollbackError, {
+            tags: { area: 'booking', flow: 'recurring_fallback_rollback' },
+            extra: { parentBookingId: parentBooking.id, reason: 'slot_collision_cleanup_failed' },
+          })
         }
         return {
           success: false,
@@ -103,7 +101,10 @@ export async function persistRecurringBooking(
       reportBookingError(childError, { parentBookingId: parentBooking.id, bookingType: 'recurring' }, 'booking_children_insert_failed')
       const { error: rollbackError } = await supabase.from('bookings').delete().eq('id', parentBooking.id)
       if (rollbackError) {
-        console.error('[booking] rollback parent booking error:', rollbackError.message)
+        Sentry.captureException(rollbackError, {
+          tags: { area: 'booking', flow: 'recurring_fallback_rollback' },
+          extra: { parentBookingId: parentBooking.id, reason: 'children_insert_cleanup_failed' },
+        })
       }
       return { success: false, error: 'Erro ao criar sessões recorrentes. Tente novamente.' }
     }
@@ -116,13 +117,20 @@ export async function persistRecurringBooking(
     const { error: sessionsError } = await supabase.from('booking_sessions').insert(sessionsWithParentId)
     if (sessionsError) {
       reportBookingError(sessionsError, { parentBookingId: parentBooking.id, bookingType: 'recurring' }, 'booking_sessions_insert_failed')
+      // Rollback: delete parent and all children in a single operation where possible
       const { error: rollbackChildrenError } = await supabase.from('bookings').delete().eq('parent_booking_id', parentBooking.id)
       if (rollbackChildrenError) {
-        console.error('[booking] rollback child bookings error:', rollbackChildrenError.message)
+        Sentry.captureException(rollbackChildrenError, {
+          tags: { area: 'booking', flow: 'recurring_fallback_rollback' },
+          extra: { parentBookingId: parentBooking.id, reason: 'sessions_insert_children_cleanup_failed' },
+        })
       }
       const { error: rollbackParentError } = await supabase.from('bookings').delete().eq('id', parentBooking.id)
       if (rollbackParentError) {
-        console.error('[booking] rollback parent booking error:', rollbackParentError.message)
+        Sentry.captureException(rollbackParentError, {
+          tags: { area: 'booking', flow: 'recurring_fallback_rollback' },
+          extra: { parentBookingId: parentBooking.id, reason: 'sessions_insert_parent_cleanup_failed' },
+        })
       }
       return { success: false, error: 'Erro ao criar estrutura de pacote recorrente.' }
     }
