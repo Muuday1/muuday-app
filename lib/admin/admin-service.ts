@@ -326,10 +326,25 @@ export async function listReviewsForModerationService(
       return { success: false, error: error.message }
     }
 
-    const reviewIds = (rawRows || []).map((r: { id: string }) => r.id).filter(Boolean)
+    type RawModerationRow = {
+      id: string
+      booking_id: string
+      profiles?: { id: string; full_name?: string; email?: string; created_at?: string } | null
+      professionals?: { id: string; rating?: number; total_reviews?: number; profiles?: { full_name?: string } | null } | null
+      comment: string
+      rating: number
+      moderation_status: string
+      is_visible: boolean
+      created_at: string
+      flag_reasons: string[] | null
+    }
+
+    const rows = (rawRows || []) as RawModerationRow[]
+
+    const reviewIds = rows.map((r) => r.id).filter(Boolean)
 
     // Batch load booking statuses for conflict detection
-    const bookingIds = (rawRows || []).map((r: { booking_id: string }) => r.booking_id).filter(Boolean)
+    const bookingIds = rows.map((r) => r.booking_id).filter(Boolean)
     let bookingsMap = new Map<string, { status: string; scheduled_at: string; duration_minutes: number }>()
     if (bookingIds.length > 0) {
       const { data: bookingsData } = await supabase
@@ -342,7 +357,7 @@ export async function listReviewsForModerationService(
     }
 
     // Batch load reviewer review counts
-    const reviewerIds = Array.from(new Set((rawRows || []).map((r: { profiles?: { id: string } | null }) => r.profiles?.id).filter(Boolean)))
+    const reviewerIds = Array.from(new Set(rows.map((r) => r.profiles?.id).filter(Boolean)))
     let reviewerStatsMap = new Map<string, { review_count: number; approved_count: number; rejected_count: number }>()
     if (reviewerIds.length > 0) {
       const { data: statsData } = await supabase
@@ -358,20 +373,7 @@ export async function listReviewsForModerationService(
       }
     }
 
-    type RawModerationRow = {
-      id: string
-      booking_id: string
-      profiles?: { id: string; full_name?: string; email?: string; created_at?: string } | null
-      professionals?: { id: string; rating?: number; total_reviews?: number; profiles?: { full_name?: string } | null } | null
-      comment: string
-      rating: number
-      moderation_status: string
-      is_visible: boolean
-      created_at: string
-      flag_reasons: string[] | null
-    }
-
-    let mapped = (rawRows || []).map((row: RawModerationRow) => {
+    let mapped = rows.map((row) => {
       const profile = row.profiles || {}
       const pro = row.professionals || {}
       const proProfile = pro.profiles || {}
