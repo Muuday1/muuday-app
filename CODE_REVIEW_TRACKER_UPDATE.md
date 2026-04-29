@@ -17,8 +17,14 @@
 | **NEW-5** Availability workspace deletes all then re-inserts | Created `saveProfessionalAvailability` service with **backup-and-restore** logic: fetches current rows before mutation; if insert fails after delete, attempts to restore backup rows. Created `saveAvailabilityAction` server action. Updated `ProfessionalAvailabilityWorkspace` to use server action instead of direct Supabase mutations. | `lib/professional/professional-profile-service.ts`, `lib/actions/professional.ts`, `components/agenda/ProfessionalAvailabilityWorkspace.tsx` |
 | **1.5** Client-side Supabase mutations (partial) | Fixed `ProfessionalAvailabilityWorkspace` — no longer performs direct `delete`/`insert` against `availability` / `availability_rules`. Moved to server action. **Remaining:** 6 components still do direct mutations (3 profile settings + 2 booking settings + 1 notification preferences). | (see above) |
 
+### Fixed (continued)
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **2.8** Manual rollbacks without transactions | Hardened fallback paths in `persist-recurring.ts`, `record-payment.ts`, and `request-booking-service.ts`. Note: production uses PostgreSQL RPC functions (`create_booking_with_payment`, `create_recurring_booking_with_payment`) which ARE atomic transactions. The fallback paths only run when RPC functions are missing. Improvements: removed dead cleanup code in `persist-recurring.ts`; added Sentry capture for all rollback failures; `record-payment.ts` now verifies cancellation succeeded and throws explicit error if not; `request-booking-service.ts` checks both booking cancellation and request recovery results. | `lib/booking/creation/persist-recurring.ts`, `lib/booking/creation/record-payment.ts`, `lib/booking/request-booking-service.ts` |
+
 ### Verification
-- `npx tsc --noEmit` passes (Exit 0) after changes.
+- `npx tsc --noEmit` passes (Exit 0) after all changes.
 - No new TypeScript errors introduced.
 
 ---
