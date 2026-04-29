@@ -1,8 +1,23 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-29
+**Last cleanup pass:** 2026-04-29 (Pass 20)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 20 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **console.error** across app/api/ routes (remaining 39 calls) | Replaced 39 `console.error` calls with `Sentry.captureException`/`captureMessage` in 19 API route files. Added `import * as Sentry from '@sentry/nextjs'` to 12 files that didn't already have it. Categories: cron jobs (booking-timeouts, booking-reminders, public-visibility-sync), auth (oauth, password-reset), payments (stripe payment-intent, stripe checkout-session, treasury-status), professionals (search, availability, detail, submit-for-review), onboarding (save, modal-context), waitlist, agora token, kyc scan, session release. | 19 files |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+- Deployed live to https://app.muuday.com
 
 ---
 

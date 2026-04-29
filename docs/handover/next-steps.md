@@ -38,6 +38,20 @@ Execute in order. Keep changes batchable, validated, and documented.
 19. ~~**Operator Case Resolution System (ADMIN-01)**~~ ✅ **Done** — Migration 082 extends cases table with priority, assigned_to, sla_deadline. `/admin/casos` queue page with filtering, sorting, SLA indicators. `/admin/casos/[caseId]` detail with evidence, timeline, messages, decision form. Auto-creation from no-show detection. 12 new tests. Test suite: 950/89.
 20. ~~**Review Moderation Queue Enhancement (REVIEW-01)**~~ ✅ **Done** — Migration 083 adds `moderation_status`, `rejection_reason`, `moderated_by`, `flag_reasons` to `reviews`. `/admin/avaliacoes` page with status filters, sort options, batch approve/reject, structured rejection reasons (6 options), auto-flags (profanity, conflicts_with_outcome, suspected_fake). 14 new tests. Test suite: 964/89.
 
+## Cleanup Tracker (Post-Code-Review)
+
+| Pass | What | Status |
+|------|------|--------|
+| Pass 1-4 | Security (CSRF, middleware, redirects), CI fixes, E2E consolidation | ✅ Done |
+| Pass 14-18 | Performance (force-dynamic, any types, unbounded queries, SESSION_CACHE LRU) | ✅ Done |
+| Pass 19 | `console.error` → Sentry in `lib/` (80+ calls across 38 modules) | ✅ Done |
+| Pass 20 | `console.error` → Sentry in `app/api/` (39 calls across 19 routes) | ✅ Done |
+| Pass 21 | `console.error` → Sentry in `app/(app)/` pages + `components/` (16 calls) | ⏳ Next |
+| — | 2.2 Availability logic duplication (orchestration pattern) | ⏳ Pending |
+| — | 2.3 God files refactor (request-booking-service, manage-booking-service) | ⏳ Defer to P3 |
+| — | 2.8 Rollbacks without transactions → PostgreSQL RPC | ⏳ Defer to P3.8 |
+| — | 5.10 Docs with Pending/In progress status markers (39+ files) | ⏳ Pending |
+
 ## Pre-Wave-3 hardening
 
 1. Keep production query-plan validation and index evidence current.
