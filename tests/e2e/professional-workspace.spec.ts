@@ -14,16 +14,8 @@ const hasAdminConfig = Boolean(adminEmail && adminPassword)
 const hasBookableProfessional = Boolean(bookableProfessionalId)
 
 async function dismissCookieDialogIfPresent(page: Page) {
-  const acceptButton = page.getByRole('button', { name: /Aceitar/i }).first()
-  await acceptButton.click({ timeout: 2_000 }).catch(() => {})
-
-  const closeButton = page.getByRole('button', { name: /Fechar/i }).first()
-  await closeButton.click({ timeout: 1_000 }).catch(() => {})
-
-  const cookieBackdropClose = page
-    .locator('[role=\"dialog\"][aria-label*=\"cookies\" i] button[aria-label=\"Fechar\"]')
-    .first()
-  await cookieBackdropClose.click({ timeout: 1_000 }).catch(() => {})
+  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 2_000 }).catch(() => {})
+  await page.locator('[data-testid="cookie-close"]').first().click({ timeout: 1_000 }).catch(() => {})
 }
 
 async function login(page: Page, email: string, password: string) {
@@ -48,9 +40,7 @@ async function login(page: Page, email: string, password: string) {
     } catch {
       let rateLimited = 0
       try {
-        rateLimited = await page
-          .getByText(/muitas tentativas|tente novamente|aguarde/i)
-          .count()
+        rateLimited = await page.locator('[data-testid="login-error"][data-error-type="rate-limited"]').count()
       } catch {
         throw new Error(`E2E login failed: page became unavailable during login (url=${page.url()}).`)
       }
@@ -59,9 +49,7 @@ async function login(page: Page, email: string, password: string) {
         continue
       }
 
-      const invalidCredentials = await page
-        .getByText(/email ou senha incorretos|credenciais invalidas/i)
-        .count()
+      const invalidCredentials = await page.locator('[data-testid="login-error"][data-error-type="invalid-credentials"]').count()
       if (invalidCredentials > 0) {
         throw new Error('E2E login failed: invalid credentials for configured user.')
       }

@@ -425,3 +425,155 @@ export async function updateAvailability(
   await recomputeProfessionalVisibility(supabase, professional.id)
   return { success: true }
 }
+
+const availabilityDaySchema = z.object({
+  is_available: z.boolean(),
+  start_time: z.string().regex(timeRegex, 'Horário inválido (HH:MM)'),
+  end_time: z.string().regex(timeRegex, 'Horário inválido (HH:MM)'),
+}).refine(s => !s.is_available || s.start_time < s.end_time, {
+  message: 'Horário início deve ser antes do fim',
+})
+
+const availabilityStateSchema = z.record(z.number().int().min(0).max(6), availabilityDaySchema)
+
+export async function saveProfessionalAvailability(
+  supabase: SupabaseClient,
+  userId: string,
+  availability: Record<number, { is_available: boolean; start_time: string; end_time: string }>,
+  timezone: string,
+): Promise<{ success?: boolean; error?: string; restored?: boolean }> {
+  const parsed = availabilityStateSchema.safeParse(availability)
+  if (!parsed.success) {
+    const firstError = parsed.error.errors[0]?.message || 'Dados inválidos'
+    return { error: firstError }
+  }
+
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(
+    supabase,
+    userId,
+    'id',
+  )
+  if (profError) {
+    console.error('[professional/saveProfessionalAvailability] getPrimaryProfessionalForUser error:', profError.message)
+  }
+
+  if (!professional) return { error: 'Perfil profissional não encontrado' }
+
+  // Fetch current rows as backup before any mutations
+  const [{ data: backupLegacy }, { data: backupModern }] = await Promise.all([
+    supabase
+      .from('availability')
+      .select('day_of_week,start_time,end_time,is_active')
+      .eq('professional_id', professional.id),
+    supabase
+      .from('availability_rules')
+      .select('weekday,start_time_local,end_time_local,timezone,is_active')
+      .eq('professional_id', professional.id),
+  ])
+
+  // Delete existing rows
+  const [{ error: deleteLegacyError }, { error: deleteModernError }] = await Promise.all([
+    supabase.from('availability').delete().eq('professional_id', professional.id),
+    supabase.from('availability_rules').delete().eq('professional_id', professional.id),
+  ])
+
+  if (deleteLegacyError || deleteModernError) {
+    console.error(
+      '[professional/saveProfessionalAvailability] delete error:',
+      deleteLegacyError?.message || deleteModernError?.message,
+    )
+    return { error: 'Erro ao remover disponibilidade anterior.' }
+  }
+
+  const days = Object.entries(parsed.data).map(([day, val]) => ({
+    day_of_week: Number(day),
+    ...val,
+  }))
+
+  // Insert legacy rows
+  const legacyRows = days.map(day => ({
+    professional_id: professional.id,
+    day_of_week: day.day_of_week,
+    start_time: day.start_time + ':00',
+    end_time: day.end_time + ':00',
+    is_active: day.is_available,
+  }))
+
+  const { error: insertLegacyError } = await supabase.from('availability').insert(legacyRows)
+
+  if (insertLegacyError) {
+    console.error('[professional/saveProfessionalAvailability] insert legacy error:', insertLegacyError.message)
+    // Attempt restore
+    let restored = false
+    if (backupLegacy && backupLegacy.length > 0) {
+      const { error: restoreError } = await supabase.from('availability').insert(
+        backupLegacy.map(row => ({
+          professional_id: professional.id,
+          day_of_week: row.day_of_week,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          is_active: row.is_active,
+        })),
+      )
+      restored = !restoreError
+      if (restoreError) {
+        console.error('[professional/saveProfessionalAvailability] restore legacy failed:', restoreError.message)
+      }
+    }
+    return { error: `Erro ao salvar disponibilidade: ${insertLegacyError.message}`, restored }
+  }
+
+  // Insert modern rows
+  const modernRows = days.map(day => ({
+    professional_id: professional.id,
+    weekday: day.day_of_week,
+    start_time_local: day.start_time + ':00',
+    end_time_local: day.end_time + ':00',
+    timezone,
+    is_active: day.is_available,
+  }))
+
+  const { error: insertModernError } = await supabase.from('availability_rules').insert(modernRows)
+
+  if (insertModernError) {
+    console.error('[professional/saveProfessionalAvailability] insert modern error:', insertModernError.message)
+    // Attempt restore both tables to ensure consistency
+    let restored = false
+    const restoreLegacy = backupLegacy && backupLegacy.length > 0
+      ? supabase.from('availability').insert(
+          backupLegacy.map(row => ({
+            professional_id: professional.id,
+            day_of_week: row.day_of_week,
+            start_time: row.start_time,
+            end_time: row.end_time,
+            is_active: row.is_active,
+          })),
+        )
+      : Promise.resolve({ error: null })
+    const restoreModern = backupModern && backupModern.length > 0
+      ? supabase.from('availability_rules').insert(
+          backupModern.map(row => ({
+            professional_id: professional.id,
+            weekday: row.weekday,
+            start_time_local: row.start_time_local,
+            end_time_local: row.end_time_local,
+            timezone: row.timezone,
+            is_active: row.is_active,
+          })),
+        )
+      : Promise.resolve({ error: null })
+
+    const [{ error: restoreLegacyError }, { error: restoreModernError }] = await Promise.all([restoreLegacy, restoreModern])
+    restored = !restoreLegacyError && !restoreModernError
+    if (restoreLegacyError) {
+      console.error('[professional/saveProfessionalAvailability] restore legacy failed:', restoreLegacyError.message)
+    }
+    if (restoreModernError) {
+      console.error('[professional/saveProfessionalAvailability] restore modern failed:', restoreModernError.message)
+    }
+    return { error: `Erro ao salvar regras modernas: ${insertModernError.message}`, restored }
+  }
+
+  await recomputeProfessionalVisibility(supabase, professional.id)
+  return { success: true }
+}

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2, Check, Clock, AlertCircle, ChevronLeft, Save } from 'lucide-react'
 import Link from 'next/link'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { saveAvailabilityAction } from '@/lib/actions/professional'
 import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
 import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 import { WeeklyScheduleEditor } from './weekly-schedule-editor'
@@ -280,68 +281,14 @@ export function ProfessionalAvailabilityWorkspace({
     setSaveStatus('saving')
     setErrorMessage('')
 
-    const supabase = createClient()
+    const result = await saveAvailabilityAction(availability, calendarTimezone)
 
-    // Build rows for both tables
-    const legacyRows = DAYS_OF_WEEK
-      .map(day => ({
-        professional_id: professionalId,
-        day_of_week: day.value,
-        start_time: availability[day.value].start_time + ':00',
-        end_time: availability[day.value].end_time + ':00',
-        is_active: availability[day.value].is_available,
-      }))
-
-    const modernRows = DAYS_OF_WEEK
-      .map(day => ({
-        professional_id: professionalId,
-        weekday: day.value,
-        start_time_local: availability[day.value].start_time + ':00',
-        end_time_local: availability[day.value].end_time + ':00',
-        timezone: calendarTimezone,
-        is_active: availability[day.value].is_available,
-      }))
-
-    // Delete existing rows and insert new ones (clean upsert) — legacy table
-    const { error: deleteLegacyError } = await supabase
-      .from('availability')
-      .delete()
-      .eq('professional_id', professionalId)
-
-    if (deleteLegacyError) {
-      setErrorMessage(`Erro ao limpar dados anteriores: ${deleteLegacyError.message}`)
-      setSaveStatus('error')
-      return
-    }
-
-    // Delete existing rows and insert new ones — modern table
-    const { error: deleteModernError } = await supabase
-      .from('availability_rules')
-      .delete()
-      .eq('professional_id', professionalId)
-
-    if (deleteModernError) {
-      setErrorMessage(`Erro ao limpar regras anteriores: ${deleteModernError.message}`)
-      setSaveStatus('error')
-      return
-    }
-
-    const { error: insertLegacyError } = await supabase
-      .from('availability')
-      .insert(legacyRows)
-
-    if (insertLegacyError) {
-      setErrorMessage(`Erro ao salvar disponibilidade: ${insertLegacyError.message}`)
-      setSaveStatus('error')
-      return
-    }
-
-    const { error: insertModernError } = await supabase
-      .from('availability_rules')
-      .insert(modernRows)
-
-    if (insertModernError) {
-      setErrorMessage(`Erro ao salvar regras modernas: ${insertModernError.message}`)
+    if (result.error) {
+      setErrorMessage(
+        result.restored
+          ? `${result.error} Os dados anteriores foram restaurados automaticamente.`
+          : result.error,
+      )
       setSaveStatus('error')
       return
     }

@@ -211,7 +211,18 @@ export function LoginForm({ compact, title, subtitle, onSuccess, idPrefix, redir
         </div>
 
         {error ? (
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+          <div
+            className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+            role="alert"
+            data-testid="login-error"
+            data-error-type={
+              error === AUTH_MESSAGES.login.rateLimited
+                ? 'rate-limited'
+                : error === AUTH_MESSAGES.login.invalidCredentials
+                  ? 'invalid-credentials'
+                  : undefined
+            }
+          >
             <p>{error}</p>
             {showRecoveryHint ? (
               <p className="mt-1 text-xs">

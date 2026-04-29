@@ -34,8 +34,7 @@ async function detectBookingEntryState(page: Page) {
 
 async function login(page: Page, email: string, password: string) {
   await page.goto('/login')
-  const acceptCookiesButton = page.getByRole('button', { name: 'Aceitar' }).first()
-  await acceptCookiesButton.click({ timeout: 3_000 }).catch(() => {})
+  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 3_000 }).catch(() => {})
   const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
   const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
   const submitButton = page.locator('button[type="submit"]').first()
@@ -51,9 +50,7 @@ async function login(page: Page, email: string, password: string) {
     } catch {
       let rateLimited = 0
       try {
-        rateLimited = await page
-          .getByText(/muitas tentativas|tente novamente|aguarde/i)
-          .count()
+        rateLimited = await page.locator('[data-testid="login-error"][data-error-type="rate-limited"]').count()
       } catch {
         throw new Error(`E2E login failed: page became unavailable during login (url=${page.url()}).`)
       }
@@ -62,9 +59,7 @@ async function login(page: Page, email: string, password: string) {
         continue
       }
 
-      const invalidCredentials = await page
-        .getByText(/email ou senha incorretos|credenciais invalidas/i)
-        .count()
+      const invalidCredentials = await page.locator('[data-testid="login-error"][data-error-type="invalid-credentials"]').count()
       if (invalidCredentials > 0) {
         throw new Error('E2E login failed: invalid credentials for configured user.')
       }

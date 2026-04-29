@@ -8,6 +8,7 @@ import {
   createOrUpdateProfessionalProfile,
   saveProfessionalProfileDraft as saveProfessionalProfileDraftService,
   updateAvailability as updateAvailabilityService,
+  saveProfessionalAvailability,
 } from '@/lib/professional/professional-profile-service'
 
 export async function createProfessionalProfile(formData: FormData) {
@@ -50,6 +51,26 @@ export async function updateAvailability(slots: { day_of_week: number; start_tim
   if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const result = await updateAvailabilityService(supabase, user.id, slots)
+
+  if (result.success) {
+    revalidateTag('public-profiles', {})
+  }
+
+  return result
+}
+
+export async function saveAvailabilityAction(
+  availability: Record<number, { is_available: boolean; start_time: string; end_time: string }>,
+  timezone: string,
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
+
+  const rl = await rateLimit('availability', user.id)
+  if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  const result = await saveProfessionalAvailability(supabase, user.id, availability, timezone)
 
   if (result.success) {
     revalidateTag('public-profiles', {})

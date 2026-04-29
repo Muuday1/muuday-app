@@ -23,8 +23,7 @@ const hasUserConfig = Boolean(userEmail && userPassword)
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login')
-  const acceptCookiesButton = page.getByRole('button', { name: 'Aceitar' }).first()
-  await acceptCookiesButton.click({ timeout: 3_000 }).catch(() => {})
+  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 3_000 }).catch(() => {})
 
   const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
   const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()
@@ -46,8 +45,7 @@ async function loginAsAdmin(page: Page) {
 
 async function loginAsUser(page: Page) {
   await page.goto('/login')
-  const acceptCookiesButton = page.getByRole('button', { name: 'Aceitar' }).first()
-  await acceptCookiesButton.click({ timeout: 3_000 }).catch(() => {})
+  await page.locator('[data-testid="cookie-accept"]').first().click({ timeout: 3_000 }).catch(() => {})
 
   const emailInput = page.locator('#login-email, input[type="email"], input[name="email"]').first()
   const passwordInput = page.locator('#login-password, input[type="password"], input[name="password"]').first()

@@ -123,6 +123,7 @@ export function CookieConsentRoot({ country }: Props) {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
+                data-testid="cookie-customize"
                 className="inline-flex h-10 items-center gap-1.5 rounded-full border border-slate-200 px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                 onClick={() => setIsCustomize(true)}
               >
@@ -131,6 +132,7 @@ export function CookieConsentRoot({ country }: Props) {
               </button>
               <button
                 type="button"
+                data-testid="cookie-reject"
                 className="inline-flex h-10 items-center gap-1.5 rounded-full border border-slate-200 px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                 onClick={() =>
                   saveConsent({
@@ -144,6 +146,7 @@ export function CookieConsentRoot({ country }: Props) {
               </button>
               <button
                 type="button"
+                data-testid="cookie-accept"
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#9FE870] px-5 text-xs font-bold text-slate-900 transition hover:bg-[#8fd65f]/25"
                 onClick={() =>
                   saveConsent({
@@ -171,6 +174,7 @@ export function CookieConsentRoot({ country }: Props) {
             </div>
             <button
               type="button"
+              data-testid="cookie-close"
               className="rounded-lg p-1 text-slate-400 transition hover:text-slate-700"
               onClick={() => setIsOpen(false)}
               aria-label="Fechar"
