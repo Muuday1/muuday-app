@@ -485,13 +485,13 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 
 | Category | Fixed | Partially Fixed | Still Present | Not Verified |
 |----------|-------|-----------------|---------------|--------------|
-| Segurança | 15 | 2 | 1 | 0 |
-| Arquitetura | 2 | 1 | 6 | 0 |
+| Segurança | 16 | 1 | 1 | 0 |
+| Arquitetura | 2 | 3 | 4 | 0 |
 | DevOps/CI | 8 | 1 | 4 | 0 |
-| Performance | 1 | 1 | 3 | 0 |
+| Performance | 2 | 1 | 2 | 0 |
 | Documentação | 1 | 0 | 6 | 0 |
 | **NEW ISSUES** | — | — | **8** | — |
-| **TOTAL** | **27** | **5** | **28** | **0** |
+| **TOTAL** | **30** | **6** | **25** | **0** |
 
 ---
 
@@ -500,7 +500,7 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | Item | Final Status | Key Evidence |
 |------|--------------|--------------|
 | 1.4 Public pages use admin client | 🟢 FIXED | `createClient()` used in all public pages |
-| 1.5 Client-side Supabase mutations | 🔴 STILL PRESENT | 7 components do direct `supabase.from(...).update/insert/delete` |
+| 1.5 Client-side Supabase mutations | 🟢 FIXED | All 7 components now use server actions; `updateProfileField` has server-side whitelist + rate limit |
 | 2.2 Availability logic duplication | 🔴 STILL PRESENT | Same 4-line patterns copied across 3+ booking files |
 | 2.3 God files | 🔴 STILL PRESENT | `request-booking-service.ts` (811 lines), `manage-booking-service.ts` (944 lines) |
 | 2.5 Supabase generated types | 🔴 STILL PRESENT | No `supabase gen types` script; all clients untyped |
@@ -510,8 +510,8 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 2.13 Single-file component dirs | 🟡 PARTIALLY FIXED | 3 consolidated; 5 feature-specific dirs remain |
 | 3.7 API/integration tests | 🟢 FIXED | 97 `.test.ts` files including 21+ API route tests |
 | 3.9 E2E login duplication | 🟢 FIXED | Consolidated into shared `tests/e2e/helpers.ts` |
-| 3.10 Portuguese E2E selectors | 🔴 STILL PRESENT | `getByRole('button', { name: 'Aceitar' })` etc. |
-| 3.11 Playwright .env parsing | 🔴 STILL PRESENT | Naive `indexOf('=')` breaks on values with `=` |
+| 3.10 Portuguese E2E selectors | 🟢 FIXED | Replaced with `data-testid` attributes in `CookieConsentRoot` and `LoginForm`; all specs updated |
+| 3.11 Playwright .env parsing | 🟢 FIXED | Replaced manual parser with `require('dotenv').config()` in `playwright.config.ts` and `global-setup.ts` |
 | 3.20 Dependabot/Renovate | 🔴 STILL PRESENT | No config file found |
 | 4.2 Health-check endpoint | 🟢 FIXED | `/api/health` and `/api/health/rls` both exist and work |
 | 5.3 vercel-github-actions.md outdated | 🔴 STILL PRESENT | Doc lists 4 CI steps; actual CI has 21 |
