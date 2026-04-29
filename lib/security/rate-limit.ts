@@ -87,11 +87,24 @@ declare global {
   var __muudayRateLimitFallbackAlerts: Map<string, number> | undefined
 }
 
+const MEMORY_STORE_CLEANUP_INTERVAL = 1_000
+
 function getStore() {
   if (!globalThis.__muudayRateLimitStore) {
     globalThis.__muudayRateLimitStore = new Map<string, MemoryBucket>()
   }
   return globalThis.__muudayRateLimitStore
+}
+
+function cleanupExpiredBuckets(store: Map<string, MemoryBucket>) {
+  const now = Date.now()
+  for (const [key, bucket] of store.entries()) {
+    // Use a 60-second grace period so that recently-expired buckets
+    // are not removed while a parallel request may still reference them.
+    if (now - bucket.windowStartedAt > 60_000) {
+      store.delete(key)
+    }
+  }
 }
 
 function getFallbackAlertStore() {
@@ -136,6 +149,12 @@ function reportMemoryFallback(options: RateLimitOptions) {
 
 function checkMemoryRateLimit({ key, limit, windowSeconds }: RateLimitOptions): RateLimitResult {
   const store = getStore()
+
+  // Periodic cleanup to prevent unbounded growth when Redis is unavailable.
+  if (store.size > 0 && store.size % MEMORY_STORE_CLEANUP_INTERVAL === 0) {
+    cleanupExpiredBuckets(store)
+  }
+
   const now = Date.now()
   const windowMs = windowSeconds * 1000
   const existing = store.get(key)
