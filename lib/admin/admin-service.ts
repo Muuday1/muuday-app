@@ -378,7 +378,7 @@ export async function listReviewsForModerationService(
       const pro = (row.professionals || {}) as { id?: string; rating?: number; total_reviews?: number; profiles?: { full_name?: string } | null }
       const proProfile = (pro.profiles || {}) as { full_name?: string }
       const booking = bookingsMap.get(row.booking_id) || null
-      const reviewerStats = reviewerStatsMap.get(profile.id) || { review_count: 0, approved_count: 0, rejected_count: 0 }
+      const reviewerStats = reviewerStatsMap.get(profile.id || '') || { review_count: 0, approved_count: 0, rejected_count: 0 }
 
       const autoFlags = computeAutoFlags({
         comment: row.comment,
