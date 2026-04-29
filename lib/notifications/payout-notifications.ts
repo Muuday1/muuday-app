@@ -5,6 +5,7 @@
  * All notifications are non-blocking (fire-and-forget with catch).
  */
 
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   sendPayoutSentEmail,
@@ -157,11 +158,7 @@ export async function notifyProfessionalAboutPayout(
     await insertInAppNotification(admin, payload)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[payout-notification] in-app failed:', {
-      professionalId: payload.professionalId,
-      status: payload.status,
-      error: msg,
-    })
+    Sentry.captureException(error instanceof Error ? error : new Error(msg), { tags: { area: 'payout_notification', subArea: 'in_app' } })
   }
 
   // Send email notification
@@ -169,11 +166,7 @@ export async function notifyProfessionalAboutPayout(
     await sendEmailNotification(admin, payload)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[payout-notification] email failed:', {
-      professionalId: payload.professionalId,
-      status: payload.status,
-      error: msg,
-    })
+    Sentry.captureException(error instanceof Error ? error : new Error(msg), { tags: { area: 'payout_notification', subArea: 'email' } })
   }
 }
 

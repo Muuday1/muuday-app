@@ -5,6 +5,7 @@
  * Integrated into payout batch creation to block over-indebted professionals.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/lib/config/env'
 
@@ -56,7 +57,7 @@ export async function checkDebtThresholds(
     .order('total_debt', { ascending: false })
 
   if (error) {
-    console.error('[debt/monitor] failed to check debt thresholds:', error.message)
+    Sentry.captureException(error, { tags: { area: 'debt_monitor' } })
     return []
   }
 

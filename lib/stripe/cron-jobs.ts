@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createStripeClientIfConfigured } from './client'
 import { asRecord, asString, asNumber, truncateErrorMessage, buildNextRetryDate, toIsoWeekKey } from './helpers'
@@ -253,7 +254,7 @@ export async function runStripeSubscriptionRenewalChecks(
             }, { onConflict: 'professional_id' })
 
           if (settingsUpdateError) {
-            console.error('[stripe/subscription-check] failed to sync billing_card_on_file:', settingsUpdateError.message)
+            Sentry.captureException(settingsUpdateError, { tags: { area: 'stripe_cron', subArea: 'subscription_check_sync_billing' } })
           }
         }
 
@@ -267,7 +268,7 @@ export async function runStripeSubscriptionRenewalChecks(
           .eq('id', row.id)
 
         if (queueUpdateError) {
-          console.error('[stripe/subscription-check] failed to mark queue item as succeeded:', queueUpdateError.message)
+          Sentry.captureException(queueUpdateError, { tags: { area: 'stripe_cron', subArea: 'subscription_check_queue' } })
         } else {
           processed += 1
         }
@@ -405,7 +406,7 @@ export async function runStripeFailedPaymentRetries(
               .eq('id', row.payment_id)
 
             if (paymentUpdateError) {
-              console.error('[stripe/payment-retry] failed to update payment status:', paymentUpdateError.message)
+              Sentry.captureException(paymentUpdateError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_status' } })
             }
           }
           const { error: queueUpdateError } = await admin
@@ -418,7 +419,7 @@ export async function runStripeFailedPaymentRetries(
             .eq('id', row.id)
 
           if (queueUpdateError) {
-            console.error('[stripe/payment-retry] failed to mark queue item as succeeded:', queueUpdateError.message)
+            Sentry.captureException(queueUpdateError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_queue' } })
           } else {
             succeeded += 1
           }

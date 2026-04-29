@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   REQUEST_BOOKING_STATUSES,
@@ -44,7 +45,7 @@ export async function expireRequestIfNeeded(
     .maybeSingle()
 
   if (expireError) {
-    console.error('[request-helpers] expire request update error:', expireError.message)
+    Sentry.captureException(expireError, { tags: { area: 'request_helpers' } })
   }
 
   return expiredRequest || { ...request, status: 'expired' }

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 
@@ -17,7 +18,7 @@ export async function resolveAuthenticatedProfessionalContext() {
     'id,user_id,status,tier',
   )
   if (profError) {
-    console.error('[calendar/auth-context] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'calendar_auth_context' } })
   }
 
   if (!professional?.id) {
@@ -31,7 +32,7 @@ export async function resolveAuthenticatedProfessionalContext() {
     .maybeSingle()
 
   if (profileError) {
-    console.error('[calendar/auth-context] profile query error:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'calendar_auth_context' } })
   }
 
   return {

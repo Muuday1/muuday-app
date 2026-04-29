@@ -5,6 +5,7 @@
  * Billed separately from payouts. Not deducted from professional earnings.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { env } from '@/lib/config/env'
@@ -256,7 +257,7 @@ export async function createProfessionalSubscription(
 
     if (insertError) {
       // Don't fail the whole operation, but log
-      console.error('[subscription/manager] failed to persist subscription:', insertError.message)
+      Sentry.captureException(insertError, { tags: { area: 'subscription_manager', subArea: 'persist_subscription' } })
     }
 
     // Sync legacy billing_card_on_file flag
@@ -270,7 +271,7 @@ export async function createProfessionalSubscription(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[subscription/manager] createProfessionalSubscription failed:', msg)
+    Sentry.captureException(err instanceof Error ? err : new Error(msg), { tags: { area: 'subscription_manager', subArea: 'create_subscription' } })
     return { success: false, error: msg }
   }
 }
@@ -304,7 +305,7 @@ async function syncBillingCardOnFile(
     )
 
   if (error) {
-    console.error('[subscription/manager] failed to sync billing_card_on_file:', error.message)
+    Sentry.captureException(error, { tags: { area: 'subscription_manager', subArea: 'sync_billing_card' } })
   }
 }
 
@@ -464,7 +465,7 @@ export async function recordSubscriptionPayment(
     .eq('stripe_subscription_id', stripeSubscriptionId)
 
   if (error) {
-    console.error('[subscription/manager] failed to record payment:', error.message)
+    Sentry.captureException(error, { tags: { area: 'subscription_manager', subArea: 'record_payment' } })
   } else {
     // Sync legacy billing_card_on_file flag on successful payment
     const { data: sub } = await admin
@@ -511,7 +512,7 @@ export async function recordSubscriptionPaymentFailure(
     .eq('stripe_subscription_id', stripeSubscriptionId)
 
   if (error) {
-    console.error('[subscription/manager] failed to record failure:', error.message)
+    Sentry.captureException(error, { tags: { area: 'subscription_manager', subArea: 'record_failure' } })
   } else {
     // Sync legacy billing_card_on_file flag on payment failure
     const { data: sub } = await admin

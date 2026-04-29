@@ -10,6 +10,7 @@
  * - All amounts are BIGINT minor units
  */
 
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getStripeClient } from '@/lib/stripe/client'
 import {
@@ -63,7 +64,7 @@ async function hasProfessionalReceivedPayout(
     .limit(1)
 
   if (error) {
-    console.error('[refund/engine] failed to check payout status:', error.message)
+    Sentry.captureException(error, { tags: { area: 'refund_engine' } })
     return false
   }
 
@@ -94,7 +95,7 @@ async function getPaymentForBooking(
     .maybeSingle()
 
   if (error || !data) {
-    console.error('[refund/engine] failed to load payment:', error?.message)
+    Sentry.captureException(error || new Error('Failed to load payment for booking'), { tags: { area: 'refund_engine' } })
     return null
   }
 
@@ -190,7 +191,7 @@ export async function processRefund(
     stripeRefundId = refund.id
   } catch (stripeError) {
     const msg = stripeError instanceof Error ? stripeError.message : String(stripeError)
-    console.error('[refund/engine] Stripe refund failed:', msg)
+    Sentry.captureException(stripeError instanceof Error ? stripeError : new Error(msg), { tags: { area: 'refund_engine', subArea: 'stripe_refund' } })
     return { success: false, stripeError: msg }
   }
 
@@ -206,7 +207,7 @@ export async function processRefund(
     .eq('id', payment.id)
 
   if (paymentUpdateError) {
-    console.error('[refund/engine] failed to update payment:', paymentUpdateError.message)
+    Sentry.captureException(paymentUpdateError, { tags: { area: 'refund_engine', subArea: 'payment_update' } })
     // Return partial success: Stripe refund succeeded but local DB is out of sync
     return {
       success: true,
@@ -274,7 +275,7 @@ export async function processRefund(
     }
   } catch (ledgerError) {
     const msg = ledgerError instanceof Error ? ledgerError.message : String(ledgerError)
-    console.error('[refund/engine] ledger entry failed:', msg)
+    Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(msg), { tags: { area: 'refund_engine', subArea: 'ledger' } })
     return {
       success: true, // Stripe refund succeeded
       refundId: stripeRefundId,

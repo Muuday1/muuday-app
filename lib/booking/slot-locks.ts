@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { BookingSlotInput } from './types'
 
 type SupabaseLikeClient = {
@@ -24,7 +25,7 @@ export async function acquireSlotLock(
     .lte('expires_at', nowIso)
 
   if (cleanupError) {
-    console.error('[slot-locks] cleanup expired locks error:', cleanupError.message)
+    Sentry.captureException(cleanupError, { tags: { area: 'slot_locks' } })
   }
 
   const { data: overlappingLocks, error: lockQueryError } = await supabase
@@ -52,7 +53,7 @@ export async function acquireSlotLock(
   if (ownLock) {
     const { error: renewError } = await supabase.from('slot_locks').update({ expires_at: expiresAt }).eq('id', ownLock.id)
     if (renewError) {
-      console.error('[slot-locks] renew own lock error:', renewError.message)
+      Sentry.captureException(renewError, { tags: { area: 'slot_locks' } })
       return { ok: false, reason: 'error', errorMessage: renewError.message }
     }
     return { ok: true, lockId: ownLock.id }
@@ -83,6 +84,6 @@ export async function acquireSlotLock(
 export async function releaseSlotLock(supabase: SupabaseLikeClient, lockId: string) {
   const { error } = await supabase.from('slot_locks').delete().eq('id', lockId)
   if (error) {
-    console.error('[slot-locks] release lock error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'slot_locks' } })
   }
 }

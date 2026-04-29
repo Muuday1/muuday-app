@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { loadPlanConfigMap, type PlanConfigMap } from '@/lib/plan-config'
@@ -19,7 +20,7 @@ export async function loadPlanConfigs() {
     if (error instanceof AdminAuthError) {
       return { ok: false as const, error: error.message }
     }
-    console.error('[loadPlanConfigs] unexpected error')
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'admin_plans', subArea: 'load' } })
     return { ok: false as const, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -33,7 +34,7 @@ export async function savePlanConfigs(plans: PlanConfigMap) {
     if (error instanceof AdminAuthError) {
       return { ok: false as const, error: error.message }
     }
-    console.error('[savePlanConfigs] unexpected error')
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'admin_plans', subArea: 'save' } })
     return { ok: false as const, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }

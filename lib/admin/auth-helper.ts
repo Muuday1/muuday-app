@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export class AdminAuthError extends Error {
@@ -28,7 +29,7 @@ export async function requireAdmin(supabase: SupabaseClient) {
     .single()
 
   if (profileError) {
-    console.error('[admin/auth-helper] profile role query error:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'admin_auth_helper' } })
   }
 
   if (profile?.role !== 'admin') {

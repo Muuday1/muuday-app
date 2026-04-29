@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
@@ -51,11 +52,11 @@ export async function lookupBookingContext(
   ])
 
   if (profileError) {
-    console.error('[booking/create] profile query error:', profileError.message, profileError.code)
+    Sentry.captureException(profileError, { tags: { area: 'booking_create', subArea: 'profile_query' } })
   }
 
   if (professionalError) {
-    console.error('[booking/create] professional query error:', professionalError.message, professionalError.code)
+    Sentry.captureException(professionalError, { tags: { area: 'booking_create', subArea: 'professional_query' } })
   }
 
   if (!professional || professional.status !== 'approved') {

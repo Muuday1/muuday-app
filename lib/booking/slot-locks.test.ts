@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { acquireSlotLock, releaseSlotLock } from './slot-locks'
 import type { BookingSlotInput } from './types'
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}))
+
 function makeSupabaseClient(overrides?: {
   deleteResult?: { error: null | { message: string } }
   selectResult?: { data: any[] | null; error: null | { message: string } }
@@ -154,7 +159,7 @@ describe('releaseSlotLock', () => {
   })
 
   it('logs error on delete failure', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { captureException } = await import('@sentry/nextjs')
     const supabase = makeSupabaseClient()
     supabase.from = vi.fn().mockReturnValue({
       delete: vi.fn().mockReturnValue({
@@ -162,7 +167,6 @@ describe('releaseSlotLock', () => {
       }),
     })
     await releaseSlotLock(supabase, 'lock-123')
-    expect(consoleSpy).toHaveBeenCalledWith('[slot-locks] release lock error:', 'delete failed')
-    consoleSpy.mockRestore()
+    expect(captureException).toHaveBeenCalled()
   })
 })

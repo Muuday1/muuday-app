@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -119,7 +120,7 @@ export async function sendReferralInviteEmailAction(
     .single()
 
   if (callerError) {
-    console.error('[email/marketing] caller profile query error:', callerError.message)
+    Sentry.captureException(callerError, { tags: { area: 'email_marketing' } })
   }
 
   if (!callerProfile || callerProfile.full_name !== payload.inviterName) return

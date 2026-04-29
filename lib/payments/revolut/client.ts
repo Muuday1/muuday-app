@@ -14,6 +14,7 @@
  */
 
 import crypto from 'crypto'
+import * as Sentry from '@sentry/nextjs'
 import { env } from '@/lib/config/env'
 
 // ---------------------------------------------------------------------------
@@ -145,7 +146,7 @@ async function refreshAccessToken(): Promise<boolean> {
     const data = await response.json()
 
     if (!response.ok || !data.access_token) {
-      console.error('[revolut] Token refresh failed:', data)
+      Sentry.captureMessage(`[revolut] Token refresh failed: ${JSON.stringify(data)}`, 'error')
       return false
     }
 
@@ -162,7 +163,7 @@ async function refreshAccessToken(): Promise<boolean> {
 
     return true
   } catch (err) {
-    console.error('[revolut] Token refresh error:', err)
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { tags: { area: 'revolut_client', subArea: 'token_refresh' } })
     return false
   }
 }
@@ -379,7 +380,7 @@ export async function isRevolutHealthy(): Promise<boolean> {
     await getRevolutAccounts()
     return true
   } catch (err) {
-    console.error('[revolut/health] Health check failed:', err)
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { tags: { area: 'revolut_client', subArea: 'health_check' } })
     return false
   }
 }

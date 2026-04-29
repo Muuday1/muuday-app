@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { AdminAuthError } from '@/lib/admin/auth-helper'
@@ -107,7 +108,7 @@ export async function requireAdmin() {
     .single()
 
   if (profileError) {
-    console.error('[admin/shared] profile role query error:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'admin_shared' } })
   }
 
   if (profile?.role !== 'admin') {

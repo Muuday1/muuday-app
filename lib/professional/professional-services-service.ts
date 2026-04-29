@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { loadPlanConfigMap, getPlanConfigForTier } from '@/lib/plan-config'
@@ -51,11 +52,7 @@ export async function createProfessionalService(
   ])
 
   if (tierError || countError) {
-    console.error('[createProfessionalService] tier/count query failed', {
-      professionalId,
-      tierError: tierError?.message,
-      countError: countError?.message,
-    })
+    Sentry.captureException(tierError || countError || new Error('tier/count query failed'), { tags: { area: 'professional_services', subArea: 'tier_count_query' } })
     return { success: false, error: 'Erro ao validar limite do plano.' }
   }
 

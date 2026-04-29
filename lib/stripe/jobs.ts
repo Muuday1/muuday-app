@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { truncateErrorMessage } from './helpers'
 
@@ -20,7 +21,7 @@ export async function tryStartJobRun(
     .maybeSingle()
 
   if (existingError) {
-    console.error(`[stripe/jobs] failed to check existing job run for ${jobName}/${runKey}:`, existingError.message)
+    Sentry.captureException(existingError, { tags: { area: 'stripe_jobs', jobName, runKey } })
     throw new Error(`Failed to check existing stripe job run: ${existingError.message}`)
   }
 

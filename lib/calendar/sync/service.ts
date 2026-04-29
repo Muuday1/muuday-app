@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   getBookingExternalCalendarEvent,
@@ -133,7 +134,7 @@ export async function syncExternalBusySlotsForIntegration(
       .eq('provider', integration.provider)
 
     if (syncMetaError) {
-      console.error('[calendar-sync] failed to update sync metadata:', syncMetaError.message)
+      Sentry.captureException(syncMetaError, { tags: { area: 'calendar_sync', subArea: 'update_metadata' } })
     }
 
     return {
@@ -156,7 +157,7 @@ export async function syncExternalBusySlotsForIntegration(
       .eq('provider', integration.provider)
 
     if (syncMetaError) {
-      console.error('[calendar-sync] failed to update sync error metadata:', syncMetaError.message)
+      Sentry.captureException(syncMetaError, { tags: { area: 'calendar_sync', subArea: 'update_error_metadata' } })
     }
 
     return {
@@ -214,7 +215,7 @@ export async function upsertBookingInExternalCalendar(admin: SupabaseClient, boo
     .maybeSingle()
 
   if (profileError) {
-    console.error('[calendar-sync] failed to load profile for attendee email:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'calendar_sync', subArea: 'load_profile' } })
   }
 
   const eventResult = await adapter.upsertBookingEvent({

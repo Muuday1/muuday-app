@@ -15,6 +15,7 @@
  */
 
 import crypto from 'crypto'
+import * as Sentry from '@sentry/nextjs'
 import { env } from '@/lib/config/env'
 
 // ---------------------------------------------------------------------------
@@ -275,7 +276,7 @@ export async function isTrolleyHealthy(): Promise<boolean> {
     await trolleyFetch('/recipients?limit=1')
     return true
   } catch (err) {
-    console.error('[trolley/health] Health check failed:', err)
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { tags: { area: 'trolley_client', subArea: 'health_check' } })
     return false
   }
 }

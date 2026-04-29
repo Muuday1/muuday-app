@@ -538,7 +538,7 @@ export async function acceptRequestBookingService(
   const userCurrency = profile?.currency || 'BRL'
   const sessionPriceBrl = Number(professional.session_price_brl) || 0
   if (sessionPriceBrl <= 0) {
-    console.error('[request-booking/accept] invalid session price for professional:', professional.id)
+    Sentry.captureMessage(`[request-booking/accept] invalid session price for professional: ${professional.id}`, 'warning')
     return { success: false, error: 'Profissional não possui preço configurado para sessão.' }
   }
   const exchangeRates = await getExchangeRates(supabase)
@@ -571,7 +571,7 @@ export async function acceptRequestBookingService(
   try {
     assertNoSensitivePaymentPayload(paymentMetadata, 'payments.metadata.acceptRequestBooking')
   } catch (error) {
-    console.error('[request-booking] blocked sensitive payment metadata', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'request_booking', subArea: 'sensitive_payment_metadata' } })
     return {
       success: false,
       error: 'Não foi possível processar a proposta neste momento.',

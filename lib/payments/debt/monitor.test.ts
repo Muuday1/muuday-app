@@ -7,6 +7,11 @@ import {
   runDebtMonitoring,
 } from './monitor'
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}))
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -215,7 +220,7 @@ describe('checkDebtThresholds', () => {
   })
 
   it('returns empty array on database error', async () => {
-    const admin = createMockAdmin()
+    const { captureException } = await import('@sentry/nextjs')
     // Override the query to return error
     const mockAdmin = {
       from: () => ({
@@ -230,11 +235,9 @@ describe('checkDebtThresholds', () => {
       }),
     } as unknown as SupabaseClient
 
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const alerts = await checkDebtThresholds(mockAdmin)
     expect(alerts).toEqual([])
-    expect(consoleError).toHaveBeenCalled()
-    consoleError.mockRestore()
+    expect(captureException).toHaveBeenCalled()
   })
 
   it('handles multiple professionals with same user_id correctly', async () => {

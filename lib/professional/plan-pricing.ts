@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs'
+
 export type PlanTier = 'basic' | 'professional' | 'premium'
 
 export type PlanPricingPayload = {
@@ -77,11 +79,7 @@ export async function resolveProfessionalPlanPricing(args: {
   const annualPriceId = process.env[annualKey]
 
   if (!monthlyPriceId || !annualPriceId) {
-    console.error('[plan-pricing] missing stripe price configuration', {
-      tier,
-      monthlyConfigured: Boolean(monthlyPriceId),
-      annualConfigured: Boolean(annualPriceId),
-    })
+    Sentry.captureMessage(`[plan-pricing] missing stripe price configuration for tier ${tier}`, 'warning')
     if (!args.allowFallbackPricing) {
       return { ok: false, status: 503, error: 'Pricing unavailable at the moment.' }
     }

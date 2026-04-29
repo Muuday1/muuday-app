@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { getPrimaryProfessionalForUser } from './current-professional'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -29,7 +30,7 @@ export async function requireProfessional(supabase: SupabaseClient) {
   )
 
   if (profError) {
-    console.error('[professional/auth-helper] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'professional_auth_helper' } })
   }
 
   if (!professional) {

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/email/client'
 import { emailLayout, cta, signoff, from } from '@/lib/email/theme'
@@ -43,7 +44,7 @@ export async function runReviewReminderSync(
     .in('booking_id', bookingIds)
 
   if (reviewsError) {
-    console.error('[review-reminders] failed to load existing reviews:', reviewsError.message)
+    Sentry.captureException(reviewsError, { tags: { area: 'review_reminders' } })
     // Abort to avoid sending duplicate review requests when we can't verify state
     return { checked: eligibleBookings.length, sent: 0, at: nowIso }
   }
@@ -70,10 +71,10 @@ export async function runReviewReminderSync(
     .in('id', professionalIds)
 
   if (profilesError) {
-    console.error('[review-reminders] failed to load profiles:', profilesError.message)
+    Sentry.captureException(profilesError, { tags: { area: 'review_reminders' } })
   }
   if (professionalsError) {
-    console.error('[review-reminders] failed to load professionals:', professionalsError.message)
+    Sentry.captureException(professionalsError, { tags: { area: 'review_reminders' } })
   }
 
   const profileById = new Map((profiles || []).map((p) => [p.id, p]))
