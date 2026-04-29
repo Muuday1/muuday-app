@@ -586,6 +586,22 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 
 ---
 
+## Cleanup Pass 18 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **HIGH-2** `force-dynamic` on agenda/dashboard | Removed redundant `export const dynamic = 'force-dynamic'` from `app/(app)/agenda/page.tsx` and `app/(app)/dashboard/page.tsx`. Both pages unconditionally call `createClient()` (reads cookies) and `redirect()` — already dynamic by Next.js semantics. The explicit export was redundant and flagged as a performance anti-pattern. | `app/(app)/agenda/page.tsx`, `app/(app)/dashboard/page.tsx` |
+| **console.error** in admin modules | Replaced 25 `console.error` calls with `Sentry.captureException`/`captureMessage` in `lib/admin/admin-service.ts` (15) and `lib/actions/admin.ts` (10). Added `import * as Sentry from '@sentry/nextjs'` to both files. | `lib/admin/admin-service.ts`, `lib/actions/admin.ts` |
+| **`any` types** (remaining in lib/ excl. tests) | Fixed all 10 remaining `: any` type annotations in `lib/` (excluding test files). Replaced 9 raw-row `any` mappings in `lib/admin/admin-service.ts` with explicit inline types and a local `RawModerationRow` interface. Replaced `error: any` in `lib/professional/current-professional.ts` with `PostgrestError \| null`. Also removed 2 unnecessary `as any` casts for `rejectionReason` in `lib/actions/admin.ts` (Zod enum already matches service type). | `lib/admin/admin-service.ts`, `lib/professional/current-professional.ts`, `lib/actions/admin.ts` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
 ## Cleanup Pass 17 — 2026-04-29
 
 ### Fixed

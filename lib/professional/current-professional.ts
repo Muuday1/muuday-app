@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
 import type { ProfessionalRow } from '@/types'
 
 export type { ProfessionalRow }
@@ -25,7 +25,7 @@ export async function getPrimaryProfessionalForUser<T = Record<string, any>>(
   supabase: SupabaseClient,
   userId: string,
   columns = '*',
-): Promise<{ data: T | null; error: any }> {
+): Promise<{ data: T | null; error: PostgrestError | null }> {
   let { data, error } = await supabase
     .from('professionals')
     .select(columns)

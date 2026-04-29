@@ -37,8 +37,11 @@
 > - **`any` in app/ directory** → Fixed. Zero TypeScript `any` types remain in `app/` (verified with regex search). `lib/auth/layout-session.ts` `user: any` also fixed.
 > - **console.error in lib/ services** → Fixed (Pass 17). Replaced 18 `console.error` calls in booking, availability, auth, blog, and action modules with `Sentry.captureException`.
 > - **Unbounded queries** → Fixed (Pass 17). Added `.limit(500)` to blog comments and `.limit(200)` to internal conflict detection.
+> - **`force-dynamic`** → Fixed (Pass 18). Removed redundant `export const dynamic = 'force-dynamic'` from `agenda/page.tsx` and `dashboard/page.tsx` — both pages are already dynamic via `createClient()` + `redirect()`.
+> - **`any` types in lib/ (excl. tests)** → Fixed (Pass 18). Replaced all 10 remaining `: any` annotations with explicit types. Removed 2 unnecessary `as any` casts in admin actions.
+> - **console.error in admin modules** → Fixed (Pass 18). Replaced 25 `console.error` calls in `lib/admin/admin-service.ts` and `lib/actions/admin.ts` with `Sentry.captureException`.
 >
-> Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5), `any` types (~320 in lib/ tests + admin/payment modules), `force-dynamic` on agenda/dashboard, mega-components.
+> Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5), `any` types in test files, mega-components.
 
 ---
 

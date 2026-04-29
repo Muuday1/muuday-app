@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Agenda | Muuday' }
 
 import * as Sentry from '@sentry/nextjs'
