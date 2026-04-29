@@ -101,7 +101,9 @@ export async function POST(request: NextRequest) {
     .eq('id', credential.id)
 
   if (updateError) {
-    console.error('[api/v1/kyc/scan] update error:', updateError.message, updateError.code)
+    Sentry.captureException(updateError, {
+      tags: { area: 'api_v1_kyc_scan', context: 'persist-results' },
+    })
     return NextResponse.json({ error: 'Failed to persist OCR results.' }, { status: 500 })
   }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 /**
@@ -59,7 +60,10 @@ export async function GET(request: NextRequest) {
   })
 
   if (error || !data?.url) {
-    console.error('[auth/oauth] OAuth initiation failed:', error?.message)
+    Sentry.captureMessage(`[auth/oauth] OAuth initiation failed: ${error?.message || 'unknown'}`, {
+      level: 'error',
+      tags: { area: 'auth_oauth', context: 'initiation' },
+    })
     return NextResponse.json(
       { error: error?.message || 'OAuth initiation failed' },
       { status: 500 }

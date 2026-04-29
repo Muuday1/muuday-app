@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { getTreasuryBalance } from '@/lib/payments/revolut/client'
@@ -123,7 +124,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('[treasury-status] Failed:', message)
+    Sentry.captureException(error instanceof Error ? error : new Error(message), {
+      tags: { area: 'treasury_status', context: 'load' },
+    })
     return NextResponse.json(
       { error: 'Failed to load treasury status', details: message },
       { status: 500 },

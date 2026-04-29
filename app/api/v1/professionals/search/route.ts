@@ -70,7 +70,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (error) {
-      console.error('[api/v1/professionals/search] rpc error:', error.message, error.code)
+      Sentry.captureException(error, {
+        tags: { area: 'api_v1_professionals_search', context: 'rpc' },
+      })
       return NextResponse.json({ error: 'Search failed.' }, { status: 500 })
     }
 
@@ -118,7 +120,9 @@ export async function GET(request: NextRequest) {
       .eq('profiles.role', 'profissional')
 
     if (profError) {
-      console.error('[api/v1/professionals/search] professionals error:', profError.message, profError.code)
+      Sentry.captureException(profError, {
+        tags: { area: 'api_v1_professionals_search', context: 'professionals-load' },
+      })
       return NextResponse.json({ error: 'Failed to load professionals.' }, { status: 500 })
     }
 
@@ -136,7 +140,9 @@ export async function GET(request: NextRequest) {
       total: candidateIds.length,
     }, { cacheControl: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' })
   } catch (err) {
-    console.error('[api/v1/professionals/search] unexpected error:', err instanceof Error ? err.message : String(err))
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+      tags: { area: 'api_v1_professionals_search', context: 'unexpected' },
+    })
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
     }
 }

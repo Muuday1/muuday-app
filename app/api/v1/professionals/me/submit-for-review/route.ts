@@ -34,7 +34,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (profileError) {
-    console.error('[api/v1/professionals/me/submit-for-review] profile query error:', profileError.message)
+    Sentry.captureException(profileError, {
+      tags: { area: 'api_v1_professionals_submit_review', context: 'profile-query' },
+    })
   }
 
   if (!profile || profile.role !== 'profissional') {
@@ -43,7 +45,9 @@ export async function POST(request: NextRequest) {
 
   const { data: professional, error: profError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (profError) {
-    console.error('[api/v1/professionals/me/submit-for-review] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, {
+      tags: { area: 'api_v1_professionals_submit_review', context: 'primary-professional' },
+    })
   }
 
   if (!professional?.id) {

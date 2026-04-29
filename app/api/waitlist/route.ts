@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
@@ -99,11 +100,9 @@ export async function POST(request: NextRequest) {
       )
 
     if (dbError) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[waitlist] DB error:', dbError)
-      } else {
-        console.error('[waitlist] DB error')
-      }
+      Sentry.captureException(dbError, {
+        tags: { area: 'waitlist', context: 'db-upsert' },
+      })
       return applyExtraHeaders(
         withCors(
           NextResponse.json(
@@ -125,13 +124,17 @@ export async function POST(request: NextRequest) {
           addContactToResend(email, firstname, SEGMENTS.waitlist),
         ])
       } catch (error) {
-        console.error('[waitlist] Email error')
+        Sentry.captureException(error instanceof Error ? error : new Error('waitlist email error'), {
+          tags: { area: 'waitlist', context: 'email' },
+        })
       }
     })()
 
     return applyExtraHeaders(withCors(NextResponse.json({ success: true })), rateLimitHeaders)
   } catch (error) {
-    console.error('[waitlist] Error')
+    Sentry.captureException(error instanceof Error ? error : new Error('waitlist unexpected error'), {
+      tags: { area: 'waitlist', context: 'unexpected' },
+    })
     return withCors(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
   }
 }

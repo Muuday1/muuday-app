@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getAppBaseUrl } from '@/lib/config/app-url'
@@ -115,9 +116,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: returnUrl })
     }
 
-    console.error('[stripe] missing price configuration', {
-      tier: parsed.data.tier,
-      cycle: parsed.data.billingCycle,
+    Sentry.captureMessage('[stripe] missing price configuration', {
+      level: 'error',
+      tags: { area: 'stripe_checkout_session', context: 'missing-price-config' },
+      extra: { tier: parsed.data.tier, cycle: parsed.data.billingCycle },
     })
     return NextResponse.json({ error: 'Preco de plano nao configurado no momento.' }, { status: 503 })
   }

@@ -87,7 +87,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       cacheControl: 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
     })
   } catch (err) {
-    console.error('[api/v1/professionals/:id] unexpected error:', err instanceof Error ? err.message : String(err))
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+      tags: { area: 'api_v1_professionals_id', context: 'unexpected' },
+    })
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
   }
 }

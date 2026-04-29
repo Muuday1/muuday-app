@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runBookingReminderSync } from '@/lib/ops/booking-reminders'
@@ -79,7 +80,9 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown'
-    console.error('[cron/booking-reminders] sync error:', message)
+    Sentry.captureException(error instanceof Error ? error : new Error(message), {
+      tags: { area: 'cron_booking_reminders', context: 'sync' },
+    })
     const body: Record<string, string> = { error: 'Failed to save reminders.' }
     if (process.env.NODE_ENV !== 'production') body.details = message
     return withCors(NextResponse.json(body, { status: 500 }))
