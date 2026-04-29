@@ -339,7 +339,7 @@ export async function listReviewsForModerationService(
       flag_reasons: string[] | null
     }
 
-    const rows = (rawRows || []) as RawModerationRow[]
+    const rows = (rawRows || []) as unknown as RawModerationRow[]
 
     const reviewIds = rows.map((r) => r.id).filter(Boolean)
 
