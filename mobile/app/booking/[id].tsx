@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Calendar, Clock, User, CreditCard } from 'lucide-react-native'
 import { useStripe } from '@stripe/stripe-react-native'
+import { fromZonedTime } from 'date-fns-tz'
 import { apiV1 } from '@/lib/api'
 import { useAvailability } from '@/hooks/useAvailability'
 import { useCreateBooking } from '@/hooks/useCreateBooking'
@@ -54,6 +55,8 @@ function getAvailableSlotsForDate(
   exceptions: AvailabilityException[],
   existingBookings: ExistingBooking[],
   durationMinutes: number,
+  timezone: string,
+  minimumNoticeHours: number,
 ): string[] {
   const dateKey = formatDateKey(date)
   const dayOfWeek = getDayOfWeek(date)
@@ -79,6 +82,9 @@ function getAvailableSlotsForDate(
     }
   }
 
+  const now = new Date()
+  const noticeCutoff = new Date(now.getTime() + minimumNoticeHours * 60 * 60 * 1000)
+
   // Filter out blocked slots
   const availableSlots: string[] = []
   for (const slot of Array.from(allSlots).sort()) {
@@ -91,10 +97,23 @@ function getAvailableSlotsForDate(
       }
     }
 
-    // Check existing bookings
+    // Convert slot to UTC using professional's timezone
     const scheduledAt = buildScheduledAt(dateKey, slot)
-    const slotUtc = new Date(scheduledAt)
+    let slotUtc: Date
+    try {
+      slotUtc = fromZonedTime(scheduledAt, timezone)
+    } catch {
+      // Fallback: treat as UTC if timezone conversion fails
+      slotUtc = new Date(scheduledAt)
+    }
     const slotEndUtc = new Date(slotUtc.getTime() + durationMinutes * 60 * 1000)
+
+    // Check minimum notice
+    if (slotUtc < noticeCutoff) {
+      continue
+    }
+
+    // Check existing bookings
     if (hasUtcBookingConflict(slotUtc, slotEndUtc, existingBookings)) {
       continue
     }
@@ -144,6 +163,8 @@ export default function BookingScreen() {
   const rules = availability?.rules ?? []
   const exceptions = availability?.exceptions ?? []
   const existingBookings = availability?.existingBookings ?? []
+  const timezone = availability?.timezone ?? 'America/Sao_Paulo'
+  const minimumNoticeHours = availability?.minimumNoticeHours ?? 24
 
   // Generate next 14 days, filtered to days with availability rules
   const availableDates = useMemo(() => {
@@ -177,8 +198,10 @@ export default function BookingScreen() {
       exceptions,
       existingBookings,
       durationMinutes,
+      timezone,
+      minimumNoticeHours,
     )
-  }, [selectedDate, rules, exceptions, existingBookings, durationMinutes])
+  }, [selectedDate, rules, exceptions, existingBookings, durationMinutes, timezone, minimumNoticeHours])
 
   const handleConfirm = useCallback(async () => {
     if (!selectedDate || !selectedTime || !professional) return
