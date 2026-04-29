@@ -199,12 +199,12 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 | # | Tarefa | Tags | Estimativa | Dono | Status |
 |---|--------|------|------------|------|--------|
-| 4.6 | **Inicializar projeto Expo** — TypeScript, Expo Router, NativeWind, TanStack Query. | `📱 APP` | 1 dia | Mobile | 🔲 |
-| 4.7 | **Design tokens + theme** — Cores, spacing, typography compartilhados com web. | `📱 APP` | 1 dia | Mobile | 🔲 |
-| 4.8 | **Integrar Supabase Auth** — Password login. `expo-secure-store` para tokens. | `📱 APP` | 2 dias | Mobile | 🔲 |
+| 4.6 | **Inicializar projeto Expo** — TypeScript, Expo Router, NativeWind, TanStack Query. | `📱 APP` | 1 dia | Mobile | ✅ |
+| 4.7 | **Design tokens + theme** — Cores, spacing, typography compartilhados com web. | `📱 APP` | 1 dia | Mobile | ✅ |
+| 4.8 | **Integrar Supabase Auth** — Password login. `expo-secure-store` para tokens. | `📱 APP` | 2 dias | Mobile | ✅ |
 | 4.9 | **Google native OAuth** — `expo-auth-session` ou `expo-google-sign-in`. `signInWithIdToken`. | `📱 APP` | 2 dias | Mobile | 🔲 |
-| 4.10 | **Deep links** — Configurar `muuday://` scheme. Testar em iOS e Android. | `📱 APP` | 1 dia | Mobile | 🔲 |
-| 4.11 | **Navigation + tab bars** — Cliente (Explore, Bookings, Messages, Profile) e Profissional (Dashboard, Calendar, Messages, Profile). | `📱 APP` | 2 dias | Mobile | 🔲 |
+| 4.10 | **Deep links** — Configurar `muuday://` scheme. Testar em iOS e Android. | `📱 APP` | 1 dia | Mobile | ✅ |
+| 4.11 | **Navigation + tab bars** — Cliente (Explore, Bookings, Messages, Profile) e Profissional (Dashboard, Calendar, Messages, Profile). | `📱 APP` | 2 dias | Mobile | ✅ |
 | 4.12 | **Biometric login** — Face ID / Touch ID / fingerprint após primeiro login. | `📱 APP` | 1 dia | Mobile | 🔲 |
 
 ### Frontend / Web
@@ -234,9 +234,9 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 | 5.1 | **Home / Dashboard** — Resumo de bookings, próximas sessões, notificações. | `📱 APP` | 2 dias | Mobile | 🔲 |
 | 5.2 | **Search professionals** — Consumir `/api/v1/professionals/search`. Infinite scroll. Filtros (categoria, preço). | `📱 APP` | 3 dias | Mobile | ✅ |
 | 5.3 | **Professional detail** — Perfil, reviews, disponibilidade, botão "Agendar". | `📱 APP` | 2 dias | Mobile | ✅ |
-| 5.4 | **Booking flow (one-off)** — Selecionar horário, confirmar, pagamento (Stripe PaymentSheet webview). | `📱 APP` | 3 dias | Mobile | 🔲 |
-| 5.5 | **My bookings list** — Estados: confirmado, pendente, cancelado, realizado. | `📱 APP` | 2 dias | Mobile | 🔲 |
-| 5.6 | **Push token registration** — Enviar Expo push token para `POST /api/v1/push/subscribe`. | `📱 APP` | 0.5 dia | Mobile | 🔲 |
+| 5.4 | **Booking flow (one-off)** — Selecionar horário, confirmar, pagamento (Stripe PaymentSheet). | `📱 APP` | 3 dias | Mobile | ✅ |
+| 5.5 | **My bookings list** — Estados: confirmado, pendente, cancelado, realizado. | `📱 APP` | 2 dias | Mobile | ✅ |
+| 5.6 | **Push token registration** — Enviar Expo push token para `POST /api/v1/push/subscribe`. | `📱 APP` | 0.5 dia | Mobile | 🔄 |
 
 ### Conteúdo / Marketing (Paralelo)
 
@@ -253,8 +253,8 @@ As duas iniciativas (internacional + mobile) compartilham **as mesmas fundaçõe
 
 **Sprint 5 — Entregáveis:**
 - [x] App: cliente pode buscar e ver perfil
-- [ ] App: agendar (próximo: booking flow)
-- [ ] App: lista de bookings funcionando
+- [x] App: agendar com Stripe PaymentSheet
+- [x] App: lista de bookings funcionando
 - [ ] App: push notifications recebidas
 - [ ] 50%+ do conteúdo mexicano escrito
 - [ ] Design da landing MX pronto
@@ -371,7 +371,7 @@ Sprint 5+
 ---
 
 > **Documento vivo.** Atualizar a cada sprint review.
-> **Última atualização:** 2026-04-23
+> **Última atualização:** 2026-04-29
 
 
 ---

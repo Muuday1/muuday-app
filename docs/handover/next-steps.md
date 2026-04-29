@@ -1,6 +1,6 @@
 # Next Steps
 
-Last updated: 2026-04-28
+Last updated: 2026-04-29
 
 Execute in order. Keep changes batchable, validated, and documented.
 
@@ -49,9 +49,10 @@ Execute in order. Keep changes batchable, validated, and documented.
 
 ## Mobile app & API-first refactor
 
-1. Mobile app development is **not open** until API refactor is fully hardened.
-2. Next mobile-app prerequisite: E2E validation of `/api/v1/*` surface with realistic mobile payloads.
-3. See `docs/project/mobile-app/08-master-backlog.md` for unified backlog across mobile + international tracks.
+1. ~~Mobile app development is **not open** until API refactor is fully hardened.~~ API refactor is complete (P2.1). Mobile development active.
+2. ~~Next mobile-app prerequisite: E2E validation of `/api/v1/*` surface with realistic mobile payloads.~~ E2E smoke tests pass (444 tests, 13/13 contract tests).
+3. Sprint 6 complete: Booking flow (one-off) with Stripe PaymentSheet. Date picker, time slots, notes, PaymentSheet integration. Backend APIs: availability + payment-intent.
+4. See `docs/project/mobile-app/08-master-backlog.md` for unified backlog across mobile + international tracks.
 
 ## International expansion
 

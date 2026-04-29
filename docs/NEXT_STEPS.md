@@ -1,6 +1,6 @@
 # NEXT_STEPS.md — Consolidated Source of Truth
 
-**Last updated:** 2026-04-28
+**Last updated:** 2026-04-29
 **Status:** Living document — update after every major change
 **Scope:** Every pending task, decision, and dependency across Muuday
 
@@ -251,7 +251,7 @@ These tracks can start in parallel with Wave 3 but are not launch blockers.
   - [x] Supabase Auth with password + SecureStore session persistence
   - [ ] Google OAuth (deferred to Sprint 5)
   - [x] Search professionals with infinite scroll
-  - [ ] Booking flow (one-off) with Stripe PaymentSheet
+  - [x] Booking flow (one-off) with Stripe PaymentSheet
   - [ ] Push notifications (Expo Push Service)
   - [ ] Professional dashboard + calendar management
   - [ ] Agora video session integration
@@ -417,6 +417,7 @@ These cannot be resolved by engineering alone.
 | C20 | **P2.2 Sprint 4 Foundation** — Mobile app scaffold: Expo Router file-based routing, NativeWind theming, Supabase AuthProvider with SecureStore, TanStack Query hooks (`useUser`, `useBookings`, `useConversations`), typed API client (`apiV1`) with Bearer + session headers. Tab layout (Início, Explorar, Agenda, Mensagens, Perfil). Login screen with email/password. Home, Bookings, Messages screens wired to API v1. TypeScript clean. | `mobile/app/*`, `mobile/components/AuthProvider.tsx`, `mobile/hooks/*`, `mobile/lib/api.ts`, `mobile/lib/supabase.ts` |
 | C21 | **P2.1 Completion** — Fixed API response shape mismatches: `GET /api/v1/bookings` now returns `{ data: { bookings, total } }` (was `{ data: [...] }`); `GET /api/v1/notifications` now returns `{ data: { notifications, nextCursor } }` (was flat). Created `lib/schemas/api-v1.ts` with 19 Zod schemas for core endpoints. Generated OpenAPI 3.1 document served at `/api/openapi.json`. Added 13 contract tests (`lib/schemas/api-v1.contract.test.ts`). Added `Cache-Control` + `ETag` to 5 list endpoints (bookings, conversations, messages, notifications, professionals/search). 444 tests pass. | `lib/schemas/*`, `lib/openapi/*`, `app/api/openapi.json/*`, `lib/http/cache-headers.ts`, `app/api/v1/bookings/route.ts`, `app/api/v1/notifications/route.ts` |
 | C22 | **P2.2 Sprint 5 Search + Detail** — Mobile explore screen with infinite scroll using TanStack Query `useInfiniteQuery`. Category filter chips. Professional cards with avatar, rating, price, experience. Pull-to-refresh. New `GET /api/v1/professionals/{id}` endpoint with public visibility check, reviews, and cache headers. Professional detail screen with cover photo, bio, specialties, tags, reviews (expandable), and CTA to chat/book. Added `mobile/lib/search-config.ts` with category mappings. Mobile TypeScript clean. | `mobile/app/(tabs)/explore.tsx`, `mobile/app/professional/[id].tsx`, `mobile/components/professional/*`, `mobile/hooks/useSearchProfessionals.ts`, `mobile/lib/api.ts`, `app/api/v1/professionals/[id]/route.ts` |
+| C23 | **P2.2 Sprint 6 Booking Flow + PaymentSheet** — Mobile booking screen (`mobile/app/booking/[id].tsx`) with horizontal date picker, time slot grid, notes input, and Stripe PaymentSheet integration. `useAvailability` and `useCreateBooking` TanStack Query hooks. `mobile/lib/booking/slots.ts` with pure slot generation/filtering. Backend: `GET /api/v1/professionals/{id}/availability` (rules/exceptions/bookings with 60s cache) and `POST /api/v1/payments/payment-intent` (mobile-specific PaymentIntent with `capture_method: manual`). `StripeProvider` added to root layout. `react-native-svg` installed fixing `lucide-react-native` peer dependency types. Mobile TypeScript clean. | `mobile/app/booking/[id].tsx`, `mobile/hooks/useAvailability.ts`, `mobile/hooks/useCreateBooking.ts`, `mobile/lib/booking/slots.ts`, `mobile/app/_layout.tsx`, `app/api/v1/payments/payment-intent/route.ts`, `app/api/v1/professionals/[id]/availability/route.ts` |
 
 ---
 
