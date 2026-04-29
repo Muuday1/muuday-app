@@ -119,16 +119,16 @@ The **professional-settings lookup → normalize → timezone fallback → slot 
 ---
 
 ### 2.5 Falta de tipos gerados do Supabase
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟡 **PARTIALLY FIXED**
 
 | Check | Finding |
 |-------|---------|
-| `package.json` scripts | **No `supabase gen types` command** exists |
-| Generated types file | `types/supabase.ts` exists (39 lines) but is **hand-written augmentations**, not auto-generated from DB schema |
-| Typed client usage | `lib/supabase/client.ts`, `server.ts`, and `admin.ts` all use raw `createClient()` **without generic type parameters** |
+| `package.json` scripts | ✅ `db:gen-types` added — runs `supabase gen types typescript` against production project |
+| Generated types file | ✅ `types/supabase-generated.ts` created (4,257 lines) from live DB schema |
+| Typed client usage | 🟡 `lib/supabase/client.ts`, `server.ts`, and `admin.ts` still use raw `createClient()` without generic type parameters. Gradual migration needed to avoid breaking the build. |
 | Manual casts | Ubiquitous. Examples: `request-booking-service.ts:67` `as Record<string, unknown>`; `manage-booking-service.ts:183` `as Record<string, unknown> \| null` |
 
-**Conclusion:** There is **no Supabase generated-types workflow**. All table shapes are inferred via manual `as` casts, which is brittle and lacks compile-time safety when schemas change.
+**Conclusion:** The generated-types **workflow is now set up**. The `Database` type is re-exported from `types/supabase.ts`. Full type safety requires gradually updating client wrappers and removing manual `as` casts — this is a large follow-up effort that should be done incrementally.
 
 ---
 
@@ -486,12 +486,12 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | Category | Fixed | Partially Fixed | Still Present | Not Verified |
 |----------|-------|-----------------|---------------|--------------|
 | Segurança | 16 | 1 | 1 | 0 |
-| Arquitetura | 2 | 3 | 4 | 0 |
+| Arquitetura | 2 | 4 | 3 | 0 |
 | DevOps/CI | 8 | 1 | 4 | 0 |
 | Performance | 2 | 1 | 2 | 0 |
 | Documentação | 1 | 0 | 6 | 0 |
 | **NEW ISSUES** | — | — | **8** | — |
-| **TOTAL** | **30** | **6** | **25** | **0** |
+| **TOTAL** | **30** | **7** | **24** | **0** |
 
 ---
 
@@ -503,7 +503,7 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 1.5 Client-side Supabase mutations | 🟢 FIXED | All 7 components now use server actions; `updateProfileField` has server-side whitelist + rate limit |
 | 2.2 Availability logic duplication | 🔴 STILL PRESENT | Same 4-line patterns copied across 3+ booking files |
 | 2.3 God files | 🔴 STILL PRESENT | `request-booking-service.ts` (811 lines), `manage-booking-service.ts` (944 lines) |
-| 2.5 Supabase generated types | 🔴 STILL PRESENT | No `supabase gen types` script; all clients untyped |
+| 2.5 Supabase generated types | 🟡 PARTIALLY FIXED | `db:gen-types` script added; `types/supabase-generated.ts` created; clients still untyped |
 | 2.6 BookingStatus duplicated | 🟢 FIXED | `types/index.ts` is a pure re-export of `lib/booking/types.ts` |
 | 2.8 Rollbacks without transactions | 🔴 STILL PRESENT | Manual rollback in 3 files; no DB transactions |
 | 2.9 Metadata ad-hoc mutation | 🟡 PARTIALLY FIXED | 9 sites centralized into `patchBookingMetadata`; concurrency risk documented |
