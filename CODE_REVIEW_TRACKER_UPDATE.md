@@ -586,6 +586,22 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 
 ---
 
+## Cleanup Pass 19 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **console.error** across lib/ services (remaining 80+ calls) | Replaced 80+ `console.error` calls with `Sentry.captureException`/`captureMessage` in 38 lib/ modules. Added `import * as Sentry from '@sentry/nextjs'` to all files that didn't already have it. Categories: favorites, guide-feedback, onboarding-state, slot-locks, review-reminders, request-helpers, complete-account, plan-pricing, professional-services, review-response, refund/engine, subscription/manager, revolut/client, trolley/client+onboarding, debt/monitor, calendar sync (service, events, auth-context), admin/finance, admin-plans, admin/shared, admin/auth-helper, professional/auth-helper, professional/subscription, email/shared, email/marketing, stripe cron-jobs, stripe jobs, push/unified-sender, payout-notifications, kyc/document-ai, kyc/textract, pending-payment-timeout, request-booking-service, middleware. Only 2 `console.error` remain in `lib/config/env.ts` (startup validation before Sentry init). | 38 files |
+| **Test mocks** | Updated 3 test files to mock `@sentry/nextjs` instead of `console.error`: `request-helpers.test.ts`, `slot-locks.test.ts`, `debt/monitor.test.ts`. | 3 files |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+- Deployed live to https://app.muuday.com
+
+---
+
 ## Cleanup Pass 18 — 2026-04-29
 
 ### Fixed
