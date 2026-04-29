@@ -15,7 +15,7 @@
 | **3.11 / NEW-2** Playwright `.env.local` manual parsing | Replaced naive `indexOf('=')` with `dotenv.config()` in both `playwright.config.ts` and `tests/e2e/global-setup.ts` | `playwright.config.ts`, `tests/e2e/global-setup.ts` |
 | **3.10** Hardcoded Portuguese E2E selectors | Added `data-testid` attributes to cookie consent (`cookie-accept`, `cookie-close`, etc.) and login error (`login-error` + `data-error-type`). Updated all 4 E2E specs to use `data-testid` instead of Portuguese text for cookie dismiss, rate-limit detection, and invalid-credentials detection. | `components/cookies/CookieConsentRoot.tsx`, `components/auth/LoginForm.tsx`, `tests/e2e/*.spec.ts` |
 | **NEW-5** Availability workspace deletes all then re-inserts | Created `saveProfessionalAvailability` service with **backup-and-restore** logic: fetches current rows before mutation; if insert fails after delete, attempts to restore backup rows. Created `saveAvailabilityAction` server action. Updated `ProfessionalAvailabilityWorkspace` to use server action instead of direct Supabase mutations. | `lib/professional/professional-profile-service.ts`, `lib/actions/professional.ts`, `components/agenda/ProfessionalAvailabilityWorkspace.tsx` |
-| **1.5** Client-side Supabase mutations (partial) | Fixed `ProfessionalAvailabilityWorkspace` — no longer performs direct `delete`/`insert` against `availability` / `availability_rules`. Moved to server action. **Remaining:** 6 components still do direct mutations (3 profile settings + 2 booking settings + 1 notification preferences). | (see above) |
+| **1.5** Client-side Supabase mutations | Fixed all 7 components. Availability → `saveAvailabilityAction`; Booking settings → `saveBookingSettingsAction`; Profile/notification fields → `updateProfileField` server action with server-side whitelist and rate limiting. | `lib/professional/professional-profile-service.ts`, `lib/actions/professional.ts`, `lib/actions/user-profile.ts`, `lib/security/rate-limit.ts`, `components/agenda/ProfessionalAvailabilityWorkspace.tsx`, `components/agenda/ProfessionalBookingRulesPanel.tsx`, `components/settings/BookingSettingsClient.tsx`, `components/settings/ProfessionalSettingsWorkspace.tsx`, `components/settings/NotificationPreferencesPage.tsx`, `components/profile/ProfileAccountSettings.tsx` |
 
 ### Fixed (continued)
 
@@ -55,38 +55,24 @@ No `createAdminClient` usage was found in any public page. All queries are RLS-b
 ---
 
 ### 1.5 Mutações client-side diretas no Supabase
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-**7 components** perform direct `insert/update/delete/upsert` against Supabase tables, bypassing server actions and relying 100% on RLS:
+All 7 components now delegate writes to validated server actions:
 
-#### Profiles
-| File | Line | Mutation |
-|------|------|----------|
-| `components/settings/ProfessionalSettingsWorkspace.tsx` | 226 | `supabase.from('profiles').update({ [field]: value }).eq('id', userId)` |
-| `components/settings/NotificationPreferencesPage.tsx` | 60-63 | `supabase.from('profiles').update({ notification_preferences: prefs }).eq('id', user.id)` |
-| `components/profile/ProfileAccountSettings.tsx` | 124 | `supabase.from('profiles').update({ [field]: value }).eq('id', userId)` |
+| Component | Server Action | Notes |
+|-----------|---------------|-------|
+| `ProfessionalAvailabilityWorkspace` | `saveAvailabilityAction` | Backup-and-restore on failure |
+| `ProfessionalBookingRulesPanel` | `saveBookingSettingsAction` | Consolidated shared logic into service |
+| `BookingSettingsClient` | `saveBookingSettingsAction` | Reuses same service as above |
+| `ProfessionalSettingsWorkspace` | `updateProfileField` | Server-side field whitelist + rate limit |
+| `NotificationPreferencesPage` | `updateProfileField` | Server-side field whitelist + rate limit |
+| `ProfileAccountSettings` | `updateProfileField` | Server-side field whitelist + rate limit |
 
-#### Professional Settings
-| File | Line | Mutation |
-|------|------|----------|
-| `components/settings/BookingSettingsClient.tsx` | 82-98 | `supabase.from('professional_settings').upsert(...)` |
-| `components/settings/BookingSettingsClient.tsx` | 106-112 | `supabase.from('professionals').update(...)` |
-| `components/agenda/ProfessionalBookingRulesPanel.tsx` | 71-87 | Identical upsert to `professional_settings` |
-| `components/agenda/ProfessionalBookingRulesPanel.tsx` | 95-101 | Identical update to `professionals` |
+**NEW FINDING (now fixed):** `ProfessionalAvailabilityWorkspace` previously performed **unbounded delete-all-then-reinsert** with no transaction wrapper. Now uses `saveProfessionalAvailability` service with backup-and-restore.
 
-#### Availability
-| File | Line | Mutation |
-|------|------|----------|
-| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | 306-309 | `supabase.from('availability').delete().eq('professional_id', ...)` |
-| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | 318-321 | `supabase.from('availability_rules').delete().eq('professional_id', ...)` |
-| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | 329-331 | `supabase.from('availability').insert(legacyRows)` |
-| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | 339-341 | `supabase.from('availability_rules').insert(modernRows)` |
+**NEW FINDING (now fixed):** `ProfessionalSettingsWorkspace` previously maintained an `EDITABLE_PROFILE_FIELDS` whitelist **only on the client**. The new `updateProfileField` server action enforces the same whitelist server-side.
 
-**NEW FINDING:** `ProfessionalAvailabilityWorkspace` performs **unbounded delete-all-then-reinsert** on both legacy and modern availability tables. There is no transaction wrapper; a partial failure could leave the professional with **zero availability rules**.
-
-**NEW FINDING:** `ProfessionalSettingsWorkspace` maintains an `EDITABLE_PROFILE_FIELDS` whitelist on the client (`['currency', 'timezone', 'notification_preferences', 'full_name', 'country']`), but there is **no server-side action enforcing the same whitelist**. A malicious client could attempt to update other columns if RLS policies ever drift.
-
-**NEW FINDING:** `BookingSettingsClient` and `ProfessionalBookingRulesPanel` contain **virtually identical `handleSave()` logic** (upsert professional_settings, update professionals, update profiles). This is a maintenance risk.
+**NEW FINDING (now fixed):** `BookingSettingsClient` and `ProfessionalBookingRulesPanel` previously contained **virtually identical `handleSave()` logic**. Now both delegate to the shared `saveBookingSettings` service.
 
 ---
 
