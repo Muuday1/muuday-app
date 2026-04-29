@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { validateApiCsrf } from '@/lib/http/csrf'
 import {
   createOrUpdateProfessionalProfile,
   saveProfessionalProfileDraft,
@@ -10,6 +11,11 @@ import {
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'professional', message: 'POST /api/v1/professionals/me started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1ProfessionalProfile', `api-v1-professional-profile:${ip}`)
@@ -21,6 +27,16 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify the user has the professional role before allowing profile creation/update.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile || profile.role !== 'profissional') {
+    return NextResponse.json({ error: 'Acesso negado. Apenas profissionais podem executar esta ação.' }, { status: 403 })
   }
 
   let body: Record<string, unknown>
@@ -54,6 +70,11 @@ export async function PUT(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'professional', message: 'PATCH /api/v1/professionals/me started', level: 'info' })
 
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
+
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1ProfessionalProfile', `api-v1-professional-profile:${ip}`)
   if (!rl.allowed) {
@@ -64,6 +85,16 @@ export async function PATCH(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify the user has the professional role before allowing profile draft updates.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile || profile.role !== 'profissional') {
+    return NextResponse.json({ error: 'Acesso negado. Apenas profissionais podem executar esta ação.' }, { status: 403 })
   }
 
   let body: Record<string, unknown>

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Agenda | Muuday' }
 
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import {
   AlertTriangle,
@@ -47,6 +48,66 @@ type RequestBookingStatus =
 type AgendaView = 'overview' | 'inbox' | 'availability_rules' | 'pending' | 'requests' | 'settings'
 type InboxFilter = 'all' | 'confirmations' | 'requests'
 
+// Time constants
+const MS_PER_MINUTE = 60_000
+const MS_PER_HOUR = 3_600_000
+const HOURS_PER_DAY = 24
+const DEFAULT_DURATION_MINUTES = 60
+const MIN_DURATION_MINUTES = 15
+
+// Query limit constants
+const UPCOMING_BOOKINGS_LIMIT = 50
+const PAST_BOOKINGS_LIMIT = 20
+const REQUEST_BOOKINGS_LIMIT = 30
+const EXTERNAL_BUSY_SLOTS_LIMIT = 120
+const AVAILABILITY_EXCEPTIONS_LIMIT = 200
+const CONVERSATIONS_LIMIT = 100
+const REVIEWS_LIMIT = 200
+const CLOSED_REQUESTS_SHOW_COUNT = 8
+
+// Minimal interfaces for agenda data shapes (avoids `any` until Supabase types are regenerated)
+interface AgendaBooking {
+  id: string
+  status: string
+  scheduled_at: string
+  duration_minutes?: number
+  start_time_utc?: string
+  end_time_utc?: string
+  booking_type?: string
+  recurrence_group_id?: string
+  recurrence_periodicity?: string | null
+  recurrence_occurrence_index?: number | null
+  batch_booking_group_id?: string
+  session_link?: string
+  profiles?: { full_name?: string | null } | null
+  professionals?: { profiles?: { full_name?: string | null } | null } | null
+  metadata?: { confirmation_deadline_utc?: string } | null
+}
+
+interface RequestBooking {
+  id: string
+  status: RequestBookingStatus
+  profiles?: { full_name?: string | null } | null
+  professionals?: { profiles?: { full_name?: string | null } | null } | null
+  preferred_start_utc: string
+  preferred_end_utc: string
+  proposal_start_utc?: string
+  proposal_end_utc?: string
+  proposal_timezone?: string
+  proposal_expires_at?: string
+  user_message?: string
+  user_timezone?: string
+}
+
+interface ConversationLink {
+  id: string
+  booking_id?: string
+}
+
+interface ReviewLink {
+  booking_id: string
+}
+
 function normalizeView(rawView: string | undefined, isProfessional: boolean): AgendaView {
   if (!isProfessional) return 'overview'
   const allowed: AgendaView[] = ['overview', 'inbox', 'availability_rules']
@@ -66,8 +127,8 @@ function viewLinkClass(activeView: AgendaView, currentView: AgendaView) {
     : 'bg-white text-slate-600 border-slate-200 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'
 }
 
-function getConfirmationDeadline(booking: Record<string, any>): Date | null {
-  const deadlineRaw = booking?.metadata?.confirmation_deadline_utc
+function getConfirmationDeadline(booking: AgendaBooking): Date | null {
+  const deadlineRaw = booking.metadata?.confirmation_deadline_utc
   if (!deadlineRaw || typeof deadlineRaw !== 'string') return null
 
   const deadline = new Date(deadlineRaw)
@@ -79,10 +140,10 @@ function getSlaLabel(deadline: Date): string {
   const diffMs = deadline.getTime() - Date.now()
   if (diffMs <= 0) return 'SLA expirado'
 
-  const diffHours = Math.ceil(diffMs / (60 * 60 * 1000))
-  if (diffHours < 24) return `Expira em ${diffHours}h`
+  const diffHours = Math.ceil(diffMs / MS_PER_HOUR)
+  if (diffHours < HOURS_PER_DAY) return `Expira em ${diffHours}h`
 
-  const diffDays = Math.ceil(diffHours / 24)
+  const diffDays = Math.ceil(diffHours / HOURS_PER_DAY)
   return `Expira em ${diffDays} dia${diffDays === 1 ? '' : 's'}`
 }
 
@@ -100,14 +161,14 @@ function getRequestStatusUi(status: string) {
 }
 
 function getDurationMinutes(startValue: string | null, endValue: string | null) {
-  if (!startValue || !endValue) return 60
+  if (!startValue || !endValue) return DEFAULT_DURATION_MINUTES
   const start = new Date(startValue)
   const end = new Date(endValue)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) return 60
-  return Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000))
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) return DEFAULT_DURATION_MINUTES
+  return Math.max(MIN_DURATION_MINUTES, Math.round((end.getTime() - start.getTime()) / MS_PER_MINUTE))
 }
 
-function bookingModeMeta(booking: Record<string, any>) {
+function bookingModeMeta(booking: AgendaBooking) {
   const bookingType = String(booking.booking_type || '')
   if (booking.recurrence_group_id || bookingType.startsWith('recurring')) {
     return { label: 'Recorrência', className: 'bg-blue-50 text-blue-700' }
@@ -118,9 +179,9 @@ function bookingModeMeta(booking: Record<string, any>) {
   return null
 }
 
-function groupRecurringBookings(bookings: any[]) {
-  const recurringGroups: Record<string, any[]> = {}
-  const oneOffBookings: any[] = []
+function groupRecurringBookings(bookings: AgendaBooking[]) {
+  const recurringGroups: Record<string, AgendaBooking[]> = {}
+  const oneOffBookings: AgendaBooking[] = []
 
   for (const booking of bookings) {
     const groupId = booking.recurrence_group_id
@@ -161,7 +222,7 @@ export default async function AgendaPage({
         user.id,
         'id, status, tier, bio, category, session_price_brl, session_duration_minutes, first_booking_enabled, first_booking_gate_note',
       )
-    : { data: null as any }
+    : { data: null }
 
   const professionalId: string | null = professional?.id ?? null
   const isProfessional = isProfessionalRole && Boolean(professionalId)
@@ -187,7 +248,9 @@ export default async function AgendaPage({
 
   const { error: expireError } = await expireQuery
   if (expireError) {
-    console.error('[agenda] failed to expire stale offers:', expireError.message)
+    Sentry.captureException(expireError, {
+      tags: { area: 'agenda', context: 'expire-stale-offers' },
+    })
   }
 
   const upcomingQuery =
@@ -239,31 +302,37 @@ export default async function AgendaPage({
           .in('status', ['pending', 'pending_confirmation', 'confirmed'])
           .gte('scheduled_at', nowIso)
           .order('scheduled_at', { ascending: true })
-          .limit(50)
-      : Promise.resolve({ data: [] as any[], error: null }),
+          .limit(UPCOMING_BOOKINGS_LIMIT)
+      : Promise.resolve({ data: [] as AgendaBooking[], error: null }),
     pastQuery
       ? pastQuery
           .in('status', ['completed', 'cancelled', 'no_show', 'pending', 'pending_confirmation', 'confirmed'])
           .lt('scheduled_at', nowIso)
           .order('scheduled_at', { ascending: false })
-          .limit(20)
-      : Promise.resolve({ data: [] as any[], error: null }),
+          .limit(PAST_BOOKINGS_LIMIT)
+      : Promise.resolve({ data: [] as AgendaBooking[], error: null }),
     requestBookingsQuery
-      ? requestBookingsQuery.order('created_at', { ascending: false }).limit(30)
-      : Promise.resolve({ data: [] as any[], error: null }),
+      ? requestBookingsQuery.order('created_at', { ascending: false }).limit(REQUEST_BOOKINGS_LIMIT)
+      : Promise.resolve({ data: [] as RequestBooking[], error: null }),
   ])
 
   if (upcomingError) {
-    console.error('[agenda] upcoming bookings query error:', upcomingError.message, upcomingError.code)
+    Sentry.captureException(upcomingError, {
+      tags: { area: 'agenda', context: 'upcoming-bookings-query' },
+    })
   }
   if (pastError) {
-    console.error('[agenda] past bookings query error:', pastError.message, pastError.code)
+    Sentry.captureException(pastError, {
+      tags: { area: 'agenda', context: 'past-bookings-query' },
+    })
   }
   if (requestError) {
-    console.error('[agenda] request bookings query error:', requestError.message, requestError.code)
+    Sentry.captureException(requestError, {
+      tags: { area: 'agenda', context: 'request-bookings-query' },
+    })
   }
 
-  let professionalSettings: Record<string, any> | null = null
+  let professionalSettings: Record<string, unknown> | null = null
   let activeAvailabilityCount = 0
   let calendarIntegrationConnected = false
   let calendarIntegrationProvider = 'google'
@@ -338,17 +407,17 @@ export default async function AgendaPage({
         .eq('professional_id', professionalId)
         .gte('start_time_utc', nowIso)
         .order('start_time_utc', { ascending: true })
-        .limit(120),
+        .limit(EXTERNAL_BUSY_SLOTS_LIMIT),
       supabase
         .from('availability_exceptions')
         .select('date_local, is_available, start_time_local, end_time_local')
         .eq('professional_id', professionalId)
         .eq('is_available', false)
-        .limit(200),
+        .limit(AVAILABILITY_EXCEPTIONS_LIMIT),
       loadPlanConfigMap(),
     ])
 
-    professionalSettings = settingsResult.data as Record<string, any> | null
+    professionalSettings = settingsResult.data as Record<string, unknown> | null
 
     const useModernRules =
       !availabilityRulesResult.error &&
@@ -378,14 +447,12 @@ export default async function AgendaPage({
     calendarIntegrationConnected = Boolean(calendarIntegrationResult.data?.sync_enabled)
     calendarIntegrationProvider = String(calendarIntegrationResult.data?.provider || 'google')
     const rawConnectionStatus = String(calendarIntegrationResult.data?.connection_status || 'disconnected')
-    calendarIntegrationStatus =
-      rawConnectionStatus === 'connected'
-        ? 'connected'
-        : rawConnectionStatus === 'pending'
-          ? 'pending'
-          : rawConnectionStatus === 'error'
-            ? 'error'
-            : 'disconnected'
+    const connectionStatusMap: Record<string, 'connected' | 'pending' | 'error' | 'disconnected'> = {
+      connected: 'connected',
+      pending: 'pending',
+      error: 'error',
+    }
+    calendarIntegrationStatus = connectionStatusMap[rawConnectionStatus] || 'disconnected'
     calendarIntegrationLastSyncAt = String(
       calendarIntegrationResult.data?.last_sync_completed_at ||
         calendarIntegrationResult.data?.last_sync_at ||
@@ -440,7 +507,7 @@ export default async function AgendaPage({
 
   const upcoming = upcomingBookings || []
   const past = pastBookings || []
-  const requestList = (requestBookings || []) as Array<Record<string, any>>
+  const requestList = (requestBookings || []) as RequestBooking[]
   const openRequestStatuses: RequestBookingStatus[] = ['open', 'offered']
   const activeRequests = requestList.filter(request =>
     openRequestStatuses.includes((request.status || 'open') as RequestBookingStatus),
@@ -450,17 +517,17 @@ export default async function AgendaPage({
   )
 
   const pendingConfirmations = isProfessional
-    ? upcoming.filter((booking: any) => booking.status === 'pending_confirmation')
+    ? upcoming.filter((booking: AgendaBooking) => booking.status === 'pending_confirmation')
     : []
 
   const completedBookingIds = past
-    .filter((booking: any) => booking.status === 'completed')
-    .map((booking: any) => booking.id)
+    .filter((booking: AgendaBooking) => booking.status === 'completed')
+    .map((booking: AgendaBooking) => booking.id)
 
   // Fetch conversations for chat links on confirmed bookings
   const allBookingIds = [...upcoming, ...past]
-    .filter((b: any) => ['confirmed', 'completed'].includes(b.status))
-    .map((b: any) => b.id)
+    .filter((b: AgendaBooking) => ['confirmed', 'completed'].includes(b.status))
+    .map((b: AgendaBooking) => b.id)
 
   const conversationMap = new Map<string, string>()
   if (allBookingIds.length > 0) {
@@ -468,8 +535,8 @@ export default async function AgendaPage({
       .from('conversations')
       .select('id, booking_id')
       .in('booking_id', allBookingIds)
-      .limit(100)
-    ;(conversationsData || []).forEach((c: any) => {
+      .limit(CONVERSATIONS_LIMIT)
+    ;(conversationsData || []).forEach((c: ConversationLink) => {
       if (c.booking_id) conversationMap.set(c.booking_id, c.id)
     })
   }
@@ -481,13 +548,15 @@ export default async function AgendaPage({
       .select('booking_id')
       .in('booking_id', completedBookingIds)
       .eq('user_id', user.id)
-      .limit(200)
+      .limit(REVIEWS_LIMIT)
 
     if (reviewsError) {
-      console.error('[agenda] failed to load existing reviews:', reviewsError.message)
+      Sentry.captureException(reviewsError, {
+        tags: { area: 'agenda', context: 'existing-reviews-query' },
+      })
     }
 
-    ;(existingReviews || []).forEach((review: any) => reviewedBookingIds.add(review.booking_id))
+    ;(existingReviews || []).forEach((review: ReviewLink) => reviewedBookingIds.add(review.booking_id))
   }
 
   const shouldShowRequests = !isProfessional
@@ -495,17 +564,21 @@ export default async function AgendaPage({
   const shouldShowHistory = true
 
   const upcomingVisible = upcoming
+  const { recurringGroups, oneOffBookings } = groupRecurringBookings(upcomingVisible)
+  const hasRecurringUpcoming = Object.keys(recurringGroups).length > 0
+  const hasOneOffUpcoming = oneOffBookings.length > 0
+
   const overviewCalendarBookings = [
     ...upcoming
-      .map((booking: any) => {
+      .map((booking: AgendaBooking) => {
         const scheduledAt = new Date(String(booking.scheduled_at || ''))
-        const durationMinutes = Number(booking.duration_minutes || 60)
+        const durationMinutes = Number(booking.duration_minutes || DEFAULT_DURATION_MINUTES)
         const startUtcIso = String(booking.start_time_utc || booking.scheduled_at || '')
         const endUtcIso =
           String(booking.end_time_utc || '') ||
           (Number.isNaN(scheduledAt.getTime())
             ? ''
-            : new Date(scheduledAt.getTime() + durationMinutes * 60000).toISOString())
+            : new Date(scheduledAt.getTime() + durationMinutes * MS_PER_MINUTE).toISOString())
 
         if (!startUtcIso || !endUtcIso) return null
         return {
@@ -680,7 +753,7 @@ export default async function AgendaPage({
           </AppCard>
         ) : (
           <div className="space-y-3">
-            {activeRequests.map((request: any) => {
+            {activeRequests.map((request: RequestBooking) => {
               const otherPerson = isProfessional
                 ? request.profiles?.full_name
                 : request.professionals?.profiles?.full_name
@@ -762,7 +835,7 @@ export default async function AgendaPage({
                   Histórico de solicitações
                 </p>
                 <div className="space-y-2">
-                  {closedRequests.slice(0, 8).map((request: any) => {
+                  {closedRequests.slice(0, CLOSED_REQUESTS_SHOW_COUNT).map((request: RequestBooking) => {
                     const otherPerson = isProfessional
                       ? request.profiles?.full_name
                       : request.professionals?.profiles?.full_name
@@ -842,36 +915,42 @@ export default async function AgendaPage({
           </AppCard>
         ) : (
           <div className="space-y-6">
-            {(() => {
-              const { recurringGroups, oneOffBookings } = groupRecurringBookings(upcomingVisible)
-              const hasRecurring = Object.keys(recurringGroups).length > 0
-              const hasOneOff = oneOffBookings.length > 0
+            <>
+              {hasRecurringUpcoming && (
+                <div className="space-y-3">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Package className="h-4 w-4 text-blue-500" />
+                    Pacotes recorrentes
+                  </h3>
+                  {Object.entries(recurringGroups).map(([groupId, groupBookings]) => (
+                    <RecurringPackageCard
+                      key={groupId}
+                      bookings={groupBookings as Array<{
+                        id: string
+                        status: string
+                        scheduled_at: string
+                        duration_minutes: number
+                        session_link: string | null
+                        booking_type: string | null
+                        recurrence_group_id: string | null
+                        recurrence_periodicity: string | null
+                        recurrence_occurrence_index: number | null
+                        professionals?: { profiles?: { full_name?: string | null } | null } | null
+                        profiles?: { full_name?: string | null } | null
+                      }>}
+                      isProfessional={isProfessional}
+                      userTimezone={userTimezone}
+                    />
+                  ))}
+                </div>
+              )}
 
-              return (
-                <>
-                  {hasRecurring && (
-                    <div className="space-y-3">
-                      <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <Package className="h-4 w-4 text-blue-500" />
-                        Pacotes recorrentes
-                      </h3>
-                      {Object.entries(recurringGroups).map(([groupId, groupBookings]) => (
-                        <RecurringPackageCard
-                          key={groupId}
-                          bookings={groupBookings}
-                          isProfessional={isProfessional}
-                          userTimezone={userTimezone}
-                        />
-                      ))}
-                    </div>
+              {hasOneOffUpcoming && (
+                <div className="space-y-3">
+                  {hasRecurringUpcoming && (
+                    <h3 className="text-sm font-semibold text-slate-700">Sessões avulsas</h3>
                   )}
-
-                  {hasOneOff && (
-                    <div className="space-y-3">
-                      {hasRecurring && (
-                        <h3 className="text-sm font-semibold text-slate-700">Sessões avulsas</h3>
-                      )}
-                      {oneOffBookings.map((booking: any) => {
+                  {oneOffBookings.map((booking: AgendaBooking) => {
                         const otherPerson = isProfessional
                           ? booking.profiles?.full_name
                           : booking.professionals?.profiles?.full_name
@@ -904,7 +983,7 @@ export default async function AgendaPage({
                                       { locale: ptBR },
                                     )}
                                   </span>
-                                  <span>{booking.duration_minutes || 50}min</span>
+                                  <span>{booking.duration_minutes || DEFAULT_DURATION_MINUTES}min</span>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -978,9 +1057,7 @@ export default async function AgendaPage({
                     </div>
                   )}
                 </>
-              )
-            })()}
-          </div>
+              </div>
         )}
         </div>
       )}
@@ -992,7 +1069,7 @@ export default async function AgendaPage({
             Histórico
           </h2>
           <div className="space-y-2">
-            {past.map((booking: any) => {
+            {past.map((booking: AgendaBooking) => {
               const otherPerson = isProfessional
                 ? booking.profiles?.full_name
                 : booking.professionals?.profiles?.full_name

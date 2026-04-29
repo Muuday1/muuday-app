@@ -5,9 +5,15 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { createRequestBookingService } from '@/lib/booking/request-booking-service'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'request-booking', message: 'POST /api/v1/bookings/requests started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()

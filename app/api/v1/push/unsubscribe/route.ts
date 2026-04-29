@@ -16,8 +16,15 @@ const unsubscribeSchema = z.object({
  * DELETE /api/v1/push/unsubscribe
  * Removes a push subscription for the authenticated user.
  */
+import { validateApiCsrf } from '@/lib/http/csrf'
+
 export async function DELETE(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'push', message: 'DELETE /api/v1/push/unsubscribe', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()

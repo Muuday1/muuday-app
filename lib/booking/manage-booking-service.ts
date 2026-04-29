@@ -1,8 +1,13 @@
 import { z } from 'zod'
-import { fromZonedTime } from 'date-fns-tz'
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { parseBookingSlot } from '@/lib/booking/slot-parsing'
 import { assertBookingTransition } from '@/lib/booking/state-machine'
-import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import {
+  extractProfessionalTimezone,
+  loadProfessionalSettings,
+  normalizeProfessionalSettingsRow,
+} from '@/lib/booking/settings'
 import { patchBookingMetadata } from '@/lib/booking/metadata'
 import { acquireSlotLock, releaseSlotLock } from '@/lib/booking/slot-locks'
 import {
@@ -114,7 +119,10 @@ export async function applyPaymentRefund(
 
   const { error: refundError } = await supabase.from('payments').update(patch).eq('id', paymentData.id)
   if (refundError) {
-    console.error('[booking/refund] failed to update payment refund:', refundError.message)
+    Sentry.captureException(refundError, {
+      tags: { area: 'booking_refund', flow: 'payment_update' },
+      extra: { paymentId: paymentData.id, refundPercentage },
+    })
   }
 }
 
@@ -470,52 +478,16 @@ export async function rescheduleBookingService(
 
   if (!professional) return { success: false, error: 'Profissional não encontrado.' }
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
-  const professionalTimezoneFallback =
-    (professionalProfile as { timezone?: string } | null)?.timezone || 'America/Sao_Paulo'
-
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from('professional_settings')
-    .select(
-      'timezone, session_duration_minutes, buffer_minutes, minimum_notice_hours, max_booking_window_days, confirmation_mode'
-    )
-    .eq('professional_id', professional.id)
-    .maybeSingle()
-
-  const settings = normalizeProfessionalSettingsRow(
-    settingsError ? null : (settingsRow as Record<string, unknown> | null),
-    professionalTimezoneFallback,
-  )
+  const professionalTimezoneFallback = extractProfessionalTimezone(professional)
+  const settings = await loadProfessionalSettings(supabase, professional.id, professionalTimezoneFallback)
 
   const durationMinutes = settings.sessionDurationMinutes || professional.session_duration_minutes || booking.duration_minutes
-  let scheduledDate: Date
-  try {
-    scheduledDate = fromZonedTime(parsedScheduledAt.data, userTimezone)
-  } catch {
-    return { success: false, error: 'Horário inválido.' }
+  const parsedSlot = parseBookingSlot(parsedScheduledAt.data, userTimezone, durationMinutes)
+  if (!parsedSlot.ok) {
+    return { success: false, error: parsedSlot.error }
   }
-  if (Number.isNaN(scheduledDate.getTime())) return { success: false, error: 'Horário inválido.' }
+  const { startUtc: scheduledDate, endUtc: endDate } = parsedSlot.slot
 
-  const minimumStartTime = Date.now() + settings.minimumNoticeHours * 60 * 60 * 1000
-  if (scheduledDate.getTime() < minimumStartTime) {
-    return {
-      success: false,
-      error: `Selecione um horário com pelo menos ${settings.minimumNoticeHours} horas de antecedência.`,
-    }
-  }
-
-  const maximumDate = new Date()
-  maximumDate.setDate(maximumDate.getDate() + settings.maxBookingWindowDays)
-  if (scheduledDate.getTime() > maximumDate.getTime()) {
-    return {
-      success: false,
-      error: `Remarcações devem estar dentro de ${settings.maxBookingWindowDays} dias.`,
-    }
-  }
-
-  const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60 * 1000)
   const validation = await validateSlotAvailability({
     supabase,
     professionalId: professional.id,
@@ -523,8 +495,12 @@ export async function rescheduleBookingService(
     endUtc: endDate,
     timezone: settings.timezone,
     bufferMinutes: settings.bufferMinutes,
+    minimumNoticeHours: settings.minimumNoticeHours,
+    maxBookingWindowDays: settings.maxBookingWindowDays,
     ignoreBookingId: booking.id,
     errorMessages: {
+      minimumNotice: `Selecione um horário com pelo menos ${settings.minimumNoticeHours} horas de antecedência.`,
+      maxWindow: `Remarcações devem estar dentro de ${settings.maxBookingWindowDays} dias.`,
       workingHours: 'Este horário não está disponível para este profissional.',
       exception: 'Este horário não está disponível.',
       internalConflict: 'Este horário já está reservado. Escolha outro.',
@@ -778,7 +754,10 @@ export async function reportProfessionalNoShowService(
     },
   })
   if (notifyError) {
-    console.error('[booking/no-show] failed to insert admin notification:', notifyError.message)
+    Sentry.captureException(notifyError, {
+      tags: { area: 'booking_no_show', flow: 'admin_notification' },
+      extra: { bookingId: safeBookingId },
+    })
   }
 
   await enqueueBookingCalendarSync({
@@ -885,7 +864,10 @@ export async function listBookingsService(
   const { data, error, count } = await query
 
   if (error) {
-    console.error('[booking/list] failed to load bookings:', error.message)
+    Sentry.captureException(error, {
+      tags: { area: 'booking_list' },
+      extra: { userId, professionalId },
+    })
     return { success: false, error: 'Erro ao carregar agendamentos.' }
   }
 
@@ -915,7 +897,10 @@ export async function getBookingDetailService(
     .maybeSingle()
 
   if (error) {
-    console.error('[booking/detail] failed to load booking:', error.message)
+    Sentry.captureException(error, {
+      tags: { area: 'booking_detail' },
+      extra: { userId, professionalId, bookingId },
+    })
     return { success: false, error: 'Erro ao carregar agendamento.' }
   }
 

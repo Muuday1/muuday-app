@@ -1,7 +1,11 @@
-import { fromZonedTime } from 'date-fns-tz'
 import * as Sentry from '@sentry/nextjs'
+import { parseBookingSlot, MS_PER_HOUR } from '@/lib/booking/slot-parsing'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
+import {
+  extractProfessionalTimezone,
+  loadProfessionalSettings,
+  normalizeProfessionalSettingsRow,
+} from '@/lib/booking/settings'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getExchangeRates } from '@/lib/exchange-rates'
 import { assertNoSensitivePaymentPayload } from '@/lib/stripe/pii-guards'
@@ -56,7 +60,7 @@ export async function getRequestBookingDetailService(
     .maybeSingle()
 
   if (error) {
-    console.error('[request-booking/detail] failed to load request:', error.message)
+    Sentry.captureException(error, { tags: { area: 'request_booking_detail' }, extra: { requestBookingId: parsed.data } })
     return { success: false, error: 'Erro ao carregar solicitação.' }
   }
 
@@ -124,42 +128,20 @@ export async function createRequestBookingService(
     }
   }
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
-  const professionalTimezoneFallback =
-    (professionalProfile as { timezone?: string } | null)?.timezone || 'America/Sao_Paulo'
-
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from('professional_settings')
-    .select(
-      'timezone, session_duration_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose, buffer_minutes',
-    )
-    .eq('professional_id', professional.id)
-    .maybeSingle()
-
-  const settings = normalizeProfessionalSettingsRow(
-    settingsError ? null : (settingsRow as Record<string, unknown> | null),
-    professionalTimezoneFallback,
-  )
+  const professionalTimezoneFallback = extractProfessionalTimezone(professional)
+  const settings = await loadProfessionalSettings(supabase, professional.id, professionalTimezoneFallback)
 
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const durationMinutes =
     parsed.data.durationMinutes || settings.sessionDurationMinutes || professional.session_duration_minutes || 60
 
-  let preferredStartUtc: Date
-  try {
-    preferredStartUtc = fromZonedTime(parsed.data.preferredStartLocal, userTimezone)
-  } catch {
-    return { success: false, error: 'Horário preferencial inválido.' }
+  const parsedSlot = parseBookingSlot(parsed.data.preferredStartLocal, userTimezone, durationMinutes)
+  if (!parsedSlot.ok) {
+    return { success: false, error: parsedSlot.error }
   }
+  const { startUtc: preferredStartUtc, endUtc: preferredEndUtc } = parsedSlot.slot
 
-  if (Number.isNaN(preferredStartUtc.getTime())) {
-    return { success: false, error: 'Horário preferencial inválido.' }
-  }
-
-  const preferredEndUtc = new Date(preferredStartUtc.getTime() + durationMinutes * 60 * 1000)
-  const minimumStartTime = Date.now() + settings.minimumNoticeHours * 60 * 60 * 1000
+  const minimumStartTime = Date.now() + settings.minimumNoticeHours * MS_PER_HOUR
   if (preferredStartUtc.getTime() < minimumStartTime) {
     return {
       success: false,
@@ -191,7 +173,10 @@ export async function createRequestBookingService(
     .single()
 
   if (requestError || !request) {
-    console.error('[request-booking/create] insert failed:', requestError?.message)
+    Sentry.captureException(requestError || new Error('request-booking/create insert failed'), {
+      tags: { area: 'request_booking_create', flow: 'insert' },
+      extra: { professionalId: professional.id, userId },
+    })
     return { success: false, error: 'Não foi possível criar a solicitação. Tente novamente.' }
   }
 
@@ -270,54 +255,17 @@ export async function offerRequestBookingService(
     }
   }
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
-  const professionalTimezoneFallback =
-    (professionalProfile as { timezone?: string } | null)?.timezone || 'America/Sao_Paulo'
-
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from('professional_settings')
-    .select(
-      'timezone, session_duration_minutes, minimum_notice_hours, max_booking_window_days, buffer_minutes, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose',
-    )
-    .eq('professional_id', professional.id)
-    .maybeSingle()
-
-  const settings = normalizeProfessionalSettingsRow(
-    settingsError ? null : (settingsRow as Record<string, unknown> | null),
-    professionalTimezoneFallback,
-  )
+  const professionalTimezoneFallback = extractProfessionalTimezone(professional)
+  const settings = await loadProfessionalSettings(supabase, professional.id, professionalTimezoneFallback)
 
   const durationMinutes =
     parsedInput.data.proposalDurationMinutes || settings.sessionDurationMinutes || professional.session_duration_minutes
 
-  let proposalStartUtc: Date
-  try {
-    proposalStartUtc = fromZonedTime(parsedInput.data.proposalStartLocal, settings.timezone)
-  } catch {
-    return { success: false, error: 'Horário proposto inválido.' }
+  const parsedSlot = parseBookingSlot(parsedInput.data.proposalStartLocal, settings.timezone, durationMinutes)
+  if (!parsedSlot.ok) {
+    return { success: false, error: parsedSlot.error }
   }
-  if (Number.isNaN(proposalStartUtc.getTime())) {
-    return { success: false, error: 'Horário proposto inválido.' }
-  }
-  const proposalEndUtc = new Date(proposalStartUtc.getTime() + durationMinutes * 60 * 1000)
-
-  const minimumStartTime = Date.now() + settings.minimumNoticeHours * 60 * 60 * 1000
-  if (proposalStartUtc.getTime() < minimumStartTime) {
-    return {
-      success: false,
-      error: `Proposta deve respeitar mínimo de ${settings.minimumNoticeHours}h de antecedência.`,
-    }
-  }
-  const maximumDate = new Date()
-  maximumDate.setDate(maximumDate.getDate() + settings.maxBookingWindowDays)
-  if (proposalStartUtc.getTime() > maximumDate.getTime()) {
-    return {
-      success: false,
-      error: `Proposta deve estar dentro de ${settings.maxBookingWindowDays} dias.`,
-    }
-  }
+  const { startUtc: proposalStartUtc, endUtc: proposalEndUtc } = parsedSlot.slot
 
   const validation = await validateSlotAvailability({
     supabase,
@@ -326,7 +274,11 @@ export async function offerRequestBookingService(
     endUtc: proposalEndUtc,
     timezone: settings.timezone,
     bufferMinutes: settings.bufferMinutes,
+    minimumNoticeHours: settings.minimumNoticeHours,
+    maxBookingWindowDays: settings.maxBookingWindowDays,
     errorMessages: {
+      minimumNotice: `Proposta deve respeitar mínimo de ${settings.minimumNoticeHours}h de antecedência.`,
+      maxWindow: `Proposta deve estar dentro de ${settings.maxBookingWindowDays} dias.`,
       workingHours: 'Horário fora da disponibilidade configurada.',
       exception: 'Horário bloqueado por indisponibilidade excepcional.',
       internalConflict: 'Horário indisponível por conflito com outro agendamento.',
@@ -552,24 +504,8 @@ export async function acceptRequestBookingService(
     }
   }
 
-  const professionalProfile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
-  const professionalTimezoneFallback =
-    (professionalProfile as { timezone?: string } | null)?.timezone || 'America/Sao_Paulo'
-
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from('professional_settings')
-    .select(
-      'timezone, session_duration_minutes, minimum_notice_hours, max_booking_window_days, confirmation_mode, cancellation_policy_code, require_session_purpose, buffer_minutes, enable_recurring',
-    )
-    .eq('professional_id', professional.id)
-    .maybeSingle()
-
-  const settings = normalizeProfessionalSettingsRow(
-    settingsError ? null : (settingsRow as Record<string, unknown> | null),
-    professionalTimezoneFallback,
-  )
+  const professionalTimezoneFallback = extractProfessionalTimezone(professional)
+  const settings = await loadProfessionalSettings(supabase, professional.id, professionalTimezoneFallback)
 
   const startUtc = new Date(String(freshRequest.proposal_start_utc))
   const endUtc = new Date(String(freshRequest.proposal_end_utc))
@@ -816,7 +752,6 @@ export async function acceptRequestBookingService(
     .eq('status', currentStatus)
 
   if (requestUpdateError) {
-    console.error('[request-booking/accept] failed to mark request as converted:', requestUpdateError.message)
     Sentry.captureException(requestUpdateError, {
       tags: { area: 'request_booking_accept', flow: 'request_update' },
       extra: { requestBookingId: freshRequest.id, bookingId },

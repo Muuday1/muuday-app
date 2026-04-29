@@ -19,8 +19,22 @@ function parseProvider(value: string): CalendarProvider | null {
   return value as CalendarProvider
 }
 
+/** Whitelist of safe post-OAuth redirect paths. Prevents open redirect if state signing is compromised. */
+const ALLOWED_REDIRECT_PATHS = new Set([
+  '/dashboard',
+  '/agenda',
+  '/configuracoes',
+  '/disponibilidade',
+  '/configuracoes-agendamento',
+  '/editar-perfil-profissional',
+])
+
 function safeRedirectPath(path: string | null | undefined) {
   if (!path || !path.startsWith('/') || path.startsWith('//')) return '/dashboard'
+  // Reject paths with query strings, fragments, or protocol handlers to prevent open redirect
+  if (path.includes('?') || path.includes('#') || path.includes(':')) return '/dashboard'
+  // Only allow known-safe paths
+  if (!ALLOWED_REDIRECT_PATHS.has(path)) return '/dashboard'
   return path
 }
 

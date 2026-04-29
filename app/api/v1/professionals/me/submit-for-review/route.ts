@@ -5,9 +5,15 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { submitProfessionalForReview } from '@/lib/professional/submit-review'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'professional', message: 'POST /api/v1/professionals/me/submit-for-review', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1ProfessionalProfile', `api-v1-professional-profile:${ip}`)

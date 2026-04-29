@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import {
   sendWelcomeEmail,
   sendCompleteAccountEmail,
@@ -60,7 +61,7 @@ export function getValidationError(error: z.ZodError) {
 
 // helper - swallows errors so a failed email never breaks the main flow
 export async function safe<T>(fn: () => Promise<T>, label: string) {
-  try { return await fn() } catch (e) { console.error(`[email] ${label}`, e) }
+  try { return await fn() } catch (e) { Sentry.captureException(e instanceof Error ? e : new Error(String(e)), { tags: { area: 'email', action: label } }) }
 }
 
 export function parsePayload<T>(schema: z.ZodSchema<T>, payload: unknown): T | null {
@@ -92,7 +93,7 @@ export async function assertCallerCanEmailRecipientService(
     .single()
 
   if (callerError) {
-    console.error('[email/shared] caller profile query error:', callerError.message)
+    Sentry.captureException(callerError, { tags: { area: 'email', action: 'caller-profile-query' } })
   }
 
   if (callerProfile?.email === recipientEmail) return true
@@ -105,7 +106,7 @@ export async function assertCallerCanEmailRecipientService(
     .maybeSingle()
 
   if (recipientError) {
-    console.error('[email/shared] recipient profile query error:', recipientError.message)
+    Sentry.captureException(recipientError, { tags: { area: 'email', action: 'recipient-profile-query' } })
   }
 
   if (!recipientProfile) return false
@@ -118,7 +119,7 @@ export async function assertCallerCanEmailRecipientService(
     .limit(1)
 
   if (bookingError) {
-    console.error('[email/shared] booking relationship query error:', bookingError.message)
+    Sentry.captureException(bookingError, { tags: { area: 'email', action: 'booking-relationship-query' } })
   }
 
   return (bookingCount || 0) > 0
@@ -140,14 +141,14 @@ export async function canSendService(
       .eq('id', userId)
       .single()
     if (error) {
-      console.error('[email/shared] notification preferences query error:', error.message)
+      Sentry.captureException(error, { tags: { area: 'email', action: 'notification-preferences-query' } })
       return true // on error -> send anyway
     }
     const prefs = data?.notification_preferences as Record<string, boolean> | null
     if (!prefs) return true // no prefs saved -> default opt-in
     return prefs[key] !== false
   } catch (e) {
-    console.error('[email/shared] canSend unexpected error:', e instanceof Error ? e.message : String(e))
+    Sentry.captureException(e instanceof Error ? e : new Error(String(e)), { tags: { area: 'email', action: 'canSend-check' } })
     return true // on error -> send anyway
   }
 }
@@ -662,7 +663,7 @@ export async function sendReferralInviteEmailService(
     .single()
 
   if (callerError) {
-    console.error('[email] caller profile query error:', callerError.message)
+    Sentry.captureException(callerError, { tags: { area: 'email', action: 'caller-profile-query' } })
   }
 
   if (!callerProfile || callerProfile.full_name !== payload.inviterName) return

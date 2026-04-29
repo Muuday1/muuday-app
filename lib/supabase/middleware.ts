@@ -45,6 +45,7 @@ type SessionCacheEntry = {
   user: { id: string; email?: string | null; app_metadata?: Record<string, unknown>; raw_app_meta_data?: Record<string, unknown> } | null
   expiresAt: number
   cookieHash: string
+  lastAccessedAt: number
 }
 
 const SESSION_CACHE = new Map<string, SessionCacheEntry>()
@@ -63,29 +64,50 @@ function hashCookies(cookies: { name: string; value: string }[]): string {
   return String(hash)
 }
 
+/** Evict oldest entries by lastAccessedAt when cache exceeds capacity. */
+function evictOldestSessions(targetSize: number) {
+  if (SESSION_CACHE.size <= targetSize) return
+  const entries = Array.from(SESSION_CACHE.entries())
+  entries.sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt)
+  const toDelete = entries.slice(0, SESSION_CACHE.size - targetSize)
+  for (const [key] of toDelete) {
+    SESSION_CACHE.delete(key)
+  }
+}
+
 function getCachedSession(cookieHash: string): SessionCacheEntry | null {
   const now = Date.now()
-  // Clean expired entries occasionally
+  // Clean expired entries and enforce LRU capacity bound
   if (SESSION_CACHE.size > MAX_CACHE_SIZE) {
     for (const [key, entry] of SESSION_CACHE) {
       if (entry.expiresAt < now) {
         SESSION_CACHE.delete(key)
       }
     }
+    // If still over capacity after expiry cleanup, evict oldest by access time
+    evictOldestSessions(Math.floor(MAX_CACHE_SIZE * 0.8))
   }
   const entry = SESSION_CACHE.get(cookieHash)
   if (!entry || entry.expiresAt < now) {
     SESSION_CACHE.delete(cookieHash)
     return null
   }
+  // Update access time for LRU tracking
+  entry.lastAccessedAt = now
   return entry
 }
 
 function setCachedSession(cookieHash: string, user: SessionCacheEntry['user']) {
+  const now = Date.now()
+  // Enforce capacity bound before insertion
+  if (SESSION_CACHE.size >= MAX_CACHE_SIZE) {
+    evictOldestSessions(MAX_CACHE_SIZE - 1)
+  }
   SESSION_CACHE.set(cookieHash, {
     user,
-    expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+    expiresAt: now + SESSION_CACHE_TTL_MS,
     cookieHash,
+    lastAccessedAt: now,
   })
 }
 

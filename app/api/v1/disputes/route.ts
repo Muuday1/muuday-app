@@ -5,9 +5,15 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireAdmin } from '@/lib/admin/auth-helper'
 import { openCase, listCases } from '@/lib/disputes/dispute-service'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'POST /api/v1/disputes started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1DisputesWrite', `api-v1-disputes-write:${ip}`)

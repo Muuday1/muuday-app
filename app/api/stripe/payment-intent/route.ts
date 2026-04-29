@@ -62,7 +62,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (bookingError) {
-    console.error('[api/stripe/payment-intent] booking load error:', bookingError.message)
+    Sentry.captureException(bookingError, {
+      tags: { area: 'stripe-payment-intent', context: 'booking-load' },
+    })
     return NextResponse.json({ error: 'Erro ao carregar agendamento.' }, { status: 500 })
   }
 
@@ -91,7 +93,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (paymentError) {
-    console.error('[api/stripe/payment-intent] payment load error:', paymentError.message)
+    Sentry.captureException(paymentError, {
+      tags: { area: 'stripe-payment-intent', context: 'payment-load' },
+    })
     return NextResponse.json({ error: 'Erro ao carregar pagamento.' }, { status: 500 })
   }
 
@@ -162,11 +166,17 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         stripe_customer_id: customerId,
       }).then(({ error }) => {
-        if (error) console.error('[api/stripe/payment-intent] failed to persist customer mapping:', error.message)
+        if (error) {
+          Sentry.captureException(error, {
+            tags: { area: 'stripe-payment-intent', context: 'persist-customer-mapping' },
+          })
+        }
       })
     }
   } catch (customerError) {
-    console.error('[api/stripe/payment-intent] customer creation error:', customerError)
+    Sentry.captureException(customerError, {
+      tags: { area: 'stripe-payment-intent', context: 'customer-creation' },
+    })
     // Non-blocking: continue without customer association
   }
 
@@ -191,7 +201,12 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: { enabled: true },
     })
 
-    // Persist provider_payment_id using admin client (bypasses RLS trigger guards)
+    // SECURITY NOTE: We use createAdminClient() here because the RLS guard trigger
+    // (trg_guard_payments_non_admin_update) blocks non-admins from updating
+    // provider_payment_id. Authorization is already verified above: the user owns
+    // the booking, the payment is in 'requires_payment' status, etc.
+    // TODO: Migrate to a PostgreSQL RPC function that validates ownership internally
+    // and updates provider_payment_id, eliminating the need for admin client here.
     const admin = createAdminClient()
     if (admin) {
       const { error: updateError } = await admin
@@ -203,7 +218,9 @@ export async function POST(request: NextRequest) {
         .eq('id', payment.id)
 
       if (updateError) {
-        console.error('[api/stripe/payment-intent] failed to update payment:', updateError.message)
+        Sentry.captureException(updateError, {
+          tags: { area: 'stripe-payment-intent', context: 'update-payment-provider-id' },
+        })
         // Non-blocking: client_secret is still valid, we can reconcile later
       }
     }
@@ -222,7 +239,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (stripeError) {
     const message = stripeError instanceof Error ? stripeError.message : 'Erro ao criar pagamento'
-    console.error('[api/stripe/payment-intent] Stripe error:', message)
     Sentry.captureException(stripeError, {
       tags: { area: 'stripe_payment_intent_create' },
       extra: { bookingId, userId: user.id, amount: amountMinor, currency },

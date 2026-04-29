@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 
 export async function hasExternalBusyConflict(
   supabase: SupabaseClient,
@@ -14,7 +15,10 @@ export async function hasExternalBusyConflict(
     .gt('end_time_utc', startUtcIso)
 
   if (error) {
-    console.error(`[external-calendar-conflicts] Failed to check external busy conflicts: ${error.message}`)
+    Sentry.captureException(error, {
+      tags: { area: 'external_calendar_conflicts' },
+      extra: { professionalId, startUtcIso, endUtcIso },
+    })
     return false
   }
 

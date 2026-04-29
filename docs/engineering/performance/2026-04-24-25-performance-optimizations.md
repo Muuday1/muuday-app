@@ -252,7 +252,7 @@ All tested pages return expected status codes:
 | `0a6c343` | Refactor orchestrator to delegate to creation modules |
 | `76589f2` | Unit tests for all 10 extracted creation modules (+70 tests) |
 | `20f4839` | Unit tests for manage-booking-service (validateBookingId, confirm, detail, refund) |
-| `ae708a8` | Migrate `middleware.ts` → `proxy.ts` (Next.js 16 convention) |
+| `ae708a8` | ~~Migrate `middleware.ts` → `proxy.ts` (Next.js 16 convention)~~ **Reverted** — Next.js requires `middleware.ts` at root; `proxy.ts` is not executed. |
 
 ### Refactoring: `executeBookingCreation` (761 lines → ~300 lines)
 

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { BookingConfirmationMode, ProfessionalBookingSettings } from './types'
 
 export const DEFAULT_PROFESSIONAL_BOOKING_SETTINGS: ProfessionalBookingSettings = {
@@ -99,4 +100,36 @@ export function normalizeProfessionalSettingsRow(
         ? row.notification_whatsapp
         : DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.notificationWhatsapp,
   }
+}
+
+/** Extract timezone from a professional record's nested profiles relation. */
+export function extractProfessionalTimezone(
+  professional: { profiles?: unknown } | null | undefined,
+): string {
+  const profile = Array.isArray(professional?.profiles)
+    ? professional.profiles[0]
+    : professional?.profiles
+  return (profile as { timezone?: string } | null)?.timezone || DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.timezone
+}
+
+/** All columns required by {@link normalizeProfessionalSettingsRow}. */
+const PROFESSIONAL_SETTINGS_COLUMNS =
+  'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose, cancellation_policy_accepted, terms_accepted_at, terms_version, calendar_sync_provider, notification_email, notification_push, notification_whatsapp'
+
+/** Load and normalize professional settings in one call. */
+export async function loadProfessionalSettings(
+  supabase: SupabaseClient,
+  professionalId: string,
+  timezoneFallback?: string,
+): Promise<ProfessionalBookingSettings> {
+  const { data: row, error } = await supabase
+    .from('professional_settings')
+    .select(PROFESSIONAL_SETTINGS_COLUMNS)
+    .eq('professional_id', professionalId)
+    .maybeSingle()
+
+  return normalizeProfessionalSettingsRow(
+    error ? null : (row as Record<string, unknown> | null),
+    timezoneFallback,
+  )
 }

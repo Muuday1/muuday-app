@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 
 export async function getBlogCommentsService(supabase: SupabaseClient, articleSlug: string) {
   const { data, error } = await supabase
@@ -7,9 +8,10 @@ export async function getBlogCommentsService(supabase: SupabaseClient, articleSl
     .eq('article_slug', articleSlug)
     .eq('is_approved', true)
     .order('created_at', { ascending: false })
+    .limit(500)
 
   if (error) {
-    console.error('getBlogComments error:', error)
+    Sentry.captureException(error, { tags: { area: 'blog_comments' }, extra: { articleSlug } })
     return []
   }
   return data || []
@@ -22,7 +24,7 @@ export async function getBlogLikeCountService(supabase: SupabaseClient, articleS
     .eq('article_slug', articleSlug)
 
   if (error) {
-    console.error('getBlogLikeCount error:', error)
+    Sentry.captureException(error, { tags: { area: 'blog_likes' }, extra: { articleSlug } })
     return 0
   }
   return count || 0
@@ -50,7 +52,7 @@ export async function addBlogCommentService(
   })
 
   if (error) {
-    console.error('addBlogComment error:', error)
+    Sentry.captureException(error, { tags: { area: 'blog_comment_add' }, extra: { articleSlug } })
     return { success: false, error: 'Erro ao enviar comentário.' }
   }
 
@@ -66,7 +68,7 @@ export async function toggleBlogLikeService(supabase: SupabaseClient, articleSlu
     .maybeSingle()
 
   if (existingError) {
-    console.error('[blog-engagement] existing like query error:', existingError.message)
+    Sentry.captureException(existingError, { tags: { area: 'blog_like_query' }, extra: { articleSlug } })
   }
 
   if (existing) {
@@ -76,7 +78,7 @@ export async function toggleBlogLikeService(supabase: SupabaseClient, articleSlu
       .eq('id', existing.id)
 
     if (error) {
-      console.error('toggleBlogLike delete error:', error)
+      Sentry.captureException(error, { tags: { area: 'blog_like_delete' }, extra: { articleSlug } })
       return { success: false, liked: true }
     }
     return { success: true, liked: false }
@@ -88,7 +90,7 @@ export async function toggleBlogLikeService(supabase: SupabaseClient, articleSlu
   })
 
   if (error) {
-    console.error('toggleBlogLike insert error:', error)
+    Sentry.captureException(error, { tags: { area: 'blog_like_insert' }, extra: { articleSlug } })
     return { success: false, liked: false }
   }
 

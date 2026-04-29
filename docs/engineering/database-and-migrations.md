@@ -154,10 +154,18 @@ Ordered migrations remain canonical runtime truth.
 39. `080-professional-payout-periodicity.sql`
     - Adds `payout_periodicity` to professional_settings (weekly/biweekly/monthly)
 
-### Wave 3 (pending)
+### Wave 3 (applied 2026-04-28)
 40. `081-professional-subscriptions.sql`
     - Stripe subscription lifecycle for professional monthly billing
-    - **Status:** Runbook ready (`scripts/ops/apply-migration-081-production.md`). Pending operator execution in Supabase SQL Editor.
+    - **Status:** Applied to production 2026-04-28. Verified with Stripe webhook handler tests and admin/professional subscription action tests.
+
+41. `082-case-management-enhancement.sql`
+    - Cases table: priority, assignment, SLA, evidence
+    - **Status:** Applied to production 2026-04-28.
+
+42. `083-review-moderation.sql`
+    - Reviews table: `moderation_status`, `rejection_reason`, `flag_reasons`
+    - **Status:** Applied to production 2026-04-28.
 
 ## Migration safety rules
 

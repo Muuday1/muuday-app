@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { sendPushToUser } from '@/lib/push/sender'
 
 const messageContentSchema = z.string().trim().min(1, 'Mensagem não pode estar vazia.').max(2000, 'Mensagem muito longa.')
@@ -31,7 +32,7 @@ export async function getOrCreateConversation(
     .maybeSingle()
 
   if (bookingError) {
-    console.error('[chat] failed to load booking:', bookingError.message)
+    Sentry.captureException(bookingError, { tags: { area: 'chat', action: 'load-booking' } })
   }
 
   if (!booking) {
@@ -48,7 +49,7 @@ export async function getOrCreateConversation(
       .eq('user_id', userId)
       .maybeSingle()
     if (profError) {
-      console.error('[chat] failed to load professional:', profError.message)
+      Sentry.captureException(profError, { tags: { area: 'chat', action: 'load-professional' } })
     }
     isProfessional = !!prof
   }
@@ -276,6 +277,7 @@ export async function getConversations(
     .from('conversation_participants')
     .select('conversation_id, last_read_at')
     .eq('user_id', userId)
+    .limit(100)
 
   const conversationIds = myParticipants?.map(p => p.conversation_id) || []
   if (conversationIds.length === 0) {
@@ -287,6 +289,7 @@ export async function getConversations(
     .from('conversations')
     .select('id, booking_id')
     .in('id', conversationIds)
+    .limit(100)
 
   // 3. Get other participants
   const { data: otherParticipants } = await supabase
@@ -294,6 +297,7 @@ export async function getConversations(
     .select('conversation_id, user_id, role')
     .in('conversation_id', conversationIds)
     .neq('user_id', userId)
+    .limit(100)
 
   const otherUserIds = otherParticipants?.map(p => p.user_id) || []
 
@@ -302,6 +306,7 @@ export async function getConversations(
     .from('profiles')
     .select('id, full_name')
     .in('id', otherUserIds)
+    .limit(100)
 
   // 5. Get last message and unread count for each conversation
   const lastMessages = new Map<

@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -23,7 +24,7 @@ export async function respondToReview(
 
   const { data: professional, error: profError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (profError) {
-    console.error('[review-response] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'review_response' } })
   }
   if (!professional) {
     return { success: false, error: 'Apenas profissionais podem responder a avaliações.' }

@@ -70,7 +70,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (bookingError) {
-    console.error('[api/stripe/checkout-session/booking] booking load error:', bookingError.message)
+    Sentry.captureException(bookingError, {
+      tags: { area: 'stripe-checkout-booking', context: 'booking-load' },
+    })
     return NextResponse.json({ error: 'Erro ao carregar agendamento.' }, { status: 500 })
   }
 
@@ -98,7 +100,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (paymentError) {
-    console.error('[api/stripe/checkout-session/booking] payment load error:', paymentError.message)
+    Sentry.captureException(paymentError, {
+      tags: { area: 'stripe-checkout-booking', context: 'payment-load' },
+    })
     return NextResponse.json({ error: 'Erro ao carregar pagamento.' }, { status: 500 })
   }
 
@@ -174,7 +178,12 @@ export async function POST(request: NextRequest) {
       customer_email: customerId ? undefined : user.email || undefined,
     })
 
-    // Persist the checkout session ID as provider_payment_id
+    // SECURITY NOTE: We use createAdminClient() here because the RLS guard trigger
+    // (trg_guard_payments_non_admin_update) blocks non-admins from updating
+    // provider_payment_id. Authorization is already verified above: the user owns
+    // the booking, the payment is in 'requires_payment' status, etc.
+    // TODO: Migrate to a PostgreSQL RPC function that validates ownership internally
+    // and updates provider_payment_id, eliminating the need for admin client here.
     const admin = createAdminClient()
     if (admin && session.payment_intent) {
       const { error: updateError } = await admin
@@ -186,7 +195,9 @@ export async function POST(request: NextRequest) {
         .eq('id', payment.id)
 
       if (updateError) {
-        console.error('[api/stripe/checkout-session/booking] failed to update payment:', updateError.message)
+        Sentry.captureException(updateError, {
+          tags: { area: 'stripe-checkout-booking', context: 'update-payment-provider-id' },
+        })
       }
     }
 
@@ -197,7 +208,11 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         stripe_customer_id: customerIdStr,
       }).then(({ error }) => {
-        if (error) console.error('[api/stripe/checkout-session/booking] failed to persist customer mapping:', error.message)
+        if (error) {
+          Sentry.captureException(error, {
+            tags: { area: 'stripe-checkout-booking', context: 'persist-customer-mapping' },
+          })
+        }
       })
     }
 
@@ -214,7 +229,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (stripeError) {
     const message = stripeError instanceof Error ? stripeError.message : 'Erro ao criar sessao de checkout'
-    console.error('[api/stripe/checkout-session/booking] Stripe error:', message)
     Sentry.captureException(stripeError, {
       tags: { area: 'stripe_checkout_session_create' },
       extra: { bookingId, userId: user.id, amount: amountMinor, currency },

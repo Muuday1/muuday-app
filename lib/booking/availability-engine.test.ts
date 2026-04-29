@@ -244,7 +244,7 @@ describe('generateRecurringSlotStarts', () => {
       new Date('2026-04-25T10:00:00Z'),
       'weekly',
       10,
-      { occurrences: 100 },
+      { occurrences: 100, now: new Date('2026-04-25T10:00:00Z') },
     )
     expect(starts.length).toBeGreaterThanOrEqual(1)
     expect(starts.length).toBeLessThanOrEqual(2)

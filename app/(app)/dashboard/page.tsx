@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Painel | Muuday' }
 
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -47,6 +48,10 @@ const BOOKING_STATUS_LABELS: Record<string, string> = {
   no_show: 'Não compareceu',
   rescheduled: 'Reagendada',
 }
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+const DAYS_IN_WEEK = 7
+const DAYS_IN_MONTH = 30
 
 const PROFESSIONAL_STATUS_LABELS: Record<string, string> = {
   approved: 'Aprovado',
@@ -125,8 +130,8 @@ export default async function DashboardPage({
   const userTimezone = profile.timezone || 'America/Sao_Paulo'
   const now = new Date()
   const nowIso = now.toISOString()
-  const sevenDaysAgoIso = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const thirtyDaysAgoIso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const sevenDaysAgoIso = new Date(now.getTime() - DAYS_IN_WEEK * MS_PER_DAY).toISOString()
+  const thirtyDaysAgoIso = new Date(now.getTime() - DAYS_IN_MONTH * MS_PER_DAY).toISOString()
   const todayLocalDate = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd')
 
   const [
@@ -225,8 +230,12 @@ export default async function DashboardPage({
     loadProfessionalTrackerMeta(supabase, professionalId),
   ])
 
-  const logQueryError = (area: string, error: any) => {
-    if (error) console.error(`[dashboard] ${area} query error:`, error.message, error.code)
+  const logQueryError = (area: string, error: unknown) => {
+    if (error && error instanceof Error) {
+      Sentry.captureException(error, {
+        tags: { area: 'dashboard', context: `${area}-query` },
+      })
+    }
   }
   logQueryError('settings', settingsError)
   logQueryError('upcoming bookings', upcomingError)

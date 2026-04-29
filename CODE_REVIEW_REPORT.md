@@ -4,6 +4,42 @@
 **Scope:** Full codebase (web + mobile)
 **Rules:** Read-only audit. No code was modified.
 
+> **Post-Audit Cleanup — 2026-04-29**
+>
+> The following issues from this report have been addressed in cleanup passes:
+> - **HIGH-1 Mobile app unbuildable** → Fixed. Mobile `tsc --noEmit` passes cleanly.
+> - **HIGH-1 Heavy Server Components without Suspense** → Partially mitigated. Console errors removed.
+> - **HIGH-2 `force-dynamic`** → Still present; requires `unstable_cache` migration.
+> - **MEDIUM-1 FormData type errors** → Fixed. TypeScript compiles with zero errors.
+> - **MEDIUM-1 `createAdminClient()` in payment routes** → Documented with security comments + Sentry. Migration to RPC function tracked.
+> - **MEDIUM-2 Missing role check** → Fixed. `profissional` role guard added to `/api/v1/professionals/me`.
+> - **MEDIUM-3 Missing CSRF** → Fixed. `validateApiCsrf()` added to 15 critical API v1 routes.
+> - **MEDIUM-4 Missing Zod validation** → Fixed. `professionalSchema`/`professionalDraftSchema` added.
+> - **MEDIUM-5 Admin route lacks validation** → Fixed. `professionalStatusSchema` added.
+> - **MEDIUM-6 Calendar callback redirect validation** → Fixed. Whitelist-based `safeRedirectPath` replaces permissive prefix check.
+> - **MEDIUM-2 Unbounded queries** → Fixed. `.limit()` added to all high-risk queries.
+> - **MEDIUM-3 `console.error` in hot paths** → Fixed. Replaced with `Sentry.captureException()`.
+> - **MEDIUM-4 Middleware SESSION_CACHE unbounded** → Fixed. LRU eviction by `lastAccessedAt` added.
+> - **MEDIUM-1 Hydration mismatch on legal pages** → Fixed. Static dates replace dynamic `new Date()`.
+> - **HIGH-1 Missing `alt` attributes** → Verified. All images already have `alt` text.
+> - **UX MEDIUM-1 `suppressHydrationWarning`** → Fixed. Removed from legal pages.
+> - **LOW-2 Empty catch blocks** → Fixed. Critical API routes and booking payment prep now log to Sentry.
+> - **LOW-2 Heavy Third-Party Scripts Without Preconnect** → Fixed. Added `<link rel="preconnect">` + `<link rel="dns-prefetch">` for PostHog, Vercel Insights, and Sentry ingestion origins in `app/layout.tsx`.
+> - **LOW-1 Inconsistent Error Page Coverage** → Partially fixed. Added `loading.tsx` + `error.tsx` to `app/(app)/admin/planos/` and `app/(app)/onboarding-profissional/`.
+> - **MEDIUM-1 `middleware.ts` missing at root** → Fixed. `proxy.ts` was incorrectly named; renamed back to `middleware.ts` so Next.js actually executes it. Restores CSP nonces, CORS, mobile API key validation, session caching, and role-based redirects.
+>
+> - **MEDIUM-2 TypeScript target outdated** → Fixed. Upgraded to `ES2022`.
+> - **MEDIUM-3 `any[]` in agenda/financeiro pages** → Fixed. Added explicit `AgendaBooking` and `PaymentRow` interfaces; extracted magic-number constants.
+> - **MEDIUM-3 `console.error` in lib/ services** → Fixed. Replaced 20 occurrences across `chat-service.ts`, `dispute-service.ts`, `email-action-service.ts` with `Sentry.captureException()`.
+>
+> - **Pre-existing test failure in availability-engine.test.ts** → Fixed. Added `now?: Date` parameter to `generateRecurringSlotStarts` and `generateRecurrenceSlots` to eliminate date-dependent test flakiness. All 1052 tests now pass.
+> - **2.2 Availability logic duplication** → Fixed. Extracted `extractProfessionalTimezone()` and `loadProfessionalSettings()` (Pass 16), then `parseBookingSlot()` (Pass 17). All duplicated `fromZonedTime` + NaN + window check patterns are now centralized. Offer and reschedule paths now delegate min-notice + max-window to `validateSlotAvailability` instead of checking manually.
+> - **`any` in app/ directory** → Fixed. Zero TypeScript `any` types remain in `app/` (verified with regex search). `lib/auth/layout-session.ts` `user: any` also fixed.
+> - **console.error in lib/ services** → Fixed (Pass 17). Replaced 18 `console.error` calls in booking, availability, auth, blog, and action modules with `Sentry.captureException`.
+> - **Unbounded queries** → Fixed (Pass 17). Added `.limit(500)` to blog comments and `.limit(200)` to internal conflict detection.
+>
+> Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5), `any` types (~320 in lib/ tests + admin/payment modules), `force-dynamic` on agenda/dashboard, mega-components.
+
 ---
 
 ## Executive Summary

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { processRefund } from '@/lib/payments/refund/engine'
 
@@ -47,7 +48,7 @@ export async function openCase(
     .maybeSingle()
 
   if (bookingError) {
-    console.error('[disputes] failed to load booking:', bookingError.message)
+    Sentry.captureException(bookingError, { tags: { area: 'disputes', action: 'load-booking' } })
   }
 
   if (!booking) {
@@ -63,7 +64,7 @@ export async function openCase(
       .eq('user_id', userId)
       .maybeSingle()
     if (profError) {
-      console.error('[disputes] failed to load professional:', profError.message)
+      Sentry.captureException(profError, { tags: { area: 'disputes', action: 'load-professional' } })
     }
     if (!prof) {
       return { success: false, error: 'Você não tem acesso a este agendamento.' }
@@ -236,7 +237,7 @@ export async function resolveCase(
     },
   })
   if (actionError) {
-    console.error('[disputes] case_actions insert error:', actionError.message)
+    Sentry.captureException(actionError, { tags: { area: 'disputes', action: 'insert-case-action' } })
   }
 
   return {
@@ -328,6 +329,7 @@ export async function getCaseMessages(
     .select('id, sender_id, content, created_at, profiles!case_messages_sender_id_fkey(full_name)')
     .eq('case_id', idParsed.data)
     .order('created_at', { ascending: true })
+    .limit(200)
 
   if (error) {
     return { success: false, error: 'Erro ao carregar mensagens.' }
@@ -388,7 +390,7 @@ export async function listCases(
   const { data, error } = await query
 
   if (error) {
-    console.error('[disputes/listCases] query error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'disputes', action: 'list-cases' } })
     return { success: false, error: 'Erro ao carregar casos.' }
   }
 
@@ -423,7 +425,7 @@ export async function assignCase(
     .eq('id', idParsed.data)
 
   if (error) {
-    console.error('[disputes/assignCase] update error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'disputes', action: 'assign-case' } })
     return { success: false, error: 'Erro ao atribuir caso.' }
   }
 
@@ -483,7 +485,7 @@ export async function updateCaseStatus(
     .eq('id', idParsed.data)
 
   if (error) {
-    console.error('[disputes/updateCaseStatus] update error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'disputes', action: 'update-case-status' } })
     return { success: false, error: 'Erro ao atualizar status do caso.' }
   }
 
@@ -610,15 +612,17 @@ export async function getCaseTimeline(
     .select('id, action_type, performed_by, metadata, created_at, profiles!case_actions_performed_by_fkey(full_name)')
     .eq('case_id', idParsed.data)
     .order('created_at', { ascending: true })
+    .limit(200)
 
   const { data: messages, error: messagesError } = await supabase
     .from('case_messages')
     .select('id, sender_id, content, created_at, profiles!case_messages_sender_id_fkey(full_name)')
     .eq('case_id', idParsed.data)
     .order('created_at', { ascending: true })
+    .limit(200)
 
   if (actionsError || messagesError) {
-    console.error('[disputes/getCaseTimeline] error:', actionsError?.message || messagesError?.message)
+    Sentry.captureException(actionsError || messagesError || new Error('getCaseTimeline failed'), { tags: { area: 'disputes', action: 'get-case-timeline' } })
     return { success: false, error: 'Erro ao carregar timeline.' }
   }
 
@@ -687,7 +691,7 @@ export async function autoCreateCase(
     .single()
 
   if (error || !data) {
-    console.error('[disputes/autoCreateCase] insert error:', error?.message)
+    Sentry.captureException(error || new Error('autoCreateCase failed'), { tags: { area: 'disputes', action: 'auto-create-case' } })
     return { success: false, error: 'Erro ao criar caso automaticamente.' }
   }
 

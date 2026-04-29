@@ -4,9 +4,15 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { addFavorite, removeFavorite } from '@/lib/favorites/favorites-service'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'favorites', message: 'POST /api/v1/favorites started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1FavoritesWrite', `api-v1-favorites-write:${ip}`)
@@ -38,6 +44,11 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'favorites', message: 'DELETE /api/v1/favorites started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1FavoritesWrite', `api-v1-favorites-write:${ip}`)

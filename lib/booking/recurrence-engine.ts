@@ -9,6 +9,7 @@ export type RecurrenceInput = {
   occurrences?: number
   endDateLimitUtc?: Date | null
   bookingWindowDays: number
+  now?: Date
 }
 
 export type RecurrenceConflict = {
@@ -34,7 +35,8 @@ function nextRecurrenceStart(
 
 export function generateRecurrenceSlots(input: RecurrenceInput): RecurrenceDecision {
   const recurrenceGroupId = crypto.randomUUID()
-  const maxEndByWindow = addDays(new Date(), Math.max(1, input.bookingWindowDays))
+  const now = input.now ?? new Date()
+  const maxEndByWindow = addDays(now, Math.max(1, input.bookingWindowDays))
   const hardEndDate = input.endDateLimitUtc && input.endDateLimitUtc < maxEndByWindow
     ? input.endDateLimitUtc
     : maxEndByWindow

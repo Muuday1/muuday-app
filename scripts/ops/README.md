@@ -1,6 +1,6 @@
 # Ops Scripts
 
-Scripts utilitarios para operacao e suporte.
+Utility scripts for operations and support.
 
-- `test-emails.ts`: teste de templates/envio de email.
-- `update-supabase-templates.ts`: atualizacao de templates no Supabase.
+- `test-emails.ts`: Email template / send test.
+- `update-supabase-templates.ts`: Update Supabase auth templates.

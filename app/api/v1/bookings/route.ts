@@ -8,6 +8,7 @@ import { listBookingsService } from '@/lib/booking/manage-booking-service'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
+import { validateApiCsrf } from '@/lib/http/csrf'
 import {
   emitProfessionalReceivedBooking,
   emitUserStartedCheckout,
@@ -51,6 +52,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'booking', message: 'POST /api/v1/bookings started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   // Mobile API key validation is handled in middleware.ts
   const supabase = await createApiClient(request)

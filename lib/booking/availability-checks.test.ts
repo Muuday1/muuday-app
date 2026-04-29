@@ -145,6 +145,8 @@ describe('hasInternalConflict', () => {
       then: (onFulfilled: any) => Promise.resolve(finalResult).then(onFulfilled),
     }
     promiseLike.neq = vi.fn().mockReturnValue(promiseLike)
+    promiseLike.order = vi.fn().mockReturnValue(promiseLike)
+    promiseLike.limit = vi.fn().mockReturnValue(promiseLike)
 
     const fromMock = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateFileSignature } from '@/lib/security/file-signature'
@@ -164,7 +165,8 @@ export async function POST(request: Request) {
       credential: inserted,
       downloadUrl: `/api/professional/credentials/download/${inserted.id}`,
     })
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'credentials', action: 'upload' } })
     return NextResponse.json({ error: 'Erro inesperado no upload.' }, { status: 500 })
   }
 }
@@ -211,7 +213,8 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'credentials', action: 'delete' } })
     return NextResponse.json({ error: 'Erro inesperado ao remover comprovante.' }, { status: 500 })
   }
 }

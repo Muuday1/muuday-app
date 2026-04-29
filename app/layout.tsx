@@ -68,6 +68,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="preconnect" href="https://us.i.posthog.com" />
+        <link rel="dns-prefetch" href="https://us.i.posthog.com" />
+        <link rel="preconnect" href="https://vitals.vercel-insights.com" />
+        <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
+        <link rel="preconnect" href="https://o4511120268722176.ingest.us.sentry.io" />
+        <link rel="dns-prefetch" href="https://o4511120268722176.ingest.us.sentry.io" />
+      </head>
       <body
         className={`${jakarta.variable} ${bricolage.variable} min-h-screen flex flex-col bg-[#f6f8fb] font-sans antialiased`}
       >

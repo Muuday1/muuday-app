@@ -30,6 +30,62 @@
 
 ---
 
+## Cleanup Pass 2 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **3.3** `console.error` in production hot paths (agenda, dashboard) | Replaced 16 `console.error` calls in `app/(app)/agenda/page.tsx` and `app/(app)/dashboard/page.tsx` with `Sentry.captureException()` for structured error reporting. | `app/(app)/agenda/page.tsx`, `app/(app)/dashboard/page.tsx` |
+| **3.2** Unbounded `.select()` without `.limit()` (remaining) | Added `.limit(500)` to `markAllNotificationsAsRead` in `lib/notifications/notification-service.ts`. Added `.limit(200)` to availability backup queries in `lib/professional/professional-profile-service.ts`. | `lib/notifications/notification-service.ts`, `lib/professional/professional-profile-service.ts` |
+| **MEDIUM-1** `createAdminClient()` in user-facing payment routes | Replaced 21 `console.error` calls in 3 payment routes with `Sentry.captureException()`. Added detailed security comments explaining why `createAdminClient()` is necessary for `provider_payment_id` updates (RLS guard trigger blocks non-admins). Documented migration path to PostgreSQL RPC function. | `app/api/v1/payments/payment-intent/route.ts`, `app/api/stripe/payment-intent/route.ts`, `app/api/stripe/checkout-session/booking/route.ts` |
+| **MEDIUM-3** Missing CSRF on API v1 routes | Added `validateApiCsrf()` to 15 critical state-changing API v1 routes. New helper `validateApiCsrf()` in `lib/http/csrf.ts` skips validation for Bearer-token requests (mobile-safe) while enforcing Origin/Referer checks for cookie-based web requests. | `lib/http/csrf.ts`, `app/api/v1/bookings/requests/route.ts`, `app/api/v1/bookings/requests/[id]/accept/route.ts`, `app/api/v1/bookings/requests/[id]/cancel-user/route.ts`, `app/api/v1/bookings/requests/[id]/decline-professional/route.ts`, `app/api/v1/bookings/requests/[id]/decline-user/route.ts`, `app/api/v1/bookings/requests/[id]/offer/route.ts`, `app/api/v1/bookings/[id]/complete/route.ts`, `app/api/v1/bookings/[id]/mark-user-no-show/route.ts`, `app/api/v1/bookings/[id]/report-no-show/route.ts`, `app/api/v1/bookings/[id]/session-link/route.ts`, `app/api/v1/favorites/route.ts`, `app/api/v1/push/subscribe/route.ts`, `app/api/v1/push/unsubscribe/route.ts`, `app/api/v1/professionals/me/services/route.ts`, `app/api/v1/professionals/me/submit-for-review/route.ts` |
+| **HIGH-1** Mobile app unbuildable | Verified `mobile/tsconfig.json` exists and `tsc --noEmit` passes cleanly in the mobile directory. Mobile app is properly excluded from the web `tsconfig.json`. | `mobile/tsconfig.json` |
+| **HIGH-1** Missing `alt` attributes on images | Audited all `<img>` and `next/image` usages across `components/` and `app/`. All images already have `alt` text (either descriptive or `alt=""` for decorative). The CODE_REVIEW_REPORT count of "only 4 alt occurrences" was inaccurate/stale. | — |
+| **MEDIUM-1** FormData type errors | Verified `tsc --noEmit` passes with zero errors. The reported FormData type issues in `app/api/professional/credentials/upload/route.ts` and `app/api/professional/profile-media/upload/route.ts` are no longer present. | — |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run app/api/stripe/checkout-session/booking/route.test.ts app/api/stripe/payment-intent/route.test.ts` — 21/21 pass.
+- Mobile app `tsc --noEmit` passes.
+
+---
+
+## Cleanup Pass 3 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **MEDIUM-6** Calendar callback weak redirect validation | Replaced permissive `safeRedirectPath` with explicit whitelist of 6 known-safe paths (`/dashboard`, `/agenda`, `/configuracoes`, `/disponibilidade`, `/configuracoes-agendamento`, `/editar-perfil-profissional`). Also rejects query strings, fragments, and protocol handlers. | `app/api/professional/calendar/callback/[provider]/route.ts` |
+| **MEDIUM-4** Middleware SESSION_CACHE grows unbounded | Added `lastAccessedAt` timestamp to cache entries. Implemented `evictOldestSessions()` with sort-by-access-time + bulk eviction. Cleanup now triggers at >MAX_CACHE_SIZE, removes expired entries first, then evicts oldest by access time to 80% capacity. Insert path also enforces pre-insertion capacity bound. | `lib/supabase/middleware.ts` |
+| **LOW-2** Empty catch blocks swallow errors without Sentry logging | Added `Sentry.captureException()` to 4 critical API route catch blocks: credentials upload (`POST`, `DELETE`), profile-media upload (`POST`), and booking creation payment preparation. Intentional defensive catches (input validation, cache fallbacks, signature verification) left unchanged. | `app/api/professional/credentials/upload/route.ts`, `app/api/professional/profile-media/upload/route.ts`, `lib/booking/create-booking.ts` |
+| **5.7** scripts/ops/README.md Portuguese outlier | Translated to English to match rest of codebase. | `scripts/ops/README.md` |
+| **5.10 / docs** Stale "Wave 3 (pending)" in database-and-migrations.md | Updated migration 081 status to "applied 2026-04-28" and added migrations 082 and 083 as applied. | `docs/engineering/database-and-migrations.md` |
+| **2.8** Manual rollbacks without transactions | Verified all 3 fallback paths (request-booking-service, persist-recurring, record-payment) have comprehensive Sentry instrumentation with rich context. Rollback failures throw explicit errors requiring manual review. Full DB-transaction fix requires PostgreSQL RPC function migration (tracked in P3.8). | `lib/booking/request-booking-service.ts`, `lib/booking/creation/persist-recurring.ts`, `lib/booking/creation/record-payment.ts` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — 1050/1052 pass (2 pre-existing failures: availability-engine.test.ts, no new failures introduced).
+
+---
+
+## Cleanup Pass 4 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **MEDIUM-1** `middleware.ts` missing at root | Renamed `proxy.ts` → `middleware.ts`. Next.js only recognizes `middleware.ts` (or `src/middleware.ts`) as the root middleware file. `proxy.ts` was never executed, disabling CSP nonces, API v1 CORS, mobile API key validation, session caching, and role-based redirects since commit `ae708a8`. | `middleware.ts` (renamed from `proxy.ts`), `next.config.js`, `AGENTS.md`, `docs/engineering/performance/2026-04-24-25-performance-optimizations.md` |
+| **MEDIUM-4** Nested ternary anti-pattern in agenda | Converted 4-level nested ternary for `calendarIntegrationStatus` to lookup map with `as const` type assertion. | `app/(app)/agenda/page.tsx` |
+| **LOW-3** `@ts-ignore` in service worker | Verified all 8 `@ts-ignore` comments use proper formatting. True fix requires migrating `public/sw.js` to TypeScript; deferred. | `public/sw.js` |
+| **LOW-2** Heavy third-party scripts without preconnect | Added `<link rel="preconnect">` and `<link rel="dns-prefetch">` for PostHog (`us.i.posthog.com`), Vercel Insights (`vitals.vercel-insights.com`), and Sentry (`o4511120268722176.ingest.us.sentry.io`) in root layout `<head>`. | `app/layout.tsx` |
+| **LOW-1** Inconsistent error page coverage | Added `loading.tsx` + `error.tsx` to `app/(app)/admin/planos/` and `app/(app)/onboarding-profissional/`. | `app/(app)/admin/planos/loading.tsx`, `app/(app)/admin/planos/error.tsx`, `app/(app)/onboarding-profissional/loading.tsx`, `app/(app)/onboarding-profissional/error.tsx` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — 1051/1052 pass (1 pre-existing failure in `availability-engine.test.ts`, no new failures introduced).
+
 ---
 
 ## What Changed From Previous Report
@@ -487,11 +543,11 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 |----------|-------|-----------------|---------------|--------------|
 | Segurança | 16 | 1 | 1 | 0 |
 | Arquitetura | 2 | 4 | 3 | 0 |
-| DevOps/CI | 8 | 1 | 4 | 0 |
+| DevOps/CI | 9 | 1 | 3 | 0 |
 | Performance | 2 | 1 | 2 | 0 |
 | Documentação | 1 | 0 | 6 | 0 |
 | **NEW ISSUES** | — | — | **8** | — |
-| **TOTAL** | **30** | **7** | **24** | **0** |
+| **TOTAL** | **31** | **7** | **23** | **0** |
 
 ---
 
@@ -508,18 +564,90 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 2.8 Rollbacks without transactions | 🔴 STILL PRESENT | Manual rollback in 3 files; no DB transactions |
 | 2.9 Metadata ad-hoc mutation | 🟡 PARTIALLY FIXED | 9 sites centralized into `patchBookingMetadata`; concurrency risk documented |
 | 2.13 Single-file component dirs | 🟡 PARTIALLY FIXED | 3 consolidated; 5 feature-specific dirs remain |
+| 3.2 Unbounded queries | 🟢 FIXED | All high-risk unbounded queries in `lib/chat`, `lib/disputes`, `lib/notifications`, `lib/professional` now have `.limit()` |
+| 3.3 `console.error` in production hot paths | 🟢 FIXED | Replaced with `Sentry.captureException()` in agenda, dashboard, and payment routes |
 | 3.7 API/integration tests | 🟢 FIXED | 97 `.test.ts` files including 21+ API route tests |
 | 3.9 E2E login duplication | 🟢 FIXED | Consolidated into shared `tests/e2e/helpers.ts` |
 | 3.10 Portuguese E2E selectors | 🟢 FIXED | Replaced with `data-testid` attributes in `CookieConsentRoot` and `LoginForm`; all specs updated |
 | 3.11 Playwright .env parsing | 🟢 FIXED | Replaced manual parser with `require('dotenv').config()` in `playwright.config.ts` and `global-setup.ts` |
-| 3.20 Dependabot/Renovate | 🔴 STILL PRESENT | No config file found |
+| 3.20 Dependabot/Renovate | 🟢 FIXED | `.github/dependabot.yml` created with weekly NPM updates |
 | 4.2 Health-check endpoint | 🟢 FIXED | `/api/health` and `/api/health/rls` both exist and work |
-| 5.3 vercel-github-actions.md outdated | 🔴 STILL PRESENT | Doc lists 4 CI steps; actual CI has 21 |
-| 5.4 No Agora doc | 🔴 STILL PRESENT | `docs/integrations/` has 10 files; no Agora |
-| 5.5 No troubleshooting guide | 🔴 STILL PRESENT | `docs/engineering/` has 23 files; none are troubleshooting |
-| 5.6 Incomplete env var reference | 🔴 STILL PRESENT | `.env.local.example` missing explanations and some vars |
-| 5.7 scripts/ops/README language | 🔴 STILL PRESENT | Portuguese outlier in mostly-English docs |
+| 5.3 vercel-github-actions.md outdated | 🟢 FIXED | Doc updated with actual 21-step CI workflow (C31) |
+| 5.4 No Agora doc | 🟢 FIXED | `docs/integrations/agora.md` created (C31) |
+| 5.5 No troubleshooting guide | 🟢 FIXED | `docs/engineering/troubleshooting.md` created (C31) |
+| 5.6 Incomplete env var reference | 🟡 PARTIALLY FIXED | `.env.local.example` updated with 9 missing vars (C31); still lacks explanations per var |
+| 5.7 scripts/ops/README language | 🟢 FIXED | Translated to English in Cleanup Pass 3 |
 | 5.10 Docs with Pending/In progress | 🔴 STILL PRESENT | 39+ files contain status markers |
+| **MEDIUM-1** `createAdminClient()` in payment routes | 🟡 PARTIALLY FIXED | Documented with security comments + Sentry; RLS guard trigger makes migration to RPC function required for full fix |
+| **MEDIUM-3** Missing CSRF on API v1 routes | 🟢 FIXED | `validateApiCsrf()` added to 15 critical state-changing routes; Bearer-aware for mobile compatibility |
+| **HIGH-1** Mobile app unbuildable | 🟢 FIXED | Mobile `tsc --noEmit` passes; properly excluded from web tsconfig |
+| **HIGH-1** Missing `alt` text | 🟢 FIXED | All images have `alt` (verified across components/ and app/) |
+| **MEDIUM-1** FormData type errors | 🟢 FIXED | `tsc --noEmit` passes with zero errors |
+
+---
+
+## Cleanup Pass 17 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **2.2** Availability logic duplication (remaining) | Extracted `parseBookingSlot()` helper in new `lib/booking/slot-parsing.ts` that encapsulates `fromZonedTime` → NaN validation → endUtc calculation. Replaced 4 duplicated inline blocks in `request-booking-service.ts` (create, offer) and `manage-booking-service.ts` (reschedule). Removed redundant manual min-notice + max-window checks from offer and reschedule; `validateSlotAvailability` now handles them with context-specific error messages. | `lib/booking/slot-parsing.ts` (new), `lib/booking/request-booking-service.ts`, `lib/booking/manage-booking-service.ts` |
+| **console.error** in booking/services/auth/actions | Replaced 18 `console.error` calls with `Sentry.captureException` (or `captureMessage` for security events) in: `request-booking-service.ts` (3), `manage-booking-service.ts` (4), `availability-checks.ts` (3), `external-calendar-conflicts.ts` (1), `blog-engagement-service.ts` (5), `layout-session.ts` (1), `user-profile.ts` (2), `professional-onboarding.ts` (2), `review-response.ts` (1). | 9 files |
+| **Unbounded queries** | Added `.limit(500)` to `getBlogCommentsService`. Added `.limit(200)` + `.order('start_time_utc')` to `hasInternalConflict` for deterministic bounded conflict lookups. | `lib/blog/blog-engagement-service.ts`, `lib/booking/availability-checks.ts` |
+| **Test mocks** | Updated `availability-checks.test.ts` mock to support `.order()` and `.limit()` chaining. Updated `external-calendar-conflicts.test.ts` to assert on mocked Sentry instead of `console.error`. | `lib/booking/availability-checks.test.ts`, `lib/booking/external-calendar-conflicts.test.ts` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 16 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **2.2** Availability logic duplication (partial) | Extracted two most-duplicated patterns into shared helpers: `extractProfessionalTimezone(professional)` and `loadProfessionalSettings(supabase, professionalId, timezoneFallback)` in `lib/booking/settings.ts`. Replaced 4 duplicated sites in `request-booking-service.ts` and 1 in `manage-booking-service.ts`. Each site previously repeated 10+ lines of profile extraction, settings query, and normalization. | `lib/booking/settings.ts`, `lib/booking/request-booking-service.ts`, `lib/booking/manage-booking-service.ts`, `lib/booking/request-booking-service.test.ts` |
+| **HIGH-1** `any` type in auth layout session | Replaced `user: any | null` with `user: User | null` in `LayoutSession` type. Changed `getUserWithSessionFallback<any>` to `getUserWithSessionFallback<User>` using `@supabase/supabase-js` `User` type. | `lib/auth/layout-session.ts` |
+| **5.7** scripts/ops/README language (tracker stale) | Corrected tracker entry from 🔴 STILL PRESENT to 🟢 FIXED (was already fixed in Cleanup Pass 3). | `CODE_REVIEW_TRACKER_UPDATE.md` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 15 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **Pre-existing test failure** `availability-engine.test.ts` | Root cause: `generateRecurringSlotStarts` and `generateRecurrenceSlots` both used bare `new Date()` to calculate booking window end, making tests date-dependent and flaky. Added optional `now?: Date` parameter to both functions. Updated tests to pass fixed `now` equal to `initialStartUtc`. All 1052 tests now pass (was 1051/1052). | `lib/booking/availability-engine.ts`, `lib/booking/availability-engine.test.ts`, `lib/booking/recurrence-engine.ts`, `lib/booking/recurrence-engine.test.ts` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 14 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **MEDIUM-2** TypeScript target outdated (`ES2017`) | Upgraded `tsconfig.json` `"target"` to `"ES2022"` to align with Next.js 16 and Node 20. | `tsconfig.json` |
+| **MEDIUM-3** `any[]` in agenda page | Added explicit `AgendaBooking` interface with all known fields. Replaced 20+ `any` occurrences in `getConfirmationDeadline`, `bookingModeMeta`, `groupRecurringBookings`, and booking map callbacks. Extracted `MS_PER_HOUR`, `MS_PER_MINUTE` magic-number constants. | `app/(app)/agenda/page.tsx` |
+| **MEDIUM-3** `any[]` in financeiro page | Added explicit `PaymentRow` type with id, status, created_at, amount_total, platform_fee_brl_minor, currency, booking_id. Replaced `any` map params in `groupPaymentsByDay` and `calculateTrend`. | `app/(app)/financeiro/page.tsx` |
+| **MEDIUM-3** `any[]` in RecurringPackageCard | Made `recurrence_periodicity` and `recurrence_occurrence_index` optional in `RecurringBooking` interface to accept `AgendaBooking[]` (raw Supabase joins may omit these fields). | `components/agenda/RecurringPackageCard.tsx` |
+| **MEDIUM-3** `console.error` in lib/ runtime code | Replaced error-level `console.error` with `Sentry.captureException()` in `lib/chat/chat-service.ts` (3 occurrences), `lib/disputes/dispute-service.ts` (9 occurrences), `lib/email/email-action-service.ts` (8 occurrences). Intentional `console.warn` for graceful fallbacks preserved. | `lib/chat/chat-service.ts`, `lib/disputes/dispute-service.ts`, `lib/email/email-action-service.ts` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0) after all changes.
+- `npx vitest run` passes: 1051/1052 tests pass (1 pre-existing failure in `availability-engine.test.ts`).
 
 ---
 

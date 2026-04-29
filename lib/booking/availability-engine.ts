@@ -115,9 +115,11 @@ export function generateRecurringSlotStarts(
     intervalDays?: number
     occurrences?: number
     endDateUtc?: Date | null
+    now?: Date
   },
 ): Date[] {
-  const maxEndByWindow = addDays(new Date(), Math.max(1, bookingWindowDays))
+  const now = options?.now ?? new Date()
+  const maxEndByWindow = addDays(now, Math.max(1, bookingWindowDays))
   const explicitEndDate = options?.endDateUtc || null
   const hardEndDate = explicitEndDate && explicitEndDate < maxEndByWindow ? explicitEndDate : maxEndByWindow
 

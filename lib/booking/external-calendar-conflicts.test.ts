@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { hasExternalBusyConflict } from './external-calendar-conflicts'
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+}))
+
+import * as Sentry from '@sentry/nextjs'
+
 function makeSupabase(result: { count: number | null; error: any }) {
   return {
     from: vi.fn().mockReturnValue({
@@ -29,12 +35,13 @@ describe('hasExternalBusyConflict', () => {
   })
 
   it('returns false on DB error (fail-open)', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const supabase = makeSupabase({ count: null, error: { message: 'connection lost' } })
     const result = await hasExternalBusyConflict(supabase, 'pro-1', '2026-04-25T10:00:00Z', '2026-04-25T11:00:00Z')
     expect(result).toBe(false)
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('connection lost'))
-    consoleSpy.mockRestore()
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'connection lost' }),
+      expect.anything(),
+    )
   })
 
   it('returns false when count is null without error', async () => {

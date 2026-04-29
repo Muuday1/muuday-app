@@ -5,6 +5,7 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { sendMessage, getMessages } from '@/lib/chat/chat-service'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function GET(
   request: NextRequest,
@@ -55,6 +56,11 @@ export async function POST(
     message: `POST /api/v1/conversations/${conversationId}/messages`,
     level: 'info',
   })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()

@@ -3,6 +3,7 @@ import { executeBookingCreation } from './create-booking'
 
 vi.mock('@sentry/nextjs', () => ({
   addBreadcrumb: vi.fn(),
+  captureException: vi.fn(),
 }))
 
 vi.mock('./slot-locks', () => ({

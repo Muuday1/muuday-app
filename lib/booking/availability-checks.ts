@@ -1,4 +1,5 @@
 import { formatInTimeZone } from 'date-fns-tz'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { hhmmToMinutes, getMinutesInTimezone } from './request-validation'
 import { mapLegacyAvailabilityToRules } from './availability-engine'
@@ -25,7 +26,10 @@ export async function loadAvailabilityRules(
     .eq('is_active', true)
 
   if (legacyError) {
-    console.error('[availability-checks] failed to load legacy availability:', legacyError.message)
+    Sentry.captureException(legacyError, {
+      tags: { area: 'availability_checks' },
+      extra: { professionalId, context: 'legacy_availability' },
+    })
   }
 
   return mapLegacyAvailabilityToRules(legacyAvailabilityRows || [], timezone)
@@ -68,7 +72,10 @@ export async function isSlotAllowedByExceptions(
     .eq('date_local', localDate)
 
   if (exceptionError) {
-    console.error('[availability-checks] failed to load exceptions:', exceptionError.message)
+    Sentry.captureException(exceptionError, {
+      tags: { area: 'availability_checks' },
+      extra: { professionalId, localDate, context: 'exceptions' },
+    })
     // Fail closed: if we can't verify exceptions, block the slot
     return false
   }
@@ -123,13 +130,18 @@ export async function hasInternalConflict(
     .or(
       `and(start_time_utc.gte."${conflictWindowStart}",start_time_utc.lte."${conflictWindowEnd}"),and(scheduled_at.gte."${conflictWindowStart}",scheduled_at.lte."${conflictWindowEnd}")`,
     )
+    .order('start_time_utc', { ascending: true })
+    .limit(200)
 
   if (ignoreBookingId) query = query.neq('id', ignoreBookingId)
 
   const { data: candidateConflicts, error: conflictError } = await query
 
   if (conflictError) {
-    console.error('[availability-checks] failed to load conflicts:', conflictError.message)
+    Sentry.captureException(conflictError, {
+      tags: { area: 'availability_checks' },
+      extra: { professionalId, context: 'internal_conflict' },
+    })
     // Fail closed: if we can't verify conflicts, assume there is one
     return true
   }

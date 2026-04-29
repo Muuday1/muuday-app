@@ -30,8 +30,15 @@ const subscriptionSchema = z.union([webSubscriptionSchema, nativeSubscriptionSch
  * Saves a push subscription for the authenticated user.
  * Supports both web (VAPID) and native (Expo Push Token) subscriptions.
  */
+import { validateApiCsrf } from '@/lib/http/csrf'
+
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'push', message: 'POST /api/v1/push/subscribe', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()

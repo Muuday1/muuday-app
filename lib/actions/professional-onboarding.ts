@@ -1,6 +1,7 @@
 'use server'
 
 import { z } from 'zod'
+import * as Sentry from '@sentry/nextjs'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -24,7 +25,7 @@ export async function submitProfessionalForReviewAction() {
     .maybeSingle()
 
   if (profileError) {
-    console.error('[professional-onboarding] profile query error:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'professional_onboarding' } })
   }
 
   if (!profile || profile.role !== 'profissional') {
@@ -33,7 +34,7 @@ export async function submitProfessionalForReviewAction() {
 
   const { data: professional, error: profError } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   if (profError) {
-    console.error('[professional-onboarding] getPrimaryProfessionalForUser error:', profError.message)
+    Sentry.captureException(profError, { tags: { area: 'professional_onboarding' } })
   }
 
   if (!professional?.id) {

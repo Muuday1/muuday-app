@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { acceptRequestBookingService } from '@/lib/booking/request-booking-service'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function PATCH(
   request: NextRequest,
@@ -10,6 +11,11 @@ export async function PATCH(
 ) {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'request-booking', message: `PATCH /api/v1/bookings/requests/${id}/accept`, level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const supabase = await createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()

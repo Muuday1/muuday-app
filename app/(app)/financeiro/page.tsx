@@ -19,11 +19,30 @@ import { getProfessionalSubscription } from '@/lib/actions/professional/subscrip
 import { TransactionList } from '@/components/finance/TransactionList'
 import { EarningsSparkline } from '@/components/finance/EarningsSparkline'
 
-function groupPaymentsByDay(payments: any[]): { label: string; value: number }[] {
+interface Payment {
+  id: string
+  amount_total?: number
+  platform_fee_brl_minor?: number
+  currency?: string
+  status: string
+  created_at: string
+  booking_id?: string
+}
+
+interface BookingWithClient {
+  id: string
+  profiles?: { full_name?: string | null } | null
+}
+
+const PAYMENTS_LIMIT = 100
+const BOOKINGS_LOOKUP_LIMIT = 500
+const SPARKLINE_DAYS = 30
+
+function groupPaymentsByDay(payments: Payment[]): { label: string; value: number }[] {
   const map = new Map<string, number>()
   const today = new Date()
-  // Last 30 days
-  for (let i = 29; i >= 0; i--) {
+  // Last SPARKLINE_DAYS days
+  for (let i = SPARKLINE_DAYS - 1; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
     const key = d.toISOString().slice(0, 10)
@@ -34,7 +53,7 @@ function groupPaymentsByDay(payments: any[]): { label: string; value: number }[]
     if (p.status !== 'captured') continue
     const dateKey = new Date(p.created_at).toISOString().slice(0, 10)
     if (map.has(dateKey)) {
-      map.set(dateKey, (map.get(dateKey) || 0) + Number(p.amount_total || 0))
+      map.set(dateKey, (map.get(dateKey) || 0) + Number(p.amount_total ?? 0))
     }
   }
 
@@ -44,23 +63,23 @@ function groupPaymentsByDay(payments: any[]): { label: string; value: number }[]
   }))
 }
 
-function calculateTrend(payments: any[]): { direction: 'up' | 'down' | 'flat'; percentage: number } {
+function calculateTrend(payments: Payment[]): { direction: 'up' | 'down' | 'flat'; percentage: number } {
   const now = new Date()
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
   const thisMonthTotal = payments
-    .filter((p: any) => p.status === 'captured' && new Date(p.created_at) >= thisMonthStart)
-    .reduce((sum: number, p: any) => sum + Number(p.amount_total || 0), 0)
+    .filter((p) => p.status === 'captured' && new Date(p.created_at) >= thisMonthStart)
+    .reduce((sum, p) => sum + Number(p.amount_total ?? 0), 0)
 
   const lastMonthTotal = payments
     .filter(
-      (p: any) =>
+      (p) =>
         p.status === 'captured' &&
         new Date(p.created_at) >= lastMonthStart &&
         new Date(p.created_at) < thisMonthStart,
     )
-    .reduce((sum: number, p: any) => sum + Number(p.amount_total || 0), 0)
+    .reduce((sum, p) => sum + Number(p.amount_total ?? 0), 0)
 
   if (lastMonthTotal === 0) {
     return thisMonthTotal > 0 ? { direction: 'up', percentage: 100 } : { direction: 'flat', percentage: 0 }
@@ -112,34 +131,37 @@ export default async function FinanceiroPage() {
           .select('id, amount_total, platform_fee_brl_minor, currency, status, created_at, booking_id')
           .eq('professional_id', professionalId)
           .order('created_at', { ascending: false })
-          .limit(100)
-      : Promise.resolve({ data: [] as any[] }),
+          .limit(PAYMENTS_LIMIT)
+      : Promise.resolve({ data: [] as Payment[] }),
     professionalId
       ? supabase
           .from('bookings')
           .select('id, user_id, profiles!bookings_user_id_fkey(full_name)')
           .eq('professional_id', professionalId)
-          .limit(500)
-      : Promise.resolve({ data: [] as any[] }),
+          .limit(BOOKINGS_LOOKUP_LIMIT)
+      : Promise.resolve({ data: [] as BookingWithClient[] }),
     professionalId
       ? supabase
           .from('bookings')
           .select('status')
           .eq('professional_id', professionalId)
           .in('status', ['confirmed', 'completed', 'pending_confirmation'])
-          .limit(500)
-      : Promise.resolve({ data: [] as any[] }),
+          .limit(BOOKINGS_LOOKUP_LIMIT)
+      : Promise.resolve({ data: [] as Array<{ status: string }> }),
     professionalId ? getPayoutStatus() : Promise.resolve(null),
     professionalId ? getProfessionalSubscription() : Promise.resolve(null),
   ])
 
-  const subscription = (subscriptionResult as any)?.success ? (subscriptionResult as any).subscription : null
+  const subscription =
+    subscriptionResult && typeof subscriptionResult === 'object' && 'success' in subscriptionResult && subscriptionResult.success
+      ? (subscriptionResult as { success: true; subscription: unknown }).subscription
+      : null
 
   const currency = profile.currency || 'BRL'
 
   // Build client name lookup from bookings
   const clientNameMap = new Map<string, string>()
-  for (const b of bookingsWithClients || []) {
+  for (const b of (bookingsWithClients || []) as BookingWithClient[]) {
     const name = b.profiles?.full_name
     if (name && b.id) {
       clientNameMap.set(b.id, name)
@@ -147,14 +169,14 @@ export default async function FinanceiroPage() {
   }
 
   // Transaction data
-  const transactions = (payments || []).map((p: any) => {
-    const platformFee = (p.platform_fee_brl_minor || 0) / 100
-    const amountTotal = Number(p.amount_total || 0)
+  const transactions = (payments as Payment[] || []).map((p) => {
+    const platformFee = (p.platform_fee_brl_minor ?? 0) / 100
+    const amountTotal = Number(p.amount_total ?? 0)
     return {
       id: p.id,
       createdAt: p.created_at,
-      clientName: clientNameMap.get(p.booking_id) || '—',
-      bookingId: p.booking_id,
+      clientName: clientNameMap.get(p.booking_id ?? '') || '—',
+      bookingId: p.booking_id ?? '',
       amountTotal,
       platformFee,
       netAmount: amountTotal - platformFee,
@@ -163,17 +185,17 @@ export default async function FinanceiroPage() {
     }
   })
 
-  const capturedPayments = (payments || []).filter((payment: any) => payment.status === 'captured')
+  const capturedPayments = (payments as Payment[] || []).filter((payment) => payment.status === 'captured')
   const grossTotal = capturedPayments.reduce(
-    (total: number, payment: any) => total + Number(payment.amount_total || 0),
+    (total, payment) => total + Number(payment.amount_total ?? 0),
     0,
   )
   const netTotal = capturedPayments.reduce(
-    (total: number, payment: any) =>
-      total + Number(payment.amount_total || 0) - (payment.platform_fee_brl_minor || 0) / 100,
+    (total, payment) =>
+      total + Number(payment.amount_total ?? 0) - (payment.platform_fee_brl_minor ?? 0) / 100,
     0,
   )
-  const pendingPayments = (payments || []).filter((payment: any) =>
+  const pendingPayments = (payments as Payment[] || []).filter((payment) =>
     ['pending', 'requires_action'].includes(String(payment.status)),
   )
   const activeBookingCount = (activeBookings || []).length
@@ -234,7 +256,7 @@ export default async function FinanceiroPage() {
       </div>
 
       {/* Subscription section */}
-      {subscription && <SubscriptionStatusCard subscription={subscription} />}
+      {Boolean(subscription) && <SubscriptionStatusCard subscription={subscription as any} />}
 
       {/* Earnings chart */}
       {sparklineData.length > 1 && (

@@ -170,6 +170,7 @@ export async function markAllNotificationsAsRead(
     .eq('user_id', userId)
     .is('read_at', null)
     .select('id')
+    .limit(500)
 
   if (error) {
     return { success: false, error: 'Erro ao marcar notificações como lidas.' }

@@ -56,3 +56,17 @@ export function validateCsrfOrigin(request: NextRequest): { ok: true } | { ok: f
 
   return { ok: true }
 }
+
+/**
+ * CSRF validation for API routes that support both cookie auth (web) and Bearer token auth (mobile).
+ * Bearer-token requests are inherently CSRF-safe (the token is not automatically sent by the browser),
+ * so we skip Origin/Referer validation when an Authorization: Bearer header is present.
+ */
+export function validateApiCsrf(request: NextRequest): { ok: true } | { ok: false; error: string } {
+  const authHeader = request.headers.get('authorization')
+  const hasBearerToken = authHeader?.startsWith('Bearer ')
+  if (hasBearerToken) {
+    return { ok: true }
+  }
+  return validateCsrfOrigin(request)
+}

@@ -4,6 +4,7 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { submitReview, getProfessionalEmailForReview } from '@/lib/review/review-service'
+import { validateApiCsrf } from '@/lib/http/csrf'
 import {
   emitUserReviewSubmitted,
   emitProfessionalReceivedReview,
@@ -11,6 +12,11 @@ import {
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'reviews', message: 'POST /api/v1/reviews started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1ReviewSubmit', `api-v1-review-submit:${ip}`)

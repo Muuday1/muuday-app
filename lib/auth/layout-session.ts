@@ -1,4 +1,6 @@
 import { cache } from 'react'
+import type { User } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
 
@@ -9,7 +11,7 @@ type LayoutProfile = {
 }
 
 type LayoutSession = {
-  user: any | null
+  user: User | null
   profile: LayoutProfile | null
 }
 
@@ -22,7 +24,7 @@ export const getLayoutSession = cache(async (): Promise<LayoutSession> => {
 
   try {
     const supabase = await createClient()
-    const user = await getUserWithSessionFallback<any>(supabase)
+    const user = await getUserWithSessionFallback<User>(supabase)
 
     if (!user) {
       return { user: null, profile: null }
@@ -35,7 +37,7 @@ export const getLayoutSession = cache(async (): Promise<LayoutSession> => {
       .maybeSingle()
 
     if (profileError) {
-      console.error('[layout-session] profile query error:', profileError.message)
+      Sentry.captureException(profileError, { tags: { area: 'layout_session' } })
     }
 
     return {

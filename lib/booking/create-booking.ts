@@ -157,7 +157,11 @@ export async function executeBookingCreation(
         settings.confirmationMode,
       )
       paymentData = paymentResult.paymentData
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { area: 'booking', action: 'prepare-payment' },
+        extra: { userId: user.id, professionalId: professional.id },
+      })
       return { success: false, error: 'Erro interno ao preparar pagamento.' }
     }
 

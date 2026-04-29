@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 const CACHE_NAME = 'muuday-v1'
 const STATIC_ASSETS = [
   '/',
@@ -13,7 +15,6 @@ self.addEventListener('install', (event) => {
     }),
   )
   // Activate immediately
-  // @ts-ignore
   self.skipWaiting()
 })
 
@@ -27,12 +28,10 @@ self.addEventListener('activate', (event) => {
       )
     }),
   )
-  // @ts-ignore
   self.clients.claim()
 })
 
 self.addEventListener('fetch', (event) => {
-  // @ts-ignore
   const { request } = event
 
   // Skip non-GET requests
@@ -42,7 +41,6 @@ self.addEventListener('fetch', (event) => {
   if (request.url.includes('/api/') || request.url.includes('/auth/')) return
 
   // Stale-while-revalidate for static assets
-  // @ts-ignore
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetchPromise = fetch(request)
@@ -72,7 +70,6 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let data = {}
   try {
-    // @ts-ignore
     data = event.data?.json() || {}
   } catch {
     // Invalid payload — show generic notification
@@ -85,7 +82,6 @@ self.addEventListener('push', (event) => {
   const icon = data.icon || '/assets/icon-192x192.png'
   const badge = data.badge || '/assets/icon-192x192.png'
 
-  // @ts-ignore
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
@@ -100,11 +96,9 @@ self.addEventListener('push', (event) => {
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
-  // @ts-ignore
   event.notification.close()
   const url = event.notification.data?.url || '/'
 
-  // @ts-ignore
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Focus existing tab if open

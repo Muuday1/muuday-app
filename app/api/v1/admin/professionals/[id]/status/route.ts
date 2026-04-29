@@ -4,6 +4,7 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { updateProfessionalStatusService } from '@/lib/admin/admin-service'
+import { professionalStatusSchema, getFirstValidationError } from '@/lib/actions/admin/shared'
 
 export async function PATCH(
   request: NextRequest,
@@ -36,7 +37,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { status, note } = body as { status: string; note?: string }
+  const parsed = professionalStatusSchema.safeParse((body as Record<string, unknown>)?.status)
+  if (!parsed.success) {
+    return NextResponse.json({ error: getFirstValidationError(parsed.error) }, { status: 400 })
+  }
+  const status = parsed.data
+  const note = typeof (body as Record<string, unknown>)?.note === 'string' ? String((body as Record<string, unknown>).note) : undefined
 
   const result = await updateProfessionalStatusService(supabase, admin.userId, id, status, note)
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateFileSignature } from '@/lib/security/file-signature'
@@ -112,7 +113,8 @@ export async function POST(request: Request) {
       signedUrl,
       path: filePath,
     })
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'profile-media', action: 'upload' } })
     return NextResponse.json({ error: 'Erro inesperado no upload da foto.' }, { status: 500 })
   }
 }

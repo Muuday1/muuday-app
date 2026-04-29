@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -69,7 +70,7 @@ export async function updateProfileField(
   }
 
   if (!EDITABLE_PROFILE_FIELDS.has(field)) {
-    console.error(`[updateProfileField] Blocked attempt to update restricted field: ${field}`)
+    Sentry.captureMessage(`[updateProfileField] Blocked attempt to update restricted field: ${field}`, 'warning')
     return { error: 'Campo não permitido.' }
   }
 
@@ -79,7 +80,7 @@ export async function updateProfileField(
     .eq('id', user.id)
 
   if (error) {
-    console.error('[updateProfileField] update error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'update_profile_field' }, extra: { field } })
     return { error: 'Erro ao salvar alteração. Tente novamente.' }
   }
 

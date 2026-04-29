@@ -6,6 +6,7 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getStripeClient } from '@/lib/stripe/client'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid('ID do agendamento invalido.'),
@@ -13,6 +14,11 @@ const payloadSchema = z.object({
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/v1/payments/payment-intent started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('stripePaymentIntent', `api-v1-payment-intent:${ip}`)
@@ -48,7 +54,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (bookingError) {
-    console.error('[api/v1/payments/payment-intent] booking load error:', bookingError.message)
+    Sentry.captureException(bookingError, {
+      tags: { area: 'api-v1-payments-payment-intent', context: 'booking-load' },
+    })
     return NextResponse.json({ error: 'Erro ao carregar agendamento.' }, { status: 500 })
   }
 
@@ -75,7 +83,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (paymentError) {
-    console.error('[api/v1/payments/payment-intent] payment load error:', paymentError.message)
+    Sentry.captureException(paymentError, {
+      tags: { area: 'api-v1-payments-payment-intent', context: 'payment-load' },
+    })
     return NextResponse.json({ error: 'Erro ao carregar pagamento.' }, { status: 500 })
   }
 
@@ -107,7 +117,9 @@ export async function POST(request: NextRequest) {
         })
       }
     } catch (retrieveError) {
-      console.error('[api/v1/payments/payment-intent] failed to retrieve existing PI:', retrieveError)
+      Sentry.captureException(retrieveError, {
+        tags: { area: 'api-v1-payments-payment-intent', context: 'retrieve-existing-pi' },
+      })
     }
   }
 
@@ -142,11 +154,17 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         stripe_customer_id: customerId,
       }).then(({ error }) => {
-        if (error) console.error('[api/v1/payments/payment-intent] failed to persist customer mapping:', error.message)
+        if (error) {
+          Sentry.captureException(error, {
+            tags: { area: 'api-v1-payments-payment-intent', context: 'persist-customer-mapping' },
+          })
+        }
       })
     }
   } catch (customerError) {
-    console.error('[api/v1/payments/payment-intent] customer creation error:', customerError)
+    Sentry.captureException(customerError, {
+      tags: { area: 'api-v1-payments-payment-intent', context: 'customer-creation' },
+    })
   }
 
   try {
@@ -169,6 +187,12 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: { enabled: true },
     })
 
+    // SECURITY NOTE: We use createAdminClient() here because the RLS guard trigger
+    // (trg_guard_payments_non_admin_update) blocks non-admins from updating
+    // provider_payment_id. Authorization is already verified above: the user owns
+    // the booking, the payment is in 'requires_payment' status, etc.
+    // TODO: Migrate to a PostgreSQL RPC function that validates ownership internally
+    // and updates provider_payment_id, eliminating the need for admin client here.
     const admin = createAdminClient()
     if (admin) {
       const { error: updateError } = await admin
@@ -180,7 +204,9 @@ export async function POST(request: NextRequest) {
         .eq('id', payment.id)
 
       if (updateError) {
-        console.error('[api/v1/payments/payment-intent] failed to update payment:', updateError.message)
+        Sentry.captureException(updateError, {
+          tags: { area: 'api-v1-payments-payment-intent', context: 'update-payment-provider-id' },
+        })
       }
     }
 
@@ -198,7 +224,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (stripeError) {
     const message = stripeError instanceof Error ? stripeError.message : 'Erro ao criar pagamento'
-    console.error('[api/v1/payments/payment-intent] Stripe error:', message)
     Sentry.captureException(stripeError, {
       tags: { area: 'stripe_payment_intent_create' },
       extra: { bookingId, userId: user.id, amount: amountMinor, currency },

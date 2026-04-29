@@ -4,6 +4,7 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { updateUserProfile } from '@/lib/user/user-profile-service'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 export async function GET(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'user', message: 'GET /api/v1/users/me', level: 'info' })
@@ -55,6 +56,11 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'user', message: 'PATCH /api/v1/users/me', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   const ip = getClientIp(request)
   const rl = await rateLimit('apiV1ProfileUpdate', `api-v1-profile-update:${ip}`)

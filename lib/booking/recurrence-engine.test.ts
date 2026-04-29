@@ -9,6 +9,7 @@ function makeInput(overrides?: Partial<RecurrenceInput>): RecurrenceInput {
     endDateUtc: new Date(base.getTime() + 60 * 60 * 1000),
     periodicity: 'weekly',
     bookingWindowDays: 30,
+    now: base,
     ...overrides,
   }
 }

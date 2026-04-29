@@ -25,6 +25,23 @@ vi.mock('@/lib/booking/settings', () => ({
     cancellationPolicyCode: row?.cancellation_policy_code || 'standard',
     requireSessionPurpose: row?.require_session_purpose || false,
   })),
+  extractProfessionalTimezone: vi.fn().mockImplementation((professional: any) => {
+    const profile = Array.isArray(professional?.profiles)
+      ? professional.profiles[0]
+      : professional?.profiles
+    return profile?.timezone || 'America/Sao_Paulo'
+  }),
+  loadProfessionalSettings: vi.fn().mockImplementation(async (_supabase: any, _professionalId: string, timezoneFallback?: string) => ({
+    timezone: timezoneFallback || 'America/Sao_Paulo',
+    sessionDurationMinutes: 60,
+    bufferMinutes: 0,
+    minimumNoticeHours: 0,
+    maxBookingWindowDays: 30,
+    enableRecurring: false,
+    confirmationMode: 'auto_accept',
+    cancellationPolicyCode: 'standard',
+    requireSessionPurpose: false,
+  })),
 }))
 
 vi.mock('@/lib/booking/request-helpers', () => ({

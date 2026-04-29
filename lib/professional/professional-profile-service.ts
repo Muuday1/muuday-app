@@ -545,11 +545,13 @@ export async function saveProfessionalAvailability(
     supabase
       .from('availability')
       .select('day_of_week,start_time,end_time,is_active')
-      .eq('professional_id', professional.id),
+      .eq('professional_id', professional.id)
+      .limit(200),
     supabase
       .from('availability_rules')
       .select('weekday,start_time_local,end_time_local,timezone,is_active')
-      .eq('professional_id', professional.id),
+      .eq('professional_id', professional.id)
+      .limit(200),
   ])
 
   // Delete existing rows
