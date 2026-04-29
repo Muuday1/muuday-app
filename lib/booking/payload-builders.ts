@@ -32,6 +32,7 @@ export type BuildOneOffPayloadInput = {
   currency: string
   notes?: string | null
   sessionPurpose?: string | null
+  serviceId?: string
 }
 
 export function buildOneOffBookingPayload(input: BuildOneOffPayloadInput) {
@@ -56,6 +57,7 @@ export function buildOneOffBookingPayload(input: BuildOneOffPayloadInput) {
     user_currency: input.currency,
     notes: input.notes || null,
     session_purpose: input.sessionPurpose || null,
+    service_id: input.serviceId || null,
     metadata: {
       booking_source: 'web_checkout',
       booking_mode: 'one_off',
@@ -84,6 +86,7 @@ export type BuildRecurringPayloadInput = {
   recurringAutoRenew?: boolean
   notes?: string | null
   sessionPurpose?: string | null
+  serviceId?: string
 }
 
 export function buildRecurringParentPayload(input: BuildRecurringPayloadInput) {
@@ -108,6 +111,7 @@ export function buildRecurringParentPayload(input: BuildRecurringPayloadInput) {
     cancellation_policy_snapshot: buildCancellationPolicySnapshot(
       input.bookingSettings.cancellationPolicyCode,
     ),
+    service_id: input.serviceId || null,
     price_brl: roundCurrency(input.priceBrl * input.sessionCount),
     price_user_currency: input.totalPriceUserCurrency,
     price_total: input.totalPriceUserCurrency,
@@ -151,6 +155,7 @@ export function buildRecurringChildPayloads(
     cancellation_policy_snapshot: buildCancellationPolicySnapshot(
       input.bookingSettings.cancellationPolicyCode,
     ),
+    service_id: input.serviceId || null,
     price_brl: input.priceBrl,
     price_user_currency: input.perSessionPriceUserCurrency,
     price_total: input.perSessionPriceUserCurrency,
@@ -190,6 +195,7 @@ export type BuildBatchPayloadInput = {
   batchBookingGroupId: string
   notes?: string | null
   sessionPurpose?: string | null
+  serviceId?: string
 }
 
 export function buildBatchBookingPayloads(input: BuildBatchPayloadInput) {
@@ -209,6 +215,7 @@ export function buildBatchBookingPayloads(input: BuildBatchPayloadInput) {
     cancellation_policy_snapshot: buildCancellationPolicySnapshot(
       input.bookingSettings.cancellationPolicyCode,
     ),
+    service_id: input.serviceId || null,
     price_brl: input.priceBrl,
     price_user_currency: input.perSessionPriceUserCurrency,
     price_total: input.perSessionPriceUserCurrency,

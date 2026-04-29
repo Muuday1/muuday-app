@@ -10,6 +10,7 @@ import { ArrowLeft, Globe, MapPin, Star, MessageCircle, ExternalLink, PlayCircle
 import { getSearchCategoryLabel } from '@/lib/search-config'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { ProfileAvailabilityBookingSection } from '@/components/professional/ProfileAvailabilityBookingSection'
+import { ProfileServicesList, type ProfessionalService } from '@/components/professional/ProfileServicesList'
 import {
   buildProfessionalProfilePath,
   parseProfessionalProfileParam,
@@ -419,6 +420,7 @@ export default async function ProfissionalPage({
     { data: professionalSpecialtyLinks },
     { count: existingAcceptedBookingsCount },
     { data: recommendationCandidatesRaw, error: recommendationCandidatesError },
+    { data: professionalServices },
   ] = await Promise.all([
     readClient
       .from('availability_rules')
@@ -483,6 +485,13 @@ export default async function ProfissionalPage({
       .neq('id', professional.id)
       .order('rating', { ascending: false })
       .limit(24),
+    readClient
+      .from('professional_services')
+      .select('id, name, description, duration_minutes, price_brl, enable_recurring, enable_batch')
+      .eq('professional_id', professional.id)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: true }),
   ])
 
   const availability =
@@ -571,6 +580,33 @@ export default async function ProfissionalPage({
   const showSensitiveVerifiedBadge =
     isSensitiveCategory(professional.category) && Number(verifiedCredentialsCount || 0) > 0
 
+  const services: ProfessionalService[] = (professionalServices || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    duration_minutes: s.duration_minutes,
+    price_brl: s.price_brl,
+    enable_recurring: s.enable_recurring,
+    enable_batch: s.enable_batch,
+  }))
+
+  // Build book href based on services
+  const hasServices = services.length > 0
+  const hasSingleService = services.length === 1
+  const bookHrefBase = `/agendar/${professional.id}`
+  const bookHref = hasSingleService
+    ? `${bookHrefBase}?servico=${services[0].id}`
+    : bookHrefBase
+  const minServicePrice = hasServices
+    ? Math.min(...services.map(s => s.price_brl))
+    : Math.max(0, Number(professional.session_price_brl || 0))
+  const maxServicePrice = hasServices
+    ? Math.max(...services.map(s => s.price_brl))
+    : Math.max(0, Number(professional.session_price_brl || 0))
+  const priceRangeLabel = hasServices && minServicePrice !== maxServicePrice
+    ? `A partir de ${formatCurrency(minServicePrice, viewerCurrency)}`
+    : formatCurrency(hasSingleService ? services[0].price_brl : Math.max(0, Number(professional.session_price_brl || 0)), viewerCurrency)
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
       <Link
@@ -593,7 +629,7 @@ export default async function ProfissionalPage({
         isOwnProfessional={isOwnProfessional}
         firstBookingBlocked={firstBookingBlocked}
         errorCode={erro}
-        bookHref={`/agendar/${professional.id}`}
+        bookHref={bookHref}
         messageHref={`/mensagens?profissional=${professional.id}`}
         userTimezone={viewerTimezone}
         professionalTimezone={professionalTimezone}
@@ -603,6 +639,8 @@ export default async function ProfissionalPage({
         basePriceBrl={Math.max(0, Number(professional.session_price_brl || 0))}
         baseDurationMinutes={Math.max(1, Number(professional.session_duration_minutes || 60))}
         viewerCurrency={viewerCurrency}
+        services={services}
+        priceRangeLabel={priceRangeLabel}
         topSections={
           <>
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">

@@ -46,12 +46,22 @@ export async function executeBookingCreation(
   if ('success' in contextResult && !contextResult.success) {
     return contextResult as BookingCreateResult
   }
-  const { profile, professional, settings } = contextResult as Exclude<typeof contextResult, { success: false }>
+  const { profile, professional, settings, service } = contextResult as Exclude<typeof contextResult, { success: false }>
 
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
 
+  // Override duration from selected service if provided
+  const effectiveSettings = service
+    ? { ...settings, sessionDurationMinutes: service.duration_minutes }
+    : settings
+
+  // Service-level recurring restriction
+  if (bookingType === 'recurring' && service && service.enable_recurring === false) {
+    return { success: false, error: 'Este serviço não está disponível para pacotes recorrentes.' }
+  }
+
   // 2. Prepare slots
-  const slotsResult = prepareBookingSlots(bookingInput, settings, userTimezone)
+  const slotsResult = prepareBookingSlots(bookingInput, effectiveSettings, userTimezone)
   if ('success' in slotsResult && !slotsResult.success) {
     return slotsResult as BookingCreateResult
   }
@@ -113,14 +123,15 @@ export async function executeBookingCreation(
   try {
     // 5. Calculate price
     const sessionCount = plannedSessions.length
+    const priceBrlRaw = service ? service.price_brl : professional.session_price_brl
     const { perSessionPriceUserCurrency, totalPriceUserCurrency } = await calculateBookingPrice(
       supabase,
-      professional.session_price_brl,
+      priceBrlRaw,
       sessionCount,
       profile?.currency ?? null,
     )
 
-    const priceBrl = Number(professional.session_price_brl) || 0
+    const priceBrl = Number(priceBrlRaw) || 0
     if (priceBrl <= 0) {
       return { success: false, error: 'Profissional não possui preço configurado para sessão.' }
     }
@@ -162,7 +173,7 @@ export async function executeBookingCreation(
         professionalId: bookingInput.professionalId,
         slot: firstSlot,
         userTimezone,
-        bookingSettings: settings,
+        bookingSettings: effectiveSettings,
         bookingStatus,
         confirmationDeadlineAt,
         priceBrl,
@@ -170,6 +181,7 @@ export async function executeBookingCreation(
         currency: (profile?.currency ?? null) || 'BRL',
         notes: bookingInput.notes,
         sessionPurpose: bookingInput.sessionPurpose,
+        serviceId: service?.id,
       })
 
       persistResult = await persistOneOffBooking(supabase, bookingPayload, paymentData, professional.id)
@@ -184,7 +196,7 @@ export async function executeBookingCreation(
         professionalId: bookingInput.professionalId,
         firstSlot,
         userTimezone,
-        bookingSettings: settings,
+        bookingSettings: effectiveSettings,
         bookingStatus,
         confirmationDeadlineAt,
         priceBrl,
@@ -199,6 +211,7 @@ export async function executeBookingCreation(
         recurringAutoRenew: bookingInput.recurringAutoRenew,
         notes: bookingInput.notes,
         sessionPurpose: bookingInput.sessionPurpose,
+        serviceId: service?.id,
       })
 
       const childBookingsPayload = buildRecurringChildPayloads(
@@ -207,7 +220,7 @@ export async function executeBookingCreation(
           professionalId: bookingInput.professionalId,
           firstSlot,
           userTimezone,
-          bookingSettings: settings,
+          bookingSettings: effectiveSettings,
           bookingStatus,
           confirmationDeadlineAt,
           priceBrl,
@@ -222,6 +235,7 @@ export async function executeBookingCreation(
           recurringAutoRenew: bookingInput.recurringAutoRenew,
           notes: bookingInput.notes,
           sessionPurpose: bookingInput.sessionPurpose,
+          serviceId: service?.id,
         },
         plannedSessions,
       )
@@ -243,12 +257,13 @@ export async function executeBookingCreation(
         professionalId: bookingInput.professionalId,
         plannedSessions,
         userTimezone,
-        bookingSettings: settings,
+        bookingSettings: effectiveSettings,
         bookingStatus,
         confirmationDeadlineAt,
         priceBrl,
         perSessionPriceUserCurrency,
         currency: profile?.currency || 'BRL',
+        serviceId: service?.id,
         batchBookingGroupId: batchGroupId,
         notes: bookingInput.notes,
         sessionPurpose: bookingInput.sessionPurpose,

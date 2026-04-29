@@ -11,6 +11,7 @@ import {
   hasUtcExternalConflict,
 } from '@/lib/booking/slot-filtering'
 import { generateTimeSlots } from '@/components/booking/booking-form-helpers'
+import { ProfileServicesList, type ProfessionalService } from './ProfileServicesList'
 
 type AvailabilitySlot = {
   id: string
@@ -55,6 +56,8 @@ type ProfileAvailabilityBookingSectionProps = {
   basePriceBrl: number
   baseDurationMinutes: number
   viewerCurrency: string
+  services?: ProfessionalService[]
+  priceRangeLabel?: string
   topSections?: ReactNode
   children?: ReactNode
 }
@@ -130,9 +133,13 @@ export function ProfileAvailabilityBookingSection({
   basePriceBrl,
   baseDurationMinutes,
   viewerCurrency,
+  services,
+  priceRangeLabel,
   topSections,
   children,
 }: ProfileAvailabilityBookingSectionProps) {
+  const hasServices = (services?.length || 0) > 0
+  const hasSingleService = (services?.length || 0) === 1
   const today = useMemo(() => {
     const date = new Date()
     date.setHours(0, 0, 0, 0)
@@ -281,207 +288,222 @@ export function ProfileAvailabilityBookingSection({
       <div className="min-w-0 space-y-6">
         {topSections}
 
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
+        {hasServices ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
               <Calendar className="h-5 w-5 text-[#9FE870]" />
-              Disponibilidade
+              Serviços oferecidos
             </h2>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedDuration}
-                onChange={event => {
-                  setSelectedDuration(Number(event.target.value))
-                  setSelectedTime(null)
-                }}
-                className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
-                aria-label="Escolher duração da sessão"
-              >
-                {durationOptions.map(duration => (
-                  <option key={duration} value={duration}>
-                    {duration} min
-                  </option>
-                ))}
-              </select>
-
-              <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/70 p-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setTimezoneMode('user')}
-                  className={cn(
-                    'rounded-md px-2 py-1 font-medium transition-colors',
-                    timezoneMode === 'user'
-                      ? 'bg-white text-[#3d6b1f]'
-                      : 'text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  Meu fuso
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimezoneMode('professional')}
-                  className={cn(
-                    'rounded-md px-2 py-1 font-medium transition-colors',
-                    timezoneMode === 'professional'
-                      ? 'bg-white text-[#3d6b1f]'
-                      : 'text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  Fuso profissional
-                </button>
-              </div>
-            </div>
+            <ProfileServicesList
+              services={services || []}
+              professionalId=""
+              viewerCurrency={viewerCurrency}
+              bookHrefBase={bookHref.split('?')[0]}
+            />
           </div>
-
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setBookingType('one_off')}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
-                bookingType === 'one_off'
-                  ? 'border-[#9FE870] bg-[#9FE870]/8 text-[#3d6b1f]'
-                  : 'border-slate-200 text-slate-600 hover:border-[#9FE870]/40',
-              )}
-            >
-              Sessão única
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!enableRecurring) return
-                setBookingType('recurring')
-              }}
-              disabled={!enableRecurring}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
-                bookingType === 'recurring'
-                  ? 'border-[#9FE870] bg-[#9FE870]/8 text-[#3d6b1f]'
-                  : 'border-slate-200 text-slate-600 hover:border-[#9FE870]/40',
-                !enableRecurring && 'cursor-not-allowed opacity-50',
-              )}
-            >
-              Recorrência
-            </button>
-            {bookingType === 'recurring' ? (
-              <select
-                value={recurringSessionsCount}
-                onChange={event => setRecurringSessionsCount(Number(event.target.value))}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
-                aria-label="Quantidade de sessões recorrentes"
-              >
-                {recurringSessionOptions.map(option => (
-                  <option key={option} value={option}>
-                    {option} sessões
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {!enableRecurring ? (
-              <span className="text-xs text-slate-500">Recorrência indisponível para este profissional.</span>
-            ) : null}
-          </div>
-
-          <div className="mb-4 flex items-center justify-between">
-            <button
-              onClick={() => {
-                if (!canGoPrev) return
-                setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
-              }}
-              disabled={!canGoPrev}
-              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Mês anterior"
-            >
-              <ChevronLeft className="h-4 w-4 text-slate-600" />
-            </button>
-            <span className="font-display text-sm font-semibold text-slate-900">
-              {MONTH_NAMES_PT[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-            </span>
-            <button
-              onClick={() => {
-                if (!canGoNext) return
-                setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
-              }}
-              disabled={!canGoNext}
-              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Próximo mês"
-            >
-              <ChevronRight className="h-4 w-4 text-slate-600" />
-            </button>
-          </div>
-
-          <div className="mb-2 grid grid-cols-7">
-            {DAY_NAMES_PT_SHORT.map(day => (
-              <div key={day} className="py-1 text-center text-xs font-medium text-slate-400">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, index) => {
-              if (!date) return <div key={`empty-${index}`} />
-              const available = isDateAvailable(date)
-              const isSelected = selectedDate ? isSameDay(date, selectedDate) : false
-              const isToday = isSameDay(date, today)
-
-              return (
-                <button
-                  key={date.toISOString()}
-                  onClick={() => {
-                    if (!available) return
-                    setSelectedDate(date)
+        ) : (
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
+                <Calendar className="h-5 w-5 text-[#9FE870]" />
+                Disponibilidade
+              </h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedDuration}
+                  onChange={event => {
+                    setSelectedDuration(Number(event.target.value))
                     setSelectedTime(null)
                   }}
-                  disabled={!available}
-                  className={cn(
-                    'relative flex h-9 w-full items-center justify-center rounded-md text-sm font-medium transition-all',
-                    isSelected
-                      ? 'bg-[#9FE870] text-white'
-                      : available
-                        ? 'cursor-pointer text-slate-800 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]'
-                        : 'cursor-not-allowed text-slate-300',
-                    isToday && !isSelected && 'ring-1 ring-[#9FE870]/40',
-                  )}
+                  className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
+                  aria-label="Escolher duração da sessão"
                 >
-                  {date.getDate()}
-                  {available && !isSelected ? (
-                    <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#9FE870]/40" />
-                  ) : null}
-                </button>
-              )
-            })}
-          </div>
-
-          {selectedDate ? (
-            <div className="mt-5">
-              <p className="mb-3 text-sm text-slate-500">
-                {DAY_NAMES_PT_FULL[selectedDate.getDay()]},{' '}
-                {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
-              </p>
-              {timeSlots.length === 0 ? (
-                <p className="text-sm text-slate-400">Nenhum horário disponível para esta data.</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {timeSlots.map(time => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={cn(
-                        'rounded-md border px-3 py-2.5 text-sm font-medium transition-all',
-                        selectedTime === time
-                          ? 'border-[#9FE870] bg-[#9FE870] text-white'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]',
-                      )}
-                    >
-                      {time}
-                    </button>
+                  {durationOptions.map(duration => (
+                    <option key={duration} value={duration}>
+                      {duration} min
+                    </option>
                   ))}
+                </select>
+
+                <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/70 p-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setTimezoneMode('user')}
+                    className={cn(
+                      'rounded-md px-2 py-1 font-medium transition-colors',
+                      timezoneMode === 'user'
+                        ? 'bg-white text-[#3d6b1f]'
+                        : 'text-slate-500 hover:text-slate-700',
+                    )}
+                  >
+                    Meu fuso
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimezoneMode('professional')}
+                    className={cn(
+                      'rounded-md px-2 py-1 font-medium transition-colors',
+                      timezoneMode === 'professional'
+                        ? 'bg-white text-[#3d6b1f]'
+                        : 'text-slate-500 hover:text-slate-700',
+                    )}
+                  >
+                    Fuso profissional
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
-          ) : null}
-        </div>
+
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setBookingType('one_off')}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
+                  bookingType === 'one_off'
+                    ? 'border-[#9FE870] bg-[#9FE870]/8 text-[#3d6b1f]'
+                    : 'border-slate-200 text-slate-600 hover:border-[#9FE870]/40',
+                )}
+              >
+                Sessão única
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!enableRecurring) return
+                  setBookingType('recurring')
+                }}
+                disabled={!enableRecurring}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
+                  bookingType === 'recurring'
+                    ? 'border-[#9FE870] bg-[#9FE870]/8 text-[#3d6b1f]'
+                    : 'border-slate-200 text-slate-600 hover:border-[#9FE870]/40',
+                  !enableRecurring && 'cursor-not-allowed opacity-50',
+                )}
+              >
+                Recorrência
+              </button>
+              {bookingType === 'recurring' ? (
+                <select
+                  value={recurringSessionsCount}
+                  onChange={event => setRecurringSessionsCount(Number(event.target.value))}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"
+                  aria-label="Quantidade de sessões recorrentes"
+                >
+                  {recurringSessionOptions.map(option => (
+                    <option key={option} value={option}>
+                      {option} sessões
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {!enableRecurring ? (
+                <span className="text-xs text-slate-500">Recorrência indisponível para este profissional.</span>
+              ) : null}
+            </div>
+
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  if (!canGoPrev) return
+                  setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+                }}
+                disabled={!canGoPrev}
+                className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Mês anterior"
+              >
+                <ChevronLeft className="h-4 w-4 text-slate-600" />
+              </button>
+              <span className="font-display text-sm font-semibold text-slate-900">
+                {MONTH_NAMES_PT[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+              </span>
+              <button
+                onClick={() => {
+                  if (!canGoNext) return
+                  setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
+                }}
+                disabled={!canGoNext}
+                className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Próximo mês"
+              >
+                <ChevronRight className="h-4 w-4 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="mb-2 grid grid-cols-7">
+              {DAY_NAMES_PT_SHORT.map(day => (
+                <div key={day} className="py-1 text-center text-xs font-medium text-slate-400">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((date, index) => {
+                if (!date) return <div key={`empty-${index}`} />
+                const available = isDateAvailable(date)
+                const isSelected = selectedDate ? isSameDay(date, selectedDate) : false
+                const isToday = isSameDay(date, today)
+
+                return (
+                  <button
+                    key={date.toISOString()}
+                    onClick={() => {
+                      if (!available) return
+                      setSelectedDate(date)
+                      setSelectedTime(null)
+                    }}
+                    disabled={!available}
+                    className={cn(
+                      'relative flex h-9 w-full items-center justify-center rounded-md text-sm font-medium transition-all',
+                      isSelected
+                        ? 'bg-[#9FE870] text-white'
+                        : available
+                          ? 'cursor-pointer text-slate-800 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]'
+                          : 'cursor-not-allowed text-slate-300',
+                      isToday && !isSelected && 'ring-1 ring-[#9FE870]/40',
+                    )}
+                  >
+                    {date.getDate()}
+                    {available && !isSelected ? (
+                      <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#9FE870]/40" />
+                    ) : null}
+                  </button>
+                )
+              })}
+            </div>
+
+            {selectedDate ? (
+              <div className="mt-5">
+                <p className="mb-3 text-sm text-slate-500">
+                  {DAY_NAMES_PT_FULL[selectedDate.getDay()]},{' '}
+                  {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                </p>
+                {timeSlots.length === 0 ? (
+                  <p className="text-sm text-slate-400">Nenhum horário disponível para esta data.</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {timeSlots.map(time => (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        className={cn(
+                          'rounded-md border px-3 py-2.5 text-sm font-medium transition-all',
+                          selectedTime === time
+                            ? 'border-[#9FE870] bg-[#9FE870] text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]',
+                        )}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {children}
       </div>
@@ -489,16 +511,25 @@ export function ProfileAvailabilityBookingSection({
       <div className="min-w-0">
         <div className="rounded-lg border border-slate-200 bg-white p-6 md:sticky md:top-24">
           <div className="mb-4 border-b border-slate-200/80 pb-4 text-center">
-            <p className="text-3xl font-bold text-slate-900">{selectedPriceText}</p>
-            <p className="mt-1 text-sm text-slate-500">por sessão de {selectedDuration} min</p>
-            {bookingType === 'recurring' ? (
-              <p className="mt-1 text-xs text-slate-500">
-                pacote recorrente de {recurringSessionsCount} sessões
-              </p>
-            ) : null}
+            {hasServices ? (
+              <>
+                <p className="text-3xl font-bold text-slate-900">{priceRangeLabel}</p>
+                <p className="mt-1 text-sm text-slate-500">por sessão</p>
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-slate-900">{selectedPriceText}</p>
+                <p className="mt-1 text-sm text-slate-500">por sessão de {selectedDuration} min</p>
+                {bookingType === 'recurring' ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    pacote recorrente de {recurringSessionsCount} sessões
+                  </p>
+                ) : null}
+              </>
+            )}
           </div>
 
-          {selectedDate && selectedTime ? (
+          {!hasServices && selectedDate && selectedTime ? (
             <div className="mb-4 rounded-md border border-slate-200/80 bg-slate-50/70 p-3 text-xs text-slate-600">
               <p className="font-semibold text-slate-700">Horário selecionado</p>
               <p className="mt-1">
@@ -548,9 +579,9 @@ export function ProfileAvailabilityBookingSection({
           ) : (
             <SearchBookingCtas
               isLoggedIn={isLoggedIn}
-              bookHref={bookHrefWithSelection}
+              bookHref={hasServices ? bookHref : bookHrefWithSelection}
               messageHref={messageHref}
-              bookLabel="Agendar sessão"
+              bookLabel={hasServices && !hasSingleService ? 'Ver serviços e agendar' : 'Agendar sessão'}
               messageLabel="Mandar mensagem"
             />
           )}

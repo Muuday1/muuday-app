@@ -14,6 +14,7 @@ import { executeBookingCreation, createBookingInputSchema } from '@/lib/booking/
 
 export async function createBooking(data: {
   professionalId: string
+  serviceId?: string
   scheduledAt?: string
   notes?: string
   sessionPurpose?: string

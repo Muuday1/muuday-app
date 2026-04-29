@@ -162,8 +162,8 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/agenda/sucesso?booking_id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/agenda?booking_id=${bookingId}&cancelled=1`,
+      success_url: `${baseUrl}/agenda/confirmacao/${bookingId}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/agenda/confirmacao/${bookingId}?cancelled=1`,
       metadata: {
         muuday_booking_id: bookingId,
         muuday_user_id: user.id,

@@ -12,6 +12,7 @@ import {
   Globe,
   Loader2,
   AlertCircle,
+  Briefcase,
 } from 'lucide-react'
 import { useFeatureFlagEnabled } from 'posthog-js/react'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
@@ -49,6 +50,16 @@ interface AvailabilityException {
   end_time_local: string | null
 }
 
+interface SelectedService {
+  id: string
+  name: string
+  description?: string | null
+  duration_minutes: number
+  price_brl: number
+  enable_recurring?: boolean
+  enable_batch?: boolean
+}
+
 interface BookingFormProps {
   professional: {
     id: string
@@ -73,6 +84,7 @@ interface BookingFormProps {
   initialRecurringSessionsCount?: number
   initialDate?: string
   initialTime?: string
+  selectedService?: SelectedService
 }
 
 import {
@@ -110,6 +122,7 @@ export default function BookingForm({
   initialRecurringSessionsCount = 4,
   initialDate,
   initialTime,
+  selectedService,
 }: BookingFormProps) {
   const bookingViewTracked = useRef(false)
   const slotSelectionTracked = useRef(false)
@@ -149,6 +162,11 @@ export default function BookingForm({
     { success: true; bookingId: string } | { success: false; error: string } | null
   >(null)
 
+  // Derive session duration and price from selected service (or legacy professional defaults)
+  const sessionDurationMinutes = selectedService?.duration_minutes ?? professional.session_duration_minutes
+  const sessionPriceBrl = selectedService?.price_brl ?? professional.session_price_brl
+  const serviceId = selectedService?.id
+
   const maxDate = useMemo(() => {
     const result = new Date(today)
     result.setDate(result.getDate() + maxBookingWindowDays)
@@ -175,7 +193,7 @@ export default function BookingForm({
         const rawSlots = generateTimeSlots(
           rule.start_time,
           rule.end_time,
-          professional.session_duration_minutes,
+          sessionDurationMinutes,
         )
 
         for (const rawSlot of rawSlots) {
@@ -186,7 +204,7 @@ export default function BookingForm({
           const slotUserDateObj = fromIsoDateToLocalDate(slotUserDate)
           if (slotUserDateObj < today || slotUserDateObj > maxDate) continue
 
-          if (isSlotBlockedByException(rawSlot, professional.session_duration_minutes, professionalDate, availabilityExceptions)) {
+          if (isSlotBlockedByException(rawSlot, sessionDurationMinutes, professionalDate, availabilityExceptions)) {
             continue
           }
 
@@ -211,7 +229,7 @@ export default function BookingForm({
     maxBookingWindowDays,
     maxDate,
     minNoticeTimestamp,
-    professional.session_duration_minutes,
+    sessionDurationMinutes,
     professionalTimezone,
     today,
     userTimezone,
@@ -244,12 +262,12 @@ export default function BookingForm({
     return candidateSlots.filter(time => {
       const slotUtc = fromZonedTime(`${selectedDateStr}T${time}:00`, userTimezone)
       if (Number.isNaN(slotUtc.getTime())) return false
-      const slotEndUtc = new Date(slotUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
+      const slotEndUtc = new Date(slotUtc.getTime() + sessionDurationMinutes * 60 * 1000)
       return !hasUtcBookingConflict(slotUtc, slotEndUtc, existingBookings)
     })
   }, [
     existingBookings,
-    professional.session_duration_minutes,
+    sessionDurationMinutes,
     selectedDate,
     slotsByUserDate,
     userTimezone,
@@ -283,8 +301,8 @@ export default function BookingForm({
       : bookingType === 'batch'
         ? batchDateTimes.length
         : 1
-  const totalPrice = professional.session_price_brl * totalSessions
-  const priceFormatted = formatCurrency(professional.session_price_brl, userCurrency)
+  const totalPrice = sessionPriceBrl * totalSessions
+  const priceFormatted = formatCurrency(sessionPriceBrl, userCurrency)
   const totalPriceFormatted = formatCurrency(totalPrice, userCurrency)
   const canGoPrev = currentMonth > new Date(today.getFullYear(), today.getMonth(), 1)
   const maxMonth = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1)
@@ -315,14 +333,14 @@ export default function BookingForm({
       ? batchDateTimes.length >= 2
       : Boolean(selectedDate && selectedTime) && hasValidRecurringDuration)
 
-  const canUseRecurring = enableRecurring && recurringFlagEnabled !== false
+  const canUseRecurring = enableRecurring && recurringFlagEnabled !== false && (selectedService?.enable_recurring !== false)
 
   const recurringConflicts = useMemo(() => {
     if (bookingType !== 'recurring' || !selectedDate || !selectedTime || !hasValidRecurringDuration) return []
 
     const selectedDateStr = toLocalDateStr(selectedDate)
     const startUtc = fromZonedTime(`${selectedDateStr}T${selectedTime}:00`, userTimezone)
-    const endUtc = new Date(startUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
+    const endUtc = new Date(startUtc.getTime() + sessionDurationMinutes * 60 * 1000)
 
     const { slots } = generateRecurrenceSlots({
       startDateUtc: startUtc,
@@ -339,7 +357,7 @@ export default function BookingForm({
     })
 
     return detectRecurrenceConflicts(slots, existing, [])
-  }, [bookingType, selectedDate, selectedTime, hasValidRecurringDuration, userTimezone, professional.session_duration_minutes, recurringPeriodicity, recurringIntervalDays, resolvedRecurringSessionsCount, maxBookingWindowDays, existingBookings])
+  }, [bookingType, selectedDate, selectedTime, hasValidRecurringDuration, userTimezone, sessionDurationMinutes, recurringPeriodicity, recurringIntervalDays, resolvedRecurringSessionsCount, maxBookingWindowDays, existingBookings])
 
   const submitLabel =
     confirmationMode === 'manual'
@@ -547,6 +565,7 @@ export default function BookingForm({
                   : undefined,
               recurringAutoRenew: bookingType === 'recurring' ? recurringAutoRenew : undefined,
               batchDates: bookingType === 'batch' ? batchDateTimes : undefined,
+              serviceId,
             }),
           })
           const data = await res.json()
@@ -558,6 +577,7 @@ export default function BookingForm({
         } else {
           result = await createBooking({
             professionalId: professional.id,
+            serviceId,
             scheduledAt,
             notes: sessionPurpose.trim() || undefined,
             sessionPurpose: sessionPurpose.trim() || undefined,
@@ -675,7 +695,7 @@ export default function BookingForm({
             onClick={() => {
               const selectedDateStr = toLocalDateStr(selectedDate)
               const startUtc = fromZonedTime(`${selectedDateStr}T${selectedTime}:00`, userTimezone)
-              const endUtc = new Date(startUtc.getTime() + professional.session_duration_minutes * 60 * 1000)
+              const endUtc = new Date(startUtc.getTime() + sessionDurationMinutes * 60 * 1000)
               const { slots } = generateRecurrenceSlots({
                 startDateUtc: startUtc,
                 endDateUtc: endUtc,
@@ -689,7 +709,7 @@ export default function BookingForm({
                 startUtc: slot.startUtc,
                 endUtc: slot.endUtc,
                 summary: `Sessão com ${profileName}`,
-                description: `Sessão de ${professional.session_duration_minutes} minutos agendada via Muuday`,
+                description: `Sessão de ${sessionDurationMinutes} minutos agendada via Muuday`,
                 url: `${typeof window !== 'undefined' ? window.location.origin : ''}/agenda`,
               }))
               const ics = generateIcsContent(events)
@@ -735,6 +755,44 @@ export default function BookingForm({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
+          {selectedService && (
+            <div className="rounded-xl border border-[#9FE870]/30 bg-[#9FE870]/5 p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#9FE870]/20">
+                  <Briefcase className="h-5 w-5 text-[#4a7c1f]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#4a7c1f]">
+                    Serviço selecionado
+                  </p>
+                  <h3 className="mt-0.5 text-base font-semibold text-slate-900">
+                    {selectedService.name}
+                  </h3>
+                  {selectedService.description && (
+                    <p className="mt-1 text-sm text-slate-500 line-clamp-2">
+                      {selectedService.description}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {selectedService.duration_minutes} min
+                    </span>
+                    <span className="font-semibold text-slate-900">
+                      {formatCurrency(selectedService.price_brl, userCurrency)}
+                    </span>
+                    <Link
+                      href={profileHref}
+                      className="ml-auto text-xs font-medium text-[#4a7c1f] underline-offset-2 hover:underline"
+                    >
+                      Trocar serviço
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-slate-200/80 bg-white p-6">
             <h2 className="mb-3 text-lg font-semibold text-slate-900 font-display">Tipo de agendamento</h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -880,7 +938,7 @@ export default function BookingForm({
                   <RecurringPreview
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
-                    durationMinutes={professional.session_duration_minutes}
+                    durationMinutes={sessionDurationMinutes}
                     periodicity={recurringPeriodicity}
                     intervalDays={recurringIntervalDays}
                     occurrences={recurringDurationMode === 'occurrences' ? recurringSessionsCount : resolvedRecurringSessionsCount}
@@ -1149,7 +1207,7 @@ export default function BookingForm({
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-900">{profileName}</p>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  {professional.session_duration_minutes} min • {priceFormatted}
+                  {sessionDurationMinutes} min • {priceFormatted}
                 </p>
               </div>
             </div>
@@ -1206,7 +1264,7 @@ export default function BookingForm({
             <div className="mb-5 rounded-lg bg-slate-50/60 p-4 border border-slate-100">
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="text-slate-500">
-                  Sessão ({professional.session_duration_minutes} min) x {totalSessions}
+                  Sessão ({sessionDurationMinutes} min) x {totalSessions}
                 </span>
                 <span className="font-semibold text-slate-800">{priceFormatted}</span>
               </div>

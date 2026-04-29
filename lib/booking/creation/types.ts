@@ -8,6 +8,7 @@ const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.
 
 export const createBookingInputSchema = z.object({
   professionalId: z.string().uuid('Identificador de profissional inválido.'),
+  serviceId: z.string().uuid('Identificador de serviço inválido.').optional(),
   scheduledAt: localDateTimeSchema.optional(),
   notes: z.string().trim().max(500, 'Observações muito longas.').optional(),
   sessionPurpose: z.string().trim().max(1200, 'Objetivo da sessão muito longo.').optional(),
@@ -39,6 +40,7 @@ export type BookingContext = {
   professional: ProfessionalRow
   settings: BookingSettings
   eligibility: { ok: boolean; message?: string; reasonCode?: string }
+  service?: { id: string; price_brl: number; duration_minutes: number; name: string; enable_recurring?: boolean; enable_batch?: boolean } | null
 }
 
 // Minimal shape extracted from the professionals query in create-booking.ts

@@ -39,7 +39,7 @@ export default async function AgendarPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { id } = await params
-  const { data, hora, sessoes, tipo } = await searchParams
+  const { data, hora, sessoes, tipo, servico } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -58,12 +58,24 @@ export default async function AgendarPage({
   }
 
   // Fetch user profile and professional in parallel
+  const serviceId = Array.isArray(servico) ? servico[0] : servico
+
   const [
     { data: userProfile },
     { data: professional },
+    { data: selectedService },
   ] = await Promise.all([
     supabase.from('profiles').select('role, timezone, currency, full_name').eq('id', user.id).single(),
     supabase.from('professionals').select('id,user_id,status,public_code,category,session_duration_minutes,session_price_brl').eq('id', id).single(),
+    serviceId
+      ? supabase
+          .from('professional_services')
+          .select('id, name, description, duration_minutes, price_brl, enable_recurring, enable_batch')
+          .eq('id', serviceId)
+          .eq('professional_id', id)
+          .eq('is_active', true)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   // Professional accounts are provider-only workspaces and cannot purchase sessions.
@@ -207,6 +219,7 @@ export default async function AgendarPage({
   const querySessoes = sessoes
   const queryData = data
   const queryHora = hora
+  const queryServico = servico
 
   const initialBookingType = parseInitialBookingType(
     Array.isArray(queryTipo) ? queryTipo[0] : queryTipo
@@ -232,7 +245,7 @@ export default async function AgendarPage({
             {profProfile?.full_name}
             {category ? ` · ${category.icon} ${category.name}` : ''}
             {' · '}
-            {professional.session_duration_minutes} min
+            {selectedService ? `${selectedService.name} · ${selectedService.duration_minutes} min` : `${professional.session_duration_minutes} min`}
           </p>
         </div>
       </div>
@@ -268,6 +281,7 @@ export default async function AgendarPage({
         initialRecurringSessionsCount={initialRecurringSessionsCount}
         initialDate={initialDate}
         initialTime={initialTime}
+        selectedService={selectedService || undefined}
       />
     </div>
   )

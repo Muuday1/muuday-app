@@ -10,11 +10,14 @@ export async function lookupBookingContext(
 ): Promise<BookingContext | { success: false; error: string; reasonCode?: string }> {
   const professionalId = bookingInput.professionalId
 
+  const serviceId = bookingInput.serviceId
+
   const [
     { data: profile, error: profileError },
     { data: professional, error: professionalError },
     { data: settingsRow, error: settingsError },
     eligibility,
+    { data: serviceRow },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -36,6 +39,15 @@ export async function lookupBookingContext(
       .eq('professional_id', professionalId)
       .maybeSingle(),
     evaluateFirstBookingEligibility(supabase, professionalId),
+    serviceId
+      ? supabase
+          .from('professional_services')
+          .select('id, name, price_brl, duration_minutes, enable_recurring, enable_batch')
+          .eq('id', serviceId)
+          .eq('professional_id', professionalId)
+          .eq('is_active', true)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   if (profileError) {
@@ -82,10 +94,27 @@ export async function lookupBookingContext(
     return { success: false, error: 'Informe o objetivo da sessão antes de continuar.' }
   }
 
+  // Validate service belongs to professional when provided
+  if (serviceId && !serviceRow) {
+    return { success: false, error: 'Serviço não encontrado ou não pertence a este profissional.' }
+  }
+
+  const service = serviceRow
+    ? {
+        id: serviceRow.id,
+        name: serviceRow.name,
+        price_brl: Number(serviceRow.price_brl),
+        duration_minutes: Number(serviceRow.duration_minutes),
+        enable_recurring: Boolean(serviceRow.enable_recurring),
+        enable_batch: Boolean(serviceRow.enable_batch),
+      }
+    : null
+
   return {
     profile,
     professional,
     settings: bookingSettings,
     eligibility,
+    service,
   }
 }
