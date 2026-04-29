@@ -7,7 +7,7 @@ import { Loader2, Check, Clock, AlertCircle, ChevronLeft, Save } from 'lucide-re
 import Link from 'next/link'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { saveAvailabilityAction } from '@/lib/actions/professional'
-import { ProfessionalAvailabilityCalendar } from '@/components/calendar/ProfessionalAvailabilityCalendar'
+import { ProfessionalAvailabilityCalendar } from '@/components/agenda/ProfessionalAvailabilityCalendar'
 import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 import { WeeklyScheduleEditor } from './weekly-schedule-editor'
 import { AvailabilityQuickSelect } from './availability-quick-select'

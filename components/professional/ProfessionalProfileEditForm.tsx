@@ -7,7 +7,7 @@ import { CATEGORIES } from '@/types'
 import { Loader2, ArrowLeft, Check, Save, ShieldCheck } from 'lucide-react'
 import { saveProfessionalProfileDraft } from '@/lib/actions/professional'
 import { isFeatureAvailable } from '@/lib/tier-config'
-import { TierLockedOverlay } from '@/components/tier/TierLockedOverlay'
+import { TierLockedOverlay } from '@/components/professional/TierLockedOverlay'
 
 const LANGUAGE_OPTIONS = ['Português', 'English', 'Español', 'Français', 'Deutsch', 'Italiano']
 const DURATION_OPTIONS = [30, 45, 50, 60, 90]
