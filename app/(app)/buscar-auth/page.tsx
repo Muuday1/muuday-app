@@ -52,5 +52,6 @@ export default async function BuscarAuthPage({
     searchParams: Promise.resolve(effectiveParams),
     isLoggedIn: true,
     basePath: '/buscar-auth',
+    defaultCurrency: 'BRL',
   })
 }

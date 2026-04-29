@@ -7,9 +7,10 @@ export const runtime = 'nodejs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
+import { cookies, headers } from 'next/headers'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Star, MapPin, PlayCircle, MessageCircle } from 'lucide-react'
+import { Star, PlayCircle, MessageCircle } from 'lucide-react'
 import { MobileFiltersDrawer } from '@/components/search/MobileFiltersDrawer'
 import { SearchBookingCtas } from '@/components/search/SearchBookingCtas'
 import { DesktopFiltersAutoApply } from '@/components/search/DesktopFiltersAutoApply'
@@ -23,10 +24,13 @@ import {
   loadProfessionalSpecialtyContext,
 } from '@/lib/taxonomy/professional-specialties'
 import { getExchangeRates } from '@/lib/exchange-rates'
-import { normalizeCurrency } from '@/lib/public-preferences'
+import {
+  normalizeCurrency,
+  PUBLIC_CURRENCY_COOKIE,
+  resolveDefaultCurrencyFromAcceptLanguage,
+} from '@/lib/public-preferences'
 import {
   SEARCH_CATEGORIES,
-  getSearchCategoryLabel,
   matchesAvailabilityWindow,
   matchesSelectedCategory,
   normalizeSearchCategorySlug,
@@ -216,22 +220,6 @@ function formatSearchPrice(
   } catch {
     return `${currency} ${converted}`
   }
-}
-
-function getPrimarySpecialty(professional: SearchProfessional, primarySpecialty?: string | null) {
-  if (primarySpecialty && String(primarySpecialty).trim()) {
-    return String(primarySpecialty)
-  }
-
-  const subcategory = (professional.subcategories || []).find((entry: string) =>
-    String(entry || '').trim(),
-  )
-  if (subcategory) return String(subcategory)
-
-  const tag = (professional.tags || []).find((entry: string) => String(entry || '').trim())
-  if (tag) return String(tag)
-
-  return getSearchCategoryLabel(professional.category)
 }
 
 function getNameInitial(name?: string | null, fallback = 'P') {
@@ -472,10 +460,12 @@ export async function BuscarPageContent({
   searchParams,
   isLoggedIn = false,
   basePath = '/buscar',
+  defaultCurrency = 'BRL',
 }: {
   searchParams: Promise<BuscarSearchParams>
   isLoggedIn?: boolean
   basePath?: string
+  defaultCurrency?: string
 }) {
   const readClient = await createClient()
   const {
@@ -512,7 +502,7 @@ export async function BuscarPageContent({
   const minPrice = parseOptionalNumber(precoMin)
   const maxPrice = parseOptionalNumber(precoMax)
 
-  const selectedCurrency = normalizeCurrency(requestedCurrency) || 'BRL'
+  const selectedCurrency = normalizeCurrency(requestedCurrency) || defaultCurrency
   const selectedCurrencyRate = exchangeRates[selectedCurrency] || 1
   const selectedCurrencyLabel = CURRENCY_LABELS[selectedCurrency] || selectedCurrency
   const minPriceBrl = minPrice === null ? null : minPrice / selectedCurrencyRate
@@ -925,9 +915,9 @@ export async function BuscarPageContent({
   const selectedSubcategoryLabel = selectedSubcategoryName || null
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
-      <div className="mb-6">
-        <h1 className="font-display text-3xl font-bold text-slate-900 md:text-4xl">
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-6 lg:px-8 lg:py-8">
+      <div className="mb-4 md:mb-5 lg:mb-6">
+        <h1 className="font-display text-2xl font-bold text-slate-900 md:text-3xl lg:text-4xl">
           Buscar profissionais
         </h1>
       </div>
@@ -1013,142 +1003,140 @@ export async function BuscarPageContent({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {pagedProfessionals.map((professional: SearchProfessional) => (
-                <div
-                  key={professional.id}
-                  className="group rounded-xl border border-slate-200/80 bg-white p-4 transition-all duration-200 hover:border-[#9FE870]/40 hover:shadow-lg md:p-5"
-                >
-                  <Link
-                    href={buildProfessionalProfilePath({
-                      id: professional.id,
-                      fullName: professional.profiles?.full_name,
-                      publicCode: professional.public_code,
-                    })}
-                    className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 rounded-xl"
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 lg:gap-4">
+              {pagedProfessionals.map((professional: SearchProfessional) => {
+                const subcategories = subcategoryNamesByProfessionalId.get(String(professional.id)) || []
+                const subcategory = subcategories[0] || (professional.subcategories || [])[0] || ''
+                const specialty = primarySpecialtyByProfessionalId.get(String(professional.id)) || ''
+                const profileHref = buildProfessionalProfilePath({
+                  id: professional.id,
+                  fullName: professional.profiles?.full_name,
+                  publicCode: professional.public_code,
+                })
+                return (
+                  <div
+                    key={professional.id}
+                    className="group rounded-xl border border-slate-200/80 bg-white p-3 transition-all duration-200 hover:border-[#9FE870]/40 hover:shadow-lg md:p-4 lg:p-5"
                   >
-                    {professional.cover_photo_url ? (
-                      <div className="mb-3 h-24 w-full overflow-hidden rounded-lg border border-slate-100">
-                        <Image
-                          src={professional.cover_photo_url}
-                          alt={`Capa de ${professional.profiles?.full_name || 'Profissional'}`}
-                          width={800}
-                          height={240}
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                          quality={70}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      </div>
-                    ) : null}
-                    <div className="flex items-start gap-4">
-                      {professional.profiles?.avatar_url ? (
-                        <Image
-                          src={professional.profiles.avatar_url}
-                          alt={`Foto de ${professional.profiles?.full_name || 'Profissional'}`}
-                          width={56}
-                          height={56}
-                          sizes="56px"
-                          quality={70}
-                          className="h-14 w-14 rounded-xl border-2 border-white object-cover shadow-sm flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#9FE870] to-[#7bc85a] flex items-center justify-center text-white font-display font-bold text-xl shadow-sm flex-shrink-0">
-                          {getNameInitial(professional.profiles?.full_name)}
+                    <Link
+                      href={profileHref}
+                      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20 rounded-xl"
+                    >
+                      {professional.cover_photo_url ? (
+                        <div className="mb-3 h-24 w-full overflow-hidden rounded-lg border border-slate-100">
+                          <Image
+                            src={professional.cover_photo_url}
+                            alt={`Capa de ${professional.profiles?.full_name || 'Profissional'}`}
+                            width={800}
+                            height={240}
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            quality={70}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
                         </div>
-                      )}
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="font-display font-bold text-slate-900 leading-tight truncate">
-                              {professional.profiles?.full_name || 'Profissional'}
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">
-                              {getPrimarySpecialty(
-                                professional,
-                                primarySpecialtyByProfessionalId.get(String(professional.id)),
-                              )}
-                            </p>
-                            <ExpandableTags tags={professional.tags || []} />
+                      ) : null}
+                      <div className="flex items-start gap-4">
+                        {professional.profiles?.avatar_url ? (
+                          <Image
+                            src={professional.profiles.avatar_url}
+                            alt={`Foto de ${professional.profiles?.full_name || 'Profissional'}`}
+                            width={56}
+                            height={56}
+                            sizes="56px"
+                            quality={70}
+                            className="h-14 w-14 rounded-xl border-2 border-white object-cover shadow-sm flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#9FE870] to-[#7bc85a] flex items-center justify-center text-white font-display font-bold text-xl shadow-sm flex-shrink-0">
+                            {getNameInitial(professional.profiles?.full_name)}
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-display font-bold text-[#3d6b1f]">
-                              {formatSearchPrice(
-                                Number(professional.session_price_brl || 0),
-                                selectedCurrency,
-                                'pt-BR',
-                                exchangeRates,
-                              )}
-                            </p>
-                            <p className="text-[11px] text-slate-400">
-                              / {Math.max(1, Number(professional.session_duration_minutes || 60))} min
-                            </p>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="font-display font-bold text-slate-900 leading-tight truncate">
+                                {professional.profiles?.full_name || 'Profissional'}
+                              </h3>
+                              {subcategory ? (
+                                <p className="text-xs font-medium text-slate-600 mt-0.5 truncate">
+                                  {subcategory}
+                                </p>
+                              ) : null}
+                              {specialty && specialty !== subcategory ? (
+                                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                  {specialty}
+                                </p>
+                              ) : null}
+                              <ExpandableTags tags={professional.tags || []} />
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="font-display font-bold text-[#3d6b1f]">
+                                {formatSearchPrice(
+                                  Number(professional.session_price_brl || 0),
+                                  selectedCurrency,
+                                  'pt-BR',
+                                  exchangeRates,
+                                )}
+                              </p>
+                              <p className="text-[11px] text-slate-400">
+                                / {Math.max(1, Number(professional.session_duration_minutes || 60))} min
+                              </p>
+                            </div>
                           </div>
-                        </div>
 
-                        <p className="text-sm text-slate-600 mt-3 line-clamp-2 leading-relaxed">
-                          {professional.bio || 'Profissional verificado pronto para te atender.'}
-                        </p>
+                          <p className="text-sm text-slate-600 mt-2 line-clamp-2 leading-relaxed">
+                            {professional.bio || 'Profissional verificado pronto para te atender.'}
+                          </p>
 
-                        <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                          {professional.tier && professional.tier !== 'basic' ? (
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                                professional.tier === 'premium'
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                                  : 'bg-blue-50 text-blue-700 border border-blue-100'
-                              }`}
-                            >
-                              {professional.tier === 'premium' ? '★ Premium' : 'Profissional'}
-                            </span>
-                          ) : null}
-                          {professional.video_intro_url ? (
-                            <span className="inline-flex items-center gap-1 bg-[#9FE870]/10 text-[#3d6b1f] px-2 py-0.5 rounded-md text-[11px] font-semibold border border-[#9FE870]/20">
-                              <PlayCircle className="w-3 h-3" />
-                              Vídeo
-                            </span>
-                          ) : null}
-                          {professional.tier !== 'basic' && professional.whatsapp_number ? (
-                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-emerald-100">
-                              <MessageCircle className="w-3 h-3" />
-                              WhatsApp
-                            </span>
-                          ) : null}
-                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-amber-100">
-                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                            {Number(professional.rating || 0) > 0
-                              ? Number(professional.rating).toFixed(1)
-                              : 'Novo'}
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-slate-100">
-                            <MapPin className="w-3 h-3" />
-                            {getCountryDisplayName(professional.profiles?.country)}
-                          </span>
-                        </div>
-
-                        {(professional.languages || []).length > 0 ? (
-                          <div className="flex flex-wrap gap-1 mt-2.5">
-                            {(professional.languages || []).map((language: string) => (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            {professional.tier && professional.tier !== 'basic' ? (
                               <span
-                                key={language}
-                                className="text-[11px] bg-slate-50 text-slate-500 px-2 py-0.5 rounded-md border border-slate-100"
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                                  professional.tier === 'premium'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                }`}
                               >
-                                {language}
+                                {professional.tier === 'premium' ? '★ Premium' : 'Profissional'}
                               </span>
-                            ))}
+                            ) : null}
+                            {professional.video_intro_url ? (
+                              <span className="inline-flex items-center gap-1 bg-[#9FE870]/10 text-[#3d6b1f] px-2 py-0.5 rounded-md text-[11px] font-semibold border border-[#9FE870]/20">
+                                <PlayCircle className="w-3 h-3" />
+                                Vídeo
+                              </span>
+                            ) : null}
+                            {professional.tier !== 'basic' && professional.whatsapp_number ? (
+                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-emerald-100">
+                                <MessageCircle className="w-3 h-3" />
+                                WhatsApp
+                              </span>
+                            ) : null}
+                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-amber-100">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              {Number(professional.rating || 0) > 0
+                                ? Number(professional.rating).toFixed(1)
+                                : 'Novo'}
+                            </span>
                           </div>
-                        ) : null}
+                        </div>
+                      </div>
+                    </Link>
+
+                    <div className="flex items-start gap-4 mt-3">
+                      <div className="w-14 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <SearchBookingCtas
+                          isLoggedIn={isLoggedIn}
+                          bookHref={`/agendar/${professional.id}`}
+                          messageHref={`/mensagens?profissional=${professional.id}`}
+                        />
                       </div>
                     </div>
-                  </Link>
-
-                  <SearchBookingCtas
-                    isLoggedIn={isLoggedIn}
-                    bookHref={`/agendar/${professional.id}`}
-                    messageHref={`/mensagens?profissional=${professional.id}`}
-                  />
-                </div>
-              ))}
+                  </div>
+                )
+              })}
             </div>
 
             {totalPages > 1 ? (
@@ -1198,9 +1186,14 @@ export async function BuscarPageContent({
 }
 
 export default async function BuscarPage({ searchParams }: { searchParams: Promise<BuscarSearchParams> }) {
+  const cookieStore = await cookies()
+  const cookieCurrency = normalizeCurrency(cookieStore.get(PUBLIC_CURRENCY_COOKIE)?.value)
+  const acceptLanguage = (await headers()).get('accept-language')
+  const defaultCurrency = cookieCurrency || resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage) || 'BRL'
+
   return (
     <PublicPageLayout>
-      {await BuscarPageContent({ searchParams, isLoggedIn: false, basePath: '/buscar' })}
+      {await BuscarPageContent({ searchParams, isLoggedIn: false, basePath: '/buscar', defaultCurrency })}
     </PublicPageLayout>
   )
 }

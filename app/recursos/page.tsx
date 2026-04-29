@@ -6,7 +6,7 @@ import { ScrollReveal } from '@/components/landing/ScrollReveal'
 import { BlurBlob } from '@/components/landing/BlurBlob'
 import { Sparkle } from '@/components/landing/Sparkle'
 
-export const metadata = { title: 'Recursos para quem mora fora | Muuday' }
+export const metadata = { title: 'Recursos para você | Muuday' }
 
 export default function RecursosPage() {
   return (
@@ -24,7 +24,7 @@ export default function RecursosPage() {
           <FadeIn direction="up">
             <div className="mx-auto max-w-3xl text-center">
               <h1 className="font-display text-4xl font-black uppercase leading-[0.92] tracking-tight text-slate-900 sm:text-5xl md:text-6xl lg:text-7xl">
-                Recursos para quem mora fora
+                Recursos para você
               </h1>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-800">
                 Conteúdo prático e gratuito para brasileiros no exterior.
