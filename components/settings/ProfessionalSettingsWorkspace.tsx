@@ -5,6 +5,7 @@ import { AlertTriangle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { evaluateProfessionalOnboarding } from '@/lib/professional/onboarding-gates'
+import { updateProfileField } from '@/lib/actions/user-profile'
 import {
   DEFAULT_NOTIFICATIONS,
   tierLabel,
@@ -214,16 +215,13 @@ export default function ProfessionalSettingsWorkspace() {
     loadProfile()
   }, [supabase])
 
-  // Whitelist of fields users are allowed to update on their own profile.
-  const EDITABLE_PROFILE_FIELDS = ['currency', 'timezone', 'notification_preferences', 'full_name', 'country']
-
   async function saveField(field: string, value: unknown) {
     if (!userId) return
-    if (!EDITABLE_PROFILE_FIELDS.includes(field)) {
-      console.error(`[configuracoes] Blocked attempt to update restricted field: ${field}`)
+    const result = await updateProfileField(field, value)
+    if (result.error) {
+      console.error(`[configuracoes] saveField error: ${result.error}`)
       return
     }
-    await supabase.from('profiles').update({ [field]: value }).eq('id', userId)
     setSavedField(field)
     setTimeout(() => setSavedField(null), 2000)
   }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Bell, Check, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { updateProfileField } from '@/lib/actions/user-profile'
 import { AUTH_MESSAGES, mapPasswordUpdateErrorMessage } from '@/lib/auth/messages'
 
 type NotificationPreferences = {
@@ -121,7 +122,11 @@ export function ProfileAccountSettings() {
   ) {
     if (!userId) return
 
-    await supabase.from('profiles').update({ [field]: value }).eq('id', userId)
+    const result = await updateProfileField(field, value)
+    if (result.error) {
+      console.error('[ProfileAccountSettings] saveField error:', result.error)
+      return
+    }
     setSavedField(field)
     setTimeout(() => setSavedField(null), 2000)
   }

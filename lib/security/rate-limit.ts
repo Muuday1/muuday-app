@@ -193,6 +193,7 @@ export const RATE_LIMITS = {
   stripeWebhook: { limit: 120, windowSeconds: 60 },
   supabaseDbWebhook: { limit: 240, windowSeconds: 60 },
   rewriteBio: { limit: 5, windowSeconds: 60 },
+  profileUpdate: { limit: 10, windowSeconds: 60 },
   profileMediaUpload: { limit: 10, windowSeconds: 60 },
   credentialsUpload: { limit: 10, windowSeconds: 60 },
   onboardingSave: { limit: 15, windowSeconds: 60 },

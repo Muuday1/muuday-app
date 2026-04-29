@@ -9,6 +9,7 @@ import {
   saveProfessionalProfileDraft as saveProfessionalProfileDraftService,
   updateAvailability as updateAvailabilityService,
   saveProfessionalAvailability,
+  saveBookingSettings,
 } from '@/lib/professional/professional-profile-service'
 
 export async function createProfessionalProfile(formData: FormData) {
@@ -102,6 +103,33 @@ export async function saveProfessionalProfileDraft(input: {
   if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
 
   const result = await saveProfessionalProfileDraftService(supabase, user.id, input)
+
+  if (result.success) {
+    revalidateTag('public-profiles', {})
+  }
+
+  return result
+}
+
+export async function saveBookingSettingsAction(input: {
+  timezone: string
+  sessionDurationMinutes: number
+  bufferMinutes: number
+  minimumNoticeHours: number
+  maxBookingWindowDays: number
+  enableRecurring: boolean
+  confirmationMode: 'auto_accept' | 'manual'
+  cancellationPolicyCode: string
+  requireSessionPurpose: boolean
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
+
+  const rl = await rateLimit('professionalProfile', user.id)
+  if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  const result = await saveBookingSettings(supabase, user.id, input)
 
   if (result.success) {
     revalidateTag('public-profiles', {})

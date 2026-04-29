@@ -426,6 +426,87 @@ export async function updateAvailability(
   return { success: true }
 }
 
+export async function saveBookingSettings(
+  supabase: SupabaseClient,
+  userId: string,
+  settings: {
+    timezone: string
+    sessionDurationMinutes: number
+    bufferMinutes: number
+    minimumNoticeHours: number
+    maxBookingWindowDays: number
+    enableRecurring: boolean
+    confirmationMode: 'auto_accept' | 'manual'
+    cancellationPolicyCode: string
+    requireSessionPurpose: boolean
+  },
+): Promise<{ success?: boolean; error?: string }> {
+  const { data: professional, error: profError } = await getPrimaryProfessionalForUser(
+    supabase,
+    userId,
+    'id',
+  )
+  if (profError) {
+    console.error('[professional/saveBookingSettings] getPrimaryProfessionalForUser error:', profError.message)
+  }
+
+  if (!professional) return { error: 'Perfil profissional não encontrado' }
+
+  const nowIso = new Date().toISOString()
+
+  const { error: settingsError } = await supabase.from('professional_settings').upsert(
+    {
+      professional_id: professional.id,
+      timezone: settings.timezone,
+      session_duration_minutes: settings.sessionDurationMinutes,
+      buffer_minutes: settings.bufferMinutes,
+      buffer_time_minutes: settings.bufferMinutes,
+      minimum_notice_hours: settings.minimumNoticeHours,
+      max_booking_window_days: settings.maxBookingWindowDays,
+      enable_recurring: settings.enableRecurring,
+      confirmation_mode: settings.confirmationMode,
+      cancellation_policy_code: settings.cancellationPolicyCode,
+      require_session_purpose: settings.requireSessionPurpose,
+      updated_at: nowIso,
+    },
+    { onConflict: 'professional_id' },
+  )
+
+  if (settingsError) {
+    console.error('[professional/saveBookingSettings] upsert professional_settings error:', settingsError.message)
+    return { error: 'Erro ao salvar configurações de agendamento.' }
+  }
+
+  const { error: professionalError } = await supabase
+    .from('professionals')
+    .update({
+      session_duration_minutes: settings.sessionDurationMinutes,
+      updated_at: nowIso,
+    })
+    .eq('id', professional.id)
+
+  if (professionalError) {
+    console.error('[professional/saveBookingSettings] update professionals error:', professionalError.message)
+    return { error: 'Configurações salvas, mas houve falha ao sincronizar a duração no perfil.' }
+  }
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({
+      timezone: settings.timezone,
+      updated_at: nowIso,
+    })
+    .eq('id', userId)
+
+  if (profileError) {
+    console.error('[professional/saveBookingSettings] update profiles error:', profileError.message)
+    return { error: 'Configurações salvas, mas houve falha ao sincronizar o fuso no perfil.' }
+  }
+
+  await recomputeProfessionalVisibility(supabase, professional.id)
+  return { success: true }
+}
+
 const availabilityDaySchema = z.object({
   is_available: z.boolean(),
   start_time: z.string().regex(timeRegex, 'Horário inválido (HH:MM)'),

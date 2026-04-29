@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Save, Check } from 'lucide-react'
 import Link from 'next/link'
+import { updateProfileField } from '@/lib/actions/user-profile'
 import {
   NotificationPreferences,
   DEFAULT_NOTIFICATIONS,
@@ -18,7 +18,6 @@ interface Props {
 }
 
 export function NotificationPreferencesPage({ initialPreferences }: Props) {
-  const supabase = createClient()
   const [prefs, setPrefs] = useState<NotificationPreferences>({
     ...DEFAULT_NOTIFICATIONS,
     ...initialPreferences,
@@ -55,13 +54,12 @@ export function NotificationPreferencesPage({ initialPreferences }: Props) {
 
   async function handleSave() {
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase
-      .from('profiles')
-      .update({ notification_preferences: prefs })
-      .eq('id', user.id)
+    const result = await updateProfileField('notification_preferences', prefs)
     setSaving(false)
+    if (result.error) {
+      console.error('[NotificationPreferencesPage] save error:', result.error)
+      return
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }

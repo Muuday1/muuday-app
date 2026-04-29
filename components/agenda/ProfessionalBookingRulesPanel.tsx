@@ -1,13 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { ALL_TIMEZONES } from '@/lib/constants'
 import { AlertCircle, CalendarClock, Check, Loader2 } from 'lucide-react'
 import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS } from '@/lib/booking/settings'
 import type { PlanConfig } from '@/lib/plan-config'
 import { getDefaultPlanConfigMap } from '@/lib/plan-config'
 import type { BookingSettingsForm } from '@/components/settings/BookingSettingsClient'
+import { saveBookingSettingsAction } from '@/lib/actions/professional'
 
 type ProfessionalBookingRulesPanelProps = {
   userId: string
@@ -29,7 +29,6 @@ export function ProfessionalBookingRulesPanel({
   initialPlanConfig,
   initialForm,
 }: ProfessionalBookingRulesPanelProps) {
-  const supabase = useMemo(() => createClient(), [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -66,66 +65,29 @@ export function ProfessionalBookingRulesPanel({
     setSaved(false)
     setErrorMessage('')
 
-    const nowIso = new Date().toISOString()
+    const effectiveBufferMinutes = bufferConfig.configurable ? form.bufferMinutes : 15
+    const effectiveConfirmationMode = tier === 'basic' ? 'auto_accept' : form.confirmationMode
+    const effectiveMaxWindowDays = Math.min(form.maxBookingWindowDays, tierLimits.bookingWindowDays)
 
-    const { error: settingsError } = await supabase.from('professional_settings').upsert(
-      {
-        professional_id: professionalId,
-        timezone: form.timezone,
-        session_duration_minutes: form.sessionDurationMinutes,
-        buffer_minutes: bufferConfig.configurable ? form.bufferMinutes : 15,
-        buffer_time_minutes: bufferConfig.configurable ? form.bufferMinutes : 15,
-        minimum_notice_hours: form.minimumNoticeHours,
-        max_booking_window_days: Math.min(form.maxBookingWindowDays, tierLimits.bookingWindowDays),
-        enable_recurring: form.enableRecurring,
-        confirmation_mode: tier === 'basic' ? 'auto_accept' : form.confirmationMode,
-        cancellation_policy_code: form.cancellationPolicyCode,
-        require_session_purpose: form.requireSessionPurpose,
-        updated_at: nowIso,
-      },
-      { onConflict: 'professional_id' },
-    )
-
-    if (settingsError) {
-      setErrorMessage('Não foi possível salvar as regras de agendamento. Tente novamente.')
-      setSaving(false)
-      return
-    }
-
-    const { error: professionalError } = await supabase
-      .from('professionals')
-      .update({
-        session_duration_minutes: form.sessionDurationMinutes,
-        updated_at: nowIso,
-      })
-      .eq('id', professionalId)
-
-    if (professionalError) {
-      setErrorMessage('Regras salvas, mas houve falha ao sincronizar a duração no perfil.')
-      setSaving(false)
-      return
-    }
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        timezone: form.timezone,
-        updated_at: nowIso,
-      })
-      .eq('id', userId)
-
-    if (profileError) {
-      setErrorMessage('Regras salvas, mas houve falha ao sincronizar o fuso no perfil.')
-      setSaving(false)
-      return
-    }
-
-    await fetch('/api/professional/recompute-visibility', {
-      method: 'POST',
-      credentials: 'include',
+    const result = await saveBookingSettingsAction({
+      timezone: form.timezone,
+      sessionDurationMinutes: form.sessionDurationMinutes,
+      bufferMinutes: effectiveBufferMinutes,
+      minimumNoticeHours: form.minimumNoticeHours,
+      maxBookingWindowDays: effectiveMaxWindowDays,
+      enableRecurring: form.enableRecurring,
+      confirmationMode: effectiveConfirmationMode,
+      cancellationPolicyCode: form.cancellationPolicyCode,
+      requireSessionPurpose: form.requireSessionPurpose,
     })
 
     setSaving(false)
+
+    if (result?.error) {
+      setErrorMessage(result.error)
+      return
+    }
+
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
