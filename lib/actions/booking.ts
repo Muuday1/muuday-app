@@ -11,6 +11,7 @@ import {
   emitUserStartedCheckout,
 } from '@/lib/email/resend-events'
 import { executeBookingCreation, createBookingInputSchema } from '@/lib/booking/create-booking'
+import { withTimeout } from '@/lib/booking/with-timeout'
 
 export async function createBooking(data: {
   professionalId: string
@@ -42,7 +43,21 @@ export async function createBooking(data: {
   const rl = await rateLimit('bookingCreate', user.id)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
-  const result = await executeBookingCreation(supabase, user, parsedInput.data)
+  const result = await withTimeout(
+    executeBookingCreation(supabase, user, parsedInput.data),
+    12000,
+    'createBooking server action',
+  ).catch((err) => {
+    if (err instanceof Error && err.message.includes('Timeout')) {
+      Sentry.captureMessage('booking_create_server_timeout', {
+        level: 'error',
+        tags: { area: 'booking', context: 'server-timeout' },
+        extra: { userId: user.id, professionalId: data.professionalId },
+      })
+      return { success: false, error: 'A solicitação demorou muito. Verifique sua conexão e tente novamente.' } as const
+    }
+    throw err
+  })
 
   if (!result.success) {
     return { success: false, error: result.error }
