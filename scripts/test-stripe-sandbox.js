@@ -45,7 +45,7 @@ if (!SECRET_KEY.startsWith('sk_test_')) {
 }
 
 const stripe = new Stripe(SECRET_KEY, {
-  apiVersion: '2026-03-25.dahlia',
+  apiVersion: '2026-04-22.dahlia',
 })
 
 const TEST_AMOUNT_MINOR = 15000 // R$ 150.00
