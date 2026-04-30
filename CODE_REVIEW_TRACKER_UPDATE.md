@@ -1,8 +1,21 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-29 (Pass 27)
+**Last cleanup pass:** 2026-04-29 (Pass 28)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+## Cleanup Pass 28 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **LOW-1** Inconsistent error page coverage | Added `loading.tsx` + `error.tsx` to 3 high-value user-facing routes: `app/(app)/completar-perfil/`, `app/(app)/editar-perfil/`, `app/(app)/editar-perfil-profissional/`. | 6 files |
+| **next.config.js** Security & image config | Added `poweredByHeader: false` to remove X-Powered-By header. Added `cdn.sanity.io` to `images.remotePatterns` for future Sanity image optimization. | 1 file |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- No new TypeScript errors introduced.
 
 ---
 

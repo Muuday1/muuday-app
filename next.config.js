@@ -6,12 +6,14 @@ if (process.env.NODE_ENV === 'production' && !process.env.APP_BASE_URL) {
 }
 
 const nextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'jbbnbbrroifghrshplsq.supabase.co' },
       { protocol: 'https', hostname: 'ui-avatars.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'cdn.sanity.io' },
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 7,

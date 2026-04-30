@@ -44,6 +44,7 @@
 >
 > > - **Pass 26 — Doc stale status markers** → Fixed. Updated 8 integration docs from "In progress" to "Done/Ongoing". Added UTF-8 BOM rule to AGENTS.md.
 > - **Pass 27 — Critical route error coverage + env vars + false positive cleanup** → Fixed. Added `loading.tsx` + `error.tsx` to 4 critical routes (`agendar/[id]`, `login`, `cadastro`, `profissional/[id]`). Added `TROLLEY_API_BASE` to `.env.local.example`. Corrected false positive about `IMPLEMENTATION-TRACKER.md` mojibake.
+> - **Pass 28 — Error page coverage + next.config.js security** → Fixed. Added `loading.tsx` + `error.tsx` to `completar-perfil/`, `editar-perfil/`, `editar-perfil-profissional/`. Added `poweredByHeader: false` and Sanity CDN to `next.config.js`.
 >
 > Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5 — blocked on production schema access), `any` types in test files, mega-components.
 
