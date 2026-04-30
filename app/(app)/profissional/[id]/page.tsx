@@ -318,17 +318,6 @@ export default async function ProfissionalPage({
   let viewerCurrency = 'BRL'
   let viewerTimezone = 'America/Sao_Paulo'
 
-  if (user) {
-    const { data: viewerProfile } = await supabase
-      .from('profiles')
-      .select('currency,timezone')
-      .eq('id', user.id)
-      .single()
-
-    viewerCurrency = String(viewerProfile?.currency || 'BRL').toUpperCase()
-    viewerTimezone = String(viewerProfile?.timezone || viewerTimezone)
-  }
-
   let professional: PublicProfessionalRecord | null = null
   if (user) {
     const buildProfessionalQuery = (withVisibilityColumn: boolean) => {
@@ -351,18 +340,26 @@ export default async function ProfissionalPage({
       return professionalQuery
     }
 
-    let professionalResult = (await buildProfessionalQuery(true).maybeSingle()) as unknown as {
+    const [viewerProfileResult, professionalResult] = await Promise.all([
+      supabase.from('profiles').select('currency,timezone').eq('id', user.id).single(),
+      buildProfessionalQuery(true).maybeSingle(),
+    ])
+
+    viewerCurrency = String(viewerProfileResult.data?.currency || 'BRL').toUpperCase()
+    viewerTimezone = String(viewerProfileResult.data?.timezone || viewerTimezone)
+
+    let result = professionalResult as unknown as {
       data: PublicProfessionalRecord | null
       error: { message?: string } | null
     }
-    if (professionalResult.error?.message?.includes('is_publicly_visible')) {
-      professionalResult = (await buildProfessionalQuery(false).maybeSingle()) as unknown as {
+    if (result.error?.message?.includes('is_publicly_visible')) {
+      result = (await buildProfessionalQuery(false).maybeSingle()) as unknown as {
         data: PublicProfessionalRecord | null
         error: { message?: string } | null
       }
     }
 
-    professional = professionalResult.data
+    professional = result.data
   } else {
     professional = await loadCachedPublicProfessionalByParam(parsedParam)
   }

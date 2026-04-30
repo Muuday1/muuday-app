@@ -6,10 +6,12 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 
 ## Current State
 
-### Server Actions / Library Files (>500 lines)
+### Server Actions / Library Files
 
 | File | Lines | Functions | Priority | Status |
 |------|-------|-----------|----------|--------|
+| `lib/booking/request-booking-service.ts` | ~~811~~ **433** | 7 | **HIGH** | ✅ Extracted `acceptRequestBookingService` → `lib/booking/request-booking/accept-request.ts` |
+| `lib/booking/manage-booking-service.ts` | ~~944~~ **448** | 6 | **HIGH** | ✅ Extracted `applyPaymentRefund`, `executeCancelSingleBooking`, `completeBookingService`, `reportProfessionalNoShowService`, `markUserNoShowService`, `listBookingsService`, `getBookingDetailService` |
 | `lib/actions/request-booking.ts` | ~~861~~ **164** | 10 | **HIGH** | ✅ Extracted to `lib/booking/request-booking-service.ts` |
 | `lib/email/resend.ts` | ~~897~~ **69** | 25+ | **HIGH** | ✅ Extracted to `lib/email/templates/` + `lib/email/client.ts` |
 | `lib/ops/stripe-resilience.ts` | ~~816~~ **41** | 18 | MEDIUM | ✅ Extracted to `lib/stripe/` modules |

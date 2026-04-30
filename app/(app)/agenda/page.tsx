@@ -239,13 +239,6 @@ export default async function AgendaPage({
         .eq('status', 'offered')
         .lt('proposal_expires_at', nowIso)
 
-  const { error: expireError } = await expireQuery
-  if (expireError) {
-    Sentry.captureException(expireError, {
-      tags: { area: 'agenda', context: 'expire-stale-offers' },
-    })
-  }
-
   const upcomingQuery =
     isProfessional && professionalId
       ? supabase
@@ -286,10 +279,12 @@ export default async function AgendaPage({
             .eq('user_id', user.id)
 
   const [
+    { error: expireError },
     { data: upcomingBookings, error: upcomingError },
     { data: pastBookings, error: pastError },
     { data: requestBookings, error: requestError },
   ] = await Promise.all([
+    expireQuery,
     upcomingQuery
       ? upcomingQuery
           .in('status', ['pending', 'pending_confirmation', 'confirmed'])
@@ -308,6 +303,12 @@ export default async function AgendaPage({
       ? requestBookingsQuery.order('created_at', { ascending: false }).limit(REQUEST_BOOKINGS_LIMIT)
       : Promise.resolve({ data: [] as RequestBooking[], error: null }),
   ])
+
+  if (expireError) {
+    Sentry.captureException(expireError, {
+      tags: { area: 'agenda', context: 'expire-stale-offers' },
+    })
+  }
 
   if (upcomingError) {
     Sentry.captureException(upcomingError, {
@@ -416,34 +417,39 @@ export default async function AgendaPage({
     .filter((b: AgendaBooking) => ['confirmed', 'completed'].includes(b.status))
     .map((b: AgendaBooking) => b.id)
 
+  const [conversationsResult, reviewsResult] = await Promise.all([
+    allBookingIds.length > 0
+      ? supabase
+          .from('conversations')
+          .select('id, booking_id')
+          .in('booking_id', allBookingIds)
+          .limit(CONVERSATIONS_LIMIT)
+      : Promise.resolve({ data: null, error: null }),
+    !isProfessional && completedBookingIds.length > 0
+      ? supabase
+          .from('reviews')
+          .select('booking_id')
+          .in('booking_id', completedBookingIds)
+          .eq('user_id', user.id)
+          .limit(REVIEWS_LIMIT)
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
   const conversationMap = new Map<string, string>()
-  if (allBookingIds.length > 0) {
-    const { data: conversationsData } = await supabase
-      .from('conversations')
-      .select('id, booking_id')
-      .in('booking_id', allBookingIds)
-      .limit(CONVERSATIONS_LIMIT)
-    ;(conversationsData || []).forEach((c: ConversationLink) => {
+  if (conversationsResult.data) {
+    ;(conversationsResult.data as ConversationLink[]).forEach((c: ConversationLink) => {
       if (c.booking_id) conversationMap.set(c.booking_id, c.id)
     })
   }
 
   const reviewedBookingIds = new Set<string>()
-  if (!isProfessional && completedBookingIds.length > 0) {
-    const { data: existingReviews, error: reviewsError } = await supabase
-      .from('reviews')
-      .select('booking_id')
-      .in('booking_id', completedBookingIds)
-      .eq('user_id', user.id)
-      .limit(REVIEWS_LIMIT)
-
-    if (reviewsError) {
-      Sentry.captureException(reviewsError, {
-        tags: { area: 'agenda', context: 'existing-reviews-query' },
-      })
-    }
-
-    ;(existingReviews || []).forEach((review: ReviewLink) => reviewedBookingIds.add(review.booking_id))
+  if (reviewsResult.data) {
+    ;(reviewsResult.data as ReviewLink[]).forEach((review: ReviewLink) => reviewedBookingIds.add(review.booking_id))
+  }
+  if (reviewsResult.error) {
+    Sentry.captureException(reviewsResult.error, {
+      tags: { area: 'agenda', context: 'existing-reviews-query' },
+    })
   }
 
   const shouldShowRequests = !isProfessional

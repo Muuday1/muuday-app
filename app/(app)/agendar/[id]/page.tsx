@@ -87,11 +87,11 @@ export default async function AgendarPage({
     notFound()
   }
 
-  const { data: professionalProfile } = await supabase
-    .from('profiles')
-    .select('full_name, timezone')
-    .eq('id', professional.user_id)
-    .maybeSingle()
+  const [{ data: professionalProfile }, firstBookingEligibility] = await Promise.all([
+    supabase.from('profiles').select('full_name, timezone').eq('id', professional.user_id).maybeSingle(),
+    evaluateFirstBookingEligibility(supabase, professional.id),
+  ])
+
   const professionalProfileHref = buildProfessionalProfilePath({
     id: professional.id,
     fullName: professionalProfile?.full_name,
@@ -103,7 +103,6 @@ export default async function AgendarPage({
     redirect(`${professionalProfileHref}?erro=auto-agendamento`)
   }
 
-  const firstBookingEligibility = await evaluateFirstBookingEligibility(supabase, professional.id)
   if (!firstBookingEligibility.ok) {
     redirect(`${professionalProfileHref}?erro=primeiro-agendamento-bloqueado`)
   }

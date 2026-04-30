@@ -15,13 +15,24 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch the booking with professional details
-  const { data: booking, error: bookingError } = await supabase
-    .from('bookings')
-    .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
-    .eq('id', bookingId)
-    .eq('user_id', user.id)
-    .single()
+  // Fetch the booking and any existing review in parallel
+  const [
+    { data: booking, error: bookingError },
+    { data: existingReview, error: reviewError },
+  ] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('*, professionals(*, profiles!professionals_user_id_fkey(*))')
+      .eq('id', bookingId)
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .from('reviews')
+      .select('id, rating, comment, created_at')
+      .eq('booking_id', bookingId)
+      .eq('user_id', user.id)
+      .single(),
+  ])
 
   if (bookingError) {
     Sentry.captureException(bookingError, {
@@ -35,14 +46,6 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
   if (booking.status !== 'completed') {
     redirect('/agenda')
   }
-
-  // Check if review already exists
-  const { data: existingReview, error: reviewError } = await supabase
-    .from('reviews')
-    .select('id, rating, comment, created_at')
-    .eq('booking_id', bookingId)
-    .eq('user_id', user.id)
-    .single()
 
   if (reviewError && !reviewError.message?.includes('0 rows')) {
     Sentry.captureException(reviewError, {

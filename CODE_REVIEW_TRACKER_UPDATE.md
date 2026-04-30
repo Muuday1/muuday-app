@@ -1,8 +1,44 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-30 (Pass 29–30)
+**Last cleanup pass:** 2026-04-30 (Pass 32)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 32 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **Performance MEDIUM-1** Sequential awaits in pages | Parallelized independent queries in 5 high-traffic pages: `app/(app)/agenda/page.tsx` (2 fixes: expire query + conversations/reviews), `app/(app)/profissional/[id]/page.tsx` (viewer profile + professional query), `app/(app)/agendar/[id]/page.tsx` (professional profile + first-booking eligibility), `app/(app)/avaliar/[bookingId]/page.tsx` (booking + existing review), `app/(app)/mensagens/[conversationId]/page.tsx` (other profile + messages + mark-read). | 5 files |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+- `node node_modules/next/dist/bin/next build` — 190 pages generated successfully.
+
+---
+
+## Cleanup Pass 31 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **2.3** God file `request-booking-service.ts` | Extracted `acceptRequestBookingService` → `lib/booking/request-booking/accept-request.ts` (349 lines). Moved `RequestBookingResult` and `RequestBookingActionResult` types to `lib/booking/types.ts`. File now **433 lines** (was 811). | 5 files |
+| **2.2** Availability logic duplication | Verified all previously duplicated patterns (`extractProfessionalTimezone`, `loadProfessionalSettings`, `parseBookingSlot`, `validateSlotAvailability`) are fully extracted into shared helpers. Status updated from 🔴 STILL PRESENT to 🟢 FIXED. | — |
+| **3.20** Dependabot | Verified `.github/dependabot.yml` exists. Updated tracker body from 🔴 STILL PRESENT to 🟢 FIXED (was already marked fixed in summary table). | — |
+| **2.3** God file status | Updated tracker line counts and assessments: `manage-booking-service.ts` **448 lines**, `request-booking-service.ts` **433 lines**. Both under 500-line threshold. | — |
+| **5.3–5.7** Documentation tracker contradictions | Verified actual doc state vs tracker body. Updated 5.3, 5.4, 5.5, 5.7 from 🔴 STILL PRESENT → 🟢 FIXED. Updated 5.6 from 🔴 STILL PRESENT → 🟡 PARTIALLY FIXED (all env vars present, explanations missing). | 5 tracker entries |
+| **5.10** Docs with Pending/In progress | Investigated "39+ files" claim. Found most are legitimate planning docs, UX research statuses, or historical snapshots. Updated from 🔴 STILL PRESENT → 🟡 PARTIALLY FIXED. | — |
+| **`docs/engineering/god-file-refactor-plan.md`** | Updated with current line counts and extraction status for both god files. | 1 file |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+- `node node_modules/next/dist/bin/next build` — 190 pages generated successfully.
 
 ---
 
@@ -245,34 +281,28 @@ All 7 components now delegate writes to validated server actions:
 ## 2. ARQUITETURA & QUALIDADE — Fully Verified
 
 ### 2.2 Duplicação massiva de lógica de disponibilidade/conflitos
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-The **professional-settings lookup → normalize → timezone fallback → slot validation** pipeline is copy-pasted across all three booking flows with only the error-message map varying.
+All previously duplicated patterns have been extracted into shared helpers:
 
-| Pattern | Files | Lines |
-|---------|-------|-------|
-| Professional profile extraction + timezone fallback | `request-booking-service.ts` | 127-131, 273-277, 555-559 |
-| | `manage-booking-service.ts` | 474-478 |
-| | `create-booking.ts` | 277-282 |
-| Settings normalization | `request-booking-service.ts` | 141-144, 287-290, 569-572 |
-| | `manage-booking-service.ts` | 488-491 |
-| fromZonedTime + NaN validation | `request-booking-service.ts` | 150-159, 295-303 |
-| | `manage-booking-service.ts` | 494-500 |
-| Minimum-notice & max-window checks | `request-booking-service.ts` | 162-177, 306-320 |
-| | `manage-booking-service.ts` | 502-517 |
-| validateSlotAvailability call | `request-booking-service.ts` | 322-338, 580-597 |
-| | `manage-booking-service.ts` | 520-537 |
-| | `create-booking.ts` | 62-83 |
+| Helper | File | What it encapsulates |
+|--------|------|---------------------|
+| `extractProfessionalTimezone()` | `lib/booking/settings.ts` | Profile extraction + timezone fallback chain |
+| `loadProfessionalSettings()` | `lib/booking/settings.ts` | Settings query + normalization + defaults |
+| `parseBookingSlot()` | `lib/booking/slot-parsing.ts` | `fromZonedTime` → NaN validation → endUtc calculation |
+| `validateSlotAvailability()` | `lib/booking/slot-validation.ts` | Min-notice + max-window + conflict checks |
+
+All three booking flows (`request-booking-service.ts`, `manage-booking-service.ts`, `create-booking.ts`) now import and call these helpers instead of inlining the logic.
 
 ---
 
 ### 2.3 God files de lógica de negócio
-**Status:** 🔴 **STILL PRESENT** (with correction)
+**Status:** 🟢 **FIXED**
 
 | File | Lines | Assessment |
 |------|-------|------------|
-| `lib/booking/request-booking-service.ts` | **811** | 🔴 God file — 7 service operations + inline pricing, eligibility, persistence, recovery |
-| `lib/booking/manage-booking-service.ts` | **944** | 🔴 God file — 11 service operations + state-machine transitions, refunds, email events, calendar sync, recurring logic |
+| `lib/booking/request-booking-service.ts` | **433** | 🟢 Under 500 lines — 6 service operations; `acceptRequestBookingService` extracted to `lib/booking/request-booking/accept-request.ts` |
+| `lib/booking/manage-booking-service.ts` | **448** | 🟢 Under 500 lines — 5 core operations; completion, no-show, query, cancellation, and refund helpers extracted to dedicated modules |
 | `lib/professional/onboarding-gates.ts` | 294 | 🟡 Borderline but acceptable |
 | `lib/payments/stripe-resilience.ts` | **0** | 🟢 **File does not exist** — removed |
 | `lib/actions/admin.ts` | 280 | 🟢 Thin wrapper, acceptable |
@@ -419,9 +449,9 @@ Replaced manual `indexOf('=')` parsing with `dotenv.config()` in both:
 ---
 
 ### 3.20 Sem Dependabot / Renovate
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-Neither `.github/dependabot.yml` nor `.github/renovate.json` exists.
+`.github/dependabot.yml` exists with weekly NPM update schedule.
 
 ---
 
@@ -444,107 +474,102 @@ Both endpoints are functional:
 ## 5. DOCUMENTAÇÃO — Fully Verified
 
 ### 5.3 docs/integrations/vercel-github-actions.md desatualizado
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-The doc says CI steps are: `install, typecheck, lint, build`
-
-Actual `.github/workflows/ci.yml` steps:
-1. Checkout
-2. Secret scan (TruffleHog)
-3. Verify no tracked env files
+Doc was updated 2026-04-29 with all 21 CI steps:
+1. Checkout (with fetch-depth 0)
+2. Secret scan (TruffleHog `--only-verified`)
+3. Verify no tracked `.env` files
 4. Verify no UTF-8 BOM
-5. Setup Node
+5. Setup Node (from `.nvmrc`)
 6. Install dependencies
-7. Audit dependencies for high+ CVEs
-8. Validate required E2E secrets on main
-9. **Typecheck**
-10. **Lint**
-11. **Encoding check**
-12. **Unit tests (Vitest)**
-13. **State machine tests**
+7. Audit dependencies for high+ severity CVEs
+8. Validate required E2E secrets on `main`
+9. Typecheck
+10. Lint
+11. Encoding check
+12. Unit tests (Vitest)
+13. State machine tests
 14. Cache Next.js build
-15. **Build**
+15. Build
 16. Validate DB pooling in production mode
 17. Cache Playwright browsers
 18. Install Playwright Chromium
 19. Auto-heal E2E professional fixtures
-20. **End-to-end tests**
-21. Upload Playwright report
-
-The doc is missing ~15 steps.
+20. End-to-end tests (Playwright)
+21. Upload Playwright report artifact
 
 ---
 
 ### 5.4 Sem doc da integração Agora
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-`docs/integrations/` contains:
-- checkly.md
-- inngest.md
-- make-hubspot.md
-- posthog.md
-- resend.md
-- sentry.md
-- supabase.md
-- upstash-rate-limit.md
-- vercel-github-actions.md
-
-**No Agora (video calling) documentation exists**, despite Agora being a core product dependency (`agora-access-token`, `agora-rtc-sdk-ng` in package.json).
+`docs/integrations/agora.md` created 2026-04-29. Covers:
+- Agora project setup and credentials
+- Token generation (`agora-access-token`)
+- Client SDK integration (`agora-rtc-sdk-ng`)
+- Waiting room and in-session game flow
+- Troubleshooting common connection issues
 
 ---
 
 ### 5.5 Sem guia de troubleshooting local
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-`docs/engineering/` contains 23 files including runbooks, checklists, and plans, but **no local troubleshooting guide** for common dev issues (e.g., "Supabase connection failed", "Stripe webhook not receiving events", "Type generation failing").
+`docs/engineering/troubleshooting.md` created 2026-04-29. Covers:
+- Supabase connection failures (pooler URL, IPv6, SSL)
+- Stripe webhook local testing (`stripe listen`)
+- Type generation (`supabase gen types`)
+- Build failures (BOM, memory, cache)
+- Test failures (fixtures, env vars)
 
 ---
 
 ### 5.6 Sem referência completa de env vars
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟡 **PARTIALLY FIXED**
 
-`.env.local.example` exists and lists all variables, but:
-- It does not **explain the purpose** of each variable (only names and placeholder values)
-- It does not cross-reference with `lib/config/env.ts` (which has the authoritative Zod schema)
-- Some variables in `lib/config/env.ts` (e.g., `MOBILE_API_KEY`, `E2E_ADMIN_EMAIL`) are not documented in `.env.local.example`
+`.env.local.example` now contains **all 73 variables** from `lib/config/env.ts` Zod schema (including `MOBILE_API_KEY`, `E2E_ADMIN_EMAIL`, `AGORA_APP_ID`, `VAPID_*`, etc. — added in Cleanup Pass 27 / C31).
+
+Remaining gap: **per-variable explanations** (purpose, format, where to get values). The file has section headers (e.g., `# Supabase`, `# Stripe`) but not inline descriptions for each variable.
 
 ---
 
 ### 5.7 scripts/ops/README.md em português — resto em inglês
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED**
 
-`scripts/ops/README.md`:
+`scripts/ops/README.md` translated to English in Cleanup Pass 3:
 ```md
 # Ops Scripts
-Scripts utilitarios para operacao e suporte.
-```
 
-The rest of the codebase mixes English and Portuguese, but `README.md`, `docs/` (mostly), and code comments are predominantly English. This file is an outlier.
+Utility scripts for operations and support.
+```
 
 ---
 
 ### 5.10 Muitos docs com status "Pending" / "In progress"
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟡 **PARTIALLY FIXED**
 
-**39+ docs files** contain status markers like "Pending", "In progress", "TODO", "WIP", or "Planned":
+The original count of "39+ files" was inflated by naive grep. After systematic review, the remaining markers fall into three categories:
 
-| File | Status Found |
-|------|--------------|
-| `docs/integrations/checkly.md` | Likely has status |
-| `docs/integrations/inngest.md` | "In progress" |
-| `docs/integrations/make-hubspot.md` | "Planned" |
-| `docs/integrations/posthog.md` | Likely has status |
-| `docs/integrations/resend.md` | Likely has status |
-| `docs/integrations/sentry.md` | Likely has status |
-| `docs/integrations/supabase.md` | Likely has status |
-| `docs/integrations/upstash-rate-limit.md` | Likely has status |
-| `docs/integrations/vercel-github-actions.md` | "In progress" |
-| `docs/product/IMPLEMENTATION-ROADMAP.md` | Likely has status |
-| `docs/product/design-system/components.md` | Likely has status |
-| `docs/product/design-system/frames/*.md` | (10 files) Likely have status |
-| `docs/engineering/IMPLEMENTATION-TRACKER.md` | Multiple statuses |
-| `docs/archive/control-snapshot.md` | Likely has status |
-| `docs/handover/*.md` | Likely have status |
+**1. Legitimate planning documents (not stale):**
+- `docs/architecture/tech-stack.md` — "Planned" entries for Wave 3+ roadmap items (Stripe BR, internal ledger, recurring atomicity) that are genuinely not yet implemented
+- `docs/integrations/make-hubspot.md` — "Planned" — HubSpot integration is not yet live
+- `docs/integrations/posthog.md` / `sentry.md` — "Pending" for manual dashboard UI steps (not code)
+- `docs/spec/consolidated/journey-coverage-matrix.md` — "Planned" for one-off payments and subscription billing (no real-money execution yet)
+- `docs/archive/control-snapshot.md` — Historical snapshot from 2026-04-14; "Pending" was accurate at that time
+
+**2. UX research docs with journey assessment statuses (not implementation trackers):**
+- `docs/product/ux-research/journey-audit-and-recommendations.md` — "In Progress" scores reflect UX research completeness, not code delivery
+- `docs/product/ux-research/journey-implementation-map.md` — "pending" describes UI state machine states
+- `docs/product/ux-research/usability-test-plan.md` — "pending bookings" is a test scenario, not project status
+
+**3. Implementation trackers that are actively maintained:**
+- `docs/product/IMPLEMENTATION-ROADMAP.md` — Uses ✅/🔄/⏳ with explicit "backend complete — do not rebuild" warnings. Updated 2026-04-24.
+- `docs/engineering/IMPLEMENTATION-TRACKER.md` — Uses `[x]`/`[ ]` checkboxes; actively maintained.
+
+**Genuinely stale items already fixed:**
+- All 8 integration docs updated from misleading "In progress" to accurate "Done" / "Ongoing" in Cleanup Pass 27
+- `docs/engineering/database-and-migrations.md` migration statuses updated in Cleanup Pass 3
 
 **NOTE:** `docs/engineering/IMPLEMENTATION-TRACKER.md` was previously flagged with mojibake. Upon re-reading (2026-04-29), the file is **readable and correct** — all Portuguese accented characters render properly. The earlier report appears to have been a terminal rendering artifact.
 
@@ -623,12 +648,12 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | Category | Fixed | Partially Fixed | Still Present | Not Verified |
 |----------|-------|-----------------|---------------|--------------|
 | Segurança | 16 | 1 | 1 | 0 |
-| Arquitetura | 2 | 5 | 2 | 0 |
-| DevOps/CI | 12 | 1 | 0 | 0 |
-| Performance | 2 | 1 | 2 | 0 |
-| Documentação | 1 | 0 | 6 | 0 |
-| **NEW ISSUES** | — | — | **4** | — |
-| **TOTAL** | **34** | **8** | **15** | **0** |
+| Arquitetura | 4 | 3 | 2 | 0 |
+| DevOps/CI | 13 | 0 | 0 | 0 |
+| Performance | 5 | 0 | 2 | 0 |
+| Documentação | 5 | 2 | 0 | 0 |
+| **NEW ISSUES** | 8 | 0 | 0 | — |
+| **TOTAL** | **43** | **7** | **6** | **0** |
 
 ---
 
@@ -638,8 +663,8 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 |------|--------------|--------------|
 | 1.4 Public pages use admin client | 🟢 FIXED | `createClient()` used in all public pages |
 | 1.5 Client-side Supabase mutations | 🟢 FIXED | All 7 components now use server actions; `updateProfileField` has server-side whitelist + rate limit |
-| 2.2 Availability logic duplication | 🔴 STILL PRESENT | Same 4-line patterns copied across 3+ booking files |
-| 2.3 God files | 🟡 PARTIALLY FIXED | `manage-booking-service.ts` **448 lines** (was 944; extracted completion, no-show, query services). `request-booking-service.ts` **771 lines** (still needs extraction) |
+| 2.2 Availability logic duplication | 🟢 FIXED | `extractProfessionalTimezone`, `loadProfessionalSettings`, `parseBookingSlot`, and `validateSlotAvailability` extracted into shared helpers; all 3 booking flows import them |
+| 2.3 God files | 🟢 FIXED | `manage-booking-service.ts` **448 lines** (was 944). `request-booking-service.ts` **433 lines** (was 811). All major extractions complete. |
 | 2.5 Supabase generated types | 🟡 PARTIALLY FIXED | `db:gen-types` script added; `types/supabase-generated.ts` created; clients still untyped |
 | 2.6 BookingStatus duplicated | 🟢 FIXED | `types/index.ts` is a pure re-export of `lib/booking/types.ts` |
 | 2.8 Rollbacks without transactions | 🔴 STILL PRESENT | Manual rollback in 3 files; no DB transactions |
@@ -658,7 +683,7 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 5.5 No troubleshooting guide | 🟢 FIXED | `docs/engineering/troubleshooting.md` created (C31) |
 | 5.6 Incomplete env var reference | 🟡 PARTIALLY FIXED | `.env.local.example` updated with 9 missing vars (C31); still lacks explanations per var |
 | 5.7 scripts/ops/README language | 🟢 FIXED | Translated to English in Cleanup Pass 3 |
-| 5.10 Docs with Pending/In progress | 🔴 STILL PRESENT | 39+ files contain status markers |
+| 5.10 Docs with Pending/In progress | 🟡 PARTIALLY FIXED | Most "39+ files" are legitimate planning docs, UX research, or historical snapshots. Integration docs and migration statuses already corrected. |
 | **MEDIUM-1** `createAdminClient()` in payment routes | 🟡 PARTIALLY FIXED | Documented with security comments + Sentry; RLS guard trigger makes migration to RPC function required for full fix |
 | **MEDIUM-3** Missing CSRF on API v1 routes | 🟢 FIXED | `validateApiCsrf()` added to 15 critical state-changing routes; Bearer-aware for mobile compatibility |
 | **HIGH-1** Mobile app unbuildable | 🟢 FIXED | Mobile `tsc --noEmit` passes; properly excluded from web tsconfig |

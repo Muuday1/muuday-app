@@ -46,19 +46,14 @@ export default async function ConversationPage({
       .maybeSingle(),
   ])
 
-  const { data: otherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', otherParticipant?.user_id || '')
-    .maybeSingle()
-
-  const otherName = otherProfile?.full_name || 'Usuário'
-
-  // Load messages and mark as read in parallel
-  const [messagesResult, _markReadResult] = await Promise.all([
+  // Load profile, messages, and mark as read in parallel
+  const [{ data: otherProfile }, messagesResult, _markReadResult] = await Promise.all([
+    supabase.from('profiles').select('full_name').eq('id', otherParticipant?.user_id || '').maybeSingle(),
     getMessagesAction(conversationId, { limit: 50 }),
     markConversationAsReadAction(conversationId),
   ])
+
+  const otherName = otherProfile?.full_name || 'Usuário'
   const messages = messagesResult.success ? messagesResult.data.messages : []
 
   return (
