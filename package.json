@@ -40,6 +40,7 @@
     "@sentry/nextjs": "^10.49.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",
+    "@tailwindcss/postcss": "^4.2.4",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
@@ -61,7 +62,7 @@
     "react-dom": "^19",
     "resend": "^6.12.0",
     "stripe": "^22.1.0",
-    "tailwind-merge": "^2.3.0",
+    "tailwind-merge": "^3.5.0",
     "web-push": "^3.6.7",
     "zod": "^4.4.1"
   },
@@ -83,7 +84,7 @@
     "jsdom": "^29.0.2",
     "openapi3-ts": "^4.0.0",
     "postcss": "^8.5.10",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^4.2.4",
     "typescript": "^5",
     "vitest": "^4.1.4"
   },
