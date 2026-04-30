@@ -1,8 +1,85 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-30 (Pass 33)
+**Last cleanup pass:** 2026-04-30 (Pass 38)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 38 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **Admin pages** remaining `as any` / unsafe casts | Fixed root cause of type mismatches in 6 files: (1) `getCaseById` service+action now select and return `assigned_to`, `priority`, `sla_deadline`, `summary` fields — removed `as any` from `admin/casos/[caseId]/page.tsx` (4 casts). (2) `admin/avaliacoes/page.tsx` replaced `as any` with validated literal unions for `status`/`sort`. (3) `admin/finance/treasury/page.tsx` defined `TreasuryData` interface, removed 2 `as` casts. (4) `admin/revisao/[professionalId]/page.tsx` changed `Record<string, string>` to `Record<string, unknown>` for `social_links`. | 6 files |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx` — **0 errors, 0 warnings**.
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 37 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **Mobile** `setState()` within `useMemo()` (ESLint error) | Changed `useMemo` → `useEffect` in `mobile/app/booking/[id].tsx` for auto-selecting first available date. Added missing `useEffect` import. This was a critical React bug that could cause infinite loops. | 1 file |
+| **Mobile** Missing image accessibility labels | Added `accessibilityLabel` to 3 React Native `<Image>` components in `mobile/app/professional/[id].tsx` (2 images) and `mobile/components/professional/ProfessionalCard.tsx` (1 image). Improves mobile screen reader accessibility. | 2 files |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx` — **0 errors** (7 warnings remain, all in `mobile/` — pre-existing `react-hooks/exhaustive-deps` and `jsx-a11y/alt-text` false positives for React Native).
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 36 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **LOW-3** Missing `not-found.tsx` in subroutes | Added `app/(app)/not-found.tsx` to provide contextual 404 handling for all `(app)` routes that call `notFound()` (e.g., `agendar/[id]`, `profissional/[id]`, `sessao/[bookingId]`, `avaliar/[bookingId]`, `solicitar/[id]`, `agenda/confirmacao/[bookingId]`). Previously these fell back to the root `not-found.tsx`. | 1 file |
+| **CODE_REVIEW_REPORT.md** stale entries | Updated post-audit note: HIGH-2 `force-dynamic` now marked fixed (was stale). MEDIUM-1 `middleware.ts` note updated to include Pass 34 `proxy.ts` rename. `any` in app/ note updated to include Pass 35. Remaining open issues list updated (god files removed, mega-components clarified). | 1 file |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx` — **0 errors, 0 warnings**.
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 35 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **HIGH-1** Excessive `any` types in `app/` (remaining 7) | Replaced 7 remaining `: any` annotations in `app/` with proper types. Exported `CaseItem` interface from `CaseQueueClient.tsx` and used it in `admin/casos/page.tsx` (5 sites) and `disputas/page.tsx` (1 site). Added `BookingOption` interface in `disputas/nova/page.tsx` for dropdown booking items (1 site). All `app/` pages now use explicit types instead of `any`. | 4 files |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx` — **0 errors, 0 warnings**.
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 34 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **Next.js 16.2.4 `middleware.ts` deprecation** | Renamed root `middleware.ts` → `proxy.ts` and changed exported function from `middleware` → `proxy` per Next.js 16.2.4 convention. Updated `next.config.js` comment and `AGENTS.md` reference. Eliminates build deprecation warning: `"The 'middleware' file convention is deprecated. Please use 'proxy' instead."` | 3 files |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx` — **0 errors, 0 warnings**.
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
 
 ---
 

@@ -8,6 +8,25 @@ import { formatMinorUnits } from '@/lib/payments/fees/calculator'
 
 export const metadata = { title: 'Tesouraria | Admin | Muuday' }
 
+interface TreasuryData {
+  currentBalance: string | null
+  currency: string
+  pendingPayoutsTotal: string
+  safetyBuffer: string
+  availableAfterPayouts: string | null
+  isBelowBuffer: boolean | null
+  snapshots: Array<{ at: string; balance: string }>
+  recentSettlements: Array<{
+    stripePayoutId: string
+    amount: string
+    fee: string
+    netAmount: string
+    status: string
+    settlementDate: string
+    createdAt: string
+  }>
+}
+
 export default async function AdminTreasuryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -18,7 +37,7 @@ export default async function AdminTreasuryPage() {
 
   // Fetch treasury data directly (no internal HTTP round-trip)
   const admin = createAdminClient()
-  let data: Record<string, unknown> | null = null
+  let data: TreasuryData | null = null
 
   if (admin) {
     try {
@@ -138,7 +157,7 @@ export default async function AdminTreasuryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {(data.snapshots as Array<{ at: string; balance: string }>).map((s, i) => (
+                    {data.snapshots.map((s, i) => (
                       <tr key={i}>
                         <td className="px-4 py-3 text-slate-500">{new Date(s.at).toLocaleDateString('pt-BR')}</td>
                         <td className="px-4 py-3 text-right font-medium text-slate-900">
@@ -170,7 +189,7 @@ export default async function AdminTreasuryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {(data.recentSettlements as Array<Record<string, unknown>>).map((s, i) => (
+                    {data.recentSettlements.map((s, i) => (
                       <tr key={i}>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{String(s.stripePayoutId).slice(0, 16)}...</td>
                         <td className="px-4 py-3 text-right font-medium text-slate-900">

@@ -114,6 +114,7 @@ export default function ProfessionalDetailScreen() {
             source={{ uri: professional.cover_photo_url }}
             style={{ width, height: width * 0.4 }}
             resizeMode="cover"
+            accessibilityLabel="Foto de capa do profissional"
           />
         ) : (
           <View style={{ width, height: width * 0.3 }} className="bg-primary/10 items-center justify-center">
@@ -132,6 +133,7 @@ export default function ProfessionalDetailScreen() {
                   source={{ uri: avatarUrl }}
                   className="w-20 h-20 rounded-full border-4 border-white -mt-12"
                   resizeMode="cover"
+                  accessibilityLabel="Foto de perfil do profissional"
                 />
               ) : (
                 <View className="w-20 h-20 rounded-full border-4 border-white -mt-12 bg-primary/20 items-center justify-center">

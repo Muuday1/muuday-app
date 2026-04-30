@@ -18,8 +18,10 @@ export default async function AdminAvaliacoesPage({
   if (profile?.role !== 'admin') redirect('/buscar')
 
   const params = await searchParams
-  const status = (params.status as any) || 'all'
-  const sort = (params.sort as any) || 'newest'
+  const validStatuses = ['all', 'pending', 'approved', 'rejected', 'flagged'] as const
+  const validSorts = ['newest', 'flagged', 'lowest_rating', 'longest_comment'] as const
+  const status = validStatuses.includes(params.status as typeof validStatuses[number]) ? params.status as typeof validStatuses[number] : 'all'
+  const sort = validSorts.includes(params.sort as typeof validSorts[number]) ? params.sort as typeof validSorts[number] : 'newest'
 
   const result = await adminListReviewsForModeration({ status, sort, limit: 50 })
 

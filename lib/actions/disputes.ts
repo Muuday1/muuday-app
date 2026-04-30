@@ -106,6 +106,10 @@ export async function getCaseById(
   refund_amount: number | null
   resolved_at: string | null
   created_at: string
+  assigned_to: string | null
+  priority: string
+  sla_deadline: string | null
+  summary: string | null
   reporter_name: string | null
 }>> {
   const { supabase, userId } = await getAuthenticatedUser()

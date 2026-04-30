@@ -9,7 +9,7 @@
 > The following issues from this report have been addressed in cleanup passes:
 > - **HIGH-1 Mobile app unbuildable** → Fixed. Mobile `tsc --noEmit` passes cleanly.
 > - **HIGH-1 Heavy Server Components without Suspense** → Partially mitigated. Console errors removed.
-> - **HIGH-2 `force-dynamic`** → Still present; requires `unstable_cache` migration.
+> - **HIGH-2 `force-dynamic`** → Fixed (Pass 18). Removed redundant `export const dynamic = 'force-dynamic'` from `agenda/page.tsx` and `dashboard/page.tsx`. Both pages are already dynamic via `createClient()` + `redirect()`.
 > - **MEDIUM-1 FormData type errors** → Fixed. TypeScript compiles with zero errors.
 > - **MEDIUM-1 `createAdminClient()` in payment routes** → Documented with security comments + Sentry. Migration to RPC function tracked.
 > - **MEDIUM-2 Missing role check** → Fixed. `profissional` role guard added to `/api/v1/professionals/me`.
@@ -26,7 +26,7 @@
 > - **LOW-2 Empty catch blocks** → Fixed. Critical API routes and booking payment prep now log to Sentry.
 > - **LOW-2 Heavy Third-Party Scripts Without Preconnect** → Fixed. Added `<link rel="preconnect">` + `<link rel="dns-prefetch">` for PostHog, Vercel Insights, and Sentry ingestion origins in `app/layout.tsx`.
 > - **LOW-1 Inconsistent Error Page Coverage** → Partially fixed. Added `loading.tsx` + `error.tsx` to `app/(app)/admin/planos/` and `app/(app)/onboarding-profissional/`.
-> - **MEDIUM-1 `middleware.ts` missing at root** → Fixed. `proxy.ts` was incorrectly named; renamed back to `middleware.ts` so Next.js actually executes it. Restores CSP nonces, CORS, mobile API key validation, session caching, and role-based redirects.
+> - **MEDIUM-1 `middleware.ts` missing at root** → Fixed (Pass 13). `proxy.ts` was incorrectly named; renamed to `middleware.ts` so Next.js actually executes it. Later renamed to `proxy.ts` (Pass 34) per Next.js 16.2.4 convention. Restores CSP nonces, CORS, mobile API key validation, session caching, and role-based redirects.
 >
 > - **MEDIUM-2 TypeScript target outdated** → Fixed. Upgraded to `ES2022`.
 > - **MEDIUM-3 `any[]` in agenda/financeiro pages** → Fixed. Added explicit `AgendaBooking` and `PaymentRow` interfaces; extracted magic-number constants.
@@ -34,7 +34,7 @@
 >
 > - **Pre-existing test failure in availability-engine.test.ts** → Fixed. Added `now?: Date` parameter to `generateRecurringSlotStarts` and `generateRecurrenceSlots` to eliminate date-dependent test flakiness. All 1052 tests now pass.
 > - **2.2 Availability logic duplication** → Fixed. Extracted `extractProfessionalTimezone()` and `loadProfessionalSettings()` (Pass 16), then `parseBookingSlot()` (Pass 17). All duplicated `fromZonedTime` + NaN + window check patterns are now centralized. Offer and reschedule paths now delegate min-notice + max-window to `validateSlotAvailability` instead of checking manually.
-> - **`any` in app/ directory** → Fixed. Zero TypeScript `any` types remain in `app/` (verified with regex search). `lib/auth/layout-session.ts` `user: any` also fixed.
+> - **`any` in app/ directory** → Fixed (Pass 18 + Pass 35). Zero TypeScript `any` types remain in `app/` (verified with regex search). `lib/auth/layout-session.ts` `user: any` also fixed.
 > - **console.error in lib/ services** → Fixed (Pass 17). Replaced 18 `console.error` calls in booking, availability, auth, blog, and action modules with `Sentry.captureException`.
 > - **Unbounded queries** → Fixed (Pass 17). Added `.limit(500)` to blog comments and `.limit(200)` to internal conflict detection.
 > - **`force-dynamic`** → Fixed (Pass 18). Removed redundant `export const dynamic = 'force-dynamic'` from `agenda/page.tsx` and `dashboard/page.tsx` — both pages are already dynamic via `createClient()` + `redirect()`.
@@ -46,7 +46,7 @@
 > - **Pass 27 — Critical route error coverage + env vars + false positive cleanup** → Fixed. Added `loading.tsx` + `error.tsx` to 4 critical routes (`agendar/[id]`, `login`, `cadastro`, `profissional/[id]`). Added `TROLLEY_API_BASE` to `.env.local.example`. Corrected false positive about `IMPLEMENTATION-TRACKER.md` mojibake.
 > - **Pass 28 — Error page coverage + next.config.js security** → Fixed. Added `loading.tsx` + `error.tsx` to `completar-perfil/`, `editar-perfil/`, `editar-perfil-profissional/`. Added `poweredByHeader: false` and Sanity CDN to `next.config.js`.
 >
-> Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5 — blocked on production schema access), `any` types in test files, mega-components.
+> Remaining open issues: DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5 — blocked on production schema access), `any` types in test files, mega-components (Suspense boundaries — medium refactor deferred).
 
 ---
 
