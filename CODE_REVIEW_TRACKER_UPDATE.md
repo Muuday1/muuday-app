@@ -1,8 +1,24 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-30 (Pass 32)
+**Last cleanup pass:** 2026-04-30 (Pass 33)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 33 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **ESLint** `@next/next/no-html-link-for-pages` | Replaced `<a href="/admin/casos">` with `<Link href="/admin/casos">` in `app/(app)/admin/casos/[caseId]/page.tsx`. | 1 file |
+| **`docs/NEXT_STEPS.md`** god-file status | Marked `request-booking-service.ts` and `manage-booking-service.ts` as complete in P3.1 (both under 500 lines). | 1 file |
+
+### Verification
+- `node node_modules/typescript/bin/tsc --noEmit` passes (Exit 0).
+- `node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx` — **0 errors, 0 warnings**.
+- `node node_modules/vitest/vitest.mjs run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
 
 ---
 
