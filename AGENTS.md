@@ -57,4 +57,5 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 - **Build cache**: `.next/cache` is cached between CI runs via `actions/cache`.
 - **Playwright cache**: Browser binaries cached at `~/.cache/ms-playwright`.
 - **Step order**: Fast feedback first — typecheck → lint → encoding check → unit tests → build → E2E.
+- **UTF-8 without BOM**: All TypeScript/JavaScript files must be UTF-8 without BOM. A BOM before `'use server'` can break Next.js/Turbopack Server Action bundling and cause infinite hangs. CI rejects files with BOM (`\xEF\xBB\xBF`).
 - **npm audit**: Runs with `--audit-level=high` on every CI run; fails the build on high+ CVEs.

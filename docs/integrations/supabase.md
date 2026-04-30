@@ -1,6 +1,6 @@
 ﻿# Integration: Supabase
 
-Last updated: 2026-04-17
+Last updated: 2026-04-29
 
 ## Purpose
 
@@ -22,7 +22,7 @@ Primary backend platform for:
 ## Current status
 
 - `Done` for core auth/data operations and wave 1 schema parity set
-- `In progress` for production validation hygiene and DB operation observability
+- `Ongoing` for production validation hygiene and DB operation observability (this is continuous operational work, not a pending implementation)
 
 ## Risks and notes
 

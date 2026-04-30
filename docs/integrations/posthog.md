@@ -1,11 +1,11 @@
 # PostHog Integration
 
-Last updated: 2026-04-01
+Last updated: 2026-04-29
 
 ## Status
 
-- `In progress`: client provider, funnel events, and first feature-flag usage implemented.
-- `Pending`: dashboard creation, retention cohorts, and product analytics review cadence.
+- `Done`: client provider, funnel events, and feature-flag usage implemented.
+- `Pending`: dashboard creation, retention cohorts, and product analytics review cadence (manual UI steps).
 
 ## Files
 

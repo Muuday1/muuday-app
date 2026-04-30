@@ -48,7 +48,7 @@ Required env vars for `audit:rls:api`:
 - Build pipeline: `Done`
 - Typecheck gate: `Done`
 - Lint gate: `Done`
-- Automated integration/e2e tests: `In progress` (Playwright baseline added)
+- Automated integration/e2e tests: `Done (baseline)` — Playwright E2E suite runs in CI; 2 critical-path smoke tests pass in production
 - State machine guard checks: `Done` (`npm run test:state-machines`)
 
 ## Smoke tests to run after deploy

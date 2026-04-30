@@ -1,6 +1,6 @@
 # Inngest Integration
 
-Last updated: 2026-04-02
+Last updated: 2026-04-29
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Durable background-job orchestration for retries, idempotent async workflows, an
 
 ## Status
 
-- `In progress`: provider selected and first non-critical workflow wired.
+- `Done`: provider selected and multiple workflows active (booking reminders, payment webhooks, subscription checks).
 - `Done`: Inngest endpoint at `/api/inngest` with function `sync-booking-reminders` (cron trigger + event trigger).
 - `Done`: production endpoint health check (`https://muuday-app.vercel.app/api/inngest`) returns cloud mode + key detection.
 - `Done`: `/api/inngest` now exposes `PUT` again for deterministic app resync via CLI/CI (`curl -X PUT .../api/inngest --fail-with-body`).
