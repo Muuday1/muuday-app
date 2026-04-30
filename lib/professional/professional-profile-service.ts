@@ -18,7 +18,7 @@ const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
 export const professionalSchema = z.object({
   bio: z.string().trim().min(10, 'Bio muito curta').max(2000, 'Bio muito longa'),
-  category: z.enum(VALID_CATEGORIES, { errorMap: () => ({ message: 'Categoria inválida' }) }),
+  category: z.enum(VALID_CATEGORIES, { message: 'Categoria inválida' }),
   tags: z.string().transform(s => s.split(',').map(t => t.trim()).filter(Boolean)).pipe(
     z.array(z.string().max(50)).max(20, 'Máximo 20 tags')
   ),
@@ -32,7 +32,7 @@ export const professionalSchema = z.object({
 
 export const professionalDraftSchema = z.object({
   professionalId: z.string().uuid(),
-  category: z.enum(VALID_CATEGORIES, { errorMap: () => ({ message: 'Categoria inválida' }) }),
+  category: z.enum(VALID_CATEGORIES, { message: 'Categoria inválida' }),
   bio: z.string().trim().min(10, 'Bio muito curta').max(5000, 'Bio muito longa'),
   tags: z.array(z.string().trim().min(1).max(50)).max(10, 'Limite de tags excedido'),
   languages: z.array(z.string().trim().min(1).max(50)).min(1, 'Selecione pelo menos um idioma').max(10),
@@ -127,7 +127,7 @@ export async function createOrUpdateProfessionalProfile(
 ): Promise<ProfessionalProfileResult> {
   const parsed = professionalSchema.safeParse(raw)
   if (!parsed.success) {
-    const firstError = parsed.error.errors[0]?.message || 'Dados inválidos'
+    const firstError = parsed.error.issues[0]?.message || 'Dados inválidos'
     return { error: firstError }
   }
 
@@ -248,7 +248,7 @@ export async function saveProfessionalProfileDraft(
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message || 'Dados inválidos.' }
+    return { error: parsed.error.issues[0]?.message || 'Dados inválidos.' }
   }
 
   const { data: professional, error: profError } = await getPrimaryProfessionalForUser(
@@ -357,7 +357,7 @@ export async function updateAvailability(
 ): Promise<{ success?: boolean; error?: string }> {
   const parsed = slotsSchema.safeParse(slots)
   if (!parsed.success) {
-    const firstError = parsed.error.errors[0]?.message || 'Dados inválidos'
+    const firstError = parsed.error.issues[0]?.message || 'Dados inválidos'
     return { error: firstError }
   }
 
@@ -526,7 +526,7 @@ export async function saveProfessionalAvailability(
 ): Promise<{ success?: boolean; error?: string; restored?: boolean }> {
   const parsed = availabilityStateSchema.safeParse(availability)
   if (!parsed.success) {
-    const firstError = parsed.error.errors[0]?.message || 'Dados inválidos'
+    const firstError = parsed.error.issues[0]?.message || 'Dados inválidos'
     return { error: firstError }
   }
 
