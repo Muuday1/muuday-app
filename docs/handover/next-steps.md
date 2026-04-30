@@ -50,6 +50,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 | Pass 22 | `console.warn` → Sentry in `lib/` (20+ calls across 17 modules) + `components/` (7 calls) + `app/api/` (1 call) | ✅ Done |
 | Pass 23 | Remove redundant `force-dynamic` (7 pages) + fix `any` types in critical app/ pages (7 files) + last production `console.log` | ✅ Done |
 | Pass 24 | Fix remaining `as any` types in booking flow + app pages (7 files), including data-shape bug in `servicos` | ✅ Done |
+| Pass 25 | Add server-side timeout to `createBooking` (12s via `withTimeout`) | ✅ Done |
 | — | 2.2 Availability logic duplication (orchestration pattern) | ✅ Done — helpers extracted in Passes 16-17 |
 | — | 2.3 God files refactor (request-booking-service, manage-booking-service) | ⏳ Defer to P3 |
 | — | 2.8 Rollbacks without transactions → PostgreSQL RPC | ⏳ Defer to P3.8 |

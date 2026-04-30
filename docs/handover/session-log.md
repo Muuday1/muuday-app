@@ -1559,3 +1559,20 @@ Use this for meaningful checkpoints only.
   - `next build` → 200 static pages, exit 0
   - `vitest run lib/booking/create-booking.test.ts lib/disputes/dispute-service.test.ts` → 63/63 pass
   - Deployed live to https://app.muuday.com (commit `d0487e4`)
+
+
+### Entry 90 (2026-04-29) — Pass 25: Add server-side timeout to createBooking
+- Scope executed:
+  - `lib/actions/booking.ts` — wrapped `executeBookingCreation` call with `withTimeout` (12s, matching booking-hang review P1 recommendation)
+  - On timeout: `Sentry.captureMessage(level: 'error')` with userId/professionalId context, returns PT-BR error: *"A solicitação demorou muito. Verifique sua conexão e tente novamente."*
+  - Slot locks are released safely via `executeBookingCreation`'s `finally` block when the original promise eventually settles (Promise.race does not cancel the underlying promise)
+  - Client-side already had 15s timeout (BookingForm.tsx, added in hang review); server-side timeout now covers the full backend flow
+- Also verified: BOM CI check already exists in `.github/workflows/ci.yml` (line 56) — booking-hang review P1 #6 was completed earlier
+- Files changed: 1
+- Validation:
+  - `tsc --noEmit` → pass (0 errors)
+  - `next build` → 200 static pages, exit 0
+  - `vitest run lib/booking/with-timeout.test.ts` → 4/4 pass
+  - `vitest run lib/booking/create-booking.test.ts` → 18/18 pass
+  - Deployed live to https://app.muuday.com (commit `a919b26`)
+  - `/api/health` → 200 OK
