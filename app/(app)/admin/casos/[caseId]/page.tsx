@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import {
   getCaseById,
@@ -57,9 +58,9 @@ export default async function AdminCaseDetailPage({
     return (
       <div className="p-6 space-y-4">
         <p className="text-red-600">{caseResult.error}</p>
-        <a href="/admin/casos" className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+        <Link href="/admin/casos" className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
           ← Voltar para fila
-        </a>
+        </Link>
       </div>
     )
   }

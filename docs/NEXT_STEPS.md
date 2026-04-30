@@ -6,6 +6,7 @@
 **Build:** 190 pages
 **Mobile:** `tsc --noEmit` passes
 **Status:** Living document — update after every major change
+**Cleanup:** Pass 1–32 complete. Tracker: 43 fixed, 7 partially fixed, 6 still present.
 **Scope:** Every pending task, decision, and dependency across Muuday
 
 > **Rule:** This file is the single source of truth for what comes next. If a task is not here, it is not officially tracked. When you complete a task, move it to the "Recently Closed" section and update the source document(s) it came from.
@@ -314,8 +315,8 @@ These are important but not blocking. Pick up opportunistically.
   - [x] `lib/actions/request-booking.ts` (~~861~~ 164 lines) → extracted to `lib/booking/request-booking-service.ts`
   - [x] `lib/email/resend.ts` (~~897~~ 69 lines) → split to `lib/email/templates/*` + `lib/email/client.ts`
   - [ ] `components/booking/BookingForm.tsx` (1,377 lines) → step components extracted
-  - [ ] `lib/booking/request-booking-service.ts` (767 lines) → extract settings lookup, slot validation, timezone normalization
-  - [ ] `lib/booking/manage-booking-service.ts` → extract settings lookup, slot validation, timezone normalization
+  - [x] `lib/booking/request-booking-service.ts` (~~811~~ **433 lines**) → extracted `acceptRequestBookingService` to `lib/booking/request-booking/accept-request.ts`; `extractProfessionalTimezone`/`loadProfessionalSettings`/`parseBookingSlot` already extracted to shared helpers
+  - [x] `lib/booking/manage-booking-service.ts` (~~944~~ **448 lines**) → extracted `completeBookingService`, `reportProfessionalNoShowService`/`markUserNoShowService`, `listBookingsService`/`getBookingDetailService`, `applyPaymentRefund`, `executeCancelSingleBooking` to dedicated modules
   - [ ] `app/(app)/agenda/page.tsx` → add Suspense boundaries or extract sub-components
   - [ ] `app/(app)/dashboard/page.tsx` → add Suspense boundaries or extract sub-components
 
