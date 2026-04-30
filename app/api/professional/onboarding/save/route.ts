@@ -451,12 +451,16 @@ export async function POST(request: Request) {
       // until the full professional_specialties write path is built.
       const clampedSubcategories = mirrorSubcategories.slice(0, tierLimits.specialties)
       if (clampedSubcategories.length < mirrorSubcategories.length) {
-        console.warn('[onboarding/save][identity] subcategories clamped to tier limit', {
-          professionalId,
-          tier: normalizedTier,
-          limit: tierLimits.specialties,
-          before: mirrorSubcategories.length,
-          after: clampedSubcategories.length,
+        Sentry.captureMessage('[onboarding/save][identity] subcategories clamped to tier limit', {
+          level: 'warning',
+          tags: { area: 'api/onboarding/save', context: 'identity' },
+          extra: {
+            professionalId,
+            tier: normalizedTier,
+            limit: tierLimits.specialties,
+            before: mirrorSubcategories.length,
+            after: clampedSubcategories.length,
+          },
         })
       }
 

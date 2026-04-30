@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { canSendPush, notifTypeToPreferenceKey } from './preferences'
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 let webPush: typeof import('web-push') | null = null
@@ -99,13 +100,13 @@ async function sendToSubscription(
 
       // Client errors (4xx except 404/410) → don't retry
       if (!isRetryableError(err)) {
-        console.warn('[push] Failed to send notification (non-retryable):', statusCode || (err as Error).message)
+        Sentry.captureMessage('[push] Failed to send notification (non-retryable): ' + (statusCode || (err as Error).message), { level: 'warning', tags: { area: 'push/sender' } })
         return false
       }
 
       // Last attempt failed → log and give up
       if (attempt === maxRetries) {
-        console.warn('[push] Failed to send notification after retries:', statusCode || (err as Error).message)
+        Sentry.captureMessage('[push] Failed to send notification after retries: ' + (statusCode || (err as Error).message), { level: 'warning', tags: { area: 'push/sender' } })
         return false
       }
 
@@ -135,7 +136,7 @@ export async function sendPushToUser(
 ): Promise<number> {
   const admin = options?.admin ?? createAdminClient()
   if (!admin) {
-    console.warn('[push] Admin client not available')
+    Sentry.captureMessage('[push] Admin client not available', { level: 'warning', tags: { area: 'push/sender' } })
     return 0
   }
 

@@ -56,7 +56,7 @@ export async function sendUnifiedPush(
 ): Promise<number> {
   const admin = options?.admin ?? createAdminClient()
   if (!admin) {
-    console.warn('[push/unified] Admin client not available')
+    Sentry.captureMessage('[push/unified] Admin client not available', { level: 'warning', tags: { area: 'push/unified' } })
     return 0
   }
 
@@ -169,7 +169,7 @@ async function sendExpoPushes(
           if (errorType === 'DeviceNotRegistered' || errorType === 'InvalidCredentials') {
             await admin.from('push_subscriptions').delete().eq('push_token', token)
           }
-          console.warn('[push/unified] Expo push failed:', ticket.message, errorType)
+          Sentry.captureMessage('[push/unified] Expo push failed: ' + ticket.message + ' ' + errorType, { level: 'warning', tags: { area: 'push/unified' } })
         }
       }
     }

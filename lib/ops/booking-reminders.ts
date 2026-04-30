@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { sendPushToUser } from '@/lib/push/sender'
 
 type ReminderType = 'booking.reminder.24h' | 'booking.reminder.1h' | 'booking.reminder.10m'
@@ -172,7 +173,7 @@ export async function runBookingReminderSync(
       },
       { notifType: n.type, admin },
     ).catch(err => {
-      console.warn('[booking-reminders] push failed:', err)
+      Sentry.captureMessage('[booking-reminders] push failed: ' + (err instanceof Error ? err.message : String(err)), { level: 'warning', tags: { area: 'ops/booking-reminders' } })
     })
   }
 

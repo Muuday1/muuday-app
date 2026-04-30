@@ -424,9 +424,8 @@ describe('runDebtMonitoring', () => {
       { id: 'user-1', first_name: 'Alice', last_name: 'Silva', email: 'alice@test.com' },
     ]
 
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { captureMessage } = await import('@sentry/nextjs')
     await runDebtMonitoring(admin)
-    expect(consoleWarn).toHaveBeenCalled()
-    consoleWarn.mockRestore()
+    expect(captureMessage).toHaveBeenCalled()
   })
 })

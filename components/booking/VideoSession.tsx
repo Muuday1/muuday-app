@@ -253,7 +253,7 @@ export default function VideoSession({
               if (cancelledRef.current) return
               setRemoteStreams(prev => ({ ...prev, [uid]: stream }))
             } catch (err) {
-              console.warn('[VideoSession] subscribe failed for', uid, err)
+              Sentry.captureMessage('[VideoSession] subscribe failed for ' + uid + ': ' + (err instanceof Error ? err.message : String(err)), { level: 'warning', tags: { area: 'video-session', context: 'subscribe' } })
               subscribedUidsRef.current.delete(uid)
             }
           })
@@ -271,7 +271,7 @@ export default function VideoSession({
         unsubscribers.push(
           adapter.onEvent('connectionStateChanged', (state, reason) => {
             if (cancelledRef.current) return
-            console.warn('[VideoSession] connection state:', state, reason)
+            Sentry.captureMessage('[VideoSession] connection state: ' + state + (reason ? ' (' + reason + ')' : ''), { level: 'warning', tags: { area: 'video-session', context: 'connection-state' } })
           })
         )
 

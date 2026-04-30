@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 
 interface QuietHoursConfig {
   enabled: boolean
@@ -75,7 +76,7 @@ export async function isQuietHoursForUser(
       .single()
 
     if (error) {
-      console.warn('[quiet-hours] query error:', error.message)
+      Sentry.captureMessage('[quiet-hours] query error: ' + error.message, { level: 'warning', tags: { area: 'notifications/quiet-hours' } })
       return false
     }
 
@@ -106,7 +107,7 @@ export async function isQuietHoursForUser(
 
     return isQuietHoursNow(quietHours.start, quietHours.end, localNow)
   } catch (e) {
-    console.warn('[quiet-hours] unexpected error:', e)
+    Sentry.captureMessage('[quiet-hours] unexpected error: ' + e, { level: 'warning', tags: { area: 'notifications/quiet-hours' } })
     return false
   }
 }

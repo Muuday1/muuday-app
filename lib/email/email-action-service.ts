@@ -67,7 +67,7 @@ export async function safe<T>(fn: () => Promise<T>, label: string) {
 export function parsePayload<T>(schema: z.ZodSchema<T>, payload: unknown): T | null {
   const parsed = schema.safeParse(payload)
   if (!parsed.success) {
-    console.warn('[email] invalid payload', getValidationError(parsed.error))
+    Sentry.captureMessage('[email] invalid payload ' + getValidationError(parsed.error), { level: 'warning', tags: { area: 'email/action-service' } })
     return null
   }
   return parsed.data

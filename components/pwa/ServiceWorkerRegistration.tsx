@@ -21,10 +21,10 @@ async function syncPushSubscription(registration: ServiceWorkerRegistration) {
     })
 
     if (!res.ok) {
-      console.warn('[SW] Failed to sync push subscription:', res.status)
+      Sentry.captureMessage('[SW] Failed to sync push subscription: ' + res.status, { level: 'warning', tags: { area: 'pwa/service-worker' } })
     }
   } catch (err) {
-    console.warn('[SW] Push subscription sync error:', err)
+    Sentry.captureMessage('[SW] Push subscription sync error: ' + (err instanceof Error ? err.message : String(err)), { level: 'warning', tags: { area: 'pwa/service-worker' } })
   }
 }
 

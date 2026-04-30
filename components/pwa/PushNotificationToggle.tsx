@@ -41,7 +41,7 @@ export function PushNotificationToggle() {
 
   const subscribe = useCallback(async () => {
     if (!VAPID_PUBLIC_KEY) {
-      console.warn('[PushNotificationToggle] VAPID_PUBLIC_KEY not configured')
+      Sentry.captureMessage('[PushNotificationToggle] VAPID_PUBLIC_KEY not configured', { level: 'warning', tags: { area: 'pwa/push-toggle' } })
       return
     }
 
@@ -78,7 +78,7 @@ export function PushNotificationToggle() {
       if (res.ok) {
         setSubscribed(true)
       } else {
-        console.warn('[PushNotificationToggle] Subscribe API failed:', res.status)
+        Sentry.captureMessage('[PushNotificationToggle] Subscribe API failed: ' + res.status, { level: 'warning', tags: { area: 'pwa/push-toggle' } })
       }
     } catch (err) {
       Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {

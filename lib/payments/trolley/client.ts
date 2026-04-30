@@ -226,7 +226,7 @@ export async function processTrolleyBatch(batchId: string): Promise<TrolleyBatch
 export function verifyTWebhookSignature(payload: string, signature: string): boolean {
   const secret = env.TROLLEY_WEBHOOK_SECRET
   if (!secret) {
-    console.warn('[trolley] TROLLEY_WEBHOOK_SECRET not configured, skipping signature verification')
+    Sentry.captureMessage('[trolley] TROLLEY_WEBHOOK_SECRET not configured, skipping signature verification', { level: 'warning', tags: { area: 'payments/trolley' } })
     return true
   }
 
@@ -235,7 +235,7 @@ export function verifyTWebhookSignature(payload: string, signature: string): boo
   const v1Match = signature.match(/v1=([a-f0-9]+)/i)
 
   if (!tMatch || !v1Match) {
-    console.warn('[trolley] Invalid signature format, expected t={timestamp},v1={hex}')
+    Sentry.captureMessage('[trolley] Invalid signature format, expected t={timestamp},v1={hex}', { level: 'warning', tags: { area: 'payments/trolley' } })
     return false
   }
 

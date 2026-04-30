@@ -159,7 +159,7 @@ async function cancelBooking(
       },
       { notifType: 'booking_auto_cancelled', admin },
     ).catch(err => {
-      console.warn('[pending-payment-timeout] push failed:', err)
+      Sentry.captureMessage('[pending-payment-timeout] push failed: ' + err, { level: 'warning', tags: { area: 'ops/pending-payment-timeout' } })
     })
   }
 

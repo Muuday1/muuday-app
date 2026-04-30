@@ -156,7 +156,7 @@ export async function sendMessage(
         { notifType: 'chat_message' },
       )
     } catch (pushErr) {
-      console.warn('[chat] Push notification failed:', pushErr)
+      Sentry.captureMessage('[chat] Push notification failed: ' + pushErr, { level: 'warning', tags: { area: 'chat/service' } })
     }
   })()
 

@@ -123,7 +123,7 @@ async function refreshAccessToken(): Promise<boolean> {
   const clientId = env.REVOLUT_CLIENT_ID
 
   if (!refreshToken || !clientId) {
-    console.warn('[revolut] Cannot refresh: missing refresh_token or client_id')
+    Sentry.captureMessage('[revolut] Cannot refresh: missing refresh_token or client_id', { level: 'warning', tags: { area: 'payments/revolut', context: 'token-refresh' } })
     return false
   }
 
@@ -155,10 +155,11 @@ async function refreshAccessToken(): Promise<boolean> {
       cachedRefreshToken = data.refresh_token
     }
 
-    console.warn(
+    Sentry.captureMessage(
       `[revolut] Token refreshed! Update your env vars:\n` +
         `REVOLUT_API_KEY=${cachedAccessToken}\n` +
-        (data.refresh_token ? `REVOLUT_REFRESH_TOKEN=${cachedRefreshToken}` : '')
+        (data.refresh_token ? `REVOLUT_REFRESH_TOKEN=${cachedRefreshToken}` : ''),
+      { level: 'warning', tags: { area: 'payments/revolut', context: 'token-refresh' } }
     )
 
     return true
@@ -297,7 +298,7 @@ export async function getTreasuryBalance(): Promise<{
 } | null> {
   const accountId = env.REVOLUT_ACCOUNT_ID
   if (!accountId) {
-    console.warn('[revolut] REVOLUT_ACCOUNT_ID not configured')
+    Sentry.captureMessage('[revolut] REVOLUT_ACCOUNT_ID not configured', { level: 'warning', tags: { area: 'payments/revolut', context: 'treasury-balance' } })
     return null
   }
 
@@ -331,12 +332,12 @@ export async function getTreasuryBalance(): Promise<{
 export function verifyRevolutWebhookSignature(payload: string, signature: string, timestamp: string | null): boolean {
   const secret = env.REVOLUT_WEBHOOK_SECRET
   if (!secret) {
-    console.warn('[revolut] REVOLUT_WEBHOOK_SECRET not configured, skipping verification')
+    Sentry.captureMessage('[revolut] REVOLUT_WEBHOOK_SECRET not configured, skipping verification', { level: 'warning', tags: { area: 'payments/revolut', context: 'webhook-verification' } })
     return true
   }
 
   if (!timestamp) {
-    console.warn('[revolut] Missing Revolut-Request-Timestamp header')
+    Sentry.captureMessage('[revolut] Missing Revolut-Request-Timestamp header', { level: 'warning', tags: { area: 'payments/revolut', context: 'webhook-verification' } })
     return false
   }
 
@@ -355,7 +356,7 @@ export function verifyRevolutWebhookSignature(payload: string, signature: string
   }).filter(Boolean) as string[]
 
   if (signatures.length === 0) {
-    console.warn('[revolut] Invalid signature format, expected v1=hex_hmac')
+    Sentry.captureMessage('[revolut] Invalid signature format, expected v1=hex_hmac', { level: 'warning', tags: { area: 'payments/revolut', context: 'webhook-verification' } })
     return false
   }
 

@@ -213,7 +213,7 @@ async function insertNoShowNotification(
     },
     { notifType: 'booking_no_show_detected', admin },
   ).catch(err => {
-    console.warn('[no-show-detection] push failed:', err)
+    Sentry.captureMessage('[no-show-detection] push failed: ' + err, { level: 'warning', tags: { area: 'ops/no-show-detection' } })
   })
 }
 

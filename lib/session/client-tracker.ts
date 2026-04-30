@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs'
+
 /**
  * Client-side helper to emit session lifecycle events.
  * Thin wrapper around fetch to POST /api/sessao/event.
@@ -26,10 +28,10 @@ export async function emitSessionEvent(
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      console.warn('[clientTracker] Event rejected:', eventType, body.error || res.status)
+      Sentry.captureMessage('[clientTracker] Event rejected: ' + eventType + ' ' + (body.error || res.status), { level: 'warning', tags: { area: 'session/client-tracker' } })
     }
   } catch (err) {
     // Silent fail — telemetry must never break the UX
-    console.warn('[clientTracker] Event failed:', eventType, err)
+    Sentry.captureMessage('[clientTracker] Event failed: ' + eventType + ' ' + err, { level: 'warning', tags: { area: 'session/client-tracker' } })
   }
 }

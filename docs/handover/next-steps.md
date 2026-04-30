@@ -47,6 +47,7 @@ Execute in order. Keep changes batchable, validated, and documented.
 | Pass 19 | `console.error` → Sentry in `lib/` (80+ calls across 38 modules) | ✅ Done |
 | Pass 20 | `console.error` → Sentry in `app/api/` (39 calls across 19 routes) | ✅ Done |
 | Pass 21 | `console.error` → Sentry in `app/(app)/` pages + `components/` (16 calls) | ✅ Done |
+| Pass 22 | `console.warn` → Sentry in `lib/` (20+ calls across 17 modules) + `components/` (7 calls) + `app/api/` (1 call) | ✅ Done |
 | — | 2.2 Availability logic duplication (orchestration pattern) | ⏳ Pending |
 | — | 2.3 God files refactor (request-booking-service, manage-booking-service) | ⏳ Defer to P3 |
 | — | 2.8 Rollbacks without transactions → PostgreSQL RPC | ⏳ Defer to P3.8 |

@@ -132,8 +132,7 @@ function reportMemoryFallback(options: RateLimitOptions) {
   alertStore.set(preset, now)
 
   const message = `[rate-limit] Upstash unavailable; using in-memory fallback for preset="${preset}" (non-persistent across cold starts).`
-  console.warn(message)
-  Sentry.captureMessage('rate_limit_fallback_memory_active', {
+  Sentry.captureMessage(message, {
     level: 'warning',
     tags: {
       area: 'rate_limit',

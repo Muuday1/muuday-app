@@ -449,7 +449,7 @@ export async function recordSubscriptionPayment(
     .maybeSingle()
 
   if (!sub) {
-    console.warn('[subscription/manager] no subscription found for payment:', stripeSubscriptionId)
+    Sentry.captureMessage('[subscription/manager] no subscription found for payment: ' + stripeSubscriptionId, { level: 'warning', tags: { area: 'payments/subscription' } })
     return
   }
 
@@ -497,7 +497,7 @@ export async function recordSubscriptionPaymentFailure(
     .maybeSingle()
 
   if (!sub) {
-    console.warn('[subscription/manager] no subscription found for failure:', stripeSubscriptionId)
+    Sentry.captureMessage('[subscription/manager] no subscription found for failure: ' + stripeSubscriptionId, { level: 'warning', tags: { area: 'payments/subscription' } })
     return
   }
 

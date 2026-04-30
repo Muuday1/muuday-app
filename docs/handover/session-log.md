@@ -1467,3 +1467,49 @@ Use this for meaningful checkpoints only.
 ---
 
 > **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+
+
+### Entry 63 (2026-04-29) — Pass 22: console.warn → Sentry cleanup
+
+- Scope: replaced all production-facing `console.warn` calls with `Sentry.captureMessage(level: 'warning')` across `lib/`, `components/`, and `app/api/`.
+- Files changed (24 total):
+  - `lib/payments/revolut/client.ts` — 6 calls (token refresh, missing config, webhook verification)
+  - `lib/payments/trolley/client.ts` — 2 calls (missing secret, invalid signature)
+  - `lib/payments/debt/monitor.ts` — 1 call (threshold exceeded, with `extra` metadata)
+  - `lib/payments/subscription/manager.ts` — 2 calls (missing subscription for payment/failure)
+  - `lib/push/sender.ts` — 1 call (admin client unavailable; dev-only warning at line 166 left intact)
+  - `lib/push/preferences.ts` — 2 calls (query/unexpected errors)
+  - `lib/push/unified-sender.ts` — 2 calls (admin unavailable, Expo push failed)
+  - `lib/session/client-tracker.ts` — 2 calls (event rejected/failed)
+  - `lib/email/resend-events.ts` — 2 calls (event failed/error)
+  - `lib/email/email-action-service.ts` — 1 call (invalid payload)
+  - `lib/chat/chat-service.ts` — 1 call (push notification failed)
+  - `lib/ops/booking-reminders.ts` — 1 call (push failed)
+  - `lib/ops/pending-payment-timeout.ts` — 1 call (push failed)
+  - `lib/ops/no-show-detection.ts` — 1 call (push failed)
+  - `lib/notifications/quiet-hours.ts` — 2 calls (query/unexpected errors)
+  - `lib/config/app-url.ts` — 1 call (missing APP_BASE_URL)
+  - `lib/security/rate-limit.ts` — removed redundant `console.warn` (Sentry.captureMessage already present)
+  - `components/agenda/ProfessionalAvailabilityWorkspace.tsx` — 1 call (recompute-visibility failed)
+  - `components/booking/VideoSession.tsx` — 2 calls (subscribe failed, connection state)
+  - `components/pwa/ServiceWorkerRegistration.tsx` — 2 calls (sync failed/error)
+  - `components/pwa/PushNotificationToggle.tsx` — 2 calls (VAPID not configured, subscribe API failed)
+  - `app/api/professional/onboarding/save/route.ts` — 1 call (subcategories clamped to tier limit)
+- Test updates:
+  - `lib/payments/debt/monitor.test.ts` — switched from `vi.spyOn(console, 'warn')` to Sentry mock
+  - `lib/payments/subscription/manager.test.ts` — added Sentry mock, switched 2 tests from console.warn spy
+- Intentionally left untouched (all development-only or pre-Sentry):
+  - `lib/analytics/server-events.ts` (`NODE_ENV !== 'production'`)
+  - `lib/supabase/server.ts` (`NODE_ENV === 'development'`)
+  - `lib/supabase/api-client.ts` (`NODE_ENV === 'development'`)
+  - `lib/email/client.ts` (`NODE_ENV !== 'production'`)
+  - `lib/push/sender.ts` line 166 (`NODE_ENV !== 'production'`)
+  - `lib/booking/creation/logging.ts` (`NODE_ENV === 'development'`, plus Sentry.captureMessage already follows)
+  - `lib/config/env.ts` (startup validation before Sentry init)
+- Validation:
+  - `tsc --noEmit` → pass
+  - `vitest run` (relevant test files: 104 tests across 8 files) → all pass
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
