@@ -1,8 +1,42 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-29 (Pass 28)
+**Last cleanup pass:** 2026-04-30 (Pass 29–30)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 30 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **2.3** God file `manage-booking-service.ts` | Extracted `completeBookingService` → `lib/booking/completion/complete-booking.ts`; `reportProfessionalNoShowService` + `markUserNoShowService` → `lib/booking/no-show/report-no-show.ts`; `listBookingsService` + `getBookingDetailService` → `lib/booking/query/booking-queries.ts`. File now **448 lines** (was 944). | 4 files |
+| **Stale tracker entries** | Corrected 3.9, 3.10, 3.11 status from 🔴 STILL PRESENT to 🟢 FIXED (were resolved in Pass 1/Pass 27). Corrected OnboardingTrackerModal `c5_availability_calendar` gap status (was removed from `UI_STAGE_ORDER` in constants.ts and ProfessionalOnboardingCard.tsx). | `CODE_REVIEW_TRACKER_UPDATE.md` |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
+
+## Cleanup Pass 29 — 2026-04-30
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **2.3** God file `manage-booking-service.ts` | Extracted `applyPaymentRefund` → `lib/booking/cancellation/apply-refund.ts` (already existed, moved import); `executeCancelSingleBooking` → `lib/booking/cancellation/execute-cancel.ts`; `ManageBookingResult` type → `lib/booking/types.ts` (single source of truth). Updated all imports across actions, api-client, tests. File now **761 lines** (was 944). | 7 files |
+| **OnboardingTrackerModal** stage gap | Removed `c5_availability_calendar` from `UI_STAGE_ORDER` in `components/dashboard/onboarding-tracker/constants.ts` and `ProfessionalOnboardingCard.tsx`. Deleted unused `availability-stage.tsx`. Modal no longer renders empty stage. | 5 files |
+| **Agenda page** dead code | Removed unused imports (`ProfessionalAgendaPage`, `normalizeProfessionalSettingsRow`) and unbound variable declarations (`overviewCalendarBookings`, `calendarIntegration*` etc.). | 1 file |
+| **LOW-1** Inconsistent error page coverage | Added `loading.tsx` + `error.tsx` to `admin/casos/`, `admin/finance/`, `configuracoes/notificacoes/`. | 6 files |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run --exclude 'mobile/**'` — **1052/1052 pass** (0 failures).
+
+---
 
 ## Cleanup Pass 28 — 2026-04-29
 
@@ -353,57 +387,34 @@ API routes with dedicated tests include: push subscribe/unsubscribe, stripe chec
 ---
 
 ### 3.9 E2E tests duplicam função de login
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED** (Cleanup Pass 1)
 
-Each E2E spec file has **its own login helper**:
+All login helpers consolidated into `tests/e2e/helpers.ts`:
+- `login(page, email, password, opts)`
+- `loginAsUser(page)`
+- `loginAsAdmin(page)`
+- `loginViaApi(request)`
 
-| Spec File | Login Helper | Pattern |
-|-----------|--------------|---------|
-| `api-v1-smoke.spec.ts` | `loginViaApi()` | Direct Supabase auth API call (`/auth/v1/token?grant_type=password`) |
-| `booking-critical.spec.ts` | `login(page)` | UI automation (fill email/password, click submit) |
-| `payments-engine.spec.ts` | `loginAsAdmin(page)` | UI automation with admin credentials |
-| `professional-workspace.spec.ts` | `login(page)` | UI automation (similar to booking-critical) |
-| `wave2-onboarding-gates.spec.ts` | *(not checked)* | Likely another variant |
-
-**Impact:** Login logic maintenance is multiplied across 4+ different implementations. A UI change to the login form requires updating multiple specs.
+All 5 spec files now import from the shared module.
 
 ---
 
 ### 3.10 Selectors de E2E em português hardcoded
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED** (Cleanup Pass 1 / Pass 27)
 
-Hardcoded Portuguese text found in selectors:
-
-| File | Selector |
-|------|----------|
-| `booking-critical.spec.ts` | `page.getByRole('button', { name: 'Aceitar' })` |
-| `booking-critical.spec.ts` | `page.getByText(/muitas tentativas|tente novamente|aguarde/i)` |
-| `payments-engine.spec.ts` | `page.getByRole('button', { name: 'Aceitar' })` |
-| `professional-workspace.spec.ts` | `page.getByRole('button', { name: /Aceitar/i })` |
-| `professional-workspace.spec.ts` | `page.getByRole('button', { name: /Fechar/i })` |
-| `professional-workspace.spec.ts` | `page.locator('[role="dialog"][aria-label*="cookies" i] button[aria-label="Fechar"]')` |
-
-**Impact:** If copy changes (e.g., "Aceitar" → "Concordar"), E2E tests break.
+Replaced hardcoded Portuguese selectors with `data-testid` attributes:
+- `CookieConsentRoot`: `cookie-accept`, `cookie-close`
+- `LoginForm`: `login-error`, `data-error-type`
+- E2E specs updated to use `data-testid` instead of text selectors.
 
 ---
 
 ### 3.11 playwright.config.ts faz parsing próprio de .env
-**Status:** 🔴 **STILL PRESENT**
+**Status:** 🟢 **FIXED** (Cleanup Pass 1)
 
-Both `playwright.config.ts` and `tests/e2e/global-setup.ts` parse `.env.local` manually:
-
-```ts
-const eqIdx = trimmed.indexOf('=')
-const key = trimmed.slice(0, eqIdx)
-const value = trimmed.slice(eqIdx + 1)
-```
-
-**Bugs:**
-1. Values containing `=` are truncated at the **first** `=`. Example: `MY_KEY=a=b` becomes `value = "a"` instead of `a=b`.
-2. Quoted values are not unquoted. Example: `MY_KEY="hello world"` retains the quotes.
-3. Empty values (`MY_KEY=`) are not handled correctly.
-
-**Fix:** Use `dotenv` or `dotenv-expand` instead of manual parsing.
+Replaced manual `indexOf('=')` parsing with `dotenv.config()` in both:
+- `playwright.config.ts`
+- `tests/e2e/global-setup.ts`
 
 ---
 
@@ -612,12 +623,12 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | Category | Fixed | Partially Fixed | Still Present | Not Verified |
 |----------|-------|-----------------|---------------|--------------|
 | Segurança | 16 | 1 | 1 | 0 |
-| Arquitetura | 2 | 4 | 3 | 0 |
-| DevOps/CI | 9 | 1 | 3 | 0 |
+| Arquitetura | 2 | 5 | 2 | 0 |
+| DevOps/CI | 12 | 1 | 0 | 0 |
 | Performance | 2 | 1 | 2 | 0 |
 | Documentação | 1 | 0 | 6 | 0 |
-| **NEW ISSUES** | — | — | **8** | — |
-| **TOTAL** | **31** | **7** | **23** | **0** |
+| **NEW ISSUES** | — | — | **4** | — |
+| **TOTAL** | **34** | **8** | **15** | **0** |
 
 ---
 
@@ -628,7 +639,7 @@ If step 3 or 4 fails after steps 1 and 2 succeed, the professional is left with 
 | 1.4 Public pages use admin client | 🟢 FIXED | `createClient()` used in all public pages |
 | 1.5 Client-side Supabase mutations | 🟢 FIXED | All 7 components now use server actions; `updateProfileField` has server-side whitelist + rate limit |
 | 2.2 Availability logic duplication | 🔴 STILL PRESENT | Same 4-line patterns copied across 3+ booking files |
-| 2.3 God files | 🔴 STILL PRESENT | `request-booking-service.ts` (811 lines), `manage-booking-service.ts` (944 lines) |
+| 2.3 God files | 🟡 PARTIALLY FIXED | `manage-booking-service.ts` **448 lines** (was 944; extracted completion, no-show, query services). `request-booking-service.ts` **771 lines** (still needs extraction) |
 | 2.5 Supabase generated types | 🟡 PARTIALLY FIXED | `db:gen-types` script added; `types/supabase-generated.ts` created; clients still untyped |
 | 2.6 BookingStatus duplicated | 🟢 FIXED | `types/index.ts` is a pure re-export of `lib/booking/types.ts` |
 | 2.8 Rollbacks without transactions | 🔴 STILL PRESENT | Manual rollback in 3 files; no DB transactions |
