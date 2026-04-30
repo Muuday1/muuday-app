@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { inngest } from '@/inngest/client'
 import type { CalendarProvider } from '@/lib/calendar/types'
 
@@ -30,10 +31,7 @@ export async function enqueueBookingCalendarSync(payload: BookingCalendarSyncPay
     })
     return true
   } catch (error) {
-    console.error('[calendar-sync] failed to enqueue booking sync event', {
-      payload,
-      error: error instanceof Error ? error.message : String(error),
-    })
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'calendar_sync', subArea: 'enqueue_booking_sync' } })
     return false
   }
 }
@@ -51,10 +49,7 @@ export async function enqueueCalendarBusyPoll(payload: BusyPollPayload = {}) {
     })
     return true
   } catch (error) {
-    console.error('[calendar-sync] failed to enqueue integration poll event', {
-      payload,
-      error: error instanceof Error ? error.message : String(error),
-    })
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'calendar_sync', subArea: 'enqueue_busy_poll' } })
     return false
   }
 }

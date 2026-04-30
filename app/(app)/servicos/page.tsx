@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { getProfessionalServices } from '@/lib/actions/professional-services'
-import { ProfessionalServicesManager } from '@/components/professional/ProfessionalServicesManager'
+import { ProfessionalServicesManager, type Service } from '@/components/professional/ProfessionalServicesManager'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
 export default async function ServicosPage() {
@@ -21,7 +21,7 @@ export default async function ServicosPage() {
   if (!professional) redirect('/completar-perfil')
 
   const servicesResult = await getProfessionalServices(professional.id)
-  const services = servicesResult.success ? servicesResult.data : []
+  const services = servicesResult.success ? servicesResult.data.services : []
 
   return (
     <PageContainer maxWidth="md">
@@ -31,7 +31,7 @@ export default async function ServicosPage() {
       />
       <ProfessionalServicesManager
         professionalId={professional.id}
-        initialServices={services as any[]}
+        initialServices={services as Service[]}
       />
     </PageContainer>
   )

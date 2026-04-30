@@ -255,7 +255,7 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single()
     if (profileError) {
-      console.error('[middleware] profile role query error:', profileError.message)
+      Sentry.captureException(profileError, { tags: { area: 'middleware', subArea: 'profile_role_query' } })
     }
     cachedRole = normalizeProfileRole(profile?.role) ?? null
     return cachedRole

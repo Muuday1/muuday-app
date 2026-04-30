@@ -1,6 +1,6 @@
 ﻿# Integration: Upstash Rate Limiting
 
-Last updated: 2026-03-29
+Last updated: 2026-04-29
 
 ## Purpose
 
@@ -18,9 +18,9 @@ Protect API routes and server actions against abuse.
 
 ## Current status
 
-- `In progress`
-- Core limiter and presets are implemented.
-- Production behavior quality depends on Upstash env configuration.
+- `Done (active)`
+- 20+ rate-limit presets are implemented and active in production.
+- Upstash env vars are configured in production.
 
 ## Risks
 

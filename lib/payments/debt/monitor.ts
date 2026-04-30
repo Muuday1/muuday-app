@@ -5,6 +5,7 @@
  * Integrated into payout batch creation to block over-indebted professionals.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/lib/config/env'
 
@@ -56,7 +57,7 @@ export async function checkDebtThresholds(
     .order('total_debt', { ascending: false })
 
   if (error) {
-    console.error('[debt/monitor] failed to check debt thresholds:', error.message)
+    Sentry.captureException(error, { tags: { area: 'debt_monitor' } })
     return []
   }
 
@@ -124,12 +125,16 @@ export async function alertAdminOnDebtThreshold(
   const nowIso = new Date().toISOString()
 
   for (const alert of alerts) {
-    console.warn('[debt/monitor] THRESHOLD EXCEEDED:', {
-      professionalId: alert.professionalId,
-      name: alert.professionalName,
-      totalDebt: alert.totalDebt.toString(),
-      threshold: alert.threshold.toString(),
-      exceededBy: alert.exceededBy.toString(),
+    Sentry.captureMessage('[debt/monitor] THRESHOLD EXCEEDED', {
+      level: 'warning',
+      tags: { area: 'payments/debt', context: 'threshold-exceeded' },
+      extra: {
+        professionalId: alert.professionalId,
+        name: alert.professionalName,
+        totalDebt: alert.totalDebt.toString(),
+        threshold: alert.threshold.toString(),
+        exceededBy: alert.exceededBy.toString(),
+      },
     })
 
     // Create admin notification (inserted into notifications table for admin users)

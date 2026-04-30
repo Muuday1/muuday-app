@@ -12,6 +12,18 @@ import { NotificationRealtimeListener } from '@/components/notifications/Notific
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 
+interface NotificationItem {
+  id: string
+  booking_id: string | null
+  type: string
+  title: string | null
+  body: string | null
+  payload: unknown
+  read_at: string | null
+  created_at: string
+  action_url: string | null
+}
+
 function ctaLabel(type: string): string {
   switch (type) {
     case 'session_reminder':
@@ -36,12 +48,12 @@ function ctaLabel(type: string): string {
   }
 }
 
-function groupNotificationsByDate(notifications: any[]) {
-  const groups: { label: string; items: any[] }[] = []
-  const today: any[] = []
-  const yesterday: any[] = []
-  const thisWeek: any[] = []
-  const older: any[] = []
+function groupNotificationsByDate(notifications: NotificationItem[]) {
+  const groups: { label: string; items: NotificationItem[] }[] = []
+  const today: NotificationItem[] = []
+  const yesterday: NotificationItem[] = []
+  const thisWeek: NotificationItem[] = []
+  const older: NotificationItem[] = []
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
 
@@ -88,7 +100,7 @@ export default async function NotificacoesPage({
     category: activeTab === 'bookings' || activeTab === 'system' ? activeTab : undefined,
   })
 
-  const notifications = result.success ? result.data.notifications : []
+  const notifications = result.success ? (result.data.notifications as NotificationItem[]) : []
   const groups = groupNotificationsByDate(notifications)
 
   return (
@@ -141,7 +153,7 @@ export default async function NotificacoesPage({
                   {group.label}
                 </h3>
                 <div className="space-y-2">
-                  {group.items.map((n: any) => (
+                  {group.items.map((n: NotificationItem) => (
                     <div
                       key={n.id}
                       className={`flex items-start gap-3 rounded-lg border p-4 transition ${

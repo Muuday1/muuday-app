@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, BellOff, BellRing, Loader2, Send } from 'lucide-react'
 
@@ -40,7 +41,7 @@ export function PushNotificationToggle() {
 
   const subscribe = useCallback(async () => {
     if (!VAPID_PUBLIC_KEY) {
-      console.warn('[PushNotificationToggle] VAPID_PUBLIC_KEY not configured')
+      Sentry.captureMessage('[PushNotificationToggle] VAPID_PUBLIC_KEY not configured', { level: 'warning', tags: { area: 'pwa/push-toggle' } })
       return
     }
 
@@ -77,10 +78,12 @@ export function PushNotificationToggle() {
       if (res.ok) {
         setSubscribed(true)
       } else {
-        console.warn('[PushNotificationToggle] Subscribe API failed:', res.status)
+        Sentry.captureMessage('[PushNotificationToggle] Subscribe API failed: ' + res.status, { level: 'warning', tags: { area: 'pwa/push-toggle' } })
       }
     } catch (err) {
-      console.error('[PushNotificationToggle] Subscribe error:', err)
+      Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+        tags: { area: 'push_notification_toggle', context: 'subscribe' },
+      })
     } finally {
       setLoading(false)
     }
@@ -103,7 +106,9 @@ export function PushNotificationToggle() {
 
       setSubscribed(false)
     } catch (err) {
-      console.error('[PushNotificationToggle] Unsubscribe error:', err)
+      Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+        tags: { area: 'push_notification_toggle', context: 'unsubscribe' },
+      })
     } finally {
       setLoading(false)
     }

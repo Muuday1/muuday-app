@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 function normalizeRole(value: unknown): string | null {
@@ -42,7 +43,7 @@ export async function completeAccountService(
     .maybeSingle()
 
   if (profileError) {
-    console.error('[complete-account] profile query error:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'complete_account' } })
   }
 
   const currentRole = normalizeRole(currentProfile?.role)

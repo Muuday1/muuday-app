@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
@@ -32,7 +33,7 @@ export async function respondToReviewService(
     .maybeSingle()
 
   if (reviewError) {
-    console.error('[review-response] review query error:', reviewError.message)
+    Sentry.captureException(reviewError, { tags: { area: 'review_response' } })
   }
 
   if (!review) {

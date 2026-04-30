@@ -8,7 +8,7 @@ export default function Error({
   reset: () => void
 }) {
   return (
-    <div className="flex items-center justify-center min-h-[60vh] p-6">
+    <div className="flex items-center justify-center min-h-screen p-6">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 bg-red-50 rounded-lg flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">⚠️</span>
@@ -17,7 +17,7 @@ export default function Error({
           Algo deu errado
         </h2>
         <p className="text-slate-500 text-sm mb-6">
-          Ocorreu um erro inesperado ao carregar o agendamento. Tente novamente.
+          Ocorreu um erro ao carregar o agendamento. Tente novamente.
         </p>
         <button
           onClick={reset}

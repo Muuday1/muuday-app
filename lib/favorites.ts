@@ -1,10 +1,12 @@
+import * as Sentry from '@sentry/nextjs'
+import { isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 export async function getFavoriteIds(): Promise<string[]> {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
-    console.error('[favorites] auth error:', authError.message)
+  if (authError && !isAuthSessionMissingError(authError)) {
+    Sentry.captureException(authError, { tags: { area: 'favorites' } })
   }
   if (!user) return []
 
@@ -14,7 +16,7 @@ export async function getFavoriteIds(): Promise<string[]> {
     .eq('user_id', user.id)
 
   if (error) {
-    console.error('[favorites] getFavoriteIds query error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'favorites' } })
   }
 
   return data?.map(f => f.professional_id) || []
@@ -23,8 +25,8 @@ export async function getFavoriteIds(): Promise<string[]> {
 export async function toggleFavorite(professionalId: string): Promise<boolean> {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
-    console.error('[favorites] auth error:', authError.message)
+  if (authError && !isAuthSessionMissingError(authError)) {
+    Sentry.captureException(authError, { tags: { area: 'favorites' } })
   }
   if (!user) return false
 
@@ -36,7 +38,7 @@ export async function toggleFavorite(professionalId: string): Promise<boolean> {
     .single()
 
   if (existingError && !existingError.message?.includes('0 rows')) {
-    console.error('[favorites] toggleFavorite query error:', existingError.message)
+    Sentry.captureException(existingError, { tags: { area: 'favorites' } })
   }
 
   if (existing) {
@@ -45,7 +47,7 @@ export async function toggleFavorite(professionalId: string): Promise<boolean> {
       .delete()
       .eq('id', existing.id)
     if (deleteError) {
-      console.error('[favorites] delete error:', deleteError.message)
+      Sentry.captureException(deleteError, { tags: { area: 'favorites' } })
     }
     return false // removed
   } else {
@@ -53,7 +55,7 @@ export async function toggleFavorite(professionalId: string): Promise<boolean> {
       .from('favorites')
       .insert({ user_id: user.id, professional_id: professionalId })
     if (insertError) {
-      console.error('[favorites] insert error:', insertError.message)
+      Sentry.captureException(insertError, { tags: { area: 'favorites' } })
     }
     return true // added
   }
@@ -62,8 +64,8 @@ export async function toggleFavorite(professionalId: string): Promise<boolean> {
 export async function isFavorited(professionalId: string): Promise<boolean> {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
-    console.error('[favorites] auth error:', authError.message)
+  if (authError && !isAuthSessionMissingError(authError)) {
+    Sentry.captureException(authError, { tags: { area: 'favorites' } })
   }
   if (!user) return false
 
@@ -75,7 +77,7 @@ export async function isFavorited(professionalId: string): Promise<boolean> {
     .single()
 
   if (error && !error.message?.includes('0 rows')) {
-    console.error('[favorites] isFavorited query error:', error.message)
+    Sentry.captureException(error, { tags: { area: 'favorites' } })
   }
 
   return !!data

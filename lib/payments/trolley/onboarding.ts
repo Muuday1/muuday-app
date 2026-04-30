@@ -14,6 +14,7 @@
  * MVP: PayPal-only. Bank transfer in future phase.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createTrolleyRecipient, getTrolleyRecipient } from './client'
@@ -112,7 +113,7 @@ export async function createProfessionalTrolleyRecipient(
 
     if (insertError) {
       // Try to clean up Trolley recipient? (best effort)
-      console.error('[trolley/onboarding] Failed to insert local record:', insertError.message)
+      Sentry.captureException(insertError, { tags: { area: 'trolley_onboarding', subArea: 'insert_recipient' } })
       return {
         success: false,
         error: `Failed to save recipient locally: ${insertError.message}`,
@@ -128,7 +129,7 @@ export async function createProfessionalTrolleyRecipient(
     }
   } catch (apiError) {
     const errorMsg = apiError instanceof Error ? apiError.message : String(apiError)
-    console.error('[trolley/onboarding] Trolley API error:', errorMsg)
+    Sentry.captureException(apiError instanceof Error ? apiError : new Error(errorMsg), { tags: { area: 'trolley_onboarding', subArea: 'api' } })
     return { success: false, error: `Trolley API error: ${errorMsg}` }
   }
 }

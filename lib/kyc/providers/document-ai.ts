@@ -12,6 +12,7 @@
  */
 
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai'
+import * as Sentry from '@sentry/nextjs'
 import type { OcrExtractedField, OcrResult, OcrProvider } from '../types'
 
 const PROVIDER: OcrProvider = 'document-ai'
@@ -94,7 +95,7 @@ export async function analyzeDocumentWithDocumentAI(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.error('[kyc/document-ai] Error:', message)
+    Sentry.captureException(error instanceof Error ? error : new Error(message), { tags: { area: 'kyc', subArea: 'document_ai' } })
     return {
       provider: PROVIDER,
       status: 'failed',

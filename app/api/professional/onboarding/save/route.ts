@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 
@@ -402,10 +403,9 @@ export async function POST(request: Request) {
         .maybeSingle()
       if (previousProfessionalError) {
         // Backup row is best-effort. We should not block save when this read fails.
-        console.error('[onboarding-save] could not read previous professionals row', {
-          professionalId,
-          message: previousProfessionalError.message,
-          code: previousProfessionalError.code,
+        Sentry.captureException(previousProfessionalError, {
+          tags: { area: 'onboarding_save', context: 'read-previous-professionals' },
+          extra: { professionalId },
         })
       }
 
@@ -451,12 +451,16 @@ export async function POST(request: Request) {
       // until the full professional_specialties write path is built.
       const clampedSubcategories = mirrorSubcategories.slice(0, tierLimits.specialties)
       if (clampedSubcategories.length < mirrorSubcategories.length) {
-        console.warn('[onboarding/save][identity] subcategories clamped to tier limit', {
-          professionalId,
-          tier: normalizedTier,
-          limit: tierLimits.specialties,
-          before: mirrorSubcategories.length,
-          after: clampedSubcategories.length,
+        Sentry.captureMessage('[onboarding/save][identity] subcategories clamped to tier limit', {
+          level: 'warning',
+          tags: { area: 'api/onboarding/save', context: 'identity' },
+          extra: {
+            professionalId,
+            tier: normalizedTier,
+            limit: tierLimits.specialties,
+            before: mirrorSubcategories.length,
+            after: clampedSubcategories.length,
+          },
         })
       }
 
@@ -515,10 +519,9 @@ export async function POST(request: Request) {
         .eq('id', professionalId)
 
       if (professionalError) {
-        console.error('[onboarding/save][identity] professionals mirror update failed', {
-          professionalId,
-          message: professionalError.message,
-          code: professionalError.code,
+        Sentry.captureException(professionalError, {
+          tags: { area: 'onboarding_save', context: 'professionals-mirror-update' },
+          extra: { professionalId },
         })
       }
 
@@ -549,12 +552,9 @@ export async function POST(request: Request) {
       const { error: appError } = await upsertProfessionalApplicationWithFallback(db, appPayload)
 
       if (appError) {
-        console.error('[onboarding/save][identity] professional_applications upsert failed', {
-          professionalId,
-          userId,
-          code: appError.code,
-          message: appError.message,
-          details: appError.details,
+        Sentry.captureException(appError, {
+          tags: { area: 'onboarding_save', context: 'professional_applications-upsert' },
+          extra: { professionalId, userId },
         })
 
         if (previousProfessionalRow && !previousProfessionalError) {
@@ -834,10 +834,9 @@ export async function POST(request: Request) {
         .eq('professional_id', professionalId)
       if (previousAvailabilityError) {
         // Backup rows are best-effort. We should not block save when this read fails.
-        console.error('[onboarding-save] could not read previous availability rows', {
-          professionalId,
-          message: previousAvailabilityError.message,
-          code: previousAvailabilityError.code,
+        Sentry.captureException(previousAvailabilityError, {
+          tags: { area: 'onboarding_save', context: 'read-previous-availability' },
+          extra: { professionalId },
         })
       }
 
@@ -847,10 +846,9 @@ export async function POST(request: Request) {
         .eq('professional_id', professionalId)
       if (previousAvailabilityRulesError) {
         // Backup rows are best-effort. We should not block save when this read fails.
-        console.error('[onboarding-save] could not read previous availability_rules rows', {
-          professionalId,
-          message: previousAvailabilityRulesError.message,
-          code: previousAvailabilityRulesError.code,
+        Sentry.captureException(previousAvailabilityRulesError, {
+          tags: { area: 'onboarding_save', context: 'read-previous-availability-rules' },
+          extra: { professionalId },
         })
       }
 
@@ -863,10 +861,9 @@ export async function POST(request: Request) {
         .maybeSingle()
       if (previousSettingsError) {
         // Backup row is best-effort. We should not block save when this read fails.
-        console.error('[onboarding-save] could not read previous professional settings row', {
-          professionalId,
-          message: previousSettingsError.message,
-          code: previousSettingsError.code,
+        Sentry.captureException(previousSettingsError, {
+          tags: { area: 'onboarding_save', context: 'read-previous-settings' },
+          extra: { professionalId },
         })
       }
 

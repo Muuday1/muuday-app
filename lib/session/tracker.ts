@@ -6,6 +6,7 @@
  * bypass RLS because these are system-level bookkeeping updates.
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { SessionStatus, SessionFailureReason, SessionTelemetryEvent } from './types';
 
@@ -22,7 +23,7 @@ export async function setSessionStatus(
 ): Promise<{ previousStatus: SessionStatus | null; updated: boolean }> {
   const supabase = createAdminClient();
   if (!supabase) {
-    console.error('[sessionTracker] Admin client unavailable (missing service role key)');
+    Sentry.captureMessage('[sessionTracker] Admin client unavailable (missing service role key)', 'error');
     return { previousStatus: null, updated: false };
   }
 
@@ -33,7 +34,7 @@ export async function setSessionStatus(
     .single();
 
   if (error) {
-    console.error('[sessionTracker] Failed to read current status:', error.message);
+    Sentry.captureException(error, { tags: { area: 'session_tracker' } });
     return { previousStatus: null, updated: false };
   }
 
@@ -50,7 +51,7 @@ export async function setSessionStatus(
     .eq('id', bookingId);
 
   if (updateError) {
-    console.error('[sessionTracker] Failed to update status:', updateError.message);
+    Sentry.captureException(updateError, { tags: { area: 'session_tracker' } });
     return { previousStatus, updated: false };
   }
 
@@ -78,7 +79,7 @@ export async function recordParticipantJoined(
     .single();
 
   if (readError) {
-    console.error(`[sessionTracker] Failed to read ${column}:`, readError.message);
+    Sentry.captureException(readError, { tags: { area: 'session_tracker', column } });
     return;
   }
 
@@ -94,7 +95,7 @@ export async function recordParticipantJoined(
     .is(column, null);
 
   if (error) {
-    console.error(`[sessionTracker] Failed to record ${role} joined:`, error.message);
+    Sentry.captureException(error, { tags: { area: 'session_tracker', role } });
   }
 }
 
@@ -124,7 +125,7 @@ export async function recordActualStartIfBothJoined(bookingId: string): Promise<
       .eq('id', bookingId);
 
     if (updateError) {
-      console.error('[sessionTracker] Failed to record actual start:', updateError.message);
+      Sentry.captureException(updateError, { tags: { area: 'session_tracker' } });
     }
   }
 }
@@ -154,7 +155,7 @@ export async function recordSessionEnded(
     .eq('id', bookingId);
 
   if (error) {
-    console.error('[sessionTracker] Failed to record session ended:', error.message);
+    Sentry.captureException(error, { tags: { area: 'session_tracker' } });
   }
 }
 

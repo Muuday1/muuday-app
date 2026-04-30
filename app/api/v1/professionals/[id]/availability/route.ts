@@ -50,7 +50,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .maybeSingle()
 
     if (profError) {
-      console.error('[api/v1/professionals/:id/availability] professional load error:', profError.message)
+      Sentry.captureException(profError, {
+        tags: { area: 'api_v1_professionals_availability', context: 'professional-load' },
+      })
       return NextResponse.json({ error: 'Failed to load professional.' }, { status: 500 })
     }
     if (!professional) {
@@ -136,7 +138,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       cacheControl: 'public, max-age=30, must-revalidate',
     })
   } catch (err) {
-    console.error('[api/v1/professionals/:id/availability] unexpected error:', err instanceof Error ? err.message : String(err))
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+      tags: { area: 'api_v1_professionals_availability', context: 'unexpected' },
+    })
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
   }
 }

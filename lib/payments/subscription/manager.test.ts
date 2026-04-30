@@ -32,6 +32,11 @@ vi.mock('@/lib/stripe/client', () => ({
   getStripeClient: () => mockGetStripeClient(),
 }))
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}))
+
 vi.mock('@/lib/config/env', () => ({
   env: {
     MONTHLY_SUBSCRIPTION_TRIAL_DAYS: 14,
@@ -401,15 +406,14 @@ describe('recordSubscriptionPayment', () => {
   it('returns early when subscription not found', async () => {
     const { recordSubscriptionPayment } = await import('./manager')
     const admin = createMockAdmin()
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { captureMessage } = await import('@sentry/nextjs')
     await recordSubscriptionPayment(admin, 'stripe_sub_1', {
       amountMinor: 500,
       currency: 'BRL',
       paidAt: new Date().toISOString(),
       invoiceId: 'inv_1',
     })
-    expect(consoleWarn).toHaveBeenCalled()
-    consoleWarn.mockRestore()
+    expect(captureMessage).toHaveBeenCalled()
   })
 })
 
@@ -439,12 +443,11 @@ describe('recordSubscriptionPaymentFailure', () => {
   it('returns early when subscription not found', async () => {
     const { recordSubscriptionPaymentFailure } = await import('./manager')
     const admin = createMockAdmin()
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { captureMessage } = await import('@sentry/nextjs')
     await recordSubscriptionPaymentFailure(admin, 'stripe_sub_1', {
       failedAt: new Date().toISOString(),
     })
-    expect(consoleWarn).toHaveBeenCalled()
-    consoleWarn.mockRestore()
+    expect(captureMessage).toHaveBeenCalled()
   })
 })
 

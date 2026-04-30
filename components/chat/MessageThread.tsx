@@ -30,7 +30,7 @@ async function markAsReadViaApi(conversationId: string) {
   }
 }
 
-interface Message {
+export interface Message {
   id: string
   sender_id: string
   content: string

@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useState, useCallback } from 'react'
 import { ArrowLeft, Save, Check } from 'lucide-react'
 import Link from 'next/link'
@@ -57,7 +58,10 @@ export function NotificationPreferencesPage({ initialPreferences }: Props) {
     const result = await updateProfileField('notification_preferences', prefs)
     setSaving(false)
     if (result.error) {
-      console.error('[NotificationPreferencesPage] save error:', result.error)
+      Sentry.captureMessage(`[NotificationPreferencesPage] save error: ${result.error}`, {
+        level: 'error',
+        tags: { area: 'notification_preferences_page', context: 'save' },
+      })
       return
     }
     setSaved(true)

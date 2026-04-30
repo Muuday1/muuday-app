@@ -10,6 +10,7 @@
  *   AWS_SECRET_ACCESS_KEY - IAM secret key
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { TextractClient, AnalyzeDocumentCommand, FeatureType } from '@aws-sdk/client-textract'
 import type { OcrExtractedField, OcrResult, OcrProvider } from '../types'
 
@@ -81,7 +82,7 @@ export async function analyzeDocumentWithTextract(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.error('[kyc/textract] Error:', message)
+    Sentry.captureException(error instanceof Error ? error : new Error(message), { tags: { area: 'kyc', subArea: 'textract' } })
     return {
       provider: PROVIDER,
       status: 'failed',

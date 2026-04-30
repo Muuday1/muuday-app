@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function getGuideUsefulCountService(supabase: SupabaseClient, guideSlug: string) {
@@ -8,7 +9,7 @@ export async function getGuideUsefulCountService(supabase: SupabaseClient, guide
     .eq('feedback_type', 'useful')
 
   if (error) {
-    console.error('getGuideUsefulCount error:', error.message, error.code)
+    Sentry.captureException(error, { tags: { area: 'guide_feedback' } })
     return 0
   }
   return count || 0
@@ -24,7 +25,7 @@ export async function toggleGuideUsefulService(supabase: SupabaseClient, guideSl
     .maybeSingle()
 
   if (existingError) {
-    console.error('[guide-feedback] existing query error:', existingError.message)
+    Sentry.captureException(existingError, { tags: { area: 'guide_feedback' } })
   }
 
   if (existing) {
@@ -34,7 +35,7 @@ export async function toggleGuideUsefulService(supabase: SupabaseClient, guideSl
       .eq('id', existing.id)
 
     if (error) {
-      console.error('toggleGuideUseful delete error:', error.message, error.code)
+      Sentry.captureException(error, { tags: { area: 'guide_feedback' } })
       return { success: false, marked: true }
     }
     return { success: true, marked: false }
@@ -47,7 +48,7 @@ export async function toggleGuideUsefulService(supabase: SupabaseClient, guideSl
   })
 
   if (error) {
-    console.error('toggleGuideUseful insert error:', error.message, error.code)
+    Sentry.captureException(error, { tags: { area: 'guide_feedback' } })
     return { success: false, marked: false }
   }
 
@@ -75,7 +76,7 @@ export async function submitGuideReportService(
   })
 
   if (error) {
-    console.error('submitGuideReport error:', error.message, error.code)
+    Sentry.captureException(error, { tags: { area: 'guide_feedback' } })
     return { success: false, error: 'Erro ao enviar relatório.' }
   }
 

@@ -27,7 +27,7 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 
 - **No admin fallbacks in user-facing code**: `createAdminClient()` must never be used as a fallback in server actions or API routes that serve users/professionals. RLS policies are the single source of truth.
 - **Env validation at startup**: `lib/config/env.ts` is loaded via `instrumentation.ts` **only in Node.js runtime**. Edge runtime skips validation because not all env vars are available there. Missing critical env vars will fail CI/production Node.js builds.
-- **CSP with nonces**: Content-Security-Policy is set dynamically in `middleware.ts` with per-request nonces. `script-src` does not allow `'unsafe-inline'` — Next.js hydration scripts receive the nonce automatically.
+- **CSP with nonces**: Content-Security-Policy is set dynamically in `proxy.ts` (formerly `middleware.ts`) with per-request nonces. `script-src` does not allow `'unsafe-inline'` — Next.js hydration scripts receive the nonce automatically.
 - **Secure cookies**: All auth cookies from `createServerClient` explicitly set `secure` (production), `sameSite: 'lax'`, and `httpOnly`. The `muuday_country` cookie also has `secure: true`.
 - **Rate limiting**: Upstash Redis + in-memory fallback. Uses rightmost trusted IP from `X-Forwarded-For` (Vercel-trusted). 20+ presets defined in `lib/security/rate-limit.ts`.
 - **CSRF origin validation**: API routes validate `Origin`/`Referer` against `APP_BASE_URL` / `NEXT_PUBLIC_APP_URL` via `lib/http/csrf.ts`.
@@ -57,4 +57,5 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 - **Build cache**: `.next/cache` is cached between CI runs via `actions/cache`.
 - **Playwright cache**: Browser binaries cached at `~/.cache/ms-playwright`.
 - **Step order**: Fast feedback first — typecheck → lint → encoding check → unit tests → build → E2E.
+- **UTF-8 without BOM**: All TypeScript/JavaScript files must be UTF-8 without BOM. A BOM before `'use server'` can break Next.js/Turbopack Server Action bundling and cause infinite hangs. CI rejects files with BOM (`\xEF\xBB\xBF`).
 - **npm audit**: Runs with `--audit-level=high` on every CI run; fails the build on high+ CVEs.

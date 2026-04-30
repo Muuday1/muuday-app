@@ -1,6 +1,6 @@
 ﻿# Integration: Resend
 
-Last updated: 2026-03-29
+Last updated: 2026-04-29
 
 ## Purpose
 
@@ -13,9 +13,9 @@ Transactional and lifecycle email delivery.
 
 ## Current status
 
-- `In progress`
-- Email template system exists in code.
-- Production readiness depends on confirmed domain/sender setup and operational monitoring.
+- `Done (active)`
+- Email templates, broadcasts, and automation workflows are active in production.
+- Multiple verified domains configured.
 
 ## Risks
 

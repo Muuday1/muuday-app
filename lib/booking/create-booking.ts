@@ -14,6 +14,7 @@ import {
   type BookingCreateResult,
   type CreateBookingInput,
 } from './creation/types'
+import type { PaymentData } from './creation/prepare-payment'
 import { lookupBookingContext } from './creation/lookup-context'
 import { prepareBookingSlots } from './creation/prepare-slots'
 import { calculateBookingPrice } from './creation/calculate-price'
@@ -143,7 +144,7 @@ export async function executeBookingCreation(
         : null
 
     // 6. Prepare payment
-    let paymentData: Record<string, unknown>
+    let paymentData: PaymentData
     try {
       const paymentResult = prepareBookingPayment(
         user,
@@ -286,7 +287,7 @@ export async function executeBookingCreation(
     // 8. Record payment (fallback path only)
     if (!usedAtomicPath) {
       try {
-        await recordBookingPayment(supabase, paymentData as any, createdBookingIds, paymentAnchorBookingId, batchBookingGroupId)
+        await recordBookingPayment(supabase, paymentData, createdBookingIds, paymentAnchorBookingId, batchBookingGroupId)
       } catch {
         return { success: false, error: 'Falha ao processar pagamento. Nenhum agendamento foi confirmado.' }
       }

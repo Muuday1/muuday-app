@@ -21,7 +21,6 @@ for (let h = 6; h <= 23; h += 1) {
 export const UI_STAGE_ORDER = [
   'c2_professional_identity',
   'c4_services',
-  'c5_availability_calendar',
   'c6_plan_billing_setup_post',
   'c7_payout_receipt',
   'c8_submit_review',
@@ -30,7 +29,6 @@ export const UI_STAGE_ORDER = [
 export const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = {
   c2_professional_identity: 'Identidade',
   c4_services: 'Serviços',
-  c5_availability_calendar: 'Disponibilidade',
   c6_plan_billing_setup_post: 'Plano',
   c7_payout_receipt: 'Financeiro',
   c8_submit_review: 'Enviar',
@@ -39,7 +37,6 @@ export const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = 
 export const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number], string[]> = {
   c2_professional_identity: ['c2_basic_identity', 'c3_public_profile'],
   c4_services: ['c4_service_setup'],
-  c5_availability_calendar: ['c5_availability_calendar'],
   c6_plan_billing_setup_post: ['c6_plan_billing_setup'],
   c7_payout_receipt: ['c7_payout_payments'],
   c8_submit_review: ['c8_submit_review'],
@@ -48,7 +45,6 @@ export const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number],
 export const ACTIONABLE_ADJUSTMENT_STAGE_IDS = new Set<string>([
   'c2_professional_identity',
   'c4_services',
-  'c5_availability_calendar',
   'c6_plan_billing_setup_post',
   'c7_payout_receipt',
   'c8_submit_review',

@@ -16,13 +16,22 @@ export default async function NovaDisputaPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  interface BookingOption {
+    id: string
+    scheduled_at: string
+    professionals?: {
+      profiles?: { full_name: string | null } | null
+    } | null
+  }
+
   // Fetch user's bookings for dropdown
-  const { data: bookings } = await supabase
+  const { data: bookingsRaw } = await supabase
     .from('bookings')
     .select('id, scheduled_at, professionals!bookings_professional_id_fkey(profiles!professionals_user_id_fkey(full_name))')
     .eq('user_id', user.id)
     .order('scheduled_at', { ascending: false })
     .limit(20)
+  const bookings = bookingsRaw as BookingOption[] | null
 
   async function handleSubmit(formData: FormData) {
     'use server'

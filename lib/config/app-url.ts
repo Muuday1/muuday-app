@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs'
+
 const DEFAULT_DEV_URL = 'http://localhost:3000'
 const DEFAULT_PROD_URL = 'https://muuday-app.vercel.app'
 let didWarnMissingAppBaseUrl = false
@@ -67,7 +69,7 @@ export function getAppBaseUrl(): string {
 
   if (process.env.NODE_ENV === 'production' && !hasExplicitBaseUrl && !didWarnMissingAppBaseUrl) {
     didWarnMissingAppBaseUrl = true
-    console.warn('[muuday] APP_BASE_URL/NEXT_PUBLIC_APP_URL not set; falling back to default app URL')
+    Sentry.captureMessage('[muuday] APP_BASE_URL/NEXT_PUBLIC_APP_URL not set; falling back to default app URL', { level: 'warning', tags: { area: 'config/app-url' } })
   }
 
   return process.env.NODE_ENV === 'development' ? DEFAULT_DEV_URL : DEFAULT_PROD_URL

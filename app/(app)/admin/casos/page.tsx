@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { listCases } from '@/lib/actions/disputes'
-import { CaseQueueClient } from '@/components/admin/CaseQueueClient'
+import { CaseQueueClient, type CaseItem } from '@/components/admin/CaseQueueClient'
 
 export const metadata = { title: 'Casos | Admin | Muuday' }
 
@@ -59,16 +59,17 @@ export default async function AdminCasosPage({
     )
   }
 
-  const { cases, nextCursor } = result.data
+  const { cases: casesRaw, nextCursor } = result.data
+  const cases = casesRaw as CaseItem[]
 
   // Compute stats
   const stats = {
     total: cases.length,
-    open: cases.filter((c: any) => c.status === 'open').length,
-    underReview: cases.filter((c: any) => c.status === 'under_review').length,
-    waitingInfo: cases.filter((c: any) => c.status === 'waiting_info').length,
-    resolved: cases.filter((c: any) => c.status === 'resolved').length,
-    overdue: cases.filter((c: any) => {
+    open: cases.filter((c) => c.status === 'open').length,
+    underReview: cases.filter((c) => c.status === 'under_review').length,
+    waitingInfo: cases.filter((c) => c.status === 'waiting_info').length,
+    resolved: cases.filter((c) => c.status === 'resolved').length,
+    overdue: cases.filter((c) => {
       if (['resolved', 'closed'].includes(c.status)) return false
       return c.sla_deadline && new Date(c.sla_deadline) < new Date()
     }).length,
@@ -76,7 +77,7 @@ export default async function AdminCasosPage({
 
   return (
     <CaseQueueClient
-      cases={cases as any[]}
+      cases={cases}
       nextCursor={nextCursor}
       stats={stats}
       filters={{ status, type, priority, assignedTo }}

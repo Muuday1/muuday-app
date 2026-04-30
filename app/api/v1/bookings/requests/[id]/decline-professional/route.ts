@@ -32,16 +32,7 @@ export async function PATCH(
   const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id, 'id')
   const professionalId = professional?.id ?? null
 
-  let body: unknown
-  try {
-    body = await request.json()
-  } catch {
-    body = {}
-  }
-
-  const reason = (body as { reason?: string }).reason
-
-  const result = await declineRequestBookingByProfessionalService(supabase, user.id, professionalId, id, reason)
+  const result = await declineRequestBookingByProfessionalService(supabase, user.id, professionalId, id)
 
   if (!result.success) {
     return NextResponse.json(

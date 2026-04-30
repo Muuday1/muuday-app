@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getMessagesAction, markConversationAsReadAction } from '@/lib/actions/chat'
 import { MessageThread } from '@/components/chat/MessageThread'
+import type { Message } from '@/components/chat/MessageThread'
 
 export default async function ConversationPage({
   params,
@@ -45,19 +46,14 @@ export default async function ConversationPage({
       .maybeSingle(),
   ])
 
-  const { data: otherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', otherParticipant?.user_id || '')
-    .maybeSingle()
-
-  const otherName = otherProfile?.full_name || 'Usuário'
-
-  // Load messages and mark as read in parallel
-  const [messagesResult, _markReadResult] = await Promise.all([
+  // Load profile, messages, and mark as read in parallel
+  const [{ data: otherProfile }, messagesResult, _markReadResult] = await Promise.all([
+    supabase.from('profiles').select('full_name').eq('id', otherParticipant?.user_id || '').maybeSingle(),
     getMessagesAction(conversationId, { limit: 50 }),
     markConversationAsReadAction(conversationId),
   ])
+
+  const otherName = otherProfile?.full_name || 'Usuário'
   const messages = messagesResult.success ? messagesResult.data.messages : []
 
   return (
@@ -79,7 +75,7 @@ export default async function ConversationPage({
 
       <MessageThread
         conversationId={conversationId}
-        initialMessages={messages as any[]}
+        initialMessages={messages as Message[]}
         currentUserId={user.id}
         otherName={otherName}
         bookingId={conversation?.booking_id || ''}

@@ -1467,3 +1467,112 @@ Use this for meaningful checkpoints only.
 ---
 
 > **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+
+
+### Entry 63 (2026-04-29) — Pass 22: console.warn → Sentry cleanup
+
+- Scope: replaced all production-facing `console.warn` calls with `Sentry.captureMessage(level: 'warning')` across `lib/`, `components/`, and `app/api/`.
+- Files changed (24 total):
+  - `lib/payments/revolut/client.ts` — 6 calls (token refresh, missing config, webhook verification)
+  - `lib/payments/trolley/client.ts` — 2 calls (missing secret, invalid signature)
+  - `lib/payments/debt/monitor.ts` — 1 call (threshold exceeded, with `extra` metadata)
+  - `lib/payments/subscription/manager.ts` — 2 calls (missing subscription for payment/failure)
+  - `lib/push/sender.ts` — 1 call (admin client unavailable; dev-only warning at line 166 left intact)
+  - `lib/push/preferences.ts` — 2 calls (query/unexpected errors)
+  - `lib/push/unified-sender.ts` — 2 calls (admin unavailable, Expo push failed)
+  - `lib/session/client-tracker.ts` — 2 calls (event rejected/failed)
+  - `lib/email/resend-events.ts` — 2 calls (event failed/error)
+  - `lib/email/email-action-service.ts` — 1 call (invalid payload)
+  - `lib/chat/chat-service.ts` — 1 call (push notification failed)
+  - `lib/ops/booking-reminders.ts` — 1 call (push failed)
+  - `lib/ops/pending-payment-timeout.ts` — 1 call (push failed)
+  - `lib/ops/no-show-detection.ts` — 1 call (push failed)
+  - `lib/notifications/quiet-hours.ts` — 2 calls (query/unexpected errors)
+  - `lib/config/app-url.ts` — 1 call (missing APP_BASE_URL)
+  - `lib/security/rate-limit.ts` — removed redundant `console.warn` (Sentry.captureMessage already present)
+  - `components/agenda/ProfessionalAvailabilityWorkspace.tsx` — 1 call (recompute-visibility failed)
+  - `components/booking/VideoSession.tsx` — 2 calls (subscribe failed, connection state)
+  - `components/pwa/ServiceWorkerRegistration.tsx` — 2 calls (sync failed/error)
+  - `components/pwa/PushNotificationToggle.tsx` — 2 calls (VAPID not configured, subscribe API failed)
+  - `app/api/professional/onboarding/save/route.ts` — 1 call (subcategories clamped to tier limit)
+- Test updates:
+  - `lib/payments/debt/monitor.test.ts` — switched from `vi.spyOn(console, 'warn')` to Sentry mock
+  - `lib/payments/subscription/manager.test.ts` — added Sentry mock, switched 2 tests from console.warn spy
+- Intentionally left untouched (all development-only or pre-Sentry):
+  - `lib/analytics/server-events.ts` (`NODE_ENV !== 'production'`)
+  - `lib/supabase/server.ts` (`NODE_ENV === 'development'`)
+  - `lib/supabase/api-client.ts` (`NODE_ENV === 'development'`)
+  - `lib/email/client.ts` (`NODE_ENV !== 'production'`)
+  - `lib/push/sender.ts` line 166 (`NODE_ENV !== 'production'`)
+  - `lib/booking/creation/logging.ts` (`NODE_ENV === 'development'`, plus Sentry.captureMessage already follows)
+  - `lib/config/env.ts` (startup validation before Sentry init)
+- Validation:
+  - `tsc --noEmit` → pass
+  - `vitest run` (relevant test files: 104 tests across 8 files) → all pass
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+
+
+### Entry 64 (2026-04-29) — Pass 23: Remove redundant force-dynamic + fix any types in critical pages
+
+- Scope: three complementary cleanup tasks across 15 files.
+- **Task 1 — Remove redundant `force-dynamic`** (7 files):
+  - `app/buscar/page.tsx`, `app/(app)/mensagens/page.tsx`, `app/(app)/financeiro/page.tsx`, `app/(app)/prontuario/[userId]/page.tsx`, `app/(app)/prontuario/page.tsx`, `app/(app)/buscar-auth/page.tsx`, `app/(app)/sessao/[bookingId]/page.tsx`
+  - All pages unconditionally call `createClient()` (reads cookies) and/or `redirect()` — already dynamic by Next.js semantics. The explicit `export const dynamic = 'force-dynamic'` was redundant.
+- **Task 2 — Fix `any` types in critical app/ pages** (7 files):
+  - `app/(app)/agendar/[id]/page.tsx` — removed `professionalProfile as any`, used direct optional chaining
+  - `app/(app)/sessao/[bookingId]/page.tsx` — replaced `p: any` with inline `{ id: string | null; full_name: string | null }`
+  - `app/(app)/profissional/[id]/page.tsx` — replaced 3 `any` occurrences:
+    - `services.map((s: any))` → explicit row type with non-null defaults for `ProfessionalService` compatibility
+    - `reviews.map((review: any))` → explicit review type with `profiles` as array (Supabase foreign-table relation)
+    - `recommendations.map((item: any))` → `PublicProfessionalRecord`
+    - Fixed null-safety for `review.rating` and `item.session_price_brl`
+  - `app/(app)/financeiro/page.tsx` — imported `ProfessionalSubscriptionStatus`, removed `subscription as any`
+  - `app/(app)/perfil/page.tsx` — replaced 2 `row: any` with inline types for specialty query rows
+  - `app/(app)/notificacoes/page.tsx` — defined `NotificationItem` interface (with `action_url` derived by service layer), replaced 5 `any` occurrences
+  - `app/(app)/mensagens/[conversationId]/page.tsx` — exported `Message` interface from `MessageThread.tsx`, replaced `messages as any[]` with `Message[]`
+- **Task 3 — Fix last production `console.log`**:
+  - `components/booking/VideoSession.tsx` — replaced `console.log('[VideoSession] track unpublished', ...)` with `Sentry.captureMessage(level: 'info')`
+- Validation:
+  - `tsc --noEmit` → pass (0 errors)
+  - `vitest run --exclude 'mobile/**'` → all visible tests pass (pre-existing 2 zod codec failures only)
+  - Deployed live to https://app.muuday.com
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+
+
+### Entry 89 (2026-04-29) — Pass 24: Fix remaining `as any` types in booking flow and app pages
+- Scope executed:
+  - `lib/booking/create-booking.ts` - typed `paymentData` as `PaymentData` (imported from `./creation/prepare-payment`), removed `paymentData as any` cast in `recordBookingPayment` call
+  - `app/(app)/servicos/page.tsx` - **fixed real data-shape bug**: `servicesResult.data` is `{ services: unknown[] }`, not an array. Changed to `servicesResult.data.services` and removed `as any[]`. Exported `Service` interface from `ProfessionalServicesManager.tsx` for reuse.
+  - `app/(app)/prontuario/page.tsx` - removed `(b as any).profiles`, used `b.profiles?.[0]` (Supabase returns array for this fk relation)
+  - `app/(app)/prontuario/[userId]/page.tsx` - removed `record as any` and `notes as any[]`, added explicit `SessionNote` interface, typed `.map()` callback
+  - `app/(app)/disputas/[id]/page.tsx` - removed `messages as any[]`, added explicit `CaseMessage` interface, typed `.map()` callback
+  - `app/(app)/avaliar/[bookingId]/page.tsx` - replaced `booking.professionals as any` with explicit nested type `{ id?: string; profiles?: { full_name?: string | null } | null } | null`, added fallback `|| ''` for `professionalId` prop
+- Files changed: 7
+- Validation:
+  - `tsc --noEmit` → pass (0 errors)
+  - `next build` → 200 static pages, exit 0
+  - `vitest run lib/booking/create-booking.test.ts lib/disputes/dispute-service.test.ts` → 63/63 pass
+  - Deployed live to https://app.muuday.com (commit `d0487e4`)
+
+
+### Entry 90 (2026-04-29) — Pass 25: Add server-side timeout to createBooking
+- Scope executed:
+  - `lib/actions/booking.ts` — wrapped `executeBookingCreation` call with `withTimeout` (12s, matching booking-hang review P1 recommendation)
+  - On timeout: `Sentry.captureMessage(level: 'error')` with userId/professionalId context, returns PT-BR error: *"A solicitação demorou muito. Verifique sua conexão e tente novamente."*
+  - Slot locks are released safely via `executeBookingCreation`'s `finally` block when the original promise eventually settles (Promise.race does not cancel the underlying promise)
+  - Client-side already had 15s timeout (BookingForm.tsx, added in hang review); server-side timeout now covers the full backend flow
+- Also verified: BOM CI check already exists in `.github/workflows/ci.yml` (line 56) — booking-hang review P1 #6 was completed earlier
+- Files changed: 1
+- Validation:
+  - `tsc --noEmit` → pass (0 errors)
+  - `next build` → 200 static pages, exit 0
+  - `vitest run lib/booking/with-timeout.test.ts` → 4/4 pass
+  - `vitest run lib/booking/create-booking.test.ts` → 18/18 pass
+  - Deployed live to https://app.muuday.com (commit `a919b26`)
+  - `/api/health` → 200 OK

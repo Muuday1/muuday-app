@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   type AdminActionResult,
@@ -71,7 +72,7 @@ export async function writeAdminAuditLog(
     return { success: false, error: message }
   }
 
-  console.error('[admin-audit-log]', message)
+  Sentry.captureMessage(message, 'error')
   return { success: true }
 }
 
@@ -325,10 +326,25 @@ export async function listReviewsForModerationService(
       return { success: false, error: error.message }
     }
 
-    const reviewIds = (rawRows || []).map((r: any) => r.id).filter(Boolean)
+    type RawModerationRow = {
+      id: string
+      booking_id: string
+      profiles?: { id: string; full_name?: string; email?: string; created_at?: string } | null
+      professionals?: { id: string; rating?: number; total_reviews?: number; profiles?: { full_name?: string } | null } | null
+      comment: string
+      rating: number
+      moderation_status: string
+      is_visible: boolean
+      created_at: string
+      flag_reasons: string[] | null
+    }
+
+    const rows = (rawRows || []) as unknown as RawModerationRow[]
+
+    const reviewIds = rows.map((r) => r.id).filter(Boolean)
 
     // Batch load booking statuses for conflict detection
-    const bookingIds = (rawRows || []).map((r: any) => r.booking_id).filter(Boolean)
+    const bookingIds = rows.map((r) => r.booking_id).filter(Boolean)
     let bookingsMap = new Map<string, { status: string; scheduled_at: string; duration_minutes: number }>()
     if (bookingIds.length > 0) {
       const { data: bookingsData } = await supabase
@@ -341,7 +357,7 @@ export async function listReviewsForModerationService(
     }
 
     // Batch load reviewer review counts
-    const reviewerIds = Array.from(new Set((rawRows || []).map((r: any) => r.profiles?.id).filter(Boolean)))
+    const reviewerIds = Array.from(new Set(rows.map((r) => r.profiles?.id).filter(Boolean)))
     let reviewerStatsMap = new Map<string, { review_count: number; approved_count: number; rejected_count: number }>()
     if (reviewerIds.length > 0) {
       const { data: statsData } = await supabase
@@ -357,12 +373,12 @@ export async function listReviewsForModerationService(
       }
     }
 
-    let mapped = (rawRows || []).map((row: any) => {
-      const profile = row.profiles || {}
-      const pro = row.professionals || {}
-      const proProfile = pro.profiles || {}
+    let mapped = rows.map((row) => {
+      const profile = (row.profiles || {}) as { id?: string; full_name?: string; email?: string; created_at?: string }
+      const pro = (row.professionals || {}) as { id?: string; rating?: number; total_reviews?: number; profiles?: { full_name?: string } | null }
+      const proProfile = (pro.profiles || {}) as { full_name?: string }
       const booking = bookingsMap.get(row.booking_id) || null
-      const reviewerStats = reviewerStatsMap.get(profile.id) || { review_count: 0, approved_count: 0, rejected_count: 0 }
+      const reviewerStats = reviewerStatsMap.get(profile.id || '') || { review_count: 0, approved_count: 0, rejected_count: 0 }
 
       const autoFlags = computeAutoFlags({
         comment: row.comment,
@@ -875,11 +891,11 @@ export async function reviewProfessionalDecisionService(
       createProfessionalSubscription(supabase, parsed.data.professionalId)
         .then((result) => {
           if (!result.success) {
-            console.error('[admin/reviewDecision] subscription creation failed:', result.error)
+            Sentry.captureMessage(`[admin/reviewDecision] subscription creation failed: ${result.error}`, 'error')
           }
         })
         .catch((err) => {
-          console.error('[admin/reviewDecision] subscription creation exception:', err)
+          Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { tags: { area: 'admin_review_decision_subscription' } })
         })
     } else {
       const { error: closeExistingError } = await supabase
@@ -938,7 +954,7 @@ export async function reviewProfessionalDecisionService(
       .maybeSingle()
 
     if (ownerError) {
-      console.error('[admin/reviewDecision] professional owner query error:', ownerError.message)
+      Sentry.captureException(ownerError, { tags: { area: 'admin_review_decision_owner_query' } })
     }
 
     if (professionalOwner?.email) {
@@ -1034,10 +1050,10 @@ export async function loadAdminDashboardDataService(
       supabase.from('reviews').select('id, is_visible'),
     ])
 
-    if (usersRes.error) console.error('[admin/dashboard] users query error:', usersRes.error.message)
-    if (prosRes.error) console.error('[admin/dashboard] professionals query error:', prosRes.error.message)
-    if (bookingsRes.error) console.error('[admin/dashboard] bookings query error:', bookingsRes.error.message)
-    if (reviewsRes.error) console.error('[admin/dashboard] reviews query error:', reviewsRes.error.message)
+    if (usersRes.error) Sentry.captureException(usersRes.error, { tags: { area: 'admin_dashboard', query: 'users_count' } })
+    if (prosRes.error) Sentry.captureException(prosRes.error, { tags: { area: 'admin_dashboard', query: 'professionals_list' } })
+    if (bookingsRes.error) Sentry.captureException(bookingsRes.error, { tags: { area: 'admin_dashboard', query: 'bookings_count' } })
+    if (reviewsRes.error) Sentry.captureException(reviewsRes.error, { tags: { area: 'admin_dashboard', query: 'reviews_list' } })
 
     const allPros = prosRes.data || []
     const allRevs = reviewsRes.data || []
@@ -1057,7 +1073,7 @@ export async function loadAdminDashboardDataService(
       .order('created_at', { ascending: false })
 
     if (professionalsError) {
-      console.error('[admin/dashboard] professionals detail query error:', professionalsError.message)
+      Sentry.captureException(professionalsError, { tags: { area: 'admin_dashboard', query: 'professionals_detail' } })
     }
 
     const resolvedProfessionals = (professionalsData as unknown as AdminDashboardData['professionals']) || []
@@ -1074,10 +1090,10 @@ export async function loadAdminDashboardDataService(
         .in('professional_id', professionalIds)
 
       if (credentialError) {
-        console.error('[admin/dashboard] credentials query error:', credentialError.message)
+        Sentry.captureException(credentialError, { tags: { area: 'admin_dashboard', query: 'credentials' } })
       }
 
-      professionalCredentialCounts = (credentialRows || []).reduce((acc, row: any) => {
+      professionalCredentialCounts = (credentialRows || []).reduce((acc, row: { professional_id: string }) => {
         const pid = String(row.professional_id || '').trim()
         if (!pid) return acc
         acc[pid] = (acc[pid] || 0) + 1
@@ -1091,10 +1107,10 @@ export async function loadAdminDashboardDataService(
         .eq('is_active', true)
 
       if (serviceError) {
-        console.error('[admin/dashboard] services query error:', serviceError.message)
+        Sentry.captureException(serviceError, { tags: { area: 'admin_dashboard', query: 'services' } })
       }
 
-      professionalMinServicePrice = (serviceRows || []).reduce((acc, row: any) => {
+      professionalMinServicePrice = (serviceRows || []).reduce((acc, row: { professional_id: string; price_brl: number }) => {
         const pid = String(row.professional_id || '').trim()
         const price = Number(row.price_brl || 0)
         if (!pid || !Number.isFinite(price) || price <= 0) return acc
@@ -1110,11 +1126,11 @@ export async function loadAdminDashboardDataService(
         .in('professional_id', professionalIds)
 
       if (linkError) {
-        console.error('[admin/dashboard] specialties link query error:', linkError.message)
+        Sentry.captureException(linkError, { tags: { area: 'admin_dashboard', query: 'specialties_link' } })
       }
 
       const specialtyIds = Array.from(
-        new Set((linkRows || []).map((row: any) => String(row.specialty_id || '').trim()).filter(Boolean)),
+        new Set((linkRows || []).map((row: { specialty_id: string }) => String(row.specialty_id || '').trim()).filter(Boolean)),
       )
 
       if (specialtyIds.length > 0) {
@@ -1125,14 +1141,14 @@ export async function loadAdminDashboardDataService(
           .eq('is_active', true)
 
         if (specialtyError) {
-          console.error('[admin/dashboard] specialties query error:', specialtyError.message)
+          Sentry.captureException(specialtyError, { tags: { area: 'admin_dashboard', query: 'specialties' } })
         }
 
         const specialtyById = new Map(
-          (specialtyRows || []).map((row: any) => [String(row.id), String(row.name_pt || '').trim()]),
+          (specialtyRows || []).map((row: { id: string; name_pt: string }) => [String(row.id), String(row.name_pt || '').trim()]),
         )
 
-        const mapped = (linkRows || []).reduce((acc, row: any) => {
+        const mapped = (linkRows || []).reduce((acc, row: { professional_id: string; specialty_id: string }) => {
           const pid = String(row.professional_id || '').trim()
           const name = specialtyById.get(String(row.specialty_id || '').trim()) || ''
           if (!pid || !name) return acc
@@ -1157,7 +1173,7 @@ export async function loadAdminDashboardDataService(
       .order('created_at', { ascending: false })
 
     if (reviewsDataError) {
-      console.error('[admin/dashboard] reviews detail query error:', reviewsDataError.message)
+      Sentry.captureException(reviewsDataError, { tags: { area: 'admin_dashboard', query: 'reviews_detail' } })
     }
 
     const { data: bookingsData, error: bookingsDataError } = await supabase
@@ -1167,7 +1183,7 @@ export async function loadAdminDashboardDataService(
       .limit(50)
 
     if (bookingsDataError) {
-      console.error('[admin/dashboard] bookings detail query error:', bookingsDataError.message)
+      Sentry.captureException(bookingsDataError, { tags: { area: 'admin_dashboard', query: 'bookings_detail' } })
     }
 
     const mappedBookings = (bookingsData || []).map((b: Record<string, unknown>) => {

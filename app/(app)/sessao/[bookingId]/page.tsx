@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Sessão de Vídeo | Muuday' }
 
 import Link from 'next/link'
@@ -67,7 +65,7 @@ export default async function VideoSessionPage({
       .in('id', userIds)
 
     const nameMap = new Map<string, string>()
-    ;(nameProfiles || []).forEach((p: any) => {
+    ;(nameProfiles || []).forEach((p: { id: string | null; full_name: string | null }) => {
       if (p.id && p.full_name) nameMap.set(p.id, p.full_name)
     })
 

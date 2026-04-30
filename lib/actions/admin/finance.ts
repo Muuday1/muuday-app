@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getTreasuryBalance } from '@/lib/payments/revolut/client'
 import { processRefund } from '@/lib/payments/refund/engine'
@@ -283,7 +284,7 @@ export async function loadFinanceOverview(): Promise<FinanceActionResult<Finance
     return { success: true, data }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[admin/finance] loadFinanceOverview failed:', msg)
+    Sentry.captureException(error instanceof Error ? error : new Error(msg), { tags: { area: 'admin_finance', subArea: 'load_overview' } })
     return { success: false, error: 'Erro ao carregar dados financeiros.' }
   }
 }
@@ -646,7 +647,7 @@ export async function forcePayout(
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[admin/finance] forcePayout failed:', msg)
+    Sentry.captureException(error instanceof Error ? error : new Error(msg), { tags: { area: 'admin_finance', subArea: 'force_payout' } })
     return { success: false, error: msg }
   }
 }
@@ -724,7 +725,7 @@ export async function forceRefund(
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[admin/finance] forceRefund failed:', msg)
+    Sentry.captureException(error instanceof Error ? error : new Error(msg), { tags: { area: 'admin_finance', subArea: 'force_refund' } })
     return { success: false, error: msg }
   }
 }
@@ -823,7 +824,7 @@ export async function adjustProfessionalBalance(
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error('[admin/finance] adjustProfessionalBalance failed:', msg)
+    Sentry.captureException(error instanceof Error ? error : new Error(msg), { tags: { area: 'admin_finance', subArea: 'adjust_balance' } })
     return { success: false, error: msg }
   }
 }

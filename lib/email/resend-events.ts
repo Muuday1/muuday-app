@@ -8,6 +8,8 @@
  * @see https://resend.com/docs/api-reference/events/send-event
  */
 
+import * as Sentry from '@sentry/nextjs'
+
 function getResendApiKey(): string {
   return process.env.RESEND_API_KEY?.trim() ?? ''
 }
@@ -44,10 +46,10 @@ async function sendEvent(
 
     if (!res.ok) {
       const body = await res.text().catch(() => 'unknown')
-      console.warn(`[resend-events] ${eventName} failed (${res.status}): ${body}`)
+      Sentry.captureMessage(`[resend-events] ${eventName} failed (${res.status}): ${body}`, { level: 'warning', tags: { area: 'email/resend-events' } })
     }
   } catch (err) {
-    console.warn(`[resend-events] ${eventName} error:`, err instanceof Error ? err.message : String(err))
+    Sentry.captureMessage(`[resend-events] ${eventName} error: ` + (err instanceof Error ? err.message : String(err)), { level: 'warning', tags: { area: 'email/resend-events' } })
   }
 }
 

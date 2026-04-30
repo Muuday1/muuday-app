@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import {
   updateProfessionalStatusService,
@@ -45,7 +46,7 @@ export async function adminUpdateProfessionalStatus(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminUpdateProfessionalStatus] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_update_professional_status' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -67,7 +68,7 @@ export async function adminUpdateFirstBookingGate(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminUpdateFirstBookingGate] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_update_first_booking_gate' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -88,7 +89,7 @@ export async function adminToggleReviewVisibility(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminToggleReviewVisibility] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_toggle_review_visibility' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -106,7 +107,7 @@ export async function adminDeleteReview(reviewId: string): Promise<AdminActionRe
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminDeleteReview] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_delete_review' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -138,7 +139,7 @@ export async function adminReviewProfessionalDecision(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminReviewProfessionalDecision] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_review_professional_decision' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -155,7 +156,7 @@ export async function loadAdminDashboardData(): Promise<{
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[loadAdminDashboardData] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'load_admin_dashboard_data' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -176,7 +177,7 @@ export async function adminRestoreLatestReviewAdjustments(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminRestoreLatestReviewAdjustments] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_restore_latest_review_adjustments' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -196,7 +197,7 @@ export async function adminListReviewsForModeration(filters?: {
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminListReviewsForModeration] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_list_reviews_for_moderation' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -222,7 +223,7 @@ export async function adminModerateReview(
   try {
     const { supabase, userId } = await requireAdmin()
     const result = await moderateReviewService(supabase, userId, reviewId, action, {
-      rejectionReason: parsed.data.rejectionReason as any,
+      rejectionReason: parsed.data.rejectionReason,
       adminNotes: parsed.data.adminNotes,
     })
     if (result.success) {
@@ -235,7 +236,7 @@ export async function adminModerateReview(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminModerateReview] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_moderate_review' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }
@@ -261,7 +262,7 @@ export async function adminBatchModerateReviews(
   try {
     const { supabase, userId } = await requireAdmin()
     const result = await batchModerateReviewsService(supabase, userId, reviewIds, action, {
-      rejectionReason: parsed.data.rejectionReason as any,
+      rejectionReason: parsed.data.rejectionReason,
       adminNotes: parsed.data.adminNotes,
     })
     if (result.success) {
@@ -274,7 +275,7 @@ export async function adminBatchModerateReviews(
     if (error instanceof AdminAuthError) {
       return { success: false, error: error.message }
     }
-    console.error('[adminBatchModerateReviews] unexpected error')
+    Sentry.captureException(error, { tags: { area: 'admin_batch_moderate_reviews' } })
     return { success: false, error: 'Erro interno. Tente novamente mais tarde.' }
   }
 }

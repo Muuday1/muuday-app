@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token'
 import { createClient } from '@/lib/supabase/server'
@@ -67,7 +68,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (profileError) {
-    console.error('[agora/token] profile query error:', profileError.message, profileError.code)
+    Sentry.captureException(profileError, {
+      tags: { area: 'agora_token', context: 'profile-query' },
+    })
   }
 
   const { data: booking } = await supabase

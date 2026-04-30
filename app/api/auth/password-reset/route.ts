@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -88,7 +89,9 @@ export async function POST(request: NextRequest) {
         deliveredByResend = true
       }
     } catch (error) {
-      console.error('[auth/password-reset] admin generateLink failed')
+      Sentry.captureException(error instanceof Error ? error : new Error('admin generateLink failed'), {
+        tags: { area: 'auth_password_reset', context: 'generate-link' },
+      })
     }
   }
 

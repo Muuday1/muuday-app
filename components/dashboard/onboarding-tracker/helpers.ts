@@ -5,9 +5,8 @@ import type {
   PhotoValidationChecks,
   QualificationStructured,
   TrackerViewMode,
-  AvailabilityDayState,
 } from './types'
-import { PLAN_ROW_BY_LABEL, WEEK_DAYS } from './constants'
+import { PLAN_ROW_BY_LABEL } from './constants'
 
 export function normalizeStageIdForLookup(id: string) {
   const normalized = String(id || '')
@@ -15,7 +14,6 @@ export function normalizeStageIdForLookup(id: string) {
   if (normalized === 'c2_professional_identity' || normalized === 'c2_basic_identity') return 'c2_basic_identity'
   if (normalized === 'c3_public_profile') return 'c3_public_profile'
   if (normalized === 'c4_services' || normalized === 'c4_service_setup') return 'c4_service_setup'
-  if (normalized === 'c5_availability_calendar') return 'c5_availability_calendar'
   if (
     normalized === 'c6_plan_billing_setup_pre' ||
     normalized === 'c6_plan_billing_setup_post' ||
@@ -360,15 +358,6 @@ export function getPlanFeatureHighlights(stageId: string) {
     ]
   }
 
-  if (stageId === 'c5_availability_calendar') {
-    const windowRow = PLAN_ROW_BY_LABEL['Janela de agendamento']
-    return [
-      `Básico: ${windowRow?.basic || '30 dias'} de janela`,
-      `Profissional: ${windowRow?.professional || '90 dias'} de janela`,
-      `Premium: ${windowRow?.premium || '180 dias'} de janela`,
-    ]
-  }
-
   if (stageId === 'c7_payout_receipt') {
     const pdfRow = PLAN_ROW_BY_LABEL['Exportação PDF']
     return [
@@ -381,13 +370,6 @@ export function getPlanFeatureHighlights(stageId: string) {
   return []
 }
 
-export function buildDefaultAvailabilityMap(): Record<number, AvailabilityDayState> {
-  return WEEK_DAYS.reduce<Record<number, AvailabilityDayState>>((acc, day) => {
-    acc[day.value] = { is_available: false, start_time: '09:00', end_time: '18:00' }
-    return acc
-  }, {})
-}
-
 export function getBlockerCta(blocker: Blocker): BlockerCta | null {
   if (blocker.code === 'missing_review_requirements') {
     return { kind: 'internal', label: 'Revisar pendências do tracker', stageId: 'c8_submit_review' }
@@ -398,7 +380,7 @@ export function getBlockerCta(blocker: Blocker): BlockerCta | null {
   }
 
   if (blocker.actionHref === '/disponibilidade') {
-    return { kind: 'internal', label: 'Abrir disponibilidade', stageId: 'c5_availability_calendar' }
+    return { kind: 'external', label: 'Abrir disponibilidade', href: '/disponibilidade' }
   }
 
   if (blocker.actionHref === '/configuracoes-agendamento') {

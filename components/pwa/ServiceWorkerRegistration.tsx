@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 
 async function syncPushSubscription(registration: ServiceWorkerRegistration) {
@@ -20,10 +21,10 @@ async function syncPushSubscription(registration: ServiceWorkerRegistration) {
     })
 
     if (!res.ok) {
-      console.warn('[SW] Failed to sync push subscription:', res.status)
+      Sentry.captureMessage('[SW] Failed to sync push subscription: ' + res.status, { level: 'warning', tags: { area: 'pwa/service-worker' } })
     }
   } catch (err) {
-    console.warn('[SW] Push subscription sync error:', err)
+    Sentry.captureMessage('[SW] Push subscription sync error: ' + (err instanceof Error ? err.message : String(err)), { level: 'warning', tags: { area: 'pwa/service-worker' } })
   }
 }
 
@@ -66,7 +67,9 @@ export function ServiceWorkerRegistration() {
         })
       })
       .catch((err) => {
-        console.error('[SW] Registration failed:', err)
+        Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+          tags: { area: 'service_worker_registration', context: 'register' },
+        })
       })
   }, [])
 

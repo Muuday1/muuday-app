@@ -21,7 +21,7 @@ export type {
 } from '@/lib/admin/taxonomy-service'
 
 // --- Booking types ---
-export type { ManageBookingResult } from '@/lib/booking/manage-booking-service'
+export type { ManageBookingResult } from '@/lib/booking/types'
 export type { RequestBookingResult } from '@/lib/booking/request-booking-service'
 
 // --- Chat types ---

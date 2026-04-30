@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendPushToUser } from '@/lib/push/sender'
 import { autoCreateCase } from '@/lib/disputes/dispute-service'
@@ -74,7 +75,7 @@ export async function runNoShowDetection(
         booking.user_id,
       )
       if (!caseResult.success) {
-        console.error(`[no-show-detection] failed to auto-create case for booking ${booking.id}:`, caseResult.error)
+        Sentry.captureMessage(`[no-show-detection] failed to auto-create case for booking ${booking.id}: ${caseResult.error}`, 'warning')
       }
       continue
     }
@@ -108,7 +109,7 @@ export async function runNoShowDetection(
       .eq('status', 'confirmed')
 
     if (updateError) {
-      console.error(`[no-show-detection] failed to update booking ${booking.id}:`, updateError.message)
+      Sentry.captureException(updateError, { tags: { area: 'no_show_detection' } })
       continue
     }
 
@@ -128,7 +129,7 @@ export async function runNoShowDetection(
       booking.user_id,
     )
     if (!caseResult.success) {
-      console.error(`[no-show-detection] failed to auto-create case for booking ${booking.id}:`, caseResult.error)
+        Sentry.captureMessage(`[no-show-detection] failed to auto-create case for booking ${booking.id}: ${caseResult.error}`, 'warning')
     }
 
     detected++
@@ -151,7 +152,7 @@ async function applyNoShowResolution(
     .maybeSingle()
 
   if (fetchError) {
-    console.error(`[no-show-detection] failed to fetch booking ${bookingId}:`, fetchError.message)
+    Sentry.captureException(fetchError, { tags: { area: 'no_show_detection' } })
     return false
   }
 
@@ -170,7 +171,7 @@ async function applyNoShowResolution(
     .eq('id', bookingId)
 
   if (updateError) {
-    console.error(`[no-show-detection] failed to resolve booking ${bookingId}:`, updateError.message)
+    Sentry.captureException(updateError, { tags: { area: 'no_show_detection' } })
     return false
   }
 
@@ -212,7 +213,7 @@ async function insertNoShowNotification(
     },
     { notifType: 'booking_no_show_detected', admin },
   ).catch(err => {
-    console.warn('[no-show-detection] push failed:', err)
+    Sentry.captureMessage('[no-show-detection] push failed: ' + err, { level: 'warning', tags: { area: 'ops/no-show-detection' } })
   })
 }
 

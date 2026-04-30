@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { PROFESSIONAL_REQUIRED_TERMS, PROFESSIONAL_TERMS_VERSION } from '@/lib/legal/professional-terms'
@@ -113,7 +114,7 @@ export async function loadProfessionalOnboardingState(
     .maybeSingle()
 
   if (professionalError) {
-    console.error('[onboarding-state] failed to load professional:', professionalError.message)
+    Sentry.captureException(professionalError, { tags: { area: 'onboarding_state' } })
   }
 
   if (!professionalRow?.id) return null
@@ -149,7 +150,7 @@ export async function loadProfessionalOnboardingState(
     .maybeSingle()
 
   if (profileError) {
-    console.error('[onboarding-state] failed to load profile:', profileError.message)
+    Sentry.captureException(profileError, { tags: { area: 'onboarding_state' } })
   }
 
   const { data: applicationRow, error: applicationError } = await supabase
@@ -164,7 +165,7 @@ export async function loadProfessionalOnboardingState(
     .maybeSingle()
 
   if (applicationError) {
-    console.error('[onboarding-state] failed to load application:', applicationError.message)
+    Sentry.captureException(applicationError, { tags: { area: 'onboarding_state' } })
   }
 
   snapshot.account = {
@@ -361,7 +362,7 @@ export async function evaluateFirstBookingEligibility(
     .in('status', FIRST_BOOKING_RELEVANT_STATUSES)
 
   if (bookingsError) {
-    console.error('[first-booking-eligibility] failed to load existing bookings:', bookingsError.message)
+    Sentry.captureException(bookingsError, { tags: { area: 'first_booking_eligibility' } })
     return {
       ok: false,
       message: 'Erro ao verificar disponibilidade do profissional. Tente novamente.',

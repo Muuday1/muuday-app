@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Painel | Muuday' }
 
 import * as Sentry from '@sentry/nextjs'
@@ -14,7 +12,6 @@ import {
   Clock,
   Layers,
   ShieldAlert,
-  Star,
   Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'

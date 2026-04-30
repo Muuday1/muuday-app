@@ -6,75 +6,81 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 
 ## Current State
 
-### Server Actions / Library Files (>500 lines)
+### Server Actions / Library Files
 
-| File | Lines | Functions | Priority |
-|------|-------|-----------|----------|
-| `lib/actions/request-booking.ts` | 861 | 10 | **HIGH** |
-| `lib/email/resend.ts` | 897 | 25+ | **HIGH** |
-| `lib/ops/stripe-resilience.ts` | 816 | 18 | MEDIUM |
-| `lib/professional/onboarding-gates.ts` | 770 | 8 | MEDIUM |
-| `lib/actions/admin.ts` | 655 | — | LOW |
-| `lib/actions/booking.ts` | 646 | — | LOW (already refactored) |
-| `lib/actions/manage-booking.ts` | 620 | — | LOW (already refactored) |
-| `lib/actions/email.ts` | 548 | — | LOW |
+| File | Lines | Functions | Priority | Status |
+|------|-------|-----------|----------|--------|
+| `lib/booking/request-booking-service.ts` | ~~811~~ **433** | 7 | **HIGH** | ✅ Extracted `acceptRequestBookingService` → `lib/booking/request-booking/accept-request.ts` |
+| `lib/booking/manage-booking-service.ts` | ~~944~~ **448** | 6 | **HIGH** | ✅ Extracted `applyPaymentRefund`, `executeCancelSingleBooking`, `completeBookingService`, `reportProfessionalNoShowService`, `markUserNoShowService`, `listBookingsService`, `getBookingDetailService` |
+| `lib/actions/request-booking.ts` | ~~861~~ **164** | 10 | **HIGH** | ✅ Extracted to `lib/booking/request-booking-service.ts` |
+| `lib/email/resend.ts` | ~~897~~ **69** | 25+ | **HIGH** | ✅ Extracted to `lib/email/templates/` + `lib/email/client.ts` |
+| `lib/ops/stripe-resilience.ts` | ~~816~~ **41** | 18 | MEDIUM | ✅ Extracted to `lib/stripe/` modules |
+| `lib/professional/onboarding-gates.ts` | ~~770~~ **294** | 8 | MEDIUM | ✅ Reduced; partial extraction done |
+| `lib/actions/admin.ts` | ~~655~~ **281** | — | LOW | ✅ Reduced |
+| `lib/actions/booking.ts` | ~~646~~ **97** | — | LOW (already refactored) | ✅ Complete |
+| `lib/actions/manage-booking.ts` | ~~620~~ **148** | — | LOW (already refactored) | ✅ Complete |
+| `lib/actions/email.ts` | ~~548~~ **270** | — | LOW | ✅ Reduced |
 
 ### Components (>500 lines)
 
-| File | Lines | Priority |
-|------|-------|----------|
-| `components/dashboard/OnboardingTrackerModal.tsx` | 3,995 | **CRITICAL** |
-| `components/booking/BookingForm.tsx` | 1,151 | **HIGH** |
-| `components/settings/ProfessionalSettingsWorkspace.tsx` | 629 | MEDIUM |
-| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | 600 | MEDIUM |
-| `components/professional/ProfileAvailabilityBookingSection.tsx` | 549 | LOW |
-| `components/agenda/ProfessionalAgendaPage.tsx` | 523 | LOW |
+| File | Lines | Priority | Status |
+|------|-------|----------|--------|
+| `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ **2,038** | **CRITICAL** | ✅ Availability stage removed; further extraction needed |
+| `components/booking/BookingForm.tsx` | ~~1,151~~ **1,377** | **HIGH** | ⚠️ Grew; needs hook/sub-component extraction |
+| `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ **660** | LOW | ⚠️ Grew; monitor |
+| `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ **625** | LOW | ⚠️ Grew; monitor |
+| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ **540** | MEDIUM | ✅ Reduced |
+| `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
 
 ---
 
-## Proposed Refactoring
+## Completed Work
 
-### Phase 1: Server Actions (High Priority)
+### Cleanup Pass: 2026-04-30
 
-#### 1.1 `lib/actions/request-booking.ts` → Extract shared modules
+**OnboardingTrackerModal.tsx** (3,995 → 2,038 lines)
+- Removed inline `AvailabilityStage` and all associated state/handler logic (`availabilityMap`, `bookingRules`, `profileTimezone`, `saveAvailabilityCalendar`, etc.)
+- Removed ~20 unused imports and helper functions (`Link`, `Upload`, `Blocker`, `TrackerViewMode`, `BlockerCta`, `PLAN_PRICE_BASE_BRL`, `PLAN_COMPARISON_ROWS`, `PLAN_ROW_BY_LABEL`, `LANGUAGE_OPTIONS`, `PROFESSIONAL_TITLES`, `TARGET_AUDIENCE_OPTIONS`, `toKeywords`, `formatCurrencyFromBrl`, `rgbToHsl`, `humanizeTaxonomyValue`, `resolveTaxonomyLabel`, `buildDefaultAvailabilityMap`, `categoryNameBySlug`, `subcategoryNameBySlug`)
+- Fixed unused catch-binding lint errors
+- **Note:** `UI_STAGE_ORDER` in `constants.ts` and `ProfessionalOnboardingCard.tsx` still reference `c5_availability_calendar`. The modal now renders nothing for that stage. Follow-up: either remove it from the stage list or replace with an external link to `/disponibilidade`.
 
-**Current:** 861 lines, 10 functions
+**Agenda page** (`app/(app)/agenda/page.tsx`)
+- Removed dead imports (`ProfessionalAgendaPage`, `normalizeProfessionalSettingsRow`)
+- Removed unused destructured `booking` from `searchParams`
+- Removed unused variable declarations (`calendarIntegrationProvider`, `calendarIntegrationStatus`, `calendarIntegrationLastSyncAt`, `calendarIntegrationAccountEmail`, `calendarIntegrationLastSyncError`, `calendarTimezone`, `overviewAvailabilityExceptions`, `professionalBookingRulesPanelProps`, `overviewCalendarBookings`)
+- Still queries calendar data for downstream components (not removed, just unbound locally)
 
-**Extract to:**
-- `lib/booking/request-validation.ts` (extend existing) — add request-booking-specific schemas
-- `lib/booking/request-availability-checks.ts` — professional eligibility, tier checks
-- `lib/booking/request-state-machine.ts` (already exists) — status transitions
-- `lib/actions/request-booking.ts` — keep only exported action handlers (~400 lines target)
+**Booking services**
+- `lib/booking/request-booking-service.ts`: Removed unused `normalizeProfessionalSettingsRow` import; fixed unused `_reason` parameter in `declineRequestBookingByProfessionalService`
+- `lib/booking/manage-booking-service.ts`: Removed unused `normalizeProfessionalSettingsRow` import
+- Aligned API route + action call sites with updated parameter signatures
 
-**Functions to extract:**
-- `getAuthenticatedContext()` → shared auth helper (if not already)
-- `expireRequestIfNeeded()` → `lib/booking/request-helpers.ts`
-- `professionalCanReceiveRequestBooking()` → `lib/booking/request-availability-checks.ts`
+**Helpers**
+- `components/dashboard/onboarding-tracker/helpers.ts`: Removed unused `WEEK_DAYS` import
+- `app/(app)/dashboard/page.tsx`: Removed unused `Star` import
 
-#### 1.2 `lib/email/resend.ts` → Split by domain
+---
 
-**Current:** 897 lines, 25+ email functions, massive inline HTML templates
+## Remaining Work
 
-**Extract to:**
-- `lib/email/client.ts` — Resend client initialization, `sendEmail()` wrapper
-- `lib/email/theme.ts` — `THEME` object, `emailLayout()`, `cta()`, `infoBox()`, `signoff()`
-- `lib/email/templates/booking.ts` — booking-related emails (confirmation, reminder, cancellation, reschedule)
-- `lib/email/templates/professional.ts` — professional emails (approved, needs changes, rejected)
-- `lib/email/templates/user.ts` — user emails (welcome, complete account, password reset)
-- `lib/email/templates/marketing.ts` — marketing emails (newsletter, waitlist, welcome series, reengagement)
-- `lib/email/templates/review.ts` — review emails
-- `lib/email/resend.ts` — re-export everything for backward compatibility
+### Phase 1: Server Actions (Completed — monitoring)
 
-**Target:** Each file <300 lines
+The original Phase 1 targets have all been extracted or reduced below 500 lines:
+- `lib/actions/request-booking.ts` → logic moved to `lib/booking/request-booking-service.ts`
+- `lib/email/resend.ts` → templates moved to `lib/email/templates/*`
+- `lib/ops/stripe-resilience.ts` → logic moved to `lib/stripe/*`
+- `lib/professional/onboarding-gates.ts` → reduced to 294 lines
+
+**No further action required unless these files grow again.**
 
 ### Phase 2: Components (Critical/High Priority)
 
 #### 2.1 `components/dashboard/OnboardingTrackerModal.tsx` → Component extraction
 
-**Current:** 3,995 lines — this is a god component
+**Current:** 2,038 lines — still a god component, but availability stage removed
 
 **Analysis:** Contains:
-- ~30 helper functions/constants at module level
+- ~20 helper functions/constants at module level
 - Complex state management
 - Multiple "stages" of onboarding
 - File upload handling
@@ -92,7 +98,6 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
   - `ProfileStage.tsx`
   - `QualificationsStage.tsx`
   - `ServicesStage.tsx`
-  - `AvailabilityStage.tsx`
   - `PlanStage.tsx`
   - `TermsStage.tsx`
   - `ReviewStage.tsx`
@@ -104,7 +109,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 
 #### 2.2 `components/booking/BookingForm.tsx` → Extract hooks and sub-components
 
-**Current:** 1,151 lines
+**Current:** 1,377 lines (grew from 1,151)
 
 **Extract to:**
 - `hooks/useBookingForm.ts` — form state, validation, submission
@@ -112,36 +117,19 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 - `components/booking/form-steps/` — step components
 - `components/booking/TimeSlotPicker.tsx`
 
-### Phase 3: Other Library Files
+### Phase 3: Monitor & Maintain
 
-#### 3.1 `lib/ops/stripe-resilience.ts`
+#### 3.1 `lib/ops/stripe-resilience.ts` — **DONE** (41 lines)
 
-**Current:** 816 lines, 18 functions
-
-**Extract to:**
-- `lib/stripe/client.ts` — client initialization
-- `lib/stripe/webhook-handlers.ts` — webhook event processing
-- `lib/stripe/jobs.ts` — cron job functions (payout scan, renewal checks, retry queue)
-- `lib/stripe/helpers.ts` — utility functions
-
-#### 3.2 `lib/professional/onboarding-gates.ts`
-
-**Current:** 770 lines, 8 functions
-
-**Extract to:**
-- `lib/professional/gate-evaluators.ts` — individual gate evaluation functions
-- `lib/professional/gate-helpers.ts` — utility functions
-- `lib/professional/onboarding-gates.ts` — main export orchestrator
+#### 3.2 `lib/professional/onboarding-gates.ts` — **DONE** (294 lines)
 
 ---
 
 ## Implementation Order
 
-1. **Email templates** (`lib/email/resend.ts`) — safest, no logic changes, pure code movement
-2. **Request booking actions** (`lib/actions/request-booking.ts`) — follow same pattern as booking.ts refactor
-3. **OnboardingTrackerModal** — highest user impact, but most complex
-4. **Stripe resilience** — can be done incrementally
-5. **Onboarding gates** — lower priority, stable code
+1. **OnboardingTrackerModal** — highest user impact; extract stage components incrementally
+2. **BookingForm** — extract hooks and sub-components
+3. **Agenda page components** — monitor `ProfessionalAgendaPage.tsx` (660 lines) and `ProfileAvailabilityBookingSection.tsx` (625 lines)
 
 ## Success Criteria
 
@@ -154,8 +142,8 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 ## Risks
 
 - **OnboardingTrackerModal**: High risk due to complexity and lack of tests. Recommend adding component tests first.
-- **Email templates**: Medium risk — need to verify all email functions still produce identical HTML output.
-- **Request booking**: Low risk — follow proven pattern from booking.ts refactor.
+- **BookingForm**: Medium risk — widely used; ensure all form variants tested.
+
 
 
 ---

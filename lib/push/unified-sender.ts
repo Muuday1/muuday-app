@@ -16,6 +16,7 @@
  *   }, { notifType: 'chat_message' })
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { canSendPush, notifTypeToPreferenceKey } from './preferences'
 import { sendPushToUser as sendWebPush } from './sender'
@@ -55,7 +56,7 @@ export async function sendUnifiedPush(
 ): Promise<number> {
   const admin = options?.admin ?? createAdminClient()
   if (!admin) {
-    console.warn('[push/unified] Admin client not available')
+    Sentry.captureMessage('[push/unified] Admin client not available', { level: 'warning', tags: { area: 'push/unified' } })
     return 0
   }
 
@@ -147,7 +148,8 @@ async function sendExpoPushes(
     })
 
     if (!response.ok) {
-      console.error('[push/unified] Expo Push API error:', response.status, await response.text())
+      const responseText = await response.text()
+      Sentry.captureMessage(`[push/unified] Expo Push API error: ${response.status} ${responseText}`, 'error')
       return 0
     }
 
@@ -167,14 +169,14 @@ async function sendExpoPushes(
           if (errorType === 'DeviceNotRegistered' || errorType === 'InvalidCredentials') {
             await admin.from('push_subscriptions').delete().eq('push_token', token)
           }
-          console.warn('[push/unified] Expo push failed:', ticket.message, errorType)
+          Sentry.captureMessage('[push/unified] Expo push failed: ' + ticket.message + ' ' + errorType, { level: 'warning', tags: { area: 'push/unified' } })
         }
       }
     }
 
     return sent
   } catch (err) {
-    console.error('[push/unified] Expo Push fetch error:', err)
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { tags: { area: 'push_unified' } })
     return 0
   }
 }

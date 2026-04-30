@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -105,7 +106,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (updateError || !updated) {
-    console.error('[sessao/liberar] update error:', updateError?.message)
+    Sentry.captureException(updateError || new Error('sessao/liberar update returned no rows'), {
+      tags: { area: 'sessao_liberar', context: 'update' },
+    })
     return NextResponse.json({ error: 'Falha ao liberar sessao. Tente novamente.' }, { status: 500 })
   }
 

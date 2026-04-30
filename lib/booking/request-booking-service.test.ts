@@ -6,8 +6,8 @@ import {
   declineRequestBookingByProfessionalService,
   cancelRequestBookingByUserService,
   declineRequestBookingByUserService,
-  acceptRequestBookingService,
 } from './request-booking-service'
+import { acceptRequestBookingService } from './request-booking/accept-request'
 
 vi.mock('@/lib/booking/request-eligibility', () => ({
   professionalCanReceiveRequestBooking: vi.fn(),
@@ -229,6 +229,7 @@ describe('createRequestBookingService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(professionalCanReceiveRequestBooking).mockResolvedValue({ ok: true } as any)
+    vi.mocked(validateSlotAvailability).mockResolvedValue({ valid: true } as any)
   })
 
   it('returns error for invalid input', async () => {
@@ -290,6 +291,7 @@ describe('createRequestBookingService', () => {
   })
 
   it('returns error for past date', async () => {
+    vi.mocked(validateSlotAvailability).mockResolvedValue({ valid: false, error: 'Horário indisponível.' })
     const past = new Date()
     past.setDate(past.getDate() - 1)
     const supabase = buildSupabase({

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendPushToUser } from '@/lib/push/sender'
 import { patchBookingMetadata } from '@/lib/booking/metadata'
@@ -129,7 +130,7 @@ async function cancelBooking(
     .maybeSingle()
 
   if (updateError || !updatedBooking) {
-    console.error('[pending-payment-timeout] cancel failed or race condition:', booking.id, updateError?.message)
+    Sentry.captureException(updateError || new Error(`pending-payment-timeout cancel failed for booking ${booking.id}`), { tags: { area: 'pending_payment_timeout' } })
     return false
   }
 
@@ -158,7 +159,7 @@ async function cancelBooking(
       },
       { notifType: 'booking_auto_cancelled', admin },
     ).catch(err => {
-      console.warn('[pending-payment-timeout] push failed:', err)
+      Sentry.captureMessage('[pending-payment-timeout] push failed: ' + err, { level: 'warning', tags: { area: 'ops/pending-payment-timeout' } })
     })
   }
 

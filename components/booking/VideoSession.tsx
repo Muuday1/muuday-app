@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, Loader2, Mic, MicOff, Video, VideoOff, Play } from 'lucide-react'
 import WaitingRoomGame from './WaitingRoomGame'
@@ -252,7 +253,7 @@ export default function VideoSession({
               if (cancelledRef.current) return
               setRemoteStreams(prev => ({ ...prev, [uid]: stream }))
             } catch (err) {
-              console.warn('[VideoSession] subscribe failed for', uid, err)
+              Sentry.captureMessage('[VideoSession] subscribe failed for ' + uid + ': ' + (err instanceof Error ? err.message : String(err)), { level: 'warning', tags: { area: 'video-session', context: 'subscribe' } })
               subscribedUidsRef.current.delete(uid)
             }
           })
@@ -261,7 +262,7 @@ export default function VideoSession({
         unsubscribers.push(
           adapter.onEvent('trackUnpublished', (uid, kind) => {
             if (cancelledRef.current) return
-            console.log('[VideoSession] track unpublished', uid, kind)
+            Sentry.captureMessage('[VideoSession] track unpublished: ' + uid + ' ' + kind, { level: 'info', tags: { area: 'video-session', context: 'track-unpublished' } })
             // Keep the stream alive; the <video> will freeze on last frame.
             // Full removal happens on userLeft.
           })
@@ -270,14 +271,16 @@ export default function VideoSession({
         unsubscribers.push(
           adapter.onEvent('connectionStateChanged', (state, reason) => {
             if (cancelledRef.current) return
-            console.warn('[VideoSession] connection state:', state, reason)
+            Sentry.captureMessage('[VideoSession] connection state: ' + state + (reason ? ' (' + reason + ')' : ''), { level: 'warning', tags: { area: 'video-session', context: 'connection-state' } })
           })
         )
 
         unsubscribers.push(
           adapter.onEvent('error', (err) => {
             if (cancelledRef.current) return
-            console.error('[VideoSession] adapter error:', err)
+            Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+              tags: { area: 'video_session', context: 'adapter-error' },
+            })
           })
         )
 

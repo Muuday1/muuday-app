@@ -1,12 +1,12 @@
 # Sentry Integration
 
-Last updated: 2026-04-01
+Last updated: 2026-04-29
 
 ## Status
 
-- `In progress`: SDK wired in app (client/server/edge) with env-guarded activation.
+- `Done`: SDK wired in app (client/server/edge) with env-guarded activation.
 - `Done`: Next.js Sentry wrapper uses current treeshake config and router transition hook instrumentation.
-- `In progress`: auth/payment failure signals now emit explicit Sentry events for alert routing.
+- `Done`: auth/payment failure signals now emit explicit Sentry events for alert routing.
 - `Pending`: configure Sentry dashboard alert rules (manual UI step).
 
 ## Files

@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -300,7 +301,7 @@ export function ProfessionalAvailabilityWorkspace({
 
     if (!visibilityRes.ok) {
       // Non-blocking warning — data is saved but visibility may be stale
-      console.warn('[AvailabilityWorkspace] recompute-visibility failed:', visibilityRes.status)
+      Sentry.captureMessage('[AvailabilityWorkspace] recompute-visibility failed: ' + visibilityRes.status, { level: 'warning', tags: { area: 'availability-workspace' } })
     }
 
     // Update initial state so hasUnsavedChanges becomes false

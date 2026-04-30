@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Prontuário | Muuday' }
 
 import Link from 'next/link'
@@ -33,7 +31,7 @@ export default async function ProntuarioPage() {
 
   const clientMap = new Map<string, { id: string; full_name: string }>()
   for (const b of bookings || []) {
-    const clientProfile = (b as any).profiles
+    const clientProfile = b.profiles?.[0]
     const clientId = String(clientProfile?.id || b.user_id)
     const clientName = String(clientProfile?.full_name || 'Cliente')
     if (!clientMap.has(clientId)) {

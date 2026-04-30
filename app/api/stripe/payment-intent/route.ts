@@ -128,7 +128,9 @@ export async function POST(request: NextRequest) {
       }
       // If PI is in a different state, we need to create a new one
     } catch (retrieveError) {
-      console.error('[api/stripe/payment-intent] failed to retrieve existing PI:', retrieveError)
+      Sentry.captureException(retrieveError instanceof Error ? retrieveError : new Error(String(retrieveError)), {
+        tags: { area: 'stripe_payment_intent', context: 'retrieve-existing-pi' },
+      })
       // Continue to create a new PI
     }
   }

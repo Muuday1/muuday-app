@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
     .maybeSingle()
 
   if (profileError) {
-    console.error('[api/v1/users/me] profile error:', profileError.message, profileError.code)
+    Sentry.captureException(profileError, {
+      tags: { area: 'api_v1_users_me', context: 'profile-load' },
+    })
     return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 })
   }
 

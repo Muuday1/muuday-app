@@ -18,7 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 
-interface CaseItem {
+export interface CaseItem {
   id: string
   booking_id: string
   reporter_id: string

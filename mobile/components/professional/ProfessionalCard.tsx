@@ -35,6 +35,7 @@ export function ProfessionalCard({ professional }: ProfessionalCardProps) {
               source={{ uri: avatarUrl }}
               className="w-16 h-16 rounded-full"
               resizeMode="cover"
+              accessibilityLabel={`Foto de perfil de ${displayName}`}
             />
           ) : (
             <View className="w-16 h-16 rounded-full bg-primary/20 items-center justify-center">

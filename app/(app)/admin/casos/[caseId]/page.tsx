@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import {
   getCaseById,
@@ -57,19 +58,19 @@ export default async function AdminCaseDetailPage({
     return (
       <div className="p-6 space-y-4">
         <p className="text-red-600">{caseResult.error}</p>
-        <a href="/admin/casos" className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+        <Link href="/admin/casos" className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
           ← Voltar para fila
-        </a>
+        </Link>
       </div>
     )
   }
 
   return (
     <CaseDetailClient
-      caseData={caseResult.data as any}
-      messages={messagesResult.success ? (messagesResult.data.messages as any[]) : []}
-      evidence={evidenceResult.success ? (evidenceResult.data as any) : null}
-      timeline={timelineResult.success ? (timelineResult.data.events as any[]) : []}
+      caseData={caseResult.data}
+      messages={messagesResult.success ? (messagesResult.data.messages as Array<{ id: string; sender_id: string; content: string; created_at: string; profiles?: { full_name: string | null } }>) : []}
+      evidence={evidenceResult.success ? evidenceResult.data : null}
+      timeline={timelineResult.success ? (timelineResult.data.events as Array<{ id: string; event_type: 'action' | 'message'; action_type?: string; sender_id?: string; content?: string; performed_by?: string; metadata?: Record<string, unknown>; created_at: string; profiles?: { full_name: string | null } }>) : []}
       labels={{ caseTypeLabels, statusLabels, priorityColors }}
       adminId={user.id}
     />

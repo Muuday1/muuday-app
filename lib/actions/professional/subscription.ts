@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe/client'
 
@@ -123,7 +124,7 @@ export async function createCustomerPortalSession(): Promise<{
     return { success: true, url: session.url }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[professional/subscription] failed to create portal session:', msg)
+    Sentry.captureException(err instanceof Error ? err : new Error(msg), { tags: { area: 'professional_subscription', subArea: 'portal_session' } })
     return { success: false, error: 'Erro ao criar sessão do portal de billing.' }
   }
 }

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import { toRequestBookingStatus, expireRequestIfNeeded } from './request-helpers'
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}))
+
 describe('toRequestBookingStatus', () => {
   it('returns status for valid string', () => {
     expect(toRequestBookingStatus('open')).toBe('open')
@@ -82,7 +87,7 @@ describe('expireRequestIfNeeded', () => {
   })
 
   it('returns mutated request on DB error', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { captureException } = await import('@sentry/nextjs')
     const supabase = makeSupabase({ data: null, error: { message: 'update failed' } })
     const request = {
       id: 'req-1',
@@ -91,8 +96,7 @@ describe('expireRequestIfNeeded', () => {
     }
     const result = await expireRequestIfNeeded(supabase, request)
     expect(result.status).toBe('expired')
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('expire request update error'), 'update failed')
-    consoleSpy.mockRestore()
+    expect(captureException).toHaveBeenCalled()
   })
 
   it('returns unchanged request for invalid proposal_expires_at', async () => {

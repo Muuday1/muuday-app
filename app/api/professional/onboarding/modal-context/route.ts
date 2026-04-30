@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
@@ -73,14 +74,13 @@ async function loadProfessionalServicesWithFallback(args: {
   }
 
   hadFallback = true
-  console.error('[onboarding-modal-context] services load attempt failed', {
-    attempt: 'user_full',
-    professionalId: args.professionalId,
-    requestedProfessionalId: args.requestedProfessionalId || null,
-    code: userResponse.error.code,
-    message: userResponse.error.message,
-    details: userResponse.error.details,
-    hint: userResponse.error.hint,
+  Sentry.captureException(userResponse.error, {
+    tags: { area: 'onboarding_modal_context', context: 'services-load-full' },
+    extra: {
+      attempt: 'user_full',
+      professionalId: args.professionalId,
+      requestedProfessionalId: args.requestedProfessionalId || null,
+    },
   })
 
   const minimalResponse = await args.supabase
@@ -107,14 +107,13 @@ async function loadProfessionalServicesWithFallback(args: {
     }
   }
 
-  console.error('[onboarding-modal-context] services load attempt failed', {
-    attempt: 'user_minimal',
-    professionalId: args.professionalId,
-    requestedProfessionalId: args.requestedProfessionalId || null,
-    code: minimalResponse.error.code,
-    message: minimalResponse.error.message,
-    details: minimalResponse.error.details,
-    hint: minimalResponse.error.hint,
+  Sentry.captureException(minimalResponse.error, {
+    tags: { area: 'onboarding_modal_context', context: 'services-load-minimal' },
+    extra: {
+      attempt: 'user_minimal',
+      professionalId: args.professionalId,
+      requestedProfessionalId: args.requestedProfessionalId || null,
+    },
   })
 
   return {

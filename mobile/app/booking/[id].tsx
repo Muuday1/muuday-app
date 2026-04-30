@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   View,
   Text,
@@ -184,7 +184,7 @@ export default function BookingScreen() {
   }, [rules])
 
   // Auto-select first available date
-  useMemo(() => {
+  useEffect(() => {
     if (availableDates.length > 0 && !selectedDate) {
       setSelectedDate(availableDates[0])
     }

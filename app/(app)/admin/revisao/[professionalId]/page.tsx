@@ -156,7 +156,7 @@ export default async function AdminReviewProfessionalPage({
               <p className="text-xs text-slate-500">
                 Links sociais:{' '}
                 {professional.social_links && typeof professional.social_links === 'object'
-                  ? Object.keys(professional.social_links as Record<string, string>).length
+                  ? Object.keys(professional.social_links as Record<string, unknown>).length
                   : 0}
               </p>
             </div>

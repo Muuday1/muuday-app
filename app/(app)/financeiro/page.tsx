@@ -1,11 +1,10 @@
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Financeiro | Muuday' }
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Wallet, Calendar, Receipt, ArrowRight, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import type { ProfessionalSubscriptionStatus } from '@/lib/actions/professional/subscription'
 import { formatCurrency } from '@/lib/utils'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { getPayoutStatus } from '@/lib/actions/professional-payout'
@@ -154,7 +153,7 @@ export default async function FinanceiroPage() {
 
   const subscription =
     subscriptionResult && typeof subscriptionResult === 'object' && 'success' in subscriptionResult && subscriptionResult.success
-      ? (subscriptionResult as { success: true; subscription: unknown }).subscription
+      ? (subscriptionResult as { success: true; subscription: ProfessionalSubscriptionStatus | null }).subscription
       : null
 
   const currency = profile.currency || 'BRL'
@@ -256,7 +255,7 @@ export default async function FinanceiroPage() {
       </div>
 
       {/* Subscription section */}
-      {Boolean(subscription) && <SubscriptionStatusCard subscription={subscription as any} />}
+      {Boolean(subscription) && <SubscriptionStatusCard subscription={subscription as ProfessionalSubscriptionStatus} />}
 
       {/* Earnings chart */}
       {sparklineData.length > 1 && (

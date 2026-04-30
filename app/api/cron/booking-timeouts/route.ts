@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runRecurringReservedSlotRelease } from '@/lib/ops/recurring-slot-release'
@@ -112,7 +113,9 @@ export async function GET(request: NextRequest) {
     recurringRelease = await runRecurringReservedSlotRelease(admin, now)
   } catch (error) {
     recurringReleaseError = error instanceof Error ? error.message : 'unknown'
-    console.error('[cron/booking-timeouts] recurring release error:', recurringReleaseError)
+    Sentry.captureException(error instanceof Error ? error : new Error(recurringReleaseError), {
+      tags: { area: 'cron_booking_timeouts', context: 'recurring-release' },
+    })
   }
 
   // Filter at database level to avoid loading all bookings into memory
@@ -131,7 +134,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (bookingsResponse.error) {
-    console.error('[cron/booking-timeouts] fetch error:', bookingsResponse.error)
+    Sentry.captureMessage(`[cron/booking-timeouts] fetch error: ${bookingsResponse.error.message || 'unknown'}`, {
+      level: 'error',
+      tags: { area: 'cron_booking_timeouts', context: 'fetch-bookings' },
+    })
     const body: Record<string, string> = { error: 'Failed to load pending bookings.' }
     if (process.env.NODE_ENV !== 'production') {
       body.details = bookingsResponse.error.message || 'unknown'
@@ -198,7 +204,9 @@ export async function GET(request: NextRequest) {
     const { data: updatedBooking, error: cancelError } = cancelResponse
 
     if (cancelError || !updatedBooking) {
-      console.error('[cron/booking-timeouts] cancel error:', booking.id, cancelError?.message)
+      Sentry.captureException(cancelError || new Error(`cancel error for booking ${booking.id}`), {
+        tags: { area: 'cron_booking_timeouts', context: 'cancel-booking', bookingId: booking.id },
+      })
       continue
     }
 
@@ -214,7 +222,9 @@ export async function GET(request: NextRequest) {
         .in('status', ['pending_confirmation', 'pending'])
 
       if (childCancelError) {
-        console.error('[cron/booking-timeouts] recurring child cancel error:', booking.id, childCancelError.message)
+        Sentry.captureException(childCancelError, {
+          tags: { area: 'cron_booking_timeouts', context: 'recurring-child-cancel', bookingId: booking.id },
+        })
       }
 
       const { error: sessionCancelError } = await admin
@@ -224,7 +234,9 @@ export async function GET(request: NextRequest) {
         .in('status', ['pending_confirmation', 'pending_payment'])
 
       if (sessionCancelError) {
-        console.error('[cron/booking-timeouts] recurring session cancel error:', booking.id, sessionCancelError.message)
+        Sentry.captureException(sessionCancelError, {
+          tags: { area: 'cron_booking_timeouts', context: 'recurring-session-cancel', bookingId: booking.id },
+        })
       }
     }
 
@@ -238,7 +250,9 @@ export async function GET(request: NextRequest) {
       .in('status', ['captured'])
 
     if (paymentsError) {
-      console.error('[cron/booking-timeouts] payments load error:', booking.id, paymentsError.message)
+      Sentry.captureException(paymentsError, {
+        tags: { area: 'cron_booking_timeouts', context: 'payments-load', bookingId: booking.id },
+      })
       continue
     }
 
@@ -288,14 +302,18 @@ export async function GET(request: NextRequest) {
           .eq('id', payment.id)
 
         if (updateError) {
-          console.error('[cron/booking-timeouts] payment update error:', payment.id, updateError.message)
+          Sentry.captureException(updateError, {
+            tags: { area: 'cron_booking_timeouts', context: 'payment-update', paymentId: payment.id },
+          })
           continue
         }
 
         bookingRefunded += 1
       } catch (refundError) {
         const msg = refundError instanceof Error ? refundError.message : String(refundError)
-        console.error('[cron/booking-timeouts] refund processing error:', booking.id, payment.id, msg)
+        Sentry.captureException(refundError instanceof Error ? refundError : new Error(msg), {
+          tags: { area: 'cron_booking_timeouts', context: 'refund-processing', bookingId: booking.id, paymentId: payment.id },
+        })
         // Continue with next payment — do not block other refunds
       }
     }

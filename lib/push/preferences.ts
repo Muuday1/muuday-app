@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { isQuietHoursForUser } from '@/lib/notifications/quiet-hours'
 
 /**
@@ -68,7 +69,7 @@ export async function canSendPush(
       .single()
 
     if (error) {
-      console.warn('[push/preferences] query error:', error.message)
+      Sentry.captureMessage('[push/preferences] query error: ' + error.message, { level: 'warning', tags: { area: 'push/preferences' } })
       return true
     }
 
@@ -84,7 +85,7 @@ export async function canSendPush(
 
     return true
   } catch (e) {
-    console.warn('[push/preferences] unexpected error:', e)
+    Sentry.captureMessage('[push/preferences] unexpected error: ' + e, { level: 'warning', tags: { area: 'push/preferences' } })
     return true
   }
 }

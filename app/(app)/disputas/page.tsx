@@ -8,6 +8,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { ShieldAlert, ArrowRight, Plus, Clock } from 'lucide-react'
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
+import { type CaseItem } from '@/components/admin/CaseQueueClient'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
 import { AppCard } from '@/components/ui/AppCard'
 
@@ -31,7 +32,7 @@ export default async function DisputasPage() {
   if (!user) redirect('/login')
 
   const result = await listCases({})
-  const cases = result.success ? result.data.cases : []
+  const cases = (result.success ? result.data.cases : []) as CaseItem[]
 
   return (
     <PageContainer maxWidth="md">
@@ -53,7 +54,7 @@ export default async function DisputasPage() {
         />
       ) : (
         <div className="space-y-2">
-          {cases.map((c: any) => {
+          {cases.map((c: CaseItem) => {
             const status = STATUS_LABELS[c.status] || STATUS_LABELS.open
             return (
               <AppCard key={c.id} hover padding="sm">

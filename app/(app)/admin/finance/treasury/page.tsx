@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -6,6 +7,25 @@ import { env } from '@/lib/config/env'
 import { formatMinorUnits } from '@/lib/payments/fees/calculator'
 
 export const metadata = { title: 'Tesouraria | Admin | Muuday' }
+
+interface TreasuryData {
+  currentBalance: string | null
+  currency: string
+  pendingPayoutsTotal: string
+  safetyBuffer: string
+  availableAfterPayouts: string | null
+  isBelowBuffer: boolean | null
+  snapshots: Array<{ at: string; balance: string }>
+  recentSettlements: Array<{
+    stripePayoutId: string
+    amount: string
+    fee: string
+    netAmount: string
+    status: string
+    settlementDate: string
+    createdAt: string
+  }>
+}
 
 export default async function AdminTreasuryPage() {
   const supabase = await createClient()
@@ -17,7 +37,7 @@ export default async function AdminTreasuryPage() {
 
   // Fetch treasury data directly (no internal HTTP round-trip)
   const admin = createAdminClient()
-  let data: Record<string, unknown> | null = null
+  let data: TreasuryData | null = null
 
   if (admin) {
     try {
@@ -79,7 +99,9 @@ export default async function AdminTreasuryPage() {
         })),
       }
     } catch (e) {
-      console.error('[admin/treasury] failed to load treasury data:', e)
+      Sentry.captureException(e instanceof Error ? e : new Error(String(e)), {
+        tags: { area: 'admin_treasury_page', context: 'load-data' },
+      })
     }
   }
 
@@ -135,7 +157,7 @@ export default async function AdminTreasuryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {(data.snapshots as Array<{ at: string; balance: string }>).map((s, i) => (
+                    {data.snapshots.map((s, i) => (
                       <tr key={i}>
                         <td className="px-4 py-3 text-slate-500">{new Date(s.at).toLocaleDateString('pt-BR')}</td>
                         <td className="px-4 py-3 text-right font-medium text-slate-900">
@@ -167,7 +189,7 @@ export default async function AdminTreasuryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {(data.recentSettlements as Array<Record<string, unknown>>).map((s, i) => (
+                    {data.recentSettlements.map((s, i) => (
                       <tr key={i}>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{String(s.stripePayoutId).slice(0, 16)}...</td>
                         <td className="px-4 py-3 text-right font-medium text-slate-900">
