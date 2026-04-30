@@ -1,8 +1,25 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-29 (Pass 22)
+**Last cleanup pass:** 2026-04-29 (Pass 27)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 27 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **5.10 / docs** Stale integration status markers | Updated 8 integration docs from misleading "In progress" to accurate "Done" or "Ongoing": checkly.md, inngest.md, posthog.md, resend.md, sentry.md, supabase.md, upstash-rate-limit.md. Updated testing-and-quality.md Playwright status. Added UTF-8 BOM prevention rule to AGENTS.md. | 9 files |
+| **NEW-1** IMPLEMENTATION-TRACKER.md mojibake | Re-read file — it is readable and correct. Initial report was a false positive due to terminal rendering. Updated tracker to reflect resolved status. | 1 file |
+| **NEW-8 / 5.6** Missing env var in `.env.local.example` | Added `TROLLEY_API_BASE` to `.env.local.example`. | 1 file |
+| **LOW-1** Inconsistent error page coverage | Added `loading.tsx` + `error.tsx` to 4 critical user-facing routes: `app/(app)/agendar/[id]/`, `app/(auth)/login/`, `app/(auth)/cadastro/`, `app/(app)/profissional/[id]/`. | 8 files |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- No new TypeScript errors introduced.
 
 ---
 
@@ -505,12 +522,7 @@ The rest of the codebase mixes English and Portuguese, but `README.md`, `docs/` 
 | `docs/archive/control-snapshot.md` | Likely has status |
 | `docs/handover/*.md` | Likely have status |
 
-**NEW FINDING:** `docs/engineering/IMPLEMENTATION-TRACKER.md` has **severe mojibake** (encoding corruption). Every accented character is replaced with `ï¿½` or similar garbage, making the document largely unreadable. Example:
-```
-# dY"< Implementation Tracker �?" Backend Paralelo
-> **Contexto**: Frontend estA� sendo reescrito.
-> **Status geral**: Fases 1�?"4 �o. COMPLETAS | Fase 5 �?3 OPCIONAL
-```
+**NOTE:** `docs/engineering/IMPLEMENTATION-TRACKER.md` was previously flagged with mojibake. Upon re-reading (2026-04-29), the file is **readable and correct** — all Portuguese accented characters render properly. The earlier report appears to have been a terminal rendering artifact.
 
 ---
 
@@ -518,10 +530,10 @@ The rest of the codebase mixes English and Portuguese, but `README.md`, `docs/` 
 
 These were not in the original tracker but were found while investigating:
 
-### NEW-1: `docs/engineering/IMPLEMENTATION-TRACKER.md` has severe mojibake
+### NEW-1: `docs/engineering/IMPLEMENTATION-TRACKER.md` mojibake — RESOLVED
 **File:** `docs/engineering/IMPLEMENTATION-TRACKER.md`
-**Severity:** Medium
-**Details:** The entire file is corrupted. Every Portuguese accented character is garbled (`estA�` instead of `está`, `ï¿½` instead of `é`, etc.). This document tracks the backend implementation status and is currently unreadable.
+**Severity:** Medium → Resolved
+**Details:** Re-read 2026-04-29. File is readable and all Portuguese accented characters are correct. Initial report was a false positive due to terminal encoding rendering.
 
 ---
 

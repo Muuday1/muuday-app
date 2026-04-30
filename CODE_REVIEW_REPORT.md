@@ -42,7 +42,10 @@
 > - **console.error in admin modules** → Fixed (Pass 18). Replaced 25 `console.error` calls in `lib/admin/admin-service.ts` and `lib/actions/admin.ts` with `Sentry.captureException`.
 > - **console.error across all lib/ modules** → Fixed (Pass 19). Replaced 80+ remaining `console.error` calls across 38 service/action/stripe/calendar/payment files with `Sentry.captureException`/`captureMessage`. Only 2 remain in `lib/config/env.ts` (startup validation before Sentry initialization). Updated 3 test files to mock Sentry instead of `console.error`.
 >
-> Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5), `any` types in test files, mega-components.
+> > - **Pass 26 — Doc stale status markers** → Fixed. Updated 8 integration docs from "In progress" to "Done/Ongoing". Added UTF-8 BOM rule to AGENTS.md.
+> - **Pass 27 — Critical route error coverage + env vars + false positive cleanup** → Fixed. Added `loading.tsx` + `error.tsx` to 4 critical routes (`agendar/[id]`, `login`, `cadastro`, `profissional/[id]`). Added `TROLLEY_API_BASE` to `.env.local.example`. Corrected false positive about `IMPLEMENTATION-TRACKER.md` mojibake.
+>
+> Remaining open issues: god files (2.3), DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5 — blocked on production schema access), `any` types in test files, mega-components.
 
 ---
 
@@ -543,12 +546,20 @@ No visible focus trap or focus restoration logic in modal/drawer components.
 - 22 `loading.tsx` files
 - 23 `error.tsx` files
 
-Not all routes have `loading.tsx` or `error.tsx`. For example:
-- `app/(app)/configuracoes/notificacoes` — no loading, no error
-- `app/(app)/admin/planos` — no loading, no error
-- `app/(app)/onboarding-profissional` — no loading, no error
+Not all routes have `loading.tsx` or `error.tsx`. The following routes were missing coverage and have been addressed:
+- `app/(app)/admin/planos` → ✅ Added in Pass 13
+- `app/(app)/onboarding-profissional` → ✅ Added in Pass 13
+- `app/(app)/agendar/[id]` → ✅ Added in Pass 27
+- `app/(auth)/login` → ✅ Added in Pass 27
+- `app/(auth)/cadastro` → ✅ Added in Pass 27
+- `app/(app)/profissional/[id]` → ✅ Added in Pass 27
 
-**Fix:** Add missing `loading.tsx` and `error.tsx` to all user-facing routes for better UX during slow loads and errors.
+Remaining routes without coverage (non-exhaustive):
+- `app/(app)/configuracoes/notificacoes` — no loading, no error
+- `app/(app)/disponibilidade` — no loading, no error
+- `app/(app)/mensagens/[conversationId]` — no loading, no error
+
+**Fix:** Continue adding `loading.tsx` and `error.tsx` to high-traffic user-facing routes opportunistically.
 
 ---
 

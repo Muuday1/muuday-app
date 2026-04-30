@@ -17,7 +17,7 @@ export default function Error({
           Algo deu errado
         </h2>
         <p className="text-slate-500 text-sm mb-6">
-          Ocorreu um erro ao carregar o agendamento. Tente novamente.
+          Ocorreu um erro ao carregar a página de login. Tente novamente.
         </p>
         <button
           onClick={reset}
