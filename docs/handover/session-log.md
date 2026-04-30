@@ -1543,3 +1543,19 @@ Use this for meaningful checkpoints only.
 ---
 
 > **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+
+
+### Entry 89 (2026-04-29) — Pass 24: Fix remaining `as any` types in booking flow and app pages
+- Scope executed:
+  - `lib/booking/create-booking.ts` - typed `paymentData` as `PaymentData` (imported from `./creation/prepare-payment`), removed `paymentData as any` cast in `recordBookingPayment` call
+  - `app/(app)/servicos/page.tsx` - **fixed real data-shape bug**: `servicesResult.data` is `{ services: unknown[] }`, not an array. Changed to `servicesResult.data.services` and removed `as any[]`. Exported `Service` interface from `ProfessionalServicesManager.tsx` for reuse.
+  - `app/(app)/prontuario/page.tsx` - removed `(b as any).profiles`, used `b.profiles?.[0]` (Supabase returns array for this fk relation)
+  - `app/(app)/prontuario/[userId]/page.tsx` - removed `record as any` and `notes as any[]`, added explicit `SessionNote` interface, typed `.map()` callback
+  - `app/(app)/disputas/[id]/page.tsx` - removed `messages as any[]`, added explicit `CaseMessage` interface, typed `.map()` callback
+  - `app/(app)/avaliar/[bookingId]/page.tsx` - replaced `booking.professionals as any` with explicit nested type `{ id?: string; profiles?: { full_name?: string | null } | null } | null`, added fallback `|| ''` for `professionalId` prop
+- Files changed: 7
+- Validation:
+  - `tsc --noEmit` → pass (0 errors)
+  - `next build` → 200 static pages, exit 0
+  - `vitest run lib/booking/create-booking.test.ts lib/disputes/dispute-service.test.ts` → 63/63 pass
+  - Deployed live to https://app.muuday.com (commit `d0487e4`)
