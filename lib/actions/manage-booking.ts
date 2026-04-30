@@ -14,8 +14,8 @@ import {
   completeBookingService,
   reportProfessionalNoShowService,
   markUserNoShowService,
-  type ManageBookingResult,
 } from '@/lib/booking/manage-booking-service'
+import type { ManageBookingResult } from '@/lib/booking/types'
 
 export type ActionResult = ManageBookingResult
 

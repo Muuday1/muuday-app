@@ -21,11 +21,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import BookingActions from '@/components/booking/BookingActions'
 import RequestBookingActions from '@/components/booking/RequestBookingActions'
-import { ProfessionalAgendaPage } from '@/components/agenda/ProfessionalAgendaPage'
 import BookingRealtimeListener from '@/components/agenda/BookingRealtimeListener'
-import { DEFAULT_PROFESSIONAL_BOOKING_SETTINGS, normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
-import { getPlanConfigForTier, loadPlanConfigMap, type PlanConfig } from '@/lib/plan-config'
-import type { BookingSettingsForm } from '@/components/settings/BookingSettingsClient'
+
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { AppCard } from '@/components/ui/AppCard'
 import { PageContainer, PageHeader } from '@/components/ui/AppShell'
@@ -57,8 +54,6 @@ const MIN_DURATION_MINUTES = 15
 const UPCOMING_BOOKINGS_LIMIT = 50
 const PAST_BOOKINGS_LIMIT = 20
 const REQUEST_BOOKINGS_LIMIT = 30
-const EXTERNAL_BUSY_SLOTS_LIMIT = 120
-const AVAILABILITY_EXCEPTIONS_LIMIT = 200
 const CONVERSATIONS_LIMIT = 100
 const REVIEWS_LIMIT = 200
 const CLOSED_REQUESTS_SHOW_COUNT = 8
@@ -226,7 +221,7 @@ export default async function AgendaPage({
   const isProfessional = isProfessionalRole && Boolean(professionalId)
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
-  const { view, booking, filter } = await searchParams
+  const { view, filter } = await searchParams
   const activeView = normalizeView(view, isProfessional)
   const inboxFilter = normalizeInboxFilter(filter)
 
@@ -333,37 +328,12 @@ export default async function AgendaPage({
   let professionalSettings: Record<string, unknown> | null = null
   let activeAvailabilityCount = 0
   let calendarIntegrationConnected = false
-  let calendarIntegrationProvider = 'google'
-  let calendarIntegrationStatus: 'disconnected' | 'pending' | 'connected' | 'error' = 'disconnected'
-  let calendarIntegrationLastSyncAt = ''
-  let calendarIntegrationAccountEmail = ''
-  let calendarIntegrationLastSyncError = ''
-  let calendarTimezone = userTimezone
   let overviewAvailabilityRules: Array<{
     day_of_week: number
     start_time: string
     end_time: string
     is_active: boolean
   }> = []
-  let overviewExternalBusySlots: Array<{
-    id: string
-    start_time_utc: string
-    end_time_utc: string
-    provider: string
-  }> = []
-  let overviewAvailabilityExceptions: Array<{
-    date_local: string
-    is_available: boolean
-    start_time_local: string | null
-    end_time_local: string | null
-  }> = []
-  let professionalBookingRulesPanelProps: {
-    userId: string
-    professionalId: string
-    tier: string
-    initialPlanConfig: PlanConfig
-    initialForm: BookingSettingsForm
-  } | null = null
 
   if (professionalId) {
     const [
@@ -371,9 +341,6 @@ export default async function AgendaPage({
       availabilityRulesResult,
       legacyAvailabilityResult,
       calendarIntegrationResult,
-      externalBusyResult,
-      availabilityExceptionsResult,
-      planConfigMap,
     ] = await Promise.all([
       supabase
         .from('professional_settings')
@@ -396,23 +363,9 @@ export default async function AgendaPage({
         .order('day_of_week', { ascending: true }),
       supabase
         .from('calendar_integrations')
-        .select('id, provider, sync_enabled, connection_status, provider_account_email, last_sync_at, last_sync_completed_at, last_sync_error')
+        .select('sync_enabled')
         .eq('professional_id', professionalId)
         .maybeSingle(),
-      supabase
-        .from('external_calendar_busy_slots')
-        .select('id, start_time_utc, end_time_utc, provider')
-        .eq('professional_id', professionalId)
-        .gte('start_time_utc', nowIso)
-        .order('start_time_utc', { ascending: true })
-        .limit(EXTERNAL_BUSY_SLOTS_LIMIT),
-      supabase
-        .from('availability_exceptions')
-        .select('date_local, is_available, start_time_local, end_time_local')
-        .eq('professional_id', professionalId)
-        .eq('is_available', false)
-        .limit(AVAILABILITY_EXCEPTIONS_LIMIT),
-      loadPlanConfigMap(),
     ])
 
     professionalSettings = settingsResult.data as Record<string, unknown> | null
@@ -436,71 +389,7 @@ export default async function AgendaPage({
         is_active: Boolean(row.is_active),
       })) || []
     activeAvailabilityCount = overviewAvailabilityRules.length
-    overviewAvailabilityExceptions = (availabilityExceptionsResult.data || []) as Array<{
-      date_local: string
-      is_available: boolean
-      start_time_local: string | null
-      end_time_local: string | null
-    }>
     calendarIntegrationConnected = Boolean(calendarIntegrationResult.data?.sync_enabled)
-    calendarIntegrationProvider = String(calendarIntegrationResult.data?.provider || 'google')
-    const rawConnectionStatus = String(calendarIntegrationResult.data?.connection_status || 'disconnected')
-    const connectionStatusMap: Record<string, 'connected' | 'pending' | 'error' | 'disconnected'> = {
-      connected: 'connected',
-      pending: 'pending',
-      error: 'error',
-    }
-    calendarIntegrationStatus = connectionStatusMap[rawConnectionStatus] || 'disconnected'
-    calendarIntegrationLastSyncAt = String(
-      calendarIntegrationResult.data?.last_sync_completed_at ||
-        calendarIntegrationResult.data?.last_sync_at ||
-        '',
-    )
-    calendarIntegrationAccountEmail = String(calendarIntegrationResult.data?.provider_account_email || '')
-    calendarIntegrationLastSyncError = String(calendarIntegrationResult.data?.last_sync_error || '')
-    overviewExternalBusySlots =
-      (externalBusyResult.data || []).map(row => ({
-        id: String(row.id),
-        start_time_utc: String(row.start_time_utc),
-        end_time_utc: String(row.end_time_utc),
-        provider: String(row.provider || 'calendar'),
-      })) || []
-    calendarTimezone = String(professionalSettings?.timezone || userTimezone)
-
-    const normalizedTier = String(professional?.tier || 'basic').toLowerCase()
-    const tierConfig = getPlanConfigForTier(planConfigMap, normalizedTier)
-    const normalizedSettings = normalizeProfessionalSettingsRow(
-      professionalSettings,
-      profile?.timezone || DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.timezone,
-    )
-    const durationFromProfessional =
-      typeof professional?.session_duration_minutes === 'number'
-        ? professional.session_duration_minutes
-        : normalizedSettings.sessionDurationMinutes
-
-    professionalBookingRulesPanelProps = {
-      userId: user.id,
-      professionalId,
-      tier: normalizedTier,
-      initialPlanConfig: tierConfig,
-      initialForm: {
-        timezone: normalizedSettings.timezone,
-        sessionDurationMinutes: durationFromProfessional,
-        bufferMinutes: Math.min(
-          tierConfig.bufferConfig.maxMinutes,
-          Math.max(0, normalizedSettings.bufferMinutes),
-        ),
-        minimumNoticeHours: normalizedSettings.minimumNoticeHours,
-        maxBookingWindowDays: Math.min(
-          tierConfig.limits.bookingWindowDays,
-          Math.max(1, normalizedSettings.maxBookingWindowDays),
-        ),
-        enableRecurring: normalizedSettings.enableRecurring,
-        confirmationMode: normalizedSettings.confirmationMode,
-        cancellationPolicyCode: normalizedSettings.cancellationPolicyCode,
-        requireSessionPurpose: normalizedSettings.requireSessionPurpose,
-      },
-    }
   }
 
   const upcoming = upcomingBookings || []
@@ -565,42 +454,6 @@ export default async function AgendaPage({
   const { recurringGroups, oneOffBookings } = groupRecurringBookings(upcomingVisible)
   const hasRecurringUpcoming = Object.keys(recurringGroups).length > 0
   const hasOneOffUpcoming = oneOffBookings.length > 0
-
-  const overviewCalendarBookings = [
-    ...upcoming
-      .map((booking: AgendaBooking) => {
-        const scheduledAt = new Date(String(booking.scheduled_at || ''))
-        const durationMinutes = Number(booking.duration_minutes || DEFAULT_DURATION_MINUTES)
-        const startUtcIso = String(booking.start_time_utc || booking.scheduled_at || '')
-        const endUtcIso =
-          String(booking.end_time_utc || '') ||
-          (Number.isNaN(scheduledAt.getTime())
-            ? ''
-            : new Date(scheduledAt.getTime() + durationMinutes * MS_PER_MINUTE).toISOString())
-
-        if (!startUtcIso || !endUtcIso) return null
-        return {
-          id: String(booking.id),
-          start_utc: startUtcIso,
-          end_utc: endUtcIso,
-          status: String(booking.status || 'pending'),
-          client_name: booking.profiles?.full_name || undefined,
-        }
-      })
-      .filter(Boolean),
-    ...overviewExternalBusySlots
-      .map(slot =>
-        slot.start_time_utc && slot.end_time_utc
-          ? {
-              id: `external-${slot.id}`,
-              start_utc: slot.start_time_utc,
-              end_utc: slot.end_time_utc,
-              status: `external_${slot.provider}`,
-            }
-          : null,
-      )
-      .filter(Boolean),
-  ] as Array<{ id: string; start_utc: string; end_utc: string; status: string; client_name?: string }>
 
   if (isProfessional && professional && professionalId) {
     return (

@@ -17,7 +17,7 @@ export default function Error({
           Algo deu errado
         </h2>
         <p className="text-slate-500 text-sm mb-6">
-          Ocorreu um erro inesperado ao carregar seu perfil. Tente novamente.
+          Ocorreu um erro inesperado ao carregar a fila de casos. Tente novamente.
         </p>
         <button
           onClick={reset}

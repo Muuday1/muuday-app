@@ -26,7 +26,6 @@ type TrackerViewMode = 'editing' | 'submitted_waiting' | 'approved' | 'needs_cha
 const UI_STAGE_ORDER = [
   'c2_professional_identity',
   'c4_service_setup',
-  'c5_availability_calendar',
   'c6_plan_billing_setup',
   'c7_payout_payments',
   'c8_submit_review',
@@ -35,7 +34,6 @@ const UI_STAGE_ORDER = [
 const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = {
   c2_professional_identity: 'Identidade',
   c4_service_setup: 'Serviços',
-  c5_availability_calendar: 'Disponibilidade',
   c6_plan_billing_setup: 'Plano',
   c7_payout_payments: 'Financeiro',
   c8_submit_review: 'Enviar para análise',
@@ -44,7 +42,6 @@ const UI_STAGE_LABELS: Record<(typeof UI_STAGE_ORDER)[number], string> = {
 const UI_STAGE_BACKEND_STAGE_IDS: Record<(typeof UI_STAGE_ORDER)[number], string[]> = {
   c2_professional_identity: ['c2_basic_identity', 'c3_public_profile'],
   c4_service_setup: ['c4_service_setup'],
-  c5_availability_calendar: ['c5_availability_calendar'],
   c6_plan_billing_setup: ['c6_plan_billing_setup'],
   c7_payout_payments: ['c7_payout_payments'],
   c8_submit_review: ['c8_submit_review'],
@@ -56,7 +53,6 @@ function normalizeStageId(stageId: string) {
   if (normalized === 'c2_professional_identity' || normalized === 'c2_basic_identity') return 'c2_basic_identity'
   if (normalized === 'c3_public_profile') return 'c3_public_profile'
   if (normalized === 'c4_services' || normalized === 'c4_service_setup') return 'c4_service_setup'
-  if (normalized === 'c5_availability_calendar') return 'c5_availability_calendar'
   if (
     normalized === 'c6_plan_billing_setup_post' ||
     normalized === 'c6_plan_billing_setup_pre' ||

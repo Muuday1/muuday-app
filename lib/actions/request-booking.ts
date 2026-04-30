@@ -91,7 +91,6 @@ export async function offerRequestBooking(input: {
 
 export async function declineRequestBookingByProfessional(
   requestId: string,
-  reason?: string,
 ): Promise<RequestBookingActionResult> {
   const { supabase, user, professionalId } = await getAuthenticatedContext()
   const rl = await rateLimit('bookingManage', user.id)
@@ -102,7 +101,6 @@ export async function declineRequestBookingByProfessional(
     user.id,
     professionalId,
     requestId,
-    reason,
   )
 
   if (result.success) {

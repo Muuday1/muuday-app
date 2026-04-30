@@ -1,9 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowRight, CheckCircle2, Circle, Loader2, Upload, XCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react'
 import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
@@ -18,15 +17,12 @@ import {
 } from '@/lib/legal/professional-terms'
 
 import {
-  type Blocker,
   type Stage,
   type QualificationStructured,
-  type AvailabilityDayState,
   type OnboardingTrackerModalProps,
   type SaveState,
   type BillingCycle,
   type PlanTier,
-  type TrackerViewMode,
   type PendingPhoto,
   type ProfileSummary,
   type ModalContextPayload,
@@ -34,24 +30,15 @@ import {
   type ProfessionalServiceItem,
   type ModalContextResponse,
   type PhotoValidationChecks,
-  type BlockerCta,
 } from './onboarding-tracker/types'
 
 import {
-  WEEK_DAYS,
-  TIME_OPTIONS,
   UI_STAGE_ORDER,
   UI_STAGE_LABELS,
   UI_STAGE_BACKEND_STAGE_IDS,
   ACTIONABLE_ADJUSTMENT_STAGE_IDS,
   TERMS_KEYS,
-  PLAN_PRICE_BASE_BRL,
-  PLAN_COMPARISON_ROWS,
-  PLAN_ROW_BY_LABEL,
   PLAN_TIER_LABELS,
-  LANGUAGE_OPTIONS,
-  PROFESSIONAL_TITLES,
-  TARGET_AUDIENCE_OPTIONS,
   QUALIFICATION_APPROVED_OPTIONS,
   QUALIFICATION_FILE_MAX_SIZE_BYTES,
   QUALIFICATION_ALLOWED_TYPES,
@@ -66,19 +53,12 @@ import {
   normalizeOption,
   isRegistrationQualification,
   inferCredentialType,
-  toKeywords,
-  formatCurrencyFromBrl,
   clamp,
-  rgbToHsl,
-  humanizeTaxonomyValue,
-  resolveTaxonomyLabel,
   getQualificationValidationMessage,
   readImageDimensions,
   runPhotoAutoValidation,
   buildAvatarCropFile,
   getPlanFeatureHighlights,
-  buildDefaultAvailabilityMap,
-  getBlockerCta,
   withTimeout,
 } from './onboarding-tracker/helpers'
 
@@ -87,7 +67,6 @@ import { SubmitReviewStage } from './onboarding-tracker/stages/submit-review-sta
 import { TermsModal } from './onboarding-tracker/stages/terms-modal'
 import { PlanSelectionStage } from './onboarding-tracker/stages/plan-selection-stage'
 import { ServicesStage } from './onboarding-tracker/stages/services-stage'
-import { AvailabilityStage } from './onboarding-tracker/stages/availability-stage'
 import { IdentityStage } from './onboarding-tracker/stages/identity-stage'
 
 export function OnboardingTrackerModal({
@@ -203,21 +182,8 @@ export function OnboardingTrackerModal({
   const [servicesLoadState, setServicesLoadState] = useState<'idle' | 'loaded' | 'degraded' | 'failed'>('idle')
   const [servicesLoadedSuccessfully, setServicesLoadedSuccessfully] = useState(true)
   const [servicesLoadError, setServicesLoadError] = useState('')
-  const [availabilityMap, setAvailabilityMap] = useState<Record<number, AvailabilityDayState>>(
-    buildDefaultAvailabilityMap(),
-  )
-  const [availabilitySaveState, setAvailabilitySaveState] = useState<SaveState>('idle')
-  const [availabilityError, setAvailabilityError] = useState('')
-  const [profileTimezone, setProfileTimezone] = useState('America/Sao_Paulo')
   const [categoryNameBySlug, setCategoryNameBySlug] = useState<Record<string, string>>({})
   const [subcategoryNameBySlug, setSubcategoryNameBySlug] = useState<Record<string, string>>({})
-  const [minimumNoticeHours, setMinimumNoticeHours] = useState(24)
-  const [maxBookingWindowDays, setMaxBookingWindowDays] = useState(30)
-  const [bufferMinutes, setBufferMinutes] = useState(15)
-  const [confirmationMode, setConfirmationMode] = useState<'auto_accept' | 'manual'>('auto_accept')
-  const [enableRecurring, setEnableRecurring] = useState(true)
-  const [allowMultiSession, setAllowMultiSession] = useState(true)
-  const [requireSessionPurpose, setRequireSessionPurpose] = useState(false)
   const [currentEvaluation, setCurrentEvaluation] = useState(onboardingEvaluation)
   const [reviewAdjustments, setReviewAdjustments] = useState<ReviewAdjustmentItem[]>(
     Array.isArray(initialReviewAdjustments) ? initialReviewAdjustments : [],
@@ -275,9 +241,6 @@ export function OnboardingTrackerModal({
   const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
-  const minNoticeRange = tierConfig.minNoticeRange
-  const maxBufferMinutes = tierConfig.bufferConfig.maxMinutes
-  const isBasicTier = normalizedTier === 'basic'
   const servicesLoadFailed = servicesLoadState === 'failed'
   const serviceActionsDisabled =
     serviceSaveState === 'saving' || servicesLoadState === 'idle' || servicesLoadFailed
@@ -477,7 +440,6 @@ export function OnboardingTrackerModal({
       if (!hasTrackerBootstrap) {
         setTermsHydrated(false)
       }
-      setAvailabilityError('')
       setPlanPricing(null)
       setPricingError('')
       setServicesLoadState('idle')
@@ -559,7 +521,6 @@ export function OnboardingTrackerModal({
         const professional = (critical.professional || null) as Record<string, unknown> | null
         const existingServices = Array.isArray(critical.services) ? critical.services : []
         const settingsRow = (critical.settings || null) as Record<string, unknown> | null
-        const availabilityRows = Array.isArray(critical.availability) ? critical.availability : []
         const appRow = (critical.application || null) as Record<string, unknown> | null
         const credentialRows = Array.isArray(critical.credentials) ? critical.credentials : []
         const profileRow = (critical.profile || null) as ProfileSummary | null
@@ -590,37 +551,10 @@ export function OnboardingTrackerModal({
         }
         setServicesLoadState(normalizedServicesLoadState)
 
-        const defaults = buildDefaultAvailabilityMap()
-        for (const row of availabilityRows) {
-          const day = Number(row.day_of_week)
-          if (!(day in defaults)) continue
-          defaults[day] = {
-            is_available: Boolean(row.is_active),
-            start_time: String(row.start_time || '09:00').slice(0, 5),
-            end_time: String(row.end_time || '18:00').slice(0, 5),
-          }
-        }
-        setAvailabilityMap(defaults)
-        setMinimumNoticeHours(Number(settingsRow?.minimum_notice_hours || 24))
-        setMaxBookingWindowDays(Number(settingsRow?.max_booking_window_days || 30))
-        setBufferMinutes(Number(settingsRow?.buffer_time_minutes || settingsRow?.buffer_minutes || 15))
-        setConfirmationMode(
-          String(settingsRow?.confirmation_mode || 'auto_accept') === 'manual' ? 'manual' : 'auto_accept',
-        )
-        setEnableRecurring(
-          typeof settingsRow?.enable_recurring === 'boolean' ? Boolean(settingsRow.enable_recurring) : true,
-        )
-        setAllowMultiSession(
-          typeof settingsRow?.allow_multi_session === 'boolean' ? Boolean(settingsRow.allow_multi_session) : true,
-        )
-        setRequireSessionPurpose(Boolean(settingsRow?.require_session_purpose))
         setIsFinanceBypassEnabled(Boolean(settingsRow?.onboarding_finance_bypass))
 
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo'
         const resolvedCurrency = String(profileRow?.currency || 'BRL').toUpperCase()
-        const resolvedTimezone = String(settingsRow?.timezone || profileRow?.timezone || browserTimezone)
         setServiceCurrency(resolvedCurrency)
-        setProfileTimezone(resolvedTimezone)
 
         const professionalTier = String(professional?.tier || '').toLowerCase()
         const normalizedProfessionalTier: PlanTier =
@@ -759,16 +693,13 @@ export function OnboardingTrackerModal({
         }
         setTermsHydrated(true)
         criticalLoaded = true
-      } catch (error) {
+      } catch {
         if (!mounted) return
         setServicesLoadState(previous =>
           previous === 'loaded' || previous === 'degraded' ? previous : 'failed',
         )
         setServicesLoadError(previous =>
           previous || 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.',
-        )
-        setAvailabilityError(
-          error instanceof Error ? error.message : 'Não foi possível carregar os dados iniciais do tracker.',
         )
       } finally {
         if (mounted) {
@@ -1576,51 +1507,6 @@ export function OnboardingTrackerModal({
     }
   }
 
-  async function saveAvailabilityCalendar() {
-    if (Object.values(availabilityMap).some(day => day.is_available && day.start_time >= day.end_time)) {
-      setAvailabilitySaveState('error')
-      setAvailabilityError('Horários inválidos: início deve ser menor que fim.')
-      return
-    }
-
-    setAvailabilitySaveState('saving')
-    setAvailabilityError('')
-
-    const safeNoticeHours = Math.min(
-      Number(minNoticeRange.max),
-      Math.max(Number(minNoticeRange.min), Number(minimumNoticeHours || minNoticeRange.min)),
-    )
-    const safeBookingWindow = Math.min(
-      Number(tierLimits.bookingWindowDays),
-      Math.max(1, Number(maxBookingWindowDays || 1)),
-    )
-
-    try {
-      await saveSection(
-        {
-          section: 'availability',
-          profileTimezone,
-          availabilityMap,
-          minimumNoticeHours: safeNoticeHours,
-          maxBookingWindowDays: safeBookingWindow,
-          bufferMinutes,
-          confirmationMode: isBasicTier ? 'auto_accept' : confirmationMode,
-          enableRecurring,
-          allowMultiSession,
-          requireSessionPurpose,
-        },
-        'Não foi possível salvar disponibilidade e regras.',
-      )
-      setAvailabilitySaveState('saved')
-      setTimeout(() => setAvailabilitySaveState('idle'), 2000)
-    } catch (error) {
-      setAvailabilitySaveState('error')
-      setAvailabilityError(
-        error instanceof Error ? error.message : 'Não foi possível salvar disponibilidade e regras.',
-      )
-    }
-  }
-
   async function savePlanSelection() {
     setPlanActionState('saving')
     setPlanActionError('')
@@ -2082,35 +1968,6 @@ export function OnboardingTrackerModal({
               )}
 
                             
-              {(activeStageId === 'c5_availability_calendar') && (
-                <AvailabilityStage
-                  profileTimezone={profileTimezone}
-                  availabilityMap={availabilityMap}
-                  setAvailabilityMap={setAvailabilityMap}
-                  minimumNoticeHours={minimumNoticeHours}
-                  setMinimumNoticeHours={setMinimumNoticeHours}
-                  minNoticeRange={minNoticeRange}
-                  maxBookingWindowDays={maxBookingWindowDays}
-                  setMaxBookingWindowDays={setMaxBookingWindowDays}
-                  tierLimits={tierLimits}
-                  bufferMinutes={bufferMinutes}
-                  setBufferMinutes={setBufferMinutes}
-                  maxBufferMinutes={maxBufferMinutes}
-                  isBasicTier={isBasicTier}
-                  confirmationMode={confirmationMode}
-                  setConfirmationMode={setConfirmationMode}
-                  enableRecurring={enableRecurring}
-                  setEnableRecurring={setEnableRecurring}
-                  allowMultiSession={allowMultiSession}
-                  setAllowMultiSession={setAllowMultiSession}
-                  requireSessionPurpose={requireSessionPurpose}
-                  setRequireSessionPurpose={setRequireSessionPurpose}
-                  availabilityError={availabilityError}
-                  availabilitySaveState={availabilitySaveState}
-                  saveAvailabilityCalendar={saveAvailabilityCalendar}
-                />
-              )}
-
               {activeStageId === 'c6_plan_billing_setup_post' ? (
                 <PlanSelectionStage
                   selectedPlanCycle={selectedPlanCycle}

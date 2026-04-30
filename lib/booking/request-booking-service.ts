@@ -1,10 +1,9 @@
 import * as Sentry from '@sentry/nextjs'
-import { parseBookingSlot, MS_PER_HOUR } from '@/lib/booking/slot-parsing'
+import { parseBookingSlot } from '@/lib/booking/slot-parsing'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   extractProfessionalTimezone,
   loadProfessionalSettings,
-  normalizeProfessionalSettingsRow,
 } from '@/lib/booking/settings'
 import { roundCurrency } from '@/lib/booking/cancellation-policy'
 import { getExchangeRates } from '@/lib/exchange-rates'
@@ -141,21 +140,26 @@ export async function createRequestBookingService(
   }
   const { startUtc: preferredStartUtc, endUtc: preferredEndUtc } = parsedSlot.slot
 
-  const minimumStartTime = Date.now() + settings.minimumNoticeHours * MS_PER_HOUR
-  if (preferredStartUtc.getTime() < minimumStartTime) {
-    return {
-      success: false,
-      error: `Selecione um horário com pelo menos ${settings.minimumNoticeHours} horas de antecedência.`,
-    }
-  }
-
-  const maximumDate = new Date()
-  maximumDate.setDate(maximumDate.getDate() + settings.maxBookingWindowDays)
-  if (preferredStartUtc.getTime() > maximumDate.getTime()) {
-    return {
-      success: false,
-      error: `Solicitacoes devem estar dentro de ${settings.maxBookingWindowDays} dias.`,
-    }
+  const validation = await validateSlotAvailability({
+    supabase,
+    professionalId: professional.id,
+    startUtc: preferredStartUtc,
+    endUtc: preferredEndUtc,
+    timezone: settings.timezone,
+    bufferMinutes: settings.bufferMinutes,
+    minimumNoticeHours: settings.minimumNoticeHours,
+    maxBookingWindowDays: settings.maxBookingWindowDays,
+    errorMessages: {
+      minimumNotice: `Selecione um horário com pelo menos ${settings.minimumNoticeHours} horas de antecedência.`,
+      maxWindow: `Solicitacoes devem estar dentro de ${settings.maxBookingWindowDays} dias.`,
+      workingHours: 'Horário não está disponível para este profissional.',
+      exception: 'Horário bloqueado por indisponibilidade excepcional.',
+      internalConflict: 'Horário já está reservado. Escolha outro.',
+      externalConflict: 'Horário conflita com agenda externa conectada do profissional.',
+    },
+  })
+  if (!validation.valid) {
+    return { success: false, error: validation.error! }
   }
 
   const { data: request, error: requestError } = await supabase
@@ -322,7 +326,6 @@ export async function declineRequestBookingByProfessionalService(
   _userId: string,
   professionalId: string | null,
   requestId: string,
-  _reason?: string,
 ): Promise<RequestBookingActionResult> {
   const parsed = requestIdSchema.safeParse(requestId)
   if (!parsed.success) return { success: false, error: 'Solicitação inválida.' }

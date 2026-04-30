@@ -1,8 +1,8 @@
 # NEXT_STEPS.md — Consolidated Source of Truth
 
-**Last updated:** 2026-04-29
+**Last updated:** 2026-04-30
 **TypeScript:** Clean (0 errors, 0 warnings)
-**Tests:** 1051/1052 pass (1 pre-existing failure in `lib/booking/availability-engine.test.ts`)
+**Tests:** 1052/1052 pass
 **Build:** 190 pages
 **Mobile:** `tsc --noEmit` passes
 **Status:** Living document — update after every major change
@@ -306,17 +306,17 @@ These are important but not blocking. Pick up opportunistically.
 
 ### P3.1 God File Refactoring
 - **What:** Break down remaining god files (>500 lines).
-- **Why:** Maintainability. `OnboardingTrackerModal.tsx` (3,995 lines) is the worst offender.
+- **Why:** Maintainability.
 - **Source:** `docs/engineering/god-file-refactor-plan.md`
 - **Owner:** Backend / Frontend
 - **Acceptance:**
-  - [ ] `components/dashboard/OnboardingTrackerModal.tsx` → extracted into `components/dashboard/onboarding/` directory
-  - [ ] `lib/actions/request-booking.ts` (861 lines) → extract validation, eligibility, state-machine logic
-  - [ ] `lib/email/resend.ts` (897 lines) → split by domain (booking, professional, user, marketing, review)
-  - [ ] `components/booking/BookingForm.tsx` (1,151 lines) → step components extracted
-  - [ ] `lib/booking/request-booking-service.ts` (811 lines) → extract settings lookup, slot validation, timezone normalization
-  - [ ] `lib/booking/manage-booking-service.ts` (944 lines) → extract settings lookup, slot validation, timezone normalization
-  - [ ] `app/(app)/agenda/page.tsx` (1,099 lines) → add Suspense boundaries or extract sub-components
+  - [ ] `components/dashboard/OnboardingTrackerModal.tsx` (2,038 lines) → extract stage components into `components/dashboard/onboarding/`
+  - [x] `lib/actions/request-booking.ts` (~~861~~ 164 lines) → extracted to `lib/booking/request-booking-service.ts`
+  - [x] `lib/email/resend.ts` (~~897~~ 69 lines) → split to `lib/email/templates/*` + `lib/email/client.ts`
+  - [ ] `components/booking/BookingForm.tsx` (1,377 lines) → step components extracted
+  - [ ] `lib/booking/request-booking-service.ts` (767 lines) → extract settings lookup, slot validation, timezone normalization
+  - [ ] `lib/booking/manage-booking-service.ts` → extract settings lookup, slot validation, timezone normalization
+  - [ ] `app/(app)/agenda/page.tsx` → add Suspense boundaries or extract sub-components
   - [ ] `app/(app)/dashboard/page.tsx` → add Suspense boundaries or extract sub-components
 
 ### P3.2 Design System Missing Components
@@ -474,6 +474,7 @@ These cannot be resolved by engineering alone.
 | C44 | **Cleanup Pass 17 — Extracted `parseBookingSlot` + Sentry instrumentation + query limits** — Created `lib/booking/slot-parsing.ts` with `parseBookingSlot()` helper and `MS_PER_MINUTE`/`MS_PER_HOUR` constants. Replaced 4 duplicated `fromZonedTime` + NaN blocks in request-booking and manage-booking services. Removed redundant manual min-notice/max-window checks from offer/reschedule; delegated to `validateSlotAvailability`. Replaced 18 `console.error` calls with `Sentry.captureException` across 9 files (booking, availability, auth, blog, actions). Added `.limit(500)` to blog comments and `.limit(200)` to conflict detection. Updated test mocks. TypeScript clean; 1052/1052 tests pass. | `lib/booking/slot-parsing.ts`, `lib/booking/request-booking-service.ts`, `lib/booking/manage-booking-service.ts`, `lib/booking/availability-checks.ts`, `lib/booking/external-calendar-conflicts.ts`, `lib/blog/blog-engagement-service.ts`, `lib/auth/layout-session.ts`, `lib/actions/user-profile.ts`, `lib/actions/professional-onboarding.ts`, `lib/actions/review-response.ts`, `lib/booking/availability-checks.test.ts`, `lib/booking/external-calendar-conflicts.test.ts` |
 | C45 | **Cleanup Pass 18 — Removed redundant `force-dynamic` + admin Sentry + zero `any` in lib/ (excl. tests)** — Removed redundant `export const dynamic = 'force-dynamic'` from `agenda/page.tsx` and `dashboard/page.tsx` (both already dynamic via `createClient()` + `redirect()`). Replaced 25 `console.error` calls in `lib/admin/admin-service.ts` and `lib/actions/admin.ts` with `Sentry.captureException`/`captureMessage`. Fixed all 10 remaining `: any` annotations in `lib/` (excluding tests) with explicit types (`RawModerationRow` interface, inline row types, `PostgrestError | null`). Removed 2 unnecessary `as any` casts in admin actions. TypeScript clean; 1052/1052 tests pass. | `app/(app)/agenda/page.tsx`, `app/(app)/dashboard/page.tsx`, `lib/admin/admin-service.ts`, `lib/actions/admin.ts`, `lib/professional/current-professional.ts` |
 | C46 | **Cleanup Pass 19 — Complete console.error → Sentry migration across lib/ (38 files)** — Replaced 80+ remaining `console.error` calls with `Sentry.captureException`/`captureMessage` in 38 modules: favorites, guide-feedback, onboarding-state, slot-locks, review-reminders, request-helpers, complete-account, plan-pricing, professional-services, review-response, refund/engine, subscription/manager, revolut/client, trolley/client+onboarding, debt/monitor, calendar sync (service/events/auth-context), admin/finance, admin-plans, admin/shared, admin/auth-helper, professional/auth-helper, professional/subscription, email/shared, email/marketing, stripe cron-jobs, stripe jobs, push/unified-sender, payout-notifications, kyc/document-ai, kyc/textract, pending-payment-timeout, request-booking-service, middleware. Only 2 `console.error` remain in `lib/config/env.ts` (startup validation before Sentry init). Updated 3 test files to mock Sentry. TypeScript clean; 1052/1052 tests pass. Deployed live. | 38 lib/ files + 3 test files |
+| C47 | **Cleanup Pass 20 — Remove availability calendar stage from onboarding modal + dead code pruning** — Removed inline `AvailabilityStage` and all associated state/handlers from `OnboardingTrackerModal.tsx` (3,995 → 2,038 lines). Removed ~20 unused imports/helpers. Pruned dead code from `app/(app)/agenda/page.tsx` (unused variables, imports). Removed unused imports from `lib/booking/request-booking-service.ts` and `lib/booking/manage-booking-service.ts`. Fixed unused `_reason` parameter in `declineRequestBookingByProfessionalService` and aligned call sites. Removed unused `WEEK_DAYS` import from onboarding helpers. Fixed unused `Star` import in dashboard page. TypeScript clean; 1052/1052 tests pass. | `components/dashboard/OnboardingTrackerModal.tsx`, `app/(app)/agenda/page.tsx`, `lib/booking/request-booking-service.ts`, `lib/booking/manage-booking-service.ts`, `components/dashboard/onboarding-tracker/helpers.ts`, `app/(app)/dashboard/page.tsx` |
 
 ---
 

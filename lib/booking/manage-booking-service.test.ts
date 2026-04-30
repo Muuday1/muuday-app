@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   validateBookingId,
   recurringDeadlineBlockedResult,
-  applyPaymentRefund,
   confirmBookingService,
   getBookingDetailService,
 } from './manage-booking-service'
+import { applyPaymentRefund } from '@/lib/booking/cancellation/apply-refund'
 
 vi.mock('@/lib/booking/state-machine', () => ({
   assertBookingTransition: vi.fn(),

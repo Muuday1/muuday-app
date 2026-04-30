@@ -67,3 +67,12 @@ export type BatchBookingRequest = {
   enabled: boolean
   dates: string[]
 }
+
+export type ManageBookingResult =
+  | { success: true }
+  | {
+      success: false
+      error: string
+      reasonCode?: string
+      deadlineAtUtc?: string | null
+    }

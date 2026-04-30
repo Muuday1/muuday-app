@@ -12,7 +12,6 @@ import {
   Clock,
   Layers,
   ShieldAlert,
-  Star,
   Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
