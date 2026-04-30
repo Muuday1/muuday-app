@@ -6,8 +6,8 @@ import {
   declineRequestBookingByProfessionalService,
   cancelRequestBookingByUserService,
   declineRequestBookingByUserService,
-  acceptRequestBookingService,
 } from './request-booking-service'
+import { acceptRequestBookingService } from './request-booking/accept-request'
 
 vi.mock('@/lib/booking/request-eligibility', () => ({
   professionalCanReceiveRequestBooking: vi.fn(),

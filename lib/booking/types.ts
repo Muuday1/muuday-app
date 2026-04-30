@@ -76,3 +76,11 @@ export type ManageBookingResult =
       reasonCode?: string
       deadlineAtUtc?: string | null
     }
+
+export type RequestBookingResult =
+  | { success: true; requestId: string }
+  | { success: false; error: string; reasonCode?: string }
+
+export type RequestBookingActionResult =
+  | { success: true }
+  | { success: false; error: string; reasonCode?: string }

@@ -11,8 +11,8 @@ import {
   declineRequestBookingByProfessionalService,
   cancelRequestBookingByUserService,
   declineRequestBookingByUserService,
-  acceptRequestBookingService,
 } from '@/lib/booking/request-booking-service'
+import { acceptRequestBookingService } from '@/lib/booking/request-booking/accept-request'
 
 type RequestBookingResult =
   | { success: true; requestId: string }
