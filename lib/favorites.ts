@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/nextjs'
+import { isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 export async function getFavoriteIds(): Promise<string[]> {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
+  if (authError && !isAuthSessionMissingError(authError)) {
     Sentry.captureException(authError, { tags: { area: 'favorites' } })
   }
   if (!user) return []
@@ -24,7 +25,7 @@ export async function getFavoriteIds(): Promise<string[]> {
 export async function toggleFavorite(professionalId: string): Promise<boolean> {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
+  if (authError && !isAuthSessionMissingError(authError)) {
     Sentry.captureException(authError, { tags: { area: 'favorites' } })
   }
   if (!user) return false
@@ -63,7 +64,7 @@ export async function toggleFavorite(professionalId: string): Promise<boolean> {
 export async function isFavorited(professionalId: string): Promise<boolean> {
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
+  if (authError && !isAuthSessionMissingError(authError)) {
     Sentry.captureException(authError, { tags: { area: 'favorites' } })
   }
   if (!user) return false

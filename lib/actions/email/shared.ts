@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as Sentry from '@sentry/nextjs'
+import { isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
 import {
@@ -54,7 +55,7 @@ export {
 export async function requireAuth(): Promise<string | null> {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError) {
+  if (authError && !isAuthSessionMissingError(authError)) {
     Sentry.captureException(authError, { tags: { area: 'email_shared' } })
   }
   if (!user) return null
