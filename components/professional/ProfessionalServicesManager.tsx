@@ -8,7 +8,7 @@ import {
 } from '@/lib/actions/professional-services'
 import { Plus, Pencil, Trash2, Loader2, Check, X } from 'lucide-react'
 
-interface Service {
+export interface Service {
   id: string
   name: string
   description: string | null

@@ -59,7 +59,14 @@ export default async function DisputaDetalhePage({
   const caseData = caseResult.data
   const status = STATUS_LABELS[caseData.status] || STATUS_LABELS.open
 
-  const messages = messagesResult.success ? (messagesResult.data.messages as any[]) : []
+  interface CaseMessage {
+    id: string
+    sender_id: string
+    content: string
+    created_at: string
+    profiles?: { full_name?: string | null } | null
+  }
+  const messages = (messagesResult.success ? messagesResult.data.messages : []) as CaseMessage[]
 
   return (
     <div className="mx-auto max-w-3xl p-6 md:p-8">
@@ -136,7 +143,7 @@ export default async function DisputaDetalhePage({
           </p>
         ) : (
           <div className="space-y-3">
-            {messages.map((msg: any) => {
+            {messages.map((msg) => {
               const isMe = msg.sender_id === user.id
               return (
                 <div

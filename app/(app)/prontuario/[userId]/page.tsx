@@ -51,8 +51,13 @@ export default async function ProntuarioClientePage({
 
   const clientProfile = clientProfileResult.data
   const latestBooking = latestBookingResult.data
-  const record = recordResult.success ? (recordResult.data.record as any) : null
-  const notes = notesResult.success ? (notesResult.data.notes as any[]) : []
+  const record = recordResult.success ? (recordResult.data.record as { notes?: string } | null) : null
+  interface SessionNote {
+    id: string
+    notes: string
+    created_at: string
+  }
+  const notes = (notesResult.success ? notesResult.data.notes : []) as SessionNote[]
 
   return (
     <div className="mx-auto max-w-3xl p-6 md:p-8">
@@ -88,7 +93,7 @@ export default async function ProntuarioClientePage({
           <p className="text-sm text-slate-500">Nenhuma nota de sessão registrada.</p>
         ) : (
           <div className="mb-4 space-y-3">
-            {notes.map((note: any) => (
+            {notes.map((note) => (
               <div key={note.id} className="rounded-md border border-slate-200/80 bg-slate-50/70 p-3">
                 <p className="text-xs text-slate-400">
                   {formatInTimeZone(

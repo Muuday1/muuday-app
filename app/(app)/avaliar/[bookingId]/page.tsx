@@ -50,7 +50,10 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
     })
   }
 
-  const professional = booking.professionals as any
+  const professional = booking.professionals as {
+    id?: string
+    profiles?: { full_name?: string | null } | null
+  } | null
   const professionalName = professional?.profiles?.full_name || 'Profissional'
   const professionalInitial = professionalName.charAt(0)
   const scheduledDate = new Date(booking.scheduled_at).toLocaleDateString('pt-BR', {
@@ -120,7 +123,7 @@ export default async function AvaliarPage({ params }: { params: Promise<{ bookin
           <ReviewForm
             bookingId={bookingId}
             userId={user.id}
-            professionalId={professional?.id}
+            professionalId={professional?.id || ''}
           />
         </AppCard>
       )}
