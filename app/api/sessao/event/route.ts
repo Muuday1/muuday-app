@@ -36,7 +36,7 @@ const payloadSchema = z.object({
     'media_published',
     'media_subscribed',
   ]),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function POST(request: NextRequest) {

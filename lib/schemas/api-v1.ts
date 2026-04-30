@@ -101,7 +101,7 @@ export const bookingSchema = z.object({
   timezone_user: z.string().nullable(),
   timezone_professional: z.string().nullable(),
   booking_type: z.enum(['one_off', 'recurring', 'batch']).nullable(),
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   cancellation_reason: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -201,7 +201,7 @@ export const notificationSchema = z.object({
   type: z.string().openapi({ example: 'booking_confirmed' }),
   title: z.string().openapi({ example: 'Agendamento confirmado' }),
   body: z.string().openapi({ example: 'Seu agendamento com Dr. João foi confirmado.' }),
-  payload: z.record(z.unknown()).nullable(),
+  payload: z.record(z.string(), z.unknown()).nullable(),
   read_at: z.string().nullable().openapi({ example: '2026-04-27T14:30:00Z' }),
   created_at: z.string().openapi({ example: '2026-04-27T14:00:00Z' }),
 }).openapi('Notification')
@@ -235,7 +235,7 @@ export const professionalSearchQuerySchema = z.object({
 }).openapi('ProfessionalSearchQuery')
 
 export const professionalSearchResultSchema = z.object({
-  data: z.array(z.record(z.unknown()).openapi({ description: 'Professional record from Supabase' })),
+  data: z.array(z.record(z.string(), z.unknown()).openapi({ description: 'Professional record from Supabase' })),
   nextCursor: z.string().nullable(),
   total: z.number().int().min(0),
 }).openapi('ProfessionalSearchResult')
