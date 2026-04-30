@@ -230,7 +230,6 @@ export default async function AgendarPage({
   const initialDate = parseInitialDate(Array.isArray(queryData) ? queryData[0] : queryData)
   const initialTime = parseInitialTime(Array.isArray(queryHora) ? queryHora[0] : queryHora)
 
-  const profProfile = professionalProfile as any
   const category = CATEGORIES.find(c => c.slug === professional.category)
 
   return (
@@ -242,7 +241,7 @@ export default async function AgendarPage({
             Agendar sessão
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {profProfile?.full_name}
+            {professionalProfile?.full_name}
             {category ? ` · ${category.icon} ${category.name}` : ''}
             {' · '}
             {selectedService ? `${selectedService.name} · ${selectedService.duration_minutes} min` : `${professional.session_duration_minutes} min`}
@@ -257,7 +256,7 @@ export default async function AgendarPage({
           session_duration_minutes: bookingSettings.sessionDurationMinutes || professional.session_duration_minutes,
           category: professional.category,
         }}
-        profileName={profProfile?.full_name || 'Profissional'}
+        profileName={professionalProfile?.full_name || 'Profissional'}
         profileHref={professionalProfileHref}
         availability={availability || []}
         existingBookings={existingBookings || []}

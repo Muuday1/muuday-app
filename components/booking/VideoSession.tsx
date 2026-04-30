@@ -262,7 +262,7 @@ export default function VideoSession({
         unsubscribers.push(
           adapter.onEvent('trackUnpublished', (uid, kind) => {
             if (cancelledRef.current) return
-            console.log('[VideoSession] track unpublished', uid, kind)
+            Sentry.captureMessage('[VideoSession] track unpublished: ' + uid + ' ' + kind, { level: 'info', tags: { area: 'video-session', context: 'track-unpublished' } })
             // Keep the stream alive; the <video> will freeze on last frame.
             // Full removal happens on userLeft.
           })

@@ -1,8 +1,23 @@
 # Muuday Tracker Update — FULLY VERIFIED
 
 **Generated:** 2026-04-29
-**Last cleanup pass:** 2026-04-29 (Pass 21)
+**Last cleanup pass:** 2026-04-29 (Pass 22)
 **Method:** Deep read-only audit. Every previously "not verified" item was investigated.
+
+---
+
+## Cleanup Pass 22 — 2026-04-29
+
+### Fixed
+
+| Tracker Item | Fix | Files Changed |
+|--------------|-----|---------------|
+| **console.warn** → Sentry across `lib/` (20+ calls), `components/` (7 calls), and `app/api/` (1 call) | Replaced all production-facing `console.warn` calls with `Sentry.captureMessage(level: 'warning')`. Files: `lib/payments/revolut/client.ts` (6), `lib/payments/trolley/client.ts` (2), `lib/payments/debt/monitor.ts` (1), `lib/payments/subscription/manager.ts` (2), `lib/push/sender.ts` (1), `lib/push/preferences.ts` (2), `lib/push/unified-sender.ts` (2), `lib/session/client-tracker.ts` (2), `lib/email/resend-events.ts` (2), `lib/email/email-action-service.ts` (1), `lib/chat/chat-service.ts` (1), `lib/ops/booking-reminders.ts` (1), `lib/ops/pending-payment-timeout.ts` (1), `lib/ops/no-show-detection.ts` (1), `lib/notifications/quiet-hours.ts` (2), `lib/config/app-url.ts` (1), `lib/security/rate-limit.ts` (removed redundant), `components/agenda/ProfessionalAvailabilityWorkspace.tsx` (1), `components/booking/VideoSession.tsx` (2), `components/pwa/ServiceWorkerRegistration.tsx` (2), `components/pwa/PushNotificationToggle.tsx` (2), `app/api/professional/onboarding/save/route.ts` (1). Added Sentry import where missing. Updated 2 test files to mock Sentry instead of `console.warn`. | 24 files |
+
+### Verification
+- `npx tsc --noEmit` passes (Exit 0).
+- `npx vitest run` (relevant test files: 104 tests across 8 files) — all pass.
+- Deployed live to https://app.muuday.com
 
 ---
 

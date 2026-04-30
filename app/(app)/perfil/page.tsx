@@ -38,7 +38,7 @@ export default async function PerfilPage() {
         .eq('professional_id', professional.id)
 
       const specialtyIds = Array.from(
-        new Set((linkRows || []).map((row: any) => String(row.specialty_id || '').trim()).filter(Boolean)),
+        new Set((linkRows || []).map((row: { specialty_id: string | null }) => String(row.specialty_id || '').trim()).filter(Boolean)),
       )
 
       if (specialtyIds.length > 0) {
@@ -51,7 +51,7 @@ export default async function PerfilPage() {
         professionalSpecialties = Array.from(
           new Set(
             (specialtyRows || [])
-              .map((row: any) => String(row.name_pt || '').trim())
+              .map((row: { name_pt: string | null }) => String(row.name_pt || '').trim())
               .filter(Boolean),
           ),
         ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))

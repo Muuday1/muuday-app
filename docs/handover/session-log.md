@@ -1513,3 +1513,33 @@ Use this for meaningful checkpoints only.
 ---
 
 > **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.
+
+
+### Entry 64 (2026-04-29) — Pass 23: Remove redundant force-dynamic + fix any types in critical pages
+
+- Scope: three complementary cleanup tasks across 15 files.
+- **Task 1 — Remove redundant `force-dynamic`** (7 files):
+  - `app/buscar/page.tsx`, `app/(app)/mensagens/page.tsx`, `app/(app)/financeiro/page.tsx`, `app/(app)/prontuario/[userId]/page.tsx`, `app/(app)/prontuario/page.tsx`, `app/(app)/buscar-auth/page.tsx`, `app/(app)/sessao/[bookingId]/page.tsx`
+  - All pages unconditionally call `createClient()` (reads cookies) and/or `redirect()` — already dynamic by Next.js semantics. The explicit `export const dynamic = 'force-dynamic'` was redundant.
+- **Task 2 — Fix `any` types in critical app/ pages** (7 files):
+  - `app/(app)/agendar/[id]/page.tsx` — removed `professionalProfile as any`, used direct optional chaining
+  - `app/(app)/sessao/[bookingId]/page.tsx` — replaced `p: any` with inline `{ id: string | null; full_name: string | null }`
+  - `app/(app)/profissional/[id]/page.tsx` — replaced 3 `any` occurrences:
+    - `services.map((s: any))` → explicit row type with non-null defaults for `ProfessionalService` compatibility
+    - `reviews.map((review: any))` → explicit review type with `profiles` as array (Supabase foreign-table relation)
+    - `recommendations.map((item: any))` → `PublicProfessionalRecord`
+    - Fixed null-safety for `review.rating` and `item.session_price_brl`
+  - `app/(app)/financeiro/page.tsx` — imported `ProfessionalSubscriptionStatus`, removed `subscription as any`
+  - `app/(app)/perfil/page.tsx` — replaced 2 `row: any` with inline types for specialty query rows
+  - `app/(app)/notificacoes/page.tsx` — defined `NotificationItem` interface (with `action_url` derived by service layer), replaced 5 `any` occurrences
+  - `app/(app)/mensagens/[conversationId]/page.tsx` — exported `Message` interface from `MessageThread.tsx`, replaced `messages as any[]` with `Message[]`
+- **Task 3 — Fix last production `console.log`**:
+  - `components/booking/VideoSession.tsx` — replaced `console.log('[VideoSession] track unpublished', ...)` with `Sentry.captureMessage(level: 'info')`
+- Validation:
+  - `tsc --noEmit` → pass (0 errors)
+  - `vitest run --exclude 'mobile/**'` → all visible tests pass (pre-existing 2 zod codec failures only)
+  - Deployed live to https://app.muuday.com
+
+---
+
+> **Document reviewed as part of comprehensive audit:** 2026-04-24. See docs/DOC-AUDIT-REPORT-2026-04-24.md for full findings.

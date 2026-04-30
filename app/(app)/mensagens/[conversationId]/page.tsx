@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getMessagesAction, markConversationAsReadAction } from '@/lib/actions/chat'
 import { MessageThread } from '@/components/chat/MessageThread'
+import type { Message } from '@/components/chat/MessageThread'
 
 export default async function ConversationPage({
   params,
@@ -79,7 +80,7 @@ export default async function ConversationPage({
 
       <MessageThread
         conversationId={conversationId}
-        initialMessages={messages as any[]}
+        initialMessages={messages as Message[]}
         currentUserId={user.id}
         otherName={otherName}
         bookingId={conversation?.booking_id || ''}
