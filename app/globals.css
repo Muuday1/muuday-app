@@ -1,6 +1,42 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f6fef0;
+  --color-brand-100: #e7fdd5;
+  --color-brand-200: #d0fba9;
+  --color-brand-300: #b2f573;
+  --color-brand-400: #9FE870;
+  --color-brand-500: #8ed85f;
+  --color-brand-600: #6bb346;
+  --color-brand-700: #4d8e33;
+  --color-brand-800: #3d6b1f;
+  --color-brand-900: #2d5016;
+
+  --color-accent-50: #f0fdf4;
+  --color-accent-100: #dcfce7;
+  --color-accent-200: #bbf7d0;
+  --color-accent-300: #86efac;
+  --color-accent-400: #4ade80;
+  --color-accent-500: #22c55e;
+  --color-accent-600: #16a34a;
+  --color-accent-700: #15803d;
+  --color-accent-800: #166534;
+  --color-accent-900: #14532d;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  --container-center: true;
+  --container-padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  @theme {
+    --container-padding: 2rem;
+  }
+}
 
 @layer base {
   :root {
@@ -147,7 +183,7 @@
     }
   }
 
-@media (prefers-reduced-motion: reduce) {
+  @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
     }
