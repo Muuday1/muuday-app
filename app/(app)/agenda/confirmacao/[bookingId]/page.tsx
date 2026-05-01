@@ -21,17 +21,20 @@ export default async function BookingConfirmacaoPage({
     redirect(`/login?redirect=${encodeURIComponent(`/agenda/confirmacao/${bookingId}`)}`)
   }
 
-  const { data: booking } = await supabase
-    .from('bookings')
-    .select(
-      `id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, price_total, user_currency, price_brl,
-      session_purpose, booking_type, recurrence_group_id,
-      professionals(id, user_id, profiles(full_name, timezone)),
-      professional_services(id, name, duration_minutes, price_brl)`
-    )
-    .eq('id', bookingId)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const [{ data: booking }, { data: userProfile }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select(
+        `id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, price_total, user_currency, price_brl,
+        session_purpose, booking_type, recurrence_group_id,
+        professionals(id, user_id, profiles(full_name, timezone)),
+        professional_services(id, name, duration_minutes, price_brl)`
+      )
+      .eq('id', bookingId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase.from('profiles').select('timezone').eq('id', user.id).maybeSingle(),
+  ])
 
   if (!booking) {
     notFound()
@@ -49,7 +52,7 @@ export default async function BookingConfirmacaoPage({
       ? new Date(booking.start_time_utc)
       : null
 
-  const userTimezone = 'America/Sao_Paulo'
+  const userTimezone = userProfile?.timezone || 'America/Sao_Paulo'
   const dateLabel = scheduledAt
     ? formatInTimeZone(scheduledAt, userTimezone, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : null
