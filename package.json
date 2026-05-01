@@ -85,7 +85,7 @@
     "openapi3-ts": "^4.5.0",
     "postcss": "^8.5.13",
     "tailwindcss": "^4.2.4",
-    "typescript": "^5",
+    "typescript": "^6",
     "vitest": "^4.1.5"
   },
   "overrides": {
