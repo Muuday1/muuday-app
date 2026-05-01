@@ -338,7 +338,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 | Priority | Fix | Effort |
 |----------|-----|--------|
-| P6.1 | Fix hardcoded `userTimezone = 'America/Sao_Paulo'` on confirmation page | 30 min |
+| P6.1 | Fix hardcoded `userTimezone = 'America/Sao_Paulo'` on confirmation page | 30 min | ✅ |
 | P6.2 | Add server-side auth check to `/completar-perfil` | 30 min |
 | P6.3 | Enable native push (`sendUnifiedPush`) by wiring it into chat, reminders, no-show | 1 day |
 | P6.4 | Add message edit/delete UI | 1 day |
