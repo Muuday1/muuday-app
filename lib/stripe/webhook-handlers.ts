@@ -399,6 +399,35 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
     return { outcome: 'processed', paymentRowsUpdated: payments.length }
   }
 
+  if (event.type === 'payment_intent.requires_capture' && paymentIntentId) {
+    // With capture_method: 'manual', this webhook fires when the customer
+    // confirms payment. Funds are authorized but NOT yet captured.
+    // We log the event for observability; actual capture happens later
+    // (typically after the session is completed by the professional).
+    Sentry.addBreadcrumb({
+      category: 'payments',
+      message: 'PaymentIntent requires_capture',
+      level: 'info',
+      data: { paymentIntentId, stripeEventId: event.id },
+    })
+
+    // Verify the payment exists and is linked to this PI
+    const { data: paymentRows } = await admin
+      .from('payments')
+      .select('id, booking_id, status')
+      .eq('provider', 'stripe')
+      .eq('provider_payment_id', paymentIntentId)
+
+    if (!paymentRows || paymentRows.length === 0) {
+      return { outcome: 'ignored', reason: 'payment_not_found' }
+    }
+
+    // TODO: In future, consider adding an 'authorized' status to payments
+    // so the platform can distinguish between 'requires_payment' (user hasn't
+    // entered card) and 'authorized' (card authorized, awaiting capture).
+    return { outcome: 'processed', paymentRowsFound: paymentRows.length }
+  }
+
   if (event.type === 'payment_intent.payment_failed' && paymentIntentId) {
     const payments = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'failed', {
       stripe_event_id: event.id,
