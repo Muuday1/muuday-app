@@ -155,8 +155,17 @@ export async function sendMessage(
         },
         { notifType: 'chat_message' },
       )
+
+      // Also create in-app notification
+      await supabase.from('notifications').insert({
+        user_id: otherParticipant.user_id,
+        type: 'message',
+        title: `Nova mensagem de ${senderName}`,
+        body: contentParsed.data.substring(0, 200),
+        payload: { conversation_id: idParsed.data },
+      })
     } catch (pushErr) {
-      Sentry.captureMessage('[chat] Push notification failed: ' + pushErr, { level: 'warning', tags: { area: 'chat/service' } })
+      Sentry.captureMessage('[chat] Push/notification failed: ' + pushErr, { level: 'warning', tags: { area: 'chat/service' } })
     }
   })()
 
