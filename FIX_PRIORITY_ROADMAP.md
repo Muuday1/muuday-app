@@ -186,16 +186,32 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P3.2 — Enable Bank Transfer (Optional but Recommended)
+### P3.2 — Enable Bank Transfer (Blocked — Trolley account is PayPal-only)
 **Dependencies:** P3.1  
+**Status:** ⛔ BLOCKED — Trolley team confirmed bank transfer is NOT enabled on the account.
+
 **Why:** PayPal-only excludes professionals who don't have PayPal.
 
-**What to build:**
+**What we discovered:**
+- Trolley account is configured for PayPal payouts only
+- Bank transfer is NOT available in the Trolley dashboard
+- Professionals MUST create a PayPal account to receive payouts
+- Schema already supports `bank_transfer` (CHECK constraint on `trolley_recipients.payout_method`)
+- Code is prepared for future activation
+
+**What was done to clarify:**
+- `components/finance/PayoutStatusCard.tsx`: updated copy to clarify PayPal-only
+- `lib/help-data.ts`: updated help copy from "conta bancária" → "conta PayPal"
+- `app/registrar-profissional/page.tsx`: updated FAQ answer
+- `lib/payments/trolley/onboarding.ts`: documented PayPal-only status and future enablement checklist
+
+**When unblocked:**
 - Add a form in `/financeiro` to collect bank account details (IBAN, SWIFT, country)
 - Store in `trolley_recipients.bank_account_json`
 - Pass to `createTrolleyRecipient()` when calling Trolley API
+- Update PayoutStatusCard to show bank transfer as an option
 
-**Effort:** 1-2 days  
+**Effort:** 1-2 days (when unblocked)  
 **Risk:** Low — additive feature
 
 ---
