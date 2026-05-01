@@ -385,9 +385,11 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
         })
         await createLedgerTransaction(admin, ledgerInput)
 
-        // Update professional balance: increment pending_balance
+        // Update professional balance: increment available_balance
+        // (Money is immediately available because capture happens after session
+        // completion. A future hold period can be added if chargeback risk increases.)
         await updateProfessionalBalance(admin, payment.professional_id, {
-          pendingDelta: amountMinor - platformFeeMinor,
+          availableDelta: amountMinor - platformFeeMinor,
         })
       } catch (ledgerError) {
         Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), { tags: { area: 'stripe_webhook', subArea: 'ledger_balance' } })

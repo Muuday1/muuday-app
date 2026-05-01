@@ -5,6 +5,7 @@ import {
   emitUserSessionCompleted,
   emitProfessionalSessionCompleted,
 } from '@/lib/email/resend-events'
+import { captureBookingPayment } from '@/lib/stripe/capture'
 import type { ManageBookingResult } from '@/lib/booking/types'
 
 export async function completeBookingService(
@@ -50,6 +51,14 @@ export async function completeBookingService(
   if (error || !completedBooking) {
     return { success: false, error: 'Erro ao concluir agendamento. Tente novamente.' }
   }
+
+  // Capture the Stripe payment (non-blocking — webhook will update DB)
+  // This is fire-and-forget: we don't fail the completion if capture fails,
+  // because the professional has already delivered the session.
+  captureBookingPayment(supabase, bookingId).catch((captureError) => {
+    // Error is already logged to Sentry inside captureBookingPayment
+    console.error('Failed to capture payment for booking', bookingId, captureError)
+  })
 
   // Emit Resend automation events (non-blocking)
   const { data: userProfile } = await supabase
