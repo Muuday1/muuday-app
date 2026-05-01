@@ -167,16 +167,19 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 ## PHASE 3: Professional Gets Paid Out (Week 2-3)
 **Goal:** Money actually leaves the platform and reaches the professional's PayPal.
 
-### P3.1 — Improve Trolley KYC UX
+### P3.1 — Improve Trolley KYC UX ✅ COMPLETED
 **Dependencies:** P2.3 (professionals have available balance)  
 **Why:** Professionals need to be KYC-approved before they can receive payouts. Currently they passively wait.
 
-**What to change:**
-- After `initiatePayoutSetup()` creates the Trolley recipient:
-  - Fetch the recipient portal URL from Trolley API (or construct it)
-  - Open it in a new tab or embed an iframe
-  - Show clear instructions: "Complete your verification to receive payments"
-- Add a "Check status" button that calls `refreshPayoutStatus()`
+**What was changed:**
+- `lib/payments/trolley/client.ts` — Added `generateTrolleyPortalLink(recipientId)` calling `POST /v1/recipients/{id}/portal`
+- `lib/actions/professional-payout.ts`:
+  - `initiatePayoutSetup()` now generates `portalUrl` after creating/finding recipient
+  - Added `getTrolleyPortalUrl()` server action for existing recipients
+- `components/finance/PayoutStatusCard.tsx`:
+  - Opens Trolley portal in new tab after setup
+  - Shows "Completar KYC" button when recipient exists but `isActive === false`
+- `lib/security/rate-limit.ts` — Added `payoutPortal` preset
 
 **Effort:** 1 day  
 **Risk:** Low — UX only

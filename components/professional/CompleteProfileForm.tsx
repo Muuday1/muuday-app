@@ -9,19 +9,31 @@ import { Loader2, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 const LANGUAGE_OPTIONS = ['Português', 'English', 'Español', 'Français', 'Deutsch', 'Italiano']
 const DURATION_OPTIONS = [30, 45, 50, 60, 90]
 
-export function CompleteProfileForm() {
+interface CompleteProfileFormProps {
+  defaultValues?: {
+    category?: string
+    bio?: string
+    tags?: string
+    languages?: string[]
+    yearsExperience?: string
+    priceBrl?: string
+    duration?: number
+  }
+}
+
+export function CompleteProfileForm({ defaultValues }: CompleteProfileFormProps) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [category, setCategory] = useState('')
-  const [bio, setBio] = useState('')
-  const [tags, setTags] = useState('')
-  const [languages, setLanguages] = useState<string[]>(['Português'])
-  const [yearsExperience, setYearsExperience] = useState('')
-  const [priceBrl, setPriceBrl] = useState('')
-  const [duration, setDuration] = useState(60)
+  const [category, setCategory] = useState(defaultValues?.category || '')
+  const [bio, setBio] = useState(defaultValues?.bio || '')
+  const [tags, setTags] = useState(defaultValues?.tags || '')
+  const [languages, setLanguages] = useState<string[]>(defaultValues?.languages || ['Português'])
+  const [yearsExperience, setYearsExperience] = useState(defaultValues?.yearsExperience || '')
+  const [priceBrl, setPriceBrl] = useState(defaultValues?.priceBrl || '')
+  const [duration, setDuration] = useState(defaultValues?.duration || 60)
 
   const totalSteps = 3
 
