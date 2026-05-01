@@ -141,11 +141,20 @@ export async function GET(request: NextRequest) {
     normalizeRole((user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role) ||
     normalizeRole(user.user_metadata?.role)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, country, timezone, role')
-    .eq('id', user.id)
-    .maybeSingle()
+  const [{ data: profile }, { data: professionalRow }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, country, timezone, role')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('professionals')
+      .select('id, status')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ])
+
+  const effectiveRole = profile?.role || metadataRole || roleHint
 
   if (!profile) {
     const fullName =
@@ -171,11 +180,21 @@ export async function GET(request: NextRequest) {
       return redirectWithSession(resolveCompleteAccountPath())
     }
 
+    // Professionals must complete profile even if country/timezone exist
+    if ((profileAfterUpsert?.role === 'profissional') && !professionalRow) {
+      return redirectWithSession('/completar-perfil')
+    }
+
     return redirectWithSession(resolveDestinationByRole(profileAfterUpsert?.role))
   }
 
   if (!profile.country || !profile.timezone) {
     return redirectWithSession(resolveCompleteAccountPath())
+  }
+
+  // Professionals must complete profile before accessing dashboard
+  if (effectiveRole === 'profissional' && !professionalRow) {
+    return redirectWithSession('/completar-perfil')
   }
 
   return redirectWithSession(resolveDestinationByRole(profile.role))
