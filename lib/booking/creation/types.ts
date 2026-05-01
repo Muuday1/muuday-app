@@ -36,7 +36,7 @@ export type PersistResult = {
 }
 
 export type BookingContext = {
-  profile: { currency: string | null; timezone: string | null } | null
+  profile: { currency: string | null; timezone: string | null; full_name: string | null } | null
   professional: ProfessionalRow
   settings: BookingSettings
   eligibility: { ok: boolean; message?: string; reasonCode?: string }

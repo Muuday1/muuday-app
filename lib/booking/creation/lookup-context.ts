@@ -22,7 +22,7 @@ export async function lookupBookingContext(
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('currency, timezone')
+      .select('currency, timezone, full_name')
       .eq('id', userId)
       .single(),
     supabase
