@@ -11,7 +11,13 @@
  * 4. Professional completes KYC in Trolley portal
  * 5. Webhook updates kyc_status → approved → is_active = true
  *
- * MVP: PayPal-only. Bank transfer in future phase.
+ * MVP: PayPal-only.
+ * IMPORTANT: Trolley is currently configured for PayPal payouts only.
+ * Bank transfer is supported in the schema (trolley_recipients.payout_method CHECK)
+ * but NOT enabled in the Trolley account. When enabled, update:
+ *   - createProfessionalTrolleyRecipient() to accept payoutMethod param
+ *   - PayoutStatusCard to show bank transfer option
+ *   - This comment to reflect the new default
  */
 
 import * as Sentry from '@sentry/nextjs'

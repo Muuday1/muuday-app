@@ -75,12 +75,12 @@ export function PayoutStatusCard({ payoutStatus, balance, periodicity = 'weekly'
       if (result.error) {
         setError(result.error)
       } else if (result.alreadyExists) {
-        setSuccess('Configuração de pagamento já existe. Aguardando validação KYC.')
+        setSuccess('Configuração de pagamento já existe. Aguardando validação KYC. Você precisará vincular sua conta PayPal no portal.')
         if (result.portalUrl) {
           window.open(result.portalUrl, '_blank')
         }
       } else {
-        setSuccess('Configuração iniciada! Complete seus dados no portal de pagamentos.')
+        setSuccess('Configuração iniciada! Complete seus dados e vincule sua conta PayPal no portal de pagamentos.')
         if (result.portalUrl) {
           window.open(result.portalUrl, '_blank')
         }
@@ -245,9 +245,21 @@ export function PayoutStatusCard({ payoutStatus, balance, periodicity = 'weekly'
         </div>
       )}
 
+      {/* PayPal account info */}
+      {payoutStatus.paypalEmail && (
+        <div className="rounded-md bg-blue-50 border border-blue-100 p-3 flex items-start gap-2 mt-3">
+          <CheckCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-700">
+            <p className="font-medium">Conta PayPal vinculada</p>
+            <p className="text-blue-600">{payoutStatus.paypalEmail}</p>
+          </div>
+        </div>
+      )}
+
       {/* Info */}
       <div className="mt-4 text-xs text-slate-500 space-y-1">
-        <p>Repasses são processados toda segunda-feira às 8h UTC.</p>
+        <p>Repasses são processados via <strong>PayPal</strong> toda segunda-feira às 8h UTC.</p>
+        <p>Você precisa de uma conta PayPal para receber os pagamentos. Outros métodos serão habilitados em breve.</p>
         <p>Período de segurança: 48h após o término da sessão.</p>
         {balance?.lastPayoutAt && (
           <p>Último repasse: {new Date(balance.lastPayoutAt).toLocaleDateString('pt-BR')}</p>
