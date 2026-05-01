@@ -177,6 +177,7 @@ describe('POST /api/stripe/checkout-session/booking', () => {
   it('returns 200 with sessionUrl for valid request', async () => {
     const mockSupabase = {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1', email: 'user@example.com' } } }) },
+      rpc: vi.fn().mockResolvedValue({ error: null }),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'bookings') {
           return {
@@ -232,8 +233,6 @@ describe('POST /api/stripe/checkout-session/booking', () => {
       },
     }
     mockedGetStripeClient.mockReturnValue(mockStripe as any)
-
-    mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
 
     const res = await POST(makeRequest({ bookingId: '550e8400-e29b-41d4-a716-446655440000' }))
     expect(res.status).toBe(200)

@@ -399,7 +399,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
     return { outcome: 'processed', paymentRowsUpdated: payments.length }
   }
 
-  if (event.type === 'payment_intent.requires_capture' && paymentIntentId) {
+  if ((event.type as string) === 'payment_intent.requires_capture' && paymentIntentId) {
     // With capture_method: 'manual', this webhook fires when the customer
     // confirms payment. Funds are authorized but NOT yet captured.
     // We log the event for observability; actual capture happens later

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Calendar,
@@ -161,6 +162,14 @@ export default function BookingForm({
   const [bookingResult, setBookingResult] = useState<
     { success: true; bookingId: string } | { success: false; error: string } | null
   >(null)
+  const router = useRouter()
+
+  // Redirect to payment page on successful booking creation
+  useEffect(() => {
+    if (bookingResult?.success) {
+      router.push(`/pagamento/${bookingResult.bookingId}`)
+    }
+  }, [bookingResult, router])
 
   // Derive session duration and price from selected service (or legacy professional defaults)
   const sessionDurationMinutes = selectedService?.duration_minutes ?? professional.session_duration_minutes
@@ -637,108 +646,17 @@ export default function BookingForm({
   }
 
   if (bookingResult?.success) {
-    const dateLabel = selectedDate?.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-
     return (
       <div className="mx-auto flex max-w-md flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
-          <CheckCircle2 className="h-10 w-10 text-green-500" />
+          <Loader2 className="h-10 w-10 animate-spin text-green-500" />
         </div>
         <h2 className="mb-2 text-2xl font-bold text-slate-900 font-display">
-          {confirmationMode === 'manual' ? 'Solicitação enviada' : 'Sessão confirmada'}
+          Redirecionando para o pagamento...
         </h2>
-        <p className="mb-1 text-slate-500">
-          {bookingType === 'recurring' ? 'Seu pacote de sessões' : 'Sua sessão'} com{' '}
-          <span className="font-semibold text-slate-700">{profileName}</span> foi criado.
+        <p className="text-slate-500">
+          Aguarde enquanto preparamos a página de pagamento segura.
         </p>
-        {bookingType === 'batch' ? (
-          <p className="mb-1 text-sm text-slate-500">
-            {batchDateTimes.length} sessões avulsas agendadas no mesmo checkout.
-          </p>
-        ) : (
-          <>
-            <p className="mb-1 text-sm text-slate-500">
-              {dateLabel} às {selectedTime} ({timezoneLabel(userTimezone)})
-            </p>
-            {selectedTimeInProfessionalTimezone && (
-              <p className="mb-6 text-xs text-slate-500">
-                Horário no fuso do profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
-              </p>
-            )}
-          </>
-        )}
-        {bookingType === 'recurring' && (
-          <p className="mb-6 text-xs text-slate-500">
-            Pacote recorrente com {resolvedRecurringSessionsCount} sessões (mesmo dia e horário).
-          </p>
-        )}
-
-        {confirmationMode === 'manual' ? (
-          <div className="mb-8 w-full rounded-md border border-amber-100 bg-amber-50 p-4 text-left text-sm text-amber-700">
-            <p className="mb-1 font-semibold">Aguardando confirmação do profissional</p>
-            <p>Se não houver resposta dentro do prazo, o sistema cancela e reembolsa automaticamente.</p>
-          </div>
-        ) : (
-          <div className="mb-8 w-full rounded-md border border-green-100 bg-green-50 p-4 text-left text-sm text-green-700">
-            <p className="mb-1 font-semibold">Sessão confirmada</p>
-            <p>Você receberá notificações e lembretes por email e no app.</p>
-          </div>
-        )}
-
-        {bookingType === 'recurring' && selectedDate && selectedTime && (
-          <button
-            onClick={() => {
-              const selectedDateStr = toLocalDateStr(selectedDate)
-              const startUtc = fromZonedTime(`${selectedDateStr}T${selectedTime}:00`, userTimezone)
-              const endUtc = new Date(startUtc.getTime() + sessionDurationMinutes * 60 * 1000)
-              const { slots } = generateRecurrenceSlots({
-                startDateUtc: startUtc,
-                endDateUtc: endUtc,
-                periodicity: recurringPeriodicity,
-                intervalDays: recurringIntervalDays,
-                occurrences: resolvedRecurringSessionsCount,
-                bookingWindowDays: maxBookingWindowDays,
-              })
-              const events = slots.map((slot, i) => ({
-                uid: `${professional.id}-${i + 1}@muuday.com`,
-                startUtc: slot.startUtc,
-                endUtc: slot.endUtc,
-                summary: `Sessão com ${profileName}`,
-                description: `Sessão de ${sessionDurationMinutes} minutos agendada via Muuday`,
-                url: `${typeof window !== 'undefined' ? window.location.origin : ''}/agenda`,
-              }))
-              const ics = generateIcsContent(events)
-              downloadIcsFile(`muuday-sessoes-${profileName.replace(/\s+/g, '-')}.ics`, ics)
-              captureEvent('booking_ics_downloaded', {
-                professional_id: professional.id,
-                sessions_count: slots.length,
-              })
-            }}
-            className="mb-4 w-full rounded-md border border-slate-200 bg-white py-3 text-center text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50/70"
-          >
-            📅 Baixar calendário (.ics)
-          </button>
-        )}
-
-        <div className="flex w-full flex-col gap-3 sm:flex-row">
-          <Link
-            href="/agenda"
-            className="flex-1 rounded-md bg-[#9FE870] py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[#8ed85f]"
-          >
-            Ver minha agenda
-          </Link>
-          <Link
-            href="/buscar"
-            className="flex-1 rounded-md border border-slate-200 bg-white py-3 text-center text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50/70"
-          >
-            Buscar mais profissionais
-          </Link>
-        </div>
       </div>
     )
   }
