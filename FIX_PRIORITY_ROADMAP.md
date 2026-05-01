@@ -295,22 +295,17 @@ export default async function CompleteProfilePage() {
 
 ---
 
-### P5.2 — Add In-App Notifications for Chat Messages
+### P5.2 — Add In-App Notifications for Chat Messages ✅ COMPLETED
 **Dependencies:** None (parallel)  
 **Why:** Chat only sends push. Users without push subscriptions miss messages.
 
-**What to change:**
-- In `lib/chat/chat-service.ts` `sendMessage()`:
-  ```typescript
-  // After inserting message and sending push:
-  await admin.from('notifications').insert({
-    user_id: otherParticipantId,
-    type: 'message',
-    title: 'Nova mensagem',
-    body: `${senderName}: ${content.substring(0, 100)}`,
-    payload: { conversation_id: conversationId, booking_id: bookingId },
-  });
-  ```
+**What was changed:**
+- `lib/chat/chat-service.ts` `sendMessage()`:
+  - After push notification, inserts row into `notifications` table
+  - Type: `'message'`, title: `Nova mensagem de ${senderName}`
+  - Body truncated to 200 chars
+  - Payload includes `conversation_id` for deep linking
+  - Fire-and-forget: errors logged, never fails message delivery
 
 **Effort:** 2 hours  
 **Risk:** Zero
