@@ -274,6 +274,7 @@ export const RATE_LIMITS = {
   stripeCheckoutBooking: { limit: 10, windowSeconds: 60 },
   payoutSetup: { limit: 5, windowSeconds: 300 },
   payoutSync: { limit: 10, windowSeconds: 60 },
+  payoutPortal: { limit: 5, windowSeconds: 60 },
   payoutPeriodicityUpdate: { limit: 10, windowSeconds: 60 },
 } as const
 

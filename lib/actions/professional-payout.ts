@@ -8,6 +8,7 @@ import {
   getProfessionalPayoutStatus,
   syncTrolleyRecipientStatus,
 } from '@/lib/payments/trolley/onboarding'
+import { generateTrolleyPortalLink } from '@/lib/payments/trolley/client'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import type { PayoutPeriodicity } from '@/lib/payments/fees/calculator'
 
@@ -35,12 +36,25 @@ export async function initiatePayoutSetup() {
     return { error: result.error || 'Erro ao configurar pagamento.' }
   }
 
+  // If recipient exists (new or existing), generate a portal link for KYC completion
+  let portalUrl: string | null = null
+  if (result.recipientId) {
+    try {
+      const portal = await generateTrolleyPortalLink(result.recipientId)
+      portalUrl = portal.url
+    } catch (portalErr) {
+      // Don't fail setup if portal generation fails — user can retry
+      console.error('[payout] Portal link generation failed:', portalErr)
+    }
+  }
+
   return {
     success: true,
     recipientId: result.recipientId,
     kycStatus: result.kycStatus,
     isActive: result.isActive,
     alreadyExists: result.alreadyExists,
+    portalUrl,
   }
 }
 
@@ -132,6 +146,43 @@ export async function refreshPayoutStatus() {
  *
  * Allowed values: 'weekly' | 'biweekly' | 'monthly'
  */
+/**
+ * Generate a Trolley recipient portal URL for the current professional.
+ * Used when they need to complete KYC or update payout details.
+ */
+export async function getTrolleyPortalUrl() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
+
+  const rl = await rateLimit('payoutPortal', user.id)
+  if (!rl.allowed) return { error: 'Muitas tentativas. Tente novamente em breve.' }
+
+  const { data: professional } = await getPrimaryProfessionalForUser(supabase, user.id)
+  if (!professional) {
+    return { error: 'Perfil profissional não encontrado.' }
+  }
+
+  // Find the recipient ID
+  const { data: recipient } = await supabase
+    .from('trolley_recipients')
+    .select('trolley_recipient_id')
+    .eq('professional_id', professional.id)
+    .maybeSingle()
+
+  if (!recipient?.trolley_recipient_id) {
+    return { error: 'Configuração de pagamento não encontrada. Inicie a configuração primeiro.' }
+  }
+
+  try {
+    const portal = await generateTrolleyPortalLink(recipient.trolley_recipient_id)
+    return { success: true, url: portal.url }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erro ao gerar link do portal'
+    return { error: msg }
+  }
+}
+
 export async function updatePayoutPeriodicity(periodicity: PayoutPeriodicity) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

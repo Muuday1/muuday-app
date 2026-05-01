@@ -150,6 +150,13 @@ export async function getTrolleyRecipient(recipientId: string): Promise<TrolleyR
   return trolleyFetch(`/recipients/${recipientId}`)
 }
 
+export async function generateTrolleyPortalLink(recipientId: string): Promise<{ url: string }> {
+  return trolleyFetch(`/recipients/${recipientId}/portal`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
 export async function updateTrolleyRecipient(
   recipientId: string,
   updates: Partial<{ email: string; payoutMethod: string; paypalEmail: string }>,

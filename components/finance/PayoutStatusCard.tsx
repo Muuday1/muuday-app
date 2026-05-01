@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Wallet, AlertTriangle, CheckCircle, Clock, ArrowRight, RefreshCw } from 'lucide-react'
 import { AppCard } from '@/components/ui/AppCard'
 import { formatMinorUnits, formatKycStatus } from '@/lib/payments/format-utils'
-import { initiatePayoutSetup, refreshPayoutStatus } from '@/lib/actions/professional-payout'
+import { initiatePayoutSetup, refreshPayoutStatus, getTrolleyPortalUrl } from '@/lib/actions/professional-payout'
 
 interface PayoutStatusCardProps {
   payoutStatus: {
@@ -60,6 +60,7 @@ function calculateNextPayoutDate(
 export function PayoutStatusCard({ payoutStatus, balance, periodicity = 'weekly' }: PayoutStatusCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isPortalLoading, setIsPortalLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -75,13 +76,36 @@ export function PayoutStatusCard({ payoutStatus, balance, periodicity = 'weekly'
         setError(result.error)
       } else if (result.alreadyExists) {
         setSuccess('Configuração de pagamento já existe. Aguardando validação KYC.')
+        if (result.portalUrl) {
+          window.open(result.portalUrl, '_blank')
+        }
       } else {
         setSuccess('Configuração iniciada! Complete seus dados no portal de pagamentos.')
+        if (result.portalUrl) {
+          window.open(result.portalUrl, '_blank')
+        }
       }
     } catch {
       setError('Erro ao iniciar configuração. Tente novamente.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function handleCompleteKyc() {
+    setIsPortalLoading(true)
+    setError(null)
+    try {
+      const result = await getTrolleyPortalUrl()
+      if (result.error) {
+        setError(result.error)
+      } else if (result.url) {
+        window.open(result.url, '_blank')
+      }
+    } catch {
+      setError('Erro ao abrir portal de KYC. Tente novamente.')
+    } finally {
+      setIsPortalLoading(false)
     }
   }
 
@@ -174,14 +198,27 @@ export function PayoutStatusCard({ payoutStatus, balance, periodicity = 'weekly'
 
         <div className="flex items-center gap-2">
           {!payoutStatus.isActive && (
-            <button
-              onClick={handleSetup}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1 rounded-md bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#8ed85f] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Configurando...' : 'Configurar Pagamento'}
-              <ArrowRight className="w-3 h-3" />
-            </button>
+            <>
+              {!payoutStatus.hasRecipient ? (
+                <button
+                  onClick={handleSetup}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-1 rounded-md bg-[#9FE870] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#8ed85f] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Configurando...' : 'Configurar Pagamento'}
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleCompleteKyc}
+                  disabled={isPortalLoading}
+                  className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPortalLoading ? 'Abrindo...' : 'Completar KYC'}
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
+            </>
           )}
           <button
             onClick={handleRefresh}
