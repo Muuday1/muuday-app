@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS bookings (
       'rescheduled'
     )
   ),
-  booking_type TEXT DEFAULT 'one_off' CHECK (booking_type IN ('one_off', 'recurring_parent', 'recurring_child')),
+  booking_type TEXT DEFAULT 'one_off' CHECK (booking_type IN ('one_off', 'recurring_parent', 'recurring_child', 'batch')),
   parent_booking_id UUID REFERENCES bookings(id),
   session_link TEXT,
   price_brl DECIMAL(10,2) NOT NULL,

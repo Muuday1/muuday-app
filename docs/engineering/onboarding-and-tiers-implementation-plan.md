@@ -257,7 +257,7 @@ Exit criteria:
 ## Appendix G - Canonical docs hierarchy
 
 1. `docs/project/roadmap.md` and `docs/spec/consolidated/master-spec.md` are canonical scope/status docs.
-2. `docs/spec/consolidated/execution-plan.md` is derived operational plan and must reference canonical docs.
+2. `docs/NEXT_STEPS.md` is the canonical execution queue.
 3. `docs/spec/consolidated/journey-coverage-matrix.md` reflects real implementation state (no stale placeholders).
 
 

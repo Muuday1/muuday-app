@@ -226,5 +226,5 @@ npm run db:validate-pooling
 ## Related docs
 
 - [Architecture Overview](../architecture/overview.md)
-- [Project Status](../project/project-status.md)
+- [Next Steps](../NEXT_STEPS.md)
 - [Pro Plan Utilization Audit](../handover/pro-plan-utilization-audit-2026-04-14.md)

@@ -67,7 +67,7 @@ Muuday is a marketplace platform with a multi-domain architecture:
 
 ## Risk and freeze points
 
-1. BR-entity rail provider final decision (Airwallex vs dLocal) remains open before Wave 3 real-money go-live.
+1. ~~BR-entity rail provider final decision (Airwallex vs dLocal)~~ — **RESOLVED 2026-04-24:** Trolley is primary payout provider. Airwallex/dLocal are contingency only.
 2. Session provider is locked to Agora for current roadmap execution.
 3. Compliance/legal wording finalization remains open.
 
@@ -76,7 +76,7 @@ Muuday is a marketplace platform with a multi-domain architecture:
 - [Tech Stack](./tech-stack.md)
 - [Master Spec](../spec/consolidated/master-spec.md)
 - [Open Validations](../spec/consolidated/open-validations.md)
-- [Execution Plan](../spec/consolidated/execution-plan.md)
+- [Next Steps](../NEXT_STEPS.md)
 
 
 ---

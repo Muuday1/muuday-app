@@ -1,9 +1,9 @@
 # Roadmap
 
-Last updated: 2026-04-16
+Last updated: 2026-05-01
 
 Source baseline: `docs/spec/source-of-truth/part1..part5`
-Canonical status docs: `docs/project/project-status.md` + `docs/handover/current-state.md`
+Canonical status docs: `docs/NEXT_STEPS.md` + `docs/handover/current-state.md`
 
 ## Done
 
@@ -29,24 +29,30 @@ Canonical status docs: `docs/project/project-status.md` + `docs/handover/current
 
 ## Now
 
-### Stabilization and UX refinement
+### Stabilization and UX refinement — CODE COMPLETE
 
-1. Keep public shell, search, and profile UX stable and coherent.
-2. Refine professional operations UX, especially calendar and scheduling.
-3. Keep onboarding tracker responsive through critical-first loading and non-blocking optional hydration.
-4. Continue copy, PT-BR, and consistency cleanup in lower-traffic surfaces.
-5. Keep documentation, release hygiene, and operational evidence current.
+1. ✅ Public shell, search, and profile UX stable and coherent.
+2. ✅ Professional operations UX polished (calendar, scheduling, availability workspace).
+3. ✅ Onboarding tracker responsive with critical-first loading and non-blocking optional hydration.
+4. ✅ Copy, PT-BR, and consistency cleanup applied across public and admin surfaces.
+5. ✅ Documentation consolidated and aligned (archive pass completed 2026-05-01).
+6. ⏳ Human testing with 5+ real professionals pending for calendar UX.
+7. ⏳ Landing page stakeholder sign-off pending.
 
 ## Next
 
 ### Wave 3 - Payments, billing, payouts, and revenue operations
 
-Lock remains unchanged:
+**BLOCKED until:**
+1. E2E sandbox validation of Stripe pay-in → Revolut → Trolley flow passes.
+2. Revolut access token refreshed (currently expired).
+3. Compliance/legal text freeze complete.
 
-1. Entity decides rail.
-2. UK entity uses Stripe end-to-end.
-3. BR entity uses Airwallex end-to-end.
-4. dLocal remains fallback only.
+Architecture (locked 2026-04-24):
+1. Stripe UK = customer pay-in.
+2. Revolut Business = treasury/settlement.
+3. Trolley = professional payout (KYC + mass payouts).
+4. Airwallex/dLocal = contingency only.
 
 Execution tracks:
 

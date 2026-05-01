@@ -48,12 +48,12 @@ Last updated: 2026-04-24
 
 1. Canonical decision baseline: `docs/spec/source-of-truth/`
 2. Unified decision view: `docs/spec/consolidated/master-spec.md`
-3. Ordered build plan: `docs/spec/consolidated/execution-plan.md`
+3. Ordered build plan: `docs/NEXT_STEPS.md`
 4. International expansion plan: `docs/project/international-expansion/00-master-plan.md`
 5. Mobile app roadmap: `docs/project/mobile-app/00-executive-summary.md`
 4. External validation blockers: `docs/spec/consolidated/open-validations.md`
 5. Current implementation reality: `docs/handover/current-state.md`
-6. Immediate execution queue: `docs/handover/next-steps.md`
+6. Immediate execution queue: `docs/NEXT_STEPS.md`
 
 ## Cross-file dependency rule
 

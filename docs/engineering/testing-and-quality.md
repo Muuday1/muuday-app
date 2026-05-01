@@ -87,7 +87,7 @@ Latest production execution snapshot:
 
 - [Release Checklist](./runbooks/release-checklist.md)
 - [RLS Audit Runbook](./runbooks/rls-audit-runbook.md)
-- [Project Status](../project/project-status.md)
+- [Next Steps](../../NEXT_STEPS.md)
 
 
 ---

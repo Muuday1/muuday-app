@@ -19,11 +19,10 @@ Last updated: 2026-04-24
 
 ## 1) Mandatory read order
 
-1. `docs/spec/README.md`
+1. `docs/README.md`
 2. `docs/spec/consolidated/master-spec.md`
-3. `docs/spec/consolidated/execution-plan.md`
+3. `docs/NEXT_STEPS.md`
 4. `docs/handover/current-state.md`
-5. `docs/handover/next-steps.md`
 
 ## 2) Core operating rule
 
@@ -47,9 +46,9 @@ If implementation diverges, document explicit deltas.
 Always update:
 
 1. `docs/handover/current-state.md`
-2. `docs/handover/next-steps.md`
+2. `docs/NEXT_STEPS.md`
 3. `docs/handover/session-log.md`
-4. affected domain docs (journeys, architecture, integrations, project status)
+4. affected domain docs (journeys, architecture, integrations)
 5. `docs/README.md` and context map when new docs artifacts are introduced
 6. `docs/architecture/tech-stack.md` whenever a tool/component changes phase/status/trigger
 

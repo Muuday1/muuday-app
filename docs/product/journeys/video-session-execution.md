@@ -57,7 +57,7 @@ Deliver reliable session join and evidence lifecycle with provider-agnostic arch
 ## Related docs
 
 - [Open Validations](../../spec/consolidated/open-validations.md)
-- [Execution Plan](../../spec/consolidated/execution-plan.md)
+- [Next Steps](../../../NEXT_STEPS.md)
 - [Session Management Journey](./session-management.md)
 
 

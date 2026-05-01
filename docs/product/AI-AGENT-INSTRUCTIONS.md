@@ -11,7 +11,7 @@
 Every time you start a new task:
 
 1. **Read `AGENTS.md`** in project root for security, CI, and Vercel best practices
-2. **Read `IMPLEMENTATION-ROADMAP.md`** to know which phase/task you're on
+2. **Read `docs/NEXT_STEPS.md`** to know which phase/task you're on
 3. **Read the referenced journey document** for frame-by-frame UX specs
 4. **Check if the file you're editing has an `AGENTS.md`** in its directory tree
 
@@ -201,7 +201,7 @@ Step 5: DOCUMENT
 
 | Need to... | Read this |
 |------------|-----------|
-| Know what to implement next | `IMPLEMENTATION-ROADMAP.md` |
+| Know what to implement next | `docs/NEXT_STEPS.md` |
 | Understand UX specs for a flow | `docs/product/journeys/[journey-name].md` |
 | Know security rules | `AGENTS.md` (project root) |
 | Understand auth patterns | `lib/auth/` directory |

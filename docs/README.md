@@ -1,16 +1,15 @@
 # Muuday Documentation
 
-Last updated: 2026-04-27
+Last updated: 2026-05-01
 
 This folder is the operational source of truth for current product state, engineering status, handover continuity, and active roadmap decisions.
 
 ## Start here
 
 1. `docs/handover/current-state.md` - current product, infra, and risks.
-2. `docs/handover/next-steps.md` - ordered execution queue.
+2. `docs/NEXT_STEPS.md` - **single source of truth** for all upcoming work (consolidated, prioritised).
 3. `docs/project/roadmap.md` - active wave model.
 4. `docs/spec/README.md` - canonical product baseline.
-5. `docs/NEXT_STEPS.md` - consolidated, prioritised source of truth for all upcoming work.
 
 ## Canonical baseline
 
@@ -32,18 +31,19 @@ Do not silently override source-of-truth decisions. If implementation differs, r
 2. Keep handover docs short, current, and operational.
 3. Move stale planning detail to `docs/archive/` instead of letting active docs drift.
 4. Prefer current state over long historical logs in active docs.
-5. Treat `docs/project/project-status.md`, `docs/handover/current-state.md`, and `docs/handover/next-steps.md` as the minimum update set for major work.
+5. Treat `docs/handover/current-state.md` and `docs/NEXT_STEPS.md` as the minimum update set for major work.
 
 ## Documentation map
 
-- `docs/spec/` - canonical product baseline and execution model.
-- `docs/handover/` - current operating context and continuity.
-- `docs/project/` - roadmap, overview, and status (includes `international-expansion/` and `mobile-app/` sub-plans).
-- `docs/architecture/` - system and stack decisions.
-- `docs/engineering/` - setup, deployment, quality, and runbooks.
-- `docs/integrations/` - third-party service implementation state.
-- `docs/product/` - journey-level intent and experience design.
-- `docs/human-actions/` - human decisions and external follow-up.
+- `docs/NEXT_STEPS.md` — **single source of truth** for what comes next (P0/P1/P2/P3)
+- `docs/spec/` — canonical product baseline (5-part source of truth)
+- `docs/handover/` — current operating context and continuity
+- `docs/project/` — roadmap, overview, and program plans (payments-engine, mobile-app, international-expansion)
+- `docs/architecture/` — system and stack decisions
+- `docs/engineering/` — setup, deployment, quality, and runbooks
+- `docs/integrations/` — third-party service implementation state
+- `docs/product/` — journey-level intent and experience design
+- `docs/human-actions/` — human decisions and external follow-up
 
 
 ---

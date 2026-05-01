@@ -16,8 +16,8 @@ The files under `source-of-truth/` are copied from the 5 provided consolidation 
 - Unified operational summary across the 5 parts.
 - Marks what is already decided, provisional, or deferred.
 
-3. `consolidated/execution-plan.md`
-- Ordered build plan with waves, milestones, dependencies, and acceptance criteria.
+3. `../NEXT_STEPS.md`
+- Single source of truth for upcoming work (P0/P1/P2/P3 priorities).
 
 4. `consolidated/ai-agents-unified-instructions.md`
 - Single instruction protocol for any AI coding agent.

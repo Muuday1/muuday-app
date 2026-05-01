@@ -22,7 +22,7 @@ The 5-part specification in `docs/spec/source-of-truth/` is now the canonical pr
 Primary references:
 
 - [Master Spec](../spec/consolidated/master-spec.md)
-- [Execution Plan](../spec/consolidated/execution-plan.md)
+- [Next Steps](../NEXT_STEPS.md)
 - [Open Validations](../spec/consolidated/open-validations.md)
 
 ## Current stage
@@ -33,7 +33,7 @@ Primary references:
 
 1. ✅ Achieve schema and state-model parity for booking foundation in production. (Done)
 2. ✅ Complete Wave 1 and Wave 2 journey correctness (taxonomy/search/onboarding/booking). (Done)
-3. ⏳ Implement Wave 3 payments-revenue engine with dual-rail lifecycle (UK Stripe + BR Airwallex/dLocal) and internal ledger safety. (Locked — waiting for compliance + rail confirmation)
+3. ⏳ Implement Wave 3 payments-revenue engine with Stripe UK pay-in → Revolut treasury → Trolley payout. (Locked — waiting for E2E validation + compliance freeze)
 4. ✅ Implement Wave 4 admin/trust/notifications operational layer. (Backend complete — chat, push, client records, disputes, cases, multi-service)
 5. ✅ Keep Agora as active video provider and execute Wave 5 compliance validations. (Agora locked; waiting room + game shipped)
 6. 🔄 Close stabilization backlog: professional operations UX, copy cleanup, doc drift remediation.
@@ -47,9 +47,9 @@ Primary references:
 
 ## Where to go next
 
-- [Project Status](./project-status.md)
+- [Next Steps](../NEXT_STEPS.md)
 - [Roadmap](./roadmap.md)
-- [Execution Alignment](./execution-alignment.md)
+- [Current State](../handover/current-state.md)
 - [Journey Coverage Matrix](../spec/consolidated/journey-coverage-matrix.md)
 
 

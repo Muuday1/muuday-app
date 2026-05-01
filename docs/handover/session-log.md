@@ -243,9 +243,9 @@ Use this for meaningful checkpoints only.
   - `docs/engineering/database-and-migrations.md`
   - `docs/engineering/deployment-and-operations.md`
   - `docs/engineering/runbooks/release-checklist.md`
-  - `docs/project/project-status.md`
+  - `docs/NEXT_STEPS.md`
   - `docs/handover/current-state.md`
-  - `docs/handover/next-steps.md`
+  - `docs/handover/current-state.md`
 
 ### Entry 75
 - Error budget + alerting hardening batch concluído com foco custo-eficiente.

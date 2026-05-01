@@ -54,11 +54,11 @@ Files to create:
 ### PHASE 2 — Backend Logic
 Read the plan's Phase 2. Update these files in order:
 
-1. `lib/tier-config.ts` — Fix WRONG limits (currently Basic has 2 specialties/3 services). Add TierFeature type and isFeatureAvailable(), getMinNoticeRange(), getBufferConfig(), getSocialLinksLimit(), getExtendedBioLimit().
+1. `lib/tier-config.ts` — Verify limits match canonical matrix (Basic: 1/1/3/1/30; Pro: 3/3/4/3/90; Premium: 5/5/5/6/180). Add TierFeature type and isFeatureAvailable(), getMinNoticeRange(), getBufferConfig(), getSocialLinksLimit(), getExtendedBioLimit().
 2. `lib/professional/onboarding-gates.ts` — Add new snapshot fields, new reason codes (missing_cancellation_policy, missing_terms_acceptance, missing_credentials), new blockers, new matrix rows.
 3. `lib/professional/onboarding-state.ts` — Add queries for new columns and professional_credentials count.
 4. `lib/booking/types.ts` — Add recurrence fields.
-5. `lib/booking/settings.ts` — Default bufferMinutes to 15 (currently 0).
+5. `lib/booking/settings.ts` — Default bufferMinutes to 15.
 6. `lib/booking/availability-engine.ts` — Apply buffer time in slot calculation.
 7. Create `lib/booking/recurrence-engine.ts` — Slot generation and conflict detection.
 8. Create `lib/booking/batch-booking.ts` — Batch booking creation.

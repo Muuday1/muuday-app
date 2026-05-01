@@ -113,7 +113,7 @@ Ordered by execution impact.
 
 1. Review this list weekly.
 2. Move resolved items to `Done` with date and owner.
-3. Update `docs/project/project-status.md` when blockers are removed.
+3. Update `docs/NEXT_STEPS.md` when blockers are removed.
 
 
 ---

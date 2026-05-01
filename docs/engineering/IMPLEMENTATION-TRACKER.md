@@ -378,15 +378,22 @@ getProfessionalServices(professionalId)
 
 ## FASE 6 — Payment Stack 🟡 EM PROGRESSO
 
-> **ATUALIZAÇÃO ARQUITETURAL (2026-04-24):** A arquitetura foi **redefinida** pelo founder. O caminho ativo é:
-> - **Stripe UK** = cobrança do cliente (pay-in apenas — NÃO Stripe Connect)
-> - **Revolut Business** = conta treasury/settlement (recebe de Stripe, funda payouts)
-> - **Trolley** = payout aos profissionais (onboarding KYC + mass payouts)
-> - **Ledger double-entry interno** = rastreabilidade completa de cada centavo
+> **ATUALIZAÇÃO ARQUITETURAL (2026-04-24):** A arquitetura de pagamentos foi **travada** pelo founder.
+> - **Stripe UK** = cobrança do cliente (pay-in)
+> - **Revolut Business** = conta treasury/settlement
+> - **Trolley** = payout aos profissionais (KYC + mass payouts)
+> - **Ledger double-entry interno** = rastreabilidade completa
 >
-> **NÃO usa Stripe Connect para payouts.** NÃO usa Airwallex como rail principal. Airwallex/dLocal permanecem como contingência operacional.
+> **NÃO usa Stripe Connect para payouts.** Airwallex/dLocal são contingência apenas.
 >
-> **Status**: Fase 1 (Ledger Foundation) ✅ COMPLETA. Fase 2 (Stripe Pay-in) ✅ COMPLETA. Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA. Fase 4 (Professional Payout via Trolley) ✅ COMPLETA. Fase 5 (Refund & Dispute Engine) ✅ COMPLETA. Próxima: Fase 6 (Admin Finance Dashboard).
+> **Status atual (2026-05-01):**
+> - Fase 1 (Ledger Foundation) ✅ COMPLETA
+> - Fase 2 (Stripe Pay-in) ✅ COMPLETA
+> - Fase 3 (Stripe Settlement → Revolut) ✅ COMPLETA
+> - Fase 4 (Professional Payout via Trolley) ✅ COMPLETA
+> - Fase 5 (Refund & Dispute Engine) ✅ COMPLETA
+> - Fase 6 (Admin Finance Dashboard) ✅ COMPLETA
+> - Próxima fase: E2E validação em sandbox + Wave 3 compliance freeze
 
 ---
 

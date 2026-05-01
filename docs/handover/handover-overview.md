@@ -37,10 +37,9 @@ Use `docs/spec/consolidated/master-spec.md` for unified reading and `docs/projec
 
 ## Where to start
 
-1. Read `docs/handover/control-snapshot.md`.
-2. Read `docs/handover/current-state.md`.
-3. Read `docs/handover/next-steps.md`.
-4. Use `docs/project/roadmap.md` to place any new work in the correct wave.
+1. Read `docs/handover/current-state.md`.
+2. Read `docs/NEXT_STEPS.md`.
+3. Use `docs/project/roadmap.md` to place any new work in the correct wave.
 
 
 ---

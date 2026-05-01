@@ -1,6 +1,6 @@
 # NEXT_STEPS.md — Consolidated Source of Truth
 
-**Last updated:** 2026-04-30
+**Last updated:** 2026-05-01
 **TypeScript:** Clean (0 errors, 0 warnings)
 **Tests:** 1052/1052 pass
 **Build:** 190 pages
@@ -18,7 +18,7 @@
 1. **Work top-down.** P0 items are true blockers — they prevent later work or create operational risk.
 2. **Check dependencies.** Each item lists what must be true before it can start.
 3. **Reference source docs.** Every item links back to its canonical spec/roadmap/backlog for full detail.
-4. **Update in batch.** When you close items, update this file, `docs/handover/next-steps.md`, and `docs/project/project-status.md` together.
+4. **Update in batch.** When you close items, update this file and `docs/handover/current-state.md` together.
 
 ---
 
@@ -40,7 +40,7 @@ These items prevent Wave 3 opening, create compliance risk, or block multiple do
 ### P0.2 E2E Payment Validation (Wave 3 Gate) — IN PROGRESS
 - **What:** End-to-end sandbox validation of the full payment chain: Stripe pay-in → ledger → Revolut settlement → Trolley payout.
 - **Why:** Wave 3 (real-money) is explicitly blocked until this passes. 275 unit tests + 16 Trolley client tests pass.
-- **Source:** `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`, `docs/handover/next-steps.md`
+- **Source:** `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`
 - **Owner:** Backend + Founder
 - **Dependencies:** P0.1 (secrets current), P0.3 (migration 081 applied)
 - **Status:** Stripe pay-in validated 2026-04-28. Trolley API validated 2026-04-28. Revolut blocked on expired token.
@@ -113,7 +113,7 @@ These items must be complete before Wave 3 (real-money) opens. Ordered by depend
 ### P1.2 Professional Operations UX Polish — CODE COMPLETE, HUMAN TESTING PENDING
 - **What:** Calendar/scheduling ergonomics, onboarding tracker copy consistency, PT-BR cleanup on lower-traffic surfaces.
 - **Why:** Current in-progress work. Must be stable before Wave 3 opens.
-- **Source:** `docs/handover/next-steps.md`, `docs/product/journeys/professional-workspace-journey.md`
+- **Source:** `docs/product/journeys/professional-workspace-journey.md`
 - **Owner:** Frontend
 - **Status:** Code-level improvements committed 2026-04-28. Human testing with 5+ professionals pending.
 - **Acceptance:**
@@ -439,7 +439,7 @@ These cannot be resolved by engineering alone.
 | C8 | Updated `part3-payments` and `part5-video-compliance` with archived notices | `docs/spec/source-of-truth/` |
 | C9 | Marked `session-management.md` and `video-session-execution.md` as deprecated | `docs/product/journeys/session-lifecycle.md` |
 | C10 | Removed 12 duplicate `figma-export/frames/*.md` files | `docs/product/design-system/frames/*.md` |
-| C11 | Updated `docs/README.md`, `context-map.md`, `current-state.md`, `next-steps.md`, `project-status.md` with mobile app and international expansion cross-links | Various |
+| C11 | Updated `docs/README.md`, `context-map.md`, `current-state.md` with mobile app and international expansion cross-links | Various |
 | C12 | Fixed `lib/tier-config.ts` Basic `bookingWindowDays` from 60 → 30 | Migration 045 |
 | C13 | **P0.4** — Fixed `part1-foundations-search-tiers.md` and `part2-onboarding-booking-lifecycle.md` tier limit contradictions; added service limit enforcement to `lib/professional/professional-services-service.ts` | `lib/tier-config.ts`, migration 045 |
 | C14 | **P0.5** — Closed remaining doc contradictions: updated legal terms (Stripe Connect → Trolley), updated `database-and-migrations.md` (070-081), fixed `professional-workspace-journey.md` Basic window (60→30), verified journey-coverage-matrix accuracy | DOC-AUDIT-REPORT-2026-04-24 |
@@ -488,8 +488,8 @@ These cannot be resolved by engineering alone.
 
 | Topic | Canonical Source |
 |-------|-----------------|
-| Immediate execution queue | `docs/handover/next-steps.md` |
-| Project status & waves | `docs/project/project-status.md` |
+| Immediate execution queue | `docs/NEXT_STEPS.md` |
+| Project status & waves | `docs/handover/current-state.md` |
 | AI agent implementation tasks | `docs/product/IMPLEMENTATION-ROADMAP.md` |
 | Mobile app backlog | `docs/project/mobile-app/08-master-backlog.md` |
 | International expansion plan | `docs/project/international-expansion/00-master-plan.md` |

@@ -1,6 +1,6 @@
 # Journey Coverage Matrix
 
-Last updated: 2026-04-24
+Last updated: 2026-05-01
 Coverage baseline: Part 1..Part 5
 
 | Journey Domain | Source Part(s) | Build Wave | Current Status |
@@ -34,6 +34,6 @@ The following have working backend (migrations, APIs, RLS) but may need frontend
 
 ## Usage
 
-1. Keep this matrix synchronized with `docs/project/project-status.md`.
+1. Keep this matrix synchronized with `docs/NEXT_STEPS.md`.
 2. Add explicit blockers and owners in execution tracking (Linear).
-3. Do not mark any domain `Done` until acceptance criteria in `execution-plan.md` are met.
+3. Do not mark any domain `Done` until acceptance criteria in `docs/project/roadmap.md` are met.

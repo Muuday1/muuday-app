@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-28
+Last updated: 2026-05-01
 
 ## Operational truth
 
@@ -135,6 +135,15 @@ Last updated: 2026-04-28
 2. Legal/tax wording and sensitive-category compliance still require human closure.
 3. Local environment drift remains a risk if work is done outside the canonical workspace.
 4. Some operational docs had accumulated stale or corrupted text; active handover docs have now been reset, but older historical docs should be treated cautiously unless they are explicitly current.
+
+## Documentation consolidation note (2026-05-01)
+
+Redundant status docs have been archived into `docs/archive/`:
+- `docs/handover/next-steps.md` → content merged into `docs/NEXT_STEPS.md` (single canonical next-steps source)
+- `docs/project/project-status.md` → content merged into `docs/handover/current-state.md` + `docs/NEXT_STEPS.md`
+- `docs/spec/consolidated/execution-plan.md` → superseded by `docs/project/roadmap.md` + `docs/NEXT_STEPS.md`
+
+For upcoming work, always reference `docs/NEXT_STEPS.md` as the single source of truth.
 
 ## Rules for the next operator
 

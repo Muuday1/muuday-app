@@ -66,7 +66,7 @@ Design rule:
 ## Related docs
 
 - [Master Spec](../../spec/consolidated/master-spec.md)
-- [Execution Plan](../../spec/consolidated/execution-plan.md)
+- [Next Steps](../../../NEXT_STEPS.md)
 - [Trust and Compliance Journey](./trust-safety-compliance.md)
 
 
