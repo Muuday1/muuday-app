@@ -112,10 +112,11 @@ export default async function FinanceiroPage() {
   const { data: professional } = await getPrimaryProfessionalForUser(
     supabase,
     user.id,
-    'id, status',
+    'id, status, tier',
   )
 
   const professionalId = professional?.id || null
+  const currentTier = (professional?.tier || 'basic') as 'basic' | 'professional' | 'premium'
 
   const [
     { data: payments },
@@ -254,8 +255,37 @@ export default async function FinanceiroPage() {
         </AppCard>
       </div>
 
-      {/* Subscription section */}
+      {/* Subscription + Plan clarity section */}
       {Boolean(subscription) && <SubscriptionStatusCard subscription={subscription as ProfessionalSubscriptionStatus} />}
+
+      {profile.role === 'profissional' && (
+        <AppCard className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-slate-900">Seu plano atual</h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {currentTier === 'basic' && 'Básico — Visibilidade padrão na plataforma'}
+                {currentTier === 'professional' && 'Professional — Mais visibilidade e recursos avançados'}
+                {currentTier === 'premium' && 'Premium — Máxima visibilidade e todos os recursos'}
+              </p>
+            </div>
+            <Link
+              href="/planos"
+              className="inline-flex items-center gap-1 rounded-md bg-[#9FE870] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8ed85f] transition-colors"
+            >
+              Ver planos <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="mt-3 rounded-md bg-slate-50 border border-slate-100 p-3 text-xs text-slate-600">
+            <p>
+              <strong>Assinatura mensal</strong> é obrigatória para usar a plataforma (cobertura de infraestrutura, suporte, compliance).
+            </p>
+            <p className="mt-1">
+              <strong>Planos</strong> são opcionais e oferecem mais visibilidade, recursos e ferramentas para seu negócio.
+            </p>
+          </div>
+        </AppCard>
+      )}
 
       {/* Earnings chart */}
       {sparklineData.length > 1 && (

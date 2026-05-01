@@ -174,6 +174,15 @@ export default function PlanSelector({ currentTier, planConfigs, message: initia
 
   return (
     <div className="mx-auto max-w-6xl p-6 md:p-8">
+      <div className="mb-5 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <p className="font-medium">
+          Você também possui uma assinatura mensal Muuday Pro obrigatória para usar a plataforma.
+        </p>
+        <p className="mt-1 text-blue-700">
+          A assinatura cobre infraestrutura, suporte e compliance. Os planos abaixo são opcionais e oferecem mais visibilidade e recursos.
+        </p>
+      </div>
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold text-slate-900">Planos Muuday</h1>

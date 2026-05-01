@@ -216,40 +216,39 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 ## PHASE 4: Fix Data Loss & Onboarding Gaps (Week 3)
 **Goal:** Professional signup data doesn't get lost; onboarding is smoother.
 
-### P4.1 — Pre-Populate Complete Profile from Signup Metadata
+### P4.1 — Pre-Populate Complete Profile from Signup Metadata ✅ COMPLETED
 **Dependencies:** None (parallel with Phase 1-3)  
 **Why:** Professional enters qualifications, title, headline, target audiences at signup. All of this is lost because `/completar-perfil` starts from scratch.
 
-**What to change:**
-- In `app/(app)/completar-perfil/page.tsx`:
-  - Fetch `user.user_metadata` server-side
-  - Extract `professional_qualifications_structured`, `professional_title`, `professional_headline`, etc.
-  - Pass as `defaultValues` to `CompleteProfileForm`
-- In `CompleteProfileForm.tsx`:
-  - Use `defaultValues` to pre-fill fields
-  - Show a banner: "We pre-filled some info from your registration"
+**What was changed:**
+- `app/(app)/completar-perfil/page.tsx` transformed into Server Component:
+  - Fetches `user.user_metadata` server-side
+  - Extracts and maps signup metadata to `CompleteProfileForm` defaultValues:
+    - `professional_category` → category
+    - `professional_headline` → bio
+    - `professional_focus_areas` → tags
+    - `professional_languages` → languages
+    - `professional_years_experience` → yearsExperience
+    - `professional_session_price` → priceBrl
+    - `professional_session_duration_minutes` → duration
+  - Shows banner: "Preenchemos alguns campos com as informações do seu cadastro"
+- `components/professional/CompleteProfileForm.tsx`:
+  - Accepts `defaultValues` prop and initializes all state from it
 
 **Effort:** 1 day  
 **Risk:** Low
 
 ---
 
-### P4.2 — Add Server-Side Auth Check to `/completar-perfil`
+### P4.2 — Add Server-Side Auth Check to `/completar-perfil` ✅ COMPLETED
 **Dependencies:** None  
 **Why:** Page relies solely on middleware. Direct access without proper role check.
 
-```typescript
-// app/(app)/completar-perfil/page.tsx
-export default async function CompleteProfilePage() {
-  const user = await getUserWithSessionFallback();
-  if (!user) redirect('/login');
-  
-  const profile = await getProfile(user.id);
-  if (profile.role !== 'profissional') redirect('/buscar');
-  
-  return <CompleteProfileForm />;
-}
-```
+**What was changed:**
+- `app/(app)/completar-perfil/page.tsx` (now Server Component):
+  - Redirects unauthenticated users to `/login?redirect=/completar-perfil`
+  - Verifies `profile.role === 'profissional'` via Supabase query
+  - Redirects non-professionals to `/buscar`
 
 **Effort:** 30 minutes  
 **Risk:** Zero
