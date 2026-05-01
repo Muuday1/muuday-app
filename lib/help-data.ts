@@ -386,7 +386,7 @@ export const HELP_COLLECTIONS: HelpCollection[] = [
 </ul>
 
 <h2>Saque</h2>
-<p>Conecte sua conta bancária no menu "Financeiro". Você pode solicitar saque quando atingir o valor mínimo de R$ 50,00. O prazo de transferência é de 1 a 3 dias úteis.</p>
+<p>Conecte sua conta PayPal no menu "Financeiro" para receber seus repasses. Você pode solicitar saque quando atingir o valor mínimo de R$ 50,00. O prazo de transferência é de 1 a 3 dias úteis.</p>
 
 <h2>Nota fiscal</h2>
 <p>Você é responsável por emitir nota fiscal quando exigido por lei. Recomendamos consultar seu contador sobre as obrigações fiscais para renda obtida por plataformas digitais.</p>

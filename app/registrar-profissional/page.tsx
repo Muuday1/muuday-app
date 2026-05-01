@@ -159,7 +159,7 @@ const FAQ_ITEMS = [
   },
   {
     question: 'Como recebo os pagamentos?',
-    answer: 'Conecte sua conta bancária no dashboard. Após cada sessão, o valor é liberado em até 48h e cai na sua conta em 1-3 dias úteis.',
+    answer: 'Conecte sua conta PayPal no menu Financeiro do dashboard. Após cada sessão, o valor é liberado e enviado para sua conta PayPal em 1-3 dias úteis. Transferência bancária será habilitada em breve.',
   },
   {
     question: 'Preciso de CNPJ?',
