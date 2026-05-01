@@ -1,16 +1,16 @@
 import { z } from 'zod'
 
 // Treat empty strings as undefined so optional env vars don't fail .min(1)
-const optionalString = z.preprocess((val) => (val === '' ? undefined : val), z.string().min(1).optional())
+const optionalString = z.preprocess((val) => (val === '' ? undefined : val), z.string().min(1).or(z.literal(undefined))).optional()
 
 const envSchema = z.object({
   // Public / client-safe (always required)
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  NEXT_PUBLIC_APP_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
+  NEXT_PUBLIC_APP_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().or(z.literal(undefined))).optional(),
 
   // Server-only critical (required for core functionality)
-  APP_BASE_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
+  APP_BASE_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().or(z.literal(undefined))).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   // Database (at least one must be configured)
@@ -19,14 +19,14 @@ const envSchema = z.object({
   DATABASE_URL: optionalString,
 
   // Auth / security
-  CRON_SECRET: z.preprocess((val) => (val === '' ? undefined : val), z.string().min(16).optional()),
-  SUPABASE_DB_WEBHOOK_SECRET: z.preprocess((val) => (val === '' ? undefined : val), z.string().min(16).optional()),
+  CRON_SECRET: z.preprocess((val) => (val === '' ? undefined : val), z.string().min(16).or(z.literal(undefined))).optional(),
+  SUPABASE_DB_WEBHOOK_SECRET: z.preprocess((val) => (val === '' ? undefined : val), z.string().min(16).or(z.literal(undefined))).optional(),
 
   // Email
   RESEND_API_KEY: optionalString,
 
   // Redis / caching
-  UPSTASH_REDIS_REST_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
+  UPSTASH_REDIS_REST_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().or(z.literal(undefined))).optional(),
   UPSTASH_REDIS_REST_TOKEN: optionalString,
 
   // Payments (Stripe — UK single region)
@@ -113,7 +113,7 @@ const envSchema = z.object({
   // E2E / testing
   // These are only used in E2E tests. Use a forgiving preprocess so that
   // placeholder values in Vercel (e.g. "test", "fill-me-in") do not fail the build.
-  E2E_BASE_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
+  E2E_BASE_URL: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().or(z.literal(undefined))).optional(),
   E2E_USER_EMAIL: z.preprocess(
     (val) => {
       if (val === '' || typeof val !== 'string') return undefined
@@ -121,8 +121,8 @@ const envSchema = z.object({
       if (!val.includes('@') || !val.includes('.')) return undefined
       return val
     },
-    z.string().optional(),
-  ),
+    z.string().or(z.literal(undefined)),
+  ).optional(),
   E2E_USER_PASSWORD: optionalString,
   E2E_PROFESSIONAL_EMAIL: z.preprocess(
     (val) => {
@@ -130,8 +130,8 @@ const envSchema = z.object({
       if (!val.includes('@') || !val.includes('.')) return undefined
       return val
     },
-    z.string().optional(),
-  ),
+    z.string().or(z.literal(undefined)),
+  ).optional(),
   E2E_PROFESSIONAL_PASSWORD: optionalString,
   E2E_ADMIN_EMAIL: z.preprocess(
     (val) => {
@@ -139,8 +139,8 @@ const envSchema = z.object({
       if (!val.includes('@') || !val.includes('.')) return undefined
       return val
     },
-    z.string().optional(),
-  ),
+    z.string().or(z.literal(undefined)),
+  ).optional(),
   E2E_ADMIN_PASSWORD: optionalString,
 })
 
