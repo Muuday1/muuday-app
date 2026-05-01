@@ -347,7 +347,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 | P6.7 | Add Agora cloud recording | 2-3 days |
 | P6.8 | Add recurring break patterns (not just date-level exceptions) | 1-2 days |
 | P6.9 | Add waitlist/notify-when-available | 2-3 days |
-| P6.10 | Fix social auth professionals bypassing qualification flow | 1 day |
+| P6.10 | Fix social auth professionals bypassing qualification flow | 1 day | ✅ |
 
 ---
 
