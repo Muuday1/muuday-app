@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export function NotificationBell() {
   const [count, setCount] = useState(0)
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastFetch = useRef<number>(0)
 
   useEffect(() => {
     async function fetchCount() {
@@ -25,6 +27,9 @@ export function NotificationBell() {
     fetchCount()
 
     // Supabase Realtime for instant updates
+    // Debounced + rate-limited to prevent fetch storms
+    // See AGENTS.md: "Debounce realtime listeners: router.refresh() from
+    // Supabase realtime must be debounced (750ms) and rate-limited (max 1/5s, 10/min)"
     const supabase = createClient()
     const channel = supabase
       .channel('notifications-realtime')
@@ -32,13 +37,25 @@ export function NotificationBell() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
         () => {
-          // Re-fetch count when any notification changes
-          void fetchCount()
+          if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current)
+          }
+
+          debounceTimer.current = setTimeout(() => {
+            const now = Date.now()
+            if (now - lastFetch.current > 5000) {
+              void fetchCount()
+              lastFetch.current = now
+            }
+          }, 750)
         },
       )
       .subscribe()
 
     return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
       supabase.removeChannel(channel)
     }
   }, [])

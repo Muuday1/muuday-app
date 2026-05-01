@@ -312,33 +312,18 @@ export default async function CompleteProfilePage() {
 
 ---
 
-### P5.3 — Debounce Notification Realtime Listeners
+### P5.3 — Debounce Notification Realtime Listeners ✅ COMPLETED
 **Dependencies:** None  
 **Why:** `router.refresh()` on every notification table change without debounce causes refresh storms.
 
-**What to change:**
-- In `NotificationRealtimeListener.tsx` and `NotificationBell.tsx`:
-  - Wrap `router.refresh()` in a 750ms debounce
-  - Add a max-rate limit: no more than 1 refresh per 5 seconds
-
-```typescript
-import { useRef, useCallback } from 'react';
-
-const debouncedRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
-const lastRefresh = useRef<number>(0);
-
-const handleNotificationChange = useCallback(() => {
-  if (debouncedRefresh.current) clearTimeout(debouncedRefresh.current);
-  
-  debouncedRefresh.current = setTimeout(() => {
-    const now = Date.now();
-    if (now - lastRefresh.current > 5000) {
-      router.refresh();
-      lastRefresh.current = now;
-    }
-  }, 750);
-}, [router]);
-```
+**What was changed:**
+- `components/notifications/NotificationRealtimeListener.tsx`:
+  - Added 750ms debounce + 5s rate-limit on `router.refresh()`
+  - Uses `useRef` for timer and last-refresh timestamp
+  - Clears timer on unmount to prevent memory leaks
+- `components/layout/NotificationBell.tsx`:
+  - Same debounce pattern on `fetchCount()` API calls
+  - Prevents fetch storms when multiple notifications arrive at once
 
 **Effort:** 2 hours  
 **Risk:** Zero
