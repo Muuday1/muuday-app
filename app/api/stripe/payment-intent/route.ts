@@ -19,7 +19,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe/client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid('ID do agendamento invalido.'),
@@ -203,28 +202,18 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: { enabled: true },
     })
 
-    // SECURITY NOTE: We use createAdminClient() here because the RLS guard trigger
-    // (trg_guard_payments_non_admin_update) blocks non-admins from updating
-    // provider_payment_id. Authorization is already verified above: the user owns
-    // the booking, the payment is in 'requires_payment' status, etc.
-    // TODO: Migrate to a PostgreSQL RPC function that validates ownership internally
-    // and updates provider_payment_id, eliminating the need for admin client here.
-    const admin = createAdminClient()
-    if (admin) {
-      const { error: updateError } = await admin
-        .from('payments')
-        .update({
-          provider_payment_id: paymentIntent.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', payment.id)
+    // Use PostgreSQL RPC to update provider_payment_id with internal ownership check.
+    // This eliminates the need for createAdminClient() in user-facing code.
+    const { error: updateError } = await supabase.rpc('update_payment_provider_id', {
+      p_payment_id: payment.id,
+      p_provider_payment_id: paymentIntent.id,
+    })
 
-      if (updateError) {
-        Sentry.captureException(updateError, {
-          tags: { area: 'stripe-payment-intent', context: 'update-payment-provider-id' },
-        })
-        // Non-blocking: client_secret is still valid, we can reconcile later
-      }
+    if (updateError) {
+      Sentry.captureException(updateError, {
+        tags: { area: 'stripe-payment-intent', context: 'update-payment-provider-id' },
+      })
+      // Non-blocking: client_secret is still valid, we can reconcile later
     }
 
     Sentry.addBreadcrumb({

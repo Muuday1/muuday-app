@@ -5,9 +5,6 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: vi.fn(),
-}))
 
 vi.mock('@/lib/stripe/client', () => ({
   getStripeClient: vi.fn(),
@@ -31,12 +28,10 @@ vi.mock('@sentry/nextjs', () => ({
 }))
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripeClient } from '@/lib/stripe/client'
 import { rateLimit } from '@/lib/security/rate-limit'
 
 const mockedCreateClient = vi.mocked(createClient)
-const mockedCreateAdminClient = vi.mocked(createAdminClient)
 const mockedGetStripeClient = vi.mocked(getStripeClient)
 const mockedRateLimit = vi.mocked(rateLimit)
 
@@ -55,7 +50,6 @@ describe('POST /api/stripe/checkout-session/booking', () => {
     vi.clearAllMocks()
     mockedRateLimit.mockResolvedValue({ allowed: true, retryAfterSeconds: 0 } as any)
     mockedGetStripeClient.mockReturnValue(null)
-    mockedCreateAdminClient.mockReturnValue(null)
   })
 
   it('returns 429 when rate limited', async () => {
@@ -239,14 +233,7 @@ describe('POST /api/stripe/checkout-session/booking', () => {
     }
     mockedGetStripeClient.mockReturnValue(mockStripe as any)
 
-    const mockAdmin = {
-      from: vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        }),
-      }),
-    }
-    mockedCreateAdminClient.mockReturnValue(mockAdmin as any)
+    mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
 
     const res = await POST(makeRequest({ bookingId: '550e8400-e29b-41d4-a716-446655440000' }))
     expect(res.status).toBe(200)
