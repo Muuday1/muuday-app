@@ -273,20 +273,22 @@ export default async function CompleteProfilePage() {
 ## PHASE 5: Wire Up Notifications & Emails (Week 3-4)
 **Goal:** Users and professionals are properly notified at every step.
 
-### P5.1 — Wire Transactional Emails into Booking Flow
+### P5.1 — Wire Transactional Emails into Booking Flow ✅ COMPLETED
 **Dependencies:** Phase 1 (booking flow works)  
 **Why:** Email templates exist but are never sent.
 
-**What to change:**
-- In `app/api/v1/bookings/route.ts` (after successful booking creation):
-  ```typescript
-  await sendBookingConfirmationEmail({ bookingId: booking.id, userId });
-  await sendNewBookingEmailToProfessional({ bookingId: booking.id });
-  ```
-- In cancellation service:
-  ```typescript
-  await sendBookingCancelledEmail({ bookingId, userId, reason });
-  ```
+**What was changed:**
+- `lib/booking/create-booking.ts` (after successful booking creation):
+  - Sends `sendBookingConfirmationEmail` to user (non-blocking)
+  - Sends `sendNewBookingToProfessionalEmail` to professional (non-blocking)
+  - Formats date/time using `date-fns-tz` with `pt-BR` locale
+  - Errors logged to Sentry, never fail booking creation
+- `lib/booking/creation/lookup-context.ts`:
+  - Added `full_name` to profiles query so user name is available for email
+- `lib/booking/creation/types.ts`:
+  - Updated `BookingContext.profile` type to include `full_name`
+
+**Not yet done:** Cancellation email (deferred to when cancellation service is refactored)
 
 **Effort:** 1 day  
 **Risk:** Low — additive
