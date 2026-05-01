@@ -255,17 +255,19 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P4.3 — Clarify Subscription vs Plans for Professionals
+### P4.3 — Clarify Subscription vs Plans for Professionals ✅ COMPLETED
 **Dependencies:** None (parallel)  
 **Why:** `/planos` sells tier upgrades (one-time) and `/financeiro` shows a monthly R$ 299 subscription. Professionals don't understand the difference.
 
-**What to change:**
-- On `/financeiro`:
-  - Add a section: "Sua assinatura mensal Muuday Pro" with clear price
-  - Add a section: "Seu plano atual" showing Basic/Pro/Premium tier
-  - Explain: "A assinatura mensal é obrigatória para usar a plataforma. Os planos são opcionais e oferecem mais visibilidade."
-- On `/planos`:
-  - Add a banner: "Você também possui uma assinatura mensal Muuday Pro de R$ 299"
+**What was changed:**
+- On `/financeiro` (`app/(app)/financeiro/page.tsx`):
+  - Fetches professional `tier` alongside existing data
+  - Adds "Seu plano atual" card showing current tier with description
+  - Adds explanation box: "Assinatura mensal é obrigatória... Planos são opcionais e oferecem mais visibilidade"
+  - Links to `/planos` for upgrades
+- On `/planos` (`components/plans/PlanSelector.tsx`):
+  - Adds blue info banner at top: "Você também possui uma assinatura mensal Muuday Pro obrigatória..."
+  - Clarifies that plans below are optional visibility/feature upgrades
 
 **Effort:** 4 hours  
 **Risk:** Zero
