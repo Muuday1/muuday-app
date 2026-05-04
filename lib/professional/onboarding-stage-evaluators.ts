@@ -254,7 +254,7 @@ export function evaluateFirstBookingBlockers(
     blockers.push({
       code: 'missing_payout_setup',
       title: 'Payout nao iniciado',
-      description: 'Inicie onboarding de payout para aceitar o primeiro booking.',
+      description: 'Inicie o onboarding de recebimento e vincule sua conta PayPal no portal Trolley para aceitar o primeiro booking.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
     })
@@ -263,7 +263,7 @@ export function evaluateFirstBookingBlockers(
     blockers.push({
       code: 'missing_payout_kyc',
       title: 'KYC de payout incompleto',
-      description: 'Finalize KYC para liberar o primeiro booking.',
+      description: 'Finalize a validação KYC no portal Trolley e vincule sua conta PayPal para liberar o primeiro booking.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
     })
@@ -292,7 +292,7 @@ export function evaluatePayoutReceiptBlockers(
     blockers.push({
       code: 'missing_payout_setup',
       title: 'Payout nao iniciado',
-      description: 'Inicie onboarding de payout para liberar recebimentos.',
+      description: 'Inicie o onboarding de recebimento e vincule sua conta PayPal no portal Trolley para liberar recebimentos.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
     })
@@ -301,7 +301,7 @@ export function evaluatePayoutReceiptBlockers(
     blockers.push({
       code: 'missing_payout_kyc',
       title: 'KYC de payout incompleto',
-      description: 'Finalize KYC para liberar recebimentos.',
+      description: 'Finalize a validação KYC no portal Trolley e vincule sua conta PayPal para liberar recebimentos.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
     })

@@ -37,6 +37,17 @@ export function PayoutReceiptStage({
             ? 'Esta etapa ficará para a ativação final. Para perfis de teste, você pode concluir o onboarding sem configurar recebimentos agora.'
             : 'Aqui você acompanha o cartão da assinatura e a prontidão de recebimentos. O checkout do plano e os detalhes financeiros continuam nas telas completas.'}
         </p>
+        {!isFinanceBypassEnabled && (
+          <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3">
+            <p className="text-sm font-semibold text-blue-900">
+              Você precisa de uma conta PayPal para receber pagamentos
+            </p>
+            <p className="mt-1 text-xs text-blue-700">
+              Nosso parceiro de repasses (Trolley) exige uma conta PayPal válida.
+              Transferência bancária será habilitada em breve.
+            </p>
+          </div>
+        )}
         {isFinanceBypassEnabled ? (
           <p className="mt-2 text-xs text-amber-700">
             Financeiro será concluído depois. Seu acesso atual está em modo de teste.
@@ -54,19 +65,19 @@ export function PayoutReceiptStage({
           </p>
         </div>
         <div className={`rounded-md border p-3 ${hasBlocker('missing_payout_onboarding') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-          <p className="text-sm font-semibold text-slate-900">Recebimentos</p>
+          <p className="text-sm font-semibold text-slate-900">Recebimentos (PayPal)</p>
           <p className="mt-1 text-xs text-slate-700">
             {hasBlocker('missing_payout_onboarding')
-              ? 'Conecte a conta financeira para receber pela plataforma.'
-              : 'Conta de recebimentos conectada.'}
+              ? 'Conecte sua conta PayPal no portal Trolley para receber pela plataforma.'
+              : 'Conta PayPal conectada via Trolley.'}
           </p>
         </div>
         <div className={`rounded-md border p-3 ${hasBlocker('missing_payout_kyc') ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-          <p className="text-sm font-semibold text-slate-900">Validação operacional</p>
+          <p className="text-sm font-semibold text-slate-900">Validação KYC</p>
           <p className="mt-1 text-xs text-slate-700">
             {hasBlocker('missing_payout_kyc')
-              ? 'Ainda faltam dados de validação financeira.'
-              : 'Validação financeira concluída.'}
+              ? 'Complete a validação de identidade no portal Trolley para liberar recebimentos.'
+              : 'Validação KYC aprovada.'}
           </p>
         </div>
       </div>
