@@ -233,6 +233,19 @@ export async function syncTrolleyRecipientStatus(
       return { success: false, error: `Failed to update local record: ${updateError.message}` }
     }
 
+    // Sync KYC completion to professional_settings so onboarding gates recognize it
+    if (isActive) {
+      try {
+        await admin
+          .from('professional_settings')
+          .update({ payout_kyc_completed: true, updated_at: new Date().toISOString() })
+          .eq('professional_id', professionalId)
+      } catch (settingsErr) {
+        // Log but don't fail sync — the trolley_recipients update already succeeded
+        console.error('[trolley-sync] Failed to update payout_kyc_completed:', settingsErr)
+      }
+    }
+
     return {
       success: true,
       recipientId: remote.id,

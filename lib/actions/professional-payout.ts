@@ -36,6 +36,17 @@ export async function initiatePayoutSetup() {
     return { error: result.error || 'Erro ao configurar pagamento.' }
   }
 
+  // Mark payout onboarding as started so onboarding gates recognize progress
+  const { error: settingsError } = await supabase
+    .from('professional_settings')
+    .update({ payout_onboarding_started: true, updated_at: new Date().toISOString() })
+    .eq('professional_id', professional.id)
+
+  if (settingsError) {
+    // Don't fail the flow, but log — the recipient was created successfully
+    console.error('[payout] Failed to update payout_onboarding_started:', settingsError)
+  }
+
   // If recipient exists (new or existing), generate a portal link for KYC completion
   let portalUrl: string | null = null
   if (result.recipientId) {

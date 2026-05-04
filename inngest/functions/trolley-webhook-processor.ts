@@ -225,6 +225,27 @@ async function handleRecipientUpdated(
     .update(updateData)
     .eq('trolley_recipient_id', trolleyRecipientId)
 
+  // Sync KYC completion to professional_settings so onboarding gates recognize it
+  if (isActive) {
+    try {
+      const { data: recipientRow } = await admin
+        .from('trolley_recipients')
+        .select('professional_id')
+        .eq('trolley_recipient_id', trolleyRecipientId)
+        .maybeSingle()
+
+      if (recipientRow?.professional_id) {
+        await admin
+          .from('professional_settings')
+          .update({ payout_kyc_completed: true, updated_at: new Date().toISOString() })
+          .eq('professional_id', recipientRow.professional_id)
+      }
+    } catch (syncErr) {
+      // Log but don't fail webhook — the trolley_recipients update already succeeded
+      console.error('[trolley-webhook] Failed to sync payout_kyc_completed:', syncErr)
+    }
+  }
+
   // ── Handle inactive: hold pending payouts ───────────────────────────
   if (status === 'inactive') {
     try {

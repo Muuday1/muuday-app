@@ -182,7 +182,7 @@ export function evaluatePayoutSetupBlockers(
     blockers.push({
       code: 'missing_payout_onboarding',
       title: 'Onboarding de payout pendente',
-      description: 'Conclua a conexao de recebimento (Stripe Connect) para revisao final.',
+      description: 'Conclua a conexao de recebimento (PayPal via Trolley) para revisao final.',
       stage: 'c7_payout_payments',
       actionHref: '/configuracoes',
     })

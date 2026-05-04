@@ -1,0 +1,273 @@
+# 🔍 Muuday Payment Journey — Gap Analysis & Fix Plan
+**Date:** 2026-05-04
+**Scope:** Professional onboarding → Payout → End-to-end money flow
+**Status:** CRITICAL GAPS FOUND — Revenue flow is blocked at the onboarding gate level
+
+---
+
+## 1. Executive Summary: What's Broken
+
+Despite many items in `FIX_PRIORITY_ROADMAP.md` being marked ✅, **the money flow is still blocked** because of two silent bugs in the onboarding ↔ payout integration:
+
+| # | Bug | Impact |
+|---|-----|--------|
+| **BUG-1** | `payout_onboarding_started` is **never set to `true`** when the professional clicks "Configurar Pagamento" | Onboarding gate `payout_connected_account_minimum` always fails |
+| **BUG-2** | `payout_kyc_completed` is **never set to `true`** when Trolley webhooks confirm KYC approval | Onboarding gate `payout_kyc_complete` always fails |
+| **BUG-3** | PayPal requirement is **not enforced or even clearly communicated** during professional onboarding | Professionals reach the payout stage without knowing they need a PayPal account |
+| **BUG-4** | `evaluatePayoutSetupBlockers` still references "Stripe Connect" in user-facing copy | Confusing — we use Trolley, not Stripe Connect |
+
+**Result:** Even after P1/P2 fixes (payment page + capture), professionals can NEVER pass the `first_booking_acceptance` or `payout_receipt` gates unless `onboardingFinanceBypass` is enabled (test mode only).
+
+---
+
+## 2. Root Cause Analysis
+
+### 2.1 The Missing Flag Update (`payout_onboarding_started`)
+
+**Flow today:**
+```
+Professional clicks "Configurar Pagamento"
+  → initiatePayoutSetup()
+    → createProfessionalTrolleyRecipient()  ← creates Trolley recipient + DB row
+      → returns success
+  → BUT: professional_settings.payout_onboarding_started is NEVER updated
+```
+
+**Code:** `lib/actions/professional-payout.ts:20-59`
+- After `createProfessionalTrolleyRecipient()` succeeds, the code generates a portal URL but **never writes `payout_onboarding_started = true` to `professional_settings`**.
+
+**Impact:** `onboarding-field-state.ts:71` reads this flag as `false` → `payout_connected_account_minimum` is `false` → blockers fire at `review_submission`, `go_live`, `first_booking_acceptance`, and `payout_receipt` gates.
+
+### 2.2 The Missing KYC Sync (`payout_kyc_completed`)
+
+**Flow today:**
+```
+Trolley fires recipient.updated webhook
+  → trolley-webhook-processor.ts handleRecipientUpdated()
+    → Updates trolley_recipients.kyc_status = 'approved'
+    → Updates trolley_recipients.is_active = true
+    → BUT: professional_settings.payout_kyc_completed is NEVER updated
+```
+
+**Code:** `inngest/functions/trolley-webhook-processor.ts:150-227`
+- Updates `trolley_recipients` table only.
+- No write to `professional_settings.payout_kyc_completed`.
+
+**Impact:** `onboarding-field-state.ts:72` reads this flag as `false` → `payout_kyc_complete` is `false` → `first_booking_acceptance` and `payout_receipt` gates remain blocked forever.
+
+### 2.3 PayPal Is "Hidden" Until Too Late
+
+**Current reality:**
+- Trolley account is **PayPal-only** (bank transfer blocked — see P3.2 in FIX_PRIORITY_ROADMAP)
+- The professional only learns this when they open the Trolley portal AFTER onboarding
+- The signup flow (`/registrar-profissional`) mentions "Conecte sua conta PayPal" in FAQ, but **there is no enforcement or validation**
+- No field in the onboarding asks: "Qual é seu email PayPal?"
+
+**Risk:** Professional completes entire onboarding, gets approved, receives a booking, completes the session, but **cannot receive the money because they don't have PayPal**.
+
+### 2.4 Stale Copy in Blocker Messages
+
+**Code:** `lib/professional/onboarding-stage-evaluators.ts:183-189`
+```typescript
+code: 'missing_payout_onboarding',
+title: 'Onboarding de payout pendente',
+description: 'Conclua a conexao de recebimento (Stripe Connect) para revisao final.',  // ❌ WRONG
+```
+
+Should reference Trolley/PayPal, not Stripe Connect.
+
+---
+
+## 3. Onboarding Gate Matrix — Current vs Required
+
+From `onboarding-matrix.ts`, the `payout_connected_account_minimum` field is:
+
+| Gate | Required? | Currently Passes? | Why? |
+|------|-----------|-------------------|------|
+| `review_submission` | ✅ YES | ❌ NO (unless bypass) | `payout_onboarding_started` never set |
+| `go_live` | ✅ YES | ❌ NO (unless bypass) | Same |
+| `first_booking_acceptance` | ✅ YES | ❌ NO (unless bypass) | Same + `payout_kyc_completed` never set |
+| `payout_receipt` | ✅ YES | ❌ NO (unless bypass) | Same |
+
+**This means:** No professional can ever go live or accept bookings in production without `onboardingFinanceBypass`.
+
+---
+
+## 4. FIX_PRIORITY_ROADMAP Status — Honest Re-assessment
+
+| Phase | Item | Marked | Actual Status | Blocker |
+|-------|------|--------|---------------|---------|
+| P0.1 | Fix DB constraint batch | ✅ | ✅ Done | — |
+| P0.2 | Fix admin-client workaround | ✅ | ✅ Done | — |
+| P0.3 | requires_capture webhook | ✅ | ✅ Done | — |
+| P1.1 | Build `/pagamento` page | ✅ | ✅ Done | — |
+| P1.2 | Wire payment into booking | ✅ | ✅ Done | — |
+| P1.3 | E2E test: book + pay | ⏳ | 🔴 **BROKEN** | Pro cannot go live (BUG-1/2) |
+| P2.1 | Capture trigger | ✅ | 🟡 Done but untested | BUG-1/2 block testing |
+| P2.2 | pending→available balance | ✅ | 🟡 Done but untested | BUG-1/2 block testing |
+| P2.3 | E2E: complete + balance | ⏳ | 🔴 **BROKEN** | BUG-1/2 |
+| P3.1 | Trolley KYC UX | ✅ | 🟡 Partial | Portal works but flags don't update |
+| P3.2 | Bank transfer | ⛔ | ⛔ Blocked | Trolley account config |
+| P3.3 | E2E: payout batch | ⏳ | 🔴 **BROKEN** | BUG-1/2 |
+| P4.1 | Pre-populate profile | ✅ | ✅ Done | — |
+| P4.2 | Auth check | ✅ | ✅ Done | — |
+| P4.3 | Subscription clarity | ✅ | ✅ Done | — |
+| P5.1 | Transactional emails | ✅ | ✅ Done | — |
+| P5.2 | In-app chat notifications | ✅ | ✅ Done | — |
+| P5.3 | Debounce listeners | ✅ | ✅ Done | — |
+
+---
+
+## 5. Detailed Fix Plan
+
+### Phase A: Fix Onboarding Flags (1-2 days) — **MUST DO FIRST**
+
+#### A.1 Update `initiatePayoutSetup()` to set `payout_onboarding_started = true`
+
+**File:** `lib/actions/professional-payout.ts`
+
+After successful `createProfessionalTrolleyRecipient()`, add:
+```typescript
+await supabase
+  .from('professional_settings')
+  .update({ payout_onboarding_started: true, updated_at: new Date().toISOString() })
+  .eq('professional_id', professional.id)
+```
+
+**Edge case:** If `professional_settings` row doesn't exist yet, `upsert` instead.
+
+#### A.2 Update Trolley webhook processor to set `payout_kyc_completed = true`
+
+**File:** `inngest/functions/trolley-webhook-processor.ts`
+
+In `handleRecipientUpdated()`, when `status === 'active'`:
+```typescript
+// After updating trolley_recipients, also update professional_settings
+if (recipient?.professional_id && isActive) {
+  await admin
+    .from('professional_settings')
+    .update({ payout_kyc_completed: true, updated_at: new Date().toISOString() })
+    .eq('professional_id', recipient.professional_id)
+}
+```
+
+**Also update:** `syncTrolleyRecipientStatus()` in `lib/payments/trolley/onboarding.ts` to do the same when sync detects `active` status.
+
+#### A.3 Fix stale copy in blocker messages
+
+**File:** `lib/professional/onboarding-stage-evaluators.ts`
+
+Change all references from "Stripe Connect" to "Trolley / PayPal" in user-facing strings.
+
+---
+
+### Phase B: Enforce PayPal in Onboarding (2-3 days)
+
+#### B.1 Add explicit PayPal awareness to the onboarding tracker
+
+**File:** `components/dashboard/onboarding-tracker/stages/payout-receipt-stage.tsx`
+
+Add a new card/checklist item:
+- "Conta PayPal" — show as required with explanation
+- Link to create PayPal account if they don't have one
+- Show the PayPal email that will be used (from `trolley_recipients.paypal_email` or profile email)
+
+#### B.2 Optional: Collect PayPal email proactively during signup or onboarding
+
+**Approach 1 (Minimal):** Ask for PayPal email in the payout setup flow before redirecting to Trolley portal.
+**Approach 2 (Safer):** Add a field `paypal_email` to `professional_settings` or `professional_applications` during signup, pre-populate it in Trolley recipient creation.
+
+**Decision:** Approach 1 is better for MVP — less schema change, just a UI prompt before Trolley portal.
+
+#### B.3 Update onboarding matrix to include `paypal_email` as a required field
+
+**File:** `lib/professional/onboarding-matrix.ts`
+
+Add a new field row:
+```typescript
+{
+  field: 'paypal_email_verified',
+  required_at_account_creation: false,
+  required_for_valid_profile_draft: false,
+  required_for_review_submission: false,  // Don't block review, but block go-live
+  required_for_go_live: true,             // MUST have before accepting bookings
+  required_for_first_booking_acceptance: true,
+  required_for_payout: true,
+  met: fieldState.paypal_email_verified,
+}
+```
+
+**Rationale:** The spec (Part 3, Section 2.13) says:
+> "Professional must complete required payout onboarding before accepting the first reservation"
+
+But we should NOT block `review_submission` (admin can review profile while KYC is pending). We SHOULD block `go_live` and `first_booking_acceptance`.
+
+---
+
+### Phase C: E2E Testing & Validation (2-3 days)
+
+#### C.1 Stripe Sandbox E2E Test
+
+**Test script:** Create a professional in Stripe test mode:
+1. Sign up as professional
+2. Complete profile (C1-C6)
+3. Click "Configurar Pagamento" → verify `payout_onboarding_started = true`
+4. Simulate Trolley webhook `recipient.updated` with `status: 'active'` → verify `payout_kyc_completed = true`
+5. Submit for review → should pass (no payout blockers)
+6. Admin approves → go live
+7. User books + pays with test card `4242 4242 4242 4242`
+8. Professional marks session complete → verify Stripe capture API called
+9. Verify `payment_intent.succeeded` webhook → verify `available_balance` increased
+10. Verify professional can see balance on `/financeiro`
+
+#### C.2 Payout Batch E2E Test
+
+1. Professional has `available_balance > 0` + `kyc_status = 'approved'`
+2. Trigger payout batch creation (manual API or wait for Monday cron)
+3. Verify batch created in `payout_batches`
+4. Verify Trolley batch submitted
+5. Simulate Trolley `batch.updated` → `completed`
+6. Verify `available_balance` decreased
+7. Verify professional receives email notification
+
+---
+
+### Phase D: Documentation & Runbook Updates (1 day)
+
+1. Update `FIX_PRIORITY_ROADMAP.md` with honest status
+2. Update `docs/project/payments-engine/IMPLEMENTATION-STATUS.md`
+3. Add a runbook for "How to manually fix a professional stuck in payout onboarding"
+4. Update `lib/payments/trolley/onboarding.ts` header comment to remove "Stripe Connect" references
+
+---
+
+## 6. Quick Fixes (Can Do Today)
+
+If you want to unblock testing immediately:
+
+### Quick Fix 1: Backfill existing professionals
+```sql
+UPDATE professional_settings
+SET payout_onboarding_started = true,
+    payout_kyc_completed = true
+WHERE professional_id IN (
+  SELECT professional_id FROM trolley_recipients WHERE is_active = true
+);
+```
+
+### Quick Fix 2: Fix the server action
+Add the missing `payout_onboarding_started = true` update to `lib/actions/professional-payout.ts`.
+
+### Quick Fix 3: Fix the webhook
+Add the missing `payout_kyc_completed = true` update to `inngest/functions/trolley-webhook-processor.ts`.
+
+---
+
+## 7. Acceptance Criteria
+
+- [ ] A professional can sign up, complete profile, set up payout, and see `canSubmitForReview = true` without `onboardingFinanceBypass`
+- [ ] After clicking "Configurar Pagamento", `professional_settings.payout_onboarding_started = true`
+- [ ] After Trolley KYC approval, `professional_settings.payout_kyc_completed = true`
+- [ ] A professional without payout setup sees a clear blocker: "Você precisa configurar sua conta PayPal para receber pagamentos"
+- [ ] A professional WITH payout setup + KYC approved can submit for review, go live, and accept first booking
+- [ ] End-to-end test: User pays → session completes → capture → balance available → payout batch processes
