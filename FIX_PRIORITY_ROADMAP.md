@@ -92,7 +92,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P1.3 — Test End-to-End: User Books + Pays 🟡 READY TO TEST
+### P1.3 — Test End-to-End: User Books + Pays 🟡 TEST IMPLEMENTED
 **Dependencies:** P1.2  
 **What to verify:**
 1. User creates booking → status `pending_payment`
@@ -104,7 +104,12 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 **Use Stripe test mode:** `4242 4242 4242 4242`
 
-**Note:** Previously blocked because professionals could not pass onboarding gates due to missing `payout_onboarding_started` / `payout_kyc_completed` sync. Fixed 2026-05-04.
+**Test file:** `tests/e2e/payment-journey-e2e.spec.ts` (P1.3 test)
+- Uses Supabase auth API login + Next.js API routes
+- Confirms PaymentIntent via Stripe API directly
+- Validates payment record in DB via Supabase REST
+
+**Note:** Previously blocked because professionals could not pass onboarding gates due to missing `payout_onboarding_started` / `payout_kyc_completed` sync. Fixed 2026-05-04. Test validated structurally; may skip on rate limit if run repeatedly.
 
 ---
 
@@ -153,7 +158,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P2.3 — Test End-to-End: Complete Session + Balance Updates 🟡 READY TO TEST
+### P2.3 — Test End-to-End: Complete Session + Balance Updates 🟡 TEST IMPLEMENTED
 **Dependencies:** P2.1, P2.2  
 **What to verify:**
 1. User pays for session
@@ -163,7 +168,12 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 5. `available_balance` increases (directly — no pending hold per P2.2 decision)
 6. Professional sees balance on `/financeiro`
 
-**Note:** Previously blocked by onboarding gate bugs (professional could not go live). Fixed 2026-05-04.
+**Test file:** `tests/e2e/payment-journey-e2e.spec.ts` (P2.3 test)
+- Creates booking, confirms + captures PaymentIntent via Stripe API
+- Simulates `payment_intent.succeeded` webhook
+- Verifies `payments.status = 'captured'` and `available_balance` increase
+
+**Note:** Previously blocked by onboarding gate bugs (professional could not go live). Fixed 2026-05-04. Session completion requires the session end time to have passed (test uses future date, so completion returns `success: false` as expected).
 
 ---
 
@@ -224,7 +234,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P3.3 — Test End-to-End: Payout Batch 🟡 READY TO TEST
+### P3.3 — Test End-to-End: Payout Batch 🟡 TEST IMPLEMENTED (PARTIAL)
 **Dependencies:** P3.1  
 **What to verify:**
 1. Professional has `available_balance > 0`
@@ -234,6 +244,11 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 5. Professional receives money in PayPal
 6. `available_balance` decreases
 7. Professional gets email + in-app notification
+
+**Test file:** `tests/e2e/payment-journey-e2e.spec.ts` (P3.3 test)
+- Verifies `trolley_recipients.is_active` and `kyc_status` are queryable
+- Verifies `professional_settings.payout_onboarding_started` and `payout_kyc_completed` are booleans
+- Full batch execution test requires dedicated fixture with pre-existing balance
 
 **Note:** Previously blocked because professionals could never achieve `kyc_status = 'approved'` in onboarding gates (missing webhook sync). Fixed 2026-05-04.
 
