@@ -2,18 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowRight, CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
+import type { ReviewAdjustmentItem } from '@/lib/professional/review-adjustments'
 import {
-  REVIEW_ADJUSTMENT_STAGE_LABELS,
-  type ReviewAdjustmentItem,
-} from '@/lib/professional/review-adjustments'
-import {
-  PROFESSIONAL_TERMS,
   PROFESSIONAL_TERMS_VERSION,
-  type ProfessionalTermKey,
 } from '@/lib/legal/professional-terms'
 
 import {
@@ -23,13 +18,7 @@ import {
   type SaveState,
   type BillingCycle,
   type PlanTier,
-  type PendingPhoto,
-  type ProfileSummary,
-  type ModalContextPayload,
-  type ModalOptionalContextPayload,
   type ProfessionalServiceItem,
-  type ModalContextResponse,
-  type PhotoValidationChecks,
 } from './onboarding-tracker/types'
 
 import {
@@ -47,19 +36,13 @@ import {
 import {
   normalizeStageIdForLookup,
   isValidCoverPhotoUrl,
-  parseProfileMediaPath,
-  sanitizePricingErrorMessage,
   resolveTrackerViewMode,
   normalizeOption,
   isRegistrationQualification,
   inferCredentialType,
-  clamp,
   getQualificationValidationMessage,
-  readImageDimensions,
-  runPhotoAutoValidation,
-  buildAvatarCropFile,
-  getPlanFeatureHighlights,
   withTimeout,
+  toggleMultiValue,
 } from './onboarding-tracker/helpers'
 
 import { PayoutReceiptStage } from './onboarding-tracker/stages/payout-receipt-stage'
@@ -68,6 +51,13 @@ import { TermsModal } from './onboarding-tracker/stages/terms-modal'
 import { PlanSelectionStage } from './onboarding-tracker/stages/plan-selection-stage'
 import { ServicesStage } from './onboarding-tracker/stages/services-stage'
 import { IdentityStage } from './onboarding-tracker/stages/identity-stage'
+import { StageSidebar } from './onboarding-tracker/components/stage-sidebar'
+import { TrackerHeader } from './onboarding-tracker/components/tracker-header'
+import { AdjustmentBanner } from './onboarding-tracker/components/adjustment-banner'
+import { PlanFeatureBanner } from './onboarding-tracker/components/plan-feature-banner'
+import { usePhotoState } from './onboarding-tracker/hooks/use-photo-state'
+import { useTermsState } from './onboarding-tracker/hooks/use-terms-state'
+import { useModalContext } from './onboarding-tracker/hooks/use-modal-context'
 
 export function OnboardingTrackerModal({
   professionalId,
@@ -90,42 +80,51 @@ export function OnboardingTrackerModal({
   const [open, setOpen] = useState(false)
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
   const [bio, setBio] = useState(initialBio || '')
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState(initialCoverPhotoUrl || '')
-  const [coverPhotoPath, setCoverPhotoPath] = useState('')
-  const [photoUploadState, setPhotoUploadState] = useState<SaveState>('idle')
-  const [photoUploadError, setPhotoUploadError] = useState('')
-  const [photoValidationChecks, setPhotoValidationChecks] = useState<PhotoValidationChecks>({
-    format: 'unknown',
-    size: 'unknown',
-    minResolution: 'unknown',
-    faceCentered: 'unknown',
-    neutralBackground: 'unknown',
-  })
-  const [photoFocusX, setPhotoFocusX] = useState(50)
-  const [photoFocusY, setPhotoFocusY] = useState(50)
-  const [photoZoom, setPhotoZoom] = useState(1)
-  const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null)
-  const bootstrapTermsAcceptance = useMemo(
-    () =>
-      TERMS_KEYS.reduce((acc, key) => {
-        acc[key] = Boolean(initialTermsAcceptanceByKey?.[key])
-        return acc
-      }, {} as Record<ProfessionalTermKey, boolean>),
-    [initialTermsAcceptanceByKey],
-  )
-  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<Record<ProfessionalTermKey, boolean>>(() =>
-    TERMS_KEYS.reduce((acc, key) => ({ ...acc, [key]: Boolean(initialTermsAcceptanceByKey?.[key]) }), {} as Record<ProfessionalTermKey, boolean>),
-  )
-  const [termsHydrated, setTermsHydrated] = useState(
-    TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'),
-  )
-  const [activeTermsModalKey, setActiveTermsModalKey] = useState<ProfessionalTermKey | null>(null)
-  const [termViewTokensByKey, setTermViewTokensByKey] = useState<
-    Partial<Record<ProfessionalTermKey, string>>
-  >({})
-  const [termsModalScrolledToEnd, setTermsModalScrolledToEnd] = useState(false)
-  const [submitTermsError, setSubmitTermsError] = useState('')
-  const dragStateRef = useRef<{ startX: number; startY: number; startFocusX: number; startFocusY: number } | null>(null)
+  const {
+    coverPhotoUrl,
+    setCoverPhotoUrl,
+    coverPhotoPath,
+    setCoverPhotoPath,
+    photoUploadState,
+    setPhotoUploadState,
+    photoUploadError,
+    setPhotoUploadError,
+    photoValidationChecks,
+    setPhotoValidationChecks,
+    photoFocusX,
+    setPhotoFocusX,
+    photoFocusY,
+    setPhotoFocusY,
+    photoZoom,
+    setPhotoZoom,
+    pendingPhoto,
+    setPendingPhoto,
+    photoHealthCheckedRef,
+    dragStateRef,
+    prepareProfessionalPhoto,
+    uploadPreparedProfessionalPhoto,
+    handlePhotoDragStart,
+    handlePhotoDragMove,
+    handlePhotoDragEnd,
+  } = usePhotoState(initialCoverPhotoUrl)
+  const {
+    hasAcceptedTerms,
+    setHasAcceptedTerms,
+    termsHydrated,
+    setTermsHydrated,
+    activeTermsModalKey,
+    setActiveTermsModalKey,
+    termViewTokensByKey,
+    setTermViewTokensByKey,
+    termsModalScrolledToEnd,
+    setTermsModalScrolledToEnd,
+    submitTermsError,
+    setSubmitTermsError,
+    activeTerm,
+    openTerm,
+    acceptActiveTerm,
+    allRequiredTermsAccepted,
+  } = useTermsState(initialTermsAcceptanceByKey)
   const termsModalContentRef = useRef<HTMLDivElement | null>(null)
   const onTrackerStateChangeRef = useRef(onTrackerStateChange)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
@@ -196,7 +195,6 @@ export function OnboardingTrackerModal({
   const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
   const [submitReviewMessage, setSubmitReviewMessage] = useState('')
   const [planConfigs, setPlanConfigs] = useState<PlanConfigMap>(getDefaultPlanConfigMap())
-  const photoHealthCheckedRef = useRef(false)
 
   const stagesById = useMemo(() => {
     const map = new Map<string, Stage>()
@@ -249,6 +247,50 @@ export function OnboardingTrackerModal({
     [initialTermsAcceptanceByKey],
   )
 
+  useModalContext({
+    open,
+    professionalId,
+    hasTrackerBootstrap,
+    contextReloadNonce,
+    currentProfessionalStatusRef,
+    onTrackerStateChangeRef,
+    callbacks: {
+      setLoadingContext,
+      setTermsHydrated,
+      setHasAcceptedTerms,
+      setCurrentEvaluation,
+      setCurrentProfessionalStatus,
+      setReviewAdjustments,
+      setServicesLoadState,
+      setServicesLoadedSuccessfully,
+      setServicesLoadError,
+      setServices,
+      setPlanConfigs,
+      setExchangeRates,
+      setPlanPricing,
+      setPricingError,
+      setActiveTier,
+      setSelectedPlanTier,
+      setCategoryNameBySlug,
+      setSubcategoryNameBySlug,
+      setIsFinanceBypassEnabled,
+      setServiceCurrency,
+      setCoverPhotoUrl,
+      setCoverPhotoPath,
+      setIdentityDisplayName,
+      setIdentityDisplayNameLocked,
+      setIdentityCategory,
+      setIdentitySubcategory,
+      setIdentityFocusAreas,
+      setIdentityTitle,
+      setIdentityYearsExperience,
+      setIdentityPrimaryLanguage,
+      setIdentitySecondaryLanguages,
+      setIdentityTargetAudiences,
+      setIdentityQualifications,
+    },
+  })
+
   useEffect(() => {
     onTrackerStateChangeRef.current = onTrackerStateChange
   }, [onTrackerStateChange])
@@ -289,7 +331,7 @@ export function OnboardingTrackerModal({
         setHasAcceptedTerms(
           TERMS_KEYS.reduce(
             (acc, key) => ({ ...acc, [key]: Boolean(json.termsAcceptanceByKey?.[key]) }),
-            {} as Record<ProfessionalTermKey, boolean>,
+            {} as Record<string, boolean>,
           ),
         )
         setTermsHydrated(true)
@@ -323,55 +365,6 @@ export function OnboardingTrackerModal({
     setContextReloadNonce(previous => previous + 1)
   }, [refreshTrackerEvaluation])
 
-  const applyOptionalContext = useCallback(
-    (optional: ModalOptionalContextPayload | null | undefined) => {
-      if (!optional) return
-
-      if (optional.planConfigs) {
-        setPlanConfigs(optional.planConfigs)
-      }
-
-      const normalizedRates: ExchangeRateMap = { ...getDefaultExchangeRates() }
-      for (const [codeRaw, rateRaw] of Object.entries(optional.exchangeRates || {})) {
-        const code = String(codeRaw || '').toUpperCase().trim()
-        const rate = Number(rateRaw)
-        if (!code || !Number.isFinite(rate) || rate <= 0) continue
-        normalizedRates[code] = rate
-      }
-      setExchangeRates(normalizedRates)
-
-      const categoryRows = Array.isArray(optional.categories) ? optional.categories : []
-      const subcategoryRows = Array.isArray(optional.subcategories) ? optional.subcategories : []
-
-      const nextCategoryNames: Record<string, string> = {}
-      for (const row of categoryRows) {
-        const slug = String(row.slug || '').trim().toLowerCase()
-        const name = String(row.name_pt || '').trim()
-        if (slug && name) nextCategoryNames[slug] = name
-      }
-      setCategoryNameBySlug(nextCategoryNames)
-
-      const nextSubcategoryNames: Record<string, string> = {}
-      for (const row of subcategoryRows) {
-        const slug = String(row.slug || '').trim().toLowerCase()
-        const name = String(row.name_pt || '').trim()
-        if (slug && name) nextSubcategoryNames[slug] = name
-      }
-      setSubcategoryNameBySlug(nextSubcategoryNames)
-
-      if (optional.planPricing) {
-        setPlanPricing(optional.planPricing)
-        setPricingError('')
-      } else if (optional.pricingError) {
-        setPlanPricing(null)
-        setPricingError(
-          sanitizePricingErrorMessage(String(optional.pricingError || 'Preco indisponivel no momento.')),
-        )
-      }
-    },
-    [],
-  )
-
   useEffect(() => {
     if (!open) return
     if (trackerIsReadOnly) {
@@ -395,9 +388,13 @@ export function OnboardingTrackerModal({
   }, [initialReviewAdjustments])
 
   useEffect(() => {
-    setHasAcceptedTerms(bootstrapTermsAcceptance)
+    const nextBootstrap = TERMS_KEYS.reduce((acc, key) => {
+      acc[key] = Boolean(initialTermsAcceptanceByKey?.[key])
+      return acc
+    }, {} as Record<string, boolean>)
+    setHasAcceptedTerms(nextBootstrap)
     setTermsHydrated(TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'))
-  }, [bootstrapTermsAcceptance, initialTermsAcceptanceByKey])
+  }, [initialTermsAcceptanceByKey, setHasAcceptedTerms, setTermsHydrated])
 
   useEffect(() => {
     setCurrentProfessionalStatus(String(professionalStatus || ''))
@@ -429,314 +426,6 @@ export function OnboardingTrackerModal({
       }
     }
   }, [pendingPhoto])
-
-  useEffect(() => {
-    if (!open) return
-
-    let mounted = true
-    async function loadModalContext() {
-      let criticalLoaded = false
-      setLoadingContext(true)
-      if (!hasTrackerBootstrap) {
-        setTermsHydrated(false)
-      }
-      setPlanPricing(null)
-      setPricingError('')
-      setServicesLoadState('idle')
-      setServicesLoadedSuccessfully(false)
-      setServicesLoadError('')
-      try {
-        const criticalParams = new URLSearchParams({ scope: 'critical' })
-        if (hasTrackerBootstrap) criticalParams.set('skipTracker', '1')
-        if (professionalId) criticalParams.set('professionalId', professionalId)
-        const criticalUrl = `/api/professional/onboarding/modal-context?${criticalParams.toString()}`
-        const fetchCriticalContext = async () => {
-          const response = await withTimeout(
-            fetch(criticalUrl, {
-              method: 'GET',
-              credentials: 'include',
-              cache: 'no-store',
-            }),
-            5000,
-          )
-          const payload = (await response.json().catch(() => ({}))) as ModalContextResponse
-          return { response, payload }
-        }
-
-        let { response: criticalResponse, payload: criticalPayload } = await fetchCriticalContext()
-
-        if (!criticalResponse.ok) {
-          if (criticalPayload.servicesLoadFailed) {
-            setServicesLoadState('failed')
-            setServicesLoadedSuccessfully(false)
-            setServicesLoadError(
-              String(criticalPayload.error || 'Não foi possível carregar seus serviços. Tente novamente em instantes.'),
-            )
-            setServices([])
-          }
-          throw new Error(criticalPayload.error || 'Não foi possível carregar os dados iniciais do tracker.')
-        }
-
-        const isServicesLoadFailed = (payload: ModalContextResponse) =>
-          payload.servicesLoadState === 'failed' || Boolean(payload.servicesLoadFailed)
-
-        for (let attempt = 0; attempt < 2 && isServicesLoadFailed(criticalPayload); attempt += 1) {
-          const waitMs = attempt === 0 ? 450 : 900
-          await new Promise(resolve => setTimeout(resolve, waitMs))
-          try {
-            const retryResult = await fetchCriticalContext()
-            if (!retryResult.response.ok) break
-            criticalResponse = retryResult.response
-            criticalPayload = retryResult.payload
-          } catch {
-            break
-          }
-        }
-
-        if (!mounted) return
-
-        if (criticalPayload.evaluation) {
-          setCurrentEvaluation(criticalPayload.evaluation)
-          const nextStatus =
-            typeof criticalPayload.professionalStatus === 'string'
-              ? criticalPayload.professionalStatus
-              : currentProfessionalStatusRef.current
-          if (typeof criticalPayload.professionalStatus === 'string') {
-            setCurrentProfessionalStatus(criticalPayload.professionalStatus)
-          }
-          onTrackerStateChangeRef.current?.({
-            evaluation: criticalPayload.evaluation,
-            professionalStatus: nextStatus,
-            reviewAdjustments: Array.isArray(criticalPayload.reviewAdjustments)
-              ? criticalPayload.reviewAdjustments
-              : undefined,
-          })
-        }
-
-        if (Array.isArray(criticalPayload.reviewAdjustments)) {
-          setReviewAdjustments(criticalPayload.reviewAdjustments)
-        }
-
-        const critical = (criticalPayload.critical || {}) as ModalContextPayload
-        const professional = (critical.professional || null) as Record<string, unknown> | null
-        const existingServices = Array.isArray(critical.services) ? critical.services : []
-        const settingsRow = (critical.settings || null) as Record<string, unknown> | null
-        const appRow = (critical.application || null) as Record<string, unknown> | null
-        const credentialRows = Array.isArray(critical.credentials) ? critical.credentials : []
-        const profileRow = (critical.profile || null) as ProfileSummary | null
-
-        const normalizedServicesLoadState =
-          criticalPayload.servicesLoadState === 'failed'
-            ? 'failed'
-            : criticalPayload.servicesLoadState === 'degraded'
-              ? 'degraded'
-              : criticalPayload.servicesLoadState === 'loaded'
-                ? 'loaded'
-                : criticalPayload.servicesLoadFailed
-                  ? 'failed'
-                  : 'loaded'
-        const nextServicesLoadError = String(
-          criticalPayload.servicesLoadError ||
-            (normalizedServicesLoadState === 'failed' ? 'Não foi possível carregar seus serviços agora.' : ''),
-        ).trim()
-
-        if (normalizedServicesLoadState === 'failed') {
-          setServices([])
-          setServicesLoadedSuccessfully(false)
-          setServicesLoadError(nextServicesLoadError || 'Não foi possível carregar seus serviços agora.')
-        } else {
-          setServices(existingServices as ProfessionalServiceItem[])
-          setServicesLoadedSuccessfully(true)
-          setServicesLoadError(normalizedServicesLoadState === 'degraded' ? nextServicesLoadError : '')
-        }
-        setServicesLoadState(normalizedServicesLoadState)
-
-        setIsFinanceBypassEnabled(Boolean(settingsRow?.onboarding_finance_bypass))
-
-        const resolvedCurrency = String(profileRow?.currency || 'BRL').toUpperCase()
-        setServiceCurrency(resolvedCurrency)
-
-        const professionalTier = String(professional?.tier || '').toLowerCase()
-        const normalizedProfessionalTier: PlanTier =
-          professionalTier === 'professional' || professionalTier === 'premium'
-            ? professionalTier
-            : 'basic'
-        setActiveTier(normalizedProfessionalTier)
-        setSelectedPlanTier(normalizedProfessionalTier)
-
-        const avatarUrlCandidate = String(profileRow?.avatar_url || '').trim()
-        const profileMediaPath = parseProfileMediaPath(avatarUrlCandidate)
-        const professionalMediaPath = parseProfileMediaPath(String(professional?.cover_photo_url || '').trim())
-        setCoverPhotoPath(profileMediaPath || professionalMediaPath || '')
-        setCoverPhotoUrl(avatarUrlCandidate)
-
-        const resolvedDisplayName = String(appRow?.display_name || profileRow?.full_name || '')
-        setIdentityDisplayName(resolvedDisplayName)
-        setIdentityDisplayNameLocked(resolvedDisplayName.trim().length > 0)
-
-        const taxonomySuggestions =
-          appRow?.taxonomy_suggestions && typeof appRow.taxonomy_suggestions === 'object'
-            ? (appRow.taxonomy_suggestions as Record<string, unknown>)
-            : null
-        const suggestedCategory = String(
-          taxonomySuggestions?.category_slug ||
-            taxonomySuggestions?.category ||
-            appRow?.category ||
-            professional?.category ||
-            '',
-        ).trim()
-        const suggestedSubcategory = String(
-          (Array.isArray(professional?.subcategories) && professional.subcategories.length > 0
-            ? professional.subcategories[0]
-            : '') ||
-            taxonomySuggestions?.subcategory_slug ||
-            taxonomySuggestions?.subcategory ||
-            appRow?.specialty_name ||
-            '',
-        ).trim()
-        setIdentityCategory(suggestedCategory)
-        setIdentitySubcategory(suggestedSubcategory)
-
-        setIdentityFocusAreas(
-          Array.isArray(professional?.focus_areas) && professional.focus_areas.length > 0
-            ? professional.focus_areas.map((item: unknown) => String(item))
-            : Array.isArray(appRow?.focus_areas)
-              ? appRow.focus_areas.map((item: unknown) => String(item))
-              : [],
-        )
-        setIdentityTitle(String(appRow?.title || ''))
-        const yearsFromProfessional = Number(professional?.years_experience)
-        const yearsFromApplication = Number(appRow?.years_experience)
-        const resolvedYears = Number.isFinite(yearsFromProfessional)
-          ? yearsFromProfessional
-          : Number.isFinite(yearsFromApplication)
-            ? yearsFromApplication
-            : 0
-        setIdentityYearsExperience(String(resolvedYears))
-        setIdentityPrimaryLanguage(String(appRow?.primary_language || 'Português'))
-        setIdentitySecondaryLanguages(
-          Array.isArray(appRow?.secondary_languages)
-            ? appRow.secondary_languages.map((item: unknown) => String(item))
-            : [],
-        )
-        setIdentityTargetAudiences(
-          Array.isArray(appRow?.target_audiences)
-            ? appRow.target_audiences.map((item: unknown) => String(item))
-            : [],
-        )
-
-        const parsedQualifications = Array.isArray(appRow?.qualifications_structured)
-          ? appRow.qualifications_structured.map((item: any) => ({
-              id: String(item?.id || crypto.randomUUID()),
-              name: String(item?.name || ''),
-              requires_registration: Boolean(item?.requires_registration),
-              course_name: String(item?.course_name || ''),
-              registration_number: String(item?.registration_number || ''),
-              issuer: String(item?.issuer || ''),
-              country: String(item?.country || ''),
-              evidence_files: [],
-            }))
-          : []
-
-        const qualificationMap = new Map<string, QualificationStructured>()
-        for (const item of parsedQualifications) {
-          qualificationMap.set(normalizeOption(item.name), item)
-        }
-
-        for (const row of credentialRows) {
-          const rawFileName = String(row.file_name || '')
-          const [label, fileName] = rawFileName.includes('::')
-            ? rawFileName.split('::', 2)
-            : ['Comprovante adicional', rawFileName]
-          const normalizedLabel = normalizeOption(label)
-          if (!qualificationMap.has(normalizedLabel)) {
-            qualificationMap.set(normalizedLabel, {
-              id: crypto.randomUUID(),
-              name: label,
-              requires_registration: isRegistrationQualification(label),
-              course_name: '',
-              registration_number: '',
-              issuer: '',
-              country: '',
-              evidence_files: [],
-            })
-          }
-          qualificationMap.get(normalizedLabel)?.evidence_files.push({
-            id: String(row.id || ''),
-            file_name: fileName || rawFileName,
-            file_url: String(row.file_url || ''),
-            scan_status: String(row.scan_status || 'pending_scan'),
-            verified: Boolean(row.verified),
-            credential_type: row.credential_type ? String(row.credential_type) : null,
-          })
-        }
-        setIdentityQualifications(Array.from(qualificationMap.values()))
-
-        const serverTerms = criticalPayload.termsAcceptanceByKey || {}
-        const hasServerTerms = Object.keys(serverTerms).length > 0
-        if (hasServerTerms) {
-          const acceptedTermsMap = TERMS_KEYS.reduce((acc, key) => {
-            acc[key] = Boolean(serverTerms[key])
-            return acc
-          }, {} as Record<ProfessionalTermKey, boolean>)
-          setHasAcceptedTerms(acceptedTermsMap)
-        } else if (!hasTrackerBootstrap) {
-          const legacyTermsAccepted =
-            Boolean(settingsRow?.terms_accepted_at) &&
-            String(settingsRow?.terms_version || '').trim() === PROFESSIONAL_TERMS_VERSION
-          setHasAcceptedTerms(
-            TERMS_KEYS.reduce(
-              (acc, key) => ({ ...acc, [key]: legacyTermsAccepted }),
-              {} as Record<ProfessionalTermKey, boolean>,
-            ),
-          )
-        }
-        setTermsHydrated(true)
-        criticalLoaded = true
-      } catch {
-        if (!mounted) return
-        setServicesLoadState(previous =>
-          previous === 'loaded' || previous === 'degraded' ? previous : 'failed',
-        )
-        setServicesLoadError(previous =>
-          previous || 'Não foi possível carregar seus serviços agora. Tente novamente em instantes.',
-        )
-      } finally {
-        if (mounted) {
-          setLoadingContext(false)
-        }
-      }
-
-      if (!criticalLoaded || !mounted) {
-        return
-      }
-
-      try {
-        const optionalParams = new URLSearchParams({ scope: 'optional' })
-        if (professionalId) optionalParams.set('professionalId', professionalId)
-        const optionalResponse = await withTimeout(
-          fetch(`/api/professional/onboarding/modal-context?${optionalParams.toString()}`, {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-store',
-          }),
-          3500,
-        )
-        if (!mounted || !optionalResponse.ok) return
-        const optionalPayload = (await optionalResponse.json().catch(() => ({}))) as ModalContextResponse
-        if (!mounted) return
-        applyOptionalContext(optionalPayload.optional)
-      } catch {
-        // Dados opcionais não devem bloquear o tracker.
-      }
-    }
-
-    void loadModalContext()
-
-    return () => {
-      mounted = false
-    }
-  }, [open, professionalId, applyOptionalContext, hasTrackerBootstrap, contextReloadNonce])
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') return
@@ -813,10 +502,6 @@ export function OnboardingTrackerModal({
   }, [stageItems])
 
   const activeStage = stagesById.get(normalizeStageIdForLookup(activeStageId))
-  const activeTerm = useMemo(
-    () => PROFESSIONAL_TERMS.find(item => item.key === activeTermsModalKey) || null,
-    [activeTermsModalKey],
-  )
   const currentPlanLabel = PLAN_TIER_LABELS[String(activeTier || '').toLowerCase()] || 'Básico'
   const displayPlanCurrency = planPricing?.currency || serviceCurrency || 'BRL'
 
@@ -828,14 +513,6 @@ export function OnboardingTrackerModal({
       setTermsModalScrolledToEnd(true)
     }
   }, [activeTerm])
-
-  function toggleMultiValue(value: string, values: string[], setter: (next: string[]) => void) {
-    if (values.includes(value)) {
-      setter(values.filter(item => item !== value))
-    } else {
-      setter([...values, value])
-    }
-  }
 
   function addFocusArea(rawValue: string) {
     const nextValue = rawValue.trim().replace(/,$/, '')
@@ -855,138 +532,6 @@ export function OnboardingTrackerModal({
 
   function removeFocusArea(tag: string) {
     setIdentityFocusAreas(previous => previous.filter(item => item !== tag))
-  }
-
-  async function prepareProfessionalPhoto(file: File) {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp']
-    if (!allowed.includes(file.type)) {
-      setPhotoValidationChecks({
-        format: 'fail',
-        size: 'unknown',
-        minResolution: 'unknown',
-        faceCentered: 'unknown',
-        neutralBackground: 'unknown',
-      })
-      setPhotoUploadState('error')
-      setPhotoUploadError('Formato inválido. Use JPG, PNG ou WEBP.')
-      return
-    }
-    if (file.size > 3 * 1024 * 1024) {
-      setPhotoValidationChecks({
-        format: 'pass',
-        size: 'fail',
-        minResolution: 'unknown',
-        faceCentered: 'unknown',
-        neutralBackground: 'unknown',
-      })
-      setPhotoUploadState('error')
-      setPhotoUploadError('Arquivo acima de 3MB. Reduza antes de enviar.')
-      return
-    }
-
-    setPhotoUploadError('')
-    setPhotoUploadState('saving')
-    try {
-      const imageMeta = await readImageDimensions(file)
-      if (imageMeta.width < 320 || imageMeta.height < 320) {
-        URL.revokeObjectURL(imageMeta.previewUrl)
-        setPhotoUploadState('error')
-        setPhotoUploadError('Use uma foto com pelo menos 320x320 pixels.')
-        return
-      }
-
-      const checks = await runPhotoAutoValidation(file, imageMeta.width, imageMeta.height)
-      setPhotoValidationChecks(checks)
-      if (checks.faceCentered === 'fail') {
-        URL.revokeObjectURL(imageMeta.previewUrl)
-        setPhotoUploadState('error')
-        setPhotoUploadError('Não foi possível validar o rosto centralizado. Escolha outra foto com o rosto bem enquadrado.')
-        return
-      }
-      if (checks.neutralBackground === 'fail') {
-        URL.revokeObjectURL(imageMeta.previewUrl)
-        setPhotoUploadState('error')
-        setPhotoUploadError('Fundo da foto fora do padrao. Use fundo claro ou neutro para continuar.')
-        return
-      }
-
-      setPendingPhoto(previous => {
-        if (previous?.previewUrl) {
-          URL.revokeObjectURL(previous.previewUrl)
-        }
-        return {
-          file,
-          previewUrl: imageMeta.previewUrl,
-          width: imageMeta.width,
-          height: imageMeta.height,
-        }
-      })
-      setPhotoFocusX(50)
-      setPhotoFocusY(50)
-      setPhotoZoom(1)
-      setPhotoUploadState('idle')
-    } catch (error) {
-      setPhotoUploadState('error')
-      setPhotoUploadError(error instanceof Error ? error.message : 'Não foi possível preparar a foto.')
-    }
-  }
-
-  async function uploadPreparedProfessionalPhoto() {
-    if (!pendingPhoto) {
-      return {
-        avatarUrl: coverPhotoUrl,
-        avatarPath: coverPhotoPath,
-      }
-    }
-
-    if (!photoHealthCheckedRef.current) {
-      const healthResponse = await fetch('/api/professional/profile-media/health', {
-        method: 'GET',
-        credentials: 'include',
-      })
-      const healthPayload = (await healthResponse.json().catch(() => ({}))) as { ok?: boolean; error?: string }
-      if (!healthResponse.ok || !healthPayload.ok) {
-        throw new Error(healthPayload.error || 'Storage de fotos indisponivel no momento.')
-      }
-      photoHealthCheckedRef.current = true
-    }
-
-    const croppedFile = await buildAvatarCropFile(pendingPhoto.file, photoFocusX, photoFocusY, photoZoom)
-    const form = new FormData()
-    form.append('file', croppedFile)
-    const response = await fetch('/api/professional/profile-media/upload', {
-      method: 'POST',
-      body: form,
-      credentials: 'include',
-    })
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}))
-      throw new Error(String(errorBody?.error || 'Falha no upload da foto. Tente novamente.'))
-    }
-
-    const payload = (await response.json()) as { signedUrl?: string; path?: string }
-    const nextUrl = String(payload.signedUrl || '').trim()
-    const nextPath = String(payload.path || '').trim()
-    if (!nextUrl) {
-      throw new Error('A foto foi enviada, mas a URL final não foi retornada.')
-    }
-    if (!nextPath) {
-      throw new Error('A foto foi enviada, mas o caminho interno não foi retornado.')
-    }
-
-    setCoverPhotoUrl(nextUrl)
-    setCoverPhotoPath(nextPath)
-    setPendingPhoto(previous => {
-      if (previous?.previewUrl) {
-        URL.revokeObjectURL(previous.previewUrl)
-      }
-      return null
-    })
-    return {
-      avatarUrl: nextUrl,
-      avatarPath: nextPath,
-    }
   }
 
   async function saveSection<TPayload extends object>(
@@ -1048,97 +593,6 @@ export function OnboardingTrackerModal({
     }
 
     return json
-  }
-
-  function handlePhotoDragStart(clientX: number, clientY: number) {
-    if (!pendingPhoto) return
-    dragStateRef.current = {
-      startX: clientX,
-      startY: clientY,
-      startFocusX: photoFocusX,
-      startFocusY: photoFocusY,
-    }
-  }
-
-  function handlePhotoDragMove(clientX: number, clientY: number) {
-    if (!pendingPhoto || !dragStateRef.current) return
-    const previewSize = 192
-    const scale = Math.max(previewSize / pendingPhoto.width, previewSize / pendingPhoto.height) * photoZoom
-    const displayedWidth = pendingPhoto.width * scale
-    const displayedHeight = pendingPhoto.height * scale
-    const overflowX = Math.max(1, displayedWidth - previewSize)
-    const overflowY = Math.max(1, displayedHeight - previewSize)
-    const deltaX = clientX - dragStateRef.current.startX
-    const deltaY = clientY - dragStateRef.current.startY
-    setPhotoFocusX(clamp(dragStateRef.current.startFocusX - (deltaX / overflowX) * 100, 0, 100))
-    setPhotoFocusY(clamp(dragStateRef.current.startFocusY - (deltaY / overflowY) * 100, 0, 100))
-  }
-
-  function handlePhotoDragEnd() {
-    dragStateRef.current = null
-  }
-
-  async function openTerm(termKey: ProfessionalTermKey) {
-    setSubmitTermsError('')
-    try {
-      const response = await fetch('/api/professional/onboarding/open-term', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ termKey }),
-      })
-      const payload = (await response.json().catch(() => ({}))) as {
-        ok?: boolean
-        token?: string
-        error?: string
-      }
-      if (!response.ok || !payload.ok || !payload.token) {
-        setSubmitTermsError(payload.error || 'Não foi possível abrir este termo agora.')
-        return
-      }
-
-      setTermViewTokensByKey(previous => ({ ...previous, [termKey]: payload.token }))
-      setActiveTermsModalKey(termKey)
-      setTermsModalScrolledToEnd(false)
-    } catch (error) {
-      setSubmitTermsError(error instanceof Error ? error.message : 'Não foi possível abrir este termo agora.')
-    }
-  }
-
-  async function acceptActiveTerm() {
-    if (!activeTerm || !termsModalScrolledToEnd) return
-    const termViewToken = termViewTokensByKey[activeTerm.key]
-    if (!termViewToken) {
-      setSubmitTermsError('Abra novamente o termo antes de aceitar.')
-      return
-    }
-    setSubmitTermsError('')
-    try {
-      const response = await fetch('/api/professional/onboarding/accept-term', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ termKey: activeTerm.key, termViewToken }),
-      })
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string }
-      if (!response.ok || !payload.ok) {
-        setSubmitTermsError(payload.error || 'Não foi possível registrar o aceite deste termo.')
-        return
-      }
-      setHasAcceptedTerms(previous => ({ ...previous, [activeTerm.key]: true }))
-      setTermViewTokensByKey(previous => ({ ...previous, [activeTerm.key]: '' }))
-      setActiveTermsModalKey(null)
-      setTermsModalScrolledToEnd(false)
-    } catch (error) {
-      setSubmitTermsError(
-        error instanceof Error ? error.message : 'Não foi possível registrar o aceite deste termo.',
-      )
-    }
-  }
-
-  function allRequiredTermsAccepted() {
-    if (!termsHydrated) return false
-    return TERMS_KEYS.every(key => hasAcceptedTerms[key])
   }
 
   function addIdentityQualification() {
@@ -1634,169 +1088,30 @@ export function OnboardingTrackerModal({
           aria-label="Tracker de onboarding profissional"
         >
           <div className="grid h-[100dvh] w-full max-w-full grid-cols-1 overflow-hidden bg-white sm:h-[92vh] sm:max-h-[940px] sm:max-w-[1120px] sm:rounded-lg sm:border sm:border-slate-200 md:grid-cols-[250px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
-            <aside className="border-b border-slate-200/80 bg-slate-50/70 p-3.5 md:border-b-0 md:border-r">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-[13px] font-semibold tracking-tight text-slate-900">Tracker de onboarding</h3>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200"
-                >
-                  Fechar
-                </button>
-              </div>
-
-              <div className="mb-3 rounded-md border border-slate-200 bg-white p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Progresso</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">
-                      {stageCompletionSummary.completed} de {stageCompletionSummary.total} etapas concluídas
-                    </p>
-                  </div>
-                  {trackerRefreshState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : null}
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className="h-full rounded-full bg-emerald-500 transition-all"
-                    style={{ width: `${Math.round((stageCompletionSummary.completed / Math.max(1, stageCompletionSummary.total)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              <nav className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:hidden">
-                {stageItems.map(item => {
-                  const isActive = item.id === activeStageId
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (trackerIsReadOnly) return
-                        if (trackerAdjustmentMode && !editableStageIds.has(item.id)) return
-                        setActiveStageId(item.id)
-                      }}
-                      disabled={trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id))}
-                      className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                        isActive
-                          ? 'border-[#9FE870]/40 bg-[#9FE870]/8 text-[#2d5016]'
-                          : item.complete
-                            ? 'border-green-200 bg-green-50 text-green-800'
-                            : 'border-amber-200 bg-amber-50 text-amber-900'
-                      } ${trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id)) ? 'cursor-not-allowed opacity-70' : ''}`}
-                    >
-                      {item.label}
-                    </button>
-                  )
-                })}
-              </nav>
-
-              <nav className="hidden space-y-1.5 md:block">
-                {stageItems.map(item => {
-                  const isActive = item.id === activeStageId
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (trackerIsReadOnly) return
-                        if (trackerAdjustmentMode && !editableStageIds.has(item.id)) return
-                        setActiveStageId(item.id)
-                      }}
-                      disabled={trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id))}
-                      className={`w-full rounded-md border px-3 py-3 text-left transition ${
-                        isActive
-                          ? 'border-[#9FE870]/40 bg-[#9FE870]/8 text-[#2d5016]'
-                          : item.complete
-                            ? 'border-green-200 bg-green-50 text-green-800'
-                            : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100/60'
-                      } ${trackerIsReadOnly || (trackerAdjustmentMode && !editableStageIds.has(item.id)) ? 'cursor-not-allowed opacity-80' : ''}`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                            item.complete
-                              ? 'border-green-400 bg-green-100 text-green-700'
-                              : item.blocker
-                                ? 'border-amber-300 bg-amber-100 text-amber-700'
-                                : 'border-slate-300 bg-white text-slate-500'
-                          }`}
-                        >
-                          {item.complete ? (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : item.blocker ? (
-                            <XCircle className="h-3.5 w-3.5" />
-                          ) : (
-                            <Circle className="h-3.5 w-3.5" />
-                          )}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-semibold leading-4">{item.label}</p>
-                          <p className="mt-1 text-[11px] text-slate-500">
-                            {item.complete ? 'Concluida' : item.blocker?.title || 'Pendente'}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </nav>
-            </aside>
+            <StageSidebar
+              stageItems={stageItems}
+              activeStageId={activeStageId}
+              stageCompletionSummary={stageCompletionSummary}
+              trackerRefreshState={trackerRefreshState}
+              trackerIsReadOnly={trackerIsReadOnly}
+              trackerAdjustmentMode={trackerAdjustmentMode}
+              editableStageIds={editableStageIds}
+              onSelectStage={(stageId) => setActiveStageId(stageId)}
+              onClose={() => setOpen(false)}
+            />
 
             <section className="overflow-y-auto p-4 md:p-5">
-              <div className="mb-4 border-b border-slate-200/80 pb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-slate-900">
-                  {trackerViewMode === 'submitted_waiting'
-                    ? 'Onboarding concluído'
-                    : trackerViewMode === 'approved'
-                      ? 'Perfil aprovado'
-                      : UI_STAGE_LABELS[activeStageId as (typeof UI_STAGE_ORDER)[number]]}
-                </h2>
-                {trackerViewMode === 'submitted_waiting' ? (
-                  <p className="mt-1 text-sm text-blue-700">
-                    Recebemos seu perfil e ele está em análise. Vamos entrar em contato por e-mail com o resultado.
-                  </p>
-                ) : trackerViewMode === 'approved' ? (
-                  <p className="mt-1 text-sm text-green-700">
-                    Seu perfil já foi aprovado. As próximas alterações devem ser feitas pelas páginas de configuração.
-                  </p>
-                ) : activeStage?.complete ? (
-                  <p className="mt-1 text-sm text-green-700">Etapa concluída.</p>
-                ) : (
-                  <p className="mt-1 text-sm text-amber-700">
-                    {activeStage?.blockers[0]?.description || 'Existem pendências nesta etapa.'}
-                  </p>
-                )}
-              </div>
+              <TrackerHeader
+                trackerViewMode={trackerViewMode}
+                activeStageId={activeStageId}
+                activeStage={activeStage}
+              />
 
-              {trackerNeedsAdjustments ? (
-                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  <p className="font-semibold">
-                    {trackerViewMode === 'rejected' ? 'Perfil reprovado para esta rodada.' : 'Ajustes solicitados pelo time de revisão.'}
-                  </p>
-                  <p className="mt-1 text-xs">
-                    {openReviewAdjustments.length > 0
-                      ? 'Revise os campos pendentes, salve as etapas e envie novamente para análise no final do tracker.'
-                      : trackerViewMode === 'rejected'
-                        ? 'Não há itens estruturados ativos nesta rodada. Se você já concluiu as correções, pode reenviar; se não souber o que ajustar, o time de revisão precisa publicar uma nova lista.'
-                        : 'Não há itens estruturados ativos no momento. Se você já concluiu as correções, pode reenviar; se não souber o que ajustar, o time de revisão precisa publicar uma nova lista.'}
-                  </p>
-                  {openReviewAdjustments.length > 0 ? (
-                    <ul className="mt-2 space-y-1 text-xs">
-                      {openReviewAdjustments.map(item => (
-                        <li key={item.id} className="rounded-md bg-white/70 px-2 py-1">
-                          <span>
-                            <span className="font-semibold">
-                              {REVIEW_ADJUSTMENT_STAGE_LABELS[item.stageId as keyof typeof REVIEW_ADJUSTMENT_STAGE_LABELS] || item.stageId}
-                            </span>{' '}
-                            • {item.message}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
+              <AdjustmentBanner
+                trackerViewMode={trackerViewMode}
+                trackerNeedsAdjustments={trackerNeedsAdjustments}
+                openReviewAdjustments={openReviewAdjustments}
+              />
 
               {loadingContext ? (
                 <div className="rounded-md border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600">
@@ -1826,48 +1141,13 @@ export function OnboardingTrackerModal({
                 </div>
               ) : (
                 <>
-              {getPlanFeatureHighlights(activeStageId).length > 0 ? (
-                <div className="mb-4 rounded-md border border-[#9FE870]/20 bg-[#9FE870]/8/50 p-3">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Planos nesta etapa</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {getPlanFeatureHighlights(activeStageId).map(item => (
-                          <span
-                            key={item}
-                            className="inline-flex items-center rounded-full border border-[#9FE870]/30 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#2d5016]"
-                          >
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700">
-                      <p>
-                        Plano atual: <strong>{currentPlanLabel}</strong>
-                      </p>
-                      {planPricing ? (
-                        <p>
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: planPricing.currency }).format(
-                            planPricing.monthlyAmount / 100,
-                          )}{' '}
-                          / mês
-                        </p>
-                      ) : (
-                        <p>{pricingError || 'Preço indisponível no momento.'}</p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setActiveStageId('c6_plan_billing_setup_post')}
-                        className="inline-flex items-center gap-1 font-semibold text-[#3d6b1f] hover:text-[#2d5016]"
-                      >
-                        Ver planos desta etapa
-                        <ArrowRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+              <PlanFeatureBanner
+                activeStageId={activeStageId}
+                currentPlanLabel={currentPlanLabel}
+                planPricing={planPricing}
+                pricingError={pricingError}
+                onViewPlans={() => setActiveStageId('c6_plan_billing_setup_post')}
+              />
 
               {(activeStageId === 'c2_professional_identity') && (
                 <IdentityStage

@@ -426,3 +426,13 @@ export async function withTimeout<T>(promiseLike: PromiseLike<T>, timeoutMs: num
     if (timer) clearTimeout(timer)
   }
 }
+
+export function toggleMultiValue(value: string, values: string[], setter: (next: string[]) => void) {
+  const set = new Set(values)
+  if (set.has(value)) {
+    set.delete(value)
+  } else {
+    set.add(value)
+  }
+  setter(Array.from(set))
+}

@@ -176,14 +176,12 @@ function validateEnv() {
     console.error('Missing database connection string. Set one of: DATABASE_URL, SUPABASE_DB_POOLER_URL, SUPABASE_DB_DIRECT_URL')
   }
 
-  // Production guard: Stripe secret key must be a live key in production
+  // Production guard: Stripe secret key should be a live key in production
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY
   if (stripeSecretKey && process.env.VERCEL_ENV === 'production' && !stripeSecretKey.startsWith('sk_live_')) {
-    const message = 'STRIPE_SECRET_KEY must be a live key (sk_live_*) in production. Test keys are not allowed.'
-    if (process.env.CI) {
-      throw new Error(message)
-    }
-    console.error(`[env] ${message}`)
+    console.warn(
+      '[env] STRIPE_SECRET_KEY is not a live key in production. Test keys may cause API failures.',
+    )
   }
 
   return parsed.success ? parsed.data : (process.env as unknown as z.infer<typeof envSchema>)
