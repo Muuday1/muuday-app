@@ -26,7 +26,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | File | Lines | Priority | Status |
 |------|-------|----------|--------|
 | `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ **1,009** | **CRITICAL** | ✅ Extracted presentational components + domain hooks (usePhotoState, useTermsState, useModalContext, useIdentityState, useServiceState, usePlanState) |
-| `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ **752** | **HIGH** | ✅ Extracted 9 presentational components into `booking-form/components/` |
+| `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ ~~752~~ **395** | **HIGH** | ✅ Extracted 9 presentational components + 6 custom hooks into `booking-form/` |
 | `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ **660** | LOW | ⚠️ Grew; monitor |
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ **625** | LOW | ⚠️ Grew; monitor |
 | `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ **540** | MEDIUM | ✅ Reduced |
@@ -111,27 +111,26 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 - `components/dashboard/onboarding-tracker/helpers.ts` — utility functions
 - `components/dashboard/onboarding-tracker/types.ts` — shared types
 
-#### 2.2 `components/booking/BookingForm.tsx` → Extract presentational components
+#### 2.2 `components/booking/BookingForm.tsx` → Extract presentational components + hooks
 
-**Current:** ~~1,151~~ ~~1,295~~ **752 lines**
+**Current:** ~~1,151~~ ~~1,295~~ ~~752~~ **395 lines**
 
 **Completed:**
 - **Presentational components** extracted to `components/booking/booking-form/components/`:
-  - `BookingSuccessRedirect` — success redirect spinner
-  - `SelectedServiceCard` — selected service display
-  - `BookingTypeSelector` — one_off/recurring/batch selector
-  - `RecurringConfigPanel` — recurrence configuration panel
-  - `TimezoneToggle` — user/professional timezone toggle
-  - `CalendarGrid` — calendar day grid with navigation
-  - `TimeSlotsGrid` — time slot buttons grid
-  - `SessionPurposeInput` — session purpose textarea
-  - `BatchPanel` — batch session management
-  - `BookingSummarySidebar` — sticky summary sidebar with pricing, policy, submit
+  - `BookingSuccessRedirect`, `SelectedServiceCard`, `BookingTypeSelector`
+  - `RecurringConfigPanel`, `TimezoneToggle`, `CalendarGrid`
+  - `TimeSlotsGrid`, `SessionPurposeInput`, `BatchPanel`
+  - `BookingSummarySidebar`
+- **Custom hooks** extracted to `components/booking/booking-form/hooks/`:
+  - `useCalendarSlots` — calendar state, slot generation, date navigation
+  - `useRecurringBooking` — recurrence config, conflict detection
+  - `useBatchBooking` — batch date management
+  - `useBookingPricing` — price calculations, timezone conversions
+  - `useBookingSubmission` — form submission, API branching, timeouts
+  - `useBookingAnalytics` — analytics tracking
 - **Types** extracted to `components/booking/booking-form/types.ts`
 
-**Remaining opportunities:**
-- Extract state logic to custom hooks (`useCalendarSlots`, `useRecurringBooking`, `useBatchBooking`, `useBookingSubmission`)
-- Target: Main component <500 lines (currently ~752)
+**Result:** Main component 1,295 → 395 lines (-70%). Orchestrates 6 hooks + 10 sub-components.
 
 ### Phase 3: Monitor & Maintain
 
