@@ -186,7 +186,7 @@ const rotators = {
     // Update Vercel env var
     await upsertVercelEnv(secretEntry.name, newToken, 'production')
 
-    return { rotated: true, provider: 'resend', newValue: newToken, meta: { id: res.id } }
+    return { rotated: true, provider: 'resend', meta: { id: res.id } }
   },
 
   /**
@@ -217,7 +217,7 @@ const rotators = {
 
     await upsertVercelEnv(secretEntry.name, newValue, 'production')
 
-    return { rotated: true, provider: 'openai', newValue, meta: { id: res.id } }
+    return { rotated: true, provider: 'openai', meta: { id: res.id } }
   },
 
   /**
@@ -293,7 +293,7 @@ const rotators = {
 
     const match = restUrl.match(/https:\/\/([a-z0-9-]+)\.upstash\.io/)
     const dbId = match ? match[1] : null
-    if (!dbId) throw new Error(`Cannot extract Upstash DB ID from URL: ${restUrl}`)
+    if (!dbId) throw new Error('Cannot extract Upstash DB ID from REST URL')
 
     const res = await httpRequest(`https://api.upstash.com/v2/redis/rotate_password/${dbId}`, {
       method: 'POST',
@@ -314,7 +314,7 @@ const rotators = {
       await upsertVercelEnv('UPSTASH_REDIS_REST_URL', newUrl, 'production')
     }
 
-    return { rotated: true, provider: 'upstash', newValue: newToken, meta: { dbId } }
+    return { rotated: true, provider: 'upstash', meta: { dbId } }
   },
 
   /**
@@ -346,7 +346,7 @@ const rotators = {
 
     await upsertVercelEnv(secretEntry.name, newToken, 'production')
 
-    return { rotated: true, provider: 'vercel', newValue: newToken, meta: { id: res.token?.id } }
+    return { rotated: true, provider: 'vercel', meta: { id: res.token?.id } }
   },
 }
 

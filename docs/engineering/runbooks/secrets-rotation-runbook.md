@@ -143,14 +143,16 @@ This runbook covers all entries in `secrets-rotation-register.json`, including:
 | Secret | Cadence | Immediate rotation triggers |
 | --- | --- | --- |
 | `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` | Every 90 days | suspected leak, owner offboarding, CI exposure |
-| `CRON_SECRET` | Every 60 days | suspected leak, unauthorized cron hit |
-| `RESEND_API_KEY` | Every 90 days | suspected leak, unexpected mail activity |
-| `UPSTASH_REDIS_REST_TOKEN` | Every 90 days | suspected leak, unauthorized token use |
-| `STRIPE_SECRET_KEY` | Every 90 days | suspected leak, Stripe security event |
-| `STRIPE_WEBHOOK_SECRET` | Every 90 days | webhook endpoint changes, suspected replay/injection |
-| `TROLLEY_API_KEY` | Every 180 days | suspected leak, Trolley security event |
+| `CRON_SECRET` | Every 365 days | suspected leak, unauthorized cron hit |
+| `RESEND_API_KEY` | Every 180 days | suspected leak, unexpected mail activity |
+| `UPSTASH_REDIS_REST_TOKEN` | Every 365 days | suspected leak, unauthorized token use |
+| `STRIPE_SECRET_KEY` | Every 180 days | suspected leak, Stripe security event |
+| `STRIPE_WEBHOOK_SECRET` | Every 365 days | webhook endpoint changes, suspected replay/injection |
+| `TROLLEY_API_KEY` / `TROLLEY_API_SECRET` | Every 180 days | suspected leak, Trolley security event |
 | `TROLLEY_WEBHOOK_SECRET` | Every 180 days | webhook endpoint changes, suspected replay/injection |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | With Stripe key rollovers | publishable key drift with secret key rollover |
+
+> **Canonical cadence source:** `secrets-rotation-register.json`. The JSON register is the single source of truth; this table is for quick reference only.
 
 ## Rotation workflow (production-safe)
 
@@ -269,6 +271,19 @@ Expected env for sync audit:
 4. `VERCEL_TEAM_ID` (optional)
 5. `VERCEL_TOKEN`
 
+## New scripts (local / CI)
+
+| Script | Purpose | Command |
+|--------|---------|---------|
+| `audit-env-local-vs-vercel.cjs` | Verify every key in `.env.local` exists in Vercel | `npm run secrets:env:audit` |
+| `sync-env-to-vercel.cjs` | Create missing keys from `.env.local` in Vercel | `npm run secrets:env:sync` |
+| `rotate-secrets.cjs` | Auto-rotate overdue secrets via provider APIs | `npm run secrets:rotate:auto:dry` / `npm run secrets:rotate:auto` |
+
+**Safety notes:**
+- `sync-env-to-vercel.cjs` defaults to `development` target. Use `--target production --confirm-production` for production.
+- A built-in blocklist prevents local-only / test secrets (E2E passwords, `KIMI_API_KEY`, etc.) from being synced.
+- `rotate-secrets.cjs` redacts all API errors so secret values never appear in logs or artifacts.
+
 ## Automation coverage
 
 Scheduled workflows now enforce reminders and sync checks:
@@ -281,9 +296,16 @@ Scheduled workflows now enforce reminders and sync checks:
 
 2. `.github/workflows/secrets-sync-audit.yml`
 - runs weekly + manual dispatch
-- validates expected secret names exist in both GitHub and Vercel targets
+- validates expected secret names exist in both GitHub and Vercel targets (using `sync_targets` in the register)
 - fails when any mapped secret is missing on either side
 - uploads machine-readable report artifact
+
+3. `.github/workflows/secrets-auto-rotation.yml`
+- runs monthly (1st of month at 06:00 UTC)
+- attempts automatic rotation for supported providers
+- updates Vercel env vars and stamps the register
+- opens GitHub Issues for manual actions
+- supports dry-run mode
 
 ## Minimum ownership rule
 

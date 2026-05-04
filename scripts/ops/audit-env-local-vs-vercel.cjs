@@ -14,6 +14,38 @@
 const fs = require('fs')
 const path = require('path')
 
+// Allow running this script directly without manual env export.
+// dotenv is safe: it does nothing if .env.local is missing.
+try {
+  require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') })
+} catch { /* dotenv may not be resolvable in bare contexts */ }
+
+// Fallback: accept VERCEL_API_TOKEN as VERCEL_TOKEN
+if (!process.env.VERCEL_TOKEN && process.env.VERCEL_API_TOKEN) {
+  process.env.VERCEL_TOKEN = process.env.VERCEL_API_TOKEN
+}
+
+// Fallback: read projectId / orgId from .vercel/project.json
+function loadVercelProjectMeta() {
+  const metaPath = path.resolve(process.cwd(), '.vercel', 'project.json')
+  if (!fs.existsSync(metaPath)) return null
+  try {
+    return JSON.parse(fs.readFileSync(metaPath, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+const vercelMeta = loadVercelProjectMeta()
+if (vercelMeta) {
+  if (!process.env.VERCEL_PROJECT_ID && vercelMeta.projectId) {
+    process.env.VERCEL_PROJECT_ID = vercelMeta.projectId
+  }
+  if (!process.env.VERCEL_TEAM_ID && vercelMeta.orgId) {
+    process.env.VERCEL_TEAM_ID = vercelMeta.orgId
+  }
+}
+
 function parseArgs(argv) {
   const args = {
     envFile: '.env.local',

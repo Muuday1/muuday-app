@@ -22,6 +22,8 @@
     "secrets:rotate:auto": "node scripts/ops/rotate-secrets.cjs",
     "secrets:rotate:auto:dry": "node scripts/ops/rotate-secrets.cjs --dry-run",
     "secrets:env:audit": "node scripts/ops/audit-env-local-vs-vercel.cjs",
+    "secrets:env:sync": "node scripts/ops/sync-env-to-vercel.cjs",
+    "secrets:env:sync:prod": "node scripts/ops/sync-env-to-vercel.cjs --target production --confirm-production",
     "auth:validate-smoke": "node scripts/ops/validate-supabase-auth-flow.cjs",
     "onboarding:api:smoke": "node scripts/ops/smoke-onboarding-api.cjs",
     "test:checkly-local": "playwright test --config playwright.checkly.config.ts",
