@@ -25,8 +25,8 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 
 | File | Lines | Priority | Status |
 |------|-------|----------|--------|
-| `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ **2,038** | **CRITICAL** | ✅ Availability stage removed; further extraction needed |
-| `components/booking/BookingForm.tsx` | ~~1,151~~ **1,377** | **HIGH** | ⚠️ Grew; needs hook/sub-component extraction |
+| `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ **1,009** | **CRITICAL** | ✅ Extracted presentational components + domain hooks (usePhotoState, useTermsState, useModalContext, useIdentityState, useServiceState, usePlanState) |
+| `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ **752** | **HIGH** | ✅ Extracted 9 presentational components into `booking-form/components/` |
 | `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ **660** | LOW | ⚠️ Grew; monitor |
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ **625** | LOW | ⚠️ Grew; monitor |
 | `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ **540** | MEDIUM | ✅ Reduced |
@@ -41,6 +41,20 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 **OnboardingTrackerModal.tsx** (3,995 → 2,038 lines)
 - Removed inline `AvailabilityStage` and all associated state/handler logic (`availabilityMap`, `bookingRules`, `profileTimezone`, `saveAvailabilityCalendar`, etc.)
 - Removed ~20 unused imports and helper functions (`Link`, `Upload`, `Blocker`, `TrackerViewMode`, `BlockerCta`, `PLAN_PRICE_BASE_BRL`, `PLAN_COMPARISON_ROWS`, `PLAN_ROW_BY_LABEL`, `LANGUAGE_OPTIONS`, `PROFESSIONAL_TITLES`, `TARGET_AUDIENCE_OPTIONS`, `toKeywords`, `formatCurrencyFromBrl`, `rgbToHsl`, `humanizeTaxonomyValue`, `resolveTaxonomyLabel`, `buildDefaultAvailabilityMap`, `categoryNameBySlug`, `subcategoryNameBySlug`)
+
+### Refactor Pass: 2026-05-04
+
+**OnboardingTrackerModal.tsx** (2,038 → 1,009 lines)
+- **Phase 1 — Presentational extraction:** `StageSidebar`, `TrackerHeader`, `AdjustmentBanner`, `PlanFeatureBanner`
+- **Phase 2 — Domain hooks:**
+  - `usePhotoState` — photo upload, crop, validation, drag
+  - `useTermsState` — terms acceptance, modal tokens
+  - `useModalContext` — mega useEffect for modal context loading (~300 lines)
+  - `useIdentityState` — identity form, focus areas, qualifications, saveIdentity
+  - `useServiceState` — service CRUD form, saveService, deleteService
+  - `usePlanState` — plan selection, pricing, savePlanSelection
+- **Phase 3 — Helpers:** `toggleMultiValue` moved to `helpers.ts`
+- Target: Modal shell <200 lines, each stage <300 lines (modal currently ~1,009 lines — further stage component extraction possible)
 - Fixed unused catch-binding lint errors
 - **Note:** `UI_STAGE_ORDER` in `constants.ts` and `ProfessionalOnboardingCard.tsx` still reference `c5_availability_calendar`. The modal now renders nothing for that stage. Follow-up: either remove it from the stage list or replace with an external link to `/disponibilidade`.
 
@@ -75,47 +89,49 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 
 ### Phase 2: Components (Critical/High Priority)
 
-#### 2.1 `components/dashboard/OnboardingTrackerModal.tsx` → Component extraction
+#### 2.1 `components/dashboard/OnboardingTrackerModal.tsx` → Component + hook extraction
 
-**Current:** 2,038 lines — still a god component, but availability stage removed
+**Current:** ~~3,995~~ ~~2,038~~ **1,009 lines** — major extractions complete
 
-**Analysis:** Contains:
-- ~20 helper functions/constants at module level
-- Complex state management
-- Multiple "stages" of onboarding
-- File upload handling
-- Photo validation
-- Plan selection/pricing
-- Terms acceptance
-- Review adjustments
+**Completed:**
+- **Presentational components** (Phase 1): `StageSidebar`, `TrackerHeader`, `AdjustmentBanner`, `PlanFeatureBanner`
+- **Domain hooks** (Phase 2): `usePhotoState`, `useTermsState`, `useModalContext`, `useIdentityState`, `useServiceState`, `usePlanState`
+- **Generic save hook** (Phase 3): `useSaveSection`
 
-**Extract to:**
-- `components/dashboard/onboarding/` directory
-- `useOnboardingState.ts` — custom hook for all state management
-- `useOnboardingContext.ts` — data fetching hook
-- `OnboardingStageRenderer.tsx` — stage routing component
-- Individual stage components:
-  - `ProfileStage.tsx`
-  - `QualificationsStage.tsx`
-  - `ServicesStage.tsx`
-  - `PlanStage.tsx`
-  - `TermsStage.tsx`
-  - `ReviewStage.tsx`
-- `PhotoUploader.tsx` — reusable photo upload + validation
-- `constants.ts` — all constants, options, labels
-- `helpers.ts` — utility functions
+**Remaining opportunities:**
+- Extract `submitForReview` inline logic (~60 lines) to a dedicated hook
+- Extract remaining inline JSX to stage wrapper components
+- Target: Modal shell <500 lines (currently ~1,009)
 
-**Target:** Modal shell <200 lines, each stage <300 lines
+**Extracted to:**
+- `components/dashboard/onboarding-tracker/components/` — presentational components
+- `components/dashboard/onboarding-tracker/hooks/` — 7 domain hooks + save wrapper
+- `components/dashboard/onboarding-tracker/stages/` — 5 stage components
+- `components/dashboard/onboarding-tracker/constants.ts` — all constants, options, labels
+- `components/dashboard/onboarding-tracker/helpers.ts` — utility functions
+- `components/dashboard/onboarding-tracker/types.ts` — shared types
 
-#### 2.2 `components/booking/BookingForm.tsx` → Extract hooks and sub-components
+#### 2.2 `components/booking/BookingForm.tsx` → Extract presentational components
 
-**Current:** 1,377 lines (grew from 1,151)
+**Current:** ~~1,151~~ ~~1,295~~ **752 lines**
 
-**Extract to:**
-- `hooks/useBookingForm.ts` — form state, validation, submission
-- `hooks/useTimeSlots.ts` — time slot generation logic
-- `components/booking/form-steps/` — step components
-- `components/booking/TimeSlotPicker.tsx`
+**Completed:**
+- **Presentational components** extracted to `components/booking/booking-form/components/`:
+  - `BookingSuccessRedirect` — success redirect spinner
+  - `SelectedServiceCard` — selected service display
+  - `BookingTypeSelector` — one_off/recurring/batch selector
+  - `RecurringConfigPanel` — recurrence configuration panel
+  - `TimezoneToggle` — user/professional timezone toggle
+  - `CalendarGrid` — calendar day grid with navigation
+  - `TimeSlotsGrid` — time slot buttons grid
+  - `SessionPurposeInput` — session purpose textarea
+  - `BatchPanel` — batch session management
+  - `BookingSummarySidebar` — sticky summary sidebar with pricing, policy, submit
+- **Types** extracted to `components/booking/booking-form/types.ts`
+
+**Remaining opportunities:**
+- Extract state logic to custom hooks (`useCalendarSlots`, `useRecurringBooking`, `useBatchBooking`, `useBookingSubmission`)
+- Target: Main component <500 lines (currently ~752)
 
 ### Phase 3: Monitor & Maintain
 

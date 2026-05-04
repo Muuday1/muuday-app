@@ -3,24 +3,12 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Globe,
-  Loader2,
-  AlertCircle,
-  Briefcase,
-} from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useFeatureFlagEnabled } from 'posthog-js/react'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { createBooking } from '@/lib/actions/booking'
-import { cn, formatCurrency } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { captureEvent } from '@/lib/analytics/posthog-client'
-import { generateIcsContent, downloadIcsFile } from '@/lib/calendar/ics-generator'
 import { FEATURE_FLAGS } from '@/lib/analytics/feature-flags'
 import {
   isSlotBlockedByException,
@@ -30,79 +18,29 @@ import {
   generateRecurrenceSlots,
   detectRecurrenceConflicts,
 } from '@/lib/booking/recurrence-engine'
-import { RecurringPreview } from './RecurringPreview'
 
-interface AvailabilitySlot {
-  id: string
-  day_of_week: number
-  start_time: string
-  end_time: string
-}
-
-interface ExistingBooking {
-  scheduled_at: string
-  duration_minutes: number
-}
-
-interface AvailabilityException {
-  date_local: string
-  is_available: boolean
-  start_time_local: string | null
-  end_time_local: string | null
-}
-
-interface SelectedService {
-  id: string
-  name: string
-  description?: string | null
-  duration_minutes: number
-  price_brl: number
-  enable_recurring?: boolean
-  enable_batch?: boolean
-}
-
-interface BookingFormProps {
-  professional: {
-    id: string
-    session_price_brl: number
-    session_duration_minutes: number
-    category: string
-  }
-  profileName: string
-  profileHref: string
-  availability: AvailabilitySlot[]
-  existingBookings: ExistingBooking[]
-  availabilityExceptions?: AvailabilityException[]
-  userTimezone: string
-  userCurrency: string
-  professionalTimezone: string
-  minimumNoticeHours: number
-  maxBookingWindowDays: number
-  confirmationMode: 'auto_accept' | 'manual'
-  requireSessionPurpose: boolean
-  enableRecurring: boolean
-  initialBookingType?: 'one_off' | 'recurring' | 'batch'
-  initialRecurringSessionsCount?: number
-  initialDate?: string
-  initialTime?: string
-  selectedService?: SelectedService
-}
+import { BookingFormProps } from './booking-form/types'
+import { BookingSuccessRedirect } from './booking-form/components/BookingSuccessRedirect'
+import { SelectedServiceCard } from './booking-form/components/SelectedServiceCard'
+import { BookingTypeSelector } from './booking-form/components/BookingTypeSelector'
+import { RecurringConfigPanel } from './booking-form/components/RecurringConfigPanel'
+import { TimezoneToggle } from './booking-form/components/TimezoneToggle'
+import { CalendarGrid } from './booking-form/components/CalendarGrid'
+import { TimeSlotsGrid } from './booking-form/components/TimeSlotsGrid'
+import { SessionPurposeInput } from './booking-form/components/SessionPurposeInput'
+import { BatchPanel } from './booking-form/components/BatchPanel'
+import { BookingSummarySidebar } from './booking-form/components/BookingSummarySidebar'
 
 import {
-  MONTH_NAMES_PT,
-  DAY_NAMES_PT_SHORT,
-  DAY_NAMES_PT_FULL,
-  RECURRING_SESSION_OPTIONS,
-  PLATFORM_CANCELLATION_POLICY,
-  isSameDay,
   toLocalDateStr,
   fromIsoDateToLocalDate,
   addDaysToIsoDate,
   generateTimeSlots,
   buildScheduledAt,
-  timezoneLabel,
   deriveRecurringOccurrencesFromEndDate,
 } from './booking-form-helpers'
+
+export type { BookingFormProps }
 
 export default function BookingForm({
   professional,
@@ -148,7 +86,7 @@ export default function BookingForm({
   const [timezoneMode, setTimezoneMode] = useState<'user' | 'professional'>('user')
   const [bookingType, setBookingType] = useState<'one_off' | 'recurring' | 'batch'>(initialBookingType)
   const [recurringSessionsCount, setRecurringSessionsCount] = useState(
-    RECURRING_SESSION_OPTIONS.includes(initialRecurringSessionsCount)
+    [4, 8, 12].includes(initialRecurringSessionsCount)
       ? initialRecurringSessionsCount
       : 4,
   )
@@ -374,12 +312,12 @@ export default function BookingForm({
         ? 'Pagar pacote e solicitar'
         : bookingType === 'batch'
           ? 'Pagar lote e solicitar'
-        : 'Pagar e solicitar agendamento'
+          : 'Pagar e solicitar agendamento'
       : bookingType === 'recurring'
         ? 'Pagar pacote e confirmar'
         : bookingType === 'batch'
           ? 'Pagar lote e confirmar'
-        : 'Pagar e confirmar agendamento'
+          : 'Pagar e confirmar agendamento'
 
   const batchSlotsPreview = useMemo(() => {
     return batchDateTimes.map(value => {
@@ -431,7 +369,7 @@ export default function BookingForm({
 
     if (initialBookingType === 'recurring' && canUseRecurring) {
       setBookingType('recurring')
-      if (RECURRING_SESSION_OPTIONS.includes(initialRecurringSessionsCount)) {
+      if ([4, 8, 12].includes(initialRecurringSessionsCount)) {
         setRecurringSessionsCount(initialRecurringSessionsCount)
       }
     }
@@ -646,19 +584,7 @@ export default function BookingForm({
   }
 
   if (bookingResult?.success) {
-    return (
-      <div className="mx-auto flex max-w-md flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
-          <Loader2 className="h-10 w-10 animate-spin text-green-500" />
-        </div>
-        <h2 className="mb-2 text-2xl font-bold text-slate-900 font-display">
-          Redirecionando para o pagamento...
-        </h2>
-        <p className="text-slate-500">
-          Aguarde enquanto preparamos a página de pagamento segura.
-        </p>
-      </div>
-    )
+    return <BookingSuccessRedirect />
   }
 
   return (
@@ -674,312 +600,77 @@ export default function BookingForm({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           {selectedService && (
-            <div className="rounded-xl border border-[#9FE870]/30 bg-[#9FE870]/5 p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#9FE870]/20">
-                  <Briefcase className="h-5 w-5 text-[#4a7c1f]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#4a7c1f]">
-                    Serviço selecionado
-                  </p>
-                  <h3 className="mt-0.5 text-base font-semibold text-slate-900">
-                    {selectedService.name}
-                  </h3>
-                  {selectedService.description && (
-                    <p className="mt-1 text-sm text-slate-500 line-clamp-2">
-                      {selectedService.description}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {selectedService.duration_minutes} min
-                    </span>
-                    <span className="font-semibold text-slate-900">
-                      {formatCurrency(selectedService.price_brl, userCurrency)}
-                    </span>
-                    <Link
-                      href={profileHref}
-                      className="ml-auto text-xs font-medium text-[#4a7c1f] underline-offset-2 hover:underline"
-                    >
-                      Trocar serviço
-                    </Link>
-                  </div>
-                </div>
-              </div>
+            <SelectedServiceCard
+              service={selectedService}
+              profileHref={profileHref}
+              userCurrency={userCurrency}
+            />
+          )}
+
+          <BookingTypeSelector
+            bookingType={bookingType}
+            onChange={setBookingType}
+            canUseRecurring={canUseRecurring}
+            enableRecurring={enableRecurring}
+            recurringFlagEnabled={recurringFlagEnabled}
+          />
+
+          {bookingType === 'recurring' && (
+            <RecurringConfigPanel
+              recurringPeriodicity={recurringPeriodicity}
+              onPeriodicityChange={setRecurringPeriodicity}
+              recurringIntervalDays={recurringIntervalDays}
+              onIntervalDaysChange={setRecurringIntervalDays}
+              recurringDurationMode={recurringDurationMode}
+              onDurationModeChange={setRecurringDurationMode}
+              recurringSessionsCount={recurringSessionsCount}
+              onSessionsCountChange={setRecurringSessionsCount}
+              recurringEndDate={recurringEndDate}
+              onEndDateChange={setRecurringEndDate}
+              recurringAutoRenew={recurringAutoRenew}
+              onAutoRenewChange={setRecurringAutoRenew}
+              resolvedRecurringSessionsCount={resolvedRecurringSessionsCount}
+              hasValidRecurringDuration={hasValidRecurringDuration}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              sessionDurationMinutes={sessionDurationMinutes}
+              maxBookingWindowDays={maxBookingWindowDays}
+              existingBookings={existingBookings}
+              userTimezone={userTimezone}
+            />
+          )}
+
+          {bookingType === 'batch' && (
+            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600">
+              Selecione data e horário e clique em <strong>Adicionar ao lote</strong>. Para concluir, escolha ao menos 2 sessões.
             </div>
           )}
 
           <div className="rounded-lg border border-slate-200/80 bg-white p-6">
-            <h2 className="mb-3 text-lg font-semibold text-slate-900 font-display">Tipo de agendamento</h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => setBookingType('one_off')}
-                className={cn(
-                  'rounded-md border px-4 py-3 text-left text-sm transition-all',
-                  bookingType === 'one_off'
-                    ? 'border-[#9FE870]/60 bg-[#9FE870]/8 text-[#3d6b1f]'
-                    : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40',
-                )}
-              >
-                <p className="font-semibold">Sessão única</p>
-                  <p className="mt-0.5 text-xs text-slate-500">1 sessão com pagamento único.</p>
-                </button>
-              <button
-                type="button"
-                onClick={() => canUseRecurring && setBookingType('recurring')}
-                disabled={!canUseRecurring}
-                className={cn(
-                  'rounded-md border px-4 py-3 text-left text-sm transition-all',
-                  bookingType === 'recurring'
-                    ? 'border-[#9FE870]/60 bg-[#9FE870]/8 text-[#3d6b1f]'
-                    : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40',
-                  !canUseRecurring && 'cursor-not-allowed opacity-50',
-                )}
-              >
-                <p className="font-semibold">Recorrente</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {!enableRecurring
-                    ? 'Este profissional não oferece pacote recorrente.'
-                    : recurringFlagEnabled === false
-                      ? 'Pacote recorrente indisponível temporariamente.'
-                      : 'Mesmo dia e horário, com periodicidade configurável.'}
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setBookingType('batch')}
-                className={cn(
-                  'rounded-md border px-4 py-3 text-left text-sm transition-all',
-                  bookingType === 'batch'
-                    ? 'border-[#9FE870]/60 bg-[#9FE870]/8 text-[#3d6b1f]'
-                    : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40',
-                )}
-              >
-                <p className="font-semibold">Várias datas</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Escolha datas avulsas e reserve todas de uma vez.
-                </p>
-              </button>
-            </div>
-
-            {bookingType === 'recurring' && (
-              <div className="mt-4 space-y-3 rounded-md border border-slate-200 bg-slate-50/70 p-3">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-600">Periodicidade</label>
-                    <select
-                      value={recurringPeriodicity}
-                      onChange={e => setRecurringPeriodicity(e.target.value as 'weekly' | 'biweekly' | 'monthly' | 'custom_days')}
-                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
-                    >
-                      <option value="weekly">Semanal</option>
-                      <option value="biweekly">Quinzenal</option>
-                      <option value="monthly">Mensal</option>
-                      <option value="custom_days">A cada X dias</option>
-                    </select>
-                  </div>
-
-                  {recurringPeriodicity === 'custom_days' ? (
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-600">Intervalo (dias)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={30}
-                        value={recurringIntervalDays}
-                        onChange={e => setRecurringIntervalDays(Math.max(1, Number(e.target.value || 1)))}
-                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
-                      />
-                    </div>
-                  ) : null}
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-600">Duração</label>
-                    <select
-                      value={recurringDurationMode}
-                      onChange={e => setRecurringDurationMode(e.target.value as 'occurrences' | 'end_date')}
-                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
-                    >
-                      <option value="occurrences">Por ocorrências</option>
-                      <option value="end_date">Até data final</option>
-                    </select>
-                  </div>
-                </div>
-
-                {recurringDurationMode === 'occurrences' ? (
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-slate-700">Quantidade de sessões:</label>
-                    <select
-                      value={recurringSessionsCount}
-                      onChange={e => setRecurringSessionsCount(Number(e.target.value))}
-                      className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
-                    >
-                      {RECURRING_SESSION_OPTIONS.map(option => (
-                        <option key={option} value={option}>
-                          {option} sessões
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-slate-700">Data final:</label>
-                    <input
-                      type="date"
-                      value={recurringEndDate}
-                      onChange={e => setRecurringEndDate(e.target.value)}
-                      className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#9FE870]/40"
-                    />
-                    <span className="text-xs text-slate-500">
-                      {resolvedRecurringSessionsCount > 0
-                        ? `${resolvedRecurringSessionsCount} sessão(ões) dentro da janela`
-                        : 'Escolha uma data final válida'}
-                    </span>
-                  </div>
-                )}
-
-                <label className="flex items-center gap-2 text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={recurringAutoRenew}
-                    onChange={e => setRecurringAutoRenew(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/50"
-                  />
-                  Renovar automaticamente após o término deste pacote
-                </label>
-
-                {/* Recurrence preview */}
-                {selectedDate && selectedTime && hasValidRecurringDuration && (
-                  <RecurringPreview
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                    durationMinutes={sessionDurationMinutes}
-                    periodicity={recurringPeriodicity}
-                    intervalDays={recurringIntervalDays}
-                    occurrences={recurringDurationMode === 'occurrences' ? recurringSessionsCount : resolvedRecurringSessionsCount}
-                    bookingWindowDays={maxBookingWindowDays}
-                    existingBookings={existingBookings}
-                    userTimezone={userTimezone}
-                  />
-                )}
-              </div>
-            )}
-
-            {bookingType === 'batch' ? (
-              <div className="mt-4 rounded-md border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600">
-                Selecione data e horário e clique em <strong>Adicionar ao lote</strong>. Para concluir, escolha ao menos 2 sessões.
-              </div>
-            ) : null}
-          </div>
-
-          <div className="rounded-lg border border-slate-200/80 bg-white p-6">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 font-display">
-                <Calendar className="h-5 w-5 text-[#9FE870]" />
                 Escolha a data
               </h2>
-              <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/70 p-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setTimezoneMode('user')}
-                  className={cn(
-                    'rounded-md px-2 py-1 font-medium transition-colors',
-                    timezoneMode === 'user'
-                      ? 'bg-white text-[#3d6b1f]'
-                      : 'text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  Ver no meu fuso
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimezoneMode('professional')}
-                  className={cn(
-                    'rounded-md px-2 py-1 font-medium transition-colors',
-                    timezoneMode === 'professional'
-                      ? 'bg-white text-[#3d6b1f]'
-                      : 'text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  Ver no fuso do profissional
-                </button>
-              </div>
-            </div>
-            <p className="mb-5 text-xs text-slate-500">
-              Fuso atual de visualização:{' '}
-              <span className="font-medium text-slate-700">
-                {timezoneMode === 'user'
-                  ? timezoneLabel(userTimezone)
-                  : timezoneLabel(professionalTimezone)}
-              </span>
-            </p>
-
-            <div className="mb-4 flex items-center justify-between">
-              <button
-                onClick={prevMonth}
-                disabled={!canGoPrev}
-                className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="Mês anterior"
-              >
-                <ChevronLeft className="h-4 w-4 text-slate-600" />
-              </button>
-              <span className="text-sm font-semibold text-slate-900 font-display">
-                {MONTH_NAMES_PT[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-              </span>
-              <button
-                onClick={nextMonth}
-                disabled={!canGoNext}
-                className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-slate-50/70 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="Próximo mês"
-              >
-                <ChevronRight className="h-4 w-4 text-slate-600" />
-              </button>
+              <TimezoneToggle
+                mode={timezoneMode}
+                onChange={setTimezoneMode}
+                userTimezone={userTimezone}
+                professionalTimezone={professionalTimezone}
+              />
             </div>
 
-            <div className="mb-2 grid grid-cols-7">
-              {DAY_NAMES_PT_SHORT.map(day => (
-                <div key={day} className="py-1 text-center text-xs font-medium text-slate-400">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((date, i) => {
-                if (!date) return <div key={`empty-${i}`} />
-
-                const available = isDateAvailable(date)
-                const isSelected = selectedDate ? isSameDay(date, selectedDate) : false
-                const isToday = isSameDay(date, today)
-
-                return (
-                  <button
-                    key={date.toISOString()}
-                    onClick={() => handleDateSelect(date)}
-                    disabled={!available}
-                    className={cn(
-                      'relative flex h-9 w-full items-center justify-center rounded-md text-sm font-medium transition-all',
-                      isSelected
-                        ? 'bg-[#9FE870] text-white'
-                        : available
-                          ? 'cursor-pointer text-slate-800 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]'
-                          : 'cursor-not-allowed text-slate-300',
-                      isToday && !isSelected && 'ring-1 ring-[#9FE870]/40',
-                    )}
-                    aria-label={date.toLocaleDateString('pt-BR')}
-                    aria-pressed={isSelected}
-                  >
-                    {date.getDate()}
-                    {available && !isSelected && (
-                      <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#9FE870]/40" />
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+            <CalendarGrid
+              currentMonth={currentMonth}
+              selectedDate={selectedDate}
+              today={today}
+              canGoPrev={canGoPrev}
+              canGoNext={canGoNext}
+              calendarDays={calendarDays}
+              isDateAvailable={isDateAvailable}
+              onDateSelect={handleDateSelect}
+              onPrevMonth={prevMonth}
+              onNextMonth={nextMonth}
+            />
 
             {availability.length === 0 && (
               <p className="mt-4 py-2 text-center text-sm text-slate-400">
@@ -989,307 +680,73 @@ export default function BookingForm({
           </div>
 
           {selectedDate && (
-            <div className="rounded-lg border border-slate-200/80 bg-white p-6">
-              <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-slate-900 font-display">
-                <Clock className="h-5 w-5 text-[#9FE870]" />
-                Horários disponíveis
-              </h2>
-              <p className="mb-5 text-sm text-slate-400">
-                {DAY_NAMES_PT_FULL[selectedDate.getDay()]},{' '}
-                {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
-              </p>
-
-              {timeSlots.length === 0 ? (
-                <div className="py-6 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-slate-50/70">
-                    <Clock className="h-6 w-6 text-slate-300" />
-                  </div>
-                  <p className="text-sm font-medium text-slate-600">Nenhum horário disponível</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Todos os horários desta data já foram reservados.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {timeSlots.map(time => (
-                    <button
-                      key={time}
-                      onClick={() => {
-                        setSelectedTime(time)
-                        if (!slotSelectionTracked.current) {
-                          slotSelectionTracked.current = true
-                          captureEvent('booking_time_selected', {
-                            professional_id: professional.id,
-                            selected_time: time,
-                            booking_type: bookingType,
-                          })
-                        }
-                      }}
-                      className={cn(
-                        'rounded-md border px-3 py-2.5 text-sm font-medium transition-all',
-                        selectedTime === time
-                          ? 'border-[#9FE870] bg-[#9FE870] text-white'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#9FE870]/40 hover:bg-[#9FE870]/8 hover:text-[#3d6b1f]',
-                      )}
-                    >
-                      {renderSlotLabel(time)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <TimeSlotsGrid
+              selectedDate={selectedDate}
+              timeSlots={timeSlots}
+              selectedTime={selectedTime}
+              onTimeSelect={(time) => {
+                setSelectedTime(time)
+                if (!slotSelectionTracked.current) {
+                  slotSelectionTracked.current = true
+                  captureEvent('booking_time_selected', {
+                    professional_id: professional.id,
+                    selected_time: time,
+                    booking_type: bookingType,
+                  })
+                }
+              }}
+              renderSlotLabel={renderSlotLabel}
+            />
           )}
 
           {selectedDate && selectedTime && (
-            <div className="rounded-lg border border-slate-200/80 bg-white p-6">
-              <label className="mb-3 block text-sm font-semibold text-slate-900 font-display">
-                Objetivo da sessão{' '}
-                <span className="font-normal text-slate-400">
-                  {requireSessionPurpose ? '(obrigatório)' : '(opcional)'}
-                </span>
-              </label>
-              <textarea
-                value={sessionPurpose}
-                onChange={e => setSessionPurpose(e.target.value)}
-                placeholder="Descreva brevemente o que você quer trabalhar nesta sessão."
-                rows={3}
-                maxLength={500}
-                className="w-full resize-none rounded-lg border border-slate-200/80 bg-slate-50/30 p-3.5 text-sm text-slate-700 placeholder:text-slate-400 transition-all hover:border-slate-300 focus:border-[#9FE870] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#9FE870]/15"
-              />
-              <p className="mt-1 text-right text-xs text-slate-400">{sessionPurpose.length}/500</p>
-            </div>
+            <SessionPurposeInput
+              value={sessionPurpose}
+              onChange={setSessionPurpose}
+              required={requireSessionPurpose}
+            />
           )}
 
           {bookingType === 'batch' && (
-            <div className="rounded-lg border border-slate-200/80 bg-white p-6">
-              <h2 className="mb-3 text-lg font-semibold text-slate-900 font-display">
-                Lote de sessões avulsas
-              </h2>
-              <p className="mb-3 text-xs text-slate-500">
-                Selecione uma data e um horário e adicione ao lote. Você precisa de pelo menos 2 sessões.
-              </p>
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={addCurrentSelectionToBatch}
-                  disabled={!selectedDate || !selectedTime}
-                  className={cn(
-                    'rounded-md px-4 py-2 text-xs font-semibold transition',
-                    selectedDate && selectedTime
-                      ? 'bg-[#9FE870] text-white hover:bg-[#8ed85f]'
-                      : 'cursor-not-allowed bg-slate-100 text-slate-400',
-                  )}
-                >
-                  Adicionar ao lote
-                </button>
-                <span className="text-xs text-slate-500">
-                  {batchDateTimes.length} sessão(ões) adicionada(s)
-                </span>
-              </div>
-              {batchSlotsPreview.length > 0 ? (
-                <ul className="space-y-2">
-                  {batchSlotsPreview.map(item => (
-                    <li
-                      key={item.value}
-                      className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs"
-                    >
-                      <div>
-                        <p className="font-medium text-slate-800">{item.userDateTime}</p>
-                        <p className="text-slate-500">
-                          Profissional: {item.professionalDateTime} ({timezoneLabel(professionalTimezone)})
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeBatchDate(item.value)}
-                        className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-red-200 hover:text-red-600"
-                      >
-                        Remover
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-slate-500">Nenhuma sessão adicionada ao lote ainda.</p>
-              )}
-            </div>
+            <BatchPanel
+              slots={batchSlotsPreview}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              professionalTimezone={professionalTimezone}
+              onAdd={addCurrentSelectionToBatch}
+              onRemove={removeBatchDate}
+            />
           )}
         </div>
 
         <div className="lg:col-span-1">
-          <div className="sticky top-6 rounded-lg border border-slate-200/80 bg-white p-6">
-            <div className="mb-4 flex items-center gap-3 border-b border-slate-200/80 pb-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#9FE870]/80 to-[#8ed85f] text-lg font-bold text-white font-display">
-                {profileName.charAt(0)}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{profileName}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  {sessionDurationMinutes} min • {priceFormatted}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-5 space-y-3">
-              <div className="flex items-start gap-2.5 text-sm">
-                <Calendar className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
-                <div>
-                  <p className="mb-0.5 text-xs text-slate-400">Data</p>
-                  {selectedDate ? (
-                    <p className="font-medium text-slate-800">
-                      {selectedDate.toLocaleDateString('pt-BR', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </p>
-                  ) : (
-                    <p className="italic text-slate-400">Não selecionada</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 text-sm">
-                <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
-                <div>
-                  <p className="mb-0.5 text-xs text-slate-400">Horário</p>
-                  {selectedTime ? (
-                    <p className="font-medium text-slate-800">
-                      {selectedTime} ({timezoneLabel(userTimezone)})
-                    </p>
-                  ) : (
-                    <p className="italic text-slate-400">Não selecionado</p>
-                  )}
-                  {selectedTimeInProfessionalTimezone && (
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Profissional: {selectedTimeInProfessionalTimezone} ({timezoneLabel(professionalTimezone)})
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 text-sm">
-                <Globe className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
-                <div>
-                  <p className="mb-0.5 text-xs text-slate-400">Fuso padrão do checkout</p>
-                  <p className="text-xs font-medium leading-snug text-slate-800">
-                    {timezoneLabel(userTimezone)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-5 rounded-lg bg-slate-50/60 p-4 border border-slate-100">
-              <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="text-slate-500">
-                  Sessão ({sessionDurationMinutes} min) x {totalSessions}
-                </span>
-                <span className="font-semibold text-slate-800">{priceFormatted}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">Taxa de serviço</span>
-                <span className="font-medium text-green-600">Grátis</span>
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
-                <span className="font-semibold text-slate-900">Total</span>
-                <span className="text-lg font-bold text-slate-900">{totalPriceFormatted}</span>
-              </div>
-            </div>
-
-            <div className="mb-4 rounded-lg border border-slate-200/80 bg-slate-50/30 p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Política de cancelamento
-              </p>
-              <div className="space-y-1.5">
-                {PLATFORM_CANCELLATION_POLICY.map(item => (
-                  <p key={item} className="text-xs text-slate-500">
-                    • {item}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            {recurringConflicts.length > 0 && (
-              <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/70 p-3 text-sm text-amber-700">
-                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold">Atenção: conflitos detectados</p>
-                  <p className="mt-0.5">
-                    {recurringConflicts.length} sessão(ões) conflitam com agendamentos existentes. O profissional pode recusar ou ajustar.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {bookingResult && !bookingResult.success && (
-              <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50/70 p-3 text-sm text-red-700">
-                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <p>{bookingResult.error}</p>
-              </div>
-            )}
-
-            <div className="mb-4 space-y-2 rounded-lg border border-slate-200/80 bg-slate-50/30 p-3">
-              <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={acceptPolicy}
-                  onChange={e => setAcceptPolicy(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/50"
-                />
-                <span>Li e concordo com a política de cancelamento e reembolso.</span>
-              </label>
-              <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={acceptTimezone}
-                  onChange={e => setAcceptTimezone(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#9FE870] focus:ring-[#9FE870]/50"
-                />
-                <span>Confirmo que revisei data e horário nos fusos corretos.</span>
-              </label>
-            </div>
-
-            <button
-              onClick={handleConfirm}
-              disabled={!canSubmit}
-              className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all active:scale-[0.98]',
-                canSubmit
-                  ? 'bg-[#9FE870] text-white hover:bg-[#8ed85f]'
-                  : 'cursor-not-allowed bg-slate-100 text-slate-400',
-              )}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                <>
-                  <Calendar className="h-4 w-4" />
-                  {submitLabel}
-                </>
-              )}
-            </button>
-
-            <div className="mt-4 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Sessão por vídeo (Agora)
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Lembretes por email e notificações no app
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-400" />
-                Proteção contra conflito de agenda
-              </div>
-            </div>
-          </div>
+          <BookingSummarySidebar
+            profileName={profileName}
+            sessionDurationMinutes={sessionDurationMinutes}
+            sessionPriceBrl={sessionPriceBrl}
+            userCurrency={userCurrency}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            selectedTimeInProfessionalTimezone={selectedTimeInProfessionalTimezone}
+            userTimezone={userTimezone}
+            professionalTimezone={professionalTimezone}
+            totalSessions={totalSessions}
+            totalPrice={totalPrice}
+            priceFormatted={priceFormatted}
+            totalPriceFormatted={totalPriceFormatted}
+            recurringConflicts={recurringConflicts}
+            bookingResult={bookingResult && !bookingResult.success ? bookingResult : null}
+            canSubmit={canSubmit}
+            isPending={isPending}
+            submitLabel={submitLabel}
+            acceptPolicy={acceptPolicy}
+            onAcceptPolicyChange={setAcceptPolicy}
+            acceptTimezone={acceptTimezone}
+            onAcceptTimezoneChange={setAcceptTimezone}
+            onSubmit={handleConfirm}
+          />
         </div>
       </div>
     </div>
   )
 }
-
