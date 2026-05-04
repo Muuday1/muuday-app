@@ -27,7 +27,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 |------|-------|----------|--------|
 | `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ **1,009** | **CRITICAL** | ✅ Extracted presentational components + domain hooks (usePhotoState, useTermsState, useModalContext, useIdentityState, useServiceState, usePlanState) |
 | `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ ~~752~~ **395** | **HIGH** | ✅ Extracted 9 presentational components + 6 custom hooks into `booking-form/` |
-| `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ **660** | LOW | ⚠️ Grew; monitor |
+| `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ ~~660~~ **134** | LOW | ✅ Extracted 7 presentational components + 2 hooks into `professional-agenda/` |
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ **625** | LOW | ⚠️ Grew; monitor |
 | `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ **540** | MEDIUM | ✅ Reduced |
 | `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
@@ -142,9 +142,28 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 
 ## Implementation Order
 
-1. **OnboardingTrackerModal** — highest user impact; extract stage components incrementally
-2. **BookingForm** — extract hooks and sub-components
+1. **OnboardingTrackerModal** — highest user impact; extract stage components incrementally ✅
+2. **BookingForm** — extract hooks and sub-components ✅
 3. **Agenda page components** — monitor `ProfessionalAgendaPage.tsx` (660 lines) and `ProfileAvailabilityBookingSection.tsx` (625 lines)
+
+### Refactor Pass: 2026-05-04 — ProfessionalAgendaPage.tsx
+
+**ProfessionalAgendaPage.tsx** (660 → 134 lines)
+- **Presentational components** extracted to `components/agenda/professional-agenda/components/`:
+  - `AgendaHeader` — title block + view switcher
+  - `AgendaStatsCards` — 3 summary stat cards
+  - `UpcomingBookingsSection` — upcoming bookings grid
+  - `OverviewCalendarSection` — calendar section with sync status
+  - `InboxHeader` — inbox title + filter pills
+  - `InboxList` — unified inbox list (confirmations + requests)
+  - `BlockTimeModal` — block time slot modal with async handler
+- **Custom hooks** extracted to `components/agenda/professional-agenda/hooks/`:
+  - `useBlockTimeModal` — modal state, open/close, loading, error
+  - `useInboxItems` — inbox item merging + filtering
+- **Helpers** extracted to `components/agenda/professional-agenda/helpers.ts`:
+  - `viewLinkClass`, `getConfirmationDeadline`, `getSlaLabel`
+  - `getRequestStatusUi`, `getDurationMinutes`, `bookingModeMeta`
+- **Types** extracted to `components/agenda/professional-agenda/types.ts`
 
 ## Success Criteria
 
