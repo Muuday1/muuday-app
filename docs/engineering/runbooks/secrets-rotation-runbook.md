@@ -1,10 +1,115 @@
 # Secrets Rotation Runbook
 
-Last updated: 2026-04-27
+Last updated: 2026-05-04
 
 ## Objective
 
 Define periodic, auditable secret rotation for production-critical credentials.
+
+## Moving from `.env.local` to Vercel (cloud source of truth)
+
+Do **not** share `.env.local` files between team members. Vercel Environment Variables are the canonical source of truth for all environments.
+
+### One-time migration
+
+1. Push every secret from your local `.env.local` to Vercel:
+   ```bash
+   # Production
+   vercel env add <KEY> production
+
+   # Preview
+   vercel env add <KEY> preview
+
+   # Development (optional — only for shared dev defaults)
+   vercel env add <KEY> development
+   ```
+
+2. Delete `.env.local` from your machine (keep a backup until you verify the next step).
+
+3. Sync Vercel env vars back to your local workspace:
+   ```bash
+   vercel env pull .env.local
+   ```
+   This overwrites `.env.local` with the encrypted values from Vercel. Treat the file as ephemeral — never commit it.
+
+4. Add `.env.local` to `.gitignore` (already present in most Next.js starters; verify it is there).
+
+### Sharing with teammates
+
+Teammates only need:
+- Access to the Vercel project (invite via Vercel Dashboard)
+- Run `vercel env pull .env.local` after joining
+
+No Slack DMs, no email attachments, no shared drives.
+
+## Automated rotation
+
+A new GitHub Actions workflow (`secrets-auto-rotation.yml`) runs monthly and attempts to rotate overdue secrets automatically.
+
+### What it does
+
+1. Reads `secrets-rotation-register.json`
+2. Identifies overdue secrets
+3. Attempts provider-specific rotation via APIs for supported providers:
+   - **Resend** — creates a new API key automatically
+   - **OpenAI** — creates a new API key automatically
+   - **Upstash** — rotates Redis REST token automatically
+   - **Vercel** — creates a new API token automatically
+   - **Stripe** — only restricted keys; Secret Keys still require manual Dashboard rotation
+4. Updates the rotated secret in Vercel Env Variables automatically
+5. Stamps the register with new `last_rotated_at` / `next_due_at`
+6. Opens a GitHub Issue for any secrets that still need manual action
+
+### Running locally
+
+```bash
+# Dry run (no changes)
+npm run secrets:rotate:auto:dry
+
+# Live rotation (will mutate Vercel env + register)
+npm run secrets:rotate:auto
+
+# Rotate only specific providers/secrets
+npm run secrets:rotate:auto -- --only RESEND_API_KEY,UPSTASH_REDIS_REST_TOKEN
+```
+
+### Running from GitHub Actions
+
+1. Go to **Actions → Secrets Auto-Rotation → Run workflow**
+2. Choose **Dry run** first to preview what will happen
+3. Uncheck dry run and re-run to apply changes
+
+### Required secrets for automation
+
+The workflow needs these GitHub Secrets configured:
+
+| Secret | Purpose |
+| --- | --- |
+| `VERCEL_TOKEN` | Update Vercel env vars after rotation |
+| `VERCEL_PROJECT_ID` | Target Vercel project (also set as `vars`) |
+| `VERCEL_TEAM_ID` | Vercel team slug (also set as `vars`) |
+| `RESEND_API_KEY` | Create new Resend keys |
+| `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` | Create new OpenAI keys |
+| `UPSTASH_EMAIL` + `UPSTASH_API_KEY` | Rotate Upstash Redis tokens |
+| `STRIPE_SECRET_KEY` | Verify Stripe permissions (manual for secret keys) |
+
+### Providers still requiring manual rotation
+
+These secrets do **not** have public APIs for automated rotation and must be handled manually:
+
+- `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ACCESS_TOKEN` — rotate in Supabase Dashboard
+- `STRIPE_SECRET_KEY` — rotate in Stripe Dashboard (Restricted Keys are auto-capable)
+- `STRIPE_WEBHOOK_SECRET` — re-create endpoint or reveal secret in Stripe Dashboard
+- `GOOGLE_CLIENT_SECRET` — rotate in Google Cloud Console
+- `CLOUDFLARE_API_TOKEN` — rotate in Cloudflare Dashboard (API exists but needs Account Owner token)
+- `GITHUB_TOKEN` — rotate in GitHub Developer Settings
+- `NOTION_API_TOKEN` — rotate in Notion Integrations
+- `AGORA_APP_CERTIFICATE` — rotate in Agora Dashboard
+- `CALENDAR_TOKEN_ENCRYPTION_KEY` / `CALENDAR_OAUTH_STATE_SECRET` / `CRON_SECRET` / `SUPABASE_DB_WEBHOOK_SECRET` / `MAKE_WEBHOOK_SECRET` / `INNGEST_SIGNING_KEY` — generate new random strings locally and update Vercel
+
+## Manual rotation workflow (for non-automated secrets)
+
+Follow the steps below when the automated rotator cannot handle a provider, or when rotating on-demand outside the monthly schedule.
 
 This runbook covers all entries in `secrets-rotation-register.json`, including:
 

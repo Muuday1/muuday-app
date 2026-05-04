@@ -139,6 +139,12 @@ describe('processTrolleyWebhook', () => {
         }
       }
 
+      if (table === 'professional_settings') {
+        return {
+          update: updateMock,
+        }
+      }
+
       return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -219,6 +225,26 @@ describe('processTrolleyWebhook', () => {
 
     expect(result.handled).toBe(true)
     expect(result.action).toBe('updated')
+  })
+
+  it('syncs payout_kyc_completed to professional_settings when recipient.updated becomes active with professional_id', async () => {
+    const adminClient = buildAdminClient('recipient_with_professional')
+    mockedCreateAdminClient.mockReturnValue(adminClient)
+
+    const result = await (processTrolleyWebhook as any).fn({
+      step: mockStep,
+      event: makeEvent('recipient.updated', { id: 'rec-1', status: 'active', payoutMethod: 'paypal', paypalEmail: 'pro@example.com' }),
+      logger: mockLogger,
+    })
+
+    expect(result.handled).toBe(true)
+    expect(result.action).toBe('updated')
+
+    // Verify professional_settings was updated with payout_kyc_completed = true
+    const settingsUpdateCall = adminClient.from('professional_settings').update
+    expect(settingsUpdateCall).toHaveBeenCalledWith(
+      expect.objectContaining({ payout_kyc_completed: true }),
+    )
   })
 
   it('handles payment.updated with completed status and updates batch', async () => {

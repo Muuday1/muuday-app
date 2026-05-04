@@ -16,7 +16,9 @@ function envFrom(filePath) {
 }
 
 (async () => {
-  const env = { ...envFrom(path.join(process.cwd(), '.env.local')), ...process.env };
+  // Use process.env directly (CI/GitHub Actions injects vars).
+  // .env.local is not read directly so this works uniformly across local and CI.
+  const env = process.env;
   const email = env.E2E_PROFESSIONAL_EMAIL;
   const password = env.E2E_PROFESSIONAL_PASSWORD;
   const baseURL = 'https://muuday-39s33o7rc-muuday1s-projects.vercel.app';

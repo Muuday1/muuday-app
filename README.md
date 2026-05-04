@@ -17,11 +17,16 @@ Muuday is a marketplace connecting Brazilians living abroad with Brazilian profe
 npm install
 ```
 
-2. Create env file
+2. Sync env vars from Vercel (requires Vercel CLI login)
 
 ```bash
-cp .env.local.example .env.local
+vercel env pull .env.local
 ```
+
+> If you don't have Vercel access yet, copy the example as a placeholder:
+> ```bash
+> cp .env.local.example .env.local
+> ```
 
 3. Run app
 

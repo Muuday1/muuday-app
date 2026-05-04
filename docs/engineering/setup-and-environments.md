@@ -10,7 +10,13 @@ Last updated: 2026-04-11
 npm install
 ```
 
-2. Create local env file from template
+2. Sync env vars from Vercel (canonical source of truth)
+
+```bash
+vercel env pull .env.local
+```
+
+If you don't have Vercel access yet, use the example template:
 
 ```bash
 cp .env.local.example .env.local
@@ -92,7 +98,8 @@ npm run db:validate-pooling
 
 ## Secrets handling rules
 
-1. Never commit `.env.local`.
+1. **Vercel Environment Variables are the canonical source of truth.** `.env.local` is ephemeral — generate it with `vercel env pull` and never commit it.
+2. Never share `.env.local` between team members; use Vercel project access instead.
 2. Keep SaaS tokens in provider-managed secret stores.
 3. Follow periodic rotation policy (not only incident-driven rotation):
 - `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY`: every 90 days

@@ -275,6 +275,11 @@ describe('syncTrolleyRecipientStatus', () => {
             update: updateMock,
           }
         }
+        if (table === 'professional_settings') {
+          return {
+            update: updateMock,
+          }
+        }
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }
       }),
     }))
@@ -288,6 +293,12 @@ describe('syncTrolleyRecipientStatus', () => {
       is_active: true,
       activated_at: expect.any(String),
     }))
+
+    // Verify professional_settings was also updated with payout_kyc_completed = true
+    const settingsCalls = updateMock.mock.calls.filter((call: any[]) =>
+      call[0] && call[0].payout_kyc_completed === true
+    )
+    expect(settingsCalls.length).toBeGreaterThanOrEqual(1)
   })
 
   it('maps incomplete → in_review', async () => {

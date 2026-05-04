@@ -6,23 +6,11 @@
  *
  * Run: node scripts/test-revolut-sandbox.js
  *
- * Requires: REVOLUT_API_KEY, REVOLUT_CLIENT_ID, REVOLUT_PRIVATE_KEY in .env.local
+ * Requires: REVOLUT_API_KEY, REVOLUT_CLIENT_ID, REVOLUT_PRIVATE_KEY env vars
  */
 
 const fs = require('fs')
 const path = require('path')
-
-// Load .env.local
-const envPath = path.join(__dirname, '..', '.env.local')
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8')
-  for (const line of envContent.split('\n')) {
-    const match = line.match(/^([A-Za-z0-9_]+)=(.*)$/)
-    if (match && !process.env[match[1]]) {
-      process.env[match[1]] = match[2]
-    }
-  }
-}
 
 const API_KEY = process.env.REVOLUT_API_KEY
 const CLIENT_ID = process.env.REVOLUT_CLIENT_ID
@@ -82,7 +70,7 @@ async function run() {
       console.log('\n' + YELLOW + 'Action required:' + RESET)
       console.log('  1. Go to https://business.revolut.com/settings/developers')
       console.log('  2. Generate a new access token (or re-authorize the OAuth app)')
-      console.log('  3. Update REVOLUT_API_KEY in Vercel env vars and .env.local')
+      console.log('  3. Update REVOLUT_API_KEY in Vercel env vars, then run vercel env pull')
       console.log('  4. If using OAuth, also capture the new refresh_token for')
       console.log('     REVOLUT_REFRESH_TOKEN to enable automatic refresh')
       console.log('\n  Revolut Business API docs:')

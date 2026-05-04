@@ -1,9 +1,9 @@
 import { resolve } from 'path'
 import dotenv from 'dotenv'
 
-// Load .env.local
+// Load .env.local if present, but do not require it.
+// In CI env vars are injected directly; locally they come from Vercel env pull.
 function loadEnv() {
-  // dotenv does not override existing env vars by default, matching previous behaviour
   dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 }
 

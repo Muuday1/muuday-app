@@ -14,29 +14,17 @@
  *
  * Run: node scripts/test-stripe-sandbox.js
  *
- * Requires: STRIPE_SECRET_KEY in .env.local (sk_test_*)
+ * Requires: STRIPE_SECRET_KEY env var (sk_test_*)
  */
 
 const fs = require('fs')
 const path = require('path')
 
-// Load .env.local
-const envPath = path.join(__dirname, '..', '.env.local')
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8')
-  for (const line of envContent.split('\n')) {
-    const match = line.match(/^([A-Za-z0-9_]+)=(.*)$/)
-    if (match && !process.env[match[1]]) {
-      process.env[match[1]] = match[2]
-    }
-  }
-}
-
 const Stripe = require('stripe')
 
 const SECRET_KEY = process.env.STRIPE_SECRET_KEY
 if (!SECRET_KEY) {
-  console.error('❌ STRIPE_SECRET_KEY not found in .env.local')
+  console.error('❌ STRIPE_SECRET_KEY not found in environment. Set it via Vercel env vars or export before running.')
   process.exit(1)
 }
 if (!SECRET_KEY.startsWith('sk_test_')) {

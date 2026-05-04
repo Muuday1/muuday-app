@@ -5,22 +5,9 @@
 import * as path from 'path'
 import * as fs from 'fs'
 
-// Load .env.local manually
-const envPath = path.resolve(process.cwd(), '.env.local')
-if (fs.existsSync(envPath)) {
-  const lines = fs.readFileSync(envPath, 'utf-8').split('\n')
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const idx = trimmed.indexOf('=')
-    if (idx === -1) continue
-    const key = trimmed.slice(0, idx).trim()
-    const val = trimmed.slice(idx + 1).trim()
-    if (!process.env[key]) process.env[key] = val
-  }
-}
-
-// Re-import after env is loaded
+// This script relies on environment variables already being available
+// (via Vercel env pull, or exported manually, or in CI via secrets).
+// It does not read .env.local directly so it works uniformly across local and CI.
 async function main() {
   const to = process.argv[2] || 'igopinto.lds@gmail.com'
   console.log(`\nSending all test emails to: ${to}\n`)
