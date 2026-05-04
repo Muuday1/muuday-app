@@ -1,60 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { getDefaultPlanConfigMap, getPlanConfigForTier, type PlanConfigMap } from '@/lib/plan-config'
 import { getDefaultExchangeRates, type ExchangeRateMap } from '@/lib/exchange-rates'
 import type { ProfessionalOnboardingEvaluation } from '@/lib/professional/onboarding-gates'
 import type { ReviewAdjustmentItem } from '@/lib/professional/review-adjustments'
-import {
-  PROFESSIONAL_TERMS_VERSION,
-} from '@/lib/legal/professional-terms'
 
 import {
-  type Stage,
-  type QualificationStructured,
   type OnboardingTrackerModalProps,
   type SaveState,
-  type BillingCycle,
   type PlanTier,
-  type ProfessionalServiceItem,
 } from './onboarding-tracker/types'
 
-import {
-  UI_STAGE_ORDER,
-  UI_STAGE_LABELS,
-  UI_STAGE_BACKEND_STAGE_IDS,
-  ACTIONABLE_ADJUSTMENT_STAGE_IDS,
-  TERMS_KEYS,
-  PLAN_TIER_LABELS,
-  QUALIFICATION_APPROVED_OPTIONS,
-  QUALIFICATION_FILE_MAX_SIZE_BYTES,
-  QUALIFICATION_ALLOWED_TYPES,
-} from './onboarding-tracker/constants'
+import { TERMS_KEYS } from './onboarding-tracker/constants'
+import { toggleMultiValue } from './onboarding-tracker/helpers'
 
-import {
-  normalizeStageIdForLookup,
-  isValidCoverPhotoUrl,
-  resolveTrackerViewMode,
-  normalizeOption,
-  isRegistrationQualification,
-  inferCredentialType,
-  getQualificationValidationMessage,
-  withTimeout,
-  toggleMultiValue,
-} from './onboarding-tracker/helpers'
-
-import { PayoutReceiptStage } from './onboarding-tracker/stages/payout-receipt-stage'
-import { SubmitReviewStage } from './onboarding-tracker/stages/submit-review-stage'
-import { TermsModal } from './onboarding-tracker/stages/terms-modal'
-import { PlanSelectionStage } from './onboarding-tracker/stages/plan-selection-stage'
-import { ServicesStage } from './onboarding-tracker/stages/services-stage'
-import { IdentityStage } from './onboarding-tracker/stages/identity-stage'
-import { StageSidebar } from './onboarding-tracker/components/stage-sidebar'
-import { TrackerHeader } from './onboarding-tracker/components/tracker-header'
-import { AdjustmentBanner } from './onboarding-tracker/components/adjustment-banner'
-import { PlanFeatureBanner } from './onboarding-tracker/components/plan-feature-banner'
+import { TrackerModalBody } from './onboarding-tracker/components/TrackerModalBody'
 import { usePhotoState } from './onboarding-tracker/hooks/use-photo-state'
 import { useTermsState } from './onboarding-tracker/hooks/use-terms-state'
 import { useModalContext } from './onboarding-tracker/hooks/use-modal-context'
@@ -62,6 +25,12 @@ import { useIdentityState } from './onboarding-tracker/hooks/use-identity-state'
 import { useServiceState } from './onboarding-tracker/hooks/use-service-state'
 import { usePlanState } from './onboarding-tracker/hooks/use-plan-state'
 import { useSaveSection } from './onboarding-tracker/hooks/use-save-section'
+import { usePublicProfile } from './onboarding-tracker/hooks/use-public-profile'
+import { useSubmitForReview } from './onboarding-tracker/hooks/use-submit-for-review'
+import { useRefreshTrackerEvaluation } from './onboarding-tracker/hooks/use-refresh-tracker-evaluation'
+import { useTrackerStageNavigation } from './onboarding-tracker/hooks/use-tracker-stage-navigation'
+import { useTrackerDerivedState } from './onboarding-tracker/hooks/use-tracker-derived-state'
+import { usePlanCheckoutParams } from './onboarding-tracker/hooks/use-plan-checkout-params'
 
 export function OnboardingTrackerModal({
   professionalId,
@@ -83,75 +52,7 @@ export function OnboardingTrackerModal({
   }, [tier])
   const [open, setOpen] = useState(false)
   const [activeStageId, setActiveStageId] = useState<string>('c1_create_account')
-  const [bio, setBio] = useState(initialBio || '')
-  const {
-    coverPhotoUrl,
-    setCoverPhotoUrl,
-    coverPhotoPath,
-    setCoverPhotoPath,
-    photoUploadState,
-    setPhotoUploadState,
-    photoUploadError,
-    setPhotoUploadError,
-    photoValidationChecks,
-    setPhotoValidationChecks,
-    photoFocusX,
-    setPhotoFocusX,
-    photoFocusY,
-    setPhotoFocusY,
-    photoZoom,
-    setPhotoZoom,
-    pendingPhoto,
-    setPendingPhoto,
-    photoHealthCheckedRef,
-    dragStateRef,
-    prepareProfessionalPhoto,
-    uploadPreparedProfessionalPhoto,
-    handlePhotoDragStart,
-    handlePhotoDragMove,
-    handlePhotoDragEnd,
-  } = usePhotoState(initialCoverPhotoUrl)
-  const {
-    hasAcceptedTerms,
-    setHasAcceptedTerms,
-    termsHydrated,
-    setTermsHydrated,
-    activeTermsModalKey,
-    setActiveTermsModalKey,
-    termViewTokensByKey,
-    setTermViewTokensByKey,
-    termsModalScrolledToEnd,
-    setTermsModalScrolledToEnd,
-    submitTermsError,
-    setSubmitTermsError,
-    activeTerm,
-    openTerm,
-    acceptActiveTerm,
-    allRequiredTermsAccepted,
-  } = useTermsState(initialTermsAcceptanceByKey)
-  const termsModalContentRef = useRef<HTMLDivElement | null>(null)
   const onTrackerStateChangeRef = useRef(onTrackerStateChange)
-  const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
-  const [bioError, setBioError] = useState('')
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRateMap>(getDefaultExchangeRates())
-  const [activeTier, setActiveTier] = useState<PlanTier>(initialTier)
-  const {
-    planPricing,
-    setPlanPricing,
-    pricingError,
-    setPricingError,
-    selectedPlanTier,
-    setSelectedPlanTier,
-    selectedPlanCycle,
-    setSelectedPlanCycle,
-    planActionState,
-    setPlanActionState,
-    planActionError,
-    setPlanActionError,
-    savePlanSelection,
-  } = usePlanState(activeTier, supabase)
-  const [isFinanceBypassEnabled, setIsFinanceBypassEnabled] = useState(false)
-  const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
   const [contextReloadNonce, setContextReloadNonce] = useState(0)
   const [servicesLoadState, setServicesLoadState] = useState<'idle' | 'loaded' | 'degraded' | 'failed'>('idle')
@@ -168,206 +69,61 @@ export function OnboardingTrackerModal({
   )
   const currentProfessionalStatusRef = useRef(String(professionalStatus || ''))
   const [trackerRefreshState, setTrackerRefreshState] = useState<SaveState>('idle')
-  const [submitReviewState, setSubmitReviewState] = useState<SaveState>('idle')
-  const [submitReviewMessage, setSubmitReviewMessage] = useState('')
   const [planConfigs, setPlanConfigs] = useState<PlanConfigMap>(getDefaultPlanConfigMap())
-
-  const stagesById = useMemo(() => {
-    const map = new Map<string, Stage>()
-    currentEvaluation.stages.forEach(stage => map.set(stage.id, stage as Stage))
-    return map
-  }, [currentEvaluation.stages])
-
-  const firstPendingStageId = useMemo(() => {
-    const firstPending = UI_STAGE_ORDER.find(id => {
-      const stageIds = UI_STAGE_BACKEND_STAGE_IDS[id]
-      return stageIds.some(stageId => {
-        const stage = stagesById.get(normalizeStageIdForLookup(stageId))
-        return stage ? !stage.complete : false
-      })
-    })
-    return firstPending || 'c2_professional_identity'
-  }, [stagesById])
+  const [isFinanceBypassEnabled, setIsFinanceBypassEnabled] = useState(false)
+  const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRateMap>(getDefaultExchangeRates())
+  const [activeTier, setActiveTier] = useState<PlanTier>(initialTier)
+  const termsModalContentRef = useRef<HTMLDivElement | null>(null)
 
   const normalizedTier = useMemo(() => String(activeTier || 'basic').toLowerCase(), [activeTier])
-  const trackerViewMode = useMemo(
-    () => resolveTrackerViewMode(currentProfessionalStatus),
-    [currentProfessionalStatus],
-  )
-  const trackerIsReadOnly = trackerViewMode === 'submitted_waiting' || trackerViewMode === 'approved'
-  const trackerNeedsAdjustments = trackerViewMode === 'needs_changes' || trackerViewMode === 'rejected'
-  const openReviewAdjustments = useMemo(
-    () =>
-      reviewAdjustments.filter(
-        item =>
-          (item.status === 'open' || item.status === 'reopened') &&
-          ACTIONABLE_ADJUSTMENT_STAGE_IDS.has(String(item.stageId || '')),
-      ),
-    [reviewAdjustments],
-  )
-  const trackerAdjustmentMode = trackerNeedsAdjustments && openReviewAdjustments.length > 0
-  const editableStageIds = useMemo(() => {
-    const set = new Set<string>()
-    openReviewAdjustments.forEach(item => set.add(String(item.stageId || '')))
-    set.add('c8_submit_review')
-    return set
-  }, [openReviewAdjustments])
-  const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
 
-  const saveSection = useCallback(async (
-    payload: object,
-    fallbackError: string,
-    options?: { autoAdvance?: boolean },
-  ): Promise<{
-    ok?: boolean
-    error?: string
-    evaluation?: ProfessionalOnboardingEvaluation
-    professionalStatus?: string
-    reviewAdjustments?: ReviewAdjustmentItem[]
-    service?: ProfessionalServiceItem
-    deletedServiceId?: string | null
-  }> => {
-    setTrackerRefreshState('saving')
-    const response = await fetch('/api/professional/onboarding/save', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...payload,
-        professionalId,
-      }),
-    })
-    const json = (await response.json().catch(() => ({}))) as {
-      ok?: boolean
-      error?: string
-      evaluation?: ProfessionalOnboardingEvaluation
-      professionalStatus?: string
-      reviewAdjustments?: ReviewAdjustmentItem[]
-      service?: ProfessionalServiceItem
-      deletedServiceId?: string | null
-    }
-
-    if (!response.ok || !json.ok || !json.evaluation) {
-      setTrackerRefreshState('error')
-      throw new Error(json.error || fallbackError)
-    }
-
-    setCurrentEvaluation(json.evaluation)
-    if (Array.isArray(json.reviewAdjustments)) {
-      setReviewAdjustments(json.reviewAdjustments)
-    }
-    const nextProfessionalStatus =
-      typeof json.professionalStatus === 'string' ? json.professionalStatus : currentProfessionalStatus
-    if (typeof json.professionalStatus === 'string') {
-      setCurrentProfessionalStatus(json.professionalStatus)
-    }
-    onTrackerStateChangeRef.current?.({
-      evaluation: json.evaluation,
-      professionalStatus: nextProfessionalStatus,
-      reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
-    })
-    setTrackerRefreshState('saved')
-    setTimeout(() => setTrackerRefreshState('idle'), 1200)
-    const nextPending = UI_STAGE_ORDER.find(id =>
-      UI_STAGE_BACKEND_STAGE_IDS[id].some(stageId => {
-        const stage = json.evaluation?.stages.find(
-          stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(stageId),
-        )
-        return stage ? !stage.complete : false
-      }),
-    )
-    if (options?.autoAdvance !== false && nextPending) {
-      setActiveStageId(nextPending)
-    }
-
-    return json
-  }, [
-    currentProfessionalStatus,
+  const saveSection = useSaveSection(
     professionalId,
+    currentProfessionalStatus,
+    onTrackerStateChange,
     setCurrentEvaluation,
     setReviewAdjustments,
     setCurrentProfessionalStatus,
     setTrackerRefreshState,
     setActiveStageId,
-  ])
+  )
 
-  const {
-    identityTitle,
-    setIdentityTitle,
-    identityDisplayName,
-    setIdentityDisplayName,
-    identityDisplayNameLocked,
-    setIdentityDisplayNameLocked,
-    identityCategory,
-    setIdentityCategory,
-    identitySubcategory,
-    setIdentitySubcategory,
-    identityFocusAreas,
-    setIdentityFocusAreas,
-    identityYearsExperience,
-    setIdentityYearsExperience,
-    identityPrimaryLanguage,
-    setIdentityPrimaryLanguage,
-    identitySecondaryLanguages,
-    setIdentitySecondaryLanguages,
-    secondaryLanguagesOpen,
-    setSecondaryLanguagesOpen,
-    identityTargetAudiences,
-    setIdentityTargetAudiences,
-    targetAudiencesOpen,
-    setTargetAudiencesOpen,
-    focusAreaInput,
-    setFocusAreaInput,
-    identityQualifications,
-    setIdentityQualifications,
-    identityQualificationSelection,
-    setIdentityQualificationSelection,
-    identityQualificationCustomName,
-    setIdentityQualificationCustomName,
-    identityQualificationCustomEnabled,
-    setIdentityQualificationCustomEnabled,
-    identitySaveState,
-    setIdentitySaveState,
-    identityError,
-    setIdentityError,
-    addFocusArea,
-    removeFocusArea,
-    addIdentityQualification,
-    uploadQualificationDocument,
-    removeQualificationDocument,
-    saveIdentity,
-  } = useIdentityState(tierLimits, saveSection)
+  const photoState = usePhotoState(initialCoverPhotoUrl)
+  const termsState = useTermsState(initialTermsAcceptanceByKey)
+  const identityState = useIdentityState(tierLimits, saveSection)
+  const serviceState = useServiceState(tierLimits, exchangeRates, saveSection)
+  const planState = usePlanState(activeTier, supabase)
 
-  const {
-    serviceName,
-    setServiceName,
-    serviceDescription,
-    setServiceDescription,
-    servicePrice,
-    setServicePrice,
-    serviceDuration,
-    setServiceDuration,
-    editingServiceId,
-    setEditingServiceId,
-    services,
-    setServices,
-    serviceSaveState,
-    setServiceSaveState,
-    serviceError,
-    setServiceError,
-    serviceCurrency,
-    setServiceCurrency,
-    resetServiceForm,
-    beginServiceEdit,
-    deleteService,
-    saveService,
-  } = useServiceState(tierLimits, exchangeRates, saveSection)
+  const publicProfile = usePublicProfile({
+    initialBio,
+    saveSection,
+    coverPhotoUrl: photoState.coverPhotoUrl,
+    coverPhotoPath: photoState.coverPhotoPath,
+    pendingPhoto: photoState.pendingPhoto,
+    photoUploadState: photoState.photoUploadState,
+    setPhotoUploadState: photoState.setPhotoUploadState,
+    setPhotoUploadError: photoState.setPhotoUploadError,
+    uploadPreparedProfessionalPhoto: photoState.uploadPreparedProfessionalPhoto,
+    setActiveStageId,
+  })
+
+  const submitReview = useSubmitForReview({
+    termsHydrated: termsState.termsHydrated,
+    allRequiredTermsAccepted: termsState.allRequiredTermsAccepted,
+    openReviewAdjustments: reviewAdjustments,
+    setCurrentEvaluation,
+    setCurrentProfessionalStatus,
+    setReviewAdjustments,
+    onTrackerStateChangeRef,
+    setSubmitTermsError: termsState.setSubmitTermsError,
+  })
 
   const servicesLoadFailed = servicesLoadState === 'failed'
   const serviceActionsDisabled =
-    serviceSaveState === 'saving' || servicesLoadState === 'idle' || servicesLoadFailed
+    serviceState.serviceSaveState === 'saving' || servicesLoadState === 'idle' || servicesLoadFailed
   const hasTrackerBootstrap = useMemo(
     () => TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'),
     [initialTermsAcceptanceByKey],
@@ -382,383 +138,116 @@ export function OnboardingTrackerModal({
     onTrackerStateChangeRef,
     callbacks: {
       setLoadingContext,
-      setTermsHydrated,
-      setHasAcceptedTerms,
+      setTermsHydrated: termsState.setTermsHydrated,
+      setHasAcceptedTerms: termsState.setHasAcceptedTerms,
       setCurrentEvaluation,
       setCurrentProfessionalStatus,
       setReviewAdjustments,
       setServicesLoadState,
       setServicesLoadedSuccessfully,
       setServicesLoadError,
-      setServices,
+      setServices: serviceState.setServices,
       setPlanConfigs,
       setExchangeRates,
-      setPlanPricing,
-      setPricingError,
+      setPlanPricing: planState.setPlanPricing,
+      setPricingError: planState.setPricingError,
       setActiveTier,
-      setSelectedPlanTier,
+      setSelectedPlanTier: planState.setSelectedPlanTier,
       setCategoryNameBySlug,
       setSubcategoryNameBySlug,
       setIsFinanceBypassEnabled,
-      setServiceCurrency,
-      setCoverPhotoUrl,
-      setCoverPhotoPath,
-      setIdentityDisplayName,
-      setIdentityDisplayNameLocked,
-      setIdentityCategory,
-      setIdentitySubcategory,
-      setIdentityFocusAreas,
-      setIdentityTitle,
-      setIdentityYearsExperience,
-      setIdentityPrimaryLanguage,
-      setIdentitySecondaryLanguages,
-      setIdentityTargetAudiences,
-      setIdentityQualifications,
+      setServiceCurrency: serviceState.setServiceCurrency,
+      setCoverPhotoUrl: photoState.setCoverPhotoUrl,
+      setCoverPhotoPath: photoState.setCoverPhotoPath,
+      setIdentityDisplayName: identityState.setIdentityDisplayName,
+      setIdentityDisplayNameLocked: identityState.setIdentityDisplayNameLocked,
+      setIdentityCategory: identityState.setIdentityCategory,
+      setIdentitySubcategory: identityState.setIdentitySubcategory,
+      setIdentityFocusAreas: identityState.setIdentityFocusAreas,
+      setIdentityTitle: identityState.setIdentityTitle,
+      setIdentityYearsExperience: identityState.setIdentityYearsExperience,
+      setIdentityPrimaryLanguage: identityState.setIdentityPrimaryLanguage,
+      setIdentitySecondaryLanguages: identityState.setIdentitySecondaryLanguages,
+      setIdentityTargetAudiences: identityState.setIdentityTargetAudiences,
+      setIdentityQualifications: identityState.setIdentityQualifications,
     },
   })
 
-  useEffect(() => {
-    onTrackerStateChangeRef.current = onTrackerStateChange
-  }, [onTrackerStateChange])
+  const { refreshTrackerEvaluation, reloadTrackerContext } = useRefreshTrackerEvaluation({
+    currentProfessionalStatus,
+    setCurrentEvaluation,
+    setReviewAdjustments,
+    setHasAcceptedTerms: termsState.setHasAcceptedTerms,
+    setTermsHydrated: termsState.setTermsHydrated,
+    setCurrentProfessionalStatus,
+    setContextReloadNonce,
+    onTrackerStateChangeRef,
+  })
 
-  useEffect(() => {
-    currentProfessionalStatusRef.current = String(currentProfessionalStatus || '')
-  }, [currentProfessionalStatus])
-  const refreshTrackerEvaluation = useCallback(async () => {
-    try {
-      const response = await withTimeout(
-        fetch('/api/professional/onboarding/state', {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-store',
-        }),
-        9000,
-      )
-      const json = (await withTimeout(
-        response.json().catch(() => ({})),
-        4000,
-      )) as {
-        evaluation?: ProfessionalOnboardingEvaluation
-        professionalStatus?: string
-        reviewAdjustments?: ReviewAdjustmentItem[]
-        termsAcceptanceByKey?: Record<string, boolean>
-      }
-      if (!response.ok || !json.evaluation) {
-        return { ok: false, termsLoaded: false }
-      }
+  useTrackerStageNavigation(open, currentProfessionalStatus, currentEvaluation, reviewAdjustments, setActiveStageId)
 
-      setCurrentEvaluation(json.evaluation)
-      if (Array.isArray(json.reviewAdjustments)) {
-        setReviewAdjustments(json.reviewAdjustments)
-      }
-
-      let termsLoaded = false
-      if (json.termsAcceptanceByKey && typeof json.termsAcceptanceByKey === 'object') {
-        setHasAcceptedTerms(
-          TERMS_KEYS.reduce(
-            (acc, key) => ({ ...acc, [key]: Boolean(json.termsAcceptanceByKey?.[key]) }),
-            {} as Record<string, boolean>,
-          ),
-        )
-        setTermsHydrated(true)
-        termsLoaded = true
-      } else {
-        setTermsHydrated(false)
-      }
-
-      if (typeof json.professionalStatus === 'string') {
-        setCurrentProfessionalStatus(json.professionalStatus)
-        onTrackerStateChangeRef.current?.({
-          evaluation: json.evaluation,
-          professionalStatus: json.professionalStatus,
-          reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
-        })
-        return { ok: true, termsLoaded }
-      }
-      onTrackerStateChangeRef.current?.({
-        evaluation: json.evaluation,
-        professionalStatus: currentProfessionalStatus,
-        reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
-      })
-      return { ok: true, termsLoaded }
-    } catch {
-      return { ok: false, termsLoaded: false }
-    }
-  }, [currentProfessionalStatus])
-
-  const reloadTrackerContext = useCallback(async () => {
-    await refreshTrackerEvaluation()
-    setContextReloadNonce(previous => previous + 1)
-  }, [refreshTrackerEvaluation])
-
-  useEffect(() => {
-    if (!open) return
-    if (trackerIsReadOnly) {
-      setActiveStageId('c8_submit_review')
-      return
-    }
-    if (trackerAdjustmentMode) {
-      const firstAdjustmentStage = UI_STAGE_ORDER.find(stageId => editableStageIds.has(stageId))
-      setActiveStageId(firstAdjustmentStage || 'c8_submit_review')
-      return
-    }
-    setActiveStageId(firstPendingStageId)
-  }, [open, firstPendingStageId, trackerIsReadOnly, trackerAdjustmentMode, editableStageIds])
-
-  useEffect(() => {
-    setCurrentEvaluation(onboardingEvaluation)
-  }, [onboardingEvaluation])
-
-  useEffect(() => {
-    setReviewAdjustments(Array.isArray(initialReviewAdjustments) ? initialReviewAdjustments : [])
-  }, [initialReviewAdjustments])
-
+  // Prop sync effects
+  useEffect(() => { onTrackerStateChangeRef.current = onTrackerStateChange }, [onTrackerStateChange])
+  useEffect(() => { currentProfessionalStatusRef.current = String(currentProfessionalStatus || '') }, [currentProfessionalStatus])
+  useEffect(() => { setCurrentEvaluation(onboardingEvaluation) }, [onboardingEvaluation])
+  useEffect(() => { setReviewAdjustments(Array.isArray(initialReviewAdjustments) ? initialReviewAdjustments : []) }, [initialReviewAdjustments])
   useEffect(() => {
     const nextBootstrap = TERMS_KEYS.reduce((acc, key) => {
       acc[key] = Boolean(initialTermsAcceptanceByKey?.[key])
       return acc
     }, {} as Record<string, boolean>)
-    setHasAcceptedTerms(nextBootstrap)
-    setTermsHydrated(TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'))
-  }, [initialTermsAcceptanceByKey, setHasAcceptedTerms, setTermsHydrated])
-
-  useEffect(() => {
-    setCurrentProfessionalStatus(String(professionalStatus || ''))
-  }, [professionalStatus])
-
+    termsState.setHasAcceptedTerms(nextBootstrap)
+    termsState.setTermsHydrated(TERMS_KEYS.every(key => typeof initialTermsAcceptanceByKey?.[key] === 'boolean'))
+  }, [initialTermsAcceptanceByKey, termsState])
+  useEffect(() => { setCurrentProfessionalStatus(String(professionalStatus || '')) }, [professionalStatus])
   useEffect(() => {
     setActiveTier(initialTier)
-    setSelectedPlanTier(initialTier)
-  }, [initialTier])
-
-  useEffect(() => {
-    if (!autoOpen) return
-    setOpen(true)
-  }, [autoOpen])
-
+    planState.setSelectedPlanTier(initialTier)
+  }, [initialTier, planState])
+  useEffect(() => { if (autoOpen) setOpen(true) }, [autoOpen])
   useEffect(() => {
     if (!open) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
+    return () => { document.body.style.overflow = previousOverflow }
   }, [open])
-
   useEffect(() => {
     return () => {
-      if (pendingPhoto?.previewUrl) {
-        URL.revokeObjectURL(pendingPhoto.previewUrl)
+      if (photoState.pendingPhoto?.previewUrl) {
+        URL.revokeObjectURL(photoState.pendingPhoto.previewUrl)
       }
     }
-  }, [pendingPhoto])
-
+  }, [photoState.pendingPhoto])
   useEffect(() => {
-    if (!open || typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const checkoutState = params.get('planCheckout')
-    if (!checkoutState) return
-
-    if (checkoutState === 'success') {
-      setPlanActionState('saved')
-      setManualCompletedStageIds(previous =>
-        previous.includes('c6_plan_billing_setup_post') ? previous : [...previous, 'c6_plan_billing_setup_post'],
-      )
-      void refreshTrackerEvaluation()
-      void (async () => {
-        const { data: freshProfessional } = await supabase
-          .from('professionals')
-          .select('tier')
-          .eq('id', professionalId)
-          .maybeSingle()
-        const freshTier = String(freshProfessional?.tier || '').toLowerCase()
-        const normalizedFreshTier: PlanTier =
-          freshTier === 'professional' || freshTier === 'premium' ? freshTier : 'basic'
-        setActiveTier(normalizedFreshTier)
-        setSelectedPlanTier(normalizedFreshTier)
-      })()
-      setTimeout(() => setPlanActionState('idle'), 2200)
-    } else if (checkoutState === 'cancelled') {
-      setPlanActionState('error')
-      setPlanActionError('Seleção de plano cancelada. Você pode tentar novamente.')
-    }
-
-    params.delete('planCheckout')
-    const nextQuery = params.toString()
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`
-    window.history.replaceState({}, '', nextUrl)
-  }, [open, professionalId, refreshTrackerEvaluation, supabase])
-
-  const stageItems = useMemo(() => {
-    return UI_STAGE_ORDER.map(id => {
-      const backendStages = UI_STAGE_BACKEND_STAGE_IDS[id]
-        .map(stageId => stagesById.get(normalizeStageIdForLookup(stageId)))
-        .filter(Boolean) as Stage[]
-
-      const completeFromBackend = backendStages.length > 0 && backendStages.every(stage => stage.complete)
-      const hasOpenAdjustment = openReviewAdjustments.some(adjustment => adjustment.stageId === id)
-      const complete = (completeFromBackend || manualCompletedStageIds.includes(id)) && !hasOpenAdjustment
-      const firstBlockedStage = backendStages.find(stage => !stage.complete)
-      const firstAdjustment = openReviewAdjustments.find(adjustment => adjustment.stageId === id)
-
-      return {
-        id,
-        label: UI_STAGE_LABELS[id],
-        complete,
-        blocker: complete
-          ? null
-          : hasOpenAdjustment
-            ? {
-                code: `adjustment:${firstAdjustment?.fieldKey || 'item'}`,
-                title: 'Ajuste solicitado',
-                description: firstAdjustment?.message || 'Existe um ajuste pendente nesta etapa.',
-              }
-            : firstBlockedStage?.blockers[0] || null,
-      }
-    })
-  }, [stagesById, manualCompletedStageIds, openReviewAdjustments])
-
-  const stageCompletionSummary = useMemo(() => {
-    const rows = stageItems.map(item => item.complete)
-    const completed = rows.filter(Boolean).length
-    return {
-      total: rows.length,
-      completed,
-    }
-  }, [stageItems])
-
-  const activeStage = stagesById.get(normalizeStageIdForLookup(activeStageId))
-  const currentPlanLabel = PLAN_TIER_LABELS[String(activeTier || '').toLowerCase()] || 'Básico'
-  const displayPlanCurrency = planPricing?.currency || serviceCurrency || 'BRL'
-
-  useEffect(() => {
-    if (!activeTerm || !termsModalContentRef.current) return
+    if (!termsState.activeTerm || !termsModalContentRef.current) return
     const element = termsModalContentRef.current
-    const fitsWithoutScroll = element.scrollHeight <= element.clientHeight + 8
-    if (fitsWithoutScroll) {
-      setTermsModalScrolledToEnd(true)
+    if (element.scrollHeight <= element.clientHeight + 8) {
+      termsState.setTermsModalScrolledToEnd(true)
     }
-  }, [activeTerm])
+  }, [termsState.activeTerm, termsState.setTermsModalScrolledToEnd])
 
+  usePlanCheckoutParams({
+    open,
+    professionalId,
+    supabase,
+    refreshTrackerEvaluation,
+    setPlanActionState: planState.setPlanActionState,
+    setManualCompletedStageIds,
+    setPlanActionError: planState.setPlanActionError,
+    setActiveTier,
+    setSelectedPlanTier: planState.setSelectedPlanTier,
+  })
 
-
-  async function savePublicProfile() {
-    if (bio.trim().length === 0) {
-      setBioError('O campo "Sobre você" não pode ficar vazio.')
-      setBioSaveState('error')
-      return false
-    }
-    if (bio.length > 500) {
-      setBioError('O campo "Sobre você" deve ter no máximo 500 caracteres.')
-      setBioSaveState('error')
-      return false
-    }
-    setBioSaveState('saving')
-    setBioError('')
-    try {
-      setPhotoUploadState(pendingPhoto ? 'saving' : photoUploadState)
-      const nextPhoto = pendingPhoto
-        ? await uploadPreparedProfessionalPhoto()
-        : { avatarUrl: coverPhotoUrl.trim(), avatarPath: coverPhotoPath.trim() }
-      if (!isValidCoverPhotoUrl(nextPhoto.avatarUrl.trim())) {
-        throw new Error('A URL final da foto do perfil e invalida.')
-      }
-
-      await saveSection(
-        {
-          section: 'public_profile',
-          bio: bio.trim(),
-          avatarUrl: nextPhoto.avatarUrl.trim(),
-          avatarPath: nextPhoto.avatarPath.trim(),
-        },
-        'Não foi possível salvar o perfil público.',
-        { autoAdvance: false },
-      )
-      setPhotoUploadState('saved')
-      setBioSaveState('saved')
-      setTimeout(() => {
-        setPhotoUploadState('idle')
-        setBioSaveState('idle')
-      }, 2000)
-      return true
-    } catch (error) {
-      setPhotoUploadState('error')
-      setBioSaveState('error')
-      setBioError(error instanceof Error ? error.message : 'Não foi possível salvar o perfil público.')
-      return false
-    }
-  }
-
-  async function saveIdentityAndPublicProfile() {
-    const identityOk = await saveIdentity()
-    if (!identityOk) return
-    const profileOk = await savePublicProfile()
-    if (!profileOk) return
-    setActiveStageId('c4_services')
-  }
-
-
-
-  async function submitForReview() {
-    setSubmitReviewState('saving')
-    setSubmitReviewMessage('')
-    setSubmitTermsError('')
-
-    if (!termsHydrated) {
-      setSubmitReviewState('error')
-      setSubmitTermsError('Aguarde o carregamento dos termos obrigatórios para enviar.')
-      return
-    }
-
-    if (!allRequiredTermsAccepted()) {
-      setSubmitReviewState('error')
-      setSubmitTermsError('Aceite todos os termos obrigatórios antes de enviar.')
-      return
-    }
-
-    if (openReviewAdjustments.length > 0) {
-      setSubmitReviewState('error')
-      setSubmitReviewMessage('Resolva todos os ajustes solicitados antes de reenviar para análise.')
-      return
-    }
-
-    const response = await fetch('/api/professional/onboarding/submit-review', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        acceptedTerms: true,
-        termsVersion: PROFESSIONAL_TERMS_VERSION,
-      }),
-    })
-    const payload = (await response.json().catch(() => ({}))) as {
-      ok?: boolean
-      evaluation?: ProfessionalOnboardingEvaluation
-      professionalStatus?: string
-      error?: string
-    }
-
-    if (!response.ok || !payload.ok || !payload.evaluation) {
-      setSubmitReviewState('error')
-      setSubmitReviewMessage(payload.error || 'Não foi possível enviar o perfil para análise.')
-      return
-    }
-
-    setCurrentEvaluation(payload.evaluation)
-    const nextStatus = String(payload.professionalStatus || 'pending_review')
-    setCurrentProfessionalStatus(nextStatus)
-    setReviewAdjustments([])
-    onTrackerStateChangeRef.current?.({
-      evaluation: payload.evaluation,
-      professionalStatus: nextStatus,
-      reviewAdjustments: [],
-    })
-    setSubmitReviewState('saved')
-    setSubmitReviewMessage(
-      'Onboarding concluído. Recebemos seu perfil e ele está em análise. Vamos avisar por e-mail quando houver atualização.',
-    )
-    setTimeout(() => setSubmitReviewState('idle'), 2200)
-  }
+  const derived = useTrackerDerivedState(
+    currentProfessionalStatus,
+    currentEvaluation,
+    reviewAdjustments,
+    manualCompletedStageIds,
+    activeStageId,
+    activeTier,
+    planState.planPricing,
+    serviceState.serviceCurrency,
+  )
 
   return (
     <>
@@ -771,239 +260,167 @@ export function OnboardingTrackerModal({
         <ArrowRight className="h-4 w-4" />
       </button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-[80] flex items-end bg-slate-900/45 sm:items-center sm:justify-center sm:px-4 sm:py-5"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Tracker de onboarding profissional"
-        >
-          <div className="grid h-[100dvh] w-full max-w-full grid-cols-1 overflow-hidden bg-white sm:h-[92vh] sm:max-h-[940px] sm:max-w-[1120px] sm:rounded-lg sm:border sm:border-slate-200 md:grid-cols-[250px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
-            <StageSidebar
-              stageItems={stageItems}
-              activeStageId={activeStageId}
-              stageCompletionSummary={stageCompletionSummary}
-              trackerRefreshState={trackerRefreshState}
-              trackerIsReadOnly={trackerIsReadOnly}
-              trackerAdjustmentMode={trackerAdjustmentMode}
-              editableStageIds={editableStageIds}
-              onSelectStage={(stageId) => setActiveStageId(stageId)}
-              onClose={() => setOpen(false)}
-            />
-
-            <section className="overflow-y-auto p-4 md:p-5">
-              <TrackerHeader
-                trackerViewMode={trackerViewMode}
-                activeStageId={activeStageId}
-                activeStage={activeStage}
-              />
-
-              <AdjustmentBanner
-                trackerViewMode={trackerViewMode}
-                trackerNeedsAdjustments={trackerNeedsAdjustments}
-                openReviewAdjustments={openReviewAdjustments}
-              />
-
-              {loadingContext ? (
-                <div className="rounded-md border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600">
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Carregando dados do tracker...
-                  </span>
-                </div>
-              ) : null}
-
-              {trackerIsReadOnly ? (
-                <div className="space-y-4 rounded-md border border-slate-200 bg-white p-4">
-                  <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-blue-900">
-                    <p className="text-sm font-semibold">
-                      {trackerViewMode === 'approved' ? 'Perfil aprovado e ativo.' : 'Perfil enviado para análise.'}
-                    </p>
-                    <p className="mt-1 text-sm">
-                      {trackerViewMode === 'approved'
-                        ? 'Tudo certo por aqui. Se precisar alterar dados, use as páginas de configuração.'
-                        : 'Nossa equipe está revisando suas informações. Verifique também spam e promoções para não perder o e-mail de atualização.'}
-                    </p>
-                  </div>
-                </div>
-              ) : !stageIsEditable ? (
-                <div className="rounded-md border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-700">
-                  Esta etapa não possui ajustes pendentes nesta rodada. Foque apenas nas etapas destacadas e depois envie novamente.
-                </div>
-              ) : (
-                <>
-              <PlanFeatureBanner
-                activeStageId={activeStageId}
-                currentPlanLabel={currentPlanLabel}
-                planPricing={planPricing}
-                pricingError={pricingError}
-                onViewPlans={() => setActiveStageId('c6_plan_billing_setup_post')}
-              />
-
-              {(activeStageId === 'c2_professional_identity') && (
-                <IdentityStage
-                  pendingPhoto={pendingPhoto}
-                  coverPhotoUrl={coverPhotoUrl}
-                  photoZoom={photoZoom}
-                  setPhotoZoom={setPhotoZoom}
-                  photoFocusX={photoFocusX}
-                  photoFocusY={photoFocusY}
-                  photoValidationChecks={photoValidationChecks}
-                  photoUploadState={photoUploadState}
-                  photoUploadError={photoUploadError}
-                  prepareProfessionalPhoto={prepareProfessionalPhoto}
-                  setPhotoUploadState={setPhotoUploadState}
-                  setPhotoUploadError={setPhotoUploadError}
-                  dragStateRef={dragStateRef}
-                  handlePhotoDragMove={handlePhotoDragMove}
-                  handlePhotoDragEnd={handlePhotoDragEnd}
-                  handlePhotoDragStart={handlePhotoDragStart}
-                  identityTitle={identityTitle}
-                  setIdentityTitle={setIdentityTitle}
-                  identityDisplayName={identityDisplayName}
-                  setIdentityDisplayName={setIdentityDisplayName}
-                  identityDisplayNameLocked={identityDisplayNameLocked}
-                  identityCategory={identityCategory}
-                  identitySubcategory={identitySubcategory}
-                  categoryNameBySlug={categoryNameBySlug}
-                  subcategoryNameBySlug={subcategoryNameBySlug}
-                  identityFocusAreas={identityFocusAreas}
-                  focusAreaInput={focusAreaInput}
-                  setFocusAreaInput={setFocusAreaInput}
-                  removeFocusArea={removeFocusArea}
-                  addFocusArea={addFocusArea}
-                  tierLimits={tierLimits}
-                  bio={bio}
-                  setBio={setBio}
-                  identityYearsExperience={identityYearsExperience}
-                  setIdentityYearsExperience={setIdentityYearsExperience}
-                  identityPrimaryLanguage={identityPrimaryLanguage}
-                  setIdentityPrimaryLanguage={setIdentityPrimaryLanguage}
-                  identitySecondaryLanguages={identitySecondaryLanguages}
-                  setIdentitySecondaryLanguages={setIdentitySecondaryLanguages}
-                  toggleMultiValue={toggleMultiValue}
-                  secondaryLanguagesOpen={secondaryLanguagesOpen}
-                  setSecondaryLanguagesOpen={setSecondaryLanguagesOpen}
-                  identityTargetAudiences={identityTargetAudiences}
-                  setIdentityTargetAudiences={setIdentityTargetAudiences}
-                  targetAudiencesOpen={targetAudiencesOpen}
-                  setTargetAudiencesOpen={setTargetAudiencesOpen}
-                  identityQualificationSelection={identityQualificationSelection}
-                  setIdentityQualificationSelection={setIdentityQualificationSelection}
-                  identityQualificationCustomEnabled={identityQualificationCustomEnabled}
-                  setIdentityQualificationCustomEnabled={setIdentityQualificationCustomEnabled}
-                  identityQualificationCustomName={identityQualificationCustomName}
-                  setIdentityQualificationCustomName={setIdentityQualificationCustomName}
-                  identityQualifications={identityQualifications}
-                  setIdentityQualifications={setIdentityQualifications}
-                  addIdentityQualification={addIdentityQualification}
-                  uploadQualificationDocument={uploadQualificationDocument}
-                  removeQualificationDocument={removeQualificationDocument}
-                  identityError={identityError}
-                  bioError={bioError}
-                  identitySaveState={identitySaveState}
-                  bioSaveState={bioSaveState}
-                  saveIdentityAndPublicProfile={saveIdentityAndPublicProfile}
-                />
-              )}
-
-              {(activeStageId === 'c4_services') && (
-                <ServicesStage
-                  tierLimits={tierLimits}
-                  services={services}
-                  servicesLoadedSuccessfully={servicesLoadedSuccessfully}
-                  servicesLoadState={servicesLoadState}
-                  servicesLoadError={servicesLoadError}
-                  servicesLoadFailed={servicesLoadFailed}
-                  serviceCurrency={serviceCurrency}
-                  serviceName={serviceName}
-                  setServiceName={setServiceName}
-                  serviceDescription={serviceDescription}
-                  setServiceDescription={setServiceDescription}
-                  servicePrice={servicePrice}
-                  setServicePrice={setServicePrice}
-                  serviceDuration={serviceDuration}
-                  setServiceDuration={setServiceDuration}
-                  editingServiceId={editingServiceId}
-                  serviceActionsDisabled={serviceActionsDisabled}
-                  serviceError={serviceError}
-                  serviceSaveState={serviceSaveState}
-                  saveService={() => saveService(servicesLoadFailed)}
-                  resetServiceForm={resetServiceForm}
-                  beginServiceEdit={service => beginServiceEdit(service, servicesLoadFailed)}
-                  deleteService={id => deleteService(id, servicesLoadFailed)}
-                  reloadTrackerContext={reloadTrackerContext}
-                  loadingContext={loadingContext}
-                  exchangeRates={exchangeRates}
-                />
-              )}
-
-                            
-              {activeStageId === 'c6_plan_billing_setup_post' ? (
-                <PlanSelectionStage
-                  selectedPlanCycle={selectedPlanCycle}
-                  setSelectedPlanCycle={setSelectedPlanCycle}
-                  selectedPlanTier={selectedPlanTier}
-                  setSelectedPlanTier={setSelectedPlanTier}
-                  activeTier={activeTier}
-                  displayPlanCurrency={displayPlanCurrency}
-                  exchangeRates={exchangeRates}
-                  planActionState={planActionState}
-                  savePlanSelection={savePlanSelection}
-                  pricingError={pricingError}
-                  planPricing={planPricing}
-                  planActionError={planActionError}
-                />
-              ) : null}
-
-              {activeStageId === 'c7_payout_receipt' ? (
-                <PayoutReceiptStage
-                  isFinanceBypassEnabled={isFinanceBypassEnabled}
-                  payoutReceiptBlockers={currentEvaluation.gates.payout_receipt.blockers}
-                  activeStageBlockers={activeStage?.blockers || []}
-                  onCloseModal={() => setOpen(false)}
-                  onContinue={() => setActiveStageId('c8_submit_review')}
-                />
-              ) : null}
-
-              {activeStageId === 'c8_submit_review' ? (
-                <SubmitReviewStage
-                  stageItems={stageItems}
-                  termsHydrated={termsHydrated}
-                  hasAcceptedTerms={hasAcceptedTerms}
-                  activeStageBlockers={activeStage?.blockers || []}
-                  submitReviewState={submitReviewState}
-                  submitReviewMessage={submitReviewMessage}
-                  submitTermsError={submitTermsError}
-                  canSubmitForReview={currentEvaluation.summary.canSubmitForReview}
-                  onOpenTerm={openTerm}
-                  onSubmitForReview={submitForReview}
-                />
-              ) : null}
-                </>
-              )}
-            </section>
-          </div>
-
-          <TermsModal
-            activeTermKey={activeTermsModalKey}
-            termsModalScrolledToEnd={termsModalScrolledToEnd}
-            contentRef={termsModalContentRef}
-            onScroll={event => {
-              const element = event.currentTarget
-              if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
-                setTermsModalScrolledToEnd(true)
-              }
-            }}
-            onClose={() => {
-              setActiveTermsModalKey(null)
-              setTermsModalScrolledToEnd(false)
-            }}
-            onAccept={acceptActiveTerm}
-          />
-        </div>
-      ) : null}
+      {open && (
+        <TrackerModalBody
+          stageItems={derived.stageItems}
+          activeStageId={activeStageId}
+          stageCompletionSummary={derived.stageCompletionSummary}
+          trackerRefreshState={trackerRefreshState}
+          trackerIsReadOnly={derived.trackerIsReadOnly}
+          trackerAdjustmentMode={derived.trackerAdjustmentMode}
+          editableStageIds={derived.editableStageIds}
+          onSelectStage={setActiveStageId}
+          onClose={() => setOpen(false)}
+          trackerViewMode={derived.trackerViewMode}
+          activeStage={derived.activeStage}
+          trackerNeedsAdjustments={derived.trackerNeedsAdjustments}
+          openReviewAdjustments={derived.openReviewAdjustments}
+          loadingContext={loadingContext}
+          stageIsEditable={derived.stageIsEditable}
+          currentPlanLabel={derived.currentPlanLabel}
+          planPricing={planState.planPricing}
+          pricingError={planState.pricingError}
+          onViewPlans={() => setActiveStageId('c6_plan_billing_setup_post')}
+          identityProps={{
+            pendingPhoto: photoState.pendingPhoto,
+            coverPhotoUrl: photoState.coverPhotoUrl,
+            photoZoom: photoState.photoZoom,
+            setPhotoZoom: photoState.setPhotoZoom,
+            photoFocusX: photoState.photoFocusX,
+            photoFocusY: photoState.photoFocusY,
+            photoValidationChecks: photoState.photoValidationChecks,
+            photoUploadState: photoState.photoUploadState,
+            photoUploadError: photoState.photoUploadError,
+            prepareProfessionalPhoto: photoState.prepareProfessionalPhoto,
+            setPhotoUploadState: photoState.setPhotoUploadState,
+            setPhotoUploadError: photoState.setPhotoUploadError,
+            dragStateRef: photoState.dragStateRef,
+            handlePhotoDragMove: photoState.handlePhotoDragMove,
+            handlePhotoDragEnd: photoState.handlePhotoDragEnd,
+            handlePhotoDragStart: photoState.handlePhotoDragStart,
+            identityTitle: identityState.identityTitle,
+            setIdentityTitle: identityState.setIdentityTitle,
+            identityDisplayName: identityState.identityDisplayName,
+            setIdentityDisplayName: identityState.setIdentityDisplayName,
+            identityDisplayNameLocked: identityState.identityDisplayNameLocked,
+            identityCategory: identityState.identityCategory,
+            identitySubcategory: identityState.identitySubcategory,
+            categoryNameBySlug,
+            subcategoryNameBySlug,
+            identityFocusAreas: identityState.identityFocusAreas,
+            focusAreaInput: identityState.focusAreaInput,
+            setFocusAreaInput: identityState.setFocusAreaInput,
+            removeFocusArea: identityState.removeFocusArea,
+            addFocusArea: identityState.addFocusArea,
+            tierLimits,
+            bio: publicProfile.bio,
+            setBio: publicProfile.setBio,
+            identityYearsExperience: identityState.identityYearsExperience,
+            setIdentityYearsExperience: identityState.setIdentityYearsExperience,
+            identityPrimaryLanguage: identityState.identityPrimaryLanguage,
+            setIdentityPrimaryLanguage: identityState.setIdentityPrimaryLanguage,
+            identitySecondaryLanguages: identityState.identitySecondaryLanguages,
+            setIdentitySecondaryLanguages: identityState.setIdentitySecondaryLanguages,
+            toggleMultiValue,
+            secondaryLanguagesOpen: identityState.secondaryLanguagesOpen,
+            setSecondaryLanguagesOpen: identityState.setSecondaryLanguagesOpen,
+            identityTargetAudiences: identityState.identityTargetAudiences,
+            setIdentityTargetAudiences: identityState.setIdentityTargetAudiences,
+            targetAudiencesOpen: identityState.targetAudiencesOpen,
+            setTargetAudiencesOpen: identityState.setTargetAudiencesOpen,
+            identityQualificationSelection: identityState.identityQualificationSelection,
+            setIdentityQualificationSelection: identityState.setIdentityQualificationSelection,
+            identityQualificationCustomEnabled: identityState.identityQualificationCustomEnabled,
+            setIdentityQualificationCustomEnabled: identityState.setIdentityQualificationCustomEnabled,
+            identityQualificationCustomName: identityState.identityQualificationCustomName,
+            setIdentityQualificationCustomName: identityState.setIdentityQualificationCustomName,
+            identityQualifications: identityState.identityQualifications,
+            setIdentityQualifications: identityState.setIdentityQualifications,
+            addIdentityQualification: identityState.addIdentityQualification,
+            uploadQualificationDocument: identityState.uploadQualificationDocument,
+            removeQualificationDocument: identityState.removeQualificationDocument,
+            identityError: identityState.identityError,
+            bioError: publicProfile.bioError,
+            identitySaveState: identityState.identitySaveState,
+            bioSaveState: publicProfile.bioSaveState,
+            saveIdentityAndPublicProfile: () => publicProfile.saveIdentityAndPublicProfile(identityState.saveIdentity),
+          }}
+          servicesProps={{
+            tierLimits,
+            services: serviceState.services,
+            servicesLoadedSuccessfully,
+            servicesLoadState,
+            servicesLoadError,
+            servicesLoadFailed,
+            serviceCurrency: serviceState.serviceCurrency,
+            serviceName: serviceState.serviceName,
+            setServiceName: serviceState.setServiceName,
+            serviceDescription: serviceState.serviceDescription,
+            setServiceDescription: serviceState.setServiceDescription,
+            servicePrice: serviceState.servicePrice,
+            setServicePrice: serviceState.setServicePrice,
+            serviceDuration: serviceState.serviceDuration,
+            setServiceDuration: serviceState.setServiceDuration,
+            editingServiceId: serviceState.editingServiceId,
+            serviceActionsDisabled,
+            serviceError: serviceState.serviceError,
+            serviceSaveState: serviceState.serviceSaveState,
+            saveService: () => serviceState.saveService(servicesLoadFailed),
+            resetServiceForm: serviceState.resetServiceForm,
+            beginServiceEdit: service => serviceState.beginServiceEdit(service, servicesLoadFailed),
+            deleteService: id => serviceState.deleteService(id, servicesLoadFailed),
+            reloadTrackerContext,
+            loadingContext,
+            exchangeRates,
+          }}
+          planSelectionProps={{
+            selectedPlanCycle: planState.selectedPlanCycle,
+            setSelectedPlanCycle: planState.setSelectedPlanCycle,
+            selectedPlanTier: planState.selectedPlanTier,
+            setSelectedPlanTier: planState.setSelectedPlanTier,
+            activeTier,
+            displayPlanCurrency: derived.displayPlanCurrency,
+            exchangeRates,
+            planActionState: planState.planActionState,
+            savePlanSelection: planState.savePlanSelection,
+            pricingError: planState.pricingError,
+            planPricing: planState.planPricing,
+            planActionError: planState.planActionError,
+          }}
+          payoutReceiptProps={{
+            payoutReceiptBlockers: currentEvaluation.gates.payout_receipt.blockers,
+            activeStageBlockers: derived.activeStage?.blockers || [],
+            onCloseModal: () => setOpen(false),
+            onContinue: () => setActiveStageId('c8_submit_review'),
+          }}
+          submitReviewProps={{
+            stageItems: derived.stageItems,
+            termsHydrated: termsState.termsHydrated,
+            hasAcceptedTerms: termsState.hasAcceptedTerms,
+            activeStageBlockers: derived.activeStage?.blockers || [],
+            submitReviewState: submitReview.submitReviewState,
+            submitReviewMessage: submitReview.submitReviewMessage,
+            submitTermsError: termsState.submitTermsError,
+            canSubmitForReview: currentEvaluation.summary.canSubmitForReview,
+            onOpenTerm: (key: string) => { void termsState.openTerm(key as Parameters<typeof termsState.openTerm>[0]); },
+            onSubmitForReview: submitReview.submitForReview,
+          }}
+          activeTermsModalKey={termsState.activeTermsModalKey}
+          termsModalScrolledToEnd={termsState.termsModalScrolledToEnd}
+          termsModalContentRef={termsModalContentRef}
+          onTermsScroll={event => {
+            const element = event.currentTarget
+            if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
+              termsState.setTermsModalScrolledToEnd(true)
+            }
+          }}
+          onTermsClose={() => {
+            termsState.setActiveTermsModalKey(null)
+            termsState.setTermsModalScrolledToEnd(false)
+          }}
+          onTermsAccept={termsState.acceptActiveTerm}
+        />
+      )}
     </>
   )
 }
-

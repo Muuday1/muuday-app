@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { UI_STAGE_ORDER, UI_STAGE_BACKEND_STAGE_IDS } from '../constants'
 import { normalizeStageIdForLookup } from '../helpers'
 import type { SaveState, ProfessionalServiceItem } from '../types'
@@ -23,7 +23,8 @@ export function useSaveSection(
   setTrackerRefreshState: (state: SaveState) => void,
   setActiveStageId: (stageId: string) => void,
 ) {
-  const onTrackerStateChangeRef = { current: onTrackerStateChange }
+  const onTrackerStateChangeRef = useRef(onTrackerStateChange)
+  onTrackerStateChangeRef.current = onTrackerStateChange
 
   const saveSection = useCallback(
     async <TPayload extends object>(
@@ -75,7 +76,8 @@ export function useSaveSection(
       const nextPending = UI_STAGE_ORDER.find(id =>
         UI_STAGE_BACKEND_STAGE_IDS[id].some(stageId => {
           const stage = json.evaluation?.stages.find(
-            (stageItem: { id: string; complete: boolean }) => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(stageId),
+            (stageItem: { id: string; complete: boolean }) =>
+              normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(stageId),
           )
           return stage ? !stage.complete : false
         }),

@@ -25,7 +25,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 
 | File | Lines | Priority | Status |
 |------|-------|----------|--------|
-| `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ **1,009** | **CRITICAL** | ✅ Extracted presentational components + domain hooks (usePhotoState, useTermsState, useModalContext, useIdentityState, useServiceState, usePlanState) |
+| `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ ~~1,009~~ **426** | **CRITICAL** | ✅ Complete — extracted 13 hooks + TrackerModalBody component |
 | `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ ~~752~~ **395** | **HIGH** | ✅ Extracted 9 presentational components + 6 custom hooks into `booking-form/` |
 | `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ ~~660~~ **134** | LOW | ✅ Extracted 7 presentational components + 2 hooks into `professional-agenda/` |
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ ~~625~~ **166** | LOW | ✅ Extracted to `profile-availability/` |
@@ -91,21 +91,25 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 
 #### 2.1 `components/dashboard/OnboardingTrackerModal.tsx` → Component + hook extraction
 
-**Current:** ~~3,995~~ ~~2,038~~ **1,009 lines** — major extractions complete
+**Current:** ~~3,995~~ ~~2,038~~ ~~1,009~~ **426 lines** — extraction complete
 
 **Completed:**
-- **Presentational components** (Phase 1): `StageSidebar`, `TrackerHeader`, `AdjustmentBanner`, `PlanFeatureBanner`
+- **Presentational components** (Phase 1): `StageSidebar`, `TrackerHeader`, `AdjustmentBanner`, `PlanFeatureBanner`, `TrackerModalBody`
 - **Domain hooks** (Phase 2): `usePhotoState`, `useTermsState`, `useModalContext`, `useIdentityState`, `useServiceState`, `usePlanState`
 - **Generic save hook** (Phase 3): `useSaveSection`
+- **Refactor hooks** (Phase 4):
+  - `useRefreshTrackerEvaluation` — refresh + prop sync effects
+  - `useTrackerStageNavigation` — activeStageId calculation from view mode
+  - `useTrackerDerivedState` — all useMemo derived values (stages, blockers, completions)
+  - `usePlanCheckoutParams` — plan checkout URL params effect
+  - `usePublicProfile` — bio, photo, savePublicProfile
+  - `useSubmitForReview` — submitReviewState + submitForReview
 
-**Remaining opportunities:**
-- Extract `submitForReview` inline logic (~60 lines) to a dedicated hook
-- Extract remaining inline JSX to stage wrapper components
-- Target: Modal shell <500 lines (currently ~1,009)
+**Result:** Main component 1,009 → 426 lines (-58%). Orchestrates 12 hooks + 1 modal body component.
 
 **Extracted to:**
 - `components/dashboard/onboarding-tracker/components/` — presentational components
-- `components/dashboard/onboarding-tracker/hooks/` — 7 domain hooks + save wrapper
+- `components/dashboard/onboarding-tracker/hooks/` — 13 domain/refactor hooks + save wrapper
 - `components/dashboard/onboarding-tracker/stages/` — 5 stage components
 - `components/dashboard/onboarding-tracker/constants.ts` — all constants, options, labels
 - `components/dashboard/onboarding-tracker/helpers.ts` — utility functions
