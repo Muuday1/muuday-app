@@ -28,7 +28,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ **1,009** | **CRITICAL** | ✅ Extracted presentational components + domain hooks (usePhotoState, useTermsState, useModalContext, useIdentityState, useServiceState, usePlanState) |
 | `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ ~~752~~ **395** | **HIGH** | ✅ Extracted 9 presentational components + 6 custom hooks into `booking-form/` |
 | `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ ~~660~~ **134** | LOW | ✅ Extracted 7 presentational components + 2 hooks into `professional-agenda/` |
-| `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ **625** | LOW | ⚠️ Grew; monitor |
+| `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ ~~625~~ **166** | LOW | ✅ Extracted to `profile-availability/` |
 | `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ **540** | MEDIUM | ✅ Reduced |
 | `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
 
@@ -132,6 +132,23 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 
 **Result:** Main component 1,295 → 395 lines (-70%). Orchestrates 6 hooks + 10 sub-components.
 
+#### 2.3 `components/professional/ProfileAvailabilityBookingSection.tsx` → Extract presentational components + hook
+
+**Current:** ~~549~~ ~~625~~ **166 lines**
+
+**Completed:**
+- **Presentational components** extracted to `components/professional/profile-availability/components/`:
+  - `BookingControls` — duration selector, timezone toggle, booking type toggle, recurring config
+  - `CalendarGrid` — month navigation & day grid with availability dots
+  - `TimeSlotPicker` — time slot buttons for selected date
+  - `BookingSummaryCard` — pricing, CTAs, trust signals, error banners
+- **Custom hook** extracted to `components/professional/profile-availability/hooks/`:
+  - `useAvailabilitySlots` — slot Map computation, calendarDays, timeSlots filtering, conflict checks
+- **Types** extracted to `components/professional/profile-availability/types.ts`
+- **Helpers** extracted to `components/professional/profile-availability/helpers.ts`
+
+**Result:** Main component 625 → 166 lines (-73%). Orchestrates 1 hook + 4 sub-components.
+
 ### Phase 3: Monitor & Maintain
 
 #### 3.1 `lib/ops/stripe-resilience.ts` — **DONE** (41 lines)
@@ -149,6 +166,32 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 ### Refactor Pass: 2026-05-04 — ProfessionalAgendaPage.tsx
 
 **ProfessionalAgendaPage.tsx** (660 → 134 lines)
+
+### Refactor Pass: 2026-05-04 — ProfileAvailabilityBookingSection.tsx
+
+**ProfileAvailabilityBookingSection.tsx** (625 → 166 lines)
+- Extracted `BookingControls`, `CalendarGrid`, `TimeSlotPicker`, `BookingSummaryCard`
+- Extracted `useAvailabilitySlots` hook (~203 lines)
+- Extracted shared `types.ts` and `helpers.ts`
+- Main component now pure orchestrator: duration/timezone/booking-type state + composes 4 sub-components
+- TypeScript: 0 errors
+
+### Refactor Pass: 2026-05-04 — SignupForm.tsx
+
+**SignupForm.tsx** (1,861 → 235 lines)
+- **Presentational components** extracted to `components/auth/signup/components/`:
+  - `SignupStepIndicator` — progress bar stepper
+  - `RoleSelectorStep` — user/professional role selection cards
+  - `PersonalDataForm` — step 2 personal data (name, country, email, password + strength)
+  - `ProfessionalDataForm` — step 3 professional data (headline, specialty, tags, qualifications, terms)
+  - `TermsModal` — scroll-to-accept terms overlay
+  - `SignupSuccessModal` — signup success confirmation
+- **Custom hook** extracted to `components/auth/signup/hooks/`:
+  - `useSignupForm` — all ~40 useState declarations, 8 useEffects, validation, submit handler (~650 lines)
+- **Types** extracted to `components/auth/signup/types.ts`
+- **Helpers** extracted to `components/auth/signup/helpers.ts`
+- Main component now pure orchestrator: calls hook + conditional step rendering + modals
+- TypeScript: 0 errors
 - **Presentational components** extracted to `components/agenda/professional-agenda/components/`:
   - `AgendaHeader` — title block + view switcher
   - `AgendaStatsCards` — 3 summary stat cards
