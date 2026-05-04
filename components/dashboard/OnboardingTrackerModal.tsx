@@ -133,26 +133,6 @@ export function OnboardingTrackerModal({
   const onTrackerStateChangeRef = useRef(onTrackerStateChange)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
-  const {
-    serviceName,
-    setServiceName,
-    serviceDescription,
-    setServiceDescription,
-    servicePrice,
-    setServicePrice,
-    serviceDuration,
-    setServiceDuration,
-    editingServiceId,
-    setEditingServiceId,
-    services,
-    setServices,
-    serviceSaveState,
-    setServiceSaveState,
-    serviceError,
-    setServiceError,
-    serviceCurrency,
-    setServiceCurrency,
-  } = useServiceState()
   const [exchangeRates, setExchangeRates] = useState<ExchangeRateMap>(getDefaultExchangeRates())
   const [activeTier, setActiveTier] = useState<PlanTier>(initialTier)
   const {
@@ -168,7 +148,8 @@ export function OnboardingTrackerModal({
     setPlanActionState,
     planActionError,
     setPlanActionError,
-  } = usePlanState(initialTier)
+    savePlanSelection,
+  } = usePlanState(activeTier, supabase)
   const [isFinanceBypassEnabled, setIsFinanceBypassEnabled] = useState(false)
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
@@ -234,6 +215,84 @@ export function OnboardingTrackerModal({
   const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
+
+  const saveSection = useCallback(async (
+    payload: object,
+    fallbackError: string,
+    options?: { autoAdvance?: boolean },
+  ): Promise<{
+    ok?: boolean
+    error?: string
+    evaluation?: ProfessionalOnboardingEvaluation
+    professionalStatus?: string
+    reviewAdjustments?: ReviewAdjustmentItem[]
+    service?: ProfessionalServiceItem
+    deletedServiceId?: string | null
+  }> => {
+    setTrackerRefreshState('saving')
+    const response = await fetch('/api/professional/onboarding/save', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        professionalId,
+      }),
+    })
+    const json = (await response.json().catch(() => ({}))) as {
+      ok?: boolean
+      error?: string
+      evaluation?: ProfessionalOnboardingEvaluation
+      professionalStatus?: string
+      reviewAdjustments?: ReviewAdjustmentItem[]
+      service?: ProfessionalServiceItem
+      deletedServiceId?: string | null
+    }
+
+    if (!response.ok || !json.ok || !json.evaluation) {
+      setTrackerRefreshState('error')
+      throw new Error(json.error || fallbackError)
+    }
+
+    setCurrentEvaluation(json.evaluation)
+    if (Array.isArray(json.reviewAdjustments)) {
+      setReviewAdjustments(json.reviewAdjustments)
+    }
+    const nextProfessionalStatus =
+      typeof json.professionalStatus === 'string' ? json.professionalStatus : currentProfessionalStatus
+    if (typeof json.professionalStatus === 'string') {
+      setCurrentProfessionalStatus(json.professionalStatus)
+    }
+    onTrackerStateChangeRef.current?.({
+      evaluation: json.evaluation,
+      professionalStatus: nextProfessionalStatus,
+      reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
+    })
+    setTrackerRefreshState('saved')
+    setTimeout(() => setTrackerRefreshState('idle'), 1200)
+    const nextPending = UI_STAGE_ORDER.find(id =>
+      UI_STAGE_BACKEND_STAGE_IDS[id].some(stageId => {
+        const stage = json.evaluation?.stages.find(
+          stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(stageId),
+        )
+        return stage ? !stage.complete : false
+      }),
+    )
+    if (options?.autoAdvance !== false && nextPending) {
+      setActiveStageId(nextPending)
+    }
+
+    return json
+  }, [
+    currentProfessionalStatus,
+    professionalId,
+    setCurrentEvaluation,
+    setReviewAdjustments,
+    setCurrentProfessionalStatus,
+    setTrackerRefreshState,
+    setActiveStageId,
+  ])
+
   const {
     identityTitle,
     setIdentityTitle,
@@ -278,7 +337,34 @@ export function OnboardingTrackerModal({
     addIdentityQualification,
     uploadQualificationDocument,
     removeQualificationDocument,
-  } = useIdentityState(tierLimits)
+    saveIdentity,
+  } = useIdentityState(tierLimits, saveSection)
+
+  const {
+    serviceName,
+    setServiceName,
+    serviceDescription,
+    setServiceDescription,
+    servicePrice,
+    setServicePrice,
+    serviceDuration,
+    setServiceDuration,
+    editingServiceId,
+    setEditingServiceId,
+    services,
+    setServices,
+    serviceSaveState,
+    setServiceSaveState,
+    serviceError,
+    setServiceError,
+    serviceCurrency,
+    setServiceCurrency,
+    resetServiceForm,
+    beginServiceEdit,
+    deleteService,
+    saveService,
+  } = useServiceState(tierLimits, exchangeRates, saveSection)
+
   const servicesLoadFailed = servicesLoadState === 'failed'
   const serviceActionsDisabled =
     serviceSaveState === 'saving' || servicesLoadState === 'idle' || servicesLoadFailed
@@ -554,109 +640,7 @@ export function OnboardingTrackerModal({
     }
   }, [activeTerm])
 
-  async function saveSection<TPayload extends object>(
-    payload: TPayload,
-    fallbackError: string,
-    options?: { autoAdvance?: boolean },
-  ) {
-    setTrackerRefreshState('saving')
-    const response = await fetch('/api/professional/onboarding/save', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...payload,
-        professionalId,
-      }),
-    })
-    const json = (await response.json().catch(() => ({}))) as {
-      ok?: boolean
-      error?: string
-      evaluation?: ProfessionalOnboardingEvaluation
-      professionalStatus?: string
-      reviewAdjustments?: ReviewAdjustmentItem[]
-      service?: ProfessionalServiceItem
-      deletedServiceId?: string | null
-    }
 
-    if (!response.ok || !json.ok || !json.evaluation) {
-      setTrackerRefreshState('error')
-      throw new Error(json.error || fallbackError)
-    }
-
-    setCurrentEvaluation(json.evaluation)
-    if (Array.isArray(json.reviewAdjustments)) {
-      setReviewAdjustments(json.reviewAdjustments)
-    }
-    const nextProfessionalStatus =
-      typeof json.professionalStatus === 'string' ? json.professionalStatus : currentProfessionalStatus
-    if (typeof json.professionalStatus === 'string') {
-      setCurrentProfessionalStatus(json.professionalStatus)
-    }
-    onTrackerStateChangeRef.current?.({
-      evaluation: json.evaluation,
-      professionalStatus: nextProfessionalStatus,
-      reviewAdjustments: Array.isArray(json.reviewAdjustments) ? json.reviewAdjustments : undefined,
-    })
-    setTrackerRefreshState('saved')
-    setTimeout(() => setTrackerRefreshState('idle'), 1200)
-    const nextPending = UI_STAGE_ORDER.find(id =>
-      UI_STAGE_BACKEND_STAGE_IDS[id].some(stageId => {
-        const stage = json.evaluation?.stages.find(
-          stageItem => normalizeStageIdForLookup(stageItem.id) === normalizeStageIdForLookup(stageId),
-        )
-        return stage ? !stage.complete : false
-      }),
-    )
-    if (options?.autoAdvance !== false && nextPending) {
-      setActiveStageId(nextPending)
-    }
-
-    return json
-  }
-
-  async function saveIdentity() {
-    setIdentitySaveState('saving')
-    setIdentityError('')
-    const years = Number(identityYearsExperience || 0)
-    if (!Number.isFinite(years) || years < 0 || years > 60) {
-      setIdentitySaveState('error')
-      setIdentityError('Anos de experiência devem estar entre 0 e 60.')
-      return false
-    }
-
-    const invalidQualification = identityQualifications.find(item => getQualificationValidationMessage(item))
-    if (invalidQualification) {
-      setIdentitySaveState('error')
-      setIdentityError(getQualificationValidationMessage(invalidQualification))
-      return false
-    }
-
-    try {
-      await saveSection(
-        {
-          section: 'identity',
-          title: identityTitle,
-          displayName: identityDisplayName,
-          yearsExperience: years,
-          primaryLanguage: identityPrimaryLanguage,
-          secondaryLanguages: identitySecondaryLanguages,
-          targetAudiences: identityTargetAudiences,
-          focusAreas: identityFocusAreas,
-          qualifications: identityQualifications,
-        },
-        'Não foi possível salvar identidade profissional.',
-        { autoAdvance: false },
-      )
-      setIdentitySaveState('saved')
-      setTimeout(() => setIdentitySaveState('idle'), 2000)
-      return true
-    } catch (error) {
-      setIdentitySaveState('error')
-      setIdentityError(error instanceof Error ? error.message : 'Não foi possível salvar identidade profissional.')
-      return false
-    }
-  }
 
   async function savePublicProfile() {
     if (bio.trim().length === 0) {
@@ -713,208 +697,7 @@ export function OnboardingTrackerModal({
     setActiveStageId('c4_services')
   }
 
-  function resetServiceForm() {
-    setEditingServiceId(null)
-    setServiceName('')
-    setServiceDescription('')
-    setServicePrice('')
-    setServiceDuration('60')
-  }
 
-  function beginServiceEdit(service: ProfessionalServiceItem) {
-    if (servicesLoadFailed) {
-      setServiceError('Não foi possível carregar seus serviços. Tente novamente antes de editar.')
-      setServiceSaveState('error')
-      return
-    }
-    const selectedCurrency = serviceCurrency || 'BRL'
-    const selectedRate = exchangeRates[selectedCurrency] || 1
-    const priceInSelectedCurrency =
-      selectedCurrency === 'BRL'
-        ? Number(service.price_brl || 0)
-        : Number(service.price_brl || 0) * selectedRate
-
-    setEditingServiceId(service.id)
-    setServiceName(service.name || '')
-    setServiceDescription(service.description || '')
-    setServicePrice(priceInSelectedCurrency > 0 ? priceInSelectedCurrency.toFixed(2) : '')
-    setServiceDuration(String(service.duration_minutes || 60))
-    setServiceError('')
-    setServiceSaveState('idle')
-  }
-
-  async function deleteService(serviceId: string) {
-    if (servicesLoadFailed) {
-      setServiceSaveState('error')
-      setServiceError('Não foi possível carregar seus serviços. Tente novamente antes de excluir.')
-      return
-    }
-    if (!serviceId || serviceSaveState === 'saving') return
-
-    setServiceSaveState('saving')
-    setServiceError('')
-
-    try {
-      const result = await saveSection(
-        {
-          section: 'service',
-          operation: 'delete',
-          serviceId,
-        },
-        'Não foi possível remover o serviço.',
-        { autoAdvance: false },
-      )
-      const removedId = String(result.deletedServiceId || serviceId)
-      setServices(prev => prev.filter(item => item.id !== removedId))
-      if (editingServiceId === removedId) {
-        resetServiceForm()
-      }
-      setServiceSaveState('saved')
-      setTimeout(() => setServiceSaveState('idle'), 1500)
-    } catch (error) {
-      setServiceSaveState('error')
-      setServiceError(error instanceof Error ? error.message : 'Não foi possível remover o serviço.')
-    }
-  }
-
-  async function saveService() {
-    const isEditing = Boolean(editingServiceId)
-    if (servicesLoadFailed) {
-      setServiceSaveState('error')
-      setServiceError('Não foi possível carregar seus serviços. Tente novamente antes de salvar alterações.')
-      return
-    }
-    const maxServices = tierLimits.services
-    if (!isEditing && services.length >= maxServices) {
-      setServiceSaveState('error')
-      setServiceError(`Seu plano permite até ${maxServices} serviço(s) ativo(s).`)
-      return
-    }
-    if (!serviceName.trim()) {
-      setServiceSaveState('error')
-      setServiceError('Informe um título para o serviço.')
-      return
-    }
-    if (serviceName.trim().length > 30) {
-      setServiceSaveState('error')
-      setServiceError('Título do serviço deve ter no máximo 30 caracteres.')
-      return
-    }
-    if (!serviceDescription.trim()) {
-      setServiceSaveState('error')
-      setServiceError('Informe uma descrição para o serviço.')
-      return
-    }
-    if (serviceDescription.trim().length > 120) {
-      setServiceSaveState('error')
-      setServiceError('Descrição deve ter no máximo 120 caracteres.')
-      return
-    }
-    const price = Number(servicePrice)
-    const duration = Number(serviceDuration)
-    if (!Number.isFinite(price) || price <= 0) {
-      setServiceSaveState('error')
-      setServiceError('Informe um preço válido.')
-      return
-    }
-    if (!Number.isFinite(duration) || duration < 15 || duration > 240) {
-      setServiceSaveState('error')
-      setServiceError('Duração inválida. Use entre 15 e 240 minutos.')
-      return
-    }
-
-    setServiceSaveState('saving')
-    setServiceError('')
-
-    const selectedCurrency = serviceCurrency || 'BRL'
-    const selectedRate = exchangeRates[selectedCurrency] || 1
-    const priceBrl = selectedCurrency === 'BRL' ? price : price / selectedRate
-
-    try {
-      const result = await saveSection(
-        {
-          section: 'service',
-          operation: isEditing ? 'update' : 'create',
-          serviceId: isEditing ? editingServiceId : undefined,
-          name: serviceName.trim(),
-          description: serviceDescription.trim(),
-          priceBrl: Number(priceBrl.toFixed(2)),
-          durationMinutes: duration,
-        },
-        isEditing ? 'Não foi possível atualizar o serviço.' : 'Não foi possível criar o serviço.',
-        { autoAdvance: false },
-      )
-
-      if (result.service) {
-        if (isEditing) {
-          setServices(prev =>
-            prev.map(item => (item.id === result.service!.id ? result.service! : item)),
-          )
-        } else {
-          setServices(prev => [...prev, result.service!])
-        }
-      }
-      resetServiceForm()
-      setServiceSaveState('saved')
-      setTimeout(() => setServiceSaveState('idle'), 2000)
-    } catch (error) {
-      setServiceSaveState('error')
-      setServiceError(
-        error instanceof Error
-          ? error.message
-          : isEditing
-            ? 'Não foi possível atualizar o serviço.'
-            : 'Não foi possível criar o serviço.',
-      )
-    }
-  }
-
-  async function savePlanSelection() {
-    setPlanActionState('saving')
-    setPlanActionError('')
-
-    try {
-      if (selectedPlanTier === String(activeTier || '').toLowerCase()) {
-        setPlanActionState('saved')
-        setManualCompletedStageIds(previous =>
-          previous.includes('c6_plan_billing_setup_post')
-            ? previous
-            : [...previous, 'c6_plan_billing_setup_post'],
-        )
-        setActiveStageId('c7_payout_receipt')
-        setTimeout(() => setPlanActionState('idle'), 1800)
-        return
-      }
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const response = await fetch('/api/stripe/checkout-session', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({
-          tier: selectedPlanTier,
-          billingCycle: selectedPlanCycle,
-          source: 'onboarding_modal',
-        }),
-      })
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; url?: string }
-
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error || 'Não foi possível iniciar a seleção do plano agora.')
-      }
-
-      window.location.href = payload.url
-    } catch (error) {
-      setPlanActionState('error')
-      setPlanActionError(error instanceof Error ? error.message : 'Não foi possível iniciar a seleção do plano agora.')
-    }
-  }
 
   async function submitForReview() {
     setSubmitReviewState('saving')
@@ -1145,10 +928,10 @@ export function OnboardingTrackerModal({
                   serviceActionsDisabled={serviceActionsDisabled}
                   serviceError={serviceError}
                   serviceSaveState={serviceSaveState}
-                  saveService={saveService}
+                  saveService={() => saveService(servicesLoadFailed)}
                   resetServiceForm={resetServiceForm}
-                  beginServiceEdit={beginServiceEdit}
-                  deleteService={deleteService}
+                  beginServiceEdit={service => beginServiceEdit(service, servicesLoadFailed)}
+                  deleteService={id => deleteService(id, servicesLoadFailed)}
                   reloadTrackerContext={reloadTrackerContext}
                   loadingContext={loadingContext}
                   exchangeRates={exchangeRates}

@@ -5,6 +5,7 @@ import {
   normalizeOption,
   isRegistrationQualification,
   inferCredentialType,
+  getQualificationValidationMessage,
 } from '../helpers'
 import {
   QUALIFICATION_APPROVED_OPTIONS,
@@ -13,7 +14,21 @@ import {
 } from '../constants'
 import type { SaveState, QualificationStructured } from '../types'
 
-export function useIdentityState(tierLimits: { tags: number }) {
+type SaveSectionFn = (
+  payload: object,
+  fallbackError: string,
+  options?: { autoAdvance?: boolean },
+) => Promise<{
+  ok?: boolean
+  error?: string
+  evaluation?: object
+  professionalStatus?: string
+  reviewAdjustments?: object[]
+  service?: object
+  deletedServiceId?: string | null
+}>
+
+export function useIdentityState(tierLimits: { tags: number }, saveSection: SaveSectionFn) {
   const [identityTitle, setIdentityTitle] = useState('')
   const [identityDisplayName, setIdentityDisplayName] = useState('')
   const [identityDisplayNameLocked, setIdentityDisplayNameLocked] = useState(false)
@@ -182,6 +197,59 @@ export function useIdentityState(tierLimits: { tags: number }) {
     [],
   )
 
+  const saveIdentity = useCallback(async () => {
+    setIdentitySaveState('saving')
+    setIdentityError('')
+    const years = Number(identityYearsExperience || 0)
+    if (!Number.isFinite(years) || years < 0 || years > 60) {
+      setIdentitySaveState('error')
+      setIdentityError('Anos de experiência devem estar entre 0 e 60.')
+      return false
+    }
+
+    const invalidQualification = identityQualifications.find(item => getQualificationValidationMessage(item))
+    if (invalidQualification) {
+      setIdentitySaveState('error')
+      setIdentityError(getQualificationValidationMessage(invalidQualification))
+      return false
+    }
+
+    try {
+      await saveSection(
+        {
+          section: 'identity',
+          title: identityTitle,
+          displayName: identityDisplayName,
+          yearsExperience: years,
+          primaryLanguage: identityPrimaryLanguage,
+          secondaryLanguages: identitySecondaryLanguages,
+          targetAudiences: identityTargetAudiences,
+          focusAreas: identityFocusAreas,
+          qualifications: identityQualifications,
+        },
+        'Não foi possível salvar identidade profissional.',
+        { autoAdvance: false },
+      )
+      setIdentitySaveState('saved')
+      setTimeout(() => setIdentitySaveState('idle'), 2000)
+      return true
+    } catch (error) {
+      setIdentitySaveState('error')
+      setIdentityError(error instanceof Error ? error.message : 'Não foi possível salvar identidade profissional.')
+      return false
+    }
+  }, [
+    identityYearsExperience,
+    identityQualifications,
+    identityTitle,
+    identityDisplayName,
+    identityPrimaryLanguage,
+    identitySecondaryLanguages,
+    identityTargetAudiences,
+    identityFocusAreas,
+    saveSection,
+  ])
+
   return {
     identityTitle,
     setIdentityTitle,
@@ -226,5 +294,6 @@ export function useIdentityState(tierLimits: { tags: number }) {
     addIdentityQualification,
     uploadQualificationDocument,
     removeQualificationDocument,
+    saveIdentity,
   }
 }
