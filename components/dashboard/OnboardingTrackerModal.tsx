@@ -58,6 +58,10 @@ import { PlanFeatureBanner } from './onboarding-tracker/components/plan-feature-
 import { usePhotoState } from './onboarding-tracker/hooks/use-photo-state'
 import { useTermsState } from './onboarding-tracker/hooks/use-terms-state'
 import { useModalContext } from './onboarding-tracker/hooks/use-modal-context'
+import { useIdentityState } from './onboarding-tracker/hooks/use-identity-state'
+import { useServiceState } from './onboarding-tracker/hooks/use-service-state'
+import { usePlanState } from './onboarding-tracker/hooks/use-plan-state'
+import { useSaveSection } from './onboarding-tracker/hooks/use-save-section'
 
 export function OnboardingTrackerModal({
   professionalId,
@@ -129,51 +133,42 @@ export function OnboardingTrackerModal({
   const onTrackerStateChangeRef = useRef(onTrackerStateChange)
   const [bioSaveState, setBioSaveState] = useState<SaveState>('idle')
   const [bioError, setBioError] = useState('')
-  const [identityTitle, setIdentityTitle] = useState('')
-  const [identityDisplayName, setIdentityDisplayName] = useState('')
-  const [identityDisplayNameLocked, setIdentityDisplayNameLocked] = useState(false)
-  const [identityCategory, setIdentityCategory] = useState('')
-  const [identitySubcategory, setIdentitySubcategory] = useState('')
-  const [identityFocusAreas, setIdentityFocusAreas] = useState<string[]>([])
-  const [identityYearsExperience, setIdentityYearsExperience] = useState('0')
-  const [identityPrimaryLanguage, setIdentityPrimaryLanguage] = useState('Português')
-  const [identitySecondaryLanguages, setIdentitySecondaryLanguages] = useState<string[]>([])
-  const [secondaryLanguagesOpen, setSecondaryLanguagesOpen] = useState(false)
-  const [identityTargetAudiences, setIdentityTargetAudiences] = useState<string[]>([])
-  const [targetAudiencesOpen, setTargetAudiencesOpen] = useState(false)
-  const [focusAreaInput, setFocusAreaInput] = useState('')
-  const [identityQualifications, setIdentityQualifications] = useState<QualificationStructured[]>([])
-  const [identityQualificationSelection, setIdentityQualificationSelection] = useState(
-    QUALIFICATION_APPROVED_OPTIONS[0],
-  )
-  const [identityQualificationCustomName, setIdentityQualificationCustomName] = useState('')
-  const [identityQualificationCustomEnabled, setIdentityQualificationCustomEnabled] = useState(false)
-  const [identitySaveState, setIdentitySaveState] = useState<SaveState>('idle')
-  const [identityError, setIdentityError] = useState('')
-  const [serviceName, setServiceName] = useState('')
-  const [serviceDescription, setServiceDescription] = useState('')
-  const [servicePrice, setServicePrice] = useState('')
-  const [serviceDuration, setServiceDuration] = useState('60')
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
-  const [services, setServices] = useState<ProfessionalServiceItem[]>([])
-  const [serviceSaveState, setServiceSaveState] = useState<SaveState>('idle')
-  const [serviceError, setServiceError] = useState('')
-  const [serviceCurrency, setServiceCurrency] = useState('BRL')
+  const {
+    serviceName,
+    setServiceName,
+    serviceDescription,
+    setServiceDescription,
+    servicePrice,
+    setServicePrice,
+    serviceDuration,
+    setServiceDuration,
+    editingServiceId,
+    setEditingServiceId,
+    services,
+    setServices,
+    serviceSaveState,
+    setServiceSaveState,
+    serviceError,
+    setServiceError,
+    serviceCurrency,
+    setServiceCurrency,
+  } = useServiceState()
   const [exchangeRates, setExchangeRates] = useState<ExchangeRateMap>(getDefaultExchangeRates())
-  const [planPricing, setPlanPricing] = useState<{
-    currency: string
-    monthlyAmount: number
-    annualAmount: number
-    provider: string
-    fallback?: boolean
-    mode?: string
-  } | null>(null)
-  const [pricingError, setPricingError] = useState('')
   const [activeTier, setActiveTier] = useState<PlanTier>(initialTier)
-  const [selectedPlanTier, setSelectedPlanTier] = useState<PlanTier>(initialTier)
-  const [selectedPlanCycle, setSelectedPlanCycle] = useState<BillingCycle>('monthly')
-  const [planActionState, setPlanActionState] = useState<SaveState>('idle')
-  const [planActionError, setPlanActionError] = useState('')
+  const {
+    planPricing,
+    setPlanPricing,
+    pricingError,
+    setPricingError,
+    selectedPlanTier,
+    setSelectedPlanTier,
+    selectedPlanCycle,
+    setSelectedPlanCycle,
+    planActionState,
+    setPlanActionState,
+    planActionError,
+    setPlanActionError,
+  } = usePlanState(initialTier)
   const [isFinanceBypassEnabled, setIsFinanceBypassEnabled] = useState(false)
   const [manualCompletedStageIds, setManualCompletedStageIds] = useState<string[]>([])
   const [loadingContext, setLoadingContext] = useState(false)
@@ -239,6 +234,51 @@ export function OnboardingTrackerModal({
   const stageIsEditable = !trackerAdjustmentMode || editableStageIds.has(activeStageId)
   const tierConfig = useMemo(() => getPlanConfigForTier(planConfigs, normalizedTier), [normalizedTier, planConfigs])
   const tierLimits = tierConfig.limits
+  const {
+    identityTitle,
+    setIdentityTitle,
+    identityDisplayName,
+    setIdentityDisplayName,
+    identityDisplayNameLocked,
+    setIdentityDisplayNameLocked,
+    identityCategory,
+    setIdentityCategory,
+    identitySubcategory,
+    setIdentitySubcategory,
+    identityFocusAreas,
+    setIdentityFocusAreas,
+    identityYearsExperience,
+    setIdentityYearsExperience,
+    identityPrimaryLanguage,
+    setIdentityPrimaryLanguage,
+    identitySecondaryLanguages,
+    setIdentitySecondaryLanguages,
+    secondaryLanguagesOpen,
+    setSecondaryLanguagesOpen,
+    identityTargetAudiences,
+    setIdentityTargetAudiences,
+    targetAudiencesOpen,
+    setTargetAudiencesOpen,
+    focusAreaInput,
+    setFocusAreaInput,
+    identityQualifications,
+    setIdentityQualifications,
+    identityQualificationSelection,
+    setIdentityQualificationSelection,
+    identityQualificationCustomName,
+    setIdentityQualificationCustomName,
+    identityQualificationCustomEnabled,
+    setIdentityQualificationCustomEnabled,
+    identitySaveState,
+    setIdentitySaveState,
+    identityError,
+    setIdentityError,
+    addFocusArea,
+    removeFocusArea,
+    addIdentityQualification,
+    uploadQualificationDocument,
+    removeQualificationDocument,
+  } = useIdentityState(tierLimits)
   const servicesLoadFailed = servicesLoadState === 'failed'
   const serviceActionsDisabled =
     serviceSaveState === 'saving' || servicesLoadState === 'idle' || servicesLoadFailed
@@ -514,26 +554,6 @@ export function OnboardingTrackerModal({
     }
   }, [activeTerm])
 
-  function addFocusArea(rawValue: string) {
-    const nextValue = rawValue.trim().replace(/,$/, '')
-    if (!nextValue) return
-    if (identityFocusAreas.some(item => normalizeOption(item) === normalizeOption(nextValue))) {
-      setFocusAreaInput('')
-      return
-    }
-    if (identityFocusAreas.length >= tierLimits.tags) {
-      setIdentityError(`Seu plano permite até ${tierLimits.tags} tag(s) de foco.`)
-      return
-    }
-    setIdentityFocusAreas(previous => [...previous, nextValue])
-    setFocusAreaInput('')
-    setIdentityError('')
-  }
-
-  function removeFocusArea(tag: string) {
-    setIdentityFocusAreas(previous => previous.filter(item => item !== tag))
-  }
-
   async function saveSection<TPayload extends object>(
     payload: TPayload,
     fallbackError: string,
@@ -593,118 +613,6 @@ export function OnboardingTrackerModal({
     }
 
     return json
-  }
-
-  function addIdentityQualification() {
-    const name = identityQualificationCustomEnabled
-      ? identityQualificationCustomName.trim()
-      : identityQualificationSelection.trim()
-    if (!name) return
-
-    if (identityQualifications.some(item => normalizeOption(item.name) === normalizeOption(name))) {
-      setIdentityError('Esta qualificação já foi adicionada.')
-      return
-    }
-
-    setIdentityQualifications(prev => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name,
-        requires_registration: isRegistrationQualification(name),
-        course_name: '',
-        registration_number: '',
-        issuer: '',
-        country: '',
-        evidence_files: [],
-      },
-    ])
-    setIdentityQualificationCustomName('')
-    setIdentityError('')
-  }
-
-  async function uploadQualificationDocument(qualificationId: string, file: File | null) {
-    if (!file) return
-    if (!QUALIFICATION_ALLOWED_TYPES.includes(file.type)) {
-      setIdentityError('Arquivo inválido. Envie apenas PDF, JPG ou PNG.')
-      return
-    }
-    if (file.size > QUALIFICATION_FILE_MAX_SIZE_BYTES) {
-      setIdentityError('Arquivo excede 2MB. Reduza o tamanho antes de enviar.')
-      return
-    }
-
-    const qualification = identityQualifications.find(item => item.id === qualificationId)
-    if (!qualification) return
-
-    const form = new FormData()
-    form.append('file', file)
-    form.append('qualificationName', qualification.name)
-    form.append('credentialType', inferCredentialType(qualification.name))
-
-    const response = await fetch('/api/professional/credentials/upload', {
-      method: 'POST',
-      body: form,
-      credentials: 'include',
-    })
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}))
-      setIdentityError(String(errorBody?.error || 'Falha ao enviar comprovante.'))
-      return
-    }
-
-    const payload = (await response.json()) as {
-      credential?: {
-        id: string
-        file_name: string
-        file_url: string
-        scan_status: string
-        verified: boolean
-        credential_type: string | null
-      }
-    }
-
-    if (!payload.credential) return
-
-    setIdentityQualifications(prev =>
-      prev.map(item =>
-        item.id === qualificationId
-          ? {
-              ...item,
-              evidence_files: [...item.evidence_files, payload.credential!],
-            }
-          : item,
-      ),
-    )
-    setIdentityError('')
-  }
-
-  async function removeQualificationDocument(qualificationId: string, documentId: string) {
-    const response = await fetch('/api/professional/credentials/upload', {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credentialId: documentId }),
-    })
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}))
-      setIdentityError(String(errorBody?.error || 'Falha ao remover comprovante.'))
-      return
-    }
-
-    setIdentityQualifications(prev =>
-      prev.map(item =>
-        item.id === qualificationId
-          ? {
-              ...item,
-              evidence_files: item.evidence_files.filter(file => file.id !== documentId),
-            }
-          : item,
-      ),
-    )
-    setIdentityError('')
   }
 
   async function saveIdentity() {
