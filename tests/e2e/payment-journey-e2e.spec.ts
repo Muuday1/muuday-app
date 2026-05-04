@@ -339,6 +339,7 @@ test.describe('Payment Journey End-to-End', () => {
       },
       data: new URLSearchParams({
         'payment_method': 'pm_card_visa',
+        'return_url': `${baseUrl}/agenda/confirmacao/${bookingId}`,
       }).toString(),
     })
     expect(confirmResponse.status()).toBe(200)

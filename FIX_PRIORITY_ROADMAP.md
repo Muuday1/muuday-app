@@ -22,12 +22,14 @@ These are prerequisites for everything else. Fix them before touching any journe
 ---
 
 ### P0.2 — Fix Admin-Client Workaround in Stripe API Routes ✅ COMPLETED
-**Why first:** The current `/api/stripe/payment-intent` and `/api/stripe/checkout-session/booking` routes use `createAdminClient()` to bypass RLS when updating `provider_payment_id`. This is a security debt. Before you build the payment page on top of these routes, fix the underlying permission model.
+**Why first:** The current `/api/stripe/payment-intent` and `/api/stripe/checkout-session/booking` routes use `createAdminClient()` to bypass RLS when updating `stripe_payment_intent_id`. This is a security debt. Before you build the payment page on top of these routes, fix the underlying permission model.
 
 **Implementation:**
 - Migration `086-rpc-update-payment-provider-id.sql` creates `update_payment_provider_id()` RPC
+- Migration `087-fix-rpc-stripe-payment-intent-id.sql` updates the RPC to target `stripe_payment_intent_id`
 - Updated `app/api/stripe/payment-intent/route.ts` to use `supabase.rpc()` instead of `createAdminClient()`
 - Updated `app/api/stripe/checkout-session/booking/route.ts` to use `supabase.rpc()` instead of `createAdminClient()`
+- Updated `app/api/v1/payments/payment-intent/route.ts` to use `supabase.rpc()` instead of `createAdminClient()`
 - Removed `createAdminClient()` from all user-facing Stripe API routes
 
 **Effort:** 2-4 hours  

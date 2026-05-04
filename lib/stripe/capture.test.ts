@@ -42,7 +42,7 @@ describe('captureBookingPayment', () => {
         maybeSingle: vi.fn().mockResolvedValue({
           data: {
             id: 'pay-1',
-            provider_payment_id: 'pi_test_123',
+            stripe_payment_intent_id: 'pi_test_123',
             status: 'captured',
             amount_total_minor: 10000,
           },
@@ -79,7 +79,7 @@ describe('captureBookingPayment', () => {
         maybeSingle: vi.fn().mockResolvedValue({
           data: {
             id: 'pay-1',
-            provider_payment_id: 'pi_test_123',
+            stripe_payment_intent_id: 'pi_test_123',
             status: 'requires_payment',
             amount_total_minor: 10000,
           },
@@ -108,7 +108,7 @@ describe('captureBookingPayment', () => {
         maybeSingle: vi.fn().mockResolvedValue({
           data: {
             id: 'pay-1',
-            provider_payment_id: 'pi_test_123',
+            stripe_payment_intent_id: 'pi_test_123',
             status: 'requires_payment',
             amount_total_minor: 10000,
           },
@@ -132,7 +132,7 @@ describe('captureBookingPayment', () => {
         maybeSingle: vi.fn().mockResolvedValue({
           data: {
             id: 'pay-1',
-            provider_payment_id: 'pi_test_123',
+            stripe_payment_intent_id: 'pi_test_123',
             status: 'refunded',
             amount_total_minor: 10000,
           },
@@ -147,7 +147,7 @@ describe('captureBookingPayment', () => {
     expect(mockStripeCapture).not.toHaveBeenCalled()
   })
 
-  it('returns error when no provider_payment_id exists', async () => {
+  it('returns error when no stripe_payment_intent_id exists', async () => {
     const admin = buildAdminClient({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -155,7 +155,7 @@ describe('captureBookingPayment', () => {
         maybeSingle: vi.fn().mockResolvedValue({
           data: {
             id: 'pay-1',
-            provider_payment_id: null,
+            stripe_payment_intent_id: null,
             status: 'requires_payment',
             amount_total_minor: 10000,
           },
@@ -166,7 +166,7 @@ describe('captureBookingPayment', () => {
 
     const result = await captureBookingPayment(admin, 'booking-1')
     expect(result.success).toBe(false)
-    expect(result.error).toContain('No provider_payment_id')
+    expect(result.error).toContain('No stripe_payment_intent_id')
     expect(mockStripeCapture).not.toHaveBeenCalled()
   })
 })

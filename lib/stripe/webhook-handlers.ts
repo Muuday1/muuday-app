@@ -131,7 +131,7 @@ async function setPaymentStatusFromWebhook(
     .from('payments')
     .select('id, booking_id, professional_id, amount_total_minor, metadata, status')
     .eq('provider', 'stripe')
-    .eq('provider_payment_id', providerPaymentId)
+    .eq('stripe_payment_intent_id', providerPaymentId)
 
   if (loadError) {
     throw new Error(`Failed to load payment rows: ${loadError.message}`)
@@ -418,7 +418,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
       .from('payments')
       .select('id, booking_id, status')
       .eq('provider', 'stripe')
-      .eq('provider_payment_id', paymentIntentId)
+      .eq('stripe_payment_intent_id', paymentIntentId)
 
     if (!paymentRows || paymentRows.length === 0) {
       return { outcome: 'ignored', reason: 'payment_not_found' }
@@ -440,7 +440,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
       .from('payments')
       .select('id')
       .eq('provider', 'stripe')
-      .eq('provider_payment_id', paymentIntentId)
+      .eq('stripe_payment_intent_id', paymentIntentId)
 
     if (paymentRowsError) {
       Sentry.captureException(paymentRowsError, { tags: { area: 'stripe_webhook' } })
@@ -525,7 +525,7 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
               .from('payments')
               .select('id, booking_id, professional_id')
               .eq('provider', 'stripe')
-              .eq('provider_payment_id', piId)
+              .eq('stripe_payment_intent_id', piId)
               .maybeSingle()
 
             if (paymentRow?.professional_id && paymentRow?.booking_id) {

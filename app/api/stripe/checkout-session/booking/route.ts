@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
   // Load the associated payment
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
-    .select('id, status, provider_payment_id, amount_total, currency, amount_total_minor')
+    .select('id, status, stripe_payment_intent_id, amount_total, currency, amount_total_minor')
     .eq('booking_id', bookingId)
     .maybeSingle()
 
@@ -177,13 +177,13 @@ export async function POST(request: NextRequest) {
       customer_email: customerId ? undefined : user.email || undefined,
     })
 
-    // Use PostgreSQL RPC to update provider_payment_id with internal ownership check.
+    // Use PostgreSQL RPC to update stripe_payment_intent_id with internal ownership check.
     // This eliminates the need for createAdminClient() in user-facing code.
     if (session.payment_intent) {
       const piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id
       const { error: updateError } = await supabase.rpc('update_payment_provider_id', {
         p_payment_id: payment.id,
-        p_provider_payment_id: piId,
+        p_stripe_payment_intent_id: piId,
       })
 
       if (updateError) {

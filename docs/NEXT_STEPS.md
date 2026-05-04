@@ -388,13 +388,13 @@ These are important but not blocking. Pick up opportunistically.
 - **Why:** CODE_REVIEW_REPORT flagged admin client usage in user-facing paths as a security risk. RLS policies should be the single source of truth.
 - **Source:** `docs/engineering/CODE_REVIEW_CHECKLIST.md`
 - **Owner:** Backend
-- **Status:** Audit complete 2026-04-29. All three routes have comprehensive authorization checks (user owns booking, status validation, etc.). Security comments added explaining why admin client is required: the RLS guard trigger (`trg_guard_payments_non_admin_update`) explicitly blocks non-admins from updating `provider_payment_id`. Full fix requires creating a PostgreSQL RPC function that validates ownership internally and updates the field.
+- **Status:** COMPLETE 2026-05-04. All three routes have comprehensive authorization checks (user owns booking, status validation, etc.). Replaced `provider_payment_id` column with `stripe_payment_intent_id` to align with production schema. Created `update_payment_provider_id()` RPC function (migration 086) and fixed it to target `stripe_payment_intent_id` (migration 087). All three routes migrated to use the RPC function — `createAdminClient()` removed from user-facing payment routes.
 - **Acceptance:**
   - [x] `POST /api/v1/payments/payment-intent` documented with security comment + Sentry error capture
   - [x] `POST /api/stripe/payment-intent` documented with security comment + Sentry error capture
   - [x] `POST /api/stripe/checkout-session/booking` documented with security comment + Sentry error capture
-  - [ ] Create `attach_provider_payment_id()` RPC function that validates booking ownership and updates `provider_payment_id`
-  - [ ] Migrate all three routes to use the RPC function and remove `createAdminClient()`
+  - [x] Create `update_payment_provider_id()` RPC function that validates booking ownership and updates `stripe_payment_intent_id`
+  - [x] Migrate all three routes to use the RPC function and remove `createAdminClient()`
 
 ### P3.9 Analytics & Observability Hardening
 - **What:** Complete PostHog funnel dashboards, Sentry alert rules, Checkly synthetic coverage.

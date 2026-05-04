@@ -345,7 +345,7 @@ CREATE TABLE IF NOT EXISTS payments (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
   provider TEXT NOT NULL DEFAULT 'stripe',
-  provider_payment_id TEXT,
+  stripe_payment_intent_id TEXT,
   amount_total DECIMAL(10,2) NOT NULL,
   currency TEXT NOT NULL DEFAULT 'BRL',
   status TEXT NOT NULL CHECK (status IN ('requires_payment', 'captured', 'partial_refunded', 'refunded', 'failed')),

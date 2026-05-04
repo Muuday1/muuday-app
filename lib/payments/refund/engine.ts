@@ -87,7 +87,7 @@ async function getPaymentForBooking(
 } | null> {
   const { data, error } = await admin
     .from('payments')
-    .select('id, provider_payment_id, amount_total_minor, refunded_amount_minor, professional_id, status')
+    .select('id, stripe_payment_intent_id, amount_total_minor, refunded_amount_minor, professional_id, status')
     .eq('booking_id', bookingId)
     .eq('provider', 'stripe')
     .order('created_at', { ascending: false })
@@ -101,7 +101,7 @@ async function getPaymentForBooking(
 
   return {
     id: data.id,
-    providerPaymentId: data.provider_payment_id,
+    providerPaymentId: data.stripe_payment_intent_id,
     amountTotalMinor: BigInt(data.amount_total_minor || 0),
     refundedAmountMinor: BigInt(data.refunded_amount_minor || 0),
     professionalId: data.professional_id,

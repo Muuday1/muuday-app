@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   // Load the associated payment
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
-    .select('id, status, provider_payment_id, amount_total, currency, amount_total_minor')
+    .select('id, status, stripe_payment_intent_id, amount_total, currency, amount_total_minor')
     .eq('booking_id', bookingId)
     .maybeSingle()
 
@@ -110,14 +110,14 @@ export async function POST(request: NextRequest) {
   }
 
   // If a PaymentIntent already exists, return its client_secret
-  if (payment.provider_payment_id) {
+  if (payment.stripe_payment_intent_id) {
     const stripe = getStripeClient()
     if (!stripe) {
       return NextResponse.json({ error: 'Stripe indisponivel no momento.' }, { status: 503 })
     }
 
     try {
-      const existingPi = await stripe.paymentIntents.retrieve(payment.provider_payment_id)
+      const existingPi = await stripe.paymentIntents.retrieve(payment.stripe_payment_intent_id)
       if (existingPi.status === 'requires_payment_method' || existingPi.status === 'requires_confirmation') {
         return NextResponse.json({
           clientSecret: existingPi.client_secret,
@@ -190,7 +190,6 @@ export async function POST(request: NextRequest) {
       currency,
       customer: customerId,
       capture_method: 'manual',
-      confirmation_method: 'manual',
       metadata: {
         muuday_booking_id: bookingId,
         muuday_user_id: user.id,
@@ -202,11 +201,11 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: { enabled: true },
     })
 
-    // Use PostgreSQL RPC to update provider_payment_id with internal ownership check.
+    // Use PostgreSQL RPC to update stripe_payment_intent_id with internal ownership check.
     // This eliminates the need for createAdminClient() in user-facing code.
     const { error: updateError } = await supabase.rpc('update_payment_provider_id', {
       p_payment_id: payment.id,
-      p_provider_payment_id: paymentIntent.id,
+      p_stripe_payment_intent_id: paymentIntent.id,
     })
 
     if (updateError) {

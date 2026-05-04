@@ -245,7 +245,7 @@ export async function GET(request: NextRequest) {
     // Load captured payments for this booking to process refunds properly
     const { data: capturedPayments, error: paymentsError } = await admin
       .from('payments')
-      .select('id, provider_payment_id, amount_total, currency, booking_id, professional_id')
+      .select('id, stripe_payment_intent_id, amount_total, currency, booking_id, professional_id')
       .eq('booking_id', booking.id)
       .in('status', ['captured'])
 
@@ -266,10 +266,10 @@ export async function GET(request: NextRequest) {
     for (const payment of capturedPayments) {
       try {
         // 1. Refund via Stripe API if we have a payment intent
-        if (stripe && payment.provider_payment_id) {
+        if (stripe && payment.stripe_payment_intent_id) {
           await stripe.refunds.create(
             {
-              payment_intent: payment.provider_payment_id,
+              payment_intent: payment.stripe_payment_intent_id,
               reason: 'requested_by_customer',
               metadata: {
                 booking_id: booking.id,

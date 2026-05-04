@@ -29,7 +29,7 @@ export async function captureBookingPayment(
   // Load the payment record for this booking
   const { data: payment, error: loadError } = await admin
     .from('payments')
-    .select('id, provider_payment_id, status, amount_total_minor')
+    .select('id, stripe_payment_intent_id, status, amount_total_minor')
     .eq('booking_id', bookingId)
     .eq('provider', 'stripe')
     .maybeSingle()
@@ -59,9 +59,9 @@ export async function captureBookingPayment(
     return { success: false, captured: false, error: 'Payment failed' }
   }
 
-  const providerPaymentId = payment.provider_payment_id
+  const providerPaymentId = payment.stripe_payment_intent_id
   if (!providerPaymentId) {
-    return { success: false, captured: false, error: 'No provider_payment_id on payment record' }
+    return { success: false, captured: false, error: 'No stripe_payment_intent_id on payment record' }
   }
 
   try {

@@ -184,7 +184,7 @@ describe('POST /api/stripe/payment-intent', () => {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({
-            data: { id: 'p1', status: 'captured', provider_payment_id: null },
+            data: { id: 'p1', status: 'captured', stripe_payment_intent_id: null },
             error: null,
           }),
         }
@@ -216,7 +216,7 @@ describe('POST /api/stripe/payment-intent', () => {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({
-            data: { id: 'p1', status: 'requires_payment', provider_payment_id: null, amount_total_minor: 10000, currency: 'brl' },
+            data: { id: 'p1', status: 'requires_payment', stripe_payment_intent_id: null, amount_total_minor: 10000, currency: 'brl' },
             error: null,
           }),
         }
@@ -258,7 +258,7 @@ describe('POST /api/stripe/payment-intent', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'p1', status: 'requires_payment', provider_payment_id: null, amount_total_minor: 10000, currency: 'brl' },
+              data: { id: 'p1', status: 'requires_payment', stripe_payment_intent_id: null, amount_total_minor: 10000, currency: 'brl' },
               error: null,
             }),
           }
@@ -319,7 +319,7 @@ describe('POST /api/stripe/payment-intent', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'p1', status: 'requires_payment', provider_payment_id: 'pi_existing', amount_total_minor: 10000, currency: 'brl' },
+              data: { id: 'p1', status: 'requires_payment', stripe_payment_intent_id: 'pi_existing', amount_total_minor: 10000, currency: 'brl' },
               error: null,
             }),
           }

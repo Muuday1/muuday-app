@@ -117,7 +117,7 @@ function makeStripeClient() {
 function makePaymentRow(overrides?: Record<string, unknown>) {
   return {
     id: 'pay-1',
-    provider_payment_id: 'pi_test_123',
+    stripe_payment_intent_id: 'pi_test_123',
     amount_total_minor: 10000,
     refunded_amount_minor: 0,
     professional_id: 'prof-1',

@@ -161,7 +161,7 @@ describe('POST /api/stripe/checkout-session/booking', () => {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({
-            data: { id: 'p1', status: 'requires_payment', provider_payment_id: null, amount_total_minor: 10000, currency: 'brl' },
+            data: { id: 'p1', status: 'requires_payment', stripe_payment_intent_id: null, amount_total_minor: 10000, currency: 'brl' },
             error: null,
           }),
         }
@@ -202,7 +202,7 @@ describe('POST /api/stripe/checkout-session/booking', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'p1', status: 'requires_payment', provider_payment_id: null, amount_total_minor: 10000, currency: 'brl' },
+              data: { id: 'p1', status: 'requires_payment', stripe_payment_intent_id: null, amount_total_minor: 10000, currency: 'brl' },
               error: null,
             }),
           }

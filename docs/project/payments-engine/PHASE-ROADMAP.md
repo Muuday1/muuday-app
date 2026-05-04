@@ -97,7 +97,7 @@
 ### 2.1 PaymentIntent Integration
 - [x] `POST /api/stripe/payment-intent` — creates PaymentIntent with `capture_method: 'manual'`
 - [x] Reuse or create Stripe Customer per `profiles.id` (stored in `stripe_customers`)
-- [x] Store `provider_payment_id` in `payments` table
+- [x] Store `stripe_payment_intent_id` in `payments` table
 - [ ] Pre-authorize at booking time (hold funds on customer's card) — REQUIRES FRONTEND INTEGRATION
 - [ ] Capture automatically 24h before session OR after session confirmation — FUTURE
 
