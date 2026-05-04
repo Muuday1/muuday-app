@@ -9,12 +9,12 @@
 
 Despite many items in `FIX_PRIORITY_ROADMAP.md` being marked ✅, **the money flow is still blocked** because of two silent bugs in the onboarding ↔ payout integration:
 
-| # | Bug | Impact |
-|---|-----|--------|
-| **BUG-1** | `payout_onboarding_started` is **never set to `true`** when the professional clicks "Configurar Pagamento" | Onboarding gate `payout_connected_account_minimum` always fails |
-| **BUG-2** | `payout_kyc_completed` is **never set to `true`** when Trolley webhooks confirm KYC approval | Onboarding gate `payout_kyc_complete` always fails |
-| **BUG-3** | PayPal requirement is **not enforced or even clearly communicated** during professional onboarding | Professionals reach the payout stage without knowing they need a PayPal account |
-| **BUG-4** | `evaluatePayoutSetupBlockers` still references "Stripe Connect" in user-facing copy | Confusing — we use Trolley, not Stripe Connect |
+| # | Bug | Status | Impact |
+|---|-----|--------|--------|
+| **BUG-1** | `payout_onboarding_started` is **never set to `true`** when the professional clicks "Configurar Pagamento" | ✅ **FIXED** 2026-05-04 | Onboarding gate `payout_connected_account_minimum` now works |
+| **BUG-2** | `payout_kyc_completed` is **never set to `true`** when Trolley webhooks confirm KYC approval | ✅ **FIXED** 2026-05-04 | Onboarding gate `payout_kyc_complete` now works |
+| **BUG-3** | PayPal requirement is **not enforced or even clearly communicated** during professional onboarding | ✅ **FIXED** 2026-05-04 | Onboarding tracker now shows explicit PayPal banner and updated card labels |
+| **BUG-4** | `evaluatePayoutSetupBlockers` still references "Stripe Connect" in user-facing copy | ✅ **FIXED** 2026-05-04 | Copy now reads "PayPal via Trolley" |
 
 **Result:** Even after P1/P2 fixes (payment page + capture), professionals can NEVER pass the `first_booking_acceptance` or `payout_receipt` gates unless `onboardingFinanceBypass` is enabled (test mode only).
 
@@ -22,9 +22,9 @@ Despite many items in `FIX_PRIORITY_ROADMAP.md` being marked ✅, **the money fl
 
 ## 2. Root Cause Analysis
 
-### 2.1 The Missing Flag Update (`payout_onboarding_started`)
+### 2.1 The Missing Flag Update (`payout_onboarding_started`) — ✅ FIXED
 
-**Flow today:**
+**Flow before fix:**
 ```
 Professional clicks "Configurar Pagamento"
   → initiatePayoutSetup()
@@ -33,14 +33,19 @@ Professional clicks "Configurar Pagamento"
   → BUT: professional_settings.payout_onboarding_started is NEVER updated
 ```
 
-**Code:** `lib/actions/professional-payout.ts:20-59`
-- After `createProfessionalTrolleyRecipient()` succeeds, the code generates a portal URL but **never writes `payout_onboarding_started = true` to `professional_settings`**.
+**Fix applied:** `lib/actions/professional-payout.ts` now updates `professional_settings`:
+```typescript
+await supabase
+  .from('professional_settings')
+  .update({ payout_onboarding_started: true, updated_at: new Date().toISOString() })
+  .eq('professional_id', professional.id)
+```
 
-**Impact:** `onboarding-field-state.ts:71` reads this flag as `false` → `payout_connected_account_minimum` is `false` → blockers fire at `review_submission`, `go_live`, `first_booking_acceptance`, and `payout_receipt` gates.
+**Impact resolved:** Onboarding gate `payout_connected_account_minimum` now properly passes after the professional clicks "Configurar Pagamento".
 
-### 2.2 The Missing KYC Sync (`payout_kyc_completed`)
+### 2.2 The Missing KYC Sync (`payout_kyc_completed`) — ✅ FIXED
 
-**Flow today:**
+**Flow before fix:**
 ```
 Trolley fires recipient.updated webhook
   → trolley-webhook-processor.ts handleRecipientUpdated()
@@ -49,32 +54,50 @@ Trolley fires recipient.updated webhook
     → BUT: professional_settings.payout_kyc_completed is NEVER updated
 ```
 
-**Code:** `inngest/functions/trolley-webhook-processor.ts:150-227`
-- Updates `trolley_recipients` table only.
-- No write to `professional_settings.payout_kyc_completed`.
+**Fix applied:** Two locations now sync KYC completion to `professional_settings`:
 
-**Impact:** `onboarding-field-state.ts:72` reads this flag as `false` → `payout_kyc_complete` is `false` → `first_booking_acceptance` and `payout_receipt` gates remain blocked forever.
+1. **Webhook processor** (`inngest/functions/trolley-webhook-processor.ts`):
+   When `status === 'active'`, updates:
+   ```typescript
+   await admin
+     .from('professional_settings')
+     .update({ payout_kyc_completed: true, updated_at: new Date().toISOString() })
+     .eq('professional_id', recipientRow.professional_id)
+   ```
 
-### 2.3 PayPal Is "Hidden" Until Too Late
+2. **Manual sync** (`lib/payments/trolley/onboarding.ts` `syncTrolleyRecipientStatus()`):
+   Same update when polling detects `isActive === true`.
+
+**Impact resolved:** Onboarding gate `payout_kyc_complete` now properly passes when Trolley approves the professional.
+
+### 2.3 PayPal Is "Hidden" Until Too Late — ✅ FIXED
 
 **Current reality:**
 - Trolley account is **PayPal-only** (bank transfer blocked — see P3.2 in FIX_PRIORITY_ROADMAP)
-- The professional only learns this when they open the Trolley portal AFTER onboarding
-- The signup flow (`/registrar-profissional`) mentions "Conecte sua conta PayPal" in FAQ, but **there is no enforcement or validation**
-- No field in the onboarding asks: "Qual é seu email PayPal?"
 
-**Risk:** Professional completes entire onboarding, gets approved, receives a booking, completes the session, but **cannot receive the money because they don't have PayPal**.
+**Fix applied:**
+- `components/dashboard/onboarding-tracker/stages/payout-receipt-stage.tsx` now shows a **blue info banner** at the top of the financial stage:
+  > "Você precisa de uma conta PayPal para receber pagamentos. Nosso parceiro de repasses (Trolley) exige uma conta PayPal válida. Transferência bancária será habilitada em breve."
 
-### 2.4 Stale Copy in Blocker Messages
+- Card labels updated:
+  - "Recebimentos" → "Recebimentos (PayPal)"
+  - "Validação operacional" → "Validação KYC"
 
-**Code:** `lib/professional/onboarding-stage-evaluators.ts:183-189`
+- Blocker messages now explicitly mention PayPal and Trolley portal steps.
+
+**Risk mitigated:** Professional is informed about PayPal requirement *before* completing onboarding, reducing dropout at the payout stage.
+
+### 2.4 Stale Copy in Blocker Messages — ✅ FIXED
+
+**Before fix:** `lib/professional/onboarding-stage-evaluators.ts:185`
 ```typescript
-code: 'missing_payout_onboarding',
-title: 'Onboarding de payout pendente',
-description: 'Conclua a conexao de recebimento (Stripe Connect) para revisao final.',  // ❌ WRONG
+description: 'Conclua a conexao de recebimento (Stripe Connect) para revisao final.'  // ❌ WRONG
 ```
 
-Should reference Trolley/PayPal, not Stripe Connect.
+**Fix applied:** All payout blocker descriptions updated to reference Trolley/PayPal:
+- "Conclua a conexao de recebimento (PayPal via Trolley) para revisao final."
+- "Inicie o onboarding de recebimento e vincule sua conta PayPal no portal Trolley..."
+- "Finalize a validação KYC no portal Trolley e vincule sua conta PayPal..."
 
 ---
 

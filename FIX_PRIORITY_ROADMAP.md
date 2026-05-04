@@ -92,7 +92,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P1.3 — Test End-to-End: User Books + Pays
+### P1.3 — Test End-to-End: User Books + Pays 🟡 READY TO TEST
 **Dependencies:** P1.2  
 **What to verify:**
 1. User creates booking → status `pending_payment`
@@ -103,6 +103,8 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 6. Booking updates to `confirmed` or `pending_confirmation`
 
 **Use Stripe test mode:** `4242 4242 4242 4242`
+
+**Note:** Previously blocked because professionals could not pass onboarding gates due to missing `payout_onboarding_started` / `payout_kyc_completed` sync. Fixed 2026-05-04.
 
 ---
 
@@ -151,16 +153,17 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P2.3 — Test End-to-End: Complete Session + Balance Updates
+### P2.3 — Test End-to-End: Complete Session + Balance Updates 🟡 READY TO TEST
 **Dependencies:** P2.1, P2.2  
 **What to verify:**
 1. User pays for session
 2. Professional and user have video session
 3. Professional clicks "Marcar como concluído"
 4. Stripe capture API called → `payment_intent.succeeded` fires
-5. `pending_balance` increases
-6. After 7 days (or simulate with DB update), `available_balance` increases
-7. Professional sees balance on `/financeiro`
+5. `available_balance` increases (directly — no pending hold per P2.2 decision)
+6. Professional sees balance on `/financeiro`
+
+**Note:** Previously blocked by onboarding gate bugs (professional could not go live). Fixed 2026-05-04.
 
 ---
 
@@ -176,10 +179,15 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 - `lib/actions/professional-payout.ts`:
   - `initiatePayoutSetup()` now generates `portalUrl` after creating/finding recipient
   - Added `getTrolleyPortalUrl()` server action for existing recipients
+  - **Fix (2026-05-04):** Now sets `professional_settings.payout_onboarding_started = true` after recipient creation so onboarding gates recognize progress
 - `components/finance/PayoutStatusCard.tsx`:
   - Opens Trolley portal in new tab after setup
   - Shows "Completar KYC" button when recipient exists but `isActive === false`
 - `lib/security/rate-limit.ts` — Added `payoutPortal` preset
+- **Fix (2026-05-04):** `inngest/functions/trolley-webhook-processor.ts` now syncs `payout_kyc_completed = true` to `professional_settings` when Trolley webhook reports `status: active`
+- **Fix (2026-05-04):** `lib/payments/trolley/onboarding.ts` `syncTrolleyRecipientStatus()` also syncs `payout_kyc_completed = true` when polling detects active recipient
+- **Fix (2026-05-04):** `components/dashboard/onboarding-tracker/stages/payout-receipt-stage.tsx` now shows explicit PayPal requirement banner
+- **Fix (2026-05-04):** `lib/professional/onboarding-stage-evaluators.ts` blocker copy updated from "Stripe Connect" to "PayPal via Trolley"
 
 **Effort:** 1 day  
 **Risk:** Low — UX only
@@ -216,7 +224,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 
 ---
 
-### P3.3 — Test End-to-End: Payout Batch
+### P3.3 — Test End-to-End: Payout Batch 🟡 READY TO TEST
 **Dependencies:** P3.1  
 **What to verify:**
 1. Professional has `available_balance > 0`
@@ -226,6 +234,8 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 5. Professional receives money in PayPal
 6. `available_balance` decreases
 7. Professional gets email + in-app notification
+
+**Note:** Previously blocked because professionals could never achieve `kyc_status = 'approved'` in onboarding gates (missing webhook sync). Fixed 2026-05-04.
 
 ---
 
@@ -416,6 +426,8 @@ After each phase, verify:
 - [ ] Trolley batch submitted → processed
 - [ ] Professional receives PayPal notification
 - [ ] `available_balance` decreases
+
+**System fix applied 2026-05-04:** Onboarding gates now properly recognize `payout_onboarding_started` and `payout_kyc_completed`, unblocking the entire Phase 1→3 pipeline.
 
 ---
 
