@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   // Load booking with payment and professional details
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, user_id, professional_id, status, price_total, user_currency, professionals(id, user_id, profiles(first_name, last_name, email))')
+    .select('id, user_id, professional_id, status, price_total, user_currency, professionals(id, user_id, profiles!professionals_user_id_fkey(full_name, email))')
     .eq('id', bookingId)
     .maybeSingle()
 
@@ -182,8 +182,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const proProfile = (booking.professionals as unknown as { profiles?: { first_name?: string; last_name?: string } } | null)?.profiles
-    const professionalName = [proProfile?.first_name, proProfile?.last_name].filter(Boolean).join(' ') || 'Profissional'
+    const proProfile = (booking.professionals as unknown as { profiles?: { full_name?: string } } | null)?.profiles
+    const professionalName = proProfile?.full_name || 'Profissional'
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountMinor,

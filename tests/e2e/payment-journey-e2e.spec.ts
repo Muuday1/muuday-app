@@ -32,46 +32,129 @@ function apiHeaders(token: string, sessionJson: string) {
  *  Times are in UTC and mapped to Brazil business hours (UTC-3).
  *  14:00 UTC = 11:00 BRT, 15:00 UTC = 12:00 BRT, etc.
  */
+async function supabaseAdminQuery(
+  request: APIRequestContext,
+  table: string,
+  options: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+    select?: string
+    eq?: Record<string, string>
+    data?: Record<string, unknown>
+  },
+) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY not set')
+
+  let url = `${supabaseUrl}/rest/v1/${table}`
+  const params = new URLSearchParams()
+  if (options.select) params.append('select', options.select)
+  if (options.eq) {
+    for (const [k, v] of Object.entries(options.eq)) {
+      params.append(k, `eq.${v}`)
+    }
+  }
+  if (params.toString()) url += '?' + params.toString()
+
+  const res = await request.fetch(url, {
+    method: options.method || 'GET',
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      'Content-Type': 'application/json',
+      Prefer: options.method === 'PATCH' ? 'return=minimal' : undefined,
+    } as Record<string, string>,
+    data: options.data ? JSON.stringify(options.data) : undefined,
+  })
+  return res
+}
+
+async function cleanupTestBookings(
+  request: APIRequestContext,
+  professionalId: string,
+) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) return
+
+  // Cancel any pending_payment bookings for this professional in the next 7 days
+  const from = new Date().toISOString()
+  const to = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
+  const res = await request.fetch(
+    `${supabaseUrl}/rest/v1/bookings?professional_id=eq.${professionalId}&status=in.(pending_payment,pending_confirmation,pending)&start_time_utc=gte.${from}&start_time_utc=lte.${to}&select=id`,
+    {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    },
+  )
+  const bookings = await res.json().catch(() => [])
+  if (!Array.isArray(bookings) || bookings.length === 0) return
+
+  console.log(`[E2E cleanup] Found ${bookings.length} stale test booking(s), cancelling...`)
+  for (const b of bookings) {
+    await request.fetch(`${supabaseUrl}/rest/v1/bookings?id=eq.${b.id}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      data: JSON.stringify({
+        status: 'cancelled',
+        cancellation_reason: 'e2e_test_cleanup',
+      }),
+    })
+  }
+}
+
 async function createTestBooking(
   request: APIRequestContext,
   token: string,
   sessionJson: string,
   professionalId: string,
 ): Promise<{ bookingId: string; responseStatus: number }> {
+  // Clean up stale bookings from previous test runs
+  await cleanupTestBookings(request, professionalId)
+
+  // Try multiple days and hours to find an available slot
   const utcHours = [14, 15, 16, 17, 18] // 11:00-15:00 BRT
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  for (let dayOffset = 1; dayOffset <= 3; dayOffset++) {
+    const targetDate = new Date()
+    targetDate.setDate(targetDate.getDate() + dayOffset)
 
-  for (const hour of utcHours) {
-    tomorrow.setUTCHours(hour, 0, 0, 0)
-    const scheduledAt = tomorrow.toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm
+    for (const hour of utcHours) {
+      targetDate.setUTCHours(hour, 0, 0, 0)
+      const scheduledAt = targetDate.toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm
 
-    const bookingResponse = await request.post(`${baseUrl}/api/v1/bookings`, {
-      headers: apiHeaders(token, sessionJson),
-      data: {
-        professionalId: professionalId,
-        scheduledAt: scheduledAt,
-        sessionPurpose: 'E2E payment journey test',
-      },
-    })
+      const bookingResponse = await request.post(`${baseUrl}/api/v1/bookings`, {
+        headers: apiHeaders(token, sessionJson),
+        data: {
+          professionalId: professionalId,
+          scheduledAt: scheduledAt,
+          sessionPurpose: 'E2E payment journey test',
+        },
+      })
 
-    if (bookingResponse.status() === 200 || bookingResponse.status() === 201) {
-      const body = await bookingResponse.json()
-      return { bookingId: body.bookingId as string, responseStatus: bookingResponse.status() }
-    }
+      if (bookingResponse.status() === 200 || bookingResponse.status() === 201) {
+        const body = await bookingResponse.json()
+        return { bookingId: body.bookingId as string, responseStatus: bookingResponse.status() }
+      }
 
-    // Detect rate limit and fail fast with clear message
-    if (bookingResponse.status() === 429) {
+      // Detect rate limit and fail fast with clear message
+      if (bookingResponse.status() === 429) {
+        const errorBody = await bookingResponse.json().catch(() => ({}))
+        throw new Error(`RATE_LIMIT: ${errorBody.error || 'Rate limit exceeded. Wait a few minutes and retry.'}`)
+      }
+
+      // Log error for debugging
       const errorBody = await bookingResponse.json().catch(() => ({}))
-      throw new Error(`RATE_LIMIT: ${errorBody.error || 'Rate limit exceeded. Wait a few minutes and retry.'}`)
+      console.log(`Booking day +${dayOffset} at UTC ${hour}:00 failed: ${bookingResponse.status()}`, JSON.stringify(errorBody))
     }
-
-    // Log error for debugging
-    const errorBody = await bookingResponse.json().catch(() => ({}))
-    console.log(`Booking at UTC ${hour}:00 failed: ${bookingResponse.status()}`, JSON.stringify(errorBody))
   }
 
-  throw new Error(`Failed to create booking at any time slot: ${utcHours.map(h => h + ':00 UTC').join(', ')}`)
+  throw new Error(`Failed to create booking at any time slot after cleanup`)
 }
 
 // ---------------------------------------------------------------------------
