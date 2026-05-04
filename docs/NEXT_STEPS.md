@@ -373,13 +373,16 @@ These are important but not blocking. Pick up opportunistically.
   - [ ] Account suspension appeal
   - [ ] Review rejection recovery
 
-### P3.7 Supabase Generated Types Regeneration
+### P3.7 Supabase Generated Types Regeneration — PARTIALLY COMPLETE, BLOCKED
 - **What:** Regenerate `types/supabase-generated.ts` from the actual production database schema.
 - **Why:** Current generated types are stale and missing many production columns (`payments.provider_payment_id`, `professionals.focus_areas`/`subcategories`, `professional_settings.allow_multi_session`/`buffer_time_minutes`/`require_session_purpose`, `external_calendar_busy_slots.start_utc`, etc.). This blocks enabling typed Supabase clients (`createClient<Database>()`), which would catch ~70 type errors at compile time.
 - **Source:** `types/supabase-generated.ts`
 - **Owner:** Backend
+- **Status:** Types regenerated 2026-05-04 from production schema. However, enabling `<Database>` generic reveals 111 TypeScript errors because the **codebase references columns that do not exist in the production database** (e.g., `professionals.focus_areas`, `professionals.subcategories`, `professionals.languages`, `professionals.years_experience`, `external_calendar_busy_slots.start_utc`). These columns exist in migrations (`017-wave2-professional-signup-review-pipeline.sql`, `034-wave2-signup-step3-structured-metadata.sql`) but were never applied to the production `professionals` table. Typed clients remain disabled with TODO comments until schema alignment.
 - **Acceptance:**
-  - [ ] `npm run db:gen-types` output matches production schema (may need `supabase db pull` or migration alignment)
+  - [x] `npm run db:gen-types` output matches production schema (completed 2026-05-04)
+  - [ ] Create migrations to add missing columns to production tables (`professionals`, `professional_settings`, `external_calendar_busy_slots`)
+  - [ ] Apply missing migrations to production database
   - [ ] Typed clients (`lib/supabase/client.ts`, `server.ts`, `admin.ts`) compile with `<Database>` generic
   - [ ] Zero new TypeScript errors across the codebase
 

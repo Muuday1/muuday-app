@@ -1,5 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+// TODO: Re-enable Database generic after schema alignment (P3.7)
+// import type { Database } from '@/types/supabase-generated'
 
 export async function createClient() {
   const cookieStore = await cookies()

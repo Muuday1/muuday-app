@@ -1,4 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+// TODO: Re-enable Database generic after schema alignment (P3.7)
+// import type { Database } from '@/types/supabase-generated'
 
 function normalizeKey(key: string | undefined | null) {
   if (!key) return ''
