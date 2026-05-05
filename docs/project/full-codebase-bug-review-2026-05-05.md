@@ -48,16 +48,22 @@ import "./.next/types/routes.d.ts";
 **File:** `lib/api/mobile-api-key.ts`  
 **Issue:** Uses a hand-rolled `timingSafeEqual()` that is NOT constant-time in JavaScript engines. The loop short-circuits implicitly via `result |= ...` but JIT compilers may optimize this unpredictably.  
 **Impact:** Attackers can brute-force the `X-Mobile-Api-Key` header byte-by-byte via timing analysis.  
-**Fix:** Use Node.js `crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))`.
+**Fix:** Implement constant-time comparison using only Web-standard APIs (`TextEncoder` + bitwise XOR), avoiding Node.js `crypto`/`Buffer` which are unsupported in the Edge Runtime.
 
 ```typescript
-import { timingSafeEqual } from 'crypto'
 function safeCompare(a: string, b: string): boolean {
   if (a.length !== b.length) return false
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  const encoder = new TextEncoder()
+  const aBytes = encoder.encode(a)
+  const bBytes = encoder.encode(b)
+  let result = 0
+  for (let i = 0; i < aBytes.length; i++) {
+    result |= aBytes[i] ^ bBytes[i]
+  }
+  return result === 0
 }
 ```
-**Resolution:** `lib/api/mobile-api-key.ts` now uses Node.js `crypto.timingSafeEqual` via `safeCompare()` helper.
+**Resolution:** `lib/api/mobile-api-key.ts` now uses a pure-JS constant-time `safeCompare()` helper that works in both Node.js and Edge Runtime.
 
 ---
 
