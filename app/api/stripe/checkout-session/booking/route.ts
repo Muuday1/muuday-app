@@ -28,6 +28,22 @@ const payloadSchema = z.object({
   bookingId: z.string().uuid('ID do agendamento invalido.'),
 })
 
+type ProfessionalProfile = {
+  profiles?: {
+    full_name?: string
+  } | null
+}
+
+type BookingWithProfessional = {
+  id: string
+  user_id: string
+  professional_id: string
+  status: string
+  price_total: number | null
+  user_currency: string | null
+  professionals: ProfessionalProfile | null
+}
+
 function appBaseUrl(request: NextRequest) {
   return request.nextUrl.origin || getAppBaseUrl()
 }
@@ -125,7 +141,7 @@ export async function POST(request: NextRequest) {
   const amountMinor = payment.amount_total_minor ?? Math.round((payment.amount_total ?? 0) * 100)
   const currency = (payment.currency ?? 'brl').toLowerCase()
   const baseUrl = appBaseUrl(request)
-  const proProfile = (booking.professionals as unknown as { profiles?: { full_name?: string } } | null)?.profiles
+  const proProfile = (booking as BookingWithProfessional).professionals?.profiles
   const professionalName = proProfile?.full_name || 'Profissional'
 
   try {

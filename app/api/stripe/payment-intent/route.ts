@@ -24,6 +24,22 @@ const payloadSchema = z.object({
   bookingId: z.string().uuid('ID do agendamento invalido.'),
 })
 
+type ProfessionalProfile = {
+  profiles?: {
+    full_name?: string
+  } | null
+}
+
+type BookingWithProfessional = {
+  id: string
+  user_id: string
+  professional_id: string
+  status: string
+  price_total: number | null
+  user_currency: string | null
+  professionals: ProfessionalProfile | null
+}
+
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/stripe/payment-intent started', level: 'info' })
 
@@ -183,7 +199,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const proProfile = (booking.professionals as unknown as { profiles?: { full_name?: string } } | null)?.profiles
+    const proProfile = (booking as BookingWithProfessional).professionals?.profiles
     const professionalName = proProfile?.full_name || 'Profissional'
 
     const paymentIntent = await stripe.paymentIntents.create({

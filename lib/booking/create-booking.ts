@@ -29,7 +29,13 @@ import {
   sendNewBookingToProfessionalEmail,
 } from '@/lib/email/templates/booking'
 import { formatInTimeZone } from 'date-fns-tz'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, enUS } from 'date-fns/locale'
+import type { Locale } from 'date-fns/locale'
+
+function resolveDateLocale(language?: string | null): Locale {
+  if (language?.toLowerCase().startsWith('en')) return enUS
+  return ptBR
+}
 
 export { createBookingInputSchema }
 export type { CreateBookingInput }
@@ -331,11 +337,12 @@ export async function executeBookingCreation(
     // 10. Send transactional emails (non-blocking)
     const firstSession = plannedSessions[0]
     if (firstSession) {
+      const dateLocale = resolveDateLocale(profile?.language)
       const sessionDate = formatInTimeZone(
         firstSession.startUtc,
         userTimezone,
         "EEEE, dd 'de' MMMM 'de' yyyy",
-        { locale: ptBR },
+        { locale: dateLocale },
       )
       const sessionTime = formatInTimeZone(firstSession.startUtc, userTimezone, 'HH:mm')
 
