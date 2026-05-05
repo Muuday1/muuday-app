@@ -23,6 +23,7 @@ import { inngest } from '../client'
 import {
   emitUserBookingConfirmed,
   emitUserPaymentFailed,
+  emitProfessionalBookingConfirmed,
 } from '@/lib/email/resend-events'
 import {
   runUserInactivityScan,
@@ -174,6 +175,21 @@ async function resolveUserEmail(
 
   if (error || !data?.email) return null
   return String(data.email)
+}
+
+async function resolveUserName(
+  admin: SupabaseClient,
+  userId: string | null,
+): Promise<string | null> {
+  if (!userId) return null
+  const { data, error } = await admin
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !data?.full_name) return null
+  return String(data.full_name)
 }
 
 export const syncBookingReminders = inngest.createFunction(
@@ -861,12 +877,22 @@ export const processSupabasePaymentsChange = inngest.createFunction(
           : false
 
         // Emit Resend automation events (non-blocking)
-        const userEmail = await resolveUserEmail(admin, bookingUserId)
+        const [userEmail, userName, professionalEmail] = await Promise.all([
+          resolveUserEmail(admin, bookingUserId),
+          resolveUserName(admin, bookingUserId),
+          resolveUserEmail(admin, professionalUserId),
+        ])
         if (userEmail) {
           emitUserBookingConfirmed(userEmail, {
             booking_id: bookingId,
             service: 'Sessão',
             professional_id: professionalId || '',
+          })
+        }
+        if (professionalEmail) {
+          emitProfessionalBookingConfirmed(professionalEmail, {
+            booking_id: bookingId,
+            client_name: userName || 'Cliente',
           })
         }
 

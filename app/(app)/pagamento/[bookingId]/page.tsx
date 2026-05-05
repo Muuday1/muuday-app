@@ -17,16 +17,29 @@ export default async function PagamentoPage({
     redirect(`/login?redirect=${encodeURIComponent(`/pagamento/${bookingId}`)}`)
   }
 
-  const { data: booking } = await supabase
-    .from('bookings')
-    .select(
-      `id, status, price_total, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
-      professionals(id, profiles(full_name, avatar_url)),
-      professional_services(id, name, duration_minutes, price_brl)`
-    )
-    .eq('id', bookingId)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // Retry with delay to avoid race condition between booking creation and page load
+  let booking = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data: bookingData } = await supabase
+      .from('bookings')
+      .select(
+        `id, status, price_total, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
+        professionals(id, profiles(full_name, avatar_url)),
+        professional_services(id, name, duration_minutes, price_brl)`
+      )
+      .eq('id', bookingId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (bookingData) {
+      booking = bookingData
+      break
+    }
+
+    if (attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+    }
+  }
 
   if (!booking) {
     notFound()

@@ -24,18 +24,6 @@ import { persistRecurringBooking } from './creation/persist-recurring'
 import { persistBatchBooking } from './creation/persist-batch'
 import { recordBookingPayment } from './creation/record-payment'
 import { logBookingEvent } from './creation/logging'
-import {
-  sendBookingConfirmationEmail,
-  sendNewBookingToProfessionalEmail,
-} from '@/lib/email/templates/booking'
-import { formatInTimeZone } from 'date-fns-tz'
-import { ptBR, enUS } from 'date-fns/locale'
-import type { Locale } from 'date-fns/locale'
-
-function resolveDateLocale(language?: string | null): Locale {
-  if (language?.toLowerCase().startsWith('en')) return enUS
-  return ptBR
-}
 
 export { createBookingInputSchema }
 export type { CreateBookingInput }
@@ -333,46 +321,6 @@ export async function executeBookingCreation(
       : professional.profiles
     const professionalEmail = (professionalProfile as { email?: string } | null)?.email
     const professionalName = (professionalProfile as { full_name?: string } | null)?.full_name
-
-    // 10. Send transactional emails (non-blocking)
-    const firstSession = plannedSessions[0]
-    if (firstSession) {
-      const dateLocale = resolveDateLocale(profile?.language)
-      const sessionDate = formatInTimeZone(
-        firstSession.startUtc,
-        userTimezone,
-        "EEEE, dd 'de' MMMM 'de' yyyy",
-        { locale: dateLocale },
-      )
-      const sessionTime = formatInTimeZone(firstSession.startUtc, userTimezone, 'HH:mm')
-
-      if (user.email) {
-        sendBookingConfirmationEmail(
-          user.email,
-          profile?.full_name || 'Cliente',
-          professionalName || 'Profissional',
-          service?.name || 'Sessão',
-          sessionDate,
-          sessionTime,
-          userTimezone,
-        ).catch((err) => {
-          Sentry.captureException(err, { tags: { area: 'booking_email', subArea: 'user_confirmation' } })
-        })
-      }
-
-      if (professionalEmail) {
-        sendNewBookingToProfessionalEmail(
-          professionalEmail,
-          professionalName || 'Profissional',
-          profile?.full_name || 'Cliente',
-          service?.name || 'Sessão',
-          sessionDate,
-          sessionTime,
-        ).catch((err) => {
-          Sentry.captureException(err, { tags: { area: 'booking_email', subArea: 'professional_notification' } })
-        })
-      }
-    }
 
     logBookingEvent('booking_create_success', { bookingId, bookingType, usedAtomicPath, createdBookingIds })
     Sentry.addBreadcrumb({ category: 'booking', message: 'createBooking completed', level: 'info', data: { bookingId, bookingType } })

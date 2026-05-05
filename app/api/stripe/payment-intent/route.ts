@@ -86,6 +86,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (!booking) {
+    Sentry.captureMessage('stripe-payment-intent: booking not found', {
+      level: 'warning',
+      tags: { area: 'stripe-payment-intent', context: 'booking-not-found' },
+      extra: { bookingId, userId: user.id },
+    })
     return NextResponse.json({ error: 'Agendamento nao encontrado.' }, { status: 404 })
   }
 
@@ -96,6 +101,11 @@ export async function POST(request: NextRequest) {
 
   // Booking must be in a state that requires payment
   if (booking.status !== 'pending_payment') {
+    Sentry.captureMessage('stripe-payment-intent: booking not in pending_payment', {
+      level: 'warning',
+      tags: { area: 'stripe-payment-intent', context: 'booking-status-mismatch' },
+      extra: { bookingId, userId: user.id, bookingStatus: booking.status },
+    })
     return NextResponse.json(
       { error: 'Este agendamento nao requer pagamento no momento.', bookingStatus: booking.status },
       { status: 409 },
@@ -117,10 +127,20 @@ export async function POST(request: NextRequest) {
   }
 
   if (!payment) {
+    Sentry.captureMessage('stripe-payment-intent: payment not found', {
+      level: 'warning',
+      tags: { area: 'stripe-payment-intent', context: 'payment-not-found' },
+      extra: { bookingId, userId: user.id },
+    })
     return NextResponse.json({ error: 'Pagamento nao encontrado para este agendamento.' }, { status: 404 })
   }
 
   if (payment.status !== 'requires_payment') {
+    Sentry.captureMessage('stripe-payment-intent: payment not in requires_payment', {
+      level: 'warning',
+      tags: { area: 'stripe-payment-intent', context: 'payment-status-mismatch' },
+      extra: { bookingId, userId: user.id, paymentStatus: payment.status },
+    })
     return NextResponse.json(
       { error: 'Pagamento ja foi processado ou nao esta pendente.', paymentStatus: payment.status },
       { status: 409 },

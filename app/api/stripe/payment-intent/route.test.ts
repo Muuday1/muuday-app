@@ -21,6 +21,7 @@ vi.mock('@/lib/http/client-ip', () => ({
 vi.mock('@sentry/nextjs', () => ({
   addBreadcrumb: vi.fn(),
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
 }))
 
 import { createClient } from '@/lib/supabase/server'

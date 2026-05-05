@@ -230,6 +230,16 @@ export function emitProfessionalReceivedBooking(
   void sendEvent('professional.received_booking', email, payload)
 }
 
+export function emitProfessionalBookingConfirmed(
+  email: string,
+  payload: {
+    booking_id: string
+    client_name: string
+  },
+) {
+  void sendEvent('professional.booking_confirmed', email, payload)
+}
+
 export function emitProfessionalSessionCompleted(
   email: string,
   payload: {
