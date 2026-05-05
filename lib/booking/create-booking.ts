@@ -41,12 +41,8 @@ export async function executeBookingCreation(
   user: { id: string; email?: string | null },
   data: CreateBookingInput,
 ): Promise<BookingCreateResult> {
-  Sentry.addBreadcrumb({ category: 'booking', message: 'executeBookingCreation started', level: 'info', data })
-
   const bookingInput = data
   const bookingType = bookingInput.bookingType || 'one_off'
-
-  Sentry.addBreadcrumb({ category: 'booking', message: 'executeBookingCreation user authenticated', level: 'info', data: { userId: user.id } })
 
   // 1. Lookup context (parallel queries)
   const contextResult = await lookupBookingContext(supabase, user.id, bookingInput)
