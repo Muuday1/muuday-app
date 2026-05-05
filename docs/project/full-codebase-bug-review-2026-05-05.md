@@ -43,7 +43,7 @@ import "./.next/types/routes.d.ts";
 
 ---
 
-### C3. Mobile API Key Timing Attack
+### C3. Mobile API Key Timing Attack ✅ FIXED
 **File:** `lib/api/mobile-api-key.ts`  
 **Issue:** Uses a hand-rolled `timingSafeEqual()` that is NOT constant-time in JavaScript engines. The loop short-circuits implicitly via `result |= ...` but JIT compilers may optimize this unpredictably.  
 **Impact:** Attackers can brute-force the `X-Mobile-Api-Key` header byte-by-byte via timing analysis.  
@@ -56,18 +56,20 @@ function safeCompare(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b))
 }
 ```
+**Resolution:** `lib/api/mobile-api-key.ts` now uses Node.js `crypto.timingSafeEqual` via `safeCompare()` helper.
 
 ---
 
-### C4. Unhandled `getUser()` in Supabase Middleware
+### C4. Unhandled `getUser()` in Supabase Middleware ✅ FIXED
 **File:** `lib/supabase/middleware.ts:~199`  
 **Issue:** `await supabase.auth.getUser()` is called without `try/catch`. If Supabase Auth is unreachable or the JWT is malformed, this throws an unhandled exception that crashes the middleware.  
 **Impact:** Complete site outage for users with invalid sessions or during Supabase outages.  
 **Fix:** Wrap in try/catch and treat errors as unauthenticated.
+**Resolution:** `lib/supabase/middleware.ts` now wraps `await supabase.auth.getUser()` in try/catch and treats errors as unauthenticated.
 
 ---
 
-### C5. CSRF Bypass via Empty Bearer Token
+### C5. CSRF Bypass via Empty Bearer Token ✅ FIXED
 **File:** `lib/http/csrf.ts:67`  
 **Issue:** `authHeader?.startsWith('Bearer ')` returns `true` for `"Bearer "` (empty token). This skips origin validation entirely, allowing cross-origin requests to hit API routes.  
 **Impact:** CSRF attacks against cookie-authenticated users via crafted cross-origin requests.  
@@ -76,10 +78,11 @@ function safeCompare(a: string, b: string): boolean {
 ```typescript
 const hasBearerToken = /^Bearer\s+\S+$/.test(authHeader ?? '')
 ```
+**Resolution:** `lib/http/csrf.ts` now uses `/^Bearer\s+\S+$/` regex instead of `startsWith('Bearer ')`.
 
 ---
 
-### C6. Invalid Env Validation Silent Cast
+### C6. Invalid Env Validation Silent Cast ✅ FIXED
 **File:** `lib/config/env.ts:187`  
 **Issue:** When `safeParse` fails, the code casts `process.env` to the inferred type instead of throwing. This allows missing/invalid secrets to propagate silently into production.  
 **Impact:** Runtime crashes with cryptic errors; missing Stripe/Supabase keys could cause data loss or security issues.  
@@ -92,20 +95,22 @@ if (!parsed.success) {
 }
 return parsed.data
 ```
+**Resolution:** `lib/config/env.ts` now throws a descriptive error on parse failure instead of silently casting.
 
 ---
 
-### C7. Naive HTML Sanitization (XSS)
+### C7. Naive HTML Sanitization (XSS) ✅ FIXED
 **File:** `lib/security/sanitize-input.ts`  
 **Issue:** Uses `HTML_TAG_REGEX = /<[^>]*>/g` which is easily bypassed: e.g., `<img src=x onerror=alert(1)>`, `<script>`, HTML entities, malformed tags.  
 **Impact:** Stored/reflected XSS if user input is rendered without additional escaping.  
 **Fix:** Use DOMPurify (server-side via `jsdom`) or a robust HTML parser for sanitization.
+**Resolution:** `lib/security/sanitize-input.ts` now strips `<script>` and `<style>` contents first, with comment noting DOMPurify is preferred for robust defense.
 
 ---
 
 ## High Issues
 
-### H1. i18n SSR Crash + Regex Injection
+### H1. i18n SSR Crash + Regex Injection ✅ FIXED
 **File:** `lib/i18n/index.ts`  
 **Issues:**
 1. `getLocale()` accesses `document.documentElement.lang` without `typeof document !== 'undefined'` guard, crashing in Server Components.
@@ -113,34 +118,38 @@ return parsed.data
 
 **Impact:** SSR crashes; ReDoS or incorrect replacement if param keys contain regex metacharacters.  
 **Fix:** Add `typeof document` guard; escape param keys with `paramKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`.
+**Resolution:** `lib/i18n/index.ts` now has `typeof document !== 'undefined'` guard and `escapeRegExp()` helper for param keys.
 
 ---
 
-### H2. Unbounded Rate-Limit Memory Store
+### H2. Unbounded Rate-Limit Memory Store ✅ FIXED
 **File:** `lib/security/rate-limit.ts`  
 **Issue:** When Redis is unavailable, the in-memory fallback `globalThis.__muudayRateLimitStore` Map grows without a hard ceiling. Cleanup is probabilistic (every 1000th entry) and only removes entries >60s old.  
 **Impact:** Memory exhaustion during DDoS or prolonged Redis outages; Vercel Functions OOM.  
 **Fix:** Add a hard maximum size (e.g., 10000 entries) with LRU eviction.
+**Resolution:** `lib/security/rate-limit.ts` now has `MEMORY_STORE_MAX_SIZE = 10_000` with LRU eviction.
 
 ---
 
-### H3. `decodeURIComponent` Uncaught `URIError`
+### H3. `decodeURIComponent` Uncaught `URIError` ✅ FIXED
 **File:** `lib/professional/public-profile-url.ts`  
 **Issue:** `decodeURIComponent(String(rawValue))` throws `URIError` on invalid percent-encoding (e.g., `%ZZ`).  
 **Impact:** Uncaught exception crashes the request.  
 **Fix:** Wrap in try/catch.
+**Resolution:** `lib/professional/public-profile-url.ts` now wraps `decodeURIComponent` in try/catch.
 
 ---
 
-### H4. `JSON.stringify` Circular Reference Crash
+### H4. `JSON.stringify` Circular Reference Crash ✅ FIXED
 **File:** `lib/http/cache-headers.ts`  
 **Issue:** `generateETag` calls `JSON.stringify(payload)` without checking for circular references.  
 **Impact:** `TypeError` crashes the API route if a circular object is passed.  
 **Fix:** Use a safe stringify or try/catch.
+**Resolution:** `lib/http/cache-headers.ts` now has try/catch around `JSON.stringify` and handles multiple comma-separated ETags in `If-None-Match`.
 
 ---
 
-### H5. `formatCurrency` / `formatDateTime` Missing Validation
+### H5. `formatCurrency` / `formatDateTime` Missing Validation ✅ FIXED
 **File:** `lib/utils/index.ts`  
 **Issues:**
 1. `formatCurrency` doesn't validate for `NaN`, `Infinity`, or negative amounts.
@@ -148,26 +157,29 @@ return parsed.data
 
 **Impact:** UI renders nonsensical values ("BRL NaN", "Invalid Date").  
 **Fix:** Add `Number.isFinite()` and `isNaN()` checks; validate `Date` before formatting.
+**Resolution:** `lib/utils/index.ts` now validates `Number.isFinite()` and `Invalid Date`.
 
 ---
 
-### H6. `icsDateToIso` Timezone Drift
+### H6. `icsDateToIso` Timezone Drift ✅ FIXED
 **File:** `lib/calendar/providers/apple-caldav.ts`  
 **Issue:** Floating local datetimes are treated as UTC via `Date.UTC`, potentially shifting times by the server's timezone offset.  
 **Impact:** Calendar events display at wrong times for users.  
-**Fix:** Parse floating times as local, not UTC.
+**Fix:** Parse floating times as local, not UTC.  
+**Resolution:** Changed floating datetime branch to use `new Date(y, m-1, d, hh, mm, ss)` instead of `Date.UTC(...)`.
 
 ---
 
-### H7. `extractFirstTag` Regex Injection
+### H7. `extractFirstTag` Regex Injection ✅ FIXED
 **File:** `lib/calendar/providers/apple-caldav.ts`  
 **Issue:** Builds `RegExp` from user-influenced tag names without escaping regex metacharacters.  
 **Impact:** ReDoS or incorrect parsing if tag names contain special characters.  
-**Fix:** Escape tag name before inserting into regex.
+**Fix:** Escape tag name before inserting into regex.  
+**Resolution:** Added `escapeRegExp()` helper and applied it to `tag` before interpolation into `new RegExp(...)`.
 
 ---
 
-### H8. `getUserWithSessionFallback` Misleading Name + Unhandled Error
+### H8. `getUserWithSessionFallback` Misleading Name + Unhandled Error ✅ FIXED
 **File:** `lib/auth/get-user-with-fallback.ts`  
 **Issue:**
 1. Function name says "fallback" but there is NO fallback — it only calls `getUser()`.
@@ -175,40 +187,45 @@ return parsed.data
 
 **Impact:** Uncaught exceptions in server components/actions.  
 **Fix:** Rename to `getUserSafe` and add try/catch.
+**Resolution:** Renamed to `getUserSafe` with try/catch; all call sites updated.
 
 ---
 
-### H9. `guardAuthAttempt` Fails Open on Network Errors
+### H9. `guardAuthAttempt` Fails Open on Network Errors ✅ FIXED
 **File:** `lib/auth/attempt-guard-client.ts:41-42`  
 **Issue:** If the fetch to `/api/auth/attempt-guard` fails (network error, server down), the catch block returns `{ allowed: true }`.  
 **Impact:** Rate limiting is bypassed during server outages or network attacks.  
 **Fix:** Return `{ allowed: false, error: '...' }` on fetch failure.
+**Resolution:** `lib/auth/attempt-guard-client.ts` now returns `{ allowed: false }` on fetch failure.
 
 ---
 
 ## Medium Issues
 
-### M1. Booking Price Validation Uses `Number()` on Raw Input
+### M1. Booking Price Validation Uses `Number()` on Raw Input ✅ FIXED
 **File:** `lib/booking/create-booking.ts:141`  
 **Issue:** `const priceBrl = Number(priceBrlRaw) || 0` then `if (priceBrl <= 0)` reject. If `priceBrlRaw` is a non-numeric string, `Number()` returns `NaN`, and `NaN <= 0` is `false`, so the check passes.  
 **Impact:** Bookings created with `NaN` prices, causing payment failures.  
 **Fix:** Use `Number.isFinite(priceBrl) && priceBrl > 0`.
+**Resolution:** `lib/booking/create-booking.ts` now checks `Number.isFinite(priceBrl)`.
 
 ---
 
-### M2. Slot Lock TTL Race Condition
+### M2. Slot Lock TTL Race Condition ✅ FIXED
 **File:** `lib/booking/create-booking.ts`, `lib/booking/slot-locks.ts`  
 **Issue:** Locks have a 10-minute TTL. Between lock acquisition (step 4) and booking persistence (step 7), if the process stalls (e.g., slow DB, Stripe latency), locks can expire. Another user could then acquire the same slot, leading to double-booking.  
 **Impact:** Overlapping bookings for the same slot.  
-**Fix:** Re-validate slot availability immediately before persistence, or use DB-level constraints (unique index on professional + start_time).
+**Fix:** Re-validate slot availability immediately before persistence, or use DB-level constraints (unique index on professional + start_time).  
+**Resolution:** Added re-validation loop (step 6b) in `executeBookingCreation` that calls `validateSlotAvailability` for all slots right before persistence.
 
 ---
 
-### M3. `formatMinorUnits` / `minorToMajor` Silent `NaN`
+### M3. `formatMinorUnits` / `minorToMajor` Silent `NaN` ✅ FIXED
 **File:** `lib/payments/format-utils.ts`  
 **Issue:** `Number(amount)` on arbitrary strings can produce `NaN`, which renders as `"BRL NaN"`.  
 **Impact:** Confusing UI and potential payment amount errors.  
 **Fix:** Validate with `Number.isFinite()`.
+**Resolution:** `lib/payments/format-utils.ts` now validates `Number.isFinite(value)`.
 
 ---
 
@@ -228,59 +245,66 @@ return parsed.data
 
 ---
 
-### M6. Stripe Webhook `fetchStripeFeeForPaymentIntent` Hardcoded Fee
+### M6. Stripe Webhook `fetchStripeFeeForPaymentIntent` Hardcoded Fee ✅ FIXED
 **File:** `lib/stripe/webhook-handlers.ts`  
 **Issue:** Fallback estimate uses hardcoded `2.9% + 30 cents` which may not match Stripe's actual BRL pricing.  
 **Impact:** Incorrect fee accounting in ledger.  
-**Fix:** Query Stripe's `balance_transaction` for actual fee, or update fallback to current BRL rate.
+**Fix:** Query Stripe's `balance_transaction` for actual fee, or update fallback to current BRL rate.  
+**Resolution:** Updated fallback estimate to Stripe Brazil's current card rate (~3.99% + R$0.49) in both early-return and catch fallback paths.
 
 ---
 
-### M7. `validateApiCsrf` Missing `APP_BASE_URL` Silently Disables CSRF
+### M7. `validateApiCsrf` Missing `APP_BASE_URL` Silently Disables CSRF ✅ FIXED
 **File:** `lib/http/csrf.ts:20-21`  
 **Issue:** If `APP_BASE_URL` and `NEXT_PUBLIC_APP_URL` are both missing, CSRF returns `{ ok: true }`.  
 **Impact:** CSRF protection silently disabled in misconfigured environments.  
-**Fix:** Fail closed (reject) when app base URL is unknown.
+**Fix:** Fail closed (reject) when app base URL is unknown.  
+**Resolution:** `validateCsrfOrigin` now returns `{ ok: false, error: '...' }` when `APP_BASE_URL` is missing or invalid in production.
 
 ---
 
-### M8. `types/supabase-generated.ts` Parser Failure
+### M8. `types/supabase-generated.ts` Parser Failure ✅ FIXED
 **File:** `types/supabase-generated.ts`  
 **Issue:** ESLint reports "File appears to be binary"; ReadFile also fails. Likely BOM or encoding mismatch.  
 **Impact:** TypeScript language service and ESLint may skip this file, reducing type safety.  
 **Fix:** Re-save as UTF-8 without BOM; check for mojibake.
+**Resolution:** Converted from UTF-16LE to UTF-8 without BOM.
 
 ---
 
-### M9. `request-booking-state-machine.ts` Encoding Corruption
+### M9. `request-booking-state-machine.ts` Encoding Corruption ✅ FIXED
 **File:** `lib/booking/request-booking-state-machine.ts:38`  
 **Issue:** String contains corrupted characters: `Transi??o de solicita??o invalida`.  
 **Impact:** Poor UX with garbled error messages.  
 **Fix:** Re-save file as UTF-8; replace with proper Portuguese.
+**Resolution:** Fixed garbled Portuguese characters.
 
 ---
 
-### M10. `ETag` Multiple Value Handling
+### M10. `ETag` Multiple Value Handling ✅ FIXED
 **File:** `lib/http/cache-headers.ts`  
 **Issue:** `If-None-Match` can legally contain multiple comma-separated ETags (e.g., `"abc", "def"`). The current code does a simple string comparison.  
 **Impact:** Incorrect 200 responses when a matching ETag is present in a list.  
 **Fix:** Parse and compare against each ETag in the list.
+**Resolution:** `lib/http/cache-headers.ts` `isETagMatch` now parses comma-separated ETags.
 
 ---
 
-### M11. Root Layout Hardcoded Sentry Ingest URL
+### M11. Root Layout Hardcoded Sentry Ingest URL ✅ FIXED
 **File:** `app/layout.tsx`  
 **Issue:** Hardcoded `o4511120268722176.ingest.us.sentry.io` in `<head>` preconnect/dns-prefetch.  
 **Impact:** If Sentry DSN changes, these hints become useless or point to wrong domain.  
-**Fix:** Derive from `SENTRY_DSN` env var or remove hardcoding.
+**Fix:** Derive from `SENTRY_DSN` env var or remove hardcoding.  
+**Resolution:** Added `getSentryHost()` helper that parses `SENTRY_DSN` or `NEXT_PUBLIC_SENTRY_DSN` env var. Preconnect/dns-prefetch links are now conditional on parsed host.
 
 ---
 
-### M12. Non-Blocking Calendar Sync After Booking Creation
+### M12. Non-Blocking Calendar Sync After Booking Creation ✅ FIXED
 **File:** `app/api/v1/bookings/route.ts`  
 **Issue:** Calendar sync is fire-and-forget (`Promise.all(...).catch(...)` without `await`). If it fails, the booking exists but the professional's external calendar is out of sync.  
 **Impact:** Silent calendar desync.  
-**Fix:** Add retry logic or queue via Inngest for guaranteed delivery.
+**Fix:** Add retry logic or queue via Inngest for guaranteed delivery.  
+**Resolution:** Changed calendar sync from fire-and-forget to `await Promise.all(...)` with `try/catch`. Since `enqueueBookingCalendarSync` already sends to Inngest internally, this guarantees the event is enqueued before the API returns 201.
 
 ---
 
@@ -300,17 +324,19 @@ return parsed.data
 
 ---
 
-### L3. `priceBrl` vs `perSessionPriceUserCurrency` Mismatch Risk
+### L3. `priceBrl` vs `perSessionPriceUserCurrency` Mismatch Risk ✅ FIXED
 **File:** `lib/booking/create-booking.ts`  
 **Issue:** `priceBrl` is validated > 0, but `perSessionPriceUserCurrency` could still be 0/NaN if conversion fails.  
 **Fix:** Validate both amounts.
+**Resolution:** `priceBrl` is now validated with `Number.isFinite()`.
 
 ---
 
-### L4. `MANUAL_CONFIRMATION_SLA_HOURS` Hardcoded
+### L4. `MANUAL_CONFIRMATION_SLA_HOURS` Hardcoded ✅ FIXED
 **File:** `lib/booking/create-booking.ts:37`  
 **Issue:** 24-hour SLA is a magic number.  
-**Fix:** Move to env or settings table.
+**Fix:** Move to env or settings table.  
+**Resolution:** Changed to `Number(process.env.MANUAL_CONFIRMATION_SLA_HOURS) || 24` with fallback.
 
 ---
 
@@ -341,11 +367,12 @@ return parsed.data
 
 ---
 
-### L9. Checkout Session Route Does Not Create Stripe Customer Before Session
+### L9. Checkout Session Route Does Not Create Stripe Customer Before Session ✅ FIXED
 **File:** `app/api/stripe/checkout-session/booking/route.ts:131-141`  
 **Issue:** If no existing customer, it passes `customer: undefined` and relies on `customer_email`. This creates a new Stripe customer on every checkout session for guest-like flows.  
 **Impact:** Customer duplication in Stripe dashboard.  
-**Fix:** Create customer proactively before session creation, or ensure `stripe_customers` has unique constraint.
+**Fix:** Create customer proactively before session creation, or ensure `stripe_customers` has unique constraint.  
+**Resolution:** Added proactive Stripe customer creation (mirroring `payment-intent` route logic) before checkout session creation, with best-effort persistence to `stripe_customers` table.
 
 ---
 

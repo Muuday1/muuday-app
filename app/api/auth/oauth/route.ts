@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
   const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieEncoding: 'raw',
     cookies: {
       getAll() {
         return request.cookies.getAll()

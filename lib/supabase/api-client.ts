@@ -80,6 +80,7 @@ export async function createApiClient(request?: NextRequest) {
     supabaseUrl,
     supabaseAnonKey,
     {
+      cookieEncoding: 'raw',
       cookieOptions: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

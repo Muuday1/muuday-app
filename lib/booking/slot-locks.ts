@@ -18,16 +18,6 @@ export async function acquireSlotLock(
   const ttlMinutes = input.ttlMinutes ?? 10
   const expiresAt = new Date(now + ttlMinutes * 60 * 1000).toISOString()
 
-  const { error: cleanupError } = await supabase
-    .from('slot_locks')
-    .delete()
-    .eq('professional_id', input.professionalId)
-    .lte('expires_at', nowIso)
-
-  if (cleanupError) {
-    Sentry.captureException(cleanupError, { tags: { area: 'slot_locks' } })
-  }
-
   const { data: overlappingLocks, error: lockQueryError } = await supabase
     .from('slot_locks')
     .select('id, user_id')

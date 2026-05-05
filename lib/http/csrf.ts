@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server'
  * In development, the check is relaxed to allow local testing.
  */
 export function validateCsrfOrigin(request: NextRequest): { ok: true } | { ok: false; error: string } {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.DISABLE_CSRF === 'true') {
     return { ok: true }
   }
 

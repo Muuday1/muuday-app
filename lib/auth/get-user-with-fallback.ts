@@ -1,8 +1,4 @@
-type SupabaseAuthClientLike = {
-  auth: {
-    getUser: () => Promise<{ data: { user: unknown | null } }>
-  }
-}
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Always use getUser() — never fall back to getSession().
@@ -11,7 +7,7 @@ type SupabaseAuthClientLike = {
  * of truth for server-side identity.
  */
 export async function getUserSafe<TUser = unknown>(
-  supabase: SupabaseAuthClientLike,
+  supabase: SupabaseClient,
 ): Promise<TUser | null> {
   try {
     const {

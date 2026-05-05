@@ -14,6 +14,7 @@ async function handleSignOut(request: NextRequest) {
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieEncoding: 'raw',
     cookies: {
       getAll() {
         return request.cookies.getAll()

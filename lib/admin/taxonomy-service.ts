@@ -56,19 +56,23 @@ export async function insertTaxonomyItemService(
   supabase: SupabaseClient,
   data: TaxonomyItemInsert,
 ) {
+  const trimmedNamePt = data.name_pt.trim()
+  if (!trimmedNamePt) {
+    return { success: false, error: 'Nome em português é obrigatório.' }
+  }
+
   const table = getTableName(data.type)
   const payload: Record<string, string | number> = {
     slug:
       data.slug ||
-      data.name_pt
-        .trim()
+      trimmedNamePt
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, ''),
-    name_pt: data.name_pt.trim(),
-    name_en: data.name_en.trim() || data.name_pt.trim(),
+    name_pt: trimmedNamePt,
+    name_en: data.name_en.trim() || trimmedNamePt,
     sort_order: data.sortOrder,
   }
 
