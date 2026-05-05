@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
                 source: 'cron_booking_timeout',
               },
             },
-            { idempotencyKey: `timeout-refund-${payment.id}-${nowIso}` },
+            { idempotencyKey: `timeout-refund-${payment.id}` },
           )
         }
 

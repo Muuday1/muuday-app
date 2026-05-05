@@ -7,6 +7,8 @@ import {
 } from '@/lib/email/resend-events'
 import { captureBookingPayment } from '@/lib/stripe/capture'
 import { enqueuePaymentRetry } from '@/lib/stripe/cron-jobs'
+import { createAdminClient } from '@/lib/supabase/admin'
+import * as Sentry from '@sentry/nextjs'
 import type { ManageBookingResult } from '@/lib/booking/types'
 
 export async function completeBookingService(
@@ -57,21 +59,35 @@ export async function completeBookingService(
   // This is fire-and-forget: we don't fail the completion if capture fails,
   // because the professional has already delivered the session.
   captureBookingPayment(supabase, bookingId).catch(async (captureError) => {
-    // Error is already logged to Sentry inside captureBookingPayment
-    console.error('Failed to capture payment for booking', bookingId, captureError)
-    // Enqueue a retry so the capture is re-attempted later.
-    // We need the provider_payment_id for the retry queue; look it up.
-    const { data: paymentRow } = await supabase
-      .from('payments')
-      .select('id, stripe_payment_intent_id')
-      .eq('booking_id', bookingId)
-      .eq('provider', 'stripe')
-      .maybeSingle()
-    if (paymentRow?.id || paymentRow?.stripe_payment_intent_id) {
-      await enqueuePaymentRetry(supabase, paymentRow.id, paymentRow.stripe_payment_intent_id, {
-        source: 'booking_completion',
-        booking_id: bookingId,
-        reason: captureError instanceof Error ? captureError.message : String(captureError),
+    try {
+      // Error is already logged to Sentry inside captureBookingPayment
+      console.error('Failed to capture payment for booking', bookingId, captureError)
+      // Enqueue a retry so the capture is re-attempted later.
+      // We need the provider_payment_id for the retry queue; look it up.
+      const admin = createAdminClient()
+      if (!admin) {
+        Sentry.captureMessage('Admin client not available for capture retry enqueue', 'error')
+        return
+      }
+      const { data: paymentRow } = await admin
+        .from('payments')
+        .select('id, stripe_payment_intent_id')
+        .eq('booking_id', bookingId)
+        .eq('provider', 'stripe')
+        .maybeSingle()
+      if (paymentRow?.id || paymentRow?.stripe_payment_intent_id) {
+        await enqueuePaymentRetry(admin, paymentRow.id, paymentRow.stripe_payment_intent_id, {
+          source: 'booking_completion',
+          booking_id: bookingId,
+          reason: captureError instanceof Error ? captureError.message : String(captureError),
+        })
+      } else {
+        Sentry.captureMessage(`Capture retry: no payment found for booking ${bookingId}`, 'warning')
+      }
+    } catch (enqueueError) {
+      Sentry.captureException(enqueueError instanceof Error ? enqueueError : new Error(String(enqueueError)), {
+        tags: { area: 'booking_completion', subArea: 'capture_retry_enqueue' },
+        extra: { bookingId },
       })
     }
   })

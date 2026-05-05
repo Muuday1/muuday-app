@@ -400,7 +400,7 @@ export async function runStripeFailedPaymentRetries(
 
         const paymentIntent = await stripeClient.paymentIntents.retrieve(row.provider_payment_id)
         const stripeStatus = paymentIntent.status
-        if (stripeStatus === 'succeeded' || stripeStatus === 'processing') {
+        if (stripeStatus === 'succeeded') {
           if (row.payment_id) {
             // Load current payment state to check idempotency
             const { data: paymentRow, error: paymentLoadError } = await admin
@@ -411,6 +411,9 @@ export async function runStripeFailedPaymentRetries(
 
             if (paymentLoadError) {
               Sentry.captureException(paymentLoadError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_load' } })
+              // Do NOT update payment status or mark queue row as succeeded if we
+              // can't load the payment row. Leave it for the next retry.
+              continue
             }
 
             const wasAlreadyCaptured = paymentRow?.status === 'captured'
@@ -473,6 +476,24 @@ export async function runStripeFailedPaymentRetries(
             Sentry.captureException(queueUpdateError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_queue' } })
           } else {
             succeeded += 1
+          }
+          continue
+        }
+
+        if (stripeStatus === 'processing') {
+          // PaymentIntent is still processing; leave in queue for next check
+          const { error: queueUpdateError } = await admin
+            .from('stripe_payment_retry_queue')
+            .update({
+              status: 'queued',
+              last_error: 'payment_intent_still_processing',
+              next_attempt_at: buildNextRetryDate(row.attempt_count + 1, now).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', row.id)
+
+          if (queueUpdateError) {
+            Sentry.captureException(queueUpdateError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_queue' } })
           }
           continue
         }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
+import * as Sentry from '@sentry/nextjs'
 import { inngest } from '@/inngest/client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import {
@@ -145,11 +146,19 @@ export async function POST(request: NextRequest) {
       })
       enqueued += 1
     } catch (error) {
-      enqueueErrors.push(
-        error instanceof Error ? error.message : 'failed to enqueue supabase/payments.changed',
-      )
+      const msg = error instanceof Error ? error.message : 'failed to enqueue supabase/payments.changed'
+      enqueueErrors.push(msg)
+      Sentry.captureException(error instanceof Error ? error : new Error(msg), {
+        tags: { area: 'supabase_db_webhook', subArea: 'payments_enqueue' },
+      })
     }
   }
+
+  // If payments.changed enqueue failed, return 500 so Supabase retries the webhook.
+  // This is critical because the downstream Inngest function transitions bookings
+  // from pending_payment → confirmed/pending_confirmation.
+  const hasCriticalFailure = enqueueErrors.some((e) => e.includes('payments.changed'))
+  const status = hasCriticalFailure ? 500 : enqueueErrors.length === 0 ? 202 : 207
 
   return withCors(
     NextResponse.json(
@@ -158,7 +167,7 @@ export async function POST(request: NextRequest) {
         enqueued,
         enqueueErrors,
       },
-      { status: enqueueErrors.length === 0 ? 202 : 207, headers: rateLimitHeaders },
+      { status, headers: rateLimitHeaders },
     ),
   )
 }

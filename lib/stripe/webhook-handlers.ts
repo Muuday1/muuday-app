@@ -279,6 +279,22 @@ async function fetchStripePayoutFee(payoutId: string): Promise<bigint> {
   return BigInt(0)
 }
 
+async function hasLedgerForPayment(admin: SupabaseClient, paymentId: string): Promise<boolean> {
+  const { data, error } = await admin
+    .from('ledger_entries')
+    .select('id')
+    .eq('payment_id', paymentId)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    // Fail closed: assume ledger exists to prevent duplicates
+    Sentry.captureMessage(`[stripe/webhook] ledger lookup failed for payment ${paymentId}: ${error.message}`, 'warning')
+    return true
+  }
+  return Boolean(data?.id)
+}
+
 async function recordStripeSettlement(
   admin: SupabaseClient,
   payout: Stripe.Payout,
@@ -316,9 +332,9 @@ async function recordStripeSettlement(
     .from('stripe_settlements')
     .insert({
       stripe_payout_id: payout.id,
-      amount: amountMinor,
-      fee: feeMinor,
-      net_amount: netMinor,
+      amount: Number(amountMinor),
+      fee: Number(feeMinor),
+      net_amount: Number(netMinor),
       currency: payout.currency?.toUpperCase() || 'BRL',
       status,
       arrival_date: payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : null,
@@ -371,12 +387,14 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
       const amountMinor = BigInt(payment.amount_total_minor || 0)
       if (amountMinor <= BigInt(0)) continue
 
-      // Idempotency guard: skip ledger/balance if this payment was already captured
-      // before this webhook fired (e.g. replay or retry cron already processed it).
-      // We still update the payment metadata above, but avoid duplicate ledger entries.
-      if (payment.status === 'captured') {
+      // Idempotency guard: skip ledger/balance if a ledger entry already exists
+      // for this payment (e.g. replay, retry cron, or previous webhook attempt).
+      // Checking ledger_entries is more robust than payment.status because a
+      // previous webhook attempt may have captured the payment but failed on ledger.
+      const alreadyHasLedger = await hasLedgerForPayment(admin, payment.id)
+      if (alreadyHasLedger) {
         Sentry.captureMessage(
-          `[stripe/webhook] payment_intent.succeeded: payment ${payment.id} already captured, skipping ledger`,
+          `[stripe/webhook] payment_intent.succeeded: payment ${payment.id} already has ledger, skipping`,
           'warning',
         )
         continue
@@ -395,14 +413,31 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
         bookingId: payment.booking_id,
         paymentId: payment.id,
       })
-      await createLedgerTransaction(admin, ledgerInput)
+
+      try {
+        await createLedgerTransaction(admin, ledgerInput)
+      } catch (ledgerError) {
+        Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), {
+          tags: { area: 'stripe_webhook', subArea: 'ledger_balance' },
+        })
+        // Non-blocking: webhook is still marked processed. The ledger can be
+        // backfilled later via reconciliation, and the idempotency guard above
+        // prevents duplicate entries on replay.
+      }
 
       // Update professional balance: increment available_balance
       // (Money is immediately available because capture happens after session
       // completion. A future hold period can be added if chargeback risk increases.)
-      await updateProfessionalBalance(admin, payment.professional_id, {
-        availableDelta: amountMinor - platformFeeMinor,
-      })
+      try {
+        await updateProfessionalBalance(admin, payment.professional_id, {
+          availableDelta: amountMinor - platformFeeMinor,
+        })
+      } catch (balanceError) {
+        Sentry.captureException(balanceError instanceof Error ? balanceError : new Error(String(balanceError)), {
+          tags: { area: 'stripe_webhook', subArea: 'professional_balance' },
+        })
+        // Non-blocking: balance can be recalculated later.
+      }
     }
 
     return { outcome: 'processed', paymentRowsUpdated: payments.length }
@@ -528,7 +563,16 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
       throw new Error('Stripe client not configured for dispute handling')
     }
 
-    const charge = await stripe.charges.retrieve(chargeId)
+    let charge: Stripe.Charge
+    try {
+      charge = await stripe.charges.retrieve(chargeId)
+    } catch (chargeError) {
+      const msg = chargeError instanceof Error ? chargeError.message : String(chargeError)
+      Sentry.captureException(chargeError instanceof Error ? chargeError : new Error(msg), {
+        tags: { area: 'stripe_webhook', subArea: 'dispute_charge_lookup' },
+      })
+      return { outcome: 'ignored', reason: 'charge_lookup_failed' }
+    }
     const piId = asIdFromStringOrObject(charge.payment_intent)
 
     if (!piId) {
@@ -555,8 +599,8 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
     const { error: disputeInsertError } = await admin.from('dispute_resolutions').insert({
       booking_id: paymentRow.booking_id,
       professional_id: paymentRow.professional_id,
-      dispute_amount: BigInt(dispute.amount || 0),
-      remaining_debt: BigInt(dispute.amount || 0),
+      dispute_amount: Number(dispute.amount || 0),
+      remaining_debt: Number(dispute.amount || 0),
       recovery_method: 'future_withholding',
       status: 'open',
       notes: `Stripe dispute created: ${dispute.reason || 'unknown'}`,
