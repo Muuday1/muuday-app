@@ -130,7 +130,7 @@ export function CaseDecisionPanel({
             </Link>
           )}
           <Link
-            href="/admin/finance/disputas"
+            href="/admin/finance/disputes"
             target="_blank"
             className="block text-sm text-[#3d6b1f] hover:underline"
           >

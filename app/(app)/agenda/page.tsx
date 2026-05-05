@@ -513,13 +513,13 @@ export default async function AgendaPage({
             <Link href="/agenda?view=overview" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'overview')}`}>
               Visão geral
             </Link>
-            <Link href="/agenda?view=pending" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'pending')}`}>
+            <Link href="/agenda?view=inbox&filter=confirmations" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'inbox')}`}>
               Pendências
             </Link>
-            <Link href="/agenda?view=requests" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'requests')}`}>
+            <Link href="/agenda?view=inbox&filter=requests" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'inbox')}`}>
               Solicitações
             </Link>
-            <Link href="/agenda?view=settings" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'settings')}`}>
+            <Link href="/agenda?view=availability_rules" className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${viewLinkClass(activeView, 'availability_rules')}`}>
               Regras e calendário
             </Link>
           </div>
@@ -541,7 +541,7 @@ export default async function AgendaPage({
         </section>
       )}
 
-      {isProfessional && activeView === 'settings' && (
+      {isProfessional && activeView === 'availability_rules' && (
         <AppCard className="mb-8" data-testid="professional-calendar-control-center">
           <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-slate-900">
             <Settings className="h-5 w-5 text-[#9FE870]" />
@@ -746,7 +746,7 @@ export default async function AgendaPage({
         <div className="mb-8" data-testid="agenda-upcoming-section">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 font-display">
           <Calendar className="h-5 w-5 text-[#9FE870]" />
-            {isProfessional && activeView === 'pending' ? 'Pendências de confirmação' : 'Próximas sessões'}
+            {isProfessional && activeView === 'inbox' && inboxFilter === 'confirmations' ? 'Pendências de confirmação' : 'Próximas sessões'}
         </h2>
 
         {isProfessional && pendingConfirmations.length > 0 && (

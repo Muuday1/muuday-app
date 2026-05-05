@@ -31,14 +31,15 @@ test.describe('Professional workspace role split', () => {
 
   test('renders agenda control center views', async ({ page }) => {
     await login(page, professionalEmail as string, professionalPassword as string)
-    await page.goto('/agenda?view=settings')
+    await page.goto('/agenda?view=availability_rules')
 
     await expect(page.locator('[data-testid="professional-agenda-view-switcher"]')).toBeVisible()
-    await expect(page.locator('[data-testid="professional-calendar-control-center"]')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Regras e disponibilidades/i })).toBeVisible()
 
-    await page.goto('/agenda?view=pending')
-    await expect(page.locator('[data-testid="agenda-upcoming-section"]')).toBeVisible()
-    await expect(page).toHaveURL(/\/agenda\?view=pending/)
+    await page.goto('/agenda?view=inbox&filter=confirmations')
+    await expect(page.locator('[data-testid="professional-agenda-view-switcher"]')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Inbox única de confirmações e solicitações/i })).toBeVisible()
+    await expect(page).toHaveURL(/\/agenda\?view=inbox/)
   })
 
   test('renders business-oriented professional settings hub', async ({ page }) => {

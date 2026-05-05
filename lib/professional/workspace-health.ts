@@ -138,7 +138,7 @@ export function buildProfessionalWorkspaceAlerts({
       level: 'critical',
       title: 'Confirmacoes pendentes',
       description: `${pendingConfirmations} agendamento(s) aguardando sua decisao dentro do SLA.`,
-      actionHref: '/agenda?view=pending',
+      actionHref: '/agenda?view=inbox&filter=confirmations',
       actionLabel: 'Abrir pendencias',
     })
   }
@@ -149,7 +149,7 @@ export function buildProfessionalWorkspaceAlerts({
       level: 'info',
       title: 'Solicitacoes aguardando resposta',
       description: `${openRequests} solicitacao(oes) de horario aguardando proposta ou decisao.`,
-      actionHref: '/agenda?view=requests',
+      actionHref: '/agenda?view=inbox&filter=requests',
       actionLabel: 'Abrir solicitacoes',
     })
   }
@@ -161,7 +161,7 @@ export function buildProfessionalWorkspaceAlerts({
       title: 'Calendario externo nao conectado',
       description:
         'Conectar calendario reduz conflitos e melhora confiabilidade da agenda.',
-      actionHref: '/agenda?view=settings',
+      actionHref: '/agenda?view=availability_rules',
       actionLabel: 'Ver integracao',
     })
   }

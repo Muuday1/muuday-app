@@ -353,7 +353,7 @@ export default async function DashboardPage({
           </div>
           <p className="text-sm text-slate-700">{pendingConfirmationCount} pendência(s) de confirmação manual</p>
           <p className="mt-1 text-sm text-slate-700">{openRequestCount} solicitação(ões) de horário em aberto</p>
-          <Link href="/agenda?view=pending" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
+          <Link href="/agenda?view=inbox&filter=confirmations" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
             Resolver agora
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -413,10 +413,10 @@ export default async function DashboardPage({
           icon={<Layers className="h-4 w-4 text-[#9FE870]" />}
         />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Link href="/agenda?view=pending" className={`rounded-md border p-3 text-sm font-medium transition ${pendingConfirmationCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
+          <Link href="/agenda?view=inbox&filter=confirmations" className={`rounded-md border p-3 text-sm font-medium transition ${pendingConfirmationCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
             Confirmar pendências {pendingConfirmationCount > 0 && `(${pendingConfirmationCount})`}
           </Link>
-          <Link href="/agenda?view=requests" className={`rounded-md border p-3 text-sm font-medium transition ${openRequestCount > 0 ? 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
+          <Link href="/agenda?view=inbox&filter=requests" className={`rounded-md border p-3 text-sm font-medium transition ${openRequestCount > 0 ? 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100' : 'border-slate-200 text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]'}`}>
             Responder solicitações {openRequestCount > 0 && `(${openRequestCount})`}
           </Link>
           <Link href="/disponibilidade" className="rounded-md border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-[#9FE870]/40 hover:text-[#3d6b1f]">
@@ -511,7 +511,7 @@ export default async function DashboardPage({
               : 'nunca'}
           </p>
           <p className="mt-1 text-sm text-slate-700">Slots ativos: {activeAvailabilityCount || 0}</p>
-          <Link href="/agenda?view=settings" className="mt-2 inline-flex text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
+          <Link href="/agenda?view=availability_rules" className="mt-2 inline-flex text-xs font-semibold text-[#3d6b1f] hover:text-[#2d5016]">
             Abrir configurações de calendário
           </Link>
         </AppCard>
