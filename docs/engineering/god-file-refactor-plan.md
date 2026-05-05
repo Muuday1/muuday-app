@@ -39,6 +39,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/admin/CaseDetailClient.tsx` | ~~587~~ **167** | MEDIUM | ✅ Extracted useCaseDetail + 5 section components |
 | `components/agenda/ProfessionalAvailabilityCalendar.tsx` | ~~549~~ **95** | MEDIUM | ✅ Extracted types, helpers, hook, 5 view components |
 | `lib/guides-data.ts` | ~~1775~~ **12** | LOW | ✅ Split into 14 category files + barrel |
+| `lib/admin/admin-service.ts` | ~~1335~~ **577** | MEDIUM | ✅ Split into 7 thematic files + barrel |
 
 ---
 
