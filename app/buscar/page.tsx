@@ -1128,7 +1128,7 @@ export async function BuscarPageContent({
                       <div className="flex-1 min-w-0">
                         <SearchBookingCtas
                           isLoggedIn={isLoggedIn}
-                          bookHref={`/profissional/${professional.id}`}
+                          bookHref={`/agendar/${professional.id}`}
                           messageHref={`/mensagens?profissional=${professional.id}`}
                         />
                       </div>

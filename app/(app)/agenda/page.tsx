@@ -222,8 +222,24 @@ export default async function AgendaPage({
   const userTimezone = profile?.timezone || 'America/Sao_Paulo'
   const nowIso = new Date().toISOString()
   const { view, filter } = await searchParams
-  const activeView = normalizeView(view, isProfessional)
-  const inboxFilter = normalizeInboxFilter(filter)
+
+  // Map legacy view names to current agenda views so dashboard/workspace-health links work
+  let resolvedView = view
+  let resolvedFilter = filter
+  if (isProfessional) {
+    if (resolvedView === 'pending') {
+      resolvedView = 'inbox'
+      resolvedFilter = resolvedFilter || 'confirmations'
+    } else if (resolvedView === 'requests') {
+      resolvedView = 'inbox'
+      resolvedFilter = resolvedFilter || 'requests'
+    } else if (resolvedView === 'settings') {
+      resolvedView = 'availability_rules'
+    }
+  }
+
+  const activeView = normalizeView(resolvedView, isProfessional)
+  const inboxFilter = normalizeInboxFilter(resolvedFilter)
 
   const expireQuery = isProfessional && professionalId
     ? supabase
