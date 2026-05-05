@@ -76,127 +76,135 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
 
-  const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
+  try {
+    const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookieEncoding: 'raw',
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            pendingCookies.push({ name, value, options })
-          })
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookieEncoding: 'raw',
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value)
+              pendingCookies.push({ name, value, options })
+            })
+          },
         },
       },
-    },
-  )
+    )
 
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-  if (exchangeError) {
-    Sentry.captureException(exchangeError, {
-      tags: { area: 'auth', flow: 'oauth_callback' },
-    })
-    return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
-  }
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    if (exchangeError) {
+      Sentry.captureException(exchangeError, {
+        tags: { area: 'auth', flow: 'oauth_callback' },
+      })
+      return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
+    }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  if (!user) {
-    Sentry.captureMessage('auth_oauth_callback_missing_user', {
-      level: 'error',
-      tags: { area: 'auth', flow: 'oauth_callback' },
-    })
-    return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
-  }
+    if (!user) {
+      Sentry.captureMessage('auth_oauth_callback_missing_user', {
+        level: 'error',
+        tags: { area: 'auth', flow: 'oauth_callback' },
+      })
+      return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
+    }
 
-  function redirectWithSession(pathname: string) {
-    const redirectResponse = NextResponse.redirect(`${baseUrl}${pathname}`)
-    pendingCookies.forEach(({ name, value, options }) => {
-      redirectResponse.cookies.set(name, value, options)
-    })
-    return redirectResponse
-  }
+    function redirectWithSession(pathname: string) {
+      const redirectResponse = NextResponse.redirect(`${baseUrl}${pathname}`)
+      pendingCookies.forEach(({ name, value, options }) => {
+        redirectResponse.cookies.set(name, value, options)
+      })
+      return redirectResponse
+    }
 
-  function resolveCompleteAccountPath() {
-    const params = new URLSearchParams()
-    params.set('role', roleHint)
-    if (safeNextPath) params.set('next', safeNextPath)
-    return `/completar-conta?${params.toString()}`
-  }
+    function resolveCompleteAccountPath() {
+      const params = new URLSearchParams()
+      params.set('role', roleHint)
+      if (safeNextPath) params.set('next', safeNextPath)
+      return `/completar-conta?${params.toString()}`
+    }
 
-  function resolveDestinationByRole(role: string | null | undefined) {
-    if (safeNextPath) return safeNextPath
-    return resolvePostLoginDestination(role)
-  }
+    function resolveDestinationByRole(role: string | null | undefined) {
+      if (safeNextPath) return safeNextPath
+      return resolvePostLoginDestination(role)
+    }
 
-  const metadataRole =
-    normalizeRole(user.app_metadata?.role) ||
-    normalizeRole((user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role) ||
-    normalizeRole(user.user_metadata?.role)
+    const metadataRole =
+      normalizeRole(user.app_metadata?.role) ||
+      normalizeRole((user as { raw_app_meta_data?: Record<string, unknown> } | null)?.raw_app_meta_data?.role) ||
+      normalizeRole(user.user_metadata?.role)
 
-  const [{ data: profile }, { data: professionalRow }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, country, timezone, role')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('professionals')
-      .select('id, status')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ])
+    const [{ data: profile }, { data: professionalRow }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, country, timezone, role')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('professionals')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ])
 
-  const effectiveRole = profile?.role || metadataRole || roleHint
+    const effectiveRole = profile?.role || metadataRole || roleHint
 
-  if (!profile) {
-    const fullName =
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      user.email?.split('@')[0] ||
-      'Usuario'
+    if (!profile) {
+      const fullName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split('@')[0] ||
+        'Usuario'
 
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      email: user.email || '',
-      full_name: String(fullName),
-      role: metadataRole || roleHint,
-    })
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email || '',
+        full_name: String(fullName),
+        role: metadataRole || roleHint,
+      })
 
-    const { data: profileAfterUpsert } = await supabase
-      .from('profiles')
-      .select('country, timezone, role')
-      .eq('id', user.id)
-      .maybeSingle()
+      const { data: profileAfterUpsert } = await supabase
+        .from('profiles')
+        .select('country, timezone, role')
+        .eq('id', user.id)
+        .maybeSingle()
 
-    if (!profileAfterUpsert?.country || !profileAfterUpsert?.timezone) {
+      if (!profileAfterUpsert?.country || !profileAfterUpsert?.timezone) {
+        return redirectWithSession(resolveCompleteAccountPath())
+      }
+
+      // Professionals must complete profile even if country/timezone exist
+      if ((profileAfterUpsert?.role === 'profissional') && !professionalRow) {
+        return redirectWithSession('/completar-perfil')
+      }
+
+      return redirectWithSession(resolveDestinationByRole(profileAfterUpsert?.role))
+    }
+
+    if (!profile.country || !profile.timezone) {
       return redirectWithSession(resolveCompleteAccountPath())
     }
 
-    // Professionals must complete profile even if country/timezone exist
-    if ((profileAfterUpsert?.role === 'profissional') && !professionalRow) {
+    // Professionals must complete profile before accessing dashboard
+    if (effectiveRole === 'profissional' && !professionalRow) {
       return redirectWithSession('/completar-perfil')
     }
 
-    return redirectWithSession(resolveDestinationByRole(profileAfterUpsert?.role))
+    return redirectWithSession(resolveDestinationByRole(profile.role))
+  } catch (error) {
+    Sentry.captureException(error instanceof Error ? error : new Error('auth_callback_unexpected_error'), {
+      tags: { area: 'auth', flow: 'oauth_callback' },
+      extra: { role_hint: roleHint },
+    })
+    return NextResponse.redirect(`${baseUrl}/login?erro=oauth`)
   }
-
-  if (!profile.country || !profile.timezone) {
-    return redirectWithSession(resolveCompleteAccountPath())
-  }
-
-  // Professionals must complete profile before accessing dashboard
-  if (effectiveRole === 'profissional' && !professionalRow) {
-    return redirectWithSession('/completar-perfil')
-  }
-
-  return redirectWithSession(resolveDestinationByRole(profile.role))
 }

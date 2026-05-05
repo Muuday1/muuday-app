@@ -526,3 +526,15 @@ Additional issues discovered during rigorous post-fix verification.
 **Fix:** Run `npm audit fix` to update `axios` to a patched version and `fast-xml-parser` to `5.7.2`.
 **Resolution:** All HIGH vulnerabilities resolved. Remaining 2 moderate vulnerabilities are in `postcss` (dependency of `next`), which requires a Next.js upgrade and cannot be safely force-updated.
 **Verification:** Typecheck, build, and all 1059 unit tests pass after the updates.
+
+### R4. Auth Routes Missing Global Error Handling ✅ FIXED
+**Files:** `app/auth/callback/route.ts`, `app/auth/signout/route.ts`, `app/api/auth/oauth/route.ts`, `app/api/auth/attempt-guard/route.ts`
+**Issue:** Critical authentication routes had no global `try/catch` around their async handlers. If Supabase Auth was unreachable, network errors occurred, or unexpected exceptions were thrown, users would see a raw HTTP 500 instead of a graceful redirect or error message.
+**Impact:** Complete OAuth login/signout flow failures during transient outages; poor UX; potential Sentry blind spots.
+**Fix:** Wrap the core handler logic in `try/catch` in all four routes:
+- `auth/callback`: redirect to `/login?erro=oauth` on any unexpected error
+- `auth/signout`: still redirect to `/` even if `supabase.auth.signOut()` fails; capture exception in Sentry
+- `api/auth/oauth`: return JSON `{ error: 'OAuth initiation failed' }` with Sentry capture
+- `api/auth/attempt-guard`: fail open (`{ allowed: true, warning: 'Rate limit unavailable' }`) so users can still authenticate if the rate limiter is down; capture exception in Sentry
+**Resolution:** All four routes now have robust error handling with Sentry reporting and graceful degradation.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.

@@ -36,45 +36,53 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Auth not configured' }, { status: 500 })
   }
 
-  const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
+  try {
+    const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookieEncoding: 'raw',
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookieEncoding: 'raw',
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            pendingCookies.push({ name, value, options })
+          })
+        },
       },
-      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          pendingCookies.push({ name, value, options })
-        })
-      },
-    },
-  })
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: provider as 'google' | 'facebook' | 'apple',
-    options: {
-      redirectTo: redirectTo || undefined,
-      skipBrowserRedirect: true,
-    },
-  })
-
-  if (error || !data?.url) {
-    Sentry.captureMessage(`[auth/oauth] OAuth initiation failed: ${error?.message || 'unknown'}`, {
-      level: 'error',
-      tags: { area: 'auth_oauth', context: 'initiation' },
     })
-    return NextResponse.json(
-      { error: error?.message || 'OAuth initiation failed' },
-      { status: 500 }
-    )
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: provider as 'google' | 'facebook' | 'apple',
+      options: {
+        redirectTo: redirectTo || undefined,
+        skipBrowserRedirect: true,
+      },
+    })
+
+    if (error || !data?.url) {
+      Sentry.captureMessage(`[auth/oauth] OAuth initiation failed: ${error?.message || 'unknown'}`, {
+        level: 'error',
+        tags: { area: 'auth_oauth', context: 'initiation' },
+      })
+      return NextResponse.json(
+        { error: error?.message || 'OAuth initiation failed' },
+        { status: 500 }
+      )
+    }
+
+    const response = NextResponse.redirect(data.url)
+    pendingCookies.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options)
+    })
+
+    return response
+  } catch (error) {
+    Sentry.captureException(error instanceof Error ? error : new Error('auth_oauth_unexpected_error'), {
+      tags: { area: 'auth_oauth', context: 'initiation' },
+      extra: { provider },
+    })
+    return NextResponse.json({ error: 'OAuth initiation failed' }, { status: 500 })
   }
-
-  const response = NextResponse.redirect(data.url)
-  pendingCookies.forEach(({ name, value, options }) => {
-    response.cookies.set(name, value, options)
-  })
-
-  return response
 }

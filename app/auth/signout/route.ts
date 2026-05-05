@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 
 async function handleSignOut(request: NextRequest) {
   // Always redirect back to this request origin to avoid cross-domain redirect mismatches.
@@ -13,21 +14,28 @@ async function handleSignOut(request: NextRequest) {
     return response
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookieEncoding: 'raw',
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookieEncoding: 'raw',
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
       },
-      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options)
-        })
-      },
-    },
-  })
+    })
 
-  await supabase.auth.signOut()
+    await supabase.auth.signOut()
+  } catch (error) {
+    Sentry.captureException(error instanceof Error ? error : new Error('auth_signout_unexpected_error'), {
+      tags: { area: 'auth', flow: 'signout' },
+    })
+  }
+
   return response
 }
 

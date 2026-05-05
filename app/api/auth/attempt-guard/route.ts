@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import * as Sentry from '@sentry/nextjs'
 import { rateLimit } from '@/lib/security/rate-limit'
 import {
   PUBLIC_API_CORS_POLICY,
@@ -38,38 +39,45 @@ export async function POST(request: NextRequest) {
   }
   const withCors = (response: NextResponse) => applyCorsHeaders(response, corsDecision.headers)
 
-  const body = await request.json().catch(() => null)
-  const parsed = schema.safeParse(body)
-  if (!parsed.success) {
-    return withCors(NextResponse.json({ error: 'Payload inválido.' }, { status: 400 }))
-  }
+  try {
+    const body = await request.json().catch(() => null)
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) {
+      return withCors(NextResponse.json({ error: 'Payload inválido.' }, { status: 400 }))
+    }
 
-  const action = parsed.data.action
-  const email = normalizeEmail(parsed.data.email)
-  if ((action === 'login' || action === 'signup') && !email) {
-    return withCors(NextResponse.json({ error: 'E-mail obrigatório.' }, { status: 400 }))
-  }
+    const action = parsed.data.action
+    const email = normalizeEmail(parsed.data.email)
+    if ((action === 'login' || action === 'signup') && !email) {
+      return withCors(NextResponse.json({ error: 'E-mail obrigatório.' }, { status: 400 }))
+    }
 
-  const ip = getClientIp(request)
-  const identifier = `${ip}:${email || 'anonymous'}`
-  const preset = action === 'login' ? 'authLogin' : action === 'signup' ? 'authSignup' : 'authOAuth'
-  const rl = await rateLimit(preset, identifier)
+    const ip = getClientIp(request)
+    const identifier = `${ip}:${email || 'anonymous'}`
+    const preset = action === 'login' ? 'authLogin' : action === 'signup' ? 'authSignup' : 'authOAuth'
+    const rl = await rateLimit(preset, identifier)
 
-  const rateLimitHeaders = buildRateLimitHeaders(rl)
-  if (!rl.allowed) {
+    const rateLimitHeaders = buildRateLimitHeaders(rl)
+    if (!rl.allowed) {
+      return applyCorsHeaders(
+        NextResponse.json(
+          { allowed: false, error: 'Muitas tentativas. Aguarde alguns instantes e tente novamente.' },
+          { status: 429, headers: rateLimitHeaders },
+        ),
+        corsDecision.headers,
+      )
+    }
+
     return applyCorsHeaders(
-      NextResponse.json(
-        { allowed: false, error: 'Muitas tentativas. Aguarde alguns instantes e tente novamente.' },
-        { status: 429, headers: rateLimitHeaders },
-      ),
+      NextResponse.json({ allowed: true }, { headers: rateLimitHeaders }),
       corsDecision.headers,
     )
+  } catch (error) {
+    Sentry.captureException(error instanceof Error ? error : new Error('auth_attempt_guard_unexpected_error'), {
+      tags: { area: 'auth', flow: 'attempt_guard' },
+    })
+    return withCors(NextResponse.json({ allowed: true, warning: 'Rate limit unavailable' }, { status: 200 }))
   }
-
-  return applyCorsHeaders(
-    NextResponse.json({ allowed: true }, { headers: rateLimitHeaders }),
-    corsDecision.headers,
-  )
 }
 
 export async function OPTIONS(request: NextRequest) {
