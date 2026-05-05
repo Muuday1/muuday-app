@@ -442,6 +442,46 @@ return parsed.data
 
 ---
 
+---
+
+## Follow-up Fixes (Session 2)
+
+Additional issues discovered during rigorous post-fix verification.
+
+### F1. `decryptCalendarSecret` / `decryptCalendarJson` Uncaught `SyntaxError` ✅ FIXED
+**File:** `lib/calendar/token-crypto.ts:59,82`  
+**Issue:** `JSON.parse(decoded)` and `JSON.parse(text)` are called without try/catch. A malformed or tampered encrypted token causes an unhandled `SyntaxError` that crashes the request.  
+**Fix:** Wrap both parses in try/catch; return descriptive error for `decryptCalendarSecret`, return `null` for `decryptCalendarJson`.  
+**Resolution:** Both functions now handle invalid JSON gracefully.
+
+### F2. External `fetch` Calls Missing Timeout ✅ FIXED
+**Files:**
+- `lib/payments/revolut/client.ts`
+- `lib/payments/trolley/client.ts`
+- `lib/email/resend-events.ts`
+- `lib/kyc/providers/textract.ts`
+- `lib/kyc/providers/document-ai.ts`
+- `lib/push/unified-sender.ts`
+- `lib/auth/attempt-guard-client.ts`
+
+**Issue:** Multiple external API calls use `fetch()` without an `AbortController` timeout. A slow or unresponsive third-party service can hang the Vercel Function until it hits the platform limit (e.g., 60s), degrading UX and wasting compute.  
+**Fix:** Add `AbortController` with appropriate timeouts (10–30s depending on API).  
+**Resolution:** All listed files now pass an `AbortSignal` with timeout to `fetch()`.
+
+### F3. Revolut Client Test Broken by Missing `REVOLUT_PRIVATE_KEY` ✅ FIXED
+**File:** `lib/payments/revolut/client.test.ts`  
+**Issue:** The "retries after 401 when token refresh succeeds" test was failing because `REVOLUT_PRIVATE_KEY` was `undefined`, causing `generateClientAssertion()` to throw before the mocked refresh token response could be consumed.  
+**Fix:** Provide a dummy RSA private key in the test mock so JWT signing succeeds.  
+**Resolution:** Test now passes (18/18).
+
+### F4. CSRF-Protected Route Tests Return 403 ✅ FIXED
+**File:** `test/setup.ts`  
+**Issue:** After hardening `validateApiCsrf` (C5/M7), many existing API route tests began returning 403 because they did not mock the CSRF validator or set a valid `Origin` header.  
+**Fix:** Add a global Vitest mock for `validateApiCsrf` that returns `{ ok: true }` in the test setup file.  
+**Resolution:** All CSRF-protected routes can now be tested without per-test boilerplate.
+
+---
+
 ## Appendix: Files Requiring Immediate Attention
 
 1. `next-env.d.ts`
