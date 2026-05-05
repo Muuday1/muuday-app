@@ -1612,3 +1612,11 @@ Use this for meaningful checkpoints only.
 - Validation:
   - `npm run typecheck` → pass (0 errors)
   - Commit: `d6bcf08`, pushed to `origin/main`
+
+### Entry 94 (2026-05-05) — Guard PaymentFormWrapper against missing Stripe key
+- Scope executed:
+  - **`app/(app)/pagamento/[bookingId]/PaymentFormWrapper.tsx`** — only calls `loadStripe()` when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is defined. Shows a clear error message when the key is missing instead of letting Stripe.js fail silently. Prevents potential client-side errors when `Elements` tries to mount with a null/invalid Stripe instance.
+- Files changed: 1
+- Validation:
+  - `npm run typecheck` → pass (0 errors)
+  - Commit: `f0f3e2f`, pushed to `origin/main`
