@@ -3,6 +3,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createStripeClientIfConfigured } from './client'
 import { asRecord, asString, asNumber, truncateErrorMessage, buildNextRetryDate, toIsoWeekKey } from './helpers'
 import { tryStartJobRun, finishJobRun } from './jobs'
+import { fetchStripeFeeForPaymentIntent } from './webhook-handlers'
+import {
+  buildPaymentCaptureTransaction,
+  createLedgerTransaction,
+} from '@/lib/payments/ledger/entries'
+import { updateProfessionalBalance } from '@/lib/payments/ledger/balance'
 export type PayoutScanSummary = {
   scannedPayments: number
   eligiblePayments: number
@@ -396,17 +402,62 @@ export async function runStripeFailedPaymentRetries(
         const stripeStatus = paymentIntent.status
         if (stripeStatus === 'succeeded' || stripeStatus === 'processing') {
           if (row.payment_id) {
-            const { error: paymentUpdateError } = await admin
+            // Load current payment state to check idempotency
+            const { data: paymentRow, error: paymentLoadError } = await admin
               .from('payments')
-              .update({
-                status: 'captured',
-                captured_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
+              .select('id, booking_id, professional_id, amount_total_minor, status, captured_at')
               .eq('id', row.payment_id)
+              .maybeSingle()
 
-            if (paymentUpdateError) {
-              Sentry.captureException(paymentUpdateError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_status' } })
+            if (paymentLoadError) {
+              Sentry.captureException(paymentLoadError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_load' } })
+            }
+
+            const wasAlreadyCaptured = paymentRow?.status === 'captured'
+
+            if (!wasAlreadyCaptured) {
+              const { error: paymentUpdateError } = await admin
+                .from('payments')
+                .update({
+                  status: 'captured',
+                  captured_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', row.payment_id)
+
+              if (paymentUpdateError) {
+                Sentry.captureException(paymentUpdateError, { tags: { area: 'stripe_cron', subArea: 'payment_retry_status' } })
+              }
+            }
+
+            // Create ledger entry and update balance if not already done
+            if (paymentRow && !wasAlreadyCaptured) {
+              try {
+                const amountMinor = BigInt(paymentRow.amount_total_minor || 0)
+                if (amountMinor > BigInt(0)) {
+                  const { stripeFeeMinor, platformFeeMinor } = await fetchStripeFeeForPaymentIntent(
+                    row.provider_payment_id,
+                    amountMinor,
+                  )
+
+                  const ledgerInput = buildPaymentCaptureTransaction({
+                    amount: amountMinor,
+                    stripeFeeAmount: stripeFeeMinor,
+                    platformFeeAmount: platformFeeMinor,
+                    bookingId: paymentRow.booking_id,
+                    paymentId: paymentRow.id,
+                  })
+                  await createLedgerTransaction(admin, ledgerInput)
+
+                  await updateProfessionalBalance(admin, paymentRow.professional_id, {
+                    availableDelta: amountMinor - platformFeeMinor,
+                  })
+                }
+              } catch (ledgerError) {
+                Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), {
+                  tags: { area: 'stripe_cron', subArea: 'payment_retry_ledger' },
+                })
+              }
             }
           }
           const { error: queueUpdateError } = await admin

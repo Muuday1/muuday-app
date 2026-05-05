@@ -6,6 +6,7 @@ import {
   emitProfessionalSessionCompleted,
 } from '@/lib/email/resend-events'
 import { captureBookingPayment } from '@/lib/stripe/capture'
+import { enqueuePaymentRetry } from '@/lib/stripe/cron-jobs'
 import type { ManageBookingResult } from '@/lib/booking/types'
 
 export async function completeBookingService(
@@ -55,9 +56,24 @@ export async function completeBookingService(
   // Capture the Stripe payment (non-blocking — webhook will update DB)
   // This is fire-and-forget: we don't fail the completion if capture fails,
   // because the professional has already delivered the session.
-  captureBookingPayment(supabase, bookingId).catch((captureError) => {
+  captureBookingPayment(supabase, bookingId).catch(async (captureError) => {
     // Error is already logged to Sentry inside captureBookingPayment
     console.error('Failed to capture payment for booking', bookingId, captureError)
+    // Enqueue a retry so the capture is re-attempted later.
+    // We need the provider_payment_id for the retry queue; look it up.
+    const { data: paymentRow } = await supabase
+      .from('payments')
+      .select('id, stripe_payment_intent_id')
+      .eq('booking_id', bookingId)
+      .eq('provider', 'stripe')
+      .maybeSingle()
+    if (paymentRow?.id || paymentRow?.stripe_payment_intent_id) {
+      await enqueuePaymentRetry(supabase, paymentRow.id, paymentRow.stripe_payment_intent_id, {
+        source: 'booking_completion',
+        booking_id: bookingId,
+        reason: captureError instanceof Error ? captureError.message : String(captureError),
+      })
+    }
   })
 
   // Emit Resend automation events (non-blocking)

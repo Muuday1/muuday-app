@@ -118,6 +118,8 @@ type PaymentRowForWebhook = {
   amount_total_minor: number
   metadata: Record<string, unknown>
   status: string
+  captured_at: string | null
+  refunded_at: string | null
 }
 
 async function setPaymentStatusFromWebhook(
@@ -129,7 +131,7 @@ async function setPaymentStatusFromWebhook(
   const nowIso = new Date().toISOString()
   const { data: rows, error: loadError } = await admin
     .from('payments')
-    .select('id, booking_id, professional_id, amount_total_minor, metadata, status')
+    .select('id, booking_id, professional_id, amount_total_minor, metadata, status, captured_at, refunded_at')
     .eq('provider', 'stripe')
     .eq('stripe_payment_intent_id', providerPaymentId)
 
@@ -155,8 +157,8 @@ async function setPaymentStatusFromWebhook(
       metadata: mergedMetadata,
       updated_at: nowIso,
     }
-    if (status === 'captured') patch.captured_at = nowIso
-    if (status === 'refunded') patch.refunded_at = nowIso
+    if (status === 'captured' && !row.captured_at) patch.captured_at = nowIso
+    if (status === 'refunded' && !row.refunded_at) patch.refunded_at = nowIso
 
     const { error: updateError } = await admin.from('payments').update(patch).eq('id', row.id)
     if (updateError) {
@@ -219,7 +221,7 @@ async function enqueueSubscriptionCheck(
  * Fetch the actual Stripe fee from a PaymentIntent by looking up its latest charge.
  * Falls back to an estimate if the API call fails.
  */
-async function fetchStripeFeeForPaymentIntent(
+export async function fetchStripeFeeForPaymentIntent(
   paymentIntentId: string,
   amountMinor: bigint,
 ): Promise<{ stripeFeeMinor: bigint; platformFeeMinor: bigint }> {
@@ -366,36 +368,41 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
 
     // Ledger + balance integration for each payment row updated
     for (const payment of payments) {
-      try {
-        const amountMinor = BigInt(payment.amount_total_minor || 0)
-        if (amountMinor <= BigInt(0)) continue
+      const amountMinor = BigInt(payment.amount_total_minor || 0)
+      if (amountMinor <= BigInt(0)) continue
 
-        const { stripeFeeMinor, platformFeeMinor } = await fetchStripeFeeForPaymentIntent(
-          paymentIntentId,
-          amountMinor,
+      // Idempotency guard: skip ledger/balance if this payment was already captured
+      // before this webhook fired (e.g. replay or retry cron already processed it).
+      // We still update the payment metadata above, but avoid duplicate ledger entries.
+      if (payment.status === 'captured') {
+        Sentry.captureMessage(
+          `[stripe/webhook] payment_intent.succeeded: payment ${payment.id} already captured, skipping ledger`,
+          'warning',
         )
-
-        // Create ledger entry
-        const ledgerInput = buildPaymentCaptureTransaction({
-          amount: amountMinor,
-          stripeFeeAmount: stripeFeeMinor,
-          platformFeeAmount: platformFeeMinor,
-          bookingId: payment.booking_id,
-          paymentId: payment.id,
-        })
-        await createLedgerTransaction(admin, ledgerInput)
-
-        // Update professional balance: increment available_balance
-        // (Money is immediately available because capture happens after session
-        // completion. A future hold period can be added if chargeback risk increases.)
-        await updateProfessionalBalance(admin, payment.professional_id, {
-          availableDelta: amountMinor - platformFeeMinor,
-        })
-      } catch (ledgerError) {
-        Sentry.captureException(ledgerError instanceof Error ? ledgerError : new Error(String(ledgerError)), { tags: { area: 'stripe_webhook', subArea: 'ledger_balance' } })
-        // Non-blocking: webhook should still succeed even if ledger fails
-        // The ledger can be reconstructed later from the payment data
+        continue
       }
+
+      const { stripeFeeMinor, platformFeeMinor } = await fetchStripeFeeForPaymentIntent(
+        paymentIntentId,
+        amountMinor,
+      )
+
+      // Create ledger entry
+      const ledgerInput = buildPaymentCaptureTransaction({
+        amount: amountMinor,
+        stripeFeeAmount: stripeFeeMinor,
+        platformFeeAmount: platformFeeMinor,
+        bookingId: payment.booking_id,
+        paymentId: payment.id,
+      })
+      await createLedgerTransaction(admin, ledgerInput)
+
+      // Update professional balance: increment available_balance
+      // (Money is immediately available because capture happens after session
+      // completion. A future hold period can be added if chargeback risk increases.)
+      await updateProfessionalBalance(admin, payment.professional_id, {
+        availableDelta: amountMinor - platformFeeMinor,
+      })
     }
 
     return { outcome: 'processed', paymentRowsUpdated: payments.length }
@@ -512,66 +519,82 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
     const dispute = event.data.object as Stripe.Dispute
     const chargeId = asString(dispute.charge)
 
-    if (chargeId) {
-      try {
-        const stripe = getStripeClient()
-        if (stripe) {
-          const charge = await stripe.charges.retrieve(chargeId)
-          const piId = asIdFromStringOrObject(charge.payment_intent)
+    if (!chargeId) {
+      return { outcome: 'ignored', reason: 'missing_charge_id' }
+    }
 
-          if (piId) {
-            // Find payment, booking, and professional
-            const { data: paymentRow } = await admin
-              .from('payments')
-              .select('id, booking_id, professional_id')
-              .eq('provider', 'stripe')
-              .eq('stripe_payment_intent_id', piId)
-              .maybeSingle()
+    const stripe = getStripeClient()
+    if (!stripe) {
+      throw new Error('Stripe client not configured for dispute handling')
+    }
 
-            if (paymentRow?.professional_id && paymentRow?.booking_id) {
-              // Create dispute_resolution to freeze this booking's payouts
-              await admin.from('dispute_resolutions').insert({
-                booking_id: paymentRow.booking_id,
-                professional_id: paymentRow.professional_id,
-                dispute_amount: BigInt(dispute.amount || 0),
-                remaining_debt: BigInt(dispute.amount || 0),
-                recovery_method: 'future_withholding',
-                status: 'open',
-                notes: `Stripe dispute created: ${dispute.reason || 'unknown'}`,
-                metadata: {
-                  stripe_dispute_id: dispute.id,
-                  stripe_charge_id: chargeId,
-                  stripe_payment_intent_id: piId,
-                  dispute_amount: dispute.amount,
-                  dispute_currency: dispute.currency,
-                  dispute_reason: dispute.reason,
-                  source: 'stripe_webhook',
-                },
-              })
+    const charge = await stripe.charges.retrieve(chargeId)
+    const piId = asIdFromStringOrObject(charge.payment_intent)
 
-              // Also create an internal case for admin review
-              await admin.from('cases').insert({
-                booking_id: paymentRow.booking_id,
-                reporter_id: 'system',
-                type: 'cancelation_dispute',
-                reason: `Stripe dispute created: ${dispute.reason || 'unknown'} (ID: ${dispute.id})`,
-                status: 'open',
-                metadata: {
-                  stripe_dispute_id: dispute.id,
-                  stripe_charge_id: chargeId,
-                  stripe_payment_intent_id: piId,
-                  dispute_amount: dispute.amount,
-                  dispute_currency: dispute.currency,
-                  dispute_reason: dispute.reason,
-                  source: 'stripe_webhook',
-                },
-              })
-            }
-          }
-        }
-      } catch (disputeError) {
-        Sentry.captureException(disputeError instanceof Error ? disputeError : new Error(String(disputeError)), { tags: { area: 'stripe_webhook', subArea: 'dispute' } })
-      }
+    if (!piId) {
+      return { outcome: 'ignored', reason: 'missing_payment_intent_id' }
+    }
+
+    // Find payment, booking, and professional
+    const { data: paymentRow, error: paymentLookupError } = await admin
+      .from('payments')
+      .select('id, booking_id, professional_id')
+      .eq('provider', 'stripe')
+      .eq('stripe_payment_intent_id', piId)
+      .maybeSingle()
+
+    if (paymentLookupError) {
+      throw new Error(`Failed to lookup payment for dispute: ${paymentLookupError.message}`)
+    }
+
+    if (!paymentRow?.professional_id || !paymentRow?.booking_id) {
+      return { outcome: 'ignored', reason: 'payment_or_professional_not_found' }
+    }
+
+    // Create dispute_resolution to freeze this booking's payouts
+    const { error: disputeInsertError } = await admin.from('dispute_resolutions').insert({
+      booking_id: paymentRow.booking_id,
+      professional_id: paymentRow.professional_id,
+      dispute_amount: BigInt(dispute.amount || 0),
+      remaining_debt: BigInt(dispute.amount || 0),
+      recovery_method: 'future_withholding',
+      status: 'open',
+      notes: `Stripe dispute created: ${dispute.reason || 'unknown'}`,
+      metadata: {
+        stripe_dispute_id: dispute.id,
+        stripe_charge_id: chargeId,
+        stripe_payment_intent_id: piId,
+        dispute_amount: dispute.amount,
+        dispute_currency: dispute.currency,
+        dispute_reason: dispute.reason,
+        source: 'stripe_webhook',
+      },
+    })
+
+    if (disputeInsertError) {
+      throw new Error(`Failed to insert dispute_resolution: ${disputeInsertError.message}`)
+    }
+
+    // Also create an internal case for admin review
+    const { error: caseInsertError } = await admin.from('cases').insert({
+      booking_id: paymentRow.booking_id,
+      reporter_id: 'system',
+      type: 'cancelation_dispute',
+      reason: `Stripe dispute created: ${dispute.reason || 'unknown'} (ID: ${dispute.id})`,
+      status: 'open',
+      metadata: {
+        stripe_dispute_id: dispute.id,
+        stripe_charge_id: chargeId,
+        stripe_payment_intent_id: piId,
+        dispute_amount: dispute.amount,
+        dispute_currency: dispute.currency,
+        dispute_reason: dispute.reason,
+        source: 'stripe_webhook',
+      },
+    })
+
+    if (caseInsertError) {
+      throw new Error(`Failed to insert case for dispute: ${caseInsertError.message}`)
     }
 
     return { outcome: 'processed', disputeId: dispute.id }
@@ -642,7 +665,8 @@ export async function processStripeWebhookInbox(
   const now = options?.now ?? new Date()
   const limit = Math.min(Math.max(options?.limit || 20, 1), 100)
 
-  const { data: rows, error } = await admin
+  // Fetch pending/failed events ready for retry
+  const { data: pendingRows, error: pendingError } = await admin
     .from('stripe_webhook_events')
     .select('id, provider_event_id, event_type, payload, status, attempt_count, max_attempts')
     .in('status', ['pending', 'failed'])
@@ -650,9 +674,31 @@ export async function processStripeWebhookInbox(
     .order('received_at', { ascending: true })
     .limit(limit)
 
-  if (error) {
-    throw new Error(`Failed to load stripe webhook inbox: ${error.message}`)
+  if (pendingError) {
+    throw new Error(`Failed to load stripe webhook inbox: ${pendingError.message}`)
   }
+
+  // Also recover events stuck in 'processing' for >5 minutes (orphaned due to crash/kill)
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString()
+  const remainingLimit = limit - (pendingRows?.length || 0)
+  let stuckRows: typeof pendingRows = []
+  if (remainingLimit > 0) {
+    const { data: stuck, error: stuckError } = await admin
+      .from('stripe_webhook_events')
+      .select('id, provider_event_id, event_type, payload, status, attempt_count, max_attempts')
+      .eq('status', 'processing')
+      .lt('updated_at', fiveMinutesAgo)
+      .order('received_at', { ascending: true })
+      .limit(remainingLimit)
+
+    if (stuckError) {
+      Sentry.captureException(stuckError, { tags: { area: 'stripe_webhook', subArea: 'stuck_recovery' } })
+    } else {
+      stuckRows = stuck || []
+    }
+  }
+
+  const rows = [...(pendingRows || []), ...(stuckRows || [])]
 
   const summary: StripeWebhookProcessSummary = {
     fetched: rows?.length || 0,

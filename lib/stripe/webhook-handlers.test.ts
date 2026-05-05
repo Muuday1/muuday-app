@@ -85,7 +85,29 @@ function buildAdminClient(overrides?: Record<string, unknown>) {
       }),
       update: vi.fn().mockImplementation(() => {
         return {
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+          eq: vi.fn().mockImplementation(() => {
+            // Support chained eq() calls for update claim queries
+            return {
+              eq: vi.fn().mockImplementation(() => {
+                return {
+                  eq: vi.fn().mockImplementation(() => {
+                    return {
+                      select: vi.fn().mockImplementation(() => {
+                        return {
+                          maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'claimed-1' }, error: null }),
+                        }
+                      }),
+                    }
+                  }),
+                }
+              }),
+              select: vi.fn().mockImplementation(() => {
+                return {
+                  maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'claimed-1' }, error: null }),
+                }
+              }),
+            }
+          }),
         }
       }),
       delete: vi.fn().mockReturnThis(),
@@ -105,7 +127,17 @@ function buildAdminClient(overrides?: Record<string, unknown>) {
       order: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
       lte: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockImplementation(() => {
+        if (isArray) {
+          const arrayResult = arrayData[table] ?? { data: [], error: null }
+          return {
+            then: (onFulfilled: (v: unknown) => unknown) =>
+              Promise.resolve(onFulfilled?.(arrayResult) ?? arrayResult),
+          }
+        }
+        return chain
+      }),
       range: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue(rowData[table] ?? { data: null, error: null }),
       single: vi.fn().mockResolvedValue(rowData[table] ?? { data: null, error: null }),
@@ -116,7 +148,7 @@ function buildAdminClient(overrides?: Record<string, unknown>) {
 
   const fromFn = vi.fn().mockImplementation((table: string) => {
     // Auto-detect array queries for known tables
-    const isArray = table === 'payments' || table === 'stripe_settlements'
+    const isArray = table === 'payments' || table === 'stripe_settlements' || table === 'stripe_webhook_events'
     return makeChain(table, { isArrayQuery: isArray })
   })
 
