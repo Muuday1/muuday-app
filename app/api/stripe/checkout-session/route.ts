@@ -42,126 +42,133 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
   }
 
-  const ip = getClientIp(request)
-  const rl = await rateLimit('stripeCheckout', `stripe-checkout:${ip}`)
-  if (!rl.allowed) {
-    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
-  }
-
-  const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados invalidos para checkout de plano.' }, { status: 400 })
-  }
-
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Faca login para continuar.' }, { status: 401 })
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id,role,email,country')
-    .eq('id', user.id)
-    .maybeSingle()
-  if (!profile || profile.role !== 'profissional') {
-    return NextResponse.json(
-      { error: 'Somente profissionais podem selecionar plano.' },
-      { status: 403 },
-    )
-  }
-
-  const { data: professional } = await supabase
-    .from('professionals')
-    .select('id,tier')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  if (!professional?.id) {
-    return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
-  }
-
-  const stripe = getStripeClient()
-  if (!stripe) {
-    return NextResponse.json(
-      { error: 'Stripe indisponivel no momento.' },
-      { status: 503 },
-    )
-  }
-
-  const envKey = PRICE_ENV_KEYS[parsed.data.tier][parsed.data.billingCycle]
-  const priceId = process.env[envKey]
-  if (!priceId) {
-    const { data: settings } = await supabase
-      .from('professional_settings')
-      .select('onboarding_finance_bypass')
-      .eq('professional_id', professional.id)
-      .maybeSingle()
-    const financeBypass = Boolean((settings as { onboarding_finance_bypass?: boolean } | null)?.onboarding_finance_bypass)
-    const allowFallbackPlanSwitch =
-      parsed.data.source === 'onboarding_modal' ||
-      financeBypass ||
-      String(process.env.PLAN_PRICING_ALLOW_FALLBACK || '').toLowerCase() === 'true'
-
-    if (allowFallbackPlanSwitch) {
-      await supabase
-        .from('professionals')
-        .update({ tier: parsed.data.tier, updated_at: new Date().toISOString() })
-        .eq('id', professional.id)
-
-      const baseUrl = appBaseUrl(request)
-      const returnUrl =
-        parsed.data.source === 'onboarding_modal'
-          ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=success&mode=test`
-          : `${baseUrl}/planos?checkout=success&mode=test`
-      return NextResponse.json({ url: returnUrl })
+  try {
+    const ip = getClientIp(request)
+    const rl = await rateLimit('stripeCheckout', `stripe-checkout:${ip}`)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
     }
 
-    Sentry.captureMessage('[stripe] missing price configuration', {
-      level: 'error',
-      tags: { area: 'stripe_checkout_session', context: 'missing-price-config' },
-      extra: { tier: parsed.data.tier, cycle: parsed.data.billingCycle },
-    })
-    return NextResponse.json({ error: 'Preco de plano nao configurado no momento.' }, { status: 503 })
-  }
+    const parsed = payloadSchema.safeParse(await request.json().catch(() => null))
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Dados invalidos para checkout de plano.' }, { status: 400 })
+    }
 
-  const baseUrl = appBaseUrl(request)
-  const successUrl =
-    parsed.data.source === 'onboarding_modal'
-      ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=success`
-      : `${baseUrl}/planos?checkout=success`
-  const cancelUrl =
-    parsed.data.source === 'onboarding_modal'
-      ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=cancelled`
-      : `${baseUrl}/planos?checkout=cancelled`
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    customer_email: profile.email || undefined,
-    allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 90,
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Faca login para continuar.' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id,role,email,country')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!profile || profile.role !== 'profissional') {
+      return NextResponse.json(
+        { error: 'Somente profissionais podem selecionar plano.' },
+        { status: 403 },
+      )
+    }
+
+    const { data: professional } = await supabase
+      .from('professionals')
+      .select('id,tier')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!professional?.id) {
+      return NextResponse.json({ error: 'Perfil profissional nao encontrado.' }, { status: 404 })
+    }
+
+    const stripe = getStripeClient()
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Stripe indisponivel no momento.' },
+        { status: 503 },
+      )
+    }
+
+    const envKey = PRICE_ENV_KEYS[parsed.data.tier][parsed.data.billingCycle]
+    const priceId = process.env[envKey]
+    if (!priceId) {
+      const { data: settings } = await supabase
+        .from('professional_settings')
+        .select('onboarding_finance_bypass')
+        .eq('professional_id', professional.id)
+        .maybeSingle()
+      const financeBypass = Boolean((settings as { onboarding_finance_bypass?: boolean } | null)?.onboarding_finance_bypass)
+      const allowFallbackPlanSwitch =
+        parsed.data.source === 'onboarding_modal' ||
+        financeBypass ||
+        String(process.env.PLAN_PRICING_ALLOW_FALLBACK || '').toLowerCase() === 'true'
+
+      if (allowFallbackPlanSwitch) {
+        await supabase
+          .from('professionals')
+          .update({ tier: parsed.data.tier, updated_at: new Date().toISOString() })
+          .eq('id', professional.id)
+
+        const baseUrl = appBaseUrl(request)
+        const returnUrl =
+          parsed.data.source === 'onboarding_modal'
+            ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=success&mode=test`
+            : `${baseUrl}/planos?checkout=success&mode=test`
+        return NextResponse.json({ url: returnUrl })
+      }
+
+      Sentry.captureMessage('[stripe] missing price configuration', {
+        level: 'error',
+        tags: { area: 'stripe_checkout_session', context: 'missing-price-config' },
+        extra: { tier: parsed.data.tier, cycle: parsed.data.billingCycle },
+      })
+      return NextResponse.json({ error: 'Preco de plano nao configurado no momento.' }, { status: 503 })
+    }
+
+    const baseUrl = appBaseUrl(request)
+    const successUrl =
+      parsed.data.source === 'onboarding_modal'
+        ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=success`
+        : `${baseUrl}/planos?checkout=success`
+    const cancelUrl =
+      parsed.data.source === 'onboarding_modal'
+        ? `${baseUrl}/dashboard?openOnboarding=1&planCheckout=cancelled`
+        : `${baseUrl}/planos?checkout=cancelled`
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer_email: profile.email || undefined,
+      allow_promotion_codes: true,
+      subscription_data: {
+        trial_period_days: 90,
+        metadata: {
+          professional_id: professional.id,
+          selected_tier: parsed.data.tier,
+          selected_cycle: parsed.data.billingCycle,
+          annual_policy: '10x_monthly',
+        },
+      },
       metadata: {
         professional_id: professional.id,
         selected_tier: parsed.data.tier,
         selected_cycle: parsed.data.billingCycle,
-        annual_policy: '10x_monthly',
+        region: 'uk',
       },
-    },
-    metadata: {
-      professional_id: professional.id,
-      selected_tier: parsed.data.tier,
-      selected_cycle: parsed.data.billingCycle,
-      region: 'uk',
-    },
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-  })
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    })
 
-  return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url })
+  } catch (error) {
+    Sentry.captureException(error instanceof Error ? error : new Error('stripe_checkout_session_unexpected_error'), {
+      tags: { area: 'stripe_checkout_session', context: 'unexpected' },
+    })
+    return NextResponse.json({ error: 'Erro ao iniciar checkout. Tente novamente.' }, { status: 500 })
+  }
 }

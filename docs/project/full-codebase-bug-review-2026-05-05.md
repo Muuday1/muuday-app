@@ -538,3 +538,23 @@ Additional issues discovered during rigorous post-fix verification.
 - `api/auth/attempt-guard`: fail open (`{ allowed: true, warning: 'Rate limit unavailable' }`) so users can still authenticate if the rate limiter is down; capture exception in Sentry
 **Resolution:** All four routes now have robust error handling with Sentry reporting and graceful degradation.
 **Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### R5. Payment Pages Missing Dedicated Error Boundary ✅ FIXED
+**File:** `app/(app)/pagamento/error.tsx`
+**Issue:** The `/pagamento/[bookingId]` route (revenue-critical checkout flow) relied solely on the generic `app/(app)/error.tsx`. A payment-specific error boundary with contextual recovery options was missing.
+**Impact:** Users experiencing checkout errors saw a generic "Algo deu errado" message with no payment-specific guidance or navigation options.
+**Fix:** Create `app/(app)/pagamento/error.tsx` with:
+- Sentry `captureException` on mount
+- Payment-specific copy ("Nenhum valor foi cobrado")
+- "Tentar novamente" button (resets the error boundary)
+- "Minha agenda" link (navigates user away from the broken checkout)
+**Resolution:** Checkout errors now show contextual messaging and provide clear next steps.
+**Verification:** Typecheck and build pass.
+
+### R6. Stripe Plan Checkout Missing Global Error Handling ✅ FIXED
+**File:** `app/api/stripe/checkout-session/route.ts`
+**Issue:** The plan subscription checkout endpoint had no global `try/catch`. Any Stripe network error, Supabase outage, or unexpected exception would return a raw HTTP 500 with no JSON error body, breaking the client-side checkout flow.
+**Impact:** Professionals unable to subscribe to plans during transient outages; lost revenue.
+**Fix:** Wrap the entire handler (after CSRF validation) in `try/catch`. On unexpected errors, capture in Sentry and return JSON `{ error: 'Erro ao iniciar checkout. Tente novamente.' }` with status 500.
+**Resolution:** The checkout endpoint now degrades gracefully and provides actionable feedback to the client.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
