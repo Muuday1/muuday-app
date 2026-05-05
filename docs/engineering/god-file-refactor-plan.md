@@ -32,6 +32,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ ~~625~~ **166** | LOW | ✅ Extracted to `profile-availability/` |
 | `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ ~~540~~ **127** | MEDIUM | ✅ Extracted useAvailabilityWorkspace + 4 presentational components |
 | `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
+| `components/admin/ReviewModerationClient.tsx` | ~~608~~ **135** | MEDIUM | ✅ Extracted useReviewModeration + 5 presentational components |
 
 ---
 
@@ -209,6 +210,24 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — ReviewModerationClient.tsx
+
+**ReviewModerationClient.tsx** (608 → 135 lines)
+
+**Completed:**
+- **Hook** extracted to `components/admin/review-moderation/hooks/`:
+  - `useReviewModeration` — all state, approve/reject/flag actions, batch ops, filtering, selection, reload (~220 lines)
+- **Presentational components** extracted to `components/admin/review-moderation/`:
+  - `ReviewModerationStats` — 4 stat cards (pending, approved, rejected, flagged) with inline StatCard
+  - `ReviewModerationFilters` — status filter pills + sort dropdown with transition loading state
+  - `ReviewModerationBatchActions` — bulk approve/reject/clear selection bar
+  - `ReviewModerationList` — review cards with checkbox selection, stars, comments, auto-flags, per-item actions
+  - `RejectModal` — reason radio list + internal note textarea + confirm/cancel
+- Main component now pure orchestrator: header + success toast + composes 5 sub-components + modal
 - TypeScript: 0 errors, build passes
 
 ---
