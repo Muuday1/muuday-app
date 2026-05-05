@@ -26,6 +26,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | File | Lines | Priority | Status |
 |------|-------|----------|--------|
 | `components/dashboard/OnboardingTrackerModal.tsx` | ~~3,995~~ ~~2,038~~ ~~1,009~~ **426** | **CRITICAL** | ✅ Complete — extracted 13 hooks + TrackerModalBody component |
+| `components/dashboard/onboarding-tracker/stages/identity-stage.tsx` | ~~713~~ **174** | **CRITICAL** | ✅ Extracted 5 sub-components: PhotoUploadSection, IdentityFormSection, LanguageSelectorSection, TargetAudienceSection, QualificationsSection |
 | `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ ~~752~~ **395** | **HIGH** | ✅ Extracted 9 presentational components + 6 custom hooks into `booking-form/` |
 | `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ ~~660~~ **134** | LOW | ✅ Extracted 7 presentational components + 2 hooks into `professional-agenda/` |
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ ~~625~~ **166** | LOW | ✅ Extracted to `profile-availability/` |
@@ -158,6 +159,22 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 #### 3.1 `lib/ops/stripe-resilience.ts` — **DONE** (41 lines)
 
 #### 3.2 `lib/professional/onboarding-gates.ts` — **DONE** (294 lines)
+
+---
+
+### Refactor Pass: 2026-05-05 — identity-stage.tsx
+
+**identity-stage.tsx** (713 → 174 lines)
+
+**Completed:**
+- **Sub-components** extracted:
+  - `PhotoUploadSection` — photo upload, preview, zoom, validation checks
+  - `IdentityFormSection` — title, name, category, tags, bio, experience, language
+  - `LanguageSelectorSection` — secondary languages dropdown
+  - `TargetAudienceSection` — target audience dropdown
+  - `QualificationsSection` — qualifications CRUD, document upload
+- Main component now pure orchestrator: composes 5 sub-components + save button
+- TypeScript: 0 errors, build passes
 
 ---
 
