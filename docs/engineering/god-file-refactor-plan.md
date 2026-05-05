@@ -29,7 +29,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/booking/BookingForm.tsx` | ~~1,151~~ ~~1,295~~ ~~752~~ **395** | **HIGH** | ✅ Extracted 9 presentational components + 6 custom hooks into `booking-form/` |
 | `components/agenda/ProfessionalAgendaPage.tsx` | ~~523~~ ~~660~~ **134** | LOW | ✅ Extracted 7 presentational components + 2 hooks into `professional-agenda/` |
 | `components/professional/ProfileAvailabilityBookingSection.tsx` | ~~549~~ ~~625~~ **166** | LOW | ✅ Extracted to `profile-availability/` |
-| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ **540** | MEDIUM | ✅ Reduced |
+| `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ ~~540~~ **127** | MEDIUM | ✅ Extracted useAvailabilityWorkspace + 4 presentational components |
 | `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
 
 ---
@@ -158,6 +158,23 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 #### 3.1 `lib/ops/stripe-resilience.ts` — **DONE** (41 lines)
 
 #### 3.2 `lib/professional/onboarding-gates.ts` — **DONE** (294 lines)
+
+---
+
+### Refactor Pass: 2026-05-05 — ProfessionalAvailabilityWorkspace.tsx
+
+**ProfessionalAvailabilityWorkspace.tsx** (540 → 127 lines)
+
+**Completed:**
+- **Hook** extracted to `components/agenda/availability-workspace/hooks/`:
+  - `useAvailabilityWorkspace` — all state, loadAvailability, handleSave, toggleDay, updateTime, handleCopyDay (~316 lines)
+- **Presentational components** extracted to `components/agenda/availability-workspace/components/`:
+  - `AvailabilityWorkspaceHeader` — standalone/embedded header variant
+  - `AvailabilityWorkspaceStats` — 3 stats cards (buffer, window, sync)
+  - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
+  - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
+- Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
 
 ---
 
