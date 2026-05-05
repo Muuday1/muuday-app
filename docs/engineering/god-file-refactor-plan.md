@@ -36,6 +36,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/booking/WaitingRoomGame.tsx` | ~~730~~ **31** | MEDIUM | ✅ Extracted types, helpers, draw.ts, useWaitingRoomGame hook |
 | `components/auth/signup/components/ProfessionalDataForm.tsx` | ~~667~~ **230** | MEDIUM | ✅ Extracted 9 presentational sections |
 | `components/booking/VideoSession.tsx` | ~~632~~ **92** | HIGH | ✅ Extracted types, useVideoSession hook, 3 phase components |
+| `components/admin/CaseDetailClient.tsx` | ~~587~~ **167** | MEDIUM | ✅ Extracted useCaseDetail + 5 section components |
 
 ---
 
@@ -213,6 +214,26 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — CaseDetailClient.tsx
+
+**CaseDetailClient.tsx** (587 → 167 lines)
+
+**Completed:**
+- **Case hook** extracted to `components/admin/case-detail/use-case-detail.ts`:
+  - Local state for case, messages, loading, form inputs
+  - Actions: `handleAssign`, `handleStatusChange`, `handleResolve`, `handleSendMessage`
+  - Success/error toast helpers, SLA remaining calculation
+- **Section components** extracted to `components/admin/case-detail/`:
+  - `CaseHeader` — breadcrumb, priority/status badges, SLA alerts, action buttons
+  - `CaseEvidence` — reported reason + booking/payment/user/professional evidence grid
+  - `CaseTimeline` — event timeline with action type labels and metadata
+  - `CaseMessageThread` — message list with sender info + send input
+  - `CaseDecisionPanel` — assignment info, resolution form, refund input, resolution display, quick links
+- Main component now pure orchestrator: header + alerts + 3-column layout (evidence/timeline/messages + decision panel)
 - TypeScript: 0 errors, build passes
 
 ---
