@@ -558,3 +558,48 @@ Additional issues discovered during rigorous post-fix verification.
 **Fix:** Wrap the entire handler (after CSRF validation) in `try/catch`. On unexpected errors, capture in Sentry and return JSON `{ error: 'Erro ao iniciar checkout. Tente novamente.' }` with status 500.
 **Resolution:** The checkout endpoint now degrades gracefully and provides actionable feedback to the client.
 **Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### R7. v1 API Routes Missing Global Error Handling ✅ FIXED
+**Files:** `app/api/v1/**/*.ts`, `app/api/sessao/**/*.ts`, `lib/api/with-api-handler.ts`
+**Issue:** ~60 thin-controller API routes in `app/api/v1/` and `app/api/sessao/` followed the same pattern (`auth → rateLimit → service → JSON`) but lacked a global `try/catch`. Any unexpected exception (Supabase outage, network drop, unhandled null reference) would crash the route and return a raw HTTP 500 with no structured error body.
+**Impact:** API clients received unhandled HTML 500 pages instead of JSON; Sentry blind spots; poor DX for mobile app consumers.
+**Fix:**
+1. Create reusable `lib/api/with-api-handler.ts` HOC that wraps handlers in `try/catch`, captures exceptions in Sentry with contextual tags, and returns a standardized JSON error response `{ error: 'Erro interno. Tente novamente.' }` (status 500).
+2. Apply `withApiHandler` to every `route.ts` in `app/api/v1/` and `app/api/sessao/`.
+**Resolution:** All v1 and sessão routes now have uniform catastrophic-error handling. The wrapper preserves existing per-route error handling (CSRF, rate limits, service-layer validation) while adding a safety net for unexpected failures.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### R8. Server Components with Unprotected Parallel Queries ✅ FIXED
+**Files:** `app/(app)/dashboard/page.tsx`, `app/(app)/agenda/page.tsx`, `app/(app)/profissional/[id]/page.tsx`, `app/(app)/agendar/[id]/page.tsx`, `lib/async/safe-promise-all.ts`
+**Issue:** High-traffic Server Components contained large `Promise.all` blocks with no outer `try/catch`. If the entire parallel query batch failed catastrophically (e.g., Supabase connection drop), the page render would crash and trigger the generic error boundary.
+**Impact:** Complete page failures for dashboard, agenda, professional profile, and booking flows during transient outages.
+**Fix:**
+1. Create `lib/async/safe-promise-all.ts` — a thin wrapper around `Promise.all` that captures catastrophic failures with Sentry and returns a typed fallback array instead of throwing.
+2. Replace unprotected `await Promise.all([...])` calls with `await safePromiseAll([...], fallbackArray, tags)` in all four pages.
+3. Add explicit type annotations on `.map()` callbacks where TypeScript inference was weakened by the `any` fallback cast.
+**Resolution:** Server Components now degrade gracefully: if the parallel query batch fails, the page renders with empty/default data rather than crashing. Individual query errors continue to be logged and handled per-query.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### R9. Payment Page Retry Loop Unprotected ✅ FIXED
+**File:** `app/(app)/pagamento/[bookingId]/page.tsx`
+**Issue:** The retry loop that fetches the booking after creation had no `try/catch`. If `supabase.from('bookings').maybeSingle()` threw (rather than returning `{ data: null }`), the loop would crash on the first attempt. Additionally, `supabase.auth.getUser()` was unprotected.
+**Impact:** Users redirected to a hard error page instead of the login or 404 fallback during auth or database outages.
+**Fix:** Wrap both `supabase.auth.getUser()` and the retry loop in outer `try/catch` blocks. On auth failure, redirect to login. On booking lookup failure, log to Sentry and fall through to `notFound()`.
+**Resolution:** Payment page now handles auth and lookup failures gracefully with Sentry reporting.
+**Verification:** Typecheck and build pass.
+
+### R10. Next.js Middleware Deprecation Warning ✅ FIXED
+**File:** `middleware.ts` → `proxy.ts`
+**Issue:** Next.js 16 deprecated the `middleware.ts` file convention, emitting a build warning: "The 'middleware' file convention is deprecated. Please use 'proxy' instead."
+**Impact:** Build noise; future Next.js versions may drop support for `middleware.ts` entirely.
+**Fix:** Rename `middleware.ts` to `proxy.ts` and rename the exported function from `middleware` to `proxy`.
+**Resolution:** Build warning eliminated. All middleware behavior (CSP nonces, CORS, mobile API key validation, session updates, country cookie, host redirects) is preserved.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+---
+
+## Outstanding Items (Accepted)
+
+| Item | Severity | Reason |
+|------|----------|--------|
+| `postcss` moderate vulnerability | Medium | Requires Next.js upgrade; unsafe to force-update a framework dependency. Tracked for next major Next.js bump. |
