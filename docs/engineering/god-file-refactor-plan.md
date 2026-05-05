@@ -38,6 +38,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/booking/VideoSession.tsx` | ~~632~~ **92** | HIGH | ✅ Extracted types, useVideoSession hook, 3 phase components |
 | `components/admin/CaseDetailClient.tsx` | ~~587~~ **167** | MEDIUM | ✅ Extracted useCaseDetail + 5 section components |
 | `components/agenda/ProfessionalAvailabilityCalendar.tsx` | ~~549~~ **95** | MEDIUM | ✅ Extracted types, helpers, hook, 5 view components |
+| `lib/guides-data.ts` | ~~1775~~ **12** | LOW | ✅ Split into 14 category files + barrel |
 
 ---
 
@@ -216,6 +217,25 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
 - TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — guides-data.ts
+
+**guides-data.ts** (1,775 → 12 lines)
+
+**Completed:**
+- **Types** extracted to `lib/guides-data/types.ts`: `Guide`, `GuideStep`, `GuideTip`, `GuideCategory`
+- **Categories** extracted to `lib/guides-data/categories.ts`: `GUIDE_CATEGORIES` (14 categories)
+- **Guide data** split by category into `lib/guides-data/guides/`:
+  - `documentos.ts` (3), `impostos.ts` (4), `bancos.ts` (2), `previdencia.ts` (2)
+  - `saude.ts` (2), `educacao.ts` (2), `familia.ts` (3), `imoveis.ts` (3)
+  - `trabalho.ts` (1), `mudanca.ts` (1), `veiculos.ts` (1), `cidadania.ts` (2)
+  - `compras.ts` (1), `comunicacao.ts` (1)
+- `guides/index.ts` combines all category arrays into single `GUIDES` export
+- `lib/guides-data.ts` preserved as backward-compatible barrel file re-exporting all symbols
+- All existing imports (`GUIDES`, `GUIDE_CATEGORIES`, types) continue to work without changes
+- TypeScript: 0 errors
 
 ---
 
