@@ -24,6 +24,7 @@ import { getOrCreateStripeCustomer } from '@/lib/stripe/get-or-create-customer'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid('ID do agendamento invalido.'),
@@ -51,6 +52,11 @@ function appBaseUrl(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/stripe/checkout-session/booking started', level: 'info' })
+
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
 
   let body: unknown
   try {

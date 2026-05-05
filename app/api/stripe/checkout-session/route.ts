@@ -6,6 +6,7 @@ import { getAppBaseUrl } from '@/lib/config/app-url'
 import { getStripeClient } from '@/lib/stripe/client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { validateApiCsrf } from '@/lib/http/csrf'
 
 const payloadSchema = z.object({
   tier: z.enum(['basic', 'professional', 'premium']),
@@ -36,6 +37,11 @@ function appBaseUrl(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const csrfCheck = validateApiCsrf(request)
+  if (!csrfCheck.ok) {
+    return NextResponse.json({ error: csrfCheck.error }, { status: 403 })
+  }
+
   const ip = getClientIp(request)
   const rl = await rateLimit('stripeCheckout', `stripe-checkout:${ip}`)
   if (!rl.allowed) {

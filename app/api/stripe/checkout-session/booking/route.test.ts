@@ -18,6 +18,10 @@ vi.mock('@/lib/http/client-ip', () => ({
   getClientIp: vi.fn(() => '127.0.0.1'),
 }))
 
+vi.mock('@/lib/http/csrf', () => ({
+  validateApiCsrf: vi.fn(() => ({ ok: true })),
+}))
+
 vi.mock('@/lib/config/app-url', () => ({
   getAppBaseUrl: vi.fn(() => 'https://app.muuday.com'),
 }))
