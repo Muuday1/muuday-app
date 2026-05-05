@@ -37,6 +37,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/auth/signup/components/ProfessionalDataForm.tsx` | ~~667~~ **230** | MEDIUM | ✅ Extracted 9 presentational sections |
 | `components/booking/VideoSession.tsx` | ~~632~~ **92** | HIGH | ✅ Extracted types, useVideoSession hook, 3 phase components |
 | `components/admin/CaseDetailClient.tsx` | ~~587~~ **167** | MEDIUM | ✅ Extracted useCaseDetail + 5 section components |
+| `components/agenda/ProfessionalAvailabilityCalendar.tsx` | ~~549~~ **95** | MEDIUM | ✅ Extracted types, helpers, hook, 5 view components |
 
 ---
 
@@ -214,6 +215,31 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — ProfessionalAvailabilityCalendar.tsx
+
+**ProfessionalAvailabilityCalendar.tsx** (549 → 95 lines)
+
+**Completed:**
+- **Types + constants** extracted to `components/agenda/availability-calendar/types.ts`:
+  - `AvailabilityRule`, `BookingSlot`, `CalendarView`, `AvailabilityException`, `LocalBookingInterval`
+  - `HOURS_START`, `HOURS_END`, `SLOT_STEP_MINUTES`, `SLOT_ROW_HEIGHT`, `MIN_VISIBLE_WINDOW_MINUTES`
+- **Helpers** extracted to `components/agenda/availability-calendar/helpers.ts`:
+  - `parseMinutes`, `weekdayFromDate`, `getDateKey`, `buildLocalBookingIntervals`, `roundDownToStep`, `roundUpToStep`
+- **Calendar hook** extracted to `components/agenda/availability-calendar/use-availability-calendar.ts`:
+  - View state, cursor date navigation (prev/next/today), view switching
+  - `visibleRange` calculation from rules + bookings with padding and min window
+  - `weekDays`, `monthDays`, `timeSlots`, `periodLabel` computation
+- **View components** extracted to `components/agenda/availability-calendar/`:
+  - `CalendarHeader` — title, timezone, period label, prev/today/next buttons, day/week/month switcher
+  - `CalendarLegend` — available/busy/blocked color legend
+  - `MonthView` — month grid with availability count, booking count, full/partial block indicators
+  - `DayWeekView` — time-grid with slot buttons, availability blocks, booking blocks (clickable), exception blocks
+  - `BookingPopover` — session detail modal with join session link and inbox link
+- Main component now pure orchestrator: header + legend + conditional month/day-week view + popover
 - TypeScript: 0 errors, build passes
 
 ---
