@@ -104,7 +104,7 @@ function shouldForceAppHostRedirect(request: NextRequest) {
   return authOrAppPaths.some(path => pathname === path || pathname.startsWith(`${path}/`))
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Handle CORS preflight and validate mobile API key for all /api/v1/* routes
   if (request.nextUrl.pathname.startsWith('/api/v1/')) {
     if (request.method === 'OPTIONS') {
