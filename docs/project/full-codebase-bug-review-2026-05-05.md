@@ -498,3 +498,14 @@ Additional issues discovered during rigorous post-fix verification.
 12. `lib/auth/get-user-with-fallback.ts`
 13. `lib/auth/attempt-guard-client.ts`
 14. `types/supabase-generated.ts`
+
+---
+
+## Post-Review Resilience Improvements
+
+### R1. Public Pages Missing Error Boundaries ✅ FIXED
+**Files:** `app/error.tsx`, `app/buscar/error.tsx`
+**Issue:** Public pages outside the `(app)` route group (e.g., `/buscar`, `/sobre`, `/privacidade`) had no `error.tsx` boundary. Unhandled exceptions in Server Components (e.g., Supabase `Promise.all` failures) caused hard-500 responses with no user-friendly fallback.
+**Impact:** Poor UX on high-traffic public pages during transient outages; no Sentry capture for client-side context.
+**Fix:** Add `app/error.tsx` as a catch-all boundary for all public routes, and `app/buscar/error.tsx` as a contextual boundary with navigation options (retry + home link).
+**Resolution:** Both files created following the project's design system (`#9FE870` CTA, `font-display` headings, Sentry `captureException` in `useEffect`).
