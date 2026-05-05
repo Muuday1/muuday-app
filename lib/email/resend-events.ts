@@ -31,6 +31,8 @@ async function sendEvent(
   }
 
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10_000)
     const res = await fetch('https://api.resend.com/events', {
       method: 'POST',
       headers: {
@@ -42,7 +44,8 @@ async function sendEvent(
         email,
         payload,
       }),
-    })
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId))
 
     if (!res.ok) {
       const body = await res.text().catch(() => 'unknown')

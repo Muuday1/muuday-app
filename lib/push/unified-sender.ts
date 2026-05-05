@@ -137,6 +137,8 @@ async function sendExpoPushes(
   }))
 
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15_000)
     const response = await fetch(EXPO_PUSH_API_URL, {
       method: 'POST',
       headers: {
@@ -145,7 +147,8 @@ async function sendExpoPushes(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(messages),
-    })
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId))
 
     if (!response.ok) {
       const responseText = await response.text()

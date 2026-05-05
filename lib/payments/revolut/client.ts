@@ -126,11 +126,14 @@ async function refreshAccessToken(): Promise<boolean> {
       client_assertion: clientAssertion,
     })
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15_000)
     const response = await fetch(`${REVOLUT_API_BASE}/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
-    })
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId))
 
     const data = await response.json()
 
@@ -163,31 +166,38 @@ const REVOLUT_API_BASE = 'https://b2b.revolut.com/api/1.0'
 async function revolutFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${REVOLUT_API_BASE}${path}`
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
   const makeRequest = async () =>
     fetch(url, {
       ...options,
+      signal: controller.signal,
       headers: {
         ...getAuthHeaders(),
         ...(options.headers || {}),
       },
     })
 
-  let response = await makeRequest()
+  try {
+    let response = await makeRequest()
 
-  // If 401, try refreshing the token once and retry
-  if (response.status === 401) {
-    const refreshed = await refreshAccessToken()
-    if (refreshed) {
-      response = await makeRequest()
+    // If 401, try refreshing the token once and retry
+    if (response.status === 401) {
+      const refreshed = await refreshAccessToken()
+      if (refreshed) {
+        response = await makeRequest()
+      }
     }
-  }
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => 'unknown')
-    throw new Error(`Revolut API error ${response.status}: ${body}`)
-  }
+    if (!response.ok) {
+      const body = await response.text().catch(() => 'unknown')
+      throw new Error(`Revolut API error ${response.status}: ${body}`)
+    }
 
-  return response.json() as Promise<T>
+    return response.json() as Promise<T>
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 // ---------------------------------------------------------------------------

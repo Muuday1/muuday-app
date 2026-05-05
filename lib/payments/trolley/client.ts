@@ -108,13 +108,17 @@ async function trolleyFetch<T>(path: string, options: RequestInit = {}): Promise
   const apiVersionPrefix = '/v1'
   const requestPath = path.startsWith(apiVersionPrefix) ? path : `${apiVersionPrefix}${path}`
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15_000)
+
   const response = await fetch(url, {
     ...options,
+    signal: controller.signal,
     headers: {
       ...buildAuthHeaders(method, requestPath, body),
       ...(options.headers || {}),
     },
-  })
+  }).finally(() => clearTimeout(timeoutId))
 
   if (!response.ok) {
     const bodyText = await response.text().catch(() => 'unknown')

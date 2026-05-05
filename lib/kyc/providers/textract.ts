@@ -44,7 +44,9 @@ export async function analyzeDocumentWithTextract(
 ): Promise<OcrResult> {
   try {
     // Download the file
-    const response = await fetch(fileUrl)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30_000)
+    const response = await fetch(fileUrl, { signal: controller.signal }).finally(() => clearTimeout(timeoutId))
     if (!response.ok) {
       return {
         provider: PROVIDER,

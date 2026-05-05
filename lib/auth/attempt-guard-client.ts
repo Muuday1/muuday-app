@@ -10,12 +10,15 @@ export async function guardAuthAttempt(
   email?: string,
 ): Promise<AuthAttemptGuardResult> {
   try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10_000)
     const response = await fetch('/api/auth/attempt-guard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, email }),
       cache: 'no-store',
-    })
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId))
 
     if (response.status === 429) {
       const data = (await response.json().catch(() => null)) as { error?: string } | null

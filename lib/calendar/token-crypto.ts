@@ -56,7 +56,13 @@ export function encryptCalendarSecret(plainText: string): string {
 export function decryptCalendarSecret(sealedText: string): string {
   const key = getEncryptionKey()
   const decoded = Buffer.from(sealedText, 'base64url').toString('utf8')
-  const payload = JSON.parse(decoded) as EncryptedPayloadV1
+
+  let payload: EncryptedPayloadV1
+  try {
+    payload = JSON.parse(decoded) as EncryptedPayloadV1
+  } catch {
+    throw new Error('Invalid encrypted payload format.')
+  }
 
   if (payload.v !== 1) {
     throw new Error('Unsupported encrypted payload version.')
@@ -78,8 +84,12 @@ export function encryptCalendarJson(value: Record<string, unknown>): string {
 
 export function decryptCalendarJson<T>(sealedText: string | null | undefined): T | null {
   if (!sealedText) return null
-  const text = decryptCalendarSecret(sealedText)
-  return JSON.parse(text) as T
+  try {
+    const text = decryptCalendarSecret(sealedText)
+    return JSON.parse(text) as T
+  } catch {
+    return null
+  }
 }
 
 export function signCalendarState(base64Payload: string): string {
