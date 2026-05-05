@@ -33,6 +33,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/agenda/ProfessionalAvailabilityWorkspace.tsx` | ~~600~~ ~~540~~ **127** | MEDIUM | ✅ Extracted useAvailabilityWorkspace + 4 presentational components |
 | `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
 | `components/admin/ReviewModerationClient.tsx` | ~~608~~ **135** | MEDIUM | ✅ Extracted useReviewModeration + 5 presentational components |
+| `components/booking/WaitingRoomGame.tsx` | ~~730~~ **31** | MEDIUM | ✅ Extracted types, helpers, draw.ts, useWaitingRoomGame hook |
 
 ---
 
@@ -210,6 +211,27 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — WaitingRoomGame.tsx
+
+**WaitingRoomGame.tsx** (730 → 31 lines)
+
+**Completed:**
+- **Types + constants** extracted to `components/booking/waiting-room-game/types.ts`:
+  - `Obstacle`, `Coin`, `Particle`, `Cloud`, `GamePlayer`, `GameState`
+  - `GROUND_Y_RATIO`, `PLAYER_SIZE`, `GRAVITY`, `JUMP_STRENGTH`, `BASE_SPEED`, `MAX_SPEED`, `SPEED_INCREMENT`, `COIN_SPAWN_CHANCE`
+- **Helpers** extracted to `components/booking/waiting-room-game/helpers.ts`:
+  - `getHighScore`, `setHighScore`, `randomBetween`
+- **Canvas drawing** extracted to `components/booking/waiting-room-game/draw.ts`:
+  - `drawPixelText`, `drawCloud`, `drawGround`, `drawPlayer`, `drawObstacle`, `drawCoin`, `drawParticles`, `drawTitleScreen`, `drawGameOver`
+- **Game engine hook** extracted to `components/booking/waiting-room-game/use-waiting-room-game.ts`:
+  - Full game loop with `requestAnimationFrame`, collision detection, obstacle/coin spawning, particle physics
+  - Input handling (keyboard + touch)
+  - Resize handling with DPR scaling
+- Main component now pure shell: canvas element + score overlay
 - TypeScript: 0 errors, build passes
 
 ---
