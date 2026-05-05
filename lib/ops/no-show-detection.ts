@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendPushToUser } from '@/lib/push/sender'
 import { autoCreateCase } from '@/lib/disputes/dispute-service'
 import { patchBookingMetadata } from '@/lib/booking/metadata'
+import { applyPaymentRefund } from '@/lib/booking/cancellation/apply-refund'
 
 /**
  * Auto-detect no-show bookings that passed their scheduled end time
@@ -175,8 +176,21 @@ async function applyNoShowResolution(
     return false
   }
 
-  // TODO: Fase 6 — invoke refund engine when payment stack is ready
-  // For now, we store the policy in metadata so the future refund engine can process it
+  // Execute refund if applicable
+  if (refundPercent > 0) {
+    try {
+      await applyPaymentRefund(admin, bookingId, refundPercent)
+    } catch (refundError) {
+      const msg = refundError instanceof Error ? refundError.message : String(refundError)
+      Sentry.captureException(refundError instanceof Error ? refundError : new Error(msg), {
+        tags: { area: 'no_show_detection', subArea: 'refund_execution' },
+        extra: { bookingId, refundPercent, responsibleParty },
+      })
+      // We still return true because the no-show status was successfully updated.
+      // The refund failure is logged and can be retried manually.
+    }
+  }
+
   return true
 }
 

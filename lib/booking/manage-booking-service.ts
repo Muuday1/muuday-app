@@ -383,11 +383,12 @@ export async function rescheduleBookingService(
     .eq('user_id', userId)
     .in('status', ['pending', 'pending_confirmation', 'confirmed'])
 
-  await releaseSlotLock(supabase, slotLock.lockId)
-
   if (updateError) {
+    await releaseSlotLock(supabase, slotLock.lockId)
     return { success: false, error: 'Erro ao remarcar agendamento. Tente novamente.' }
   }
+
+  await releaseSlotLock(supabase, slotLock.lockId)
 
   await enqueueBookingCalendarSync({
     bookingId: booking.id,

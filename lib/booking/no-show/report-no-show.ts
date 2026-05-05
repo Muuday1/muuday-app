@@ -126,6 +126,22 @@ export async function markUserNoShowService(
     return { success: false, error: 'Não foi possível registrar no-show. Tente novamente.' }
   }
 
+  // Apply refund policy: client no-show with >24h notice = 50% refund, else 0%
+  const hoursUntilStart = Math.round(
+    (new Date(booking.scheduled_at).getTime() - Date.now()) / (1000 * 60 * 60),
+  )
+  const refundPercent = hoursUntilStart >= 24 ? 50 : 0
+  if (refundPercent > 0) {
+    try {
+      await applyPaymentRefund(supabase, bookingId, refundPercent)
+    } catch (refundError) {
+      Sentry.captureException(refundError instanceof Error ? refundError : new Error(String(refundError)), {
+        tags: { area: 'booking_no_show', flow: 'user_no_show_refund' },
+        extra: { bookingId, refundPercent, hoursUntilStart },
+      })
+    }
+  }
+
   await enqueueBookingCalendarSync({
     bookingId,
     action: 'cancel_booking',
