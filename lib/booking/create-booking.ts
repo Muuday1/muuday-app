@@ -34,7 +34,7 @@ import { ptBR } from 'date-fns/locale'
 export { createBookingInputSchema }
 export type { CreateBookingInput }
 
-const MANUAL_CONFIRMATION_SLA_HOURS = 24
+const MANUAL_CONFIRMATION_SLA_HOURS = Number(process.env.MANUAL_CONFIRMATION_SLA_HOURS) || 24
 
 export async function executeBookingCreation(
   supabase: SupabaseClient,
@@ -170,6 +170,32 @@ export async function executeBookingCreation(
         extra: { userId: user.id, professionalId: professional.id },
       })
       return { success: false, error: 'Erro interno ao preparar pagamento.' }
+    }
+
+    // 6b. Re-validate slot availability immediately before persistence
+    // (locks may have expired during payment preparation)
+    for (const slot of plannedSessions) {
+      const revalidation = await validateSlotAvailability({
+        supabase,
+        professionalId: bookingInput.professionalId,
+        startUtc: slot.startUtc,
+        endUtc: slot.endUtc,
+        timezone: settings.timezone,
+        bufferMinutes: settings.bufferMinutes,
+        minimumNoticeHours: settings.minimumNoticeHours,
+        maxBookingWindowDays: settings.maxBookingWindowDays,
+        errorMessages: {
+          minimumNotice: `Selecione um horário com pelo menos ${settings.minimumNoticeHours} horas de antecedência.`,
+          maxWindow: `Agendamentos devem estar dentro de ${settings.maxBookingWindowDays} dias.`,
+          workingHours: 'Um ou mais horários não estão disponíveis para este profissional.',
+          exception: 'Um ou mais horários foram bloqueados por indisponibilidade.',
+          internalConflict: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+          externalConflict: 'Um ou mais horários conflitam com a agenda externa conectada do profissional.',
+        },
+      })
+      if (!revalidation.valid) {
+        return { success: false, error: revalidation.error! }
+      }
     }
 
     // 7. Persist booking

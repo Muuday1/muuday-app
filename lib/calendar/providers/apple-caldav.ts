@@ -61,9 +61,14 @@ async function caldavRequest(input: {
   }
 }
 
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function extractFirstTag(xml: string, tagNames: string[]): string | null {
   for (const tag of tagNames) {
-    const regex = new RegExp(`<[^:>]*:?${tag}[^>]*>([\\s\\S]*?)<\\/[^:>]*:?${tag}>`, 'i')
+    const escapedTag = escapeRegExp(tag)
+    const regex = new RegExp(`<[^:>]*:?${escapedTag}[^>]*>([\\s\\S]*?)<\\/[^:>]*:?${escapedTag}>`, 'i')
     const match = xml.match(regex)
     if (match?.[1]) {
       return match[1].trim()
@@ -123,11 +128,11 @@ function icsDateToIso(value: string): string | null {
     return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss))).toISOString()
   }
 
-  // floating datetime -> treat as UTC fallback
+  // floating datetime -> parse as local time (not UTC)
   const localMatch = normalized.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/)
   if (localMatch) {
     const [, y, m, d, hh, mm, ss] = localMatch
-    return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss))).toISOString()
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss)).toISOString()
   }
 
   // date-only all-day

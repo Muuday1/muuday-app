@@ -130,14 +130,40 @@ export async function POST(request: NextRequest) {
   try {
     // Get or create Stripe Customer
     let customerId: string | undefined
-    const { data: existingCustomer } = await supabase
-      .from('stripe_customers')
-      .select('stripe_customer_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    try {
+      const { data: existingCustomer } = await supabase
+        .from('stripe_customers')
+        .select('stripe_customer_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-    if (existingCustomer?.stripe_customer_id) {
-      customerId = existingCustomer.stripe_customer_id
+      if (existingCustomer?.stripe_customer_id) {
+        customerId = existingCustomer.stripe_customer_id
+      } else {
+        const userEmail = user.email || undefined
+        const customer = await stripe.customers.create({
+          email: userEmail,
+          metadata: { muuday_user_id: user.id },
+        })
+        customerId = customer.id
+
+        // Persist the new customer mapping (best effort)
+        await supabase.from('stripe_customers').insert({
+          user_id: user.id,
+          stripe_customer_id: customerId,
+        }).then(({ error }) => {
+          if (error) {
+            Sentry.captureException(error, {
+              tags: { area: 'stripe-checkout-booking', context: 'persist-customer-mapping' },
+            })
+          }
+        })
+      }
+    } catch (customerError) {
+      Sentry.captureException(customerError, {
+        tags: { area: 'stripe-checkout-booking', context: 'customer-creation' },
+      })
+      // Non-blocking: continue without customer association
     }
 
     const session = await stripe.checkout.sessions.create({

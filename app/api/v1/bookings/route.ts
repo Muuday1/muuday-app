@@ -98,19 +98,21 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Calendar sync (non-blocking)
+  // Calendar sync (awaited to guarantee Inngest enqueue before response)
   const bookingIdsForCalendarSync = result.createdBookingIds
-  Promise.all(
-    bookingIdsForCalendarSync.map(syncBookingId =>
-      enqueueBookingCalendarSync({
-        bookingId: syncBookingId,
-        action: 'upsert_booking',
-        source: 'booking.api_v1.create',
-      }),
-    ),
-  ).catch(err => {
+  try {
+    await Promise.all(
+      bookingIdsForCalendarSync.map(syncBookingId =>
+        enqueueBookingCalendarSync({
+          bookingId: syncBookingId,
+          action: 'upsert_booking',
+          source: 'booking.api_v1.create',
+        }),
+      ),
+    )
+  } catch (err) {
     Sentry.captureException(err, { tags: { area: 'booking_calendar_sync' } })
-  })
+  }
 
   // Emit Resend automation events (non-blocking)
   if (result.professionalEmail) {

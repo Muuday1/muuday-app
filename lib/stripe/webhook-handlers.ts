@@ -225,8 +225,8 @@ async function fetchStripeFeeForPaymentIntent(
 ): Promise<{ stripeFeeMinor: bigint; platformFeeMinor: bigint }> {
   const stripe = getStripeClient()
   if (!stripe) {
-    // Fallback estimate: 2.9% + 30 cents for BRL
-    const estimatedFee = (amountMinor * BigInt(29)) / BigInt(1000) + BigInt(30)
+    // Fallback estimate: Stripe Brazil card rate ~3.99% + R$0.49 (as of 2025)
+    const estimatedFee = (amountMinor * BigInt(399)) / BigInt(10000) + BigInt(49)
     const platformFee = (amountMinor * BigInt(15)) / BigInt(100) // 15% platform fee
     return { stripeFeeMinor: estimatedFee, platformFeeMinor: platformFee }
   }
@@ -249,8 +249,8 @@ async function fetchStripeFeeForPaymentIntent(
     Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { tags: { area: 'stripe_webhook' } })
   }
 
-  // Fallback estimate
-  const estimatedFee = (amountMinor * BigInt(29)) / BigInt(1000) + BigInt(30)
+  // Fallback estimate: Stripe Brazil card rate ~3.99% + R$0.49 (as of 2025)
+  const estimatedFee = (amountMinor * BigInt(399)) / BigInt(10000) + BigInt(49)
   const platformFee = (amountMinor * BigInt(15)) / BigInt(100)
   return { stripeFeeMinor: estimatedFee, platformFeeMinor: platformFee }
 }

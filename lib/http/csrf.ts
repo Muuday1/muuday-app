@@ -18,14 +18,14 @@ export function validateCsrfOrigin(request: NextRequest): { ok: true } | { ok: f
   const appBaseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
 
   if (!appBaseUrl) {
-    return { ok: true }
+    return { ok: false, error: 'CSRF protection misconfigured: missing APP_BASE_URL.' }
   }
 
   let allowedHost: string
   try {
     allowedHost = new URL(appBaseUrl).host
   } catch {
-    return { ok: true }
+    return { ok: false, error: 'CSRF protection misconfigured: invalid APP_BASE_URL.' }
   }
 
   const requestHost = (() => {
