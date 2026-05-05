@@ -1595,3 +1595,12 @@ Use this for meaningful checkpoints only.
   - `vitest run app/api/stripe/payment-intent/route.test.ts` → 12/12 pass
   - `vitest run inngest/functions/` → 27/27 pass
   - Commit: `fc7bcb5`, pushed to `origin/main`
+
+### Entry 92 (2026-05-05) — Add retry to confirmation page for post-payment race condition
+- Scope executed:
+  - **`app/(app)/agenda/confirmacao/[bookingId]/page.tsx`** — added the same retry loop (3 attempts, 400ms delay) before calling `notFound()`. After Stripe redirects the user to the confirmation page post-payment, the booking status update from `pending_payment` to `confirmed` may not be immediately visible due to replication lag. This prevents a 404 error after successful payment.
+- Files changed: 1
+- Validation:
+  - `npm run typecheck` → pass (0 errors)
+  - `npm run lint` → pass (0 new errors)
+  - Commit: `bd8d39a`, pushed to `origin/main`
