@@ -21,20 +21,35 @@ export default async function BookingConfirmacaoPage({
     redirect(`/login?redirect=${encodeURIComponent(`/agenda/confirmacao/${bookingId}`)}`)
   }
 
-  const [{ data: booking }, { data: userProfile }] = await Promise.all([
-    supabase
-      .from('bookings')
-      .select(
-        `id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, price_total, user_currency, price_brl,
-        session_purpose, booking_type, recurrence_group_id,
-        professionals(id, user_id, profiles(full_name, timezone)),
-        professional_services(id, name, duration_minutes, price_brl)`
-      )
-      .eq('id', bookingId)
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase.from('profiles').select('timezone').eq('id', user.id).maybeSingle(),
-  ])
+  // Retry with delay to avoid race condition between booking creation/update and page load
+  let booking = null
+  let userProfile = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const [{ data: bookingData }, { data: profileData }] = await Promise.all([
+      supabase
+        .from('bookings')
+        .select(
+          `id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, price_total, user_currency, price_brl,
+          session_purpose, booking_type, recurrence_group_id,
+          professionals(id, user_id, profiles(full_name, timezone)),
+          professional_services(id, name, duration_minutes, price_brl)`
+        )
+        .eq('id', bookingId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase.from('profiles').select('timezone').eq('id', user.id).maybeSingle(),
+    ])
+
+    if (bookingData) {
+      booking = bookingData
+      userProfile = profileData
+      break
+    }
+
+    if (attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+    }
+  }
 
   if (!booking) {
     notFound()
