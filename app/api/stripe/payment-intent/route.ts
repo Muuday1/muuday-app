@@ -17,6 +17,7 @@ import * as Sentry from '@sentry/nextjs'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe/client'
+import { getOrCreateStripeCustomer } from '@/lib/stripe/get-or-create-customer'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 
@@ -160,39 +161,12 @@ export async function POST(request: NextRequest) {
   const amountMinor = payment.amount_total_minor ?? Math.round((payment.amount_total ?? 0) * 100)
   const currency = (payment.currency ?? 'brl').toLowerCase()
 
-  // Get or create Stripe Customer
+  // Get or create Stripe Customer (race-safe)
   let customerId: string | undefined
   try {
-    const { data: existingCustomer } = await supabase
-      .from('stripe_customers')
-      .select('stripe_customer_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (existingCustomer?.stripe_customer_id) {
-      customerId = existingCustomer.stripe_customer_id
-    } else {
-      const userEmail = user.email || undefined
-      const customer = await stripe.customers.create({
-        email: userEmail,
-        metadata: { muuday_user_id: user.id },
-      })
-      customerId = customer.id
-
-      // Persist the new customer mapping (best effort)
-      await supabase.from('stripe_customers').insert({
-        user_id: user.id,
-        stripe_customer_id: customerId,
-      }).then(({ error }) => {
-        if (error) {
-          Sentry.captureException(error, {
-            tags: { area: 'stripe-payment-intent', context: 'persist-customer-mapping' },
-          })
-        }
-      })
-    }
+    customerId = await getOrCreateStripeCustomer(stripe, supabase, user.id, user.email || undefined)
   } catch (customerError) {
-    Sentry.captureException(customerError, {
+    Sentry.captureException(customerError instanceof Error ? customerError : new Error(String(customerError)), {
       tags: { area: 'stripe-payment-intent', context: 'customer-creation' },
     })
     // Non-blocking: continue without customer association

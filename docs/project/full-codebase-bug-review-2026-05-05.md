@@ -13,7 +13,7 @@
 | **High** | 9 | Data integrity risks, auth bypasses, race conditions, XSS |
 | **Medium** | 12 | Stability issues, incorrect error handling, performance |
 | **Low** | 14 | Code quality, missing guards, edge cases |
-| **Total** | **42** | 38 fixed, 4 accepted/deferred |
+| **Total** | **42** | 38 fixed, 4 accepted |
 
 ---
 
@@ -327,10 +327,11 @@ return parsed.data
 
 ---
 
-### L2. `bookingType` Default in `acquireSlotLock`
+### L2. `bookingType` Default in `acquireSlotLock` ✅ ACCEPTED
 **File:** `lib/booking/slot-locks.ts:69`  
 **Issue:** `booking_type` defaults to `'one_off'` at DB level but is also set in code, creating redundancy.  
-**Fix:** Let DB handle default or ensure consistency.
+**Fix:** Let DB handle default or ensure consistency.  
+**Resolution:** The `|| 'one_off'` fallback in code is defensive — it protects against empty-string inputs and ensures consistency even if the DB default changes. Not a bug; accepted as-is.
 
 ---
 
@@ -350,7 +351,7 @@ return parsed.data
 
 ---
 
-### L5. `sendBookingConfirmationEmail` Fire-and-Forget Without Retry ✅ FIXED
+### L5. `sendBookingConfirmationEmail` Fire-and-Forget Without Retry ✅ ACCEPTED
 **File:** `lib/booking/create-booking.ts:321-344`  
 **Issue:** Email failures are logged to Sentry but not retried.  
 **Fix:** Queue via Inngest or Resend for at-least-once delivery.  
@@ -373,10 +374,11 @@ return parsed.data
 
 ---
 
-### L8. Stripe Customer Creation Race Condition
-**File:** `app/api/stripe/payment-intent/route.ts:148-176`  
-**Issue:** Two parallel requests could both find no existing customer and create duplicates. The `stripe_customers` table may not have a unique constraint on `user_id`.  
-**Fix:** Ensure unique index on `stripe_customers(user_id)`.
+### L8. Stripe Customer Creation Race Condition ✅ FIXED
+**File:** `app/api/stripe/payment-intent/route.ts:148-176`, `app/api/stripe/checkout-session/booking/route.ts:148-178`, `app/api/v1/payments/payment-intent/route.ts:137-163`  
+**Issue:** Two parallel requests could both find no existing customer and create duplicates in Stripe. The DB already has `UNIQUE(user_id)` on `stripe_customers`, but the code creates the Stripe customer BEFORE inserting into the DB, so duplicates in Stripe are still possible.  
+**Fix:** Centralize get-or-create logic in a race-safe helper that handles the 23505 unique-constraint violation by fetching the existing row and returning its `stripe_customer_id`.  
+**Resolution:** Created `lib/stripe/get-or-create-customer.ts` with `getOrCreateStripeCustomer()` helper. If insert fails with unique constraint (another request won the race), it fetches the existing row and returns the winner's `stripe_customer_id`. All three routes now use this helper.
 
 ---
 

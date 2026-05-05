@@ -50,6 +50,14 @@ describe('POST /api/stripe/checkout-session/booking', () => {
     vi.clearAllMocks()
     mockedRateLimit.mockResolvedValue({ allowed: true, retryAfterSeconds: 0 } as any)
     mockedGetStripeClient.mockReturnValue(null)
+    mockedCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1', email: 'test@example.com' } } }) },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      }),
+    } as any)
   })
 
   it('returns 429 when rate limited', async () => {
