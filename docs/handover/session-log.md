@@ -1620,3 +1620,29 @@ Use this for meaningful checkpoints only.
 - Validation:
   - `npm run typecheck` → pass (0 errors)
   - Commit: `f0f3e2f`, pushed to `origin/main`
+
+
+### Entry 95 (2026-05-05) - Fix critical silent failures in Stripe payment capture flow
+- Scope executed:
+  - **`lib/stripe/webhook-handlers.ts`**:
+    - **Stuck processing recovery**: `processStripeWebhookInbox()` now fetches events stuck in `'processing'` for >5 minutes via a separate query, preventing orphaned events from being lost forever after a crash or kill.
+    - **Ledger failure no longer swallowed**: Removed the try/catch around ledger creation in `payment_intent.succeeded`. If ledger creation or balance update fails, the webhook now fails and retries automatically instead of marking the event as processed with missing financial data.
+    - **Idempotency guard**: Added check for `payment.status === 'captured'` before creating ledger entries. On replay or manual re-processing, skips ledger/balance updates and logs a Sentry warning.
+    - **Preserve capture timestamps**: `setPaymentStatusFromWebhook()` now only sets `captured_at`/`refunded_at` if they are null, preventing audit timestamp destruction on replay.
+    - **Dispute handler fixed**: `charge.dispute.created` now throws (fails the webhook) when DB writes fail, instead of returning `'processed'` with missing dispute data.
+    - **Exported `fetchStripeFeeForPaymentIntent`** for reuse in cron jobs.
+  - **`lib/booking/completion/complete-booking.ts`**:
+    - **Capture retry on failure**: When `captureBookingPayment()` fails (e.g. Stripe transient error), the failure now enqueues the payment to `stripe_payment_retry_queue` so the capture will be re-attempted later. Previously this was fire-and-forget with no recovery.
+  - **`lib/stripe/cron-jobs.ts`**:
+    - **Retry cron creates ledger/balance**: When `runStripeFailedPaymentRetries()` finds a PaymentIntent with Stripe status `succeeded`, it now loads the payment row, checks idempotency, and creates ledger entries + updates professional balance if not already done. Previously it only updated `payments.status`, leaving a permanent gap if the original webhook was lost.
+  - **`db/sql/migrations/088-stripe-payment-retry-queue-unique-constraint.sql`**:
+    - Added partial UNIQUE index on `stripe_payment_retry_queue(provider_payment_id)` where not null, preventing duplicate retry rows.
+  - **`lib/stripe/webhook-handlers.test.ts`**:
+    - Updated `buildAdminClient()` mock to support `.lt()`, `.limit()` returning array data, `.in()`, `.order()`, and chained `.eq()` on update queries.
+- Files changed: 5
+- Validation:
+  - `npm run typecheck` - pass (0 errors)
+  - `npm run build` - 200 static pages, exit 0
+  - `vitest run lib/stripe/webhook-handlers.test.ts` - 15/15 pass
+  - `vitest run` (95 test files) - 1013/1013 pass (1 pre-existing env failure in manage-booking-service)
+  - Commit: `15bc8fc`, pushed to `origin/main`
