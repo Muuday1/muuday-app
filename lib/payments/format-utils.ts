@@ -12,6 +12,9 @@
  */
 export function formatMinorUnits(amount: bigint | number | string, currency = 'BRL'): string {
   const value = typeof amount === 'bigint' ? Number(amount) : Number(amount)
+  if (!Number.isFinite(value)) {
+    return `${currency} --`
+  }
   const major = value / 100
 
   try {
@@ -33,6 +36,9 @@ export function formatMinorUnits(amount: bigint | number | string, currency = 'B
  */
 export function minorToMajor(amount: bigint | number | string): number {
   const value = typeof amount === 'bigint' ? Number(amount) : Number(amount)
+  if (!Number.isFinite(value)) {
+    return 0
+  }
   return value / 100
 }
 

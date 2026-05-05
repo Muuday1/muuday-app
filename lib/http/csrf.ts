@@ -64,7 +64,7 @@ export function validateCsrfOrigin(request: NextRequest): { ok: true } | { ok: f
  */
 export function validateApiCsrf(request: NextRequest): { ok: true } | { ok: false; error: string } {
   const authHeader = request.headers.get('authorization')
-  const hasBearerToken = authHeader?.startsWith('Bearer ')
+  const hasBearerToken = /^Bearer\s+\S+$/.test(authHeader ?? '')
   if (hasBearerToken) {
     return { ok: true }
   }

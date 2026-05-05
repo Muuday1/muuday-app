@@ -10,13 +10,16 @@ type SupabaseAuthClientLike = {
  * validates the JWT with Supabase Auth and is the secure source
  * of truth for server-side identity.
  */
-export async function getUserWithSessionFallback<TUser = unknown>(
+export async function getUserSafe<TUser = unknown>(
   supabase: SupabaseAuthClientLike,
 ): Promise<TUser | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  return (user as TUser | null) || null
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return (user as TUser | null) || null
+  } catch {
+    return null
+  }
 }
 

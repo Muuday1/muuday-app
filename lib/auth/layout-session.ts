@@ -2,7 +2,7 @@ import { cache } from 'react'
 import type { User } from '@supabase/supabase-js'
 import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
-import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
+import { getUserSafe } from '@/lib/auth/get-user-with-fallback'
 
 type LayoutProfile = {
   full_name: string | null
@@ -24,7 +24,7 @@ export const getLayoutSession = cache(async (): Promise<LayoutSession> => {
 
   try {
     const supabase = await createClient()
-    const user = await getUserWithSessionFallback<User>(supabase)
+    const user = await getUserSafe<User>(supabase)
 
     if (!user) {
       return { user: null, profile: null }

@@ -184,7 +184,11 @@ function validateEnv() {
     )
   }
 
-  return parsed.success ? parsed.data : (process.env as unknown as z.infer<typeof envSchema>)
+  if (!parsed.success) {
+    console.error('[env] Validation failed:', parsed.error.format())
+    throw new Error('Environment validation failed. Check missing or invalid env vars.')
+  }
+  return parsed.data
 }
 
 export const env = validateEnv()

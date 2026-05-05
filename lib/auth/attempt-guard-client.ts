@@ -39,6 +39,9 @@ export async function guardAuthAttempt(
 
     return { allowed: true }
   } catch {
-    return { allowed: true }
+    return {
+      allowed: false,
+      error: 'Nao foi possivel verificar a tentativa. Tente novamente mais tarde.',
+    }
   }
 }

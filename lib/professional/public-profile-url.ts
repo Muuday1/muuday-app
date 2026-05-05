@@ -52,7 +52,12 @@ export function buildProfessionalProfilePath(input: BuildProfessionalProfilePath
 }
 
 export function parseProfessionalProfileParam(rawValue: string): ParsedProfessionalProfileParam {
-  const normalized = decodeURIComponent(String(rawValue || '').trim())
+  let normalized: string
+  try {
+    normalized = decodeURIComponent(String(rawValue || '').trim())
+  } catch {
+    normalized = String(rawValue || '').trim()
+  }
 
   if (!normalized) {
     return { kind: 'unknown', raw: normalized }

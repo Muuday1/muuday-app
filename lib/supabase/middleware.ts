@@ -196,8 +196,12 @@ export async function updateSession(request: NextRequest) {
   if (cached && !didRefreshTokens) {
     user = cached.user
   } else {
-    const { data: { user: freshUser } } = await supabase.auth.getUser()
-    user = freshUser
+    try {
+      const { data: { user: freshUser } } = await supabase.auth.getUser()
+      user = freshUser
+    } catch {
+      user = null
+    }
     if (!didRefreshTokens) {
       setCachedSession(cookieHash, user)
     }

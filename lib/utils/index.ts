@@ -9,6 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amountBRL: number, currency = 'BRL', locale = 'pt-BR'): string {
+  if (!Number.isFinite(amountBRL) || amountBRL < 0) {
+    return `${currency} --`
+  }
+
   const rates: Record<string, number> = {
     BRL: 1,
     USD: 0.19,
@@ -33,7 +37,11 @@ export function formatCurrency(amountBRL: number, currency = 'BRL', locale = 'pt
 }
 
 export function formatDateTime(date: string, timezone: string): string {
-  return formatInTimeZone(new Date(date), timezone, "dd 'de' MMMM 'as' HH:mm", { locale: ptBR })
+  const d = new Date(date)
+  if (isNaN(d.getTime())) {
+    return '--'
+  }
+  return formatInTimeZone(d, timezone, "dd 'de' MMMM 'as' HH:mm", { locale: ptBR })
 }
 
 export function getTimezoneOffset(timezone: string): string {

@@ -1,819 +1,422 @@
-# Muuday App — Deep Code Review & Diagnosis Report
+# Muuday App — Comprehensive Code Review Report
 
-**Generated:** 2026-04-29
-**Scope:** Full codebase (web + mobile)
-**Rules:** Read-only audit. No code was modified.
-
-> **Post-Audit Cleanup — 2026-04-29**
->
-> The following issues from this report have been addressed in cleanup passes:
-> - **HIGH-1 Mobile app unbuildable** → Fixed. Mobile `tsc --noEmit` passes cleanly.
-> - **HIGH-1 Heavy Server Components without Suspense** → Partially mitigated. Console errors removed.
-> - **HIGH-2 `force-dynamic`** → Fixed (Pass 18). Removed redundant `export const dynamic = 'force-dynamic'` from `agenda/page.tsx` and `dashboard/page.tsx`. Both pages are already dynamic via `createClient()` + `redirect()`.
-> - **MEDIUM-1 FormData type errors** → Fixed. TypeScript compiles with zero errors.
-> - **MEDIUM-1 `createAdminClient()` in payment routes** → Documented with security comments + Sentry. Migration to RPC function tracked.
-> - **MEDIUM-2 Missing role check** → Fixed. `profissional` role guard added to `/api/v1/professionals/me`.
-> - **MEDIUM-3 Missing CSRF** → Fixed. `validateApiCsrf()` added to 15 critical API v1 routes.
-> - **MEDIUM-4 Missing Zod validation** → Fixed. `professionalSchema`/`professionalDraftSchema` added.
-> - **MEDIUM-5 Admin route lacks validation** → Fixed. `professionalStatusSchema` added.
-> - **MEDIUM-6 Calendar callback redirect validation** → Fixed. Whitelist-based `safeRedirectPath` replaces permissive prefix check.
-> - **MEDIUM-2 Unbounded queries** → Fixed. `.limit()` added to all high-risk queries.
-> - **MEDIUM-3 `console.error` in hot paths** → Fixed. Replaced with `Sentry.captureException()`.
-> - **MEDIUM-4 Middleware SESSION_CACHE unbounded** → Fixed. LRU eviction by `lastAccessedAt` added.
-> - **MEDIUM-1 Hydration mismatch on legal pages** → Fixed. Static dates replace dynamic `new Date()`.
-> - **HIGH-1 Missing `alt` attributes** → Verified. All images already have `alt` text.
-> - **UX MEDIUM-1 `suppressHydrationWarning`** → Fixed. Removed from legal pages.
-> - **LOW-2 Empty catch blocks** → Fixed. Critical API routes and booking payment prep now log to Sentry.
-> - **LOW-2 Heavy Third-Party Scripts Without Preconnect** → Fixed. Added `<link rel="preconnect">` + `<link rel="dns-prefetch">` for PostHog, Vercel Insights, and Sentry ingestion origins in `app/layout.tsx`.
-> - **LOW-1 Inconsistent Error Page Coverage** → Partially fixed. Added `loading.tsx` + `error.tsx` to `app/(app)/admin/planos/` and `app/(app)/onboarding-profissional/`.
-> - **MEDIUM-1 `middleware.ts` missing at root** → Fixed (Pass 13). `proxy.ts` was incorrectly named; renamed to `middleware.ts` so Next.js actually executes it. Later renamed to `proxy.ts` (Pass 34) per Next.js 16.2.4 convention. Restores CSP nonces, CORS, mobile API key validation, session caching, and role-based redirects.
->
-> - **MEDIUM-2 TypeScript target outdated** → Fixed. Upgraded to `ES2022`.
-> - **MEDIUM-3 `any[]` in agenda/financeiro pages** → Fixed. Added explicit `AgendaBooking` and `PaymentRow` interfaces; extracted magic-number constants.
-> - **MEDIUM-3 `console.error` in lib/ services** → Fixed. Replaced 20 occurrences across `chat-service.ts`, `dispute-service.ts`, `email-action-service.ts` with `Sentry.captureException()`.
->
-> - **Pre-existing test failure in availability-engine.test.ts** → Fixed. Added `now?: Date` parameter to `generateRecurringSlotStarts` and `generateRecurrenceSlots` to eliminate date-dependent test flakiness. All 1052 tests now pass.
-> - **2.2 Availability logic duplication** → Fixed. Extracted `extractProfessionalTimezone()` and `loadProfessionalSettings()` (Pass 16), then `parseBookingSlot()` (Pass 17). All duplicated `fromZonedTime` + NaN + window check patterns are now centralized. Offer and reschedule paths now delegate min-notice + max-window to `validateSlotAvailability` instead of checking manually.
-> - **`any` in app/ directory** → Fixed (Pass 18 + Pass 35). Zero TypeScript `any` types remain in `app/` (verified with regex search). `lib/auth/layout-session.ts` `user: any` also fixed.
-> - **console.error in lib/ services** → Fixed (Pass 17). Replaced 18 `console.error` calls in booking, availability, auth, blog, and action modules with `Sentry.captureException`.
-> - **Unbounded queries** → Fixed (Pass 17). Added `.limit(500)` to blog comments and `.limit(200)` to internal conflict detection.
-> - **`force-dynamic`** → Fixed (Pass 18). Removed redundant `export const dynamic = 'force-dynamic'` from `agenda/page.tsx` and `dashboard/page.tsx` — both pages are already dynamic via `createClient()` + `redirect()`.
-> - **`any` types in lib/ (excl. tests)** → Fixed (Pass 18). Replaced all 10 remaining `: any` annotations with explicit types. Removed 2 unnecessary `as any` casts in admin actions.
-> - **console.error in admin modules** → Fixed (Pass 18). Replaced 25 `console.error` calls in `lib/admin/admin-service.ts` and `lib/actions/admin.ts` with `Sentry.captureException`.
-> - **console.error across all lib/ modules** → Fixed (Pass 19). Replaced 80+ remaining `console.error` calls across 38 service/action/stripe/calendar/payment files with `Sentry.captureException`/`captureMessage`. Only 2 remain in `lib/config/env.ts` (startup validation before Sentry initialization). Updated 3 test files to mock Sentry instead of `console.error`.
->
-> > - **Pass 26 — Doc stale status markers** → Fixed. Updated 8 integration docs from "In progress" to "Done/Ongoing". Added UTF-8 BOM rule to AGENTS.md.
-> - **Pass 27 — Critical route error coverage + env vars + false positive cleanup** → Fixed. Added `loading.tsx` + `error.tsx` to 4 critical routes (`agendar/[id]`, `login`, `cadastro`, `profissional/[id]`). Added `TROLLEY_API_BASE` to `.env.local.example`. Corrected false positive about `IMPLEMENTATION-TRACKER.md` mojibake.
-> - **Pass 28 — Error page coverage + next.config.js security** → Fixed. Added `loading.tsx` + `error.tsx` to `completar-perfil/`, `editar-perfil/`, `editar-perfil-profissional/`. Added `poweredByHeader: false` and Sanity CDN to `next.config.js`.
->
-> Remaining open issues: DB transactions (2.8 — fallback paths fully instrumented, true fix requires RPC migration), Supabase typed clients (2.5 — blocked on production schema access), `any` types in test files, mega-components (Suspense boundaries — medium refactor deferred).
+**Date:** 2026-05-05  
+**Scope:** Full-stack Next.js application (app router, Supabase, Stripe, Inngest)  
+**Lines reviewed:** ~45,000+ across 400+ files  
 
 ---
 
 ## Executive Summary
 
-| Category | Critical | High | Medium | Low | Info |
-|----------|----------|------|--------|-----|------|
-| Build / Type Safety | 0 | 1 | 2 | 0 | 1 |
-| Security | 0 | 0 | 6 | 2 | 3 |
-| Performance | 0 | 2 | 4 | 3 | 2 |
-| Code Quality | 0 | 1 | 4 | 5 | 3 |
-| UX / Accessibility | 0 | 1 | 3 | 4 | 2 |
-| App Structure / Consistency | 0 | 0 | 3 | 4 | 3 |
-| Mobile App | 0 | 2 | 1 | 0 | 0 |
-| **TOTAL** | **0** | **7** | **23** | **18** | **14** |
+| Severity | Count | Immediate Action Required |
+|----------|-------|---------------------------|
+| 🔴 **Critical** | 6 | Yes — fix before next deploy |
+| 🟠 **High** | 10 | Yes — fix within 1 week |
+| 🟡 **Medium** | 18 | Fix within 2 weeks |
+| 🔵 **Low** | 22 | Fix when convenient |
 
-**Verdict:** The codebase is structurally sound with good security hygiene (webhooks verified, CSP nonces, rate limiting, no hardcoded secrets). However, it has **significant TypeScript/build issues**, **performance anti-patterns in data fetching**, **a completely broken mobile app**, and **notable UX/accessibility gaps**.
+**Overall verdict:** The codebase is well-structured with good separation of concerns, comprehensive test coverage, and strong security practices in many areas. However, several critical bugs around build stability, CSP configuration, timing-safe comparisons, and unhandled promise rejections in middleware could cause production outages or security vulnerabilities.
 
 ---
 
-## 1. Build & Type Safety Issues
+## 🔴 Critical Issues
 
-### 🔴 HIGH-1: Mobile App Is Completely Unbuildable
-**Files:** `mobile/app/**/*.tsx`, `mobile/components/**/*.tsx`, `mobile/hooks/**/*.ts`
-**Count:** 32+ TypeScript errors
+### CRIT-1: `next-env.d.ts` references dev-only type file — will break production/CI builds
+**File:** `next-env.d.ts` (line 3)  
+**Issue:** The file was manually edited to import `./.next/dev/types/routes.d.ts`. This path only exists during `next dev`; it is absent in production builds and CI, causing TypeScript compilation failures. The file itself contains a comment saying "This file should not be edited."  
+**Fix:** Revert to `import "./.next/types/routes.d.ts";` and add the file to `.gitignore` protection if needed.
 
-The mobile app (React Native / Expo) has **systematically broken module resolution**. Every page references modules that do not exist in the mobile tree:
+### CRIT-2: CSP nonce generated in middleware is never relayed to Next.js
+**File:** `middleware.ts` (lines 146–147)  
+**Issue:** A per-request nonce is generated and injected into the `Content-Security-Policy` header, but there is no mechanism to pass that nonce to Next.js so inline/hydration scripts receive `nonce="…"` attributes. With `script-src 'self' 'nonce-…' 'strict-dynamic'`, Next.js's own scripts will be blocked, breaking the entire application in production.  
+**Fix:** Pass the nonce to the rendering layer (e.g., set a custom request header like `x-nonce` in middleware, then read it via `headers()` in the root layout and forward it to `<Script nonce={…} />`).
 
-- `@/hooks/useBookings` → **missing**
-- `@/hooks/useSearchProfessionals` → **missing**
-- `@/components/professional/ProfessionalCard` → **missing**
-- `@/components/AuthProvider` → **missing**
-- `@/lib/query-client` → **missing**
-- `@/lib/api` → **missing**
-- `@/lib/booking/slots` → **missing**
-- `@/hooks/useAvailability` → **missing**
-- `@/hooks/useCreateBooking` → **missing**
+### CRIT-3: Custom `timingSafeEqual` is not actually constant-time
+**File:** `lib/api/mobile-api-key.ts` (lines 39–58)  
+**Issue:** The hand-rolled JavaScript loop can be JIT-optimized by engines, branch prediction can leak timing information, and `padEnd` + `charCodeAt` do not provide hardware-level constant-time guarantees of Node.js `crypto.timingSafeEqual`. This undermines protection against timing attacks on the mobile API key.  
+**Fix:** Use Node.js `crypto.timingSafeEqual` (convert strings to `Buffer` or `Uint8Array` first, padding to equal length).
 
-**Impact:** The mobile app cannot compile and appears to be in a abandoned/stub state. It imports from paths that only exist in the Next.js web app.
+### CRIT-4: Unhandled `getUser()` rejection crashes middleware / edge runtime
+**File:** `lib/supabase/middleware.ts` (line 199)  
+**Issue:** `await supabase.auth.getUser()` is not wrapped in `try/catch`. If Supabase is unreachable, the JWT is malformed, or the network times out, the unhandled rejection bubbles up and crashes the request/edge runtime.  
+**Fix:** Wrap the call in `try/catch`, log via Sentry, and treat the user as unauthenticated on failure.
 
-**Fix:** Either remove the mobile directory from the build, create a proper mobile monorepo with shared packages, or restore the missing mobile-specific modules.
+### CRIT-5: Booking creation has race condition between validation and slot lock acquisition
+**File:** `lib/booking/create-booking.ts` (lines 78–128)  
+**Issue:** Slots are validated sequentially in a `for` loop (lines 78–100), then locks are acquired sequentially in another `for` loop (lines 104–128). Between validation and lock acquisition, another user can book the same slot. The validation does not use a transaction or atomic check, so two concurrent requests can both pass validation and then fight for the lock — with the loser getting a confusing "already locked" error after payment data may have been prepared.  
+**Fix:** Combine validation and lock acquisition into a single atomic database operation (RPC), or use advisory locks on the professional + time range.
 
----
-
-### 🟡 MEDIUM-1: FormData Type Errors in API Routes
-**Files:**
-- `app/api/professional/credentials/upload/route.ts:104,127,128`
-- `app/api/professional/profile-media/upload/route.ts:60`
-
-**Error:** `Property 'get' does not exist on type 'FormData'`
-
-**Root Cause:** The TypeScript `lib` in `tsconfig.json` includes `dom.iterable` but the Node.js `FormData` global (from `undici` in Node 18+) does not have full DOM `FormData` typings. The code works at runtime but fails typecheck.
-
-**Fix:** Cast `formData` to `FormData & { get(name: string): FormDataEntryValue | null }` or use a typed helper.
-
----
-
-### 🟡 MEDIUM-2: TypeScript Target Is Outdated
-**File:** `tsconfig.json:29`
-
-`"target": "ES2017"` with Next.js 16 and Node 20 is conservative. This prevents using modern JS features and may bloat bundles with unnecessary transpilation.
-
-**Recommendation:** Upgrade to `"target": "ES2022"` or `"ESNext"`.
-
----
-
-### 🟢 INFO-1: Build/Lint Could Not Run in Environment
-The npm PowerShell execution policy blocked `npm run build` and `npm run lint`. TypeScript typecheck (`tsc --noEmit`) was run directly and returned ~40 errors. A local dev machine should verify `npm run build` passes after fixes.
-
----
-
-## 2. Security Findings
-
-### 🟡 MEDIUM-1: `createAdminClient()` in User-Facing Payment Routes
-**Files:**
-- `app/api/v1/payments/payment-intent/route.ts:172`
-- `app/api/stripe/payment-intent/route.ts:195`
-- `app/api/stripe/checkout-session/booking/route.ts:178`
-
-These routes authenticate the user via RLS, perform authorization checks, but then use `createAdminClient()` to mutate payment rows. While authorization checks are present, any bug in those checks would expose payment data to modification. The AGENTS.md explicitly discourages this pattern in user-facing code.
-
-**Fix:** Migrate payment state updates to RLS-allowed operations (database functions/triggers) or edge functions.
-
----
-
-### 🟡 MEDIUM-2: Missing Role Check in Professional Profile Creation
-**File:** `app/api/v1/professionals/me/route.ts:33-47`
-
-Any authenticated user (including `usuario` role) can POST to `/api/v1/professionals/me` and create a professional profile. No role validation ensures the caller is a `profissional`.
-
-**Fix:** Add a role check or gate this behind the onboarding flow.
-
----
-
-### 🟡 MEDIUM-3: Missing CSRF Origin Validation on Most API Routes
-**Files:** Most `/api/v1/*` POST/PATCH/PUT/DELETE routes
-
-Only calendar sync routes call `validateCsrfOrigin()`. The extensive `/api/v1/*` surface does not apply origin/referer validation. While cookie-based auth + CORS provides baseline protection, same-origin cross-site requests could potentially invoke state-changing operations.
-
-**Fix:** Add CSRF origin validation to critical state-changing `/api/v1/*` routes, or migrate mutations to Server Actions (which have built-in CSRF tokens).
-
----
-
-### 🟡 MEDIUM-4: Missing Zod Validation in Professional Profile Endpoints
-**File:** `app/api/v1/professionals/me/route.ts`
-
-Body fields are coerced with `String()` / `Number()` instead of validated with Zod. This allows unexpected values (e.g., `sessionPriceBrl: -100`, `yearsExperience: Infinity`) to reach the database.
-
-**Fix:** Add a Zod schema with sensible bounds.
-
----
-
-### 🟡 MEDIUM-5: Admin Route Lacks Input Validation
-**File:** `app/api/v1/admin/professionals/[id]/status/route.ts:39-41`
-
+### CRIT-6: Floating promise in API route — calendar sync silently fails
+**File:** `app/api/v1/bookings/route.ts` (lines 101–113)  
+**Issue:** The `Promise.all()` for calendar sync is not awaited. If it throws, the error is silently swallowed and the client receives a 201 success response while calendar sync never ran.  
 ```ts
-const { status, note } = body as { status: string; note?: string }
+// Line 103 — missing await
+Promise.all(
+  bookingIdsForCalendarSync.map(...)
+).catch(err => { ... })
 ```
-
-The `status` string is passed directly to the service layer without validation.
-
-**Fix:** Add Zod schema validating `status` against an allowed enum.
+**Fix:** Add `await` before `Promise.all`.
 
 ---
 
-### 🟡 MEDIUM-6: Calendar Callback Redirect Path Validation Is Weak
-**File:** `app/api/professional/calendar/callback/[provider]/route.ts:22-25`
+## 🟠 High Issues
 
-```ts
-function safeRedirectPath(path: string | null | undefined) {
-  if (!path || !path.startsWith('/') || path.startsWith('//')) return '/dashboard'
-  return path
-}
-```
+### HIGH-1: Empty Bearer token bypasses CSRF origin check
+**File:** `lib/http/csrf.ts` (lines 66–68)  
+**Issue:** `authHeader?.startsWith('Bearer ')` returns `true` even when the token is empty (e.g., `Authorization: Bearer `). An attacker can send a cross-origin request with that header to skip origin validation entirely.  
+**Fix:** Also verify `authHeader.length > 7` after the prefix check.
 
-This allows any same-origin path. If the OAuth state signing is ever compromised, this becomes an open redirect.
+### HIGH-2: Missing `APP_BASE_URL` silently disables CSRF in production
+**File:** `lib/http/csrf.ts` (lines 18–22)  
+**Issue:** If `APP_BASE_URL` and `NEXT_PUBLIC_APP_URL` are both missing, `validateCsrfOrigin` returns `{ ok: true }`, disabling CSRF protection without alerting.  
+**Fix:** In production, treat missing app base URL as a failure or at least log a Sentry warning.
 
-**Fix:** Whitelist `redirectPath` to known safe paths.
+### HIGH-3: Invalid env vars silently cast to typed object
+**File:** `lib/config/env.ts` (line 187)  
+**Issue:** When `envSchema.safeParse` fails, the function returns `process.env as unknown as z.infer<typeof envSchema>`. Downstream code thinks it has validated values but may hold empty strings, invalid URLs, or missing secrets.  
+**Fix:** Return a partial/defaults object or throw in production instead of casting.
 
----
+### HIGH-4: `document` access crashes during SSR
+**File:** `lib/i18n/index.ts` (lines 26–29)  
+**Issue:** `getLocale()` accesses `document.documentElement.lang` unconditionally. When `t()` is called in a Server Component or during SSR, `document` is undefined and throws `ReferenceError`.  
+**Fix:** Guard with `typeof document !== 'undefined'`.
 
-### 🟢 LOW-1: `dangerouslySetInnerHTML` with Static Content
-**File:** `app/ajuda/a/[slug]/page.tsx:62`
+### HIGH-5: Unescaped parameter keys in dynamic RegExp
+**File:** `lib/i18n/index.ts` (line 40)  
+**Issue:** `new RegExp(`\\{${paramKey}\\}`, 'g')` injects `paramKey` directly. If a caller passes a key with regex metacharacters (e.g., `amount+tax`), the RegExp constructor throws or behaves unexpectedly.  
+**Fix:** Escape `paramKey` using `paramKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`.
 
-Content is sourced from `lib/help-data.ts` (hardcoded static HTML). Risk is low, but if ever changed to CMS-driven content, it becomes a stored XSS vector.
+### HIGH-6: Slot lock cleanup is non-atomic and can miss stale locks
+**File:** `lib/booking/slot-locks.ts` (lines 21–29)  
+**Issue:** The cleanup deletes expired locks before checking for overlapping locks, but these are separate queries. In a concurrent scenario, a lock could expire between the cleanup and the overlap check, causing a false "locked" result.  
+**Fix:** Use a single query with a composite condition, or rely on database-level filtering with `expires_at > now()`.
 
-**Fix:** Add a comment warning or sanitize if moving to CMS.
+### HIGH-7: `priceBrlRaw` could be `null` causing `Number(null)` → `0` and false price rejection
+**File:** `lib/booking/create-booking.ts` (lines 133, 141–143)  
+**Issue:** If both `service.price_brl` and `professional.session_price_brl` are `null`, `priceBrlRaw` is `null`, `Number(null)` is `0`, and the check `priceBrl <= 0` rejects with "Profissional não possui preço configurado." This is correct behavior but the code path is fragile — if `priceBrlRaw` is `undefined`, `Number(undefined)` is `NaN`, and `NaN <= 0` is `false`, bypassing the check entirely and proceeding with a `NaN` price.  
+**Fix:** Use explicit null/undefined checks: `if (priceBrlRaw == null || Number(priceBrlRaw) <= 0)`.
 
----
+### HIGH-8: Request booking state machine allows `offered` → `open` transition which may be unintended
+**File:** `lib/booking/request-booking-state-machine.ts` (line 15)  
+**Issue:** `offered: ['open', ...]` allows a professional to offer a time and then revert to `open`. If this is intentional, document it; if not, remove `'open'` to prevent professionals from gaming the request system.  
+**Fix:** Audit whether `offered → open` is a legitimate business flow.
 
-### 🟢 LOW-2: Mobile API Key Validation Skips When Not Configured
-**File:** `lib/api/mobile-api-key.ts:12-17`
+### HIGH-9: Supabase DB webhook does not validate event source IP
+**File:** `app/api/webhooks/supabase-db/route.ts`  
+**Issue:** The webhook validates the secret token but does not check that the request originates from Supabase's known IP ranges. If the secret is leaked, anyone can trigger database change events.  
+**Fix:** Add IP allowlist validation for Supabase webhook origins.
 
-If `MOBILE_API_KEY` is not set, validation is skipped entirely. Ensure production always has this configured.
-
----
-
-### 🟢 INFO-1: No Hardcoded Secrets Found
-Searches for API keys, tokens, and passwords returned only environment variable references. Good hygiene.
-
-### 🟢 INFO-2: Webhook Security Is Correct
-- Stripe webhooks verify signatures (`stripe.webhooks.constructEvent`)
-- Trolley webhook verifies HMAC-SHA256 with `timingSafeEqual`
-- Revolut webhook verifies JWT signature with `timingSafeEqual`
-- Supabase DB webhook uses constant-time secret comparison
-
-### 🟢 INFO-3: Cookie Settings Are Secure
-`secure`, `sameSite: 'lax'`, `httpOnly` are all set correctly.
-
----
-
-## 3. Performance Issues
-
-### 🔴 HIGH-1: Heavy Server Components Without Suspense Boundaries
-**Files:**
-- `app/(app)/agenda/page.tsx` — **1,099 lines**, fetches 10+ queries, renders entire UI inline
-- `app/(app)/dashboard/page.tsx` — **516 lines**, fetches 14 parallel queries but renders heavy inline JSX
-- `app/(app)/profissional/[id]/page.tsx` — likely similar pattern
-
-These pages are **mega-components** that do data fetching AND full UI rendering. They violate the Next.js App Router best practice of keeping Server Components lean and delegating UI to Client Components or nested Server Components.
-
-**Impact:**
-- Long TTFB (Time to First Byte) because the entire HTML is blocked on all queries + JSX rendering
-- No incremental streaming (no `<Suspense>` around data-dependent sections)
-- Hard to maintain and test
-
-**Fix:** Extract UI sections into separate components. Wrap independent data sections in `<Suspense>`.
+### HIGH-10: `safeSecretCompare` in `supabase-db` webhook uses `Buffer.alloc` with potential truncation
+**File:** `app/api/webhooks/supabase-db/route.ts` (lines 59–66)  
+**Issue:** `Buffer.alloc(maxLength, left)` pads with the entire string `left`, which repeats/truncates to fit. While `timingSafeEqual` itself is fine, the padding behavior means `left="abc"` and `right="abcdef"` padded to length 6 become `"abcabc"` vs `"abcdef"`, which is safe but semantically weird. More importantly, `Buffer.alloc(maxLength, left)` with very long `left` can be inefficient.  
+**Fix:** Use `Buffer.from(left).length` comparison first, then `timingSafeEqual` on equal-length buffers (which is already done, but simplify the padding logic).
 
 ---
 
-### 🔴 HIGH-2: `dynamic = 'force-dynamic'` on Heavily-Accessed Pages
-**Files:**
-- `app/(app)/agenda/page.tsx`
-- `app/(app)/dashboard/page.tsx`
+## 🟡 Medium Issues
 
-These are the most frequently accessed pages for professionals. `force-dynamic` disables all static optimization and caching. Every request re-executes all database queries.
+### MED-1: Naive HTML tag regex for sanitization
+**File:** `lib/security/sanitize-input.ts` (line 1)  
+**Issue:** `HTML_TAG_REGEX = /<[^>]*>/g` is a naive tag stripper. It can be bypassed by malformed HTML (e.g., `<img src="x" onerror="alert(1)">` is removed, but certain HTML entities or nested patterns may slip through).  
+**Fix:** Use `DOMPurify` (client) or `isomorphic-dompurify` for server-side HTML sanitization.
 
-**Impact:** High database load, poor scalability.
+### MED-2: `generateETag` can crash on circular payloads
+**File:** `lib/http/cache-headers.ts` (line 9)  
+**Issue:** `JSON.stringify(payload)` without `try/catch` will throw `TypeError` on circular payloads, crashing the API route.  
+**Fix:** Wrap in `try/catch` and return a fallback ETag.
 
-**Fix:** Remove `force-dynamic` where possible. Use `revalidate` or `unstable_cache` for data that doesn't change per request. Move user-specific mutations to client-side with optimistic UI.
+### MED-3: `If-None-Match` doesn't support multiple ETags
+**File:** `lib/http/cache-headers.ts` (lines 16–23)  
+**Issue:** The header can contain multiple values (`"abc", "def"`). Simple string comparison misses valid cache hits.  
+**Fix:** Split by comma, trim, and compare each value.
 
----
+### MED-4: Unbounded in-memory rate-limit store growth
+**File:** `lib/security/rate-limit.ts` (lines 92–97)  
+**Issue:** `globalThis.__muudayRateLimitStore` is a global Map. If Redis is down, the store grows with every unique key. Cleanup is probabilistic and only removes entries older than 60s.  
+**Fix:** Enforce a hard `MAX_MEMORY_STORE_SIZE` and evict aggressively.
 
-### 🟡 MEDIUM-1: Sequential Awaits in Many Pages
-**Files:** 38 `page.tsx` files have sequential `await` patterns
+### MED-5: `formatCurrency` accepts invalid numeric inputs
+**File:** `lib/utils/index.ts` (lines 11–33)  
+**Issue:** No validation for `NaN`, `Infinity`, or negative inputs. Hard-coded exchange rates will also drift stale.  
+**Fix:** Add `Number.isFinite(amountBRL) && amountBrl >= 0` guard.
 
-Examples found:
-- `app/(app)/agenda/page.tsx`: profile query -> professional query -> expire query -> booking queries (not all parallelized)
-- Many pages fetch profile, then fetch data dependent on profile sequentially
+### MED-6: `formatDateTime` accepts invalid date strings
+**File:** `lib/utils/index.ts` (lines 35–37)  
+**Issue:** `new Date(date)` without validation produces `Invalid Date`, which `formatInTimeZone` may render nonsensically.  
+**Fix:** Check `Number.isNaN(d.getTime())` before formatting.
 
-**Fix:** Use `Promise.all()` for independent queries. The dashboard page actually does this well — apply that pattern to agenda and other heavy pages.
+### MED-7: `decodeURIComponent` can throw `URIError`
+**File:** `lib/professional/public-profile-url.ts` (line 55)  
+**Issue:** `decodeURIComponent(String(rawValue))` throws if the URL contains invalid percent-encoding (e.g., `%ZZ`).  
+**Fix:** Wrap in `try/catch` and return `{ kind: 'unknown', raw: rawValue }` on failure.
 
----
+### MED-8: Regex injection via XML tag name in CalDAV
+**File:** `lib/calendar/providers/apple-caldav.ts` (line 66)  
+**Issue:** `extractFirstTag` builds a `RegExp` from the `tag` argument without escaping regex metacharacters.  
+**Fix:** Escape `tag` before interpolating.
 
-### 🟡 MEDIUM-2: Unbounded `.select()` Without `.limit()`
-**Files:** 75 files in `lib/` use `.select()`
-**Files with `.limit()`:** Only 45 `.limit()` calls across 29 files
+### MED-9: Floating datetimes incorrectly treated as UTC in CalDAV
+**File:** `lib/calendar/providers/apple-caldav.ts` (lines 127–131)  
+**Issue:** Local/floating datetimes (no `Z` suffix) are passed to `Date.UTC`, treating them as UTC instead of local time. This can shift calendar events by the user's timezone offset.  
+**Fix:** Parse floating times as local time or document the UTC-fallback behavior.
 
-Many queries select without limits. While some use `count: 'exact, head: true`, others return full rows without bounding.
+### MED-10: Sentry env var mismatch for traces sample rate
+**File:** `sentry.server.config.ts` / `sentry.edge.config.ts`  
+**Issue:** Both configs read `process.env.SENTRY_TRACES_SAMPLE_RATE`, but `lib/config/env.ts` only defines `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`. Sample rate silently falls back to `0`.  
+**Fix:** Align env var names or add `SENTRY_TRACES_SAMPLE_RATE` to the schema.
 
-**High-risk files (no limit seen):**
-- `lib/chat/chat-service.ts`
-- `lib/notifications/notification-service.ts`
-- `lib/disputes/dispute-service.ts`
-- `lib/email/email-action-service.ts`
-- `lib/professional/professional-profile-service.ts`
+### MED-11: Sequential DB call inside middleware role guard
+**File:** `lib/supabase/middleware.ts` (lines 252–256)  
+**Issue:** `getProfileRole` performs a Supabase query inside middleware, directly impacting TTFB. The code already samples this to Sentry, indicating it's a known hot path.  
+**Fix:** Cache role in JWT claims and avoid the profile fallback wherever possible.
 
-**Impact:** As tables grow, these queries will return increasingly large payloads, causing memory pressure and slow responses.
+### MED-12: `btoa` can throw on non-Latin1 bytes in nonce generation
+**File:** `middleware.ts` (line 30)  
+**Issue:** `btoa(binary)` throws `InvalidCharacterError` if any byte maps outside Latin1 range. While `Uint8Array` values are 0–255, `String.fromCharCode` can produce surrogate pairs for values 128–255 in some contexts.  
+**Fix:** Use a base64 encoder that handles bytes directly, or replace the loop with `btoa(String.fromCharCode(...array))`.
 
-**Fix:** Add `.limit()` to all unbounded user-facing queries. Per AGENTS.md: user-facing lists 20-50, internal lookups 100-200.
+### MED-13: `Number(amount)` on strings can return `NaN` silently in payment formatting
+**File:** `lib/payments/format-utils.ts` (lines 14, 34–35)  
+**Issue:** `Number(amount)` on an arbitrary string produces `NaN` without throwing. `major` becomes `NaN`, and `toFixed(2)` returns `"NaN"`, resulting in currency strings like `"BRL NaN"`.  
+**Fix:** Validate with `Number.isFinite(value)` after conversion.
 
----
+### MED-14: `instrumentation.ts` import failures can crash startup
+**File:** `instrumentation.ts`  
+**Issue:** `await import('./sentry.server.config')` is not wrapped in `try/catch`. If Sentry initialization throws, the entire Node.js runtime fails to start.  
+**Fix:** Wrap Sentry imports in `try/catch` and log to stderr.
 
-### 🟡 MEDIUM-3: `console.error` in Production Hot Paths
-**Files:**
-- `app/(app)/agenda/page.tsx:190, 256-264` — 4 console.error calls on every agenda load
-- `app/(app)/dashboard/page.tsx:228-247` — 11 console.error calls on every dashboard load
+### MED-15: `minorToMajor` uses division on potentially unsafe `Number()` conversion
+**File:** `lib/payments/format-utils.ts` (lines 34–36)  
+**Issue:** Same as MED-13 — `Number(amount)` can produce `NaN`, and `NaN / 100` is `NaN`, which propagates silently to charts and math operations.  
+**Fix:** Validate input before conversion.
 
-These log on every request even in production, adding I/O overhead and potentially leaking internal error details.
+### MED-16: `safeRedirectPath` validation is too permissive
+**File:** `components/auth/LoginForm.tsx` (lines 62–64)  
+**Issue:** `redirectParam.startsWith('/') && !redirectParam.startsWith('//')` allows open redirects to `/@attacker.com` or `/\attacker.com` on some browsers.  
+**Fix:** Use a strict allowlist of known paths or validate against `new URL(path, 'https://example.com')`.
 
-**Fix:** Use a structured logger (like Sentry) that respects log levels, or remove console logging from Server Components.
+### MED-17: `request-booking-state-machine.ts` has mojibake in error message
+**File:** `lib/booking/request-booking-state-machine.ts` (line 38)  
+**Issue:** `"Transi??o de solicita??o invalida"` contains corrupted characters (`??` instead of `ção`). This indicates an encoding issue that may affect user-facing error messages.  
+**Fix:** Re-type the string with proper UTF-8 encoding.
 
----
-
-### 🟡 MEDIUM-4: Middleware Session Cache Grows Unbounded
-**File:** `lib/supabase/middleware.ts:50-90`
-
-The `SESSION_CACHE` Map has a `MAX_CACHE_SIZE` of 1000, but the cleanup only runs when the size exceeds 1000 and only removes expired entries. In high-traffic scenarios, this could retain memory for active entries indefinitely.
-
-**Impact:** Potential memory leak in long-running processes (though Vercel functions are ephemeral, this matters for dev server and self-hosted scenarios).
-
-**Fix:** Consider an LRU eviction policy instead of just expiry-based cleanup.
-
----
-
-### 🟢 LOW-1: No Image Optimization for Some Assets
-**File:** `lib/sanity/image-url.ts` uses Sanity's image URL builder but `next/image` is not used for Sanity images. The `next.config.js` only whitelists Supabase, Google, Unsplash, and ui-avatars.
-
-**Fix:** Add Sanity CDN to `images.remotePatterns` and use `next/image` for Sanity images.
-
----
-
-### 🟢 LOW-2: Heavy Third-Party Scripts Without Preconnect
-**File:** `app/layout.tsx`
-
-PostHog, Sentry, Vercel Analytics, and Speed Insights are loaded. No `<link rel="preconnect">` or `<link rel="dns-prefetch">` for their origins.
-
-**Fix:** Add preconnect hints for known third-party origins.
-
----
-
-### 🟢 LOW-3: Large Inline IIFE in Landing/Animation Components
-**Files:** `components/landing/*.tsx`
-
-Multiple landing page components contain complex animations with heavy JSX. These are loaded for all users even though only anonymous visitors see the landing page.
-
-**Fix:** Consider dynamic imports (`next/dynamic`) for heavy landing components.
-
----
-
-### 🟢 INFO-1: Good Parallel Query Pattern in Dashboard
-**File:** `app/(app)/dashboard/page.tsx:132-226`
-
-This page correctly uses `Promise.all()` for 14 independent queries. This is the canonical pattern to replicate.
-
-### 🟢 INFO-2: Proper Use of `count: 'exact', head: true`
-**File:** `app/(app)/dashboard/page.tsx`
-
-Count queries use `head: true` to avoid fetching full rows. Good practice.
+### MED-18: Webhook handlers don't persist events before enqueuing to Inngest
+**Files:** `app/api/webhooks/trolley/route.ts`, `app/api/webhooks/revolut/route.ts`  
+**Issue:** Unlike the Stripe webhook which persists events before enqueuing, the Trolley and Revolut webhooks directly send to Inngest without persistence. If Inngest is down, the event is lost with no retry mechanism.  
+**Fix:** Persist webhook events to a database table before enqueuing, matching the Stripe pattern.
 
 ---
 
-## 4. Code Quality Issues
+## 🔵 Low Issues
 
-### 🔴 HIGH-1: Excessive Use of `any` Types
-**Count:** 377 occurrences in `lib/**/*.ts`, 80 occurrences in `app/**/*.tsx`
+### LOW-1: Missing advanced TypeScript strict flags
+**File:** `tsconfig.json`  
+**Issue:** `strict: true` is enabled, but `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are not.  
+**Fix:** Add if the team can tolerate the migration effort.
 
-**Notable high-density files:**
-- `app/(app)/agenda/page.tsx` — 24 `any` occurrences
-- `app/(app)/financeiro/page.tsx` — 16 `any` occurrences
-- `app/(app)/admin/casos/page.tsx` — 6 `any` occurrences
-- `lib/payments/subscription/manager.test.ts` — 23 `any` occurrences
-- `lib/payments/refund/engine.test.ts` — 24 `any` occurrences
-- `lib/payments/debt/monitor.test.ts` — 20 `any` occurrences
+### LOW-2: HSTS `preload` without actual preload submission
+**File:** `next.config.js`  
+**Issue:** `Strict-Transport-Security` includes `preload`, which tells browsers the domain should be in the HSTS preload list. If not submitted to hstspreload.org, this is misleading.  
+**Fix:** Remove `preload` until formally submitted.
 
-**Impact:** `any` defeats TypeScript's type safety. It propagates silently, making refactors dangerous and bugs harder to catch.
+### LOW-3: `SUPABASE_SECRET_KEY` fallback is undocumented
+**File:** `lib/supabase/admin.ts` (line 34)  
+**Issue:** Falls back to `SUPABASE_SECRET_KEY`, not defined in `lib/config/env.ts`. Creates invisible dependency.  
+**Fix:** Remove fallback or add to env schema.
 
-**Fix:** Replace `any` with `unknown`, proper interfaces, or generated Supabase types. Start with the web app (`app/` directory) as the highest user-facing impact.
+### LOW-4: `allowWithoutOrigin: true` weakens API CORS
+**File:** `lib/http/cors.ts`  
+**Issue:** `PUBLIC_API_CORS_POLICY` allows requests without an `Origin` header. Tools like `curl` can hit the API without origin validation.  
+**Fix:** Document the decision explicitly.
 
----
+### LOW-5: Empty taxonomy slug allowed after trim
+**File:** `lib/admin/taxonomy-service.ts` (lines 62–69)  
+**Issue:** If `data.name_pt` is whitespace-only, `trim()` produces empty string and slug becomes empty.  
+**Fix:** Validate `data.name_pt.trim().length > 0`.
 
-### 🟡 MEDIUM-1: IIFE in JSX for Complex Rendering
-**File:** `app/(app)/agenda/page.tsx:845-982`
+### LOW-6: `formatCurrency` hard-codes stale exchange rates
+**File:** `lib/utils/index.ts` (lines 12–19)  
+**Issue:** Exchange rates are hard-coded and will drift from market rates.  
+**Fix:** Integrate with an exchange rate API or update rates regularly.
 
-```tsx
-{(() => {
-  const { recurringGroups, oneOffBookings } = groupRecurringBookings(upcomingVisible)
-  // ... 130 lines of JSX logic
-})()}
-```
+### LOW-7: `getAppBaseUrl()` Sentry call during module init
+**File:** `lib/config/app-url.ts` (line 72)  
+**Issue:** `Sentry.captureMessage` at module top-level may be dropped if Sentry isn't initialized yet.  
+**Fix:** Defer warning to lazy init or wrap in initialization check.
 
-IIFEs inside JSX are an anti-pattern. They prevent React from properly reconciling the subtree and make the code harder to read and test.
+### LOW-8: Middleware host redirect silently swallows invalid URLs
+**File:** `middleware.ts` (lines 128–130)  
+**Issue:** Invalid `appBaseUrl` is caught and ignored without logging.  
+**Fix:** Log to Sentry before continuing.
 
-**Fix:** Extract to a separate component.
+### LOW-9: `availability-engine.ts` `getPeriodicIncrementDays` returns 0 for monthly
+**File:** `lib/booking/availability-engine.ts` (line 43)  
+**Issue:** `getPeriodicIncrementDays` returns `0` for `monthly`, but the caller in `generateRecurringSlotStarts` handles monthly separately with `addMonths`. This is correct but confusing — the function name implies it should handle all periodicities.  
+**Fix:** Document the special-case handling or return a sentinel value.
 
----
+### LOW-10: `LoginForm` mixes controlled/uncontrolled pattern for email
+**File:** `components/auth/LoginForm.tsx` (line 71)  
+**Issue:** `useState(initialEmail)` where `initialEmail` comes from search params. If the search param changes after mount, the state doesn't update.  
+**Fix:** Use `useEffect` to sync state with search param, or derive directly.
 
-### 🟡 MEDIUM-2: Magic Numbers Everywhere
-**Files:** Throughout `app/(app)/agenda/page.tsx` and `app/(app)/dashboard/page.tsx`
+### LOW-11: `SessionCountdown` uses `Date.now()` in SSR and client without hydration mismatch guard
+**File:** `components/booking/SessionCountdown.tsx` (line 18)  
+**Issue:** `useState(Date.now())` will differ between SSR and client hydration, potentially causing a React hydration mismatch warning.  
+**Fix:** Initialize to `0` or `null` and set real value in `useEffect`.
 
-Examples:
-- `60 * 60 * 1000` (ms in an hour) — repeated inline
-- `24` (hours) — used without context
-- `7 * 24 * 60 * 60 * 1000` (7 days in ms) — repeated inline
-- `50` bookings limit, `20` past bookings limit, `30` request bookings limit
+### LOW-12: `buildProfessionalProfilePath` ignores slug when `id` is present
+**File:** `lib/professional/public-profile-url.ts` (lines 41–52)  
+**Issue:** If `input.id` is truthy, it returns `/profissional/${id}` without slug, even if a prettier slug+code path is available.  
+**Fix:** Consider using slug+code for public-facing URLs even when ID is known.
 
-**Fix:** Extract to named constants.
+### LOW-13: `toVideoEmbedUrl` doesn't validate YouTube video ID length
+**File:** `app/(app)/profissional/[id]/page.tsx` (lines 181–193)  
+**Issue:** Any string after `/embed/` is accepted, potentially creating invalid embed URLs.  
+**Fix:** Validate video ID format (11 chars for YouTube).
 
----
+### LOW-14: `videoEmbedUrl` iframe missing sandbox attribute
+**File:** `app/(app)/profissional/[id]/page.tsx` (line 781)  
+**Issue:** The iframe for professional videos lacks `sandbox` attribute, allowing full capabilities from embedded third-party content.  
+**Fix:** Add `sandbox="allow-scripts allow-same-origin allow-presentation"`.
 
-### 🟡 MEDIUM-3: `Record<string, any>` as Pseudo-Types
-**File:** `app/(app)/agenda/page.tsx:69, 110, 121, etc.`
+### LOW-15: `public-profile-url.ts` UUID regex too strict
+**File:** `lib/professional/public-profile-url.ts` (line 5)  
+**Issue:** The regex `UUID_V4_REGEX` only matches v4 UUIDs. Supabase uses v4 by default, but if the table ever contains v7 or other versions, parsing will fail.  
+**Fix:** Use a more general UUID regex or validate with a library.
 
-Functions use `Record<string, any>` instead of proper typing:
-```ts
-function getConfirmationDeadline(booking: Record<string, any>): Date | null
-function bookingModeMeta(booking: Record<string, any>) 
-function groupRecurringBookings(bookings: any[])
-```
+### LOW-16: `availability-engine.ts` `timeToMinutes` doesn't validate input format
+**File:** `lib/booking/availability-engine.ts` (line 26)  
+**Issue:** `value.slice(0, 5).split(':').map(Number)` on malformed input (e.g., `"abc"`) produces `NaN` hours and minutes, silently breaking availability logic.  
+**Fix:** Add validation and return `NaN` or throw on invalid format.
 
-**Fix:** Use generated Supabase types or explicit interfaces.
+### LOW-17: `manage-booking.ts` actions don't revalidate `/sessao` or `/pagamento`
+**File:** `lib/actions/manage-booking.ts`  
+**Issue:** All actions revalidate `/agenda` and `/dashboard` but not `/sessao` or `/pagamento`, so users on those pages may see stale data after booking changes.  
+**Fix:** Add `revalidatePath('/sessao')` and `revalidatePath('/pagamento/[bookingId]')` where appropriate.
 
----
+### LOW-18: `stripe/webhook-handlers.ts` uses `BigInt(Math.round(...))` which can lose precision
+**File:** `lib/stripe/webhook-handlers.ts` (line 243)  
+**Issue:** `BigInt(Math.round((bt.fee || 0)))` on very large numbers can lose precision because `Math.round` operates on Number (IEEE 754, max safe integer 2^53-1). For Stripe amounts this is unlikely to be an issue, but it's a latent bug.  
+**Fix:** Use string-based BigInt conversion if Stripe ever returns values above safe integer range.
 
-### 🟡 MEDIUM-4: Nested Ternary Anti-Pattern
-**File:** `app/(app)/agenda/page.tsx:381-388`
+### LOW-19: `stripe/webhook-handlers.ts` settlement update doesn't handle race condition
+**File:** `lib/stripe/webhook-handlers.ts` (lines 285–304)  
+**Issue:** `recordStripeSettlement` checks for existing, then updates or inserts. This is a classic read-then-write race condition under concurrent webhook delivery.  
+**Fix:** Use `upsert` with conflict resolution instead of separate read and write.
 
-```tsx
-const rawConnectionStatus = String(calendarIntegrationResult.data?.connection_status || 'disconnected')
-calendarIntegrationStatus =
-  rawConnectionStatus === 'connected'
-    ? 'connected'
-    : rawConnectionStatus === 'pending'
-      ? 'pending'
-      : rawConnectionStatus === 'error'
-        ? 'error'
-        : 'disconnected'
-```
+### LOW-20: `create-booking.ts` `MANUAL_CONFIRMATION_SLA_HOURS` is hard-coded
+**File:** `lib/booking/create-booking.ts` (line 37)  
+**Issue:** 24-hour SLA is hard-coded. Should come from professional settings or environment.  
+**Fix:** Move to settings or env config.
 
-This is 4-level nested ternary. Hard to read and maintain.
+### LOW-21: `request-validation.ts` `isValidIsoLocalDateTime` uses UTC constructor for local validation
+**File:** `lib/booking/request-validation.ts` (lines 18–26)  
+**Issue:** Constructs `new Date(Date.UTC(...))` and compares UTC components. This validates the numeric components but doesn't truly validate the local datetime semantics (e.g., DST transitions).  
+**Fix:** Document the limitation or use a proper date library.
 
-**Fix:** Use a lookup map or switch statement.
-
----
-
-### 🟢 LOW-1: Console Logging in Production Code
-**Count:** 344 `console.log|warn|error` occurrences in `.ts/.tsx` files
-
-While some are in scripts/ops (acceptable), many are in `lib/` and `app/` runtime code. Examples:
-- `lib/chat/chat-service.ts:34,51`
-- `lib/disputes/dispute-service.ts:50,66,239,391,426,486,621,690`
-- `lib/email/email-action-service.ts:63,69,95,108,121,143,150,665`
-
-**Fix:** Replace with a structured logger or remove non-error logs.
-
----
-
-### 🟢 LOW-2: Empty Catch Blocks
-**Files:** Multiple
-
-```ts
-// app/api/professional/credentials/upload/route.ts:167
-catch {
-  return NextResponse.json({ error: 'Erro inesperado no upload.' }, { status: 500 })
-}
-```
-
-While this returns a generic error, the caught error is not logged to Sentry or any observability tool.
-
-**Fix:** Log unexpected errors to Sentry before returning generic messages.
-
----
-
-### 🟢 LOW-3: `@ts-ignore` in Service Worker
-**File:** `public/sw.js:16,30,35,45,75,88,103,107`
-
-8 `@ts-ignore` comments in the service worker. These suppress legitimate type errors.
-
-**Fix:** Either add proper typings for the service worker scope or migrate to a TypeScript service worker.
+### LOW-22: `Booking` server action emits email events without awaiting
+**File:** `lib/actions/booking.ts` (lines 83–94)  
+**Issue:** `emitProfessionalReceivedBooking` and `emitUserStartedCheckout` are called without `await` or `.catch()`. If they throw, the error is unhandled.  
+**Fix:** Wrap in `.catch()` with Sentry logging, or await them.
 
 ---
 
-### 🟢 LOW-4: Inconsistent File Naming
-The codebase mixes conventions:
-- `kebab-case`: `app/(app)/editar-perfil/page.tsx`
-- `camelCase`: `app/(app)/completar-perfil/page.tsx`
-- `PascalCase`: components are mostly PascalCase (good)
+## Architecture & Design Concerns
 
-Some directories use kebab-case, others camelCase. This is mostly consistent but a few outliers exist.
+### A-1: Over-reliance on client-side fallback for `is_publicly_visible` column
+**File:** `app/(app)/profissional/[id]/page.tsx`  
+**Issue:** The code repeatedly tries queries with `is_publicly_visible`, catches errors mentioning that column, and falls back to queries without it. This indicates a schema migration in progress that should be completed. The fallback paths add significant complexity and extra queries.  
+**Fix:** Complete the migration and remove fallback paths.
 
----
+### A-2: Server Component page (`profissional/[id]`) is 936 lines
+**File:** `app/(app)/profissional/[id]/page.tsx`  
+**Issue:** While recently refactored, this page still contains rendering logic, data fetching, formatting, and business rules. It's difficult to test and maintain.  
+**Fix:** Extract pure functions to `lib/` and split presentation into smaller components.
 
-### 🟢 LOW-5: Inline Styles in Root Layout
-**File:** `app/layout.tsx:72`
+### A-3: Duplicate code between server action and API route for booking creation
+**Files:** `lib/actions/booking.ts`, `app/api/v1/bookings/route.ts`  
+**Issue:** Both files call `executeBookingCreation`, but the post-creation logic (calendar sync, revalidation, email events) is duplicated with slight differences.  
+**Fix:** Extract a shared `finalizeBookingCreation` helper.
 
-```tsx
-className={`... bg-[#f6f8fb] ...`}
-```
-
-Using arbitrary Tailwind values in the root layout makes theming harder.
-
-**Fix:** Use CSS variables or theme tokens.
-
----
-
-### 🟢 INFO-1: No Hydration Mismatch Warnings Found
-No `hydrat` related issues found in the codebase (other than 3 legal pages with `suppressHydrationWarning`).
-
-### 🟢 INFO-2: Good Use of `use client` Extraction
-**File:** `app/offline/ReloadButton.tsx`
-
-Browser APIs are correctly extracted to a `'use client'` component. Good pattern.
-
-### 🟢 INFO-3: Dead Code Not Significant
-No large blocks of commented-out code were found in key files.
+### A-4: `createAdminClient()` returns `null` instead of throwing
+**File:** `lib/supabase/admin.ts`  
+**Issue:** Throughout the codebase, callers must check `if (!admin)` after every `createAdminClient()` call. This is error-prone — it's easy to forget the check.  
+**Fix:** Consider throwing on misconfiguration so callers can assume success, or use a Result type.
 
 ---
 
-## 5. UX / Accessibility Issues
+## Testing Gaps
 
-### 🔴 HIGH-1: Missing `alt` Attributes on Images
-**Count:** Only 4 `alt=` occurrences across all components
-**Files:**
-- `components/admin/AdminProfessionalIdentityBadge.tsx`
-- `components/dashboard/onboarding-tracker/stages/identity-stage.tsx`
-- `components/landing/LandingPage.tsx` (2 occurrences)
-
-**Impact:** Screen readers cannot describe images. This is an WCAG 2.1 violation.
-
-**Fix:** Audit all `<img>` and `next/image` usage. Add descriptive `alt` text.
+1. **Middleware tests:** No unit tests for `updateSession`, CSP nonce generation, or role-based redirects.
+2. **Webhook handler tests:** Only Stripe has tests; Trolley and Revolut webhooks lack coverage.
+3. **Slot lock concurrency tests:** No tests for the race condition between validation and lock acquisition.
+4. **i18n SSR tests:** No tests verifying `t()` works in Server Components.
+5. **CSP integration tests:** No tests verifying scripts load with the nonce in production-like CSP.
 
 ---
 
-### 🟡 MEDIUM-1: `suppressHydrationWarning` on Legal Pages
-**Files:**
-- `app/termos-de-uso/page.tsx`
-- `app/privacidade/page.tsx`
-- `app/politica-de-cookies/page.tsx`
+## Performance Observations
 
-These pages suppress hydration warnings. This usually indicates a mismatch between server-rendered HTML and client hydration (often caused by dates, timestamps, or client-only content).
-
-**Fix:** Identify the root cause of the hydration mismatch and fix it, rather than suppressing the warning.
+1. **Sequential slot validation in booking creation:** `for (const slot of plannedSessions) { await validateSlotAvailability(...) }` is O(n) sequential. Could be parallelized with `Promise.all` for batch bookings.
+2. **Sequential slot lock acquisition:** Same pattern — locks are acquired one at a time instead of in parallel.
+3. **Professional profile page does 11 parallel queries:** Good use of `Promise.all`, but some queries (recommendations, specialty context) could be deferred or cached.
+4. **Middleware DB query on every request:** The `getProfileRole()` fallback queries `profiles` table. With the session cache, this is reduced but still happens for cache misses and role-guarded routes.
 
 ---
 
-### 🟡 MEDIUM-2: Low `aria-*` Coverage
-**Count:** 118 `aria-` occurrences across 37 component files
+## Security Checklist Results
 
-While some interactive components have ARIA attributes, many form components, buttons, and navigation elements lack proper ARIA labeling.
-
-**Fix:** Audit forms and interactive components for `aria-label`, `aria-describedby`, `role`, and focus management.
-
----
-
-### 🟡 MEDIUM-3: No Focus Management in Modals/Drawers
-**Files:** `components/search/MobileFiltersDrawer.tsx`, `components/auth/AuthOverlay.tsx`
-
-No visible focus trap or focus restoration logic in modal/drawer components.
-
-**Fix:** Implement focus trapping and `aria-modal` for all modals.
-
----
-
-### 🟢 LOW-1: Inconsistent Error Page Coverage
-**Stats:**
-- 63 `page.tsx` files
-- 14 `layout.tsx` files
-- 22 `loading.tsx` files
-- 23 `error.tsx` files
-
-Not all routes have `loading.tsx` or `error.tsx`. The following routes were missing coverage and have been addressed:
-- `app/(app)/admin/planos` → ✅ Added in Pass 13
-- `app/(app)/onboarding-profissional` → ✅ Added in Pass 13
-- `app/(app)/agendar/[id]` → ✅ Added in Pass 27
-- `app/(auth)/login` → ✅ Added in Pass 27
-- `app/(auth)/cadastro` → ✅ Added in Pass 27
-- `app/(app)/profissional/[id]` → ✅ Added in Pass 27
-
-Remaining routes without coverage (non-exhaustive):
-- `app/(app)/configuracoes/notificacoes` — no loading, no error
-- `app/(app)/disponibilidade` — no loading, no error
-- `app/(app)/mensagens/[conversationId]` — no loading, no error
-
-**Fix:** Continue adding `loading.tsx` and `error.tsx` to high-traffic user-facing routes opportunistically.
+| Check | Status | Notes |
+|-------|--------|-------|
+| No hardcoded secrets | ✅ Pass | No secrets found in source |
+| SQL injection prevention | ✅ Pass | Uses parameterized queries / RPC |
+| XSS output encoding | ⚠️ Partial | `sanitizePlainText` uses naive regex |
+| CSRF protection | ⚠️ Partial | Empty Bearer bypass (HIGH-1) |
+| Rate limiting | ✅ Pass | Comprehensive presets defined |
+| Auth middleware | ⚠️ Partial | Unhandled `getUser()` rejection (CRIT-4) |
+| Webhook signature verification | ✅ Pass | Stripe, Revolut, Trolley all verify |
+| Input validation (Zod) | ✅ Pass | Most API routes validate with Zod |
+| RLS enforcement | ✅ Pass | No `createAdminClient` fallback in user code |
+| CSP nonce | 🔴 Fail | Nonce generated but not relayed (CRIT-2) |
 
 ---
 
-### 🟢 LOW-2: Form Submit Buttons Without Loading States
-**File:** `app/(app)/layout.tsx:94-102`
+## Recommended Fix Priority
 
-The logout button is a plain `<button type="submit">` inside a form. No loading state or disabled state during submission.
+### Week 1 (Critical)
+1. Fix `next-env.d.ts` dev-only import (CRIT-1)
+2. Fix CSP nonce relay to Next.js (CRIT-2)
+3. Replace custom `timingSafeEqual` with `crypto.timingSafeEqual` (CRIT-3)
+4. Wrap `getUser()` in try/catch in middleware (CRIT-4)
+5. Fix booking slot lock race condition (CRIT-5)
+6. Add `await` to calendar sync in API route (CRIT-6)
 
-**Fix:** Add `aria-busy` and visual loading state to async form actions.
+### Week 2 (High)
+7. Fix empty Bearer CSRF bypass (HIGH-1)
+8. Fix missing env var silent disable of CSRF (HIGH-2)
+9. Fix env validation casting bug (HIGH-3)
+10. Fix `document` SSR crash in i18n (HIGH-4)
+11. Fix regex injection in i18n (HIGH-5)
+12. Fix slot cleanup atomicity (HIGH-6)
+13. Fix price null/undefined handling (HIGH-7)
+14. Audit request booking state machine transitions (HIGH-8)
 
----
-
-### 🟢 LOW-3: No Skip Navigation Link
-There is no "Skip to main content" link for keyboard users.
-
-**Fix:** Add a visually hidden skip link as the first focusable element.
-
----
-
-### 🟢 LOW-4: Color Contrast Risk
-**File:** `app/(app)/layout.tsx:73-76`
-
-The brand color `#9FE870` on white may not meet WCAG AA contrast requirements for small text.
-
-**Fix:** Run a contrast audit on the brand palette.
-
----
-
-### 🟢 INFO-1: Good Mobile Navigation
-**File:** `app/(app)/layout.tsx`
-
-The app has both desktop sidebar and mobile bottom navigation. Good responsive UX.
-
-### 🟢 INFO-2: PWA Support
-Service worker registration and install prompt are present.
-
----
-
-## 6. App Structure & Consistency Issues
-
-### 🟡 MEDIUM-1: Missing `middleware.ts` at Root
-**Expected:** `middleware.ts` at project root
-**Found:** `lib/supabase/middleware.ts` only
-
-Next.js App Router expects `middleware.ts` at the root (or `src/middleware.ts`). If the middleware is imported elsewhere but not at the root, it may not run for all routes.
-
-**Fix:** Verify that `lib/supabase/middleware.ts` is actually being invoked as Next.js middleware. If not, create a root `middleware.ts` that re-exports it.
+### Week 3–4 (Medium)
+15. Replace naive HTML sanitizer with DOMPurify (MED-1)
+16. Add ETag circular payload protection (MED-2)
+17. Fix If-None-Match multi-value support (MED-3)
+18. Cap in-memory rate-limit store size (MED-4)
+19. Add input validation to format utilities (MED-5–7)
+20. Fix CalDAV regex and timezone handling (MED-8–9)
+21. Align Sentry env var names (MED-10)
+22. Reduce middleware DB fallback queries (MED-11)
+23. Fix nonce generation base64 (MED-12)
+24. Add payment format NaN guards (MED-13–15)
+25. Protect instrumentation startup (MED-14)
+26. Fix open redirect in login (MED-16)
+27. Fix mojibake in state machine (MED-17)
+28. Add persistence to Trolley/Revolut webhooks (MED-18)
 
 ---
 
-### 🟡 MEDIUM-2: Route Group Inconsistency
-**Issue:** `app/(app)` contains both authenticated and public pages.
-
-- `app/(app)/buscar-auth/page.tsx` — public search for logged-in users
-- `app/(app)/onboarding-profissional/page.tsx` — no layout wrapper for onboarding?
-
-The `(app)` group is overloaded. It contains:
-- Professional workspace (dashboard, agenda, financeiro)
-- User flows (favoritos, mensagens, perfil)
-- Admin (admin/*)
-- Mixed auth pages
-
-**Fix:** Consider splitting into `(professional)`, `(user)`, and `(admin)` route groups for clearer separation.
-
----
-
-### 🟡 MEDIUM-3: Public Pages Mixed with App Pages
-**Public marketing pages:** `app/blog/`, `app/guias/`, `app/sobre/`, `app/recursos/`
-**These use:** Root layout with PostHog, analytics, etc.
-
-But `app/registrar-profissional/` and `app/buscar/` are also public yet outside `(app)` and `(auth)`. This is slightly inconsistent.
-
----
-
-### 🟢 LOW-1: `next.config.ts` Missing
-**Found:** `next.config.js` (JS)
-**Expected:** `next.config.ts` (TS) for a TypeScript project
-
-Minor inconsistency.
-
----
-
-### 🟢 LOW-2: Duplicate Query Logic
-**Files:**
-- `app/(app)/agenda/page.tsx` and `app/(app)/dashboard/page.tsx`
-
-Both fetch upcoming bookings, professional settings, and availability rules with nearly identical queries.
-
-**Fix:** Extract common queries to shared server actions or data functions.
-
----
-
-### 🟢 LOW-3: Missing `not-found.tsx` in Some Subroutes
-While `app/not-found.tsx` exists, some subroutes don't have local `not-found.tsx` files.
-
----
-
-### 🟢 INFO-1: Good Error Boundary Coverage
-23 `error.tsx` files across the app. Good pattern.
-
-### 🟢 INFO-2: Good Loading State Coverage
-22 `loading.tsx` files. Most major routes are covered.
-
-### 🟢 INFO-3: Instrumentation Present
-`instrumentation.ts` is present for env validation startup. Good.
-
----
-
-## 7. Mobile App Issues
-
-### 🔴 HIGH-1: Mobile App Cannot Compile
-As detailed in Section 1, the mobile app has 32+ TypeScript errors from missing modules.
-
-### 🔴 HIGH-2: Mobile App Imports from Web-Only Paths
-The mobile app uses `@/` path aliases that resolve to the web app directories (e.g., `@/lib/api`, `@/hooks/useBookings`). These modules don't exist in the mobile tree.
-
-**Impact:** The mobile app is non-functional.
-
-**Fix:** The mobile directory needs to either:
-1. Be removed if abandoned
-2. Have its own `tsconfig.json` with proper path mapping
-3. Have all missing modules created
-
----
-
-### 🟡 MEDIUM-1: Mobile App Has No Tests
-No test files found in the `mobile/` directory.
-
----
-
-## 8. Specific File Deep Dives
-
-### `app/(app)/agenda/page.tsx` — Mega-Component Anti-Pattern
-**Lines:** 1,099
-**Issues:**
-- 24 `any` types
-- Inline IIFE for rendering
-- 10+ database queries
-- 4 `console.error` calls
-- `force-dynamic`
-- No Suspense boundaries around data-dependent sections
-- Mixes data fetching, business logic, and presentation
-
-**Recommendation:** Split into:
-- `AgendaDataLoader` (server, fetches data)
-- `AgendaOverview` (server/client, renders overview)
-- `AgendaRequests` (server/client, renders requests)
-- `AgendaHistory` (server/client, renders history)
-
----
-
-### `app/(app)/dashboard/page.tsx` — Better But Still Heavy
-**Lines:** 516
-**Good:** Uses `Promise.all` for 14 queries
-**Bad:**
-- 4 `any` types
-- 11 `console.error` calls
-- `force-dynamic`
-- Inline alert rendering logic
-- Heavy JSX inline
-
-**Recommendation:** Extract card components and alert components.
-
----
-
-### `lib/supabase/middleware.ts` — Complex but Generally Sound
-**Lines:** 295
-**Good:**
-- Session caching for performance
-- Proper cookie handling
-- Role-based routing
-- Sentry integration for fallback role sampling
-
-**Concerns:**
-- Protected paths are hardcoded (lines 102-117) — easy to forget when adding new routes
-- `SESSION_CACHE` cleanup is not LRU
-- `hashCookies` is a simple string hash, collision-prone for large user bases
-
----
-
-### `lib/config/env.ts` — Robust
-**Good:**
-- Comprehensive Zod schema
-- Cross-field validation (DB URLs)
-- CI vs production vs dev behavior differentiation
-- No secrets in `NEXT_PUBLIC_*`
-
----
-
-### `next.config.js` — Good Security Headers
-**Good:**
-- X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS
-- Permissions-Policy for camera/mic
-- Image optimization configured
-
-**Missing:**
-- Sanity CDN not in `remotePatterns`
-- No `poweredByHeader: false`
-
----
-
-## 9. Recommended Action Plan
-
-### Immediate (This Week)
-1. **Fix mobile app or remove it** — 32+ TS errors make it unbuildable
-2. **Fix FormData type errors** — 4 errors blocking typecheck
-3. **Add `.limit()` to all unbounded queries** — Start with `lib/chat`, `lib/notifications`, `lib/disputes`
-4. **Replace `console.error` in Server Components** with Sentry or remove
-5. **Fix hydration mismatch** on legal pages instead of suppressing
-
-### Short Term (Next 2 Weeks)
-6. **Extract mega-components** — Split `agenda/page.tsx` and `dashboard/page.tsx` into smaller components
-7. **Add CSRF validation** to critical `/api/v1/*` routes
-8. **Add Zod schemas** to `professionals/me` and admin status endpoints
-9. **Add `alt` text** to all images
-10. **Remove `force-dynamic`** from dashboard/agenda where possible, add caching
-11. **Fix `any` types** in `app/` directory (80 occurrences)
-
-### Medium Term (Next Month)
-12. **Refactor middleware** — Use route config arrays or pattern matching instead of hardcoded paths
-13. **Add missing `loading.tsx` and `error.tsx`** to all subroutes
-14. **Audit `createAdminClient()` usage** in user-facing routes
-15. **Add focus management** to modals and drawers
-16. **Add skip navigation link**
-17. **Improve `SESSION_CACHE`** with LRU eviction
-
-### Long Term (Next Quarter)
-18. **Generate Supabase types** and replace `Record<string, any>` with proper types
-19. **Add structured logging** and remove runtime `console.*` calls
-20. **Create shared data layer** to deduplicate queries between dashboard and agenda
-21. **Performance audit with Lighthouse/Web Vitals** in production
-22. **Accessibility audit** with axe-core or Lighthouse
-
----
-
-## Appendix: File Inventory
-
-| Metric | Count |
-|--------|-------|
-| `page.tsx` files | 63 |
-| `layout.tsx` files | 14 |
-| `loading.tsx` files | 22 |
-| `error.tsx` files | 23 |
-| `not-found.tsx` files | 1 (root) |
-| `any` in `app/` | 80 |
-| `any` in `lib/` | 377 |
-| `console.*` in source | 344 |
-| `@ts-ignore` in source | 8 (all in `public/sw.js`) |
-| `useEffect` in components | 90 across 40 files |
-| `Promise.all` in pages | 25 across 18 files |
-| Sequential awaits in pages | 38 files |
-| `.select()` without `.limit()` | ~30+ high-risk queries |
-
----
-
-*End of Report*
+*Report generated by automated code review. All findings should be validated by a human developer before fixing.*

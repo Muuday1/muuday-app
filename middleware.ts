@@ -104,7 +104,7 @@ function shouldForceAppHostRedirect(request: NextRequest) {
   return authOrAppPaths.some(path => pathname === path || pathname.startsWith(`${path}/`))
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Handle CORS preflight and validate mobile API key for all /api/v1/* routes
   if (request.nextUrl.pathname.startsWith('/api/v1/')) {
     if (request.method === 'OPTIONS') {
@@ -145,6 +145,7 @@ export async function proxy(request: NextRequest) {
   // Apply CSP with per-request nonce (primary XSS defense)
   const nonce = generateNonce()
   response.headers.set('Content-Security-Policy', buildCspHeader(nonce))
+  response.headers.set('x-nonce', nonce)
 
   const hasCountryCookie = request.cookies.has('muuday_country')
   if (!hasCountryCookie) {

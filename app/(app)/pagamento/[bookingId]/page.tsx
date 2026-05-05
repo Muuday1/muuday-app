@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Pagamento | Muuday' }
+export const metadata = { title: 'Pagamento | Muuday' }
 
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'

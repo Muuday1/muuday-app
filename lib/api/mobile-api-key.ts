@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 
 export function validateMobileApiKey(request: NextRequest): NextResponse | null {
   const expectedKey = process.env.MOBILE_API_KEY
@@ -26,7 +27,7 @@ export function validateMobileApiKey(request: NextRequest): NextResponse | null 
   }
 
   // Constant-time comparison to prevent timing attacks
-  if (!timingSafeEqual(providedKey, expectedKey)) {
+  if (!safeCompare(providedKey, expectedKey)) {
     return NextResponse.json(
       { error: 'Invalid API key.' },
       { status: 401 },
@@ -36,23 +37,7 @@ export function validateMobileApiKey(request: NextRequest): NextResponse | null 
   return null
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Still do a comparison to avoid leaking length via timing,
-    // but against a padded version.
-    const maxLen = Math.max(a.length, b.length)
-    const pa = a.padEnd(maxLen, '\0')
-    const pb = b.padEnd(maxLen, '\0')
-    let result = 0
-    for (let i = 0; i < maxLen; i++) {
-      result |= pa.charCodeAt(i) ^ pb.charCodeAt(i)
-    }
-    return result === 0 && a.length === b.length
-  }
-
-  let result = 0
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  }
-  return result === 0
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
 }

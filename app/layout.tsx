@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, Bricolage_Grotesque } from 'next/font/google'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
@@ -65,6 +65,7 @@ async function resolveCookieConsentCountry() {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const consentCountry = await resolveCookieConsentCountry()
+  const nonce = (await headers()).get('x-nonce') || undefined
 
   return (
     <html lang="pt-BR">

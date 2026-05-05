@@ -139,7 +139,7 @@ export async function executeBookingCreation(
     )
 
     const priceBrl = Number(priceBrlRaw) || 0
-    if (priceBrl <= 0) {
+    if (!Number.isFinite(priceBrl) || priceBrl <= 0) {
       return { success: false, error: 'Profissional não possui preço configurado para sessão.' }
     }
 

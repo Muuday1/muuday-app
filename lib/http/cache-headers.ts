@@ -6,20 +6,27 @@ import { createHash } from 'crypto'
  */
 export function generateETag(payload: unknown): string {
   const hash = createHash('sha256')
-  hash.update(JSON.stringify(payload))
+  try {
+    hash.update(JSON.stringify(payload))
+  } catch {
+    // Fallback for circular references — use a stable fallback hash
+    hash.update(String(payload))
+  }
   return `W/"${hash.digest('hex').slice(0, 16)}"`
 }
 
 /**
  * Check if the client's If-None-Match header matches the current ETag.
+ * Handles multiple comma-separated ETags and weak comparison (W/ prefix).
  */
 export function isETagMatch(request: NextRequest, etag: string): boolean {
   const ifNoneMatch = request.headers.get('if-none-match')
   if (!ifNoneMatch) return false
-  // Handle weak comparison (W/ prefix)
-  const clientETag = ifNoneMatch.replace(/^W\//, '')
   const serverETag = etag.replace(/^W\//, '')
-  return clientETag === serverETag
+  const clientETags = ifNoneMatch
+    .split(',')
+    .map((t) => t.trim().replace(/^W\//, ''))
+  return clientETags.includes(serverETag)
 }
 
 /**

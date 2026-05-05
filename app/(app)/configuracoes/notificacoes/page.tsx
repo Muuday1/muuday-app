@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getUserWithSessionFallback } from '@/lib/auth/get-user-with-fallback'
+import { getUserSafe } from '@/lib/auth/get-user-with-fallback'
 import { NotificationPreferences } from '@/components/settings/workspace-helpers'
 import { NotificationPreferencesPage } from '@/components/settings/NotificationPreferencesPage'
 
@@ -8,7 +8,7 @@ export const metadata = { title: 'Notificações | Configurações | Muuday' }
 
 export default async function NotificacoesSettingsPage() {
   const supabase = await createClient()
-  const user = await getUserWithSessionFallback<{ id: string }>(supabase)
+  const user = await getUserSafe<{ id: string }>(supabase)
 
   if (!user) {
     redirect('/login')

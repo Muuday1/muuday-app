@@ -30,6 +30,10 @@ function getLocale(): Locale {
   return DEFAULT_LOCALE
 }
 
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 export function t(key: string, params?: Record<string, string | number>): string {
   const locale = getLocale()
   const messages = MESSAGES[locale] || MESSAGES[DEFAULT_LOCALE]
@@ -37,7 +41,7 @@ export function t(key: string, params?: Record<string, string | number>): string
 
   if (params) {
     Object.entries(params).forEach(([paramKey, paramValue]) => {
-      value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue))
+      value = value.replace(new RegExp(`\\{${escapeRegExp(paramKey)}\\}`, 'g'), String(paramValue))
     })
   }
 

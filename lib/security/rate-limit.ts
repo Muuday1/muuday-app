@@ -88,6 +88,7 @@ declare global {
 }
 
 const MEMORY_STORE_CLEANUP_INTERVAL = 1_000
+const MEMORY_STORE_MAX_SIZE = 10_000
 
 function getStore() {
   if (!globalThis.__muudayRateLimitStore) {
@@ -104,6 +105,17 @@ function cleanupExpiredBuckets(store: Map<string, MemoryBucket>) {
     if (now - bucket.windowStartedAt > 60_000) {
       store.delete(key)
     }
+  }
+}
+
+function enforceStoreSizeLimit(store: Map<string, MemoryBucket>) {
+  if (store.size <= MEMORY_STORE_MAX_SIZE) return
+  // Evict oldest entries first
+  const entries = Array.from(store.entries())
+  entries.sort((a, b) => a[1].windowStartedAt - b[1].windowStartedAt)
+  const toDelete = entries.slice(0, entries.length - MEMORY_STORE_MAX_SIZE)
+  for (const [key] of toDelete) {
+    store.delete(key)
   }
 }
 
@@ -153,6 +165,7 @@ function checkMemoryRateLimit({ key, limit, windowSeconds }: RateLimitOptions): 
   if (store.size > 0 && store.size % MEMORY_STORE_CLEANUP_INTERVAL === 0) {
     cleanupExpiredBuckets(store)
   }
+  enforceStoreSizeLimit(store)
 
   const now = Date.now()
   const windowMs = windowSeconds * 1000
