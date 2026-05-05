@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { useFeatureFlagEnabled } from 'posthog-js/react'
@@ -156,7 +156,7 @@ export default function BookingForm({
   const { trackDateSelection } = useDateSelectionAnalytics()
 
   // Prefill: set booking type if initial is recurring
-  useMemo(() => {
+  useEffect(() => {
     if (initialBookingType === 'recurring' && canUseRecurring) {
       setBookingType('recurring')
     }
