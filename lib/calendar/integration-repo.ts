@@ -249,19 +249,7 @@ export async function replaceExternalBusySlots(
 ) {
   const now = nowIso()
 
-  const { error: deleteError } = await admin
-    .from('external_calendar_busy_slots')
-    .delete()
-    .eq('professional_id', input.professionalId)
-    .eq('provider', input.provider)
-
-  if (deleteError) throw new Error(`Failed to reset external busy slots: ${deleteError.message}`)
-
-  if (!input.slots.length) return
-
-  const payload = input.slots.map(slot => ({
-    professional_id: input.professionalId,
-    provider: input.provider,
+  const slotsJson = input.slots.map(slot => ({
     external_event_id: slot.externalEventId,
     external_calendar_id: slot.externalCalendarId,
     title: slot.title || null,
@@ -273,8 +261,13 @@ export async function replaceExternalBusySlots(
     updated_at: now,
   }))
 
-  const { error: insertError } = await admin.from('external_calendar_busy_slots').insert(payload)
-  if (insertError) throw new Error(`Failed to persist external busy slots: ${insertError.message}`)
+  const { error } = await admin.rpc('replace_external_busy_slots', {
+    p_professional_id: input.professionalId,
+    p_provider: input.provider,
+    p_slots: slotsJson,
+  })
+
+  if (error) throw new Error(`Failed to replace external busy slots: ${error.message}`)
 }
 
 export async function upsertBookingExternalCalendarEvent(
