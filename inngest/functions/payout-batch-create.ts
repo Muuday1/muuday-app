@@ -28,6 +28,7 @@ import { getProfessionalBalance, updateProfessionalBalance } from '@/lib/payment
 import { notifyProfessionalsOnBatchSubmitted } from '@/lib/notifications/payout-notifications'
 import { trackPayoutSent } from '@/lib/analytics/server-events'
 import { env } from '@/lib/config/env'
+import * as Sentry from '@sentry/nextjs'
 import { inngest } from '../client'
 
 export const payoutBatchCreate = inngest.createFunction(
@@ -576,7 +577,26 @@ export const payoutBatchCreate = inngest.createFunction(
             professionalId: item.professional_id,
             error: errorMsg,
           })
-          // Non-blocking: continue with other items
+          Sentry.captureException(ledgerError, {
+            tags: { area: 'payout_batch', subArea: 'ledger_creation' },
+            extra: { batchId: batchDraft.batchId, itemId: item.id, professionalId: item.professional_id },
+          })
+          // Mark item as ledger-failed so it can be retried / reconciled manually
+          try {
+            await admin
+              .from('payout_batch_items')
+              .update({
+                status: 'ledger_failed',
+                failure_reason: `Ledger creation failed: ${errorMsg.slice(0, 200)}`,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', item.id)
+          } catch (markErr: unknown) {
+            logger.error('Failed to mark batch item as ledger_failed.', {
+              itemId: item.id,
+              error: markErr instanceof Error ? markErr.message : String(markErr),
+            })
+          }
         }
       }
 

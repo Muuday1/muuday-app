@@ -19,6 +19,7 @@ import { runNoShowDetection } from '@/lib/ops/no-show-detection'
 import { runSlotLockCleanup } from '@/lib/ops/slot-lock-cleanup'
 import { runPendingPaymentTimeout } from '@/lib/ops/pending-payment-timeout'
 import type { CalendarProvider } from '@/lib/calendar/types'
+import * as Sentry from '@sentry/nextjs'
 import { inngest } from '../client'
 import {
   emitUserBookingConfirmed,
@@ -901,7 +902,12 @@ export const processSupabasePaymentsChange = inngest.createFunction(
           const syncResult = await upsertBookingInExternalCalendar(admin, bookingId)
           calendarSync = JSON.stringify(syncResult)
         } catch (calendarError) {
-          calendarSync = `error:${calendarError instanceof Error ? calendarError.message : String(calendarError)}`
+          const message = calendarError instanceof Error ? calendarError.message : String(calendarError)
+          calendarSync = `error:${message}`
+          Sentry.captureException(calendarError, {
+            tags: { area: 'calendar_sync', subArea: 'booking_confirmation_webhook' },
+            extra: { bookingId, paymentId },
+          })
         }
 
         return {
