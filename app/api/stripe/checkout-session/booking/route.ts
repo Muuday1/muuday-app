@@ -23,6 +23,7 @@ import { getStripeClient } from '@/lib/stripe/client'
 import { getOrCreateStripeCustomer } from '@/lib/stripe/get-or-create-customer'
 import { getAppBaseUrl } from '@/lib/config/app-url'
 import { rateLimit } from '@/lib/security/rate-limit'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import { getClientIp } from '@/lib/http/client-ip'
 import { validateApiCsrf } from '@/lib/http/csrf'
 
@@ -50,7 +51,7 @@ function appBaseUrl(request: NextRequest) {
   return request.nextUrl.origin || getAppBaseUrl()
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/stripe/checkout-session/booking started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -250,4 +251,4 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({ error: 'Erro ao iniciar checkout. Tente novamente.' }, { status: 502 })
   }
-}
+})

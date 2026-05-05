@@ -14,6 +14,7 @@ import {
   evaluateCorsRequest,
 } from '@/lib/http/cors'
 import { getClientIp } from '@/lib/http/client-ip'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const requestSchema = z.object({
   email: z.string().email(),
@@ -43,7 +44,7 @@ function resolveBaseUrlFromRequest(request: NextRequest) {
   return getAppBaseUrl()
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const corsDecision = evaluateCorsRequest(request, PUBLIC_API_CORS_POLICY)
   if (!corsDecision.allowed) {
     return createCorsErrorResponse(request, PUBLIC_API_CORS_POLICY)
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
   }
 
   return withCors(NextResponse.json({ success: true }))
-}
+})
 
 export async function OPTIONS(request: NextRequest) {
   return createCorsPreflightResponse(request, PUBLIC_API_CORS_POLICY)

@@ -9,6 +9,7 @@ import {
   recordParticipantJoined,
   recordActualStartIfBothJoined,
 } from '@/lib/session/tracker'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid(),
@@ -24,7 +25,7 @@ function toSafeIso(value: unknown) {
   return parsed.toISOString()
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const appId = process.env.AGORA_APP_ID
   const appCertificate = process.env.AGORA_APP_CERTIFICATE
   if (!appId || !appCertificate) {
@@ -156,4 +157,4 @@ export async function POST(request: NextRequest) {
     windowEndUtc: joinEnd.toISOString(),
     providerMeta: { appId },
   })
-}
+})

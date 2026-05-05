@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, type RateLimitResult } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   WAITLIST_API_CORS_POLICY,
   applyCorsHeaders,
@@ -43,7 +44,7 @@ function applyExtraHeaders(response: NextResponse, headers: Record<string, strin
   return response
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const corsDecision = evaluateCorsRequest(request, WAITLIST_API_CORS_POLICY)
   if (!corsDecision.allowed) {
     return createCorsErrorResponse(request, WAITLIST_API_CORS_POLICY)
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
     })
     return withCors(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
   }
-}
+})
 
 export async function OPTIONS(request: NextRequest) {
   return createCorsPreflightResponse(request, WAITLIST_API_CORS_POLICY)

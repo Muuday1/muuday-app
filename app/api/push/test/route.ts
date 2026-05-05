@@ -3,13 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { sendPushToUser } from '@/lib/push/sender'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 /**
  * POST /api/push/test
  * Sends a test push notification to the authenticated user.
  * Useful for verifying push subscription is working.
  */
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -53,4 +54,4 @@ export async function POST(request: NextRequest) {
     message: 'Notificação de teste enviada com sucesso!',
     deliveredTo: sent,
   })
-}
+})
