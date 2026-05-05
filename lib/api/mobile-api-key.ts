@@ -7,7 +7,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
 
 export function validateMobileApiKey(request: NextRequest): NextResponse | null {
   const expectedKey = process.env.MOBILE_API_KEY
@@ -37,7 +36,18 @@ export function validateMobileApiKey(request: NextRequest): NextResponse | null 
   return null
 }
 
+/**
+ * Constant-time string comparison using only Web-standard APIs.
+ * Safe for Edge Runtime (no Node.js `crypto` or `Buffer`).
+ */
 function safeCompare(a: string, b: string): boolean {
   if (a.length !== b.length) return false
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  const encoder = new TextEncoder()
+  const aBytes = encoder.encode(a)
+  const bBytes = encoder.encode(b)
+  let result = 0
+  for (let i = 0; i < aBytes.length; i++) {
+    result |= aBytes[i] ^ bBytes[i]
+  }
+  return result === 0
 }
