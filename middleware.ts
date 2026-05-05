@@ -145,6 +145,8 @@ export async function middleware(request: NextRequest) {
   // Apply CSP with per-request nonce (primary XSS defense)
   const nonce = generateNonce()
   response.headers.set('Content-Security-Policy', buildCspHeader(nonce))
+  // Pass nonce to App Router via request header so it can be read in layout.tsx
+  request.headers.set('x-nonce', nonce)
   response.headers.set('x-nonce', nonce)
 
   const hasCountryCookie = request.cookies.has('muuday_country')
