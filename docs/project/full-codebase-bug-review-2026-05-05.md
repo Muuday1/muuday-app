@@ -351,11 +351,11 @@ return parsed.data
 
 ---
 
-### L5. `sendBookingConfirmationEmail` Fire-and-Forget Without Retry ✅ ACCEPTED
-**File:** `lib/booking/create-booking.ts:321-344`  
-**Issue:** Email failures are logged to Sentry but not retried.  
-**Fix:** Queue via Inngest or Resend for at-least-once delivery.  
-**Resolution:** Fire-and-forget is an intentional design decision to avoid blocking the API response. Errors are already captured via `.catch()` + Sentry. For guaranteed at-least-once delivery, migrate to Inngest queue in a future iteration.
+### L5. `sendBookingConfirmationEmail` Sent Before Payment ✅ FIXED
+**File:** `lib/booking/create-booking.ts:321-344` (removed)  
+**Issue:** `sendBookingConfirmationEmail` and `sendNewBookingToProfessionalEmail` were fired immediately after booking creation while status was `pending_payment`. Users received "Sessão confirmada" before they had actually paid. If checkout was abandoned or payment failed, the slot was already blocked and the email had been sent.  
+**Fix:** Remove transactional emails from `executeBookingCreation`. Move confirmation notifications to the post-payment capture flow (Inngest `processSupabasePaymentsChange`).  
+**Resolution:** Removed both email calls from `lib/booking/create-booking.ts`. Added `emitProfessionalBookingConfirmed` event in `inngest/functions/index.ts` so both user and professional receive confirmation only after Stripe captures the payment (`status === 'captured'`).
 
 ---
 

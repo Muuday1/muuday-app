@@ -1576,3 +1576,22 @@ Use this for meaningful checkpoints only.
   - `vitest run lib/booking/create-booking.test.ts` → 18/18 pass
   - Deployed live to https://app.muuday.com (commit `a919b26`)
   - `/api/health` → 200 OK
+
+### Entry 91 (2026-05-05) — Fix premature booking confirmation email and payment page race condition
+- Scope executed:
+  - **`lib/booking/create-booking.ts`** — removed `sendBookingConfirmationEmail()` and `sendNewBookingToProfessionalEmail()` from `executeBookingCreation()`. These emails were being sent immediately after booking creation while status was `pending_payment`, meaning users received "Sessão confirmada" before they had actually paid.
+  - **`lib/email/resend-events.ts`** — added new automation event `emitProfessionalBookingConfirmed(email, { booking_id, client_name })` for the post-payment confirmation flow.
+  - **`inngest/functions/index.ts`** — in `processSupabasePaymentsChange` (payment captured handler), added parallel resolution of `userEmail`, `userName`, and `professionalEmail` via `Promise.all`. Now emits both `user.booking_confirmed` and `professional.booking_confirmed` events only after Stripe captures the payment.
+  - **`app/(app)/pagamento/[bookingId]/page.tsx`** — added retry loop (3 attempts, 400ms delay) before calling `notFound()` to avoid race condition between booking creation and Server Component page load. This was the root cause of users being redirected to an error page after checkout.
+  - **`app/api/stripe/payment-intent/route.ts`** — added `Sentry.captureMessage()` warnings for all error paths (booking not found, status mismatch, payment not found, payment status mismatch) to improve observability.
+  - **`app/api/stripe/payment-intent/route.test.ts`** — updated Sentry mock to include `captureMessage`.
+  - **`docs/project/full-codebase-bug-review-2026-05-05.md`** — updated L5 from "ACCEPTED" to "FIXED" with new description.
+  - **`docs/integrations/resend.md`** — documented all booking lifecycle automation events and the rule that confirmation emails are only sent after payment capture.
+- Files changed: 8
+- Validation:
+  - `npm run typecheck` → pass (0 errors)
+  - `npm run lint` → pass (0 new errors)
+  - `vitest run lib/booking/create-booking.test.ts` → 18/18 pass
+  - `vitest run app/api/stripe/payment-intent/route.test.ts` → 12/12 pass
+  - `vitest run inngest/functions/` → 27/27 pass
+  - Commit: `fc7bcb5`, pushed to `origin/main`

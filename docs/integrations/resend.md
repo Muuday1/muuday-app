@@ -22,6 +22,23 @@ Transactional and lifecycle email delivery.
 1. Missing or invalid `RESEND_API_KEY` disables delivery.
 2. Delivery outcomes are not yet fully observable in a centralized dashboard.
 
+## Booking lifecycle email events (Resend Automations)
+
+The following automation events are emitted server-side via `lib/email/resend-events.ts`:
+
+**User events:**
+- `user.started_checkout` — emitted when a booking is created (checkout begins)
+- `user.booking_confirmed` — emitted **after** payment is captured by Stripe
+- `user.payment_failed` — emitted when payment fails
+- `user.session_completed` — emitted after the session is marked complete
+
+**Professional events:**
+- `professional.received_booking` — emitted when a user starts checkout
+- `professional.booking_confirmed` — emitted **after** payment is captured
+- `professional.session_completed` — emitted after the session is marked complete
+
+> ⚠️ Confirmation emails (`user.booking_confirmed`, `professional.booking_confirmed`) are intentionally sent **only after** Stripe payment capture, not at booking creation time.
+
 ## Next steps
 
 1. Validate sender domain and production API key setup.
