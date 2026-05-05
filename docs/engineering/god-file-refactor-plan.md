@@ -162,6 +162,24 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
 
 ---
 
+### Refactor Pass: 2026-05-05 — AdminDashboard.tsx
+
+**AdminDashboard.tsx** (721 → 187 lines)
+
+**Completed:**
+- **Hook** extracted to `components/admin/admin-dashboard/hooks/`:
+  - `useAdminDashboard` — all state, status/review actions, filters, success messaging
+- **Presentational components** extracted to `components/admin/admin-dashboard/components/`:
+  - `AdminOverviewTab` — stats cards + pending actions + recent professionals
+  - `AdminProfessionalsTab` — professional list with expand/collapse + actions
+  - `AdminReviewsTab` — review moderation cards
+  - `AdminBookingsTab` — bookings table
+  - `StatCard` — reusable stat card
+- Main component now pure orchestrator: header + tab bar + conditional tab rendering
+- TypeScript: 0 errors, build passes
+
+---
+
 ### Refactor Pass: 2026-05-05 — identity-stage.tsx
 
 **identity-stage.tsx** (713 → 174 lines)
