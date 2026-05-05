@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { submitGuideReportService } from '@/lib/guides/guide-feedback-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'guide', message: 'POST /api/v1/guides/reports', level: 'info' })
 
   let body: unknown
@@ -39,4 +40,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true }, { status: 201 })
-}
+})

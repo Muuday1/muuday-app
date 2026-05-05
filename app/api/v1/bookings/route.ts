@@ -9,12 +9,13 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { enqueueBookingCalendarSync } from '@/lib/calendar/sync/events'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   emitProfessionalReceivedBooking,
   emitUserStartedCheckout,
 } from '@/lib/email/resend-events'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'booking', message: 'GET /api/v1/bookings started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -48,9 +49,9 @@ export async function GET(request: NextRequest) {
   }
 
   return maybeCachedResponse(request, { data: result.data }, { cacheControl: 'private, max-age=30, must-revalidate' })
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'booking', message: 'POST /api/v1/bookings started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -134,4 +135,4 @@ export async function POST(request: NextRequest) {
     createdBookingIds: result.createdBookingIds,
     usedAtomicPath: result.usedAtomicPath,
   }, { status: 201 })
-}
+})

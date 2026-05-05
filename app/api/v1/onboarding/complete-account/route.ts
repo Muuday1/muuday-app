@@ -5,13 +5,14 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { completeAccountService } from '@/lib/onboarding/complete-account-service'
 import { sendWelcomeEmail } from '@/lib/email/templates/user'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   emitUserSignedUp,
   emitUserProfileCompleted,
   emitProfessionalSignedUp,
 } from '@/lib/email/resend-events'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'onboarding', message: 'POST /api/v1/onboarding/complete-account', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -71,4 +72,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

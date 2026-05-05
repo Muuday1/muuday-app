@@ -6,11 +6,12 @@ import { getClientIp } from '@/lib/http/client-ip'
 import { sendMessage, getMessages } from '@/lib/chat/chat-service'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(
+export const GET = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id: conversationId } = await params
   Sentry.addBreadcrumb({
     category: 'chat',
@@ -44,12 +45,12 @@ export async function GET(
   }
 
   return maybeCachedResponse(request, { success: true, data: result.data }, { cacheControl: 'private, max-age=15, must-revalidate' })
-}
+})
 
-export async function POST(
+export const POST = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id: conversationId } = await params
   Sentry.addBreadcrumb({
     category: 'chat',
@@ -93,4 +94,4 @@ export async function POST(
   }
 
   return NextResponse.json({ success: true, data: result.data }, { status: 201 })
-}
+})

@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { updateUserProfile } from '@/lib/user/user-profile-service'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'user', message: 'GET /api/v1/users/me', level: 'info' })
 
   const ip = getClientIp(request)
@@ -54,9 +55,9 @@ export async function GET(request: NextRequest) {
     },
     professional: professional || null,
   })
-}
+})
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'user', message: 'PATCH /api/v1/users/me', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -101,4 +102,4 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

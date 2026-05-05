@@ -4,11 +4,12 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { markNotificationAsRead } from '@/lib/notifications/notification-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(
+export const PATCH = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'notifications', message: `PATCH /api/v1/notifications/${id}/read`, level: 'info' })
 
@@ -30,4 +31,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ data: result.data })
-}
+})

@@ -6,13 +6,14 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { runOcrPipeline } from '@/lib/kyc/ocr-pipeline'
 import type { OcrStatus, OcrProvider } from '@/lib/kyc/types'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const payloadSchema = z.object({
   credentialId: z.string().uuid(),
   provider: z.enum(['textract', 'document-ai', 'manual']).optional().default('textract'),
 })
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'kyc', message: 'POST /api/v1/kyc/scan', level: 'info' })
 
   const ip = getClientIp(request)
@@ -121,4 +122,4 @@ export async function POST(request: NextRequest) {
       reason: triage.reason,
     },
   })
-}
+})

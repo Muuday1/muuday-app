@@ -4,11 +4,12 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { restoreLatestReviewAdjustmentsService } from '@/lib/admin/admin-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(
+export const POST = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'admin', message: `POST /api/v1/admin/professionals/${id}/restore-adjustments`, level: 'info' })
 
@@ -36,4 +37,4 @@ export async function POST(
   }
 
   return NextResponse.json({ success: true })
-}
+})

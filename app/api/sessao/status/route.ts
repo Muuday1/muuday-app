@@ -3,12 +3,13 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const querySchema = z.object({
   bookingId: z.string().uuid(),
 })
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -88,4 +89,4 @@ export async function GET(request: NextRequest) {
     professionalName: professionalProfile?.full_name || 'Profissional',
     canJoinWindow,
   })
-}
+})

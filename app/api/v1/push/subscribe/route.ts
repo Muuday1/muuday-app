@@ -31,8 +31,9 @@ const subscriptionSchema = z.union([webSubscriptionSchema, nativeSubscriptionSch
  * Supports both web (VAPID) and native (Expo Push Token) subscriptions.
  */
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'push', message: 'POST /api/v1/push/subscribe', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -103,4 +104,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

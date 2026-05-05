@@ -5,11 +5,12 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getPublicVisibilityByProfessionalId, type ProfessionalSearchRecord } from '@/lib/professional/public-visibility'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const PROFESSIONAL_PROFILE_FIELDS =
   'id,user_id,public_code,status,category,subcategories,tags,bio,languages,session_price_brl,session_duration_minutes,rating,total_reviews,total_bookings,years_experience,social_links,video_intro_url,cover_photo_url,first_booking_enabled,tier,whatsapp_number,market_code,session_price,session_price_currency,is_publicly_visible,profiles!professionals_user_id_fkey(full_name,country,avatar_url,role)'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   Sentry.addBreadcrumb({ category: 'professional', message: 'GET /api/v1/professionals/:id', level: 'info' })
 
   const ip = getClientIp(request)
@@ -92,4 +93,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
   }
-}
+})

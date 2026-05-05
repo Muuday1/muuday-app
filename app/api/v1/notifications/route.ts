@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getNotifications, markAllNotificationsAsRead } from '@/lib/notifications/notification-service'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'notifications', message: 'GET /api/v1/notifications', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -32,9 +33,9 @@ export async function GET(request: NextRequest) {
   }
 
   return maybeCachedResponse(request, { data: { notifications: result.data.notifications, nextCursor: result.data.nextCursor } }, { cacheControl: 'private, max-age=15, must-revalidate' })
-}
+})
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'notifications', message: 'PATCH /api/v1/notifications', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -55,4 +56,4 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data })
-}
+})

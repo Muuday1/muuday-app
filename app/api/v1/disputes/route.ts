@@ -6,8 +6,9 @@ import { getClientIp } from '@/lib/http/client-ip'
 import { requireAdmin } from '@/lib/admin/auth-helper'
 import { openCase, listCases } from '@/lib/disputes/dispute-service'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'POST /api/v1/disputes started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -47,9 +48,9 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, caseId: result.data.caseId }, { status: 201 })
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'GET /api/v1/disputes started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -84,4 +85,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data.cases, nextCursor: result.data.nextCursor })
-}
+})

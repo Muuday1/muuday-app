@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getGuideUsefulCountService, toggleGuideUsefulService } from '@/lib/guides/guide-feedback-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url)
   const guideSlug = searchParams.get('guideSlug') || ''
   if (!guideSlug) {
@@ -15,9 +16,9 @@ export async function GET(request: NextRequest) {
   const supabase = await createApiClient(request)
   const count = await getGuideUsefulCountService(supabase, guideSlug)
   return NextResponse.json({ data: { count } })
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'guide', message: 'POST /api/v1/guides/useful', level: 'info' })
 
   let body: unknown
@@ -46,4 +47,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data: { marked: result.marked } })
-}
+})

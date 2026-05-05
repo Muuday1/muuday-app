@@ -6,8 +6,9 @@ import { getClientIp } from '@/lib/http/client-ip'
 import { getOrCreateConversation, getConversations } from '@/lib/chat/chat-service'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'chat', message: 'GET /api/v1/conversations', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -28,9 +29,9 @@ export async function GET(request: NextRequest) {
   }
 
   return maybeCachedResponse(request, { success: true, data: result.data }, { cacheControl: 'private, max-age=30, must-revalidate' })
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'chat', message: 'POST /api/v1/conversations', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -68,4 +69,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data }, { status: 201 })
-}
+})

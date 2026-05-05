@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
 import { removeAvailabilityException } from '@/lib/professional/availability-exceptions-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ exceptionId: string }> }) {
+export const DELETE = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ exceptionId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'availability', message: 'DELETE /api/v1/professionals/me/availability-exceptions/:id started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -36,4 +37,4 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   return NextResponse.json({ success: true })
-}
+})

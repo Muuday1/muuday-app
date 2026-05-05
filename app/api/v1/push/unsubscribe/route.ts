@@ -17,8 +17,9 @@ const unsubscribeSchema = z.object({
  * Removes a push subscription for the authenticated user.
  */
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'push', message: 'DELETE /api/v1/push/unsubscribe', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -64,4 +65,4 @@ export async function DELETE(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

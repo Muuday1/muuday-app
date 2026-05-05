@@ -23,6 +23,7 @@ import {
   setSessionStatus,
 } from '@/lib/session/tracker'
 import type { SessionFailureReason } from '@/lib/session/types'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid(),
@@ -39,7 +40,7 @@ const payloadSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -127,4 +128,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, eventType })
-}
+})

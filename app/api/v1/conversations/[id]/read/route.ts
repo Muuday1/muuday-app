@@ -4,11 +4,12 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { markConversationAsRead } from '@/lib/chat/chat-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(
+export const PATCH = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id: conversationId } = await params
   Sentry.addBreadcrumb({
     category: 'chat',
@@ -35,4 +36,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true, data: result.data })
-}
+})

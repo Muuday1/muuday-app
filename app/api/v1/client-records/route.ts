@@ -4,12 +4,13 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   upsertClientRecord,
   getClientRecords,
 } from '@/lib/client-records/client-records-service'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'client-records', message: 'POST /api/v1/client-records started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, recordId: result.data.recordId }, { status: 201 })
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'client-records', message: 'GET /api/v1/client-records started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -79,4 +80,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data.records })
-}
+})

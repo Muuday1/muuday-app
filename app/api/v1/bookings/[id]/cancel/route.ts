@@ -5,11 +5,12 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { cancelBookingService } from '@/lib/booking/manage-booking-service'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(
+export const PATCH = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'booking', message: `PATCH /api/v1/bookings/${id}/cancel`, level: 'info' })
 
@@ -55,4 +56,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true })
-}
+})

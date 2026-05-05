@@ -6,8 +6,9 @@ import { getClientIp } from '@/lib/http/client-ip'
 import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
 import { createProfessionalService } from '@/lib/professional/professional-services-service'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'services', message: 'POST /api/v1/professionals/me/services started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -54,4 +55,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, serviceId: result.data.serviceId }, { status: 201 })
-}
+})

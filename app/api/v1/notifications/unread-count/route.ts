@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getUnreadNotificationCount } from '@/lib/notifications/notification-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'notifications', message: 'GET /api/v1/notifications/unread-count', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -26,4 +27,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data })
-}
+})

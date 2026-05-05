@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { updateAvailability } from '@/lib/professional/professional-profile-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PUT(request: NextRequest) {
+export const PUT = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'availability', message: 'PUT /api/v1/professionals/me/availability started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -35,4 +36,4 @@ export async function PUT(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

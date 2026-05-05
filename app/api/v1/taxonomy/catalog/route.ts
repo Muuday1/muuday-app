@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { loadSignupCatalogService } from '@/lib/taxonomy/signup-catalog-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'taxonomy', message: 'GET /api/v1/taxonomy/catalog', level: 'info' })
 
   const ip = getClientIp(request)
@@ -18,4 +19,4 @@ export async function GET(request: NextRequest) {
   const result = await loadSignupCatalogService(supabase)
 
   return NextResponse.json({ data: result })
-}
+})

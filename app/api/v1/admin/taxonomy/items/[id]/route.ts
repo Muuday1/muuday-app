@@ -4,11 +4,12 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { updateTaxonomyItemService } from '@/lib/admin/taxonomy-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(
+export const PATCH = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'admin', message: `PATCH /api/v1/admin/taxonomy/items/${id}`, level: 'info' })
 
@@ -44,4 +45,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true })
-}
+})

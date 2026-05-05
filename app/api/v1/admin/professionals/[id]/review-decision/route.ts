@@ -5,11 +5,12 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { reviewProfessionalDecisionService } from '@/lib/admin/admin-service'
 import type { ReviewAdjustmentItemInput } from '@/lib/professional/review-adjustments'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(
+export const POST = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'admin', message: `POST /api/v1/admin/professionals/${id}/review-decision`, level: 'info' })
 
@@ -50,4 +51,4 @@ export async function POST(
   }
 
   return NextResponse.json({ success: true })
-}
+})

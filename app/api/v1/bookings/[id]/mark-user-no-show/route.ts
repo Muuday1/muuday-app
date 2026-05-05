@@ -5,11 +5,12 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { markUserNoShowService } from '@/lib/booking/manage-booking-service'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(
+export const POST = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'booking', message: `POST /api/v1/bookings/${id}/mark-user-no-show`, level: 'info' })
 
@@ -42,4 +43,4 @@ export async function POST(
   }
 
   return NextResponse.json({ success: true })
-}
+})

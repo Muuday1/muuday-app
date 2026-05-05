@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireAdmin } from '@/lib/admin/auth-helper'
 import { addCaseMessage, getCaseMessages } from '@/lib/disputes/dispute-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+export const POST = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'POST /api/v1/disputes/:caseId/messages started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -45,9 +46,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   return NextResponse.json({ success: true, messageId: result.data.messageId }, { status: 201 })
-}
+})
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'GET /api/v1/disputes/:caseId/messages started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -79,4 +80,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   return NextResponse.json({ data: result.data.messages })
-}
+})

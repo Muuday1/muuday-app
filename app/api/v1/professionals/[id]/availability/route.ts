@@ -7,13 +7,14 @@ import { getClientIp } from '@/lib/http/client-ip'
 import { getPublicVisibilityByProfessionalId } from '@/lib/professional/public-visibility'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
 import { formatInTimeZone } from 'date-fns-tz'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const querySchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida. Use yyyy-MM-dd.').optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida. Use yyyy-MM-dd.').optional(),
 })
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   Sentry.addBreadcrumb({ category: 'availability', message: 'GET /api/v1/professionals/:id/availability', level: 'info' })
 
   const ip = getClientIp(request)
@@ -143,4 +144,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
   }
-}
+})

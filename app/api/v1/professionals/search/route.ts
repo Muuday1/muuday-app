@@ -5,6 +5,7 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { maybeCachedResponse } from '@/lib/http/cache-headers'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const querySchema = z.object({
   q: z.string().optional().default(''),
@@ -19,7 +20,7 @@ const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).optional().default(20),
 })
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'search', message: 'GET /api/v1/professionals/search', level: 'info' })
 
   const ip = getClientIp(request)
@@ -145,4 +146,4 @@ export async function GET(request: NextRequest) {
     })
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
     }
-}
+})

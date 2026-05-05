@@ -4,11 +4,12 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { respondToReviewService } from '@/lib/review/review-response-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(
+export const PATCH = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'review', message: `PATCH /api/v1/reviews/${id}/response`, level: 'info' })
 
@@ -44,4 +45,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ data: result.data })
-}
+})

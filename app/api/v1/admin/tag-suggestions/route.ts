@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { reviewTagSuggestionService } from '@/lib/admin/taxonomy-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'admin', message: 'PATCH /api/v1/admin/tag-suggestions', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -43,4 +44,4 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

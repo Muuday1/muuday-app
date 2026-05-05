@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { completeProfessionalProfileService } from '@/lib/onboarding/complete-profile-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'onboarding', message: 'POST /api/v1/onboarding/complete-profile', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -44,4 +45,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, professionalId: result.professionalId })
-}
+})

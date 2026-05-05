@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { getCaseById, resolveCase } from '@/lib/disputes/dispute-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'GET /api/v1/disputes/:caseId started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -38,9 +39,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   return NextResponse.json({ data: result.data })
-}
+})
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) {
+export const PATCH = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ caseId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'disputes', message: 'PATCH /api/v1/disputes/:caseId started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -83,4 +84,4 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   return NextResponse.json({ success: true, resolvedAt: result.data.resolvedAt })
-}
+})

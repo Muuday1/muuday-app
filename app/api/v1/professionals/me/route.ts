@@ -4,12 +4,13 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   createOrUpdateProfessionalProfile,
   saveProfessionalProfileDraft,
 } from '@/lib/professional/professional-profile-service'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'professional', message: 'POST /api/v1/professionals/me started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -61,13 +62,13 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, professionalId: result.professionalId }, { status: 201 })
-}
+})
 
-export async function PUT(request: NextRequest) {
+export const PUT = withApiHandler(async (request: NextRequest) => {
   return POST(request)
-}
+})
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'professional', message: 'PATCH /api/v1/professionals/me started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -125,4 +126,4 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

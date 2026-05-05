@@ -7,12 +7,13 @@ import { getClientIp } from '@/lib/http/client-ip'
 import { getStripeClient } from '@/lib/stripe/client'
 import { getOrCreateStripeCustomer } from '@/lib/stripe/get-or-create-customer'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid('ID do agendamento invalido.'),
 })
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/v1/payments/payment-intent started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -214,4 +215,4 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({ error: 'Erro ao iniciar pagamento. Tente novamente.' }, { status: 502 })
   }
-}
+})

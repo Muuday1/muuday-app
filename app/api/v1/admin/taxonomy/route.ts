@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { loadTaxonomyDataService } from '@/lib/admin/taxonomy-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'admin', message: 'GET /api/v1/admin/taxonomy', level: 'info' })
 
   const supabase = await createApiClient(request)
@@ -30,4 +31,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data })
-}
+})

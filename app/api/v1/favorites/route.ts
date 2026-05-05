@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { addFavorite, removeFavorite } from '@/lib/favorites/favorites-service'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'favorites', message: 'POST /api/v1/favorites started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -40,9 +41,9 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true }, { status: 201 })
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'favorites', message: 'DELETE /api/v1/favorites started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -72,4 +73,4 @@ export async function DELETE(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true })
-}
+})

@@ -4,12 +4,13 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   addAvailabilityException,
   getAvailabilityExceptions,
 } from '@/lib/professional/availability-exceptions-service'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'availability', message: 'POST /api/v1/professionals/me/availability-exceptions started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -50,9 +51,9 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, exceptionId: result.data.exceptionId }, { status: 201 })
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'availability', message: 'GET /api/v1/professionals/me/availability-exceptions started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -84,4 +85,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ data: result.data.exceptions })
-}
+})

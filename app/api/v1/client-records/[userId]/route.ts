@@ -5,8 +5,9 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
 import { getClientRecordByUser } from '@/lib/client-records/client-records-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ userId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'client-records', message: 'GET /api/v1/client-records/:userId started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -36,4 +37,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   return NextResponse.json({ data: result.data.record })
-}
+})

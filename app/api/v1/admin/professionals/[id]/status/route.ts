@@ -5,11 +5,12 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { requireAdmin, AdminAuthError } from '@/lib/admin/auth-helper'
 import { updateProfessionalStatusService } from '@/lib/admin/admin-service'
 import { professionalStatusSchema, getFirstValidationError } from '@/lib/actions/admin/shared'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function PATCH(
+export const PATCH = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'admin', message: `PATCH /api/v1/admin/professionals/${id}/status`, level: 'info' })
 
@@ -51,4 +52,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true })
-}
+})

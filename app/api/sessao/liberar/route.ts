@@ -5,12 +5,13 @@ import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { setSessionStatus } from '@/lib/session/tracker'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const payloadSchema = z.object({
   bookingId: z.string().uuid(),
 })
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -119,4 +120,4 @@ export async function POST(request: NextRequest) {
     success: true,
     readyAt: updated.professional_ready_at,
   })
-}
+})

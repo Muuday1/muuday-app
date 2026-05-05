@@ -5,12 +5,13 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { submitReview, getProfessionalEmailForReview } from '@/lib/review/review-service'
 import { validateApiCsrf } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   emitUserReviewSubmitted,
   emitProfessionalReceivedReview,
 } from '@/lib/email/resend-events'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'reviews', message: 'POST /api/v1/reviews started', level: 'info' })
 
   const csrfCheck = validateApiCsrf(request)
@@ -65,4 +66,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true }, { status: 201 })
-}
+})

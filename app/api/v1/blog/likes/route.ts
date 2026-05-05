@@ -4,8 +4,9 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getBlogLikeCountService, toggleBlogLikeService } from '@/lib/blog/blog-engagement-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url)
   const articleSlug = searchParams.get('articleSlug') || ''
   if (!articleSlug) {
@@ -15,9 +16,9 @@ export async function GET(request: NextRequest) {
   const supabase = await createApiClient(request)
   const count = await getBlogLikeCountService(supabase, articleSlug)
   return NextResponse.json({ data: { count } })
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   Sentry.addBreadcrumb({ category: 'blog', message: 'POST /api/v1/blog/likes', level: 'info' })
 
   let body: unknown
@@ -46,4 +47,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data: { liked: result.liked } })
-}
+})

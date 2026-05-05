@@ -4,12 +4,13 @@ import { createApiClient } from '@/lib/supabase/api-client'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { requireProfessional, ProfessionalAuthError } from '@/lib/professional/auth-helper'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 import {
   updateProfessionalService,
   deleteProfessionalService,
 } from '@/lib/professional/professional-services-service'
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ serviceId: string }> }) {
+export const PATCH = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ serviceId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'services', message: 'PATCH /api/v1/professionals/me/services/:id started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -52,9 +53,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   return NextResponse.json({ success: true })
-}
+})
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ serviceId: string }> }) {
+export const DELETE = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ serviceId: string }> }) => {
   Sentry.addBreadcrumb({ category: 'services', message: 'DELETE /api/v1/professionals/me/services/:id started', level: 'info' })
 
   const ip = getClientIp(request)
@@ -84,4 +85,4 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   return NextResponse.json({ success: true })
-}
+})

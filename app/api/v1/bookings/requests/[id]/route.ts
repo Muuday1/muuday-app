@@ -5,11 +5,12 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { getRequestBookingDetailService } from '@/lib/booking/request-booking-service'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET(
+export const GET = withApiHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const { id } = await params
   Sentry.addBreadcrumb({ category: 'request-booking', message: `GET /api/v1/bookings/requests/${id}`, level: 'info' })
 
@@ -35,4 +36,4 @@ export async function GET(
   }
 
   return NextResponse.json({ data: result.data })
-}
+})
