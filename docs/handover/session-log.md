@@ -1646,3 +1646,30 @@ Use this for meaningful checkpoints only.
   - `vitest run lib/stripe/webhook-handlers.test.ts` - 15/15 pass
   - `vitest run` (95 test files) - 1013/1013 pass (1 pre-existing env failure in manage-booking-service)
   - Commit: `15bc8fc`, pushed to `origin/main`
+
+
+### Entry 96 (2026-05-05) - Fix critical silent failures across refund, capture, and webhook flows
+- Scope executed:
+  - **`lib/stripe/webhook-handlers.ts`**:
+    - **Fix ledger retry loop**: Added `hasLedgerForPayment()` which checks `ledger_entries` table instead of `payment.status` for idempotency. Prevents permanent ledger skip when a webhook retries after failing on ledger creation.
+    - **Re-add try/catch with Sentry logging**: Ledger creation and balance updates in `payment_intent.succeeded` now catch errors, log to Sentry, and allow the webhook to be marked `processed`. The ledger can be backfilled later via reconciliation.
+    - **Fix BigInt serialization**: `recordStripeSettlement()` and dispute handler now convert `BigInt` to `Number` before Supabase `.insert()`. Supabase JS client uses JSON.stringify which cannot serialize bigint.
+    - **Protect dispute charge lookup**: Added `try/catch` around `stripe.charges.retrieve()` in dispute handler. Returns `'ignored'` instead of crashing the webhook.
+  - **`lib/booking/completion/complete-booking.ts`**:
+    - **RLS-safe retry enqueue**: Capture failure callback now uses `createAdminClient()` for retry queue insert, avoiding RLS rejection. Added inner `try/catch` to prevent unhandled promise rejection.
+  - **`lib/stripe/cron-jobs.ts`**:
+    - **Remove `processing` from success**: Only `'succeeded'` Stripe status triggers ledger/balance creation. `'processing'` now re-queues the row for later check.
+    - **Guard on load failure**: If payment row load fails, skip status update instead of creating a permanent gap.
+  - **`lib/booking/cancellation/apply-refund.ts`**:
+    - **CRITICAL FIX**: Now calls Stripe `refunds.create()` when the payment is `captured`. Creates ledger entry for the refund. Only updates DB status after Stripe refund succeeds. Previously only patched the `payments` table, leaving money captured in Stripe.
+  - **`app/api/cron/booking-timeouts/route.ts`**:
+    - **Fix idempotency key**: Removed `nowIso` from the key `timeout-refund-${payment.id}`. Timestamp caused duplicate Stripe refunds across cron runs.
+  - **`app/api/webhooks/supabase-db/route.ts`**:
+    - **Return 500 on critical enqueue failure**: When `supabase/payments.changed` enqueue to Inngest fails, returns HTTP 500 so Supabase automatically retries the webhook. Previously returned 207 which Supabase treats as success, permanently dropping the event.
+- Files changed: 6
+- Validation:
+  - `npm run typecheck` - pass (0 errors)
+  - `npm run build` - 200 static pages, exit 0
+  - `vitest run lib/stripe/webhook-handlers.test.ts` - 15/15 pass
+  - `vitest run` (95 test files) - 1013/1013 pass (1 pre-existing env failure)
+  - Commit: `c6c26be`, pushed to `origin/main`
