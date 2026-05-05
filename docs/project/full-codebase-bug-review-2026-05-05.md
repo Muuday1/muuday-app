@@ -35,11 +35,12 @@ import "./.next/types/routes.d.ts";
 
 ---
 
-### C2. CSP Nonce Generated but Never Relayed to Next.js
+### C2. CSP Nonce Generated but Never Relayed to Next.js ✅ FIXED
 **File:** `middleware.ts`  
 **Issue:** A nonce is generated and injected into the `Content-Security-Policy` header (`script-src 'nonce-...' 'strict-dynamic'`), but there is no mechanism to pass the nonce into Next.js hydration `<script>` tags or the root layout. Next.js will inject inline scripts without the nonce, causing CSP violations that block the app.  
 **Impact:** App fails to load in production when CSP is enforced.  
 **Fix:** Pass nonce via header to the app layer (e.g., `x-nonce`) and inject into `<Script nonce={...}>` in `app/layout.tsx`, or use Next.js built-in `nonce` support.
+**Resolution:** `middleware.ts` now passes the nonce via `request.headers.set('x-nonce', nonce)` so the App Router root layout can consume it via `headers()`.
 
 ---
 
@@ -229,19 +230,21 @@ return parsed.data
 
 ---
 
-### M4. `insertTaxonomyItemService` Allows Whitespace-Only Name
+### M4. `insertTaxonomyItemService` Allows Whitespace-Only Name ✅ FIXED
 **File:** `lib/admin/taxonomy-service.ts`  
 **Issue:** `name_pt` trimmed and slugified can produce an empty slug if the input is whitespace-only.  
 **Impact:** Empty slugs cause URL routing issues or DB constraint violations.  
 **Fix:** Reject whitespace-only names before processing.
+**Resolution:** `lib/admin/taxonomy-service.ts` now validates `trimmedNamePt` is non-empty before insert.
 
 ---
 
-### M5. `acquireSlotLock` Cleanup Race
+### M5. `acquireSlotLock` Cleanup Race ✅ FIXED
 **File:** `lib/booking/slot-locks.ts`  
 **Issue:** Expired lock cleanup (`delete ... lte expires_at`) runs before overlap check, but another concurrent request could insert a new lock between cleanup and insert. The unique constraint (`23505`) is the only real guard.  
 **Impact:** Rare race condition; mostly mitigated by unique constraint but not ideal.  
 **Fix:** Rely on DB unique constraint as primary guard; remove probabilistic cleanup or move to background job.
+**Resolution:** `lib/booking/slot-locks.ts` removed the probabilistic expired-lock cleanup from the hot path; relies on DB unique constraint (23505) as the primary guard.
 
 ---
 
@@ -310,10 +313,11 @@ return parsed.data
 
 ## Low Issues
 
-### L1. `getUserWithSessionFallback` Type is Overly Permissive
+### L1. `getUserWithSessionFallback` Type is Overly Permissive ✅ FIXED
 **File:** `lib/auth/get-user-with-fallback.ts`  
 **Issue:** `SupabaseAuthClientLike` type accepts any object with `auth.getUser`, losing type safety.  
 **Fix:** Use proper `SupabaseClient` generic.
+**Resolution:** `lib/auth/get-user-with-fallback.ts` now imports and uses `SupabaseClient` from `@supabase/supabase-js` instead of a custom permissive type.
 
 ---
 
@@ -376,31 +380,35 @@ return parsed.data
 
 ---
 
-### L10. `validateCsrfOrigin` Development Skip
+### L10. `validateCsrfOrigin` Development Skip ✅ FIXED
 **File:** `lib/http/csrf.ts:12-13`  
 **Issue:** CSRF is entirely disabled in non-production. This is standard for local dev but dangerous if `NODE_ENV` is misconfigured (e.g., staging set to `development`).  
 **Fix:** Use an explicit `DISABLE_CSRF` env flag instead of `NODE_ENV` check.
+**Resolution:** `lib/http/csrf.ts` now uses explicit `DISABLE_CSRF` env flag instead of `process.env.NODE_ENV !== 'production'`.
 
 ---
 
-### L11. `rateLimit` Key Construction Without User ID for Authenticated Routes
+### L11. `rateLimit` Key Construction Without User ID for Authenticated Routes ✅ FIXED
 **File:** `app/api/stripe/payment-intent/route.ts:31`, `app/api/stripe/checkout-session/booking/route.ts:39`  
 **Issue:** Rate limiting uses IP only. A malicious user with rotating IPs (VPN, proxy) can bypass.  
 **Fix:** Include user ID in rate limit key for authenticated routes.
+**Resolution:** `app/api/stripe/payment-intent/route.ts` and `app/api/stripe/checkout-session/booking/route.ts` now include `user.id` in rate-limit key after auth.
 
 ---
 
-### L12. `Sentry.addBreadcrumb` in Hot Paths
+### L12. `Sentry.addBreadcrumb` in Hot Paths ✅ FIXED
 **File:** `lib/booking/create-booking.ts:44,49`  
 **Issue:** Breadcrumbs add overhead in the booking hot path.  
 **Fix:** Use conditional logging or remove non-critical breadcrumbs.
+**Resolution:** Removed non-essential Sentry breadcrumbs from `executeBookingCreation` hot path in `lib/booking/create-booking.ts`.
 
 ---
 
-### L13. `try/catch` in `prepareBookingPayment` Swallows Stack Trace
+### L13. `try/catch` in `prepareBookingPayment` Swallows Stack Trace ✅ FIXED
 **File:** `lib/booking/create-booking.ts:167-173`  
 **Issue:** Catches error, logs to Sentry, but returns generic message. Hard to debug.  
 **Fix:** Include a correlation ID in the error response.
+**Resolution:** `lib/booking/create-booking.ts` now includes Sentry `errorId` in the returned error message for correlation.
 
 ---
 
