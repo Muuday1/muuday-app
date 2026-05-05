@@ -509,3 +509,20 @@ Additional issues discovered during rigorous post-fix verification.
 **Impact:** Poor UX on high-traffic public pages during transient outages; no Sentry capture for client-side context.
 **Fix:** Add `app/error.tsx` as a catch-all boundary for all public routes, and `app/buscar/error.tsx` as a contextual boundary with navigation options (retry + home link).
 **Resolution:** Both files created following the project's design system (`#9FE870` CTA, `font-display` headings, Sentry `captureException` in `useEffect`).
+
+### R2. Unit Test Suite Broken (Vitest Config + Missing Env) ✅ FIXED
+**File:** `vitest.config.ts`
+**Issue:** The Vitest `include` pattern was `'**/*.test.{ts,tsx}'`, which caused Vitest to discover and run hundreds of tests inside `node_modules` (zod, expo, etc.) — making the suite timeout and fail. Additionally, `.env.local` was not loaded, so any test that transitively imported `lib/config/env.ts` would crash with "Invalid or missing environment variables".
+**Impact:** Unit tests were unusable in CI and local dev; no fast feedback loop for regressions.
+**Fix:**
+1. Narrow `include` to project source directories only: `app/`, `lib/`, `components/`, `inngest/`.
+2. Add `mobile` to `exclude`.
+3. Load `.env.local` via `dotenv` at the top of `vitest.config.ts`.
+**Resolution:** All 100 test files (1059 tests) now pass in ~165s. `node_modules` tests are no longer discovered.
+
+### R3. Dependency Vulnerabilities (axios, fast-xml-parser) ✅ FIXED
+**Issue:** `npm audit` reported multiple HIGH severity vulnerabilities in `axios@1.15.0` (prototype pollution, SSRF, CRLF injection) and a moderate vulnerability in `fast-xml-parser@5.5.8`.
+**Impact:** Security risks via transitive dependencies (`agora-rtc-sdk-ng`, `checkly`, `@aws-sdk/xml-builder`).
+**Fix:** Run `npm audit fix` to update `axios` to a patched version and `fast-xml-parser` to `5.7.2`.
+**Resolution:** All HIGH vulnerabilities resolved. Remaining 2 moderate vulnerabilities are in `postcss` (dependency of `next`), which requires a Next.js upgrade and cannot be safely force-updated.
+**Verification:** Typecheck, build, and all 1059 unit tests pass after the updates.
