@@ -6,7 +6,8 @@ import { loadStripe } from '@stripe/stripe-js'
 import { PaymentForm } from './PaymentForm'
 import { Loader2 } from 'lucide-react'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 
 export function PaymentFormWrapper({ bookingId }: { bookingId: string }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -14,6 +15,12 @@ export function PaymentFormWrapper({ bookingId }: { bookingId: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!stripePromise) {
+      setError('Configuração de pagamento indisponível. Entre em contato com o suporte.')
+      setLoading(false)
+      return
+    }
+
     async function fetchPaymentIntent() {
       try {
         const res = await fetch('/api/stripe/payment-intent', {
@@ -61,7 +68,7 @@ export function PaymentFormWrapper({ bookingId }: { bookingId: string }) {
     )
   }
 
-  if (!clientSecret) {
+  if (!clientSecret || !stripePromise) {
     return (
       <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         Não foi possível iniciar o pagamento.
