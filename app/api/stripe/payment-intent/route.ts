@@ -27,12 +27,6 @@ const payloadSchema = z.object({
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/stripe/payment-intent started', level: 'info' })
 
-  const ip = getClientIp(request)
-  const rl = await rateLimit('stripePaymentIntent', `stripe-payment-intent:${ip}`)
-  if (!rl.allowed) {
-    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
-  }
-
   let body: unknown
   try {
     body = await request.json()
@@ -52,6 +46,13 @@ export async function POST(request: NextRequest) {
   }
 
   const { bookingId } = parsed.data
+
+  // Rate limiting (after auth so we can include user ID in key)
+  const ip = getClientIp(request)
+  const rl = await rateLimit('stripePaymentIntent', `stripe-payment-intent:${user.id}:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
 
   // Load booking with payment and professional details
   const { data: booking, error: bookingError } = await supabase

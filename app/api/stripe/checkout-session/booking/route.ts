@@ -35,12 +35,6 @@ function appBaseUrl(request: NextRequest) {
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/stripe/checkout-session/booking started', level: 'info' })
 
-  const ip = getClientIp(request)
-  const rl = await rateLimit('stripeCheckoutBooking', `stripe-checkout-booking:${ip}`)
-  if (!rl.allowed) {
-    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
-  }
-
   let body: unknown
   try {
     body = await request.json()
@@ -60,6 +54,13 @@ export async function POST(request: NextRequest) {
   }
 
   const { bookingId } = parsed.data
+
+  // Rate limiting (after auth so we can include user ID in key)
+  const ip = getClientIp(request)
+  const rl = await rateLimit('stripeCheckoutBooking', `stripe-checkout-booking:${user.id}:${ip}`)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisicoes. Tente novamente mais tarde.' }, { status: 429 })
+  }
 
   // Load booking with payment and professional details
   const { data: booking, error: bookingError } = await supabase

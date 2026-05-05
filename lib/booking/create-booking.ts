@@ -165,11 +165,11 @@ export async function executeBookingCreation(
       )
       paymentData = paymentResult.paymentData
     } catch (error) {
-      Sentry.captureException(error, {
+      const errorId = Sentry.captureException(error, {
         tags: { area: 'booking', action: 'prepare-payment' },
         extra: { userId: user.id, professionalId: professional.id },
       })
-      return { success: false, error: 'Erro interno ao preparar pagamento.' }
+      return { success: false, error: `Erro interno ao preparar pagamento. (Ref: ${errorId})` }
     }
 
     // 6b. Re-validate slot availability immediately before persistence
