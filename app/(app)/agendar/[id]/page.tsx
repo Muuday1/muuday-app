@@ -7,6 +7,7 @@ import BookingForm from '@/components/booking/BookingForm'
 import { normalizeProfessionalSettingsRow } from '@/lib/booking/settings'
 import { evaluateFirstBookingEligibility } from '@/lib/professional/onboarding-state'
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
+import { safePromiseAll } from '@/lib/async/safe-promise-all'
 
 function parseInitialBookingType(value?: string) {
   return value === 'recurring' ? 'recurring' : 'one_off'
@@ -64,7 +65,7 @@ export default async function AgendarPage({
     { data: userProfile },
     { data: professional },
     { data: selectedService },
-  ] = await Promise.all([
+  ] = await safePromiseAll([
     supabase.from('profiles').select('role, timezone, currency, full_name').eq('id', user.id).single(),
     supabase.from('professionals').select('id,user_id,status,public_code,category,session_duration_minutes,session_price_brl').eq('id', id).single(),
     serviceId
@@ -76,7 +77,11 @@ export default async function AgendarPage({
           .eq('is_active', true)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-  ])
+  ], [
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+  ] as any, { area: 'booking', context: 'user-professional-parallel-queries' })
 
   // Professional accounts are provider-only workspaces and cannot purchase sessions.
   if (userProfile?.role === 'profissional') {
@@ -87,10 +92,13 @@ export default async function AgendarPage({
     notFound()
   }
 
-  const [{ data: professionalProfile }, firstBookingEligibility] = await Promise.all([
+  const [{ data: professionalProfile }, firstBookingEligibility] = await safePromiseAll([
     supabase.from('profiles').select('full_name, timezone').eq('id', professional.user_id).maybeSingle(),
     evaluateFirstBookingEligibility(supabase, professional.id),
-  ])
+  ], [
+    { data: null, error: null },
+    { ok: false, error: 'Erro ao verificar elegibilidade' },
+  ] as any, { area: 'booking', context: 'eligibility-parallel-queries' })
 
   const professionalProfileHref = buildProfessionalProfilePath({
     id: professional.id,
@@ -112,7 +120,7 @@ export default async function AgendarPage({
     { data: settingsRow, error: settingsError },
     { data: availabilityRulesRows, error: availabilityRulesError },
     { data: legacyAvailability },
-  ] = await Promise.all([
+  ] = await safePromiseAll([
     supabase
       .from('professional_settings')
       .select(
@@ -132,7 +140,11 @@ export default async function AgendarPage({
       .eq('professional_id', professional.id)
       .eq('is_active', true)
       .order('day_of_week'),
-  ])
+  ], [
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+  ] as any, { area: 'booking', context: 'availability-parallel-queries' })
 
   const bookingSettings = normalizeProfessionalSettingsRow(
     settingsError ? null : (settingsRow as Record<string, unknown> | null),
@@ -141,7 +153,7 @@ export default async function AgendarPage({
 
   const availability =
     !availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0
-      ? availabilityRulesRows.map(rule => ({
+      ? availabilityRulesRows.map((rule: { weekday?: number | string; start_time_local?: string | null; end_time_local?: string | null }) => ({
           id: `rule-${rule.weekday}-${rule.start_time_local}-${rule.end_time_local}`,
           day_of_week: rule.weekday,
           start_time: rule.start_time_local,
@@ -158,7 +170,7 @@ export default async function AgendarPage({
     { data: bookingRows },
     { data: externalBusyRows },
     { data: availabilityExceptionsRows },
-  ] = await Promise.all([
+  ] = await safePromiseAll([
     supabase
       .from('bookings')
       .select('scheduled_at, start_time_utc, end_time_utc, duration_minutes')
@@ -180,7 +192,11 @@ export default async function AgendarPage({
       .eq('professional_id', professional.id)
       .eq('is_available', false)
       .limit(200),
-  ])
+  ], [
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+  ] as any, { area: 'booking', context: 'calendar-parallel-queries' })
 
   const existingBookings = [
     ...((bookingRows || []).map((row: Record<string, unknown>) => {

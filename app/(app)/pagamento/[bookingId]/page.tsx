@@ -3,6 +3,7 @@ export const metadata = { title: 'Pagamento | Muuday' }
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentFormWrapper } from './PaymentFormWrapper'
+import * as Sentry from '@sentry/nextjs'
 
 export default async function PagamentoPage({
   params,
@@ -11,7 +12,15 @@ export default async function PagamentoPage({
 }) {
   const { bookingId } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+
+  let user = null
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    user = authUser
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'payment', context: 'auth' } })
+    redirect(`/login?redirect=${encodeURIComponent(`/pagamento/${bookingId}`)}`)
+  }
 
   if (!user) {
     redirect(`/login?redirect=${encodeURIComponent(`/pagamento/${bookingId}`)}`)
@@ -19,26 +28,30 @@ export default async function PagamentoPage({
 
   // Retry with delay to avoid race condition between booking creation and page load
   let booking = null
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const { data: bookingData } = await supabase
-      .from('bookings')
-      .select(
-        `id, status, price_total, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
-        professionals(id, profiles(full_name, avatar_url)),
-        professional_services(id, name, duration_minutes, price_brl)`
-      )
-      .eq('id', bookingId)
-      .eq('user_id', user.id)
-      .maybeSingle()
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: bookingData } = await supabase
+        .from('bookings')
+        .select(
+          `id, status, price_total, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
+          professionals(id, profiles(full_name, avatar_url)),
+          professional_services(id, name, duration_minutes, price_brl)`
+        )
+        .eq('id', bookingId)
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-    if (bookingData) {
-      booking = bookingData
-      break
-    }
+      if (bookingData) {
+        booking = bookingData
+        break
+      }
 
-    if (attempt < 2) {
-      await new Promise((resolve) => setTimeout(resolve, 400))
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 400))
+      }
     }
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'payment', context: 'booking-lookup' } })
   }
 
   if (!booking) {

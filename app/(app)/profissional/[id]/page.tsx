@@ -25,6 +25,7 @@ import { getOrSetUpstashJsonCache } from '@/lib/cache/upstash-json-cache'
 import { formatCurrency } from '@/lib/utils'
 import { isFeatureAvailable } from '@/lib/tier-config'
 import { emitUserViewedProfessional } from '@/lib/email/resend-events'
+import { safePromiseAll } from '@/lib/async/safe-promise-all'
 
 const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
@@ -340,10 +341,13 @@ export default async function ProfissionalPage({
       return professionalQuery
     }
 
-    const [viewerProfileResult, professionalResult] = await Promise.all([
+    const [viewerProfileResult, professionalResult] = await safePromiseAll([
       supabase.from('profiles').select('currency,timezone').eq('id', user.id).single(),
       buildProfessionalQuery(true).maybeSingle(),
-    ])
+    ], [
+      { data: null, error: null },
+      { data: null, error: null },
+    ] as any, { area: 'professional_profile', context: 'viewer-parallel-queries' })
 
     viewerCurrency = String(viewerProfileResult.data?.currency || 'BRL').toUpperCase()
     viewerTimezone = String(viewerProfileResult.data?.timezone || viewerTimezone)
@@ -418,7 +422,7 @@ export default async function ProfissionalPage({
     { count: existingAcceptedBookingsCount },
     { data: recommendationCandidatesRaw, error: recommendationCandidatesError },
     { data: professionalServices },
-  ] = await Promise.all([
+  ] = await safePromiseAll([
     readClient
       .from('availability_rules')
       .select('weekday, start_time_local, end_time_local, is_active')
@@ -489,11 +493,23 @@ export default async function ProfissionalPage({
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: true }),
-  ])
+  ], [
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+    { count: 0, error: null },
+    { data: null, error: null },
+    { count: 0, error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+  ] as any, { area: 'professional_profile', context: 'availability-parallel-queries' })
 
   const availability =
     !availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0
-      ? availabilityRulesRows.map(rule => ({
+      ? availabilityRulesRows.map((rule: { weekday?: number | string; start_time_local?: string | null; end_time_local?: string | null }) => ({
           id: `rule-${rule.weekday}-${rule.start_time_local}-${rule.end_time_local}`,
           day_of_week: rule.weekday,
           start_time: rule.start_time_local,

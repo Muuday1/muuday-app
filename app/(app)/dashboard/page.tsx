@@ -22,6 +22,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { buildProfessionalProfilePath } from '@/lib/professional/public-profile-url'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
+import { safePromiseAll } from '@/lib/async/safe-promise-all'
 import { ProfessionalOnboardingCard } from '@/components/dashboard/ProfessionalOnboardingCard'
 import BookingRealtimeListener from '@/components/agenda/BookingRealtimeListener'
 import { AppCard, AppCardHeader } from '@/components/ui/AppCard'
@@ -147,7 +148,7 @@ export default async function DashboardPage({
     { data: paymentsMonthRows, error: paymentsError },
     onboardingState,
     onboardingTrackerMeta,
-  ] = await Promise.all([
+  ] = await safePromiseAll([
     supabase
       .from('professional_settings')
       .select('timezone, minimum_notice_hours, max_booking_window_days, confirmation_mode, enable_recurring')
@@ -225,7 +226,23 @@ export default async function DashboardPage({
       resolveSignedMediaUrls: false,
     }),
     loadProfessionalTrackerMeta(supabase, professionalId),
-  ])
+  ], [
+    { data: null, error: null },
+    { data: null, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { count: 0, error: null },
+    { data: null, error: null },
+    { count: 0, error: null },
+    { data: null, error: null },
+    null,
+    null,
+  ] as any, { area: 'dashboard', context: 'parallel-queries' })
 
   const logQueryError = (area: string, error: unknown) => {
     if (error && error instanceof Error) {

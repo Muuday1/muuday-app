@@ -30,6 +30,7 @@ import { Suspense } from 'react'
 import ProfessionalAgendaLoader from '@/components/agenda/ProfessionalAgendaLoader'
 import ProfessionalAgendaSkeleton from '@/components/agenda/ProfessionalAgendaSkeleton'
 import { RecurringPackageCard } from '@/components/agenda/RecurringPackageCard'
+import { safePromiseAll } from '@/lib/async/safe-promise-all'
 
 type RequestBookingStatus =
   | 'open'
@@ -299,7 +300,7 @@ export default async function AgendaPage({
     { data: upcomingBookings, error: upcomingError },
     { data: pastBookings, error: pastError },
     { data: requestBookings, error: requestError },
-  ] = await Promise.all([
+  ] = await safePromiseAll([
     expireQuery,
     upcomingQuery
       ? upcomingQuery
@@ -318,7 +319,12 @@ export default async function AgendaPage({
     requestBookingsQuery
       ? requestBookingsQuery.order('created_at', { ascending: false }).limit(REQUEST_BOOKINGS_LIMIT)
       : Promise.resolve({ data: [] as RequestBooking[], error: null }),
-  ])
+  ], [
+    { error: null },
+    { data: [] as AgendaBooking[], error: null },
+    { data: [] as AgendaBooking[], error: null },
+    { data: [] as RequestBooking[], error: null },
+  ] as any, { area: 'agenda', context: 'bookings-parallel-queries' })
 
   if (expireError) {
     Sentry.captureException(expireError, {
@@ -358,7 +364,7 @@ export default async function AgendaPage({
       availabilityRulesResult,
       legacyAvailabilityResult,
       calendarIntegrationResult,
-    ] = await Promise.all([
+    ] = await safePromiseAll([
       supabase
         .from('professional_settings')
         .select(
@@ -383,7 +389,12 @@ export default async function AgendaPage({
         .select('sync_enabled')
         .eq('professional_id', professionalId)
         .maybeSingle(),
-    ])
+    ], [
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+    ] as any, { area: 'agenda', context: 'settings-parallel-queries' })
 
     professionalSettings = settingsResult.data as Record<string, unknown> | null
 
@@ -393,13 +404,13 @@ export default async function AgendaPage({
       availabilityRulesResult.data.length > 0
 
     overviewAvailabilityRules = useModernRules
-      ? (availabilityRulesResult.data || []).map(row => ({
+      ? (availabilityRulesResult.data || []).map((row: { weekday?: number | string; start_time_local?: string | null; end_time_local?: string | null }) => ({
           day_of_week: Number(row.weekday),
           start_time: String(row.start_time_local || ''),
           end_time: String(row.end_time_local || ''),
           is_active: true,
         }))
-      : (legacyAvailabilityResult.data || []).map(row => ({
+      : (legacyAvailabilityResult.data || []).map((row: { day_of_week?: number | string; start_time?: string | null; end_time?: string | null; is_active?: boolean }) => ({
           day_of_week: Number(row.day_of_week),
         start_time: String(row.start_time).slice(0, 5),
         end_time: String(row.end_time).slice(0, 5),
@@ -433,7 +444,7 @@ export default async function AgendaPage({
     .filter((b: AgendaBooking) => ['confirmed', 'completed'].includes(b.status))
     .map((b: AgendaBooking) => b.id)
 
-  const [conversationsResult, reviewsResult] = await Promise.all([
+  const [conversationsResult, reviewsResult] = await safePromiseAll([
     allBookingIds.length > 0
       ? supabase
           .from('conversations')
@@ -449,7 +460,10 @@ export default async function AgendaPage({
           .eq('user_id', user.id)
           .limit(REVIEWS_LIMIT)
       : Promise.resolve({ data: null, error: null }),
-  ])
+  ], [
+    { data: null, error: null },
+    { data: null, error: null },
+  ] as any, { area: 'agenda', context: 'conversations-reviews-parallel-queries' })
 
   const conversationMap = new Map<string, string>()
   if (conversationsResult.data) {
