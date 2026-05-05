@@ -34,6 +34,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/settings/ProfessionalSettingsWorkspace.tsx` | ~~629~~ **347** | MEDIUM | ✅ Reduced |
 | `components/admin/ReviewModerationClient.tsx` | ~~608~~ **135** | MEDIUM | ✅ Extracted useReviewModeration + 5 presentational components |
 | `components/booking/WaitingRoomGame.tsx` | ~~730~~ **31** | MEDIUM | ✅ Extracted types, helpers, draw.ts, useWaitingRoomGame hook |
+| `components/auth/signup/components/ProfessionalDataForm.tsx` | ~~667~~ **230** | MEDIUM | ✅ Extracted 9 presentational sections |
 
 ---
 
@@ -211,6 +212,27 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — ProfessionalDataForm.tsx
+
+**ProfessionalDataForm.tsx** (667 → 230 lines)
+
+**Completed:**
+- **Presentational sections** extracted to `components/auth/signup/components/professional-data-form/`:
+  - `HeadlineSection` — subcategory input with datalist + custom suggestion prompt + validation textarea
+  - `CategoryField` — read-only category display
+  - `SpecialtySection` — specialty input with datalist + custom suggestion prompt + validation textarea
+  - `FocusTagsField` — tag input with removable tag pills
+  - `TargetAudienceField` — toggle button grid for audience selection
+  - `LanguagesSection` — primary language select + secondary language toggles + other languages input
+  - `ExperienceField` — years of experience number input
+  - `QualificationsSection` — qualification CRUD with registration number/issuer/country or course name fields
+  - `TermsSection` — terms checkboxes with modal open links
+  - `FormFooter` — error display + back/submit buttons
+- Main component now pure orchestrator: composes 10 sub-components into form shell
 - TypeScript: 0 errors, build passes
 
 ---
