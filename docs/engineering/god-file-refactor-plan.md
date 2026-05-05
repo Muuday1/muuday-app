@@ -35,6 +35,7 @@ After the major architecture sprint, we successfully refactored `lib/actions/boo
 | `components/admin/ReviewModerationClient.tsx` | ~~608~~ **135** | MEDIUM | ✅ Extracted useReviewModeration + 5 presentational components |
 | `components/booking/WaitingRoomGame.tsx` | ~~730~~ **31** | MEDIUM | ✅ Extracted types, helpers, draw.ts, useWaitingRoomGame hook |
 | `components/auth/signup/components/ProfessionalDataForm.tsx` | ~~667~~ **230** | MEDIUM | ✅ Extracted 9 presentational sections |
+| `components/booking/VideoSession.tsx` | ~~632~~ **92** | HIGH | ✅ Extracted types, useVideoSession hook, 3 phase components |
 
 ---
 
@@ -212,6 +213,28 @@ The original Phase 1 targets have all been extracted or reduced below 500 lines:
   - `AvailabilityWorkspaceRulesCard` — rules card with link to settings
   - `AvailabilitySaveBar` — sticky bottom save bar with status indicators
 - Main component now pure orchestrator: calls hook + conditional loading/access-denied + composes 6 sub-components
+- TypeScript: 0 errors, build passes
+
+---
+
+### Refactor Pass: 2026-05-05 — VideoSession.tsx
+
+**VideoSession.tsx** (632 → 92 lines)
+
+**Completed:**
+- **Types + helpers** extracted to `components/booking/video-session/types.ts`:
+  - `Phase`, `SessionTokenPayload`, `VideoError`
+  - `classifyVideoError` — error classification by keyword matching
+- **Session hook** extracted to `components/booking/video-session/use-video-session.ts`:
+  - Polling `/api/sessao/status` while in waiting phase
+  - Token fetch + Agora adapter join with full lifecycle event binding
+  - Mic/camera toggle handlers, session end/cleanup
+  - Adapter unsubscription and leave on unmount
+- **Phase components** extracted to `components/booking/video-session/`:
+  - `WaitingRoom` — countdown, professional "liberar" button, client waiting message, waiting room game
+  - `ConnectingScreen` — spinner + categorized error display with retry
+  - `InSessionView` — local/remote video grids, mic/camera/end controls
+- Main component now pure orchestrator: 3 conditional returns for each phase
 - TypeScript: 0 errors, build passes
 
 ---
