@@ -1604,3 +1604,11 @@ Use this for meaningful checkpoints only.
   - `npm run typecheck` → pass (0 errors)
   - `npm run lint` → pass (0 new errors)
   - Commit: `bd8d39a`, pushed to `origin/main`
+
+### Entry 93 (2026-05-05) — Add Sentry warning logs to v1 payment-intent API
+- Scope executed:
+  - **`app/api/v1/payments/payment-intent/route.ts`** — added `Sentry.captureMessage()` warnings for all error paths (booking not found, status mismatch, payment not found, payment status mismatch). The mobile app uses the v1 API, so consistent observability across all payment-intent endpoints is important for debugging checkout issues.
+- Files changed: 1
+- Validation:
+  - `npm run typecheck` → pass (0 errors)
+  - Commit: `d6bcf08`, pushed to `origin/main`
