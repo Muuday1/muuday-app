@@ -116,13 +116,13 @@ export class AgoraSessionAdapter implements SessionAdapter {
     if (this.localAudio) toUnpublish.push(this.localAudio);
     if (this.localVideo) toUnpublish.push(this.localVideo);
     if (toUnpublish.length) {
-      await (this.client as any).unpublish(toUnpublish);
+      await this.client.unpublish(toUnpublish);
     }
   }
 
   async subscribe(remoteUid: string): Promise<MediaStream> {
     if (!this.client) throw new Error('Not joined');
-    const users = (this.client as any).remoteUsers as IAgoraRTCRemoteUser[];
+    const users = this.client.remoteUsers;
     const user = users.find((u: IAgoraRTCRemoteUser) => String(u.uid) === remoteUid);
     if (!user) throw new Error(`Remote user ${remoteUid} not found`);
 
@@ -130,27 +130,27 @@ export class AgoraSessionAdapter implements SessionAdapter {
     await this.client.subscribe(user, 'audio');
 
     const stream = new MediaStream();
-    if ((user.videoTrack as any)?.getMediaStreamTrack) {
-      stream.addTrack((user.videoTrack as any).getMediaStreamTrack());
+    if (user.videoTrack?.getMediaStreamTrack) {
+      stream.addTrack(user.videoTrack.getMediaStreamTrack());
     }
-    if ((user.audioTrack as any)?.getMediaStreamTrack) {
-      stream.addTrack((user.audioTrack as any).getMediaStreamTrack());
+    if (user.audioTrack?.getMediaStreamTrack) {
+      stream.addTrack(user.audioTrack.getMediaStreamTrack());
     }
     return stream;
   }
 
   async unsubscribe(remoteUid: string): Promise<void> {
     if (!this.client) return;
-    const users = (this.client as any).remoteUsers as IAgoraRTCRemoteUser[];
+    const users = this.client.remoteUsers;
     const user = users.find((u: IAgoraRTCRemoteUser) => String(u.uid) === remoteUid);
     if (user) {
-      await (this.client as any).unsubscribe(user);
+      await this.client.unsubscribe(user);
     }
   }
 
   getRemoteUsers(): string[] {
     if (!this.client) return [];
-    const users = (this.client as any).remoteUsers as IAgoraRTCRemoteUser[];
+    const users = this.client.remoteUsers;
     return users.map((u) => String(u.uid));
   }
 
@@ -179,12 +179,12 @@ export class AgoraSessionAdapter implements SessionAdapter {
     const stream = new MediaStream();
     if (this.localAudio) {
       try {
-        stream.addTrack((this.localAudio as any).getMediaStreamTrack());
+        stream.addTrack(this.localAudio.getMediaStreamTrack());
       } catch { /* ignore */ }
     }
     if (this.localVideo) {
       try {
-        stream.addTrack((this.localVideo as any).getMediaStreamTrack());
+        stream.addTrack(this.localVideo.getMediaStreamTrack());
       } catch { /* ignore */ }
     }
     return stream;
@@ -225,16 +225,15 @@ export class AgoraSessionAdapter implements SessionAdapter {
       this.emit('trackUnpublished', String(user.uid), mediaType);
     });
 
-    const c = this.client as any;
-    c.on('user-joined', (user: IAgoraRTCRemoteUser) => {
+    this.client.on('user-joined', (user: IAgoraRTCRemoteUser) => {
       this.emit('userJoined', String(user.uid));
     });
 
-    c.on('user-left', (user: IAgoraRTCRemoteUser) => {
+    this.client.on('user-left', (user: IAgoraRTCRemoteUser) => {
       this.emit('userLeft', String(user.uid));
     });
 
-    c.on('connection-state-change', (cur: string, _prev: string, reason?: string) => {
+    this.client.on('connection-state-change', (cur: string, _prev: string, reason?: string) => {
       const state = cur as 'connecting' | 'connected' | 'disconnected' | 'failed';
       this.emit('connectionStateChanged', state, reason);
     });

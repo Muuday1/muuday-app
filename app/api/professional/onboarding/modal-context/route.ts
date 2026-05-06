@@ -92,7 +92,7 @@ async function loadProfessionalServicesWithFallback(args: {
     .order('created_at', { ascending: true })
 
   if (!minimalResponse.error) {
-    const rows = (minimalResponse.data || []).map((row: any) => ({
+    const rows = (minimalResponse.data || []).map((row: { id: unknown; name: unknown; price_brl: unknown; duration_minutes: unknown }) => ({
       id: String(row.id || ''),
       name: String(row.name || ''),
       description: null,

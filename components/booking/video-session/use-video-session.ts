@@ -37,6 +37,7 @@ export function useVideoSession({
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null)
   const adapterRef = useRef<SessionAdapter | null>(null)
+  const unsubscribersRef = useRef<(() => void)[]>([])
   const cancelledRef = useRef(false)
   const pollingRef = useRef<number | null>(null)
   const subscribedUidsRef = useRef<Set<string>>(new Set())
@@ -195,7 +196,7 @@ export function useVideoSession({
           })
         )
 
-        ;(adapter as any).__unsubscribers = unsubscribers
+        unsubscribersRef.current = unsubscribers
 
         const room: SessionRoom = {
           bookingId,
@@ -250,8 +251,8 @@ export function useVideoSession({
       cancelledRef.current = true
       const adapter = adapterRef.current
       if (adapter) {
-        const unsubscribers = (adapter as any).__unsubscribers as (() => void)[] | undefined
-        unsubscribers?.forEach(u => { try { u() } catch { /* ignore */ } })
+        unsubscribersRef.current.forEach(u => { try { u() } catch { /* ignore */ } })
+        unsubscribersRef.current = []
         adapter.leave().catch(() => {
           // ignore cleanup errors
         })
@@ -311,8 +312,8 @@ export function useVideoSession({
     cancelledRef.current = true
     const adapter = adapterRef.current
     if (adapter) {
-      const unsubscribers = (adapter as any).__unsubscribers as (() => void)[] | undefined
-      unsubscribers?.forEach(u => { try { u() } catch { /* ignore */ } })
+      unsubscribersRef.current.forEach(u => { try { u() } catch { /* ignore */ } })
+      unsubscribersRef.current = []
       try { await adapter.leave() } catch { /* ignore */ }
       adapterRef.current = null
     }

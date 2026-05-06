@@ -205,6 +205,9 @@ export async function getCaseTimeline(
   return getCaseTimelineService(supabase, caseId)
 }
 
+const VALID_DISPUTE_TYPES = ['no_show_claim', 'cancelation_dispute', 'quality_issue', 'refund_request'] as const
+type DisputeType = (typeof VALID_DISPUTE_TYPES)[number]
+
 export async function autoCreateCase(
   bookingId: string,
   type: string,
@@ -215,5 +218,9 @@ export async function autoCreateCase(
   const rl = await rateLimit('bookingManage', userId)
   if (!rl.allowed) return { success: false, error: 'Muitas tentativas. Tente novamente em breve.' }
 
-  return autoCreateCaseService(supabase, bookingId, type as any, reason, userId)
+  if (!VALID_DISPUTE_TYPES.includes(type as DisputeType)) {
+    return { success: false, error: 'Tipo de disputa inválido.' }
+  }
+
+  return autoCreateCaseService(supabase, bookingId, type as DisputeType, reason, userId)
 }

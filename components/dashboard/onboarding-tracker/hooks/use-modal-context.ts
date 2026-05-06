@@ -309,14 +309,14 @@ export function useModalContext(options: {
         )
 
         const parsedQualifications = Array.isArray(appRow?.qualifications_structured)
-          ? appRow.qualifications_structured.map((item: any) => ({
-              id: String(item?.id || crypto.randomUUID()),
-              name: String(item?.name || ''),
-              requires_registration: Boolean(item?.requires_registration),
-              course_name: String(item?.course_name || ''),
-              registration_number: String(item?.registration_number || ''),
-              issuer: String(item?.issuer || ''),
-              country: String(item?.country || ''),
+          ? appRow.qualifications_structured.map((item: unknown) => ({
+              id: String((item as Record<string, unknown>)?.id || crypto.randomUUID()),
+              name: String((item as Record<string, unknown>)?.name || ''),
+              requires_registration: Boolean((item as Record<string, unknown>)?.requires_registration),
+              course_name: String((item as Record<string, unknown>)?.course_name || ''),
+              registration_number: String((item as Record<string, unknown>)?.registration_number || ''),
+              issuer: String((item as Record<string, unknown>)?.issuer || ''),
+              country: String((item as Record<string, unknown>)?.country || ''),
               evidence_files: [],
             }))
           : []

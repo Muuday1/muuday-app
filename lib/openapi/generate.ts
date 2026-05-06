@@ -15,7 +15,7 @@ export function generateOpenApiDocument() {
 
   // Register all shared schemas
   for (const [name, schema] of Object.entries(apiV1Schemas)) {
-    registry.register(name, schema as any)
+    registry.register(name, schema)
   }
 
   // Register paths for core mobile-facing endpoints
@@ -250,8 +250,8 @@ export function generateOpenApiDocument() {
   })
 
   // Add security schemes manually (OpenAPIObjectConfigV31 doesn't include components)
-  ;(doc as any).components = {
-    ...(doc as any).components,
+  ;doc.components = {
+    ...doc.components,
     securitySchemes: {
       bearerAuth: {
         type: 'http',
@@ -270,3 +270,5 @@ export function generateOpenApiDocument() {
 
   return doc
 }
+
+
