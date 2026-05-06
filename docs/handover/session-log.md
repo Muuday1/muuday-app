@@ -1689,4 +1689,4 @@ Use this for meaningful checkpoints only.
   - `npx eslint` on modified files - 0 errors (1 pre-existing warning)
   - `vitest run app/api/stripe/payment-intent/route.test.ts` - 12/12 pass
   - `vitest run lib/booking/create-booking.test.ts` - 18/18 pass
-  - Commit: pending
+  - Commit: `31f38e4`, pushed to `origin/main`
