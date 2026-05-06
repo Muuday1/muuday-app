@@ -742,6 +742,18 @@ Additional issues discovered during rigorous post-fix verification.
 
 **Verification:** Typecheck passes. Unit tests run successfully.
 
+### S3.8 E2E Payment-Journey Test Infrastructure
+**File:** `tests/e2e/payment-journey-e2e.spec.ts`, `playwright.config.ts`
+**Issue:** Two payment-journey E2E tests appeared as "persistent failures" in local `test-results/` artifacts. Investigation showed the tests themselves are sound; the apparent failures were caused by running E2E tests against `http://localhost:3000` without a local Next.js server running (`ECONNREFUSED ::1:3000`). When executed against the production deployment (`https://muuday-app.vercel.app`), all 3 payment-journey tests pass consistently.
+**Root cause:**
+1. Stale `test-results/` directories from previous local runs where the dev server was not started
+2. `playwright.config.ts` lacked a `webServer` configuration, so Playwright did not auto-start the Next.js server before test execution
+**Fix:**
+1. Removed stale `test-results/` directories with failed artifacts
+2. Added `webServer` block to `playwright.config.ts` that auto-starts `npm run start` when `E2E_BASE_URL` includes `localhost`, with `reuseExistingServer: !process.env.CI` and a 120s timeout
+
+**Verification:** All 3 payment-journey tests pass against production. Local runs will now auto-start the server.
+
 ---
 
 ## Outstanding Items (Accepted)

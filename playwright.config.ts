@@ -27,4 +27,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  // Auto-start Next.js dev server when running against localhost and not in CI
+  webServer: baseURL.includes('localhost')
+    ? {
+        command: 'npm run start',
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }
+    : undefined,
 })
