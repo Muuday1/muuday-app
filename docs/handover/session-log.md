@@ -1690,3 +1690,19 @@ Use this for meaningful checkpoints only.
   - `vitest run app/api/stripe/payment-intent/route.test.ts` - 12/12 pass
   - `vitest run lib/booking/create-booking.test.ts` - 18/18 pass
   - Commit: `31f38e4`, pushed to `origin/main`
+
+### Entry 98 (2026-05-06) — Fix silent refund failures when Stripe is not configured
+- Scope executed:
+  - **`app/api/cron/booking-timeouts/route.ts`**:
+    - Added explicit guard before processing timeout refunds. If `getStripeClient()` returns `null` (Stripe not configured) but the captured payment has a `stripe_payment_intent_id`, the cron job now skips that payment with a Sentry warning.
+    - **Previous bug**: The code would silently skip the Stripe API call but continue to create ledger entries and mark the payment as `refunded` in the database — creating a data-integrity gap where the system claims money was returned but Stripe was never called.
+  - **`lib/booking/cancellation/apply-refund.ts`**:
+    - Restructured refund logic to check Stripe configuration BEFORE any DB mutation. If Stripe is not configured and the payment is captured with a `stripe_payment_intent_id`, the function now aborts and logs to Sentry.
+    - **Previous bug**: The function would skip the Stripe refund API and proceed to update the payment status to `refunded` or `partial_refunded`, again creating a false record of a processed refund.
+- Files changed: 2
+- Validation:
+  - `npm run typecheck` - pass (0 errors)
+  - `npx eslint` on modified files - 0 errors
+  - `vitest run lib/stripe/capture.test.ts` - 6/6 pass
+  - `vitest run lib/stripe/webhook-handlers.test.ts` - 15/15 pass
+  - Commit: `884e7fc`, pushed to `origin/main`
