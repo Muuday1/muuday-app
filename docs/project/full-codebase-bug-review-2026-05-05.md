@@ -539,6 +539,57 @@ Additional issues discovered during rigorous post-fix verification.
 **Resolution:** All four routes now have robust error handling with Sentry reporting and graceful degradation.
 **Verification:** Typecheck, build, and all 1059 unit tests pass.
 
+---
+
+## Session 3: Type Safety, Observability & Performance Hardening
+
+### S3.1. Unnecessary `any` Casts Eliminated ✅ FIXED
+**Files:** `lib/session/agora-adapter.ts`, `types/agora-rtc-sdk-ng.d.ts`, `lib/openapi/generate.ts`, `components/booking/video-session/use-video-session.ts`, `lib/actions/disputes.ts`, `components/dashboard/onboarding-tracker/hooks/use-modal-context.ts`, `app/api/professional/onboarding/modal-context/route.ts`
+**Issue:** 23 `any` casts were scattered across the codebase. The worst concentration (12 casts) was in `agora-adapter.ts`, caused by an obsolete `types/agora-rtc-sdk-ng.d.ts` override that masked the official Agora SDK 4.24.3 types. Other casts included `schema as any` in OpenAPI generation, `adapter as any.__unsubscribers` in video session hooks, and `type as any` in dispute creation.
+**Impact:** TypeScript could not verify correctness of video SDK usage, OpenAPI schema registration, or dispute type safety. Runtime errors could slip through compile-time checks.
+**Fix:**
+1. Delete `types/agora-rtc-sdk-ng.d.ts` — the installed SDK already exports complete types.
+2. Remove all 12 `as any` casts from `agora-adapter.ts`; use native `IAgoraRTCClient`, `IAgoraRTCRemoteUser`, and track types directly.
+3. Replace dynamic `__unsubscribers` property on `SessionAdapter` with a dedicated `unsubscribersRef` in `use-video-session.ts`.
+4. Validate dispute type against a const array instead of casting to `any`.
+5. Use `unknown` instead of `any` for loosely-typed map callbacks.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### S3.2. `console.error` Replaced with Sentry Capture in Critical Paths ✅ FIXED
+**Files:** `app/api/v1/payments/payment-intent/route.ts`, `lib/actions/professional-payout.ts`, `lib/booking/completion/complete-booking.ts`, `lib/payments/trolley/onboarding.ts`, `inngest/functions/index.ts`, `inngest/functions/trolley-webhook-processor.ts`
+**Issue:** Multiple critical error paths used `console.error` or `console.log` instead of structured Sentry reporting. During outages, these logs would be buried in Vercel Function logs and invisible to alerting pipelines.
+**Impact:** Blind spots in production monitoring; delayed incident response for payment, payout, and webhook failures.
+**Fix:**
+- Remove redundant `console.error` calls where `Sentry.captureException` already exists.
+- Add `Sentry.captureException` (with contextual tags) to all remaining critical error paths in payments, payouts, treasury sync, and Inngest functions.
+- Add missing `@sentry/nextjs` imports where needed.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### S3.3. Inngest Treasury Functions Missing Global Error Handling ✅ FIXED
+**Files:** `inngest/functions/treasury-reconciliation.ts`, `inngest/functions/treasury-snapshot.ts`
+**Issue:** Both treasury Inngest functions had no outer `try/catch`. Any unexpected exception (Supabase outage, network drop, unhandled null reference) would cause the Inngest run to fail with an unhandled error, bypassing Sentry and leaving no controlled return value.
+**Impact:** Silent cron failures; missing treasury reconciliation data; no alert when snapshot capture breaks.
+**Fix:**
+- Wrap the entire handler body of both functions in `try/catch`.
+- On failure: capture in Sentry with `area: 'inngest'` tags, log via Inngest `logger.error`, and return `{ ok: false, error: message }`.
+- Update tests to expect graceful error returns instead of thrown exceptions.
+- Improve type narrowing in `treasury-snapshot.ts` by using `as const` on literal return objects, eliminating the need for runtime `as` casts on result property access.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+### S3.4. Unbounded Supabase Queries Missing `.limit()` ✅ FIXED
+**Files:** `lib/admin/admin-service/dashboard.ts`, `lib/admin/taxonomy-service.ts`, `app/api/professional/onboarding/modal-context/route.ts`
+**Issue:** Several Supabase `.select()` queries on tables that grow over time had no `.limit()` clause. As the platform scales, these queries could return tens of thousands of rows, causing memory exhaustion and timeouts.
+**Impact:** Degraded admin dashboard load times; potential Vercel Function OOM on large datasets.
+**Fix:** Add explicit `.limit()` to all identified unbounded queries per AGENTS.md guidelines:
+- `professionals` (admin dashboard): 5000
+- `reviews` (admin dashboard): 5000
+- `categories`: 200
+- `subcategories`: 500
+- `specialties`: 1000
+- `taxonomy_service_options`: 1000
+- `tag_suggestions` (pending): 500
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
 ### R5. Payment Pages Missing Dedicated Error Boundary ✅ FIXED
 **File:** `app/(app)/pagamento/error.tsx`
 **Issue:** The `/pagamento/[bookingId]` route (revenue-critical checkout flow) relied solely on the generic `app/(app)/error.tsx`. A payment-specific error boundary with contextual recovery options was missing.
