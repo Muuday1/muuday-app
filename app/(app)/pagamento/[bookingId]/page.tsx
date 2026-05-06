@@ -116,8 +116,8 @@ export default async function PagamentoPage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-lg px-6 py-12">
-        <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="mx-auto max-w-lg px-4 py-6 sm:px-6 sm:py-12">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
           <h1 className="font-display text-2xl font-bold text-slate-900">
             Finalizar pagamento
           </h1>

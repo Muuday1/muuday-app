@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import {
   PaymentElement,
+  ExpressCheckoutElement,
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js'
@@ -42,14 +43,58 @@ export function PaymentForm({ bookingId }: { bookingId: string }) {
     // If successful, Stripe redirects to return_url automatically
   }
 
+  const handleExpressCheckout = async () => {
+    if (!stripe || !elements) {
+      return
+    }
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/agenda/confirmacao/${bookingId}`,
+      },
+    })
+
+    if (error) {
+      setErrorMessage(error.message || 'Erro ao processar pagamento. Tente novamente.')
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-      <div className="rounded-lg border border-slate-200 p-4">
+      {/* Wallets: Apple Pay, Google Pay, Link */}
+      <div className="rounded-lg border border-slate-200 p-3 sm:p-4">
+        <ExpressCheckoutElement
+          options={{
+            buttonType: {
+              applePay: 'buy',
+              googlePay: 'buy',
+            },
+            buttonHeight: 44,
+            layout: { maxColumns: 1, maxRows: 3 },
+          }}
+          onConfirm={handleExpressCheckout}
+        />
+      </div>
+
+      {/* Divider */}
+      <div className="relative flex items-center py-2">
+        <div className="flex-grow border-t border-slate-200" />
+        <span className="mx-3 text-xs text-slate-400">ou pagar com cartão</span>
+        <div className="flex-grow border-t border-slate-200" />
+      </div>
+
+      {/* Card + other methods via PaymentElement */}
+      <div className="rounded-lg border border-slate-200 p-3 sm:p-4">
         <PaymentElement
           options={{
             layout: {
               type: 'tabs',
               defaultCollapsed: false,
+            },
+            wallets: {
+              applePay: 'never',
+              googlePay: 'never',
             },
           }}
         />
@@ -64,7 +109,7 @@ export function PaymentForm({ bookingId }: { bookingId: string }) {
       <button
         type="submit"
         disabled={!stripe || isLoading}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#9FE870] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#9FE870] px-5 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-[#8ed85f] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isLoading ? (
           <>
@@ -82,4 +127,3 @@ export function PaymentForm({ bookingId }: { bookingId: string }) {
     </form>
   )
 }
-

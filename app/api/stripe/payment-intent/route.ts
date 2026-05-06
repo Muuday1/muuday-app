@@ -214,8 +214,9 @@ export async function POST(request: NextRequest) {
         muuday_payment_id: payment.id,
       },
       description: `Sessao com ${professionalName}`,
-      // Enable automatic payment methods (card, Apple Pay, Google Pay, etc.)
-      automatic_payment_methods: { enabled: true },
+      // Only card (with Apple Pay / Google Pay wallets) and Link.
+      // This excludes Klarna, Revolut Pay, Amazon Pay, and other redirect-based methods.
+      payment_method_types: ['card', 'link'],
     })
 
     // Use PostgreSQL RPC to update stripe_payment_intent_id with internal ownership check.

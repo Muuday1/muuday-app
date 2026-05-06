@@ -289,6 +289,8 @@ export const RATE_LIMITS = {
   payoutSync: { limit: 10, windowSeconds: 60 },
   payoutPortal: { limit: 5, windowSeconds: 60 },
   payoutPeriodicityUpdate: { limit: 10, windowSeconds: 60 },
+  paypalCreateOrder: { limit: 5, windowSeconds: 60 },
+  paypalCaptureOrder: { limit: 5, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(
