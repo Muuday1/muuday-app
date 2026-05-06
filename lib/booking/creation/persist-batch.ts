@@ -61,6 +61,13 @@ export async function persistBatchBooking(
     }
   }
 
+  if (isActiveSlotCollision(atomic.error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+    return {
+      success: false,
+      error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+    }
+  }
+
   reportBookingError(atomic.error, { professionalId, bookingType: 'batch' }, 'booking_batch_atomic_insert_failed')
   return { success: false, error: 'Erro ao criar agendamentos em lote. Tente novamente.' }
 }

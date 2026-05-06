@@ -148,6 +148,13 @@ export async function persistRecurringBooking(
     }
   }
 
+  if (isActiveSlotCollision(atomic.error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+    return {
+      success: false,
+      error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+    }
+  }
+
   reportBookingError(atomic.error, { professionalId, bookingType: 'recurring' }, 'booking_recurring_atomic_insert_failed')
   return { success: false, error: 'Erro ao criar pacote recorrente. Tente novamente.' }
 }

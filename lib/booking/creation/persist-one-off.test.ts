@@ -110,12 +110,29 @@ describe('persistOneOffBooking', () => {
     }
   })
 
+  it('returns slot collision error on atomic path conflict', async () => {
+    vi.mocked(createBookingWithPaymentAtomic).mockResolvedValue({
+      ok: false,
+      fallback: false,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "bookings_unique_active_professional_start_idx"' } as any,
+    })
+    vi.mocked(isActiveSlotCollision).mockReturnValue(true)
+
+    const result = await persistOneOffBooking(mockSupabase(), payload, paymentData, professionalId)
+
+    expect('success' in result && result.success === false).toBe(true)
+    if ('success' in result && !result.success) {
+      expect(result.error).toContain('horários já foram reservados')
+    }
+  })
+
   it('returns error on non-fallback atomic failure', async () => {
     vi.mocked(createBookingWithPaymentAtomic).mockResolvedValue({
       ok: false,
       fallback: false,
       error: { message: 'unknown error' } as any,
     })
+    vi.mocked(isActiveSlotCollision).mockReturnValue(false)
 
     const result = await persistOneOffBooking(mockSupabase(), payload, paymentData, professionalId)
 

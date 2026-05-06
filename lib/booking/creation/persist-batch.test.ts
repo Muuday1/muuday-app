@@ -104,6 +104,22 @@ describe('persistBatchBooking', () => {
     }
   })
 
+  it('returns slot collision error on atomic path conflict', async () => {
+    vi.mocked(createBatchBookingsWithPaymentAtomic).mockResolvedValue({
+      ok: false,
+      fallback: false,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "bookings_unique_active_professional_start_idx"' } as any,
+    })
+    vi.mocked(isActiveSlotCollision).mockReturnValue(true)
+
+    const result = await persistBatchBooking(mockSupabase(), batchPayload, paymentData, professionalId)
+
+    expect('success' in result && result.success === false).toBe(true)
+    if ('success' in result && !result.success) {
+      expect(result.error).toContain('horários já foram reservados')
+    }
+  })
+
   it('returns generic error on fallback insert failure', async () => {
     vi.mocked(createBatchBookingsWithPaymentAtomic).mockResolvedValue({
       ok: false,

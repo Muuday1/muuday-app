@@ -164,12 +164,36 @@ describe('persistRecurringBooking', () => {
     }
   })
 
+  it('returns slot collision error on atomic path conflict', async () => {
+    vi.mocked(createRecurringBookingWithPaymentAtomic).mockResolvedValue({
+      ok: false,
+      fallback: false,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "bookings_unique_active_professional_start_idx"' } as any,
+    })
+    vi.mocked(isActiveSlotCollision).mockReturnValue(true)
+
+    const result = await persistRecurringBooking(
+      buildSupabaseChain({}),
+      parentPayload,
+      childPayloads,
+      sessionsPayload,
+      paymentData,
+      professionalId,
+    )
+
+    expect('success' in result && result.success === false).toBe(true)
+    if ('success' in result && !result.success) {
+      expect(result.error).toContain('horários já foram reservados')
+    }
+  })
+
   it('returns error on non-fallback atomic failure', async () => {
     vi.mocked(createRecurringBookingWithPaymentAtomic).mockResolvedValue({
       ok: false,
       fallback: false,
       error: { message: 'unknown' } as any,
     })
+    vi.mocked(isActiveSlotCollision).mockReturnValue(false)
 
     const result = await persistRecurringBooking(
       buildSupabaseChain({}),

@@ -60,6 +60,13 @@ export async function persistOneOffBooking(
     }
   }
 
+  if (isActiveSlotCollision(atomic.error, ACTIVE_BOOKING_SLOT_UNIQUE_INDEX)) {
+    return {
+      success: false,
+      error: 'Um ou mais horários já foram reservados. Escolha outro horário.',
+    }
+  }
+
   reportBookingError(atomic.error, { professionalId, bookingType: 'one_off' }, 'booking_atomic_insert_failed')
   return { success: false, error: 'Erro ao criar agendamento. Tente novamente.' }
 }
