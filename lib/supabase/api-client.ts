@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { type NextRequest } from 'next/server'
+import { sanitizeSupabaseCookies } from './cookie-utils'
 
 function getSupabaseProjectRef(url: string): string | null {
   try {
@@ -55,7 +56,7 @@ export async function createApiClient(request?: NextRequest) {
 
   // Build the cookie getter that prefers bearer token when present
   const getAllCookies = () => {
-    const cookieList = cookieStore.getAll()
+    const cookieList = sanitizeSupabaseCookies(cookieStore.getAll())
 
     if (sessionHeader) {
       // Mobile app sent full session JSON — inject it directly as cookie

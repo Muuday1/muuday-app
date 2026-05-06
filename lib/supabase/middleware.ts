@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { resolvePostLoginDestination } from '@/lib/auth/post-login-destination'
+import { sanitizeSupabaseCookies } from './cookie-utils'
 
 type ProfileRole = 'usuario' | 'profissional' | 'admin'
 
@@ -173,7 +174,7 @@ export async function updateSession(request: NextRequest) {
         httpOnly: true,
       },
       cookies: {
-        getAll() { return request.cookies.getAll() },
+        getAll() { return sanitizeSupabaseCookies(request.cookies.getAll()) },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           didRefreshTokens = true
           cookiesToSet.forEach(({ name, value, options }) => {

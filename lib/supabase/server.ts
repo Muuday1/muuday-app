@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { sanitizeSupabaseCookies } from './cookie-utils'
 // TODO: Re-enable Database generic after schema alignment (P3.7)
 // import type { Database } from '@/types/supabase-generated'
 
@@ -16,7 +17,7 @@ export async function createClient() {
         httpOnly: true,
       },
       cookies: {
-        getAll() { return cookieStore.getAll() },
+        getAll() { return sanitizeSupabaseCookies(cookieStore.getAll()) },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
