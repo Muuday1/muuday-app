@@ -15,6 +15,14 @@ import {
   recordSubscriptionPayment,
   recordSubscriptionPaymentFailure,
 } from '@/lib/payments/subscription/manager'
+import {
+  createNextRenewalCycle,
+} from '@/lib/recurring/renewal-engine'
+import {
+  createRecurringPaymentSettingsFromPayment,
+  loadRecurringSettingsByGroupId,
+  markRecurringSettingsAsFailed,
+} from '@/lib/recurring/renewal-queries'
 
 const DEFAULT_MAX_WEBHOOK_ATTEMPTS = 8
 
@@ -377,10 +385,100 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
   const metadata = asRecord(eventObject.metadata)
 
   if (event.type === 'payment_intent.succeeded' && paymentIntentId) {
+    // ── Recurring renewal path ───────────────────────────────────────────
+    // If this PI was created by the renewal cron, create the next cycle.
+    if (metadata.muuday_renewal_type === 'recurring_booking') {
+      const renewalResult = await createNextRenewalCycle(admin, metadata, paymentIntentId)
+      if (renewalResult.success) {
+        return {
+          outcome: 'processed',
+          handledAs: 'recurring_renewal_cycle_created',
+          newParentBookingId: renewalResult.newParentBookingId,
+          paymentId: renewalResult.paymentId,
+        }
+      }
+      // If cycle creation failed, still mark the PI as processed so Stripe
+      // doesn't retry forever. The failure is logged to Sentry.
+      Sentry.captureMessage(
+        `[stripe/webhook] Recurring renewal cycle creation failed: ${renewalResult.reason}`,
+        'error',
+      )
+      return { outcome: 'processed', handledAs: 'recurring_renewal_cycle_failed', reason: renewalResult.reason }
+    }
+
     const payments = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'captured', {
       stripe_event_id: event.id,
       stripe_event_type: event.type,
     })
+
+    // ── First-time recurring booking: save payment method for auto-renew ─
+    if (metadata.muuday_recurring_parent === 'true') {
+      const stripe = getStripeClient()
+      const bookingId = asString(metadata.muuday_booking_id)
+      const userId = asString(metadata.muuday_user_id)
+      const professionalId = asString(metadata.muuday_professional_id)
+
+      if (stripe && bookingId && userId && professionalId) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
+          const paymentMethodId = typeof pi.payment_method === 'string' ? pi.payment_method : null
+          const customerId = typeof pi.customer === 'string' ? pi.customer : null
+
+          if (paymentMethodId && customerId) {
+            // Attach the payment method to the customer for off-session use
+            await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId })
+
+            // Calculate next renewal (7 days before estimated cycle end)
+            const { data: lastSession } = await admin
+              .from('booking_sessions')
+              .select('end_time_utc')
+              .eq('parent_booking_id', bookingId)
+              .order('end_time_utc', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+
+            const cycleEnd = lastSession?.end_time_utc
+              ? new Date(lastSession.end_time_utc)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            const nextRenewalAt = new Date(cycleEnd.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+            // Load payment row to get price/currency
+            const paymentRow = payments[0]
+            const priceTotal = paymentRow ? Number(paymentRow.amount_total_minor || 0) / 100 : 0
+            const currency = 'BRL' // fallback; ideally from booking
+
+            // Load professional billing mode
+            const { data: profSettings } = await admin
+              .from('professional_settings')
+              .select('recurring_billing_mode')
+              .eq('professional_id', professionalId)
+              .maybeSingle()
+
+            const billingMode = (profSettings as { recurring_billing_mode?: string } | null)?.recurring_billing_mode
+              || 'package'
+
+            await createRecurringPaymentSettingsFromPayment(admin, {
+              userId,
+              professionalId,
+              recurrenceGroupId: bookingId,
+              stripePaymentMethodId: paymentMethodId,
+              stripeCustomerId: customerId,
+              priceTotal,
+              currency,
+              nextRenewalAt: nextRenewalAt.toISOString(),
+              billingMode: billingMode as 'package' | 'per_session',
+            })
+          }
+        } catch (renewalSetupError) {
+          // Non-blocking: the payment succeeded and the booking is confirmed.
+          // Auto-renew can be set up manually later if this fails.
+          Sentry.captureException(
+            renewalSetupError instanceof Error ? renewalSetupError : new Error(String(renewalSetupError)),
+            { tags: { area: 'stripe_webhook', context: 'recurring_first_time_setup' } },
+          )
+        }
+      }
+    }
 
     // Ledger + balance integration for each payment row updated
     for (const payment of payments) {
@@ -473,6 +571,20 @@ export async function handleStripeWebhookEvent(admin: SupabaseClient, event: Str
   }
 
   if (event.type === 'payment_intent.payment_failed' && paymentIntentId) {
+    // ── Recurring renewal failure ────────────────────────────────────────
+    // Do NOT enqueue retry for renewal failures. Pause auto-renew immediately.
+    if (metadata.muuday_renewal_type === 'recurring_booking') {
+      const settingsId = asString(metadata.muuday_renewal_settings_id)
+      if (settingsId) {
+        await markRecurringSettingsAsFailed(admin, settingsId)
+      }
+      return {
+        outcome: 'processed',
+        handledAs: 'recurring_renewal_failed',
+        settingsId: settingsId || null,
+      }
+    }
+
     const payments = await setPaymentStatusFromWebhook(admin, paymentIntentId, 'failed', {
       stripe_event_id: event.id,
       stripe_event_type: event.type,

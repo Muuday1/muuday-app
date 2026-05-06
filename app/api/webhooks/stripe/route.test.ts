@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock Stripe before importing the route
-const mockConstructEvent = vi.fn()
+const { mockConstructEvent } = vi.hoisted(() => ({ mockConstructEvent: vi.fn() }))
 vi.mock('stripe', () => ({
   default: function MockStripe() {
     return {

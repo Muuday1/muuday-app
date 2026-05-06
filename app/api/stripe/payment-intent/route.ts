@@ -32,16 +32,6 @@ type ProfessionalProfile = {
   } | null
 }
 
-type BookingWithProfessional = {
-  id: string
-  user_id: string
-  professional_id: string
-  status: string
-  price_total: number | null
-  user_currency: string | null
-  professionals: ProfessionalProfile | null
-}
-
 export async function POST(request: NextRequest) {
   Sentry.addBreadcrumb({ category: 'payments', message: 'POST /api/stripe/payment-intent started', level: 'info' })
 
@@ -80,7 +70,7 @@ export async function POST(request: NextRequest) {
   // Load booking with payment and professional details
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, user_id, professional_id, status, price_total, user_currency, professionals(id, user_id, profiles!professionals_user_id_fkey(full_name, email))')
+    .select('id, user_id, professional_id, status, booking_type, price_total, user_currency, professionals(id, user_id, profiles!professionals_user_id_fkey(full_name, email))')
     .eq('id', bookingId)
     .maybeSingle()
 
@@ -199,8 +189,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const proProfile = (booking as BookingWithProfessional).professionals?.profiles
+    const proProfile = (booking as any).professionals?.[0]?.profiles
     const professionalName = proProfile?.full_name || 'Profissional'
+
+    const isRecurringParent = booking.booking_type === 'recurring_parent'
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountMinor,
@@ -212,11 +204,15 @@ export async function POST(request: NextRequest) {
         muuday_user_id: user.id,
         muuday_professional_id: booking.professional_id,
         muuday_payment_id: payment.id,
+        muuday_recurring_parent: isRecurringParent ? 'true' : 'false',
       },
       description: `Sessao com ${professionalName}`,
       // Only card (with Apple Pay / Google Pay wallets) and Link.
       // This excludes Klarna, Revolut Pay, Amazon Pay, and other redirect-based methods.
       payment_method_types: ['card', 'link'],
+      // For recurring bookings, save the payment method for off-session charging.
+      // Stripe automatically attaches the payment method to the customer when authorized.
+      setup_future_usage: isRecurringParent ? 'off_session' : undefined,
     })
 
     // Use PostgreSQL RPC to update stripe_payment_intent_id with internal ownership check.

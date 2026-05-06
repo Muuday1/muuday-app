@@ -291,6 +291,10 @@ export const RATE_LIMITS = {
   payoutPeriodicityUpdate: { limit: 10, windowSeconds: 60 },
   paypalCreateOrder: { limit: 5, windowSeconds: 60 },
   paypalCaptureOrder: { limit: 5, windowSeconds: 60 },
+  stripeSetupIntentCreate: { limit: 5, windowSeconds: 60 },
+  stripeSetupIntentConfirm: { limit: 5, windowSeconds: 60 },
+  recurringSettingsRead: { limit: 30, windowSeconds: 60 },
+  recurringSettingsUpdate: { limit: 10, windowSeconds: 60 },
 } as const
 
 export async function rateLimit(

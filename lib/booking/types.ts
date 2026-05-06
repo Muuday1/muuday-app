@@ -20,6 +20,8 @@ export type BookingType = (typeof BOOKING_TYPES)[number]
 
 export type RecurrencePeriodicity = 'weekly' | 'biweekly' | 'monthly' | 'custom_days'
 
+export type RecurringBillingMode = 'package' | 'per_session'
+
 export type ProfessionalBookingSettings = {
   timezone: string
   sessionDurationMinutes: number
@@ -37,6 +39,7 @@ export type ProfessionalBookingSettings = {
   notificationEmail?: boolean
   notificationPush?: boolean
   notificationWhatsapp?: boolean
+  recurringBillingMode?: RecurringBillingMode
 }
 
 export type BookingSlotInput = {

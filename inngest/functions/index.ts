@@ -36,6 +36,11 @@ import { treasuryBalanceSnapshot } from './treasury-snapshot'
 import { treasuryReconciliation } from './treasury-reconciliation'
 import { payoutBatchCreate } from './payout-batch-create'
 import { processTrolleyWebhook } from './trolley-webhook-processor'
+import {
+  findRenewalCandidates,
+  runRenewalChargeBatch,
+  runPerSessionRenewalChargeBatch,
+} from '@/lib/recurring/renewal-engine'
 
 type SupabaseDbChangeEventData = {
   source?: string
@@ -740,6 +745,141 @@ export const processCalendarBookingSync = inngest.createFunction(
 )
 
 export { treasuryBalanceSnapshot, treasuryReconciliation, payoutBatchCreate, processTrolleyWebhook }
+
+export const recurringRenewalReminder = inngest.createFunction(
+  {
+    id: 'recurring-renewal-reminder',
+    name: 'Recurring booking renewal reminder',
+    triggers: [{ cron: '0 10 * * *' }, { event: 'ops/recurring.reminder.send.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    const result = await step.run('send-renewal-reminders', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for renewal reminder.')
+      }
+
+      const { data: settings, error } = await admin
+        .from('recurring_payment_settings')
+        .select(
+          'id, user_id, professional_id, recurrence_group_id, next_renewal_at, price_total, currency',
+        )
+        .eq('auto_renew', true)
+        .eq('status', 'active')
+        .lte('next_renewal_at', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
+        .gte('next_renewal_at', new Date().toISOString())
+
+      if (error) {
+        throw new Error(`Failed to load renewal reminders: ${error.message}`)
+      }
+
+      const rows = (settings || []) as Array<{
+        id: string
+        user_id: string
+        professional_id: string
+        recurrence_group_id: string
+        next_renewal_at: string
+        price_total: number
+        currency: string
+      }>
+
+      // TODO: integrate with email service when templates are ready
+      // For now, log the reminder targets for observability.
+      return {
+        eligible: rows.length,
+        reminders: rows.map((r) => ({
+          settingsId: r.id,
+          userId: r.user_id,
+          recurrenceGroupId: r.recurrence_group_id,
+          nextRenewalAt: r.next_renewal_at,
+          priceTotal: r.price_total,
+          currency: r.currency,
+        })),
+      }
+    })
+
+    logger.info('Recurring renewal reminders processed.', {
+      trigger: event.name,
+      eligible: result.eligible,
+    })
+
+    return { ok: true, source: 'inngest', ...result }
+  },
+)
+
+export const recurringRenewalCheck = inngest.createFunction(
+  {
+    id: 'recurring-renewal-check',
+    name: 'Recurring booking renewal check and charge',
+    triggers: [{ cron: '0 7 * * *' }, { event: 'ops/recurring.renewal.check.requested' }],
+  },
+  async ({ step, event, logger }) => {
+    // 1. Package billing: charge full cycle upfront
+    const candidates = await step.run('find-renewals-due', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for recurring renewal check.')
+      }
+      return findRenewalCandidates(admin, 7)
+    })
+
+    logger.info('Recurring renewal candidates found.', {
+      trigger: event.name,
+      count: candidates.length,
+    })
+
+    let packageCharged = 0
+    let packageFailed = 0
+
+    if (candidates.length > 0) {
+      const chargeResult = await step.run('charge-payment-methods', async () => {
+        const admin = createAdminClient()
+        if (!admin) {
+          throw new Error('Admin client not configured for recurring renewal charging.')
+        }
+        return runRenewalChargeBatch(admin, candidates)
+      })
+      packageCharged = chargeResult.charged
+      packageFailed = chargeResult.failed
+
+      logger.info('Recurring renewal charges completed.', {
+        trigger: event.name,
+        charged: chargeResult.charged,
+        failed: chargeResult.failed,
+        errors: chargeResult.errors.map((e) => ({
+          settingsId: e.candidate.settingsId,
+          recurrenceGroupId: e.candidate.recurrenceGroupId,
+          error: e.error,
+        })),
+      })
+    }
+
+    // 2. Per-session billing: charge each upcoming session individually
+    const perSessionResult = await step.run('charge-per-session', async () => {
+      const admin = createAdminClient()
+      if (!admin) {
+        throw new Error('Admin client not configured for per-session renewal charging.')
+      }
+      return runPerSessionRenewalChargeBatch(admin)
+    })
+
+    logger.info('Per-session renewal charges completed.', {
+      trigger: event.name,
+      charged: perSessionResult.charged,
+      failed: perSessionResult.failed,
+    })
+
+    return {
+      ok: true,
+      source: 'inngest',
+      packageCandidates: candidates.length,
+      packageCharged,
+      packageFailed,
+      perSessionCharged: perSessionResult.charged,
+      perSessionFailed: perSessionResult.failed,
+    }
+  },
+)
 
 export const processSupabasePaymentsChange = inngest.createFunction(
   {

@@ -18,6 +18,7 @@ export const DEFAULT_PROFESSIONAL_BOOKING_SETTINGS: ProfessionalBookingSettings 
   notificationEmail: true,
   notificationPush: true,
   notificationWhatsapp: false,
+  recurringBillingMode: 'package',
 }
 
 function parseConfirmationMode(value: unknown): BookingConfirmationMode {
@@ -99,6 +100,11 @@ export function normalizeProfessionalSettingsRow(
       typeof row.notification_whatsapp === 'boolean'
         ? row.notification_whatsapp
         : DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.notificationWhatsapp,
+    recurringBillingMode:
+      (typeof row.recurring_billing_mode === 'string' &&
+        (row.recurring_billing_mode === 'package' || row.recurring_billing_mode === 'per_session'))
+        ? row.recurring_billing_mode
+        : DEFAULT_PROFESSIONAL_BOOKING_SETTINGS.recurringBillingMode,
   }
 }
 
@@ -114,7 +120,7 @@ export function extractProfessionalTimezone(
 
 /** All columns required by {@link normalizeProfessionalSettingsRow}. */
 const PROFESSIONAL_SETTINGS_COLUMNS =
-  'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose, cancellation_policy_accepted, terms_accepted_at, terms_version, calendar_sync_provider, notification_email, notification_push, notification_whatsapp'
+  'timezone, session_duration_minutes, buffer_minutes, buffer_time_minutes, minimum_notice_hours, max_booking_window_days, enable_recurring, confirmation_mode, cancellation_policy_code, require_session_purpose, cancellation_policy_accepted, terms_accepted_at, terms_version, calendar_sync_provider, notification_email, notification_push, notification_whatsapp, recurring_billing_mode'
 
 /** Load and normalize professional settings in one call. */
 export async function loadProfessionalSettings(

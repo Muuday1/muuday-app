@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Package, Clock, CalendarDays } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronDown, ChevronUp, Package, Clock, CalendarDays, Settings } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { AppCard } from '@/components/ui/AppCard'
@@ -121,22 +122,33 @@ export function RecurringPackageCard({ bookings, isProfessional, userTimezone }:
             </span>
           </div>
 
-          <button
-            onClick={() => setExpanded(prev => !prev)}
-            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[#3d6b1f] transition-colors hover:text-[#2a4d15]"
-          >
-            {expanded ? (
-              <>
-                <ChevronUp className="h-3.5 w-3.5" />
-                Ocultar sessões
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3.5 w-3.5" />
-                Ver todas as sessões
-              </>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setExpanded(prev => !prev)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-[#3d6b1f] transition-colors hover:text-[#2a4d15]"
+            >
+              {expanded ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Ocultar sessões
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  Ver todas as sessões
+                </>
+              )}
+            </button>
+            {first.recurrence_group_id && (
+              <Link
+                href={`/agenda/recorrente/${first.recurrence_group_id}/configuracoes`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-slate-700"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Gerenciar renovação
+              </Link>
             )}
-          </button>
+          </div>
         </div>
       </div>
 
