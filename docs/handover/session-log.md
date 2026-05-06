@@ -1706,3 +1706,28 @@ Use this for meaningful checkpoints only.
   - `vitest run lib/stripe/capture.test.ts` - 6/6 pass
   - `vitest run lib/stripe/webhook-handlers.test.ts` - 15/15 pass
   - Commit: `884e7fc`, pushed to `origin/main`
+
+### Entry 99 (2026-05-06) — Critical Vercel environment variable audit and fixes
+- Scope executed:
+  - **Audited all 170+ production environment variables** via `vercel env pull` and cross-referenced against `lib/config/env.ts` requirements.
+  - **Critical finding: Stripe test keys were active in production.**
+    - `STRIPE_SECRET_KEY` was set to `sk_test_...` (test key, 34d old)
+    - `STRIPE_LIVE_SECRET_KEY` existed but was never mapped to the variable the code reads
+    - Same issue for `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (test) vs `LIVE_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (live)
+    - Same issue for `STRIPE_CONNECT_CLIENT_ID` (test) vs `STRIPE_CONNECT_LIVE_CLIENT_ID` (live)
+    - **Impact**: Production payment flows were using Stripe test environment — real money could not be captured.
+  - **Fixes applied directly in Vercel production:**
+    - `STRIPE_SECRET_KEY` → updated to live key (`sk_live_51TBGNf...`)
+    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` → updated to live key (`pk_live_51TBGNf...`)
+    - `STRIPE_CONNECT_CLIENT_ID` → updated to live account (`acct_1TBGNf...`)
+    - `INNGEST_SERVE_ORIGIN` → fixed from placeholder `https://acme.com` to `https://app.muuday.com`
+    - `GOOGLE_CLIENT_ID` → removed trailing `\n` character that was breaking OAuth validation
+  - **Problems discovered but NOT fixed (require user input or contain sensitive data we cannot generate):**
+    - `DATABASE_URL`, `SUPABASE_DB_POOLER_URL`, `SUPABASE_DB_DIRECT_URL` → all contain `REPLACE_WITH_DB_PASSWORD` placeholder
+    - `STRIPE_WEBHOOK_LIVE_SECRET` → exists but is **empty** (`""`). `STRIPE_WEBHOOK_SECRET` appears to be a test webhook secret.
+    - `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` → both are **empty** in production
+    - `MAKE_WEBHOOK_SECRET` → empty in production
+  - **Recommendation**: Re-deploy to production immediately so the new Stripe live keys take effect.
+- Validation:
+  - `vercel env pull` confirmed all 5 updated variables now hold correct live values without trailing newlines.
+  - No code changes required for this entry (infra-only fix).
