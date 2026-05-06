@@ -28,7 +28,7 @@ const mockedCreateAdminClient = vi.mocked(createAdminClient)
 const mockedGetTreasuryBalance = vi.mocked(getTreasuryBalance)
 
 describe('treasuryBalanceSnapshot', () => {
-  const mockLogger = { warn: vi.fn(), info: vi.fn() }
+  const mockLogger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() }
   const mockStep = {
     run: vi.fn(async (_name: string, fn: () => Promise<unknown>) => fn()),
   }
@@ -45,6 +45,7 @@ describe('treasuryBalanceSnapshot', () => {
     vi.clearAllMocks()
     mockLogger.warn.mockClear()
     mockLogger.info.mockClear()
+    mockLogger.error.mockClear()
     mockStep.run.mockClear()
     mockedCreateAdminClient.mockReturnValue({
       from: vi.fn().mockReturnValue({
@@ -53,12 +54,21 @@ describe('treasuryBalanceSnapshot', () => {
     } as any)
   })
 
-  it('skips when admin client is not configured', async () => {
+  it('returns error when admin client is not configured', async () => {
     mockedCreateAdminClient.mockReturnValue(null)
 
-    await expect(
-      (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
-    ).rejects.toThrow('Admin client not configured')
+    const result = await (treasuryBalanceSnapshot as any).fn({
+      step: mockStep,
+      event: makeEvent(),
+      logger: mockLogger,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('Admin client not configured')
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Treasury snapshot failed.',
+      expect.objectContaining({ error: expect.stringContaining('Admin client not configured') }),
+    )
   })
 
   it('skips when Revolut is not configured', async () => {
@@ -130,7 +140,7 @@ describe('treasuryBalanceSnapshot', () => {
     )
   })
 
-  it('throws when snapshot insert fails', async () => {
+  it('returns error when snapshot insert fails', async () => {
     mockedGetTreasuryBalance.mockResolvedValue({
       accountId: 'acc-1',
       balance: BigInt(1000000),
@@ -143,8 +153,17 @@ describe('treasuryBalanceSnapshot', () => {
       }),
     } as any)
 
-    await expect(
-      (treasuryBalanceSnapshot as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
-    ).rejects.toThrow('DB write failed')
+    const result = await (treasuryBalanceSnapshot as any).fn({
+      step: mockStep,
+      event: makeEvent(),
+      logger: mockLogger,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('DB write failed')
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Treasury snapshot failed.',
+      expect.objectContaining({ error: expect.stringContaining('DB write failed') }),
+    )
   })
 })

@@ -8,6 +8,7 @@
  * Cron: Daily at 6am UTC
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runTreasuryReconciliation } from '@/lib/payments/revolut/reconciliation'
 import { inngest } from '../client'
@@ -22,40 +23,50 @@ export const treasuryReconciliation = inngest.createFunction(
     ],
   },
   async ({ step, event, logger }) => {
-    const result = await step.run('run-reconciliation', async () => {
-      const admin = createAdminClient()
-      if (!admin) {
-        throw new Error('Admin client not configured for treasury reconciliation.')
-      }
+    try {
+      const result = await step.run('run-reconciliation', async () => {
+        const admin = createAdminClient()
+        if (!admin) {
+          throw new Error('Admin client not configured for treasury reconciliation.')
+        }
 
-      return runTreasuryReconciliation(admin)
-    })
-
-    if (result.mismatchesFound > 0) {
-      logger.warn('Treasury reconciliation found mismatches.', {
-        trigger: event.name,
-        mismatches: result.mismatchesFound,
-        settlementsChecked: result.settlementsChecked,
+        return runTreasuryReconciliation(admin)
       })
 
-      // TODO: Send alert to ops team with mismatch details
-    }
+      if (result.mismatchesFound > 0) {
+        logger.warn('Treasury reconciliation found mismatches.', {
+          trigger: event.name,
+          mismatches: result.mismatchesFound,
+          settlementsChecked: result.settlementsChecked,
+        })
 
-    logger.info('Treasury reconciliation complete.', {
-      trigger: event.name,
-      settlementsChecked: result.settlementsChecked,
-      matchesFound: result.matchesFound,
-      mismatchesFound: result.mismatchesFound,
-      unmatchedSettlements: result.unmatchedSettlements,
-    })
+        // TODO: Send alert to ops team with mismatch details
+      }
 
-    return {
-      ok: true,
-      source: 'inngest',
-      settlementsChecked: result.settlementsChecked,
-      matchesFound: result.matchesFound,
-      mismatchesFound: result.mismatchesFound,
-      unmatchedSettlements: result.unmatchedSettlements,
+      logger.info('Treasury reconciliation complete.', {
+        trigger: event.name,
+        settlementsChecked: result.settlementsChecked,
+        matchesFound: result.matchesFound,
+        mismatchesFound: result.mismatchesFound,
+        unmatchedSettlements: result.unmatchedSettlements,
+      })
+
+      return {
+        ok: true,
+        source: 'inngest',
+        settlementsChecked: result.settlementsChecked,
+        matchesFound: result.matchesFound,
+        mismatchesFound: result.mismatchesFound,
+        unmatchedSettlements: result.unmatchedSettlements,
+      }
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      Sentry.captureException(err, {
+        tags: { area: 'inngest', context: 'treasury_reconciliation' },
+        extra: { trigger: event.name },
+      })
+      logger.error('Treasury reconciliation failed.', { error: err.message })
+      return { ok: false, error: err.message }
     }
   },
 )

@@ -21,7 +21,7 @@ const { createAdminClient } = await import('@/lib/supabase/admin')
 const mockedCreateAdminClient = vi.mocked(createAdminClient)
 
 describe('treasuryReconciliation', () => {
-  const mockLogger = { warn: vi.fn(), info: vi.fn() }
+  const mockLogger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() }
   const mockStep = {
     run: vi.fn(async (_name: string, fn: () => Promise<unknown>) => fn()),
   }
@@ -38,6 +38,7 @@ describe('treasuryReconciliation', () => {
     vi.clearAllMocks()
     mockLogger.warn.mockClear()
     mockLogger.info.mockClear()
+    mockLogger.error.mockClear()
     mockStep.run.mockClear()
     mockedCreateAdminClient.mockReturnValue({} as any)
     mockRunReconciliation.mockResolvedValue({
@@ -48,12 +49,21 @@ describe('treasuryReconciliation', () => {
     })
   })
 
-  it('throws when admin client is not configured', async () => {
+  it('returns error when admin client is not configured', async () => {
     mockedCreateAdminClient.mockReturnValue(null)
 
-    await expect(
-      (treasuryReconciliation as any).fn({ step: mockStep, event: makeEvent(), logger: mockLogger }),
-    ).rejects.toThrow('Admin client not configured')
+    const result = await (treasuryReconciliation as any).fn({
+      step: mockStep,
+      event: makeEvent(),
+      logger: mockLogger,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('Admin client not configured')
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Treasury reconciliation failed.',
+      expect.objectContaining({ error: expect.stringContaining('Admin client not configured') }),
+    )
   })
 
   it('calls runTreasuryReconciliation and returns result', async () => {
