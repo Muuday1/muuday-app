@@ -39,7 +39,7 @@ export default async function FavoritosPage() {
   if (ids.length > 0) {
     const { data } = await supabase
       .from('professionals')
-      .select('*, profiles(*)')
+      .select('*, profiles!professionals_user_id_fkey(*)')
       .in('id', ids)
       .eq('status', 'approved')
       .limit(200)

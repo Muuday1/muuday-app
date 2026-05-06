@@ -31,7 +31,7 @@ export default async function BookingConfirmacaoPage({
         .select(
           `id, scheduled_at, start_time_utc, end_time_utc, duration_minutes, status, price_total, user_currency, price_brl,
           session_purpose, booking_type, recurrence_group_id,
-          professionals(id, user_id, profiles(full_name, timezone)),
+          professionals(id, user_id, profiles!professionals_user_id_fkey(full_name, timezone)),
           professional_services(id, name, duration_minutes, price_brl)`
         )
         .eq('id', bookingId)

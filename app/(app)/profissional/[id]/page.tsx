@@ -556,7 +556,7 @@ export default async function ProfissionalPage({
       .limit(200),
     readClient
       .from('reviews')
-      .select('id,rating,comment,professional_response,profiles(full_name)')
+      .select('id,rating,comment,professional_response,profiles!reviews_user_id_fkey(full_name)')
       .eq('professional_id', professional.id)
       .eq('is_visible', true)
       .order('created_at', { ascending: false })

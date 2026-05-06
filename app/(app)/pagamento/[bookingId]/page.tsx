@@ -35,7 +35,7 @@ export default async function PagamentoPage({
         .from('bookings')
         .select(
           `id, status, price_total, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
-          professionals(id, profiles(full_name, avatar_url)),
+          professionals(id, profiles!professionals_user_id_fkey(full_name, avatar_url)),
           professional_services(id, name, duration_minutes, price_brl)`
         )
         .eq('id', bookingId)
