@@ -47,13 +47,27 @@ export async function applyPaymentRefund(
   }
 
   // If payment is captured and we have a Stripe PaymentIntent, call Stripe refund API
-  const stripe = getStripeClient()
-  if (stripe && paymentData.stripe_payment_intent_id && paymentData.status === 'captured') {
+  const needsStripeRefund = paymentData.status === 'captured' && paymentData.stripe_payment_intent_id
+
+  if (needsStripeRefund) {
+    const stripe = getStripeClient()
+
+    // Guard: if Stripe is not configured but we have a Stripe PaymentIntent,
+    // abort the refund. Do NOT update DB status.
+    if (!stripe) {
+      Sentry.captureMessage('applyPaymentRefund: Stripe not configured, aborting refund', {
+        level: 'warning',
+        tags: { area: 'booking_refund', flow: 'stripe_not_configured' },
+        extra: { paymentId: paymentData.id, bookingId },
+      })
+      return
+    }
+
     try {
       const amountMinor = Math.round(refundAmount * 100)
       await stripe.refunds.create(
         {
-          payment_intent: paymentData.stripe_payment_intent_id,
+          payment_intent: paymentData.stripe_payment_intent_id!,
           amount: amountMinor,
           reason: 'requested_by_customer',
           metadata: {

@@ -266,6 +266,17 @@ export async function GET(request: NextRequest) {
 
     for (const payment of capturedPayments) {
       try {
+        // Guard: if Stripe is not configured but we have a Stripe PaymentIntent,
+        // skip this payment entirely. Do NOT update DB status or ledger.
+        if (!stripe && payment.stripe_payment_intent_id) {
+          Sentry.captureMessage('cron_booking_timeouts: Stripe not configured, skipping refund', {
+            level: 'warning',
+            tags: { area: 'cron_booking_timeouts', context: 'stripe-not-configured' },
+            extra: { paymentId: payment.id, bookingId: booking.id },
+          })
+          continue
+        }
+
         // 1. Refund via Stripe API if we have a payment intent
         if (stripe && payment.stripe_payment_intent_id) {
           await stripe.refunds.create(
