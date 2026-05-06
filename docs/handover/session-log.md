@@ -1673,3 +1673,20 @@ Use this for meaningful checkpoints only.
   - `vitest run lib/stripe/webhook-handlers.test.ts` - 15/15 pass
   - `vitest run` (95 test files) - 1013/1013 pass (1 pre-existing env failure)
   - Commit: `c6c26be`, pushed to `origin/main`
+
+### Entry 97 (2026-05-06) — Fix payment page 404 and middleware route protection
+- Scope executed:
+  - **`app/(app)/pagamento/[bookingId]/page.tsx`**:
+    - **Increased retry loop**: Changed from 3 attempts × 400ms to 5 attempts with exponential backoff (400ms, 600ms, 800ms, 1000ms = ~2.8s total). This addresses Supabase read-replica lag causing the booking to not be visible immediately after creation.
+    - **Replaced `notFound()` with contextual UI**: Instead of showing a generic "Página não encontrada" when the booking is not found, the page now renders a helpful message explaining the situation, with links to check the booking status or go to the agenda.
+  - **`lib/supabase/middleware.ts`**:
+    - **Added `/pagamento` to protected paths**: Both the env-fallback `protectedPaths` array and the main `protectedPaths` array now include `/pagamento`. Unauthenticated users hitting `/pagamento/*` are now properly redirected to `/login` by the middleware, matching the behavior of other auth-required routes.
+  - **`proxy.ts`**:
+    - **Added `/pagamento` to `authOrAppPaths`**: The host-redirect middleware now recognizes `/pagamento` as an app route, ensuring production multi-domain setups redirect to the correct host.
+- Files changed: 3
+- Validation:
+  - `npm run typecheck` - pass (0 errors)
+  - `npx eslint` on modified files - 0 errors (1 pre-existing warning)
+  - `vitest run app/api/stripe/payment-intent/route.test.ts` - 12/12 pass
+  - `vitest run lib/booking/create-booking.test.ts` - 18/18 pass
+  - Commit: pending

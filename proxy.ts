@@ -96,6 +96,7 @@ function shouldForceAppHostRedirect(request: NextRequest) {
     '/configuracoes-agendamento',
     '/disponibilidade',
     '/financeiro',
+    '/pagamento',
     '/admin',
     '/api/professional',
     '/api/stripe/checkout-session',

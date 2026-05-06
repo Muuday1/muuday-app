@@ -1,6 +1,7 @@
 export const metadata = { title: 'Pagamento | Muuday' }
 
-import { redirect, notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentFormWrapper } from './PaymentFormWrapper'
 import * as Sentry from '@sentry/nextjs'
@@ -29,7 +30,7 @@ export default async function PagamentoPage({
   // Retry with delay to avoid race condition between booking creation and page load
   let booking = null
   try {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       const { data: bookingData } = await supabase
         .from('bookings')
         .select(
@@ -46,8 +47,9 @@ export default async function PagamentoPage({
         break
       }
 
-      if (attempt < 2) {
-        await new Promise((resolve) => setTimeout(resolve, 400))
+      if (attempt < 4) {
+        // Exponential backoff: 400ms, 600ms, 800ms, 1000ms (total ~2.8s)
+        await new Promise((resolve) => setTimeout(resolve, 400 + attempt * 200))
       }
     }
   } catch (error) {
@@ -55,7 +57,38 @@ export default async function PagamentoPage({
   }
 
   if (!booking) {
-    notFound()
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-[#9FE870]/8 rounded-lg flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">⏳</span>
+          </div>
+          <h1 className="font-display font-bold text-2xl text-slate-900 mb-2">
+            Agendamento não encontrado
+          </h1>
+          <p className="text-slate-500 mb-2">
+            Não conseguimos localizar seu agendamento. Isso pode ser temporário — tente atualizar a página em alguns segundos.
+          </p>
+          <p className="text-xs text-slate-400 mb-8">
+            Se o problema persistir, seu agendamento pode já estar confirmado ou cancelado.
+          </p>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link
+              href={`/agenda/confirmacao/${bookingId}`}
+              className="inline-flex items-center gap-2 bg-[#9FE870] hover:bg-[#8ed85f] text-slate-900 font-semibold px-6 py-3 rounded-md transition-all text-sm"
+            >
+              Ver status do agendamento
+            </Link>
+            <Link
+              href="/agenda"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+            >
+              Minha agenda
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (booking.status !== 'pending_payment') {
