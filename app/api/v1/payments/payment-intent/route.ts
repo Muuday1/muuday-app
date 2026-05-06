@@ -55,7 +55,6 @@ export const POST = withApiHandler(async (request: NextRequest) => {
     .maybeSingle()
 
   if (bookingError) {
-    console.error('[payment-intent] bookingError:', JSON.stringify(bookingError))
     Sentry.captureException(bookingError, {
       tags: { area: 'api-v1-payments-payment-intent', context: 'booking-load' },
     })

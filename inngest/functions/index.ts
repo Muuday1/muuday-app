@@ -111,7 +111,10 @@ async function notificationExists(
     .maybeSingle()
 
   if (error) {
-    console.error(`[notificationExists] query failed for ${type}:`, error.message)
+    Sentry.captureException(error, {
+      tags: { area: 'inngest', context: 'notification_exists_query' },
+      extra: { userId, bookingId, type },
+    })
     // Fail closed: assume notification exists to prevent duplicates
     return true
   }

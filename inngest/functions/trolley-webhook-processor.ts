@@ -11,6 +11,7 @@
  * - batch.updated      → Sync batch status to payout_batches
  */
 
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyProfessionalAboutPayout } from '@/lib/notifications/payout-notifications'
 import { trackPayoutCompleted, trackPayoutFailed } from '@/lib/analytics/server-events'
@@ -242,7 +243,10 @@ async function handleRecipientUpdated(
       }
     } catch (syncErr) {
       // Log but don't fail webhook — the trolley_recipients update already succeeded
-      console.error('[trolley-webhook] Failed to sync payout_kyc_completed:', syncErr)
+      Sentry.captureException(syncErr instanceof Error ? syncErr : new Error(String(syncErr)), {
+        tags: { area: 'trolley', context: 'webhook_payout_kyc_sync' },
+        extra: { recipientId: trolleyRecipientId },
+      })
     }
   }
 
@@ -291,9 +295,10 @@ async function handleRecipientUpdated(
         }
       }
     } catch (holdError) {
-      console.error('[trolley/webhook] failed to hold payouts for inactive recipient:',
-        holdError instanceof Error ? holdError.message : holdError,
-      )
+      Sentry.captureException(holdError instanceof Error ? holdError : new Error(String(holdError)), {
+        tags: { area: 'trolley', context: 'webhook_hold_inactive_payouts' },
+        extra: { recipientId: trolleyRecipientId },
+      })
     }
   }
 
@@ -565,9 +570,10 @@ async function handleRecipientDeleted(
         }
       }
     } catch (holdError) {
-      console.error('[trolley/webhook] failed to hold payouts for deleted recipient:',
-        holdError instanceof Error ? holdError.message : holdError,
-      )
+      Sentry.captureException(holdError instanceof Error ? holdError : new Error(String(holdError)), {
+        tags: { area: 'trolley', context: 'webhook_hold_deleted_payouts' },
+        extra: { recipientId: trolleyRecipientId },
+      })
     }
   }
 

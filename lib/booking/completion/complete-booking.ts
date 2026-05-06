@@ -61,7 +61,6 @@ export async function completeBookingService(
   captureBookingPayment(supabase, bookingId).catch(async (captureError) => {
     try {
       // Error is already logged to Sentry inside captureBookingPayment
-      console.error('Failed to capture payment for booking', bookingId, captureError)
       // Enqueue a retry so the capture is re-attempted later.
       // We need the provider_payment_id for the retry queue; look it up.
       const admin = createAdminClient()

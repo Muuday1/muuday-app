@@ -242,7 +242,10 @@ export async function syncTrolleyRecipientStatus(
           .eq('professional_id', professionalId)
       } catch (settingsErr) {
         // Log but don't fail sync — the trolley_recipients update already succeeded
-        console.error('[trolley-sync] Failed to update payout_kyc_completed:', settingsErr)
+        Sentry.captureException(settingsErr instanceof Error ? settingsErr : new Error(String(settingsErr)), {
+          tags: { area: 'trolley', context: 'payout_kyc_sync' },
+          extra: { professionalId },
+        })
       }
     }
 

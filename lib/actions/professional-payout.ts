@@ -1,5 +1,6 @@
 'use server'
 
+import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { rateLimit } from '@/lib/security/rate-limit'
@@ -44,7 +45,10 @@ export async function initiatePayoutSetup() {
 
   if (settingsError) {
     // Don't fail the flow, but log — the recipient was created successfully
-    console.error('[payout] Failed to update payout_onboarding_started:', settingsError)
+    Sentry.captureException(settingsError, {
+      tags: { area: 'payout', context: 'payout_onboarding_started_update' },
+      extra: { professionalId: professional.id },
+    })
   }
 
   // If recipient exists (new or existing), generate a portal link for KYC completion
@@ -55,7 +59,10 @@ export async function initiatePayoutSetup() {
       portalUrl = portal.url
     } catch (portalErr) {
       // Don't fail setup if portal generation fails — user can retry
-      console.error('[payout] Portal link generation failed:', portalErr)
+      Sentry.captureException(portalErr instanceof Error ? portalErr : new Error(String(portalErr)), {
+        tags: { area: 'payout', context: 'portal_link_generation' },
+        extra: { recipientId: result.recipientId },
+      })
     }
   }
 
