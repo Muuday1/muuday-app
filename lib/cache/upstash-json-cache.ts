@@ -50,7 +50,13 @@ export async function getOrSetUpstashJsonCache<T>(args: {
     return args.loader()
   }
 
-  const loaded = await args.loader()
+  let loaded: T
+  try {
+    loaded = await args.loader()
+  } catch {
+    return null as unknown as T
+  }
+
   try {
     const payload = buildVersionedPayload(loaded, version)
     await redis.set(args.key, payload, { ex: args.ttlSeconds })

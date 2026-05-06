@@ -34,3 +34,28 @@ export async function createClient() {
     }
   )
 }
+
+/**
+ * Creates an anonymous Supabase client without cookie auth.
+ * Use this for public data reads where user session is not required
+ * (e.g. loading public professional profiles, search listings).
+ * Safe to call outside of request contexts (cache revalidation, background jobs).
+ */
+export function createAnonymousClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookieEncoding: 'raw',
+      cookieOptions: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        httpOnly: true,
+      },
+      cookies: {
+        getAll() { return [] },
+        setAll() { /* no-op: anonymous client never writes cookies */ },
+      },
+    }
+  )
+}

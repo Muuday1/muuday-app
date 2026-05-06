@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAnonymousClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
@@ -225,7 +225,7 @@ function getPublicProfileCacheIdentity(
 async function loadPublicProfessionalByParam(
   parsedParam: ReturnType<typeof parseProfessionalProfileParam>,
 ): Promise<PublicProfessionalRecord | null> {
-  const client = await createClient()
+  const client = createAnonymousClient()
   const buildQuery = (useVisibilityColumn: boolean) => {
     let professionalQuery = client
       .from('professionals')
@@ -292,8 +292,12 @@ async function loadCachedPublicProfessionalByParam(
     },
   )
 
-  const cached = await getWithIsrTag()
-  if (cached) return cached
+  try {
+    const cached = await getWithIsrTag()
+    if (cached) return cached
+  } catch {
+    // Cache failed (e.g. cookies() unavailable in cache context); fall through to direct load
+  }
   return loadPublicProfessionalByParam(parsedParam)
 }
 
@@ -310,35 +314,36 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>
 }): Promise<Metadata> {
-  const { id } = await params
-  const parsedParam = parseProfessionalProfileParam(id)
-  if (parsedParam.kind === 'unknown') {
-    return { title: 'Profissional | Muuday', robots: { index: false } }
-  }
+  try {
+    const { id } = await params
+    const parsedParam = parseProfessionalProfileParam(id)
+    if (parsedParam.kind === 'unknown') {
+      return { title: 'Profissional | Muuday', robots: { index: false } }
+    }
 
-  const professional = await loadCachedPublicProfessionalByParam(parsedParam)
-  if (!professional || professional.status !== 'approved') {
-    return { title: 'Profissional | Muuday', robots: { index: false } }
-  }
+    const professional = await loadCachedPublicProfessionalByParam(parsedParam)
+    if (!professional || professional.status !== 'approved') {
+      return { title: 'Profissional | Muuday', robots: { index: false } }
+    }
 
-  const visibilityMap = await getPublicVisibilityByProfessionalId(
-    await createClient(),
-    [professional],
-  )
-  const visibility = visibilityMap.get(String(professional.id))
-  const isPubliclyVisible =
-    (typeof professional.is_publicly_visible === 'boolean'
-      ? professional.is_publicly_visible
-      : false) || Boolean(visibility?.canGoLive)
+    const visibilityMap = await getPublicVisibilityByProfessionalId(
+      createAnonymousClient(),
+      [professional],
+    )
+    const visibility = visibilityMap.get(String(professional.id))
+    const isPubliclyVisible =
+      (typeof professional.is_publicly_visible === 'boolean'
+        ? professional.is_publicly_visible
+        : false) || Boolean(visibility?.canGoLive)
 
-  if (!isPubliclyVisible) {
-    return { title: 'Profissional | Muuday', robots: { index: false } }
-  }
+    if (!isPubliclyVisible) {
+      return { title: 'Profissional | Muuday', robots: { index: false } }
+    }
 
-  const profile = Array.isArray(professional.profiles)
-    ? professional.profiles[0]
-    : professional.profiles
-  const name = profile?.full_name || 'Profissional'
+    const profile = Array.isArray(professional.profiles)
+      ? professional.profiles[0]
+      : professional.profiles
+    const name = profile?.full_name || 'Profissional'
   const specialty =
     ((professional.subcategories || []) as string[]).find(Boolean) ||
     ((professional.tags || []) as string[]).find(Boolean) ||
@@ -386,6 +391,9 @@ export async function generateMetadata({
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
+  }
+  } catch {
+    return { title: 'Profissional | Muuday', robots: { index: false } }
   }
 }
 
