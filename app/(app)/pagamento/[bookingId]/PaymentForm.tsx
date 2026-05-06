@@ -72,6 +72,10 @@ export function PaymentForm({ bookingId }: { bookingId: string }) {
             },
             buttonHeight: 44,
             layout: { maxColumns: 1, maxRows: 3 },
+            wallets: {
+              applePay: 'auto',
+              googlePay: 'auto',
+            },
           }}
           onConfirm={handleExpressCheckout}
         />
