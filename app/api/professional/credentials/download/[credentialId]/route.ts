@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const CREDENTIALS_BUCKET = 'professional-credentials'
 const STORAGE_URI_PREFIX = `storage://${CREDENTIALS_BUCKET}/`
@@ -28,10 +29,10 @@ function extractStoragePath(value: string): string | null {
   return null
 }
 
-export async function GET(
+export const GET = withApiHandler(async (
   _request: NextRequest,
   context: { params: Promise<{ credentialId: string }> },
-) {
+) => {
   const { credentialId: rawCredentialId } = await context.params
   const credentialId = String(rawCredentialId || '').trim()
   if (!credentialId) {
@@ -86,4 +87,4 @@ export async function GET(
   }
 
   return NextResponse.redirect(data.signedUrl)
-}
+})

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const PROFILE_MEDIA_BUCKET = 'professional-profile-media'
 
@@ -15,7 +16,7 @@ function mapStorageError(error: { message?: string; details?: string; code?: str
   return 'Nao foi possivel validar storage de foto no momento.'
 }
 
-export async function GET() {
+export const GET = withApiHandler(async () => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -43,5 +44,5 @@ export async function GET() {
 
   await supabase.storage.from(PROFILE_MEDIA_BUCKET).remove([probePath])
   return NextResponse.json({ ok: true })
-}
+})
 

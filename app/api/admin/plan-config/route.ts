@@ -8,6 +8,7 @@ import {
   type PlanConfigMap,
 } from '@/lib/plan-config'
 import type { TierFeature } from '@/lib/tier-config'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const tierEnum = z.enum(['basic', 'professional', 'premium'])
 
@@ -128,7 +129,7 @@ function sanitizePlanConfigInput(plans: z.infer<typeof payloadSchema>['plans']):
   return normalized
 }
 
-export async function GET() {
+export const GET = withApiHandler(async () => {
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) {
     return NextResponse.json({ ok: false, error: adminCheck.error }, { status: adminCheck.status })
@@ -136,9 +137,9 @@ export async function GET() {
 
   const plans = await loadPlanConfigMap()
   return NextResponse.json({ ok: true, plans })
-}
+})
 
-export async function PUT(request: Request) {
+export const PUT = withApiHandler(async (request: Request) => {
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) {
     return NextResponse.json({ ok: false, error: adminCheck.error }, { status: adminCheck.status })
@@ -184,4 +185,4 @@ export async function PUT(request: Request) {
   }
 
   return NextResponse.json({ ok: true })
-}
+})

@@ -6,12 +6,13 @@ import { syncExternalBusySlotsForProfessional } from '@/lib/calendar/sync/servic
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { validateCsrfOrigin } from '@/lib/http/csrf'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const bodySchema = z.object({
   provider: z.enum(['google', 'outlook', 'apple']).optional(),
 })
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
   const ip = getClientIp(request)
   const rl = await rateLimit('calendarSync', `calendar-sync:${ip}`)
   if (!rl.allowed) {
@@ -45,4 +46,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true, result })
-}
+})

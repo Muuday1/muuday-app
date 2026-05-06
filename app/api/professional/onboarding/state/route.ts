@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getPrimaryProfessionalForUser } from '@/lib/professional/current-professional'
 import { loadProfessionalOnboardingState } from '@/lib/professional/onboarding-state'
 import { loadProfessionalTrackerMeta } from '@/lib/professional/onboarding-tracker-state'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET() {
+export const GET = withApiHandler(async () => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -40,4 +41,4 @@ export async function GET() {
     reviewAdjustments: trackerMeta.reviewAdjustments,
     termsAcceptanceByKey: trackerMeta.termsAcceptanceByKey,
   })
-}
+})

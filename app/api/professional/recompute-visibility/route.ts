@@ -4,8 +4,9 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
 import { recomputeProfessionalVisibility } from '@/lib/professional/public-visibility'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function POST(request: Request) {
+export const POST = withApiHandler(async (request: Request) => {
   const ip = getClientIp(request as never)
   const rl = await rateLimit('recomputeVisibility', `recompute-visibility:${ip}`)
   if (!rl.allowed) {
@@ -53,4 +54,4 @@ export async function POST(request: Request) {
     isPubliclyVisible: result.isPubliclyVisible,
     visibilityCheckedAt: result.visibilityCheckedAt,
   })
-}
+})

@@ -14,6 +14,7 @@ import {
   resolveProfessionalPlanPricing,
   shouldAllowFallbackPricing,
 } from '@/lib/professional/plan-pricing'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const OPTIONAL_TAXONOMY_CACHE_KEY = 'onboarding-modal:optional-taxonomy:v1'
 const OPTIONAL_PLAN_CONFIG_CACHE_KEY = 'onboarding-modal:optional-plan-config:v1'
@@ -181,7 +182,7 @@ async function loadOptionalPlanPricingCached(args: {
   })
 }
 
-export async function GET(request: Request) {
+export const GET = withApiHandler(async (request: Request) => {
   const supabase = await createClient()
   const url = new URL(request.url)
   const scope = normalizeScope(url.searchParams.get('scope'))
@@ -382,4 +383,4 @@ export async function GET(request: Request) {
       profile: ownerProfileResponse.data || null,
     },
   })
-}
+})

@@ -11,6 +11,7 @@ import { getPrimaryProfessionalForUser } from '@/lib/professional/current-profes
 import { extractRequestIp, verifyTermViewProofToken } from '@/lib/legal/term-acceptance-proof'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { getClientIp } from '@/lib/http/client-ip'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
 const payloadSchema = z.object({
   termKey: z.enum(PROFESSIONAL_REQUIRED_TERMS as [ProfessionalTermKey, ...ProfessionalTermKey[]]),
@@ -23,7 +24,7 @@ function isMissingTableError(error: { code?: string; message?: string; details?:
   return haystack.includes('42p01') || haystack.includes('does not exist')
 }
 
-export async function POST(request: Request) {
+export const POST = withApiHandler(async (request: Request) => {
   const clientIp = getClientIp(request as never)
   const rl = await rateLimit('acceptTerm', `accept-term:${clientIp}`)
   if (!rl.allowed) {
@@ -131,4 +132,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true, termKey, termVersion: PROFESSIONAL_TERMS_VERSION })
-}
+})

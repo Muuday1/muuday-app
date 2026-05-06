@@ -4,8 +4,9 @@ import {
   resolveProfessionalPlanPricing,
   shouldAllowFallbackPricing,
 } from '@/lib/professional/plan-pricing'
+import { withApiHandler } from '@/lib/api/with-api-handler'
 
-export async function GET() {
+export const GET = withApiHandler(async () => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -51,4 +52,4 @@ export async function GET() {
   }
 
   return NextResponse.json(pricing.data)
-}
+})
