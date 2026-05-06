@@ -35,9 +35,9 @@ export async function toggleFavorite(professionalId: string): Promise<boolean> {
     .select('id')
     .eq('user_id', user.id)
     .eq('professional_id', professionalId)
-    .single()
+    .maybeSingle()
 
-  if (existingError && !existingError.message?.includes('0 rows')) {
+  if (existingError) {
     Sentry.captureException(existingError, { tags: { area: 'favorites' } })
   }
 
@@ -74,9 +74,9 @@ export async function isFavorited(professionalId: string): Promise<boolean> {
     .select('id')
     .eq('user_id', user.id)
     .eq('professional_id', professionalId)
-    .single()
+    .maybeSingle()
 
-  if (error && !error.message?.includes('0 rows')) {
+  if (error) {
     Sentry.captureException(error, { tags: { area: 'favorites' } })
   }
 
