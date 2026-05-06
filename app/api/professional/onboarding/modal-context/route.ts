@@ -131,8 +131,8 @@ async function loadOptionalTaxonomyCached(supabase: Awaited<ReturnType<typeof cr
     version: 'v1',
     loader: async () => {
       const [categoriesResponse, subcategoriesResponse] = await Promise.all([
-        supabase.from('categories').select('slug,name_pt').eq('is_active', true),
-        supabase.from('subcategories').select('slug,name_pt').eq('is_active', true),
+        supabase.from('categories').select('slug,name_pt').eq('is_active', true).limit(200),
+        supabase.from('subcategories').select('slug,name_pt').eq('is_active', true).limit(500),
       ])
       return {
         categories: categoriesResponse.data || [],

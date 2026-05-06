@@ -68,9 +68,9 @@ export async function loadAdminDashboardDataService(
   try {
     const [usersRes, prosRes, bookingsRes, reviewsRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      supabase.from('professionals').select('id, status'),
+      supabase.from('professionals').select('id, status').limit(5000),
       supabase.from('bookings').select('id', { count: 'exact', head: true }),
-      supabase.from('reviews').select('id, is_visible'),
+      supabase.from('reviews').select('id, is_visible').limit(5000),
     ])
 
     if (usersRes.error) Sentry.captureException(usersRes.error, { tags: { area: 'admin_dashboard', query: 'users_count' } })

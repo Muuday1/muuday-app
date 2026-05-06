@@ -121,11 +121,11 @@ export interface TaxonomyData {
 
 export async function loadTaxonomyDataService(supabase: SupabaseClient) {
   const [cRes, scRes, spRes, soRes, tsRes] = await Promise.all([
-    supabase.from('categories').select('id,slug,name_pt,name_en,icon,sort_order,is_active').order('sort_order'),
-    supabase.from('subcategories').select('id,category_id,slug,name_pt,name_en,sort_order,is_active').order('sort_order'),
-    supabase.from('specialties').select('id,subcategory_id,slug,name_pt,name_en,sort_order,is_active').order('sort_order'),
-    supabase.from('taxonomy_service_options').select('id,subcategory_slug,slug,name_pt,name_en,sort_order,is_active').order('subcategory_slug').order('sort_order'),
-    supabase.from('tag_suggestions').select('id,professional_id,tag,status,created_at').eq('status', 'pending').order('created_at', { ascending: false }),
+    supabase.from('categories').select('id,slug,name_pt,name_en,icon,sort_order,is_active').order('sort_order').limit(200),
+    supabase.from('subcategories').select('id,category_id,slug,name_pt,name_en,sort_order,is_active').order('sort_order').limit(500),
+    supabase.from('specialties').select('id,subcategory_id,slug,name_pt,name_en,sort_order,is_active').order('sort_order').limit(1000),
+    supabase.from('taxonomy_service_options').select('id,subcategory_slug,slug,name_pt,name_en,sort_order,is_active').order('subcategory_slug').order('sort_order').limit(1000),
+    supabase.from('tag_suggestions').select('id,professional_id,tag,status,created_at').eq('status', 'pending').order('created_at', { ascending: false }).limit(500),
   ])
 
   if (cRes.error || scRes.error || spRes.error || soRes.error || tsRes.error) {
