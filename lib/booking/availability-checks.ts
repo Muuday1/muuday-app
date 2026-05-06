@@ -14,6 +14,7 @@ export async function loadAvailabilityRules(
     .select('weekday, start_time_local, end_time_local, timezone, is_active')
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+    .limit(50)
 
   if (!availabilityRulesError && availabilityRulesRows && availabilityRulesRows.length > 0) {
     return availabilityRulesRows
@@ -24,6 +25,7 @@ export async function loadAvailabilityRules(
     .select('day_of_week, start_time, end_time, is_active')
     .eq('professional_id', professionalId)
     .eq('is_active', true)
+    .limit(50)
 
   if (legacyError) {
     Sentry.captureException(legacyError, {
@@ -70,6 +72,7 @@ export async function isSlotAllowedByExceptions(
     .select('is_available, start_time_local, end_time_local')
     .eq('professional_id', professionalId)
     .eq('date_local', localDate)
+    .limit(100)
 
   if (exceptionError) {
     Sentry.captureException(exceptionError, {

@@ -55,6 +55,7 @@ export async function getClientRecords(
     .select('id, user_id, notes, created_at, updated_at, profiles:user_id(full_name, email, avatar_url)')
     .eq('professional_id', professionalId)
     .order('updated_at', { ascending: false })
+    .limit(200)
 
   if (error) {
     return { success: false, error: 'Erro ao carregar registros de clientes.' }
@@ -143,6 +144,7 @@ export async function getSessionNotesForClient(
     .select('id')
     .eq('user_id', parsed.data)
     .eq('professional_id', professionalId)
+    .limit(200)
 
   if (bookingsError) {
     return { success: false, error: 'Erro ao carregar notas de sessão.' }
@@ -160,6 +162,7 @@ export async function getSessionNotesForClient(
     .eq('professional_id', professionalId)
     .in('booking_id', bookingIds)
     .order('created_at', { ascending: false })
+    .limit(200)
 
   if (error) {
     return { success: false, error: 'Erro ao carregar notas de sessão.' }

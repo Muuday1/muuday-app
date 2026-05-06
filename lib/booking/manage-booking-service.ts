@@ -205,7 +205,7 @@ export async function cancelBookingWithScopeService(
 
   const { data: bookingsToCancel, error: siblingsError } = await siblingsQuery.order('scheduled_at', {
     ascending: true,
-  })
+  }).limit(200)
 
   if (siblingsError || !bookingsToCancel) {
     return { success: false, error: 'Erro ao buscar sessões do pacote. Tente novamente.' }

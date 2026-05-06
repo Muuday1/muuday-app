@@ -133,6 +133,7 @@ export async function sendMessage(
         .from('conversation_participants')
         .select('user_id')
         .eq('conversation_id', idParsed.data)
+        .limit(10)
 
       const otherParticipant = participants?.find(p => p.user_id !== userId)
       if (!otherParticipant) return

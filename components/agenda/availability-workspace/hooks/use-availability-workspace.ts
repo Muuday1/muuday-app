@@ -188,6 +188,7 @@ export function useAvailabilityWorkspace() {
       .from('availability_rules')
       .select('weekday,start_time_local,end_time_local,is_active')
       .eq('professional_id', professional.id)
+      .limit(50)
 
     const legacyRows = modernRows && modernRows.length > 0
       ? null
@@ -195,6 +196,7 @@ export function useAvailabilityWorkspace() {
           .from('availability')
           .select('day_of_week,start_time,end_time,is_active')
           .eq('professional_id', professional.id)
+          .limit(50)
           .then(r => r.data)
 
     const rows = modernRows && modernRows.length > 0

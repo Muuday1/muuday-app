@@ -71,7 +71,9 @@ describe('isSlotAllowedByExceptions', () => {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: exceptions, error }),
+            eq: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({ data: exceptions, error }),
+            }),
           }),
         }),
       }),

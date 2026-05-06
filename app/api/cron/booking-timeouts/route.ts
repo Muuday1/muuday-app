@@ -248,6 +248,7 @@ export async function GET(request: NextRequest) {
       .select('id, stripe_payment_intent_id, amount_total, currency, booking_id, professional_id')
       .eq('booking_id', booking.id)
       .in('status', ['captured'])
+      .limit(10)
 
     if (paymentsError) {
       Sentry.captureException(paymentsError, {
