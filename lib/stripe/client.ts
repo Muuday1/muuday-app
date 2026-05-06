@@ -8,7 +8,7 @@ function sanitizeStripeKey(value: string | undefined): string | undefined {
 }
 
 const stripeClient: Stripe | null = (() => {
-  const secretKey = sanitizeStripeKey(process.env.STRIPE_SECRET_KEY)
+  const secretKey = getStripeSecretKey()
   if (!secretKey) return null
   return new Stripe(secretKey, {
     apiVersion: '2026-04-22.dahlia',
@@ -35,7 +35,7 @@ export function isStripeConfigured(): boolean {
 // ─── Resilience helpers (migrated from lib/ops/stripe-resilience.ts) ──────
 
 export function createStripeClientIfConfigured() {
-  const secretKey = sanitizeStripeKey(process.env.STRIPE_SECRET_KEY)
+  const secretKey = getStripeSecretKey()
   if (!secretKey) return null
   return new Stripe(secretKey, {
     apiVersion: '2026-04-22.dahlia',
@@ -44,5 +44,21 @@ export function createStripeClientIfConfigured() {
 }
 
 export function isStripeRuntimeConfigured() {
-  return Boolean(sanitizeStripeKey(process.env.STRIPE_SECRET_KEY) && sanitizeStripeKey(process.env.STRIPE_WEBHOOK_SECRET))
+  return Boolean(getStripeSecretKey() && getStripeWebhookSecret())
+}
+
+/**
+ * Resolve Stripe secret key with fallback to live variant.
+ * Production uses live keys; the _LIVE suffix is a legacy naming convention.
+ */
+export function getStripeSecretKey(): string | undefined {
+  return sanitizeStripeKey(process.env.STRIPE_SECRET_KEY) || sanitizeStripeKey(process.env.STRIPE_LIVE_SECRET_KEY)
+}
+
+/**
+ * Resolve Stripe webhook secret with fallback to live variant.
+ * Production uses live webhooks; the _LIVE suffix is a legacy naming convention.
+ */
+export function getStripeWebhookSecret(): string | undefined {
+  return sanitizeStripeKey(process.env.STRIPE_WEBHOOK_SECRET) || sanitizeStripeKey(process.env.STRIPE_WEBHOOK_LIVE_SECRET)
 }
