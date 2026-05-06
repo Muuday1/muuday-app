@@ -1,7 +1,14 @@
 import Stripe from 'stripe'
 
+function sanitizeStripeKey(value: string | undefined): string | undefined {
+  if (!value) return value
+  // Remove surrounding quotes, trailing newlines, and carriage returns
+  // that may have been introduced when copying keys into env vars.
+  return value.trim().replace(/^["']|["']$/g, '').replace(/\r?\n/g, '')
+}
+
 const stripeClient: Stripe | null = (() => {
-  const secretKey = process.env.STRIPE_SECRET_KEY
+  const secretKey = sanitizeStripeKey(process.env.STRIPE_SECRET_KEY)
   if (!secretKey) return null
   return new Stripe(secretKey, {
     apiVersion: '2026-04-22.dahlia',
@@ -28,7 +35,7 @@ export function isStripeConfigured(): boolean {
 // ─── Resilience helpers (migrated from lib/ops/stripe-resilience.ts) ──────
 
 export function createStripeClientIfConfigured() {
-  const secretKey = process.env.STRIPE_SECRET_KEY
+  const secretKey = sanitizeStripeKey(process.env.STRIPE_SECRET_KEY)
   if (!secretKey) return null
   return new Stripe(secretKey, {
     apiVersion: '2026-04-22.dahlia',
@@ -37,5 +44,5 @@ export function createStripeClientIfConfigured() {
 }
 
 export function isStripeRuntimeConfigured() {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET)
+  return Boolean(sanitizeStripeKey(process.env.STRIPE_SECRET_KEY) && sanitizeStripeKey(process.env.STRIPE_WEBHOOK_SECRET))
 }

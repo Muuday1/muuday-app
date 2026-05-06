@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentFormWrapper } from './PaymentFormWrapper'
+import { formatCurrency } from '@/lib/utils'
 import * as Sentry from '@sentry/nextjs'
 
 export default async function PagamentoPage({
@@ -142,11 +143,7 @@ export default async function PagamentoPage({
                   {service?.name || 'Sessão'} com {professionalName}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {duration} min ·{' '}
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: currency,
-                  }).format(Number(priceBrl))}
+                  {duration} min · {formatCurrency(Number(priceBrl), currency)}
                 </p>
               </div>
             </div>

@@ -6,7 +6,12 @@ import { loadStripe } from '@stripe/stripe-js'
 import { PaymentForm } from './PaymentForm'
 import { Loader2 } from 'lucide-react'
 
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+function sanitizeStripeKey(value: string | undefined): string | undefined {
+  if (!value) return value
+  return value.trim().replace(/^["']|["']$/g, '').replace(/\r?\n/g, '')
+}
+
+const stripePublishableKey = sanitizeStripeKey(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null
 
 export function PaymentFormWrapper({ bookingId }: { bookingId: string }) {

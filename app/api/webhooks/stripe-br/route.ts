@@ -25,8 +25,13 @@ function buildRateLimitHeaders(limitResult: Awaited<ReturnType<typeof rateLimit>
   return headers
 }
 
+function sanitizeStripeKey(value: string | undefined): string | undefined {
+  if (!value) return value
+  return value.trim().replace(/^["']|["']$/g, '').replace(/\r?\n/g, '')
+}
+
 function createStripeWebhookClient() {
-  const key = process.env.STRIPE_SECRET_KEY
+  const key = sanitizeStripeKey(process.env.STRIPE_SECRET_KEY)
   if (!key) return null
   return new Stripe(key, {
     apiVersion: '2026-04-22.dahlia',
@@ -55,7 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   const signature = request.headers.get('stripe-signature')
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  const webhookSecret = sanitizeStripeKey(process.env.STRIPE_WEBHOOK_SECRET)
   if (!signature || !webhookSecret) {
     return withCors(
       NextResponse.json(
