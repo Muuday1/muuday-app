@@ -1,5 +1,4 @@
-export const metadata = { title: 'Profissional | Muuday' }
-
+import type { Metadata } from 'next'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
@@ -27,6 +26,7 @@ import { isFeatureAvailable } from '@/lib/tier-config'
 import { emitUserViewedProfessional } from '@/lib/email/resend-events'
 import { safePromiseAll } from '@/lib/async/safe-promise-all'
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || 'https://muuday.com'
 const PUBLIC_PROFILE_CACHE_TTL_SECONDS = 5 * 60
 const PUBLIC_PROFILE_CACHE_VERSION = 'v1'
 const PROFESSIONAL_PROFILE_FIELDS =
@@ -295,6 +295,98 @@ async function loadCachedPublicProfessionalByParam(
   const cached = await getWithIsrTag()
   if (cached) return cached
   return loadPublicProfessionalByParam(parsedParam)
+}
+
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  const truncated = text.slice(0, maxLength)
+  const lastSpace = truncated.lastIndexOf(' ')
+  if (lastSpace > maxLength * 0.8) return truncated.slice(0, lastSpace) + '…'
+  return truncated + '…'
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const parsedParam = parseProfessionalProfileParam(id)
+  if (parsedParam.kind === 'unknown') {
+    return { title: 'Profissional | Muuday', robots: { index: false } }
+  }
+
+  const professional = await loadCachedPublicProfessionalByParam(parsedParam)
+  if (!professional || professional.status !== 'approved') {
+    return { title: 'Profissional | Muuday', robots: { index: false } }
+  }
+
+  const visibilityMap = await getPublicVisibilityByProfessionalId(
+    await createClient(),
+    [professional],
+  )
+  const visibility = visibilityMap.get(String(professional.id))
+  const isPubliclyVisible =
+    (typeof professional.is_publicly_visible === 'boolean'
+      ? professional.is_publicly_visible
+      : false) || Boolean(visibility?.canGoLive)
+
+  if (!isPubliclyVisible) {
+    return { title: 'Profissional | Muuday', robots: { index: false } }
+  }
+
+  const profile = Array.isArray(professional.profiles)
+    ? professional.profiles[0]
+    : professional.profiles
+  const name = profile?.full_name || 'Profissional'
+  const specialty =
+    ((professional.subcategories || []) as string[]).find(Boolean) ||
+    ((professional.tags || []) as string[]).find(Boolean) ||
+    getSearchCategoryLabel(professional.category)
+  const bio = professional.bio || `Agende uma sessão com ${name} na Muuday.`
+  const description = truncateText(bio, 155)
+  const canonicalPath = buildProfessionalProfilePath({
+    id: professional.id,
+    fullName: profile?.full_name,
+    publicCode: professional.public_code,
+  })
+  const canonicalUrl = `${APP_URL}${canonicalPath}`
+  const image =
+    profile?.avatar_url || professional.cover_photo_url || `${APP_URL}/assets/og-default.png`
+
+  return {
+    title: `${name} — ${specialty} | Muuday`,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title: `${name} — ${specialty} | Muuday`,
+      description,
+      url: canonicalUrl,
+      type: 'profile',
+      images: [
+        {
+          url: image,
+          alt: `Foto de ${name}`,
+          width: 1200,
+          height: 630,
+        },
+      ],
+      locale: 'pt_BR',
+      siteName: 'Muuday',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${name} — ${specialty} | Muuday`,
+      description,
+      images: [image],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  }
 }
 
 export default async function ProfissionalPage({
@@ -620,8 +712,76 @@ export default async function ProfissionalPage({
     ? `A partir de ${formatCurrency(minServicePrice, viewerCurrency)}`
     : formatCurrency(hasSingleService ? services[0].price_brl : Math.max(0, Number(professional.session_price_brl || 0)), viewerCurrency)
 
+  const canonicalPath = buildProfessionalProfilePath({
+    id: professional.id,
+    fullName: profile?.full_name,
+    publicCode: professional.public_code,
+  })
+  const canonicalUrl = `${APP_URL}${canonicalPath}`
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'ProfilePage',
+        '@id': `${canonicalUrl}#profilepage`,
+        url: canonicalUrl,
+        name: `${profile?.full_name || 'Profissional'} — ${primarySpecialty} | Muuday`,
+        description: truncateText(professional.bio || `Agende uma sessão com ${profile?.full_name || 'Profissional'} na Muuday.`, 155),
+        isPartOf: {
+          '@type': 'WebSite',
+          name: 'Muuday',
+          url: APP_URL,
+        },
+        mainEntity: {
+          '@id': `${canonicalUrl}#person`,
+        },
+      },
+      {
+        '@type': 'Person',
+        '@id': `${canonicalUrl}#person`,
+        name: profile?.full_name || 'Profissional',
+        url: canonicalUrl,
+        image: profile?.avatar_url || professional.cover_photo_url || undefined,
+        jobTitle: primarySpecialty,
+        description: truncateText(professional.bio || '', 300) || undefined,
+        knowsAbout: (professional.subcategories || professional.tags || [professional.category]).filter(Boolean),
+        ...(Number(professional.rating || 0) > 0 && Number(professional.total_reviews || 0) > 0
+          ? {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: Number(professional.rating).toFixed(1),
+                reviewCount: professional.total_reviews,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }
+          : {}),
+        ...(services.length > 0
+          ? {
+              makesOffer: services.map((s: ProfessionalService) => ({
+                '@type': 'Offer',
+                itemOffered: {
+                  '@type': 'Service',
+                  name: s.name,
+                  description: s.description || undefined,
+                },
+                price: String(s.price_brl),
+                priceCurrency: 'BRL',
+                unitText: `${s.duration_minutes} min`,
+              })),
+            }
+          : {}),
+      },
+    ],
+  }
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Link
         href="/buscar"
         className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-slate-500 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9FE870]/20"

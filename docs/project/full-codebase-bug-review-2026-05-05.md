@@ -665,6 +665,47 @@ Additional issues discovered during rigorous post-fix verification.
 
 ---
 
+## Session 3 — Hardening, Observability & Performance (continued)
+
+### S3.6 SEO & Structured Data for Public Pages
+**Files:** `app/(app)/profissional/[id]/page.tsx`, `app/blog/[slug]/page.tsx`, `app/buscar/page.tsx`
+**Issue:** Public pages had static or minimal metadata, missing dynamic Open Graph, Twitter Cards, canonical URLs, and Schema.org JSON-LD. This hurts social sharing, search indexing, and rich snippet eligibility.
+**Impact:**
+- Professional profiles shared on social media showed generic title/description
+- Blog articles lacked `BlogPosting` structured data for rich snippets
+- Search page had no `SearchAction` JSON-LD to enable Google Sitelinks Searchbox
+**Fix:**
+
+1. **Professional Profile Page** (`profissional/[id]/page.tsx`):
+   - Replaced static `export const metadata` with `generateMetadata` that:
+     - Loads the professional via the same cached public loader used by the page
+     - Validates visibility (`is_publicly_visible || canGoLive`) and `status === 'approved'`
+     - Returns `robots: { index: false }` for non-public profiles (prevents indexing of private profiles)
+     - Generates dynamic title: `{name} — {specialty} | Muuday`
+     - Generates dynamic description from bio (truncated to 155 chars)
+     - Sets canonical URL, Open Graph (`type: 'profile'`), Twitter Card, and image (avatar > cover > fallback)
+   - Added Schema.org JSON-LD with `@graph` containing:
+     - `ProfilePage` with `isPartOf` → `WebSite`
+     - `Person` with `jobTitle`, `knowsAbout`, `aggregateRating` (when reviews exist), and `makesOffer` (when services exist)
+
+2. **Blog Article Page** (`blog/[slug]/page.tsx`):
+   - Enhanced existing `generateMetadata` with:
+     - `alternates.canonical`, `robots`, `locale`, `siteName`
+     - `robots: { index: false }` for missing articles
+   - Added Schema.org JSON-LD with `@graph` containing:
+     - `BlogPosting` with `author`/`publisher` → Organization, `image`, `datePublished`, `mainEntityOfPage`
+     - `BreadcrumbList` (Home → Blog → Article)
+
+3. **Search Page** (`buscar/page.tsx`):
+   - Replaced static metadata with `generateMetadata` that:
+     - Builds dynamic title from search params: `Buscar "query" — subcategoria | Muuday`
+     - Builds dynamic description from active filters
+   - Added Schema.org `WebSite` JSON-LD with `potentialAction` → `SearchAction` (enables Google Sitelinks Searchbox)
+
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
+---
+
 ## Outstanding Items (Accepted)
 
 | Item | Severity | Reason |

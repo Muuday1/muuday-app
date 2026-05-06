@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Clock, Tag } from 'lucide-react'
@@ -9,8 +10,45 @@ import { Sparkle } from '@/components/landing/Sparkle'
 import { DotPattern } from '@/components/landing/DotPattern'
 import { BLOG_ARTICLES, getArticleBySlug, type BlogCategory } from '@/lib/blog-data'
 import { BlogEngagement } from '@/components/blog/BlogEngagement'
+import { getAppBaseUrl } from '@/lib/config/app-url'
 
-export const metadata = { title: 'Blog | Muuday' }
+const APP_URL = getAppBaseUrl()
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const article = getArticleBySlug(slug)
+  if (!article) {
+    return { title: 'Artigo não encontrado | Muuday Blog', robots: { index: false } }
+  }
+  const canonicalUrl = `${APP_URL}/blog/${article.slug}`
+  return {
+    title: `${article.title} | Muuday Blog`,
+    description: article.excerpt,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: 'article',
+      title: article.title,
+      description: article.excerpt,
+      url: canonicalUrl,
+      images: [{ url: article.coverImage, width: 1200, height: 630, alt: article.title }],
+      publishedTime: article.date,
+      locale: 'pt_BR',
+      siteName: 'Muuday',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.excerpt,
+      images: [article.coverImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  }
+}
 
 const CATEGORY_LABELS: Record<BlogCategory, string> = {
   expats: 'Vida no exterior',
@@ -55,8 +93,74 @@ export default async function BlogArticlePage({ params }: PageProps) {
     (a) => a.category === article.category && a.slug !== article.slug
   ).slice(0, 3)
 
+  const canonicalUrl = `${APP_URL}/blog/${article.slug}`
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${canonicalUrl}#blogposting`,
+        url: canonicalUrl,
+        headline: article.title,
+        description: article.excerpt,
+        image: article.coverImage,
+        datePublished: article.date,
+        dateModified: article.date,
+        author: {
+          '@type': 'Organization',
+          name: 'Muuday',
+          url: APP_URL,
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Muuday',
+          logo: {
+            '@type': 'ImageObject',
+            url: `${APP_URL}/assets/og-default.png`,
+          },
+        },
+        isPartOf: {
+          '@type': 'Blog',
+          name: 'Muuday Blog',
+          url: `${APP_URL}/blog`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': canonicalUrl,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Início',
+            item: APP_URL,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Blog',
+            item: `${APP_URL}/blog`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: article.title,
+            item: canonicalUrl,
+          },
+        ],
+      },
+    ],
+  }
+
   return (
     <PublicPageLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ========== HERO COVER ========== */}
       <section className="relative overflow-hidden">
         <div className="relative aspect-[21/9] w-full md:aspect-[21/8]">

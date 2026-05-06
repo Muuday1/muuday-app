@@ -1,12 +1,59 @@
-export const metadata = { title: 'Buscar Profissionais | Muuday' }
 export const revalidate = 0
 export const runtime = 'nodejs'
 
-
+import type { Metadata } from 'next'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { PublicPageLayout } from '@/components/public/PublicPageLayout'
 import { cookies, headers } from 'next/headers'
+import { getAppBaseUrl } from '@/lib/config/app-url'
+
+const APP_URL = getAppBaseUrl()
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<BuscarSearchParams>
+}): Promise<Metadata> {
+  const { q, categoria, subcategoria, especialidade } = await searchParams
+  const queryText = (q || '').trim()
+  const parts: string[] = []
+  if (queryText) parts.push(`"${queryText}"`)
+  if (especialidade) parts.push(especialidade)
+  else if (subcategoria) parts.push(subcategoria)
+  else if (categoria) parts.push(categoria)
+
+  const titleBase = parts.length > 0 ? `Buscar ${parts.join(' — ')}` : 'Buscar Profissionais'
+  const title = `${titleBase} | Muuday`
+  const description = parts.length > 0
+    ? `Encontre os melhores profissionais em ${parts.join(', ')} na Muuday. Agende sessões online com especialistas brasileiros.`
+    : 'Encontre os melhores profissionais brasileiros na Muuday. Agende sessões online de qualquer lugar do mundo.'
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `${APP_URL}/buscar` },
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url: `${APP_URL}/buscar`,
+      locale: 'pt_BR',
+      siteName: 'Muuday',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  }
+}
 import Link from 'next/link'
 import Image from 'next/image'
 import { Star, PlayCircle, MessageCircle } from 'lucide-react'
@@ -1190,8 +1237,27 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   const acceptLanguage = (await headers()).get('accept-language')
   const defaultCurrency = cookieCurrency || resolveDefaultCurrencyFromAcceptLanguage(acceptLanguage) || 'BRL'
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Muuday',
+    url: APP_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${APP_URL}/buscar?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  }
+
   return (
     <PublicPageLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {await BuscarPageContent({ searchParams, isLoggedIn: false, basePath: '/buscar', defaultCurrency })}
     </PublicPageLayout>
   )
