@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentFormWrapper } from './PaymentFormWrapper'
-import { formatCurrency } from '@/lib/utils'
 import * as Sentry from '@sentry/nextjs'
 
 export default async function PagamentoPage({
@@ -35,7 +34,7 @@ export default async function PagamentoPage({
       const { data: bookingData } = await supabase
         .from('bookings')
         .select(
-          `id, status, price_total, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
+          `id, status, price_total, price_user_currency, user_currency, price_brl, scheduled_at, start_time_utc, end_time_utc, duration_minutes,
           professionals(id, profiles!professionals_user_id_fkey(full_name, avatar_url)),
           professional_services(id, name, duration_minutes, price_brl)`
         )
@@ -111,8 +110,15 @@ export default async function PagamentoPage({
   } | null
 
   const duration = service?.duration_minutes ?? booking.duration_minutes ?? 60
-  const priceBrl = service?.price_brl ?? booking.price_brl ?? 0
   const currency = (booking.user_currency as string) || 'BRL'
+  // Use price_total (already converted to user's currency by calculateBookingPrice)
+  // Fallback to price_user_currency, then price_brl only as last resort
+  const price = booking.price_total ?? booking.price_user_currency ?? booking.price_brl ?? 0
+
+  const formattedPrice = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency,
+  }).format(Number(price))
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -143,7 +149,7 @@ export default async function PagamentoPage({
                   {service?.name || 'Sessão'} com {professionalName}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {duration} min · {formatCurrency(Number(priceBrl), currency)}
+                  {duration} min · {formattedPrice}
                 </p>
               </div>
             </div>
