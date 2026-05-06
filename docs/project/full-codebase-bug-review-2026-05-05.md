@@ -704,6 +704,44 @@ Additional issues discovered during rigorous post-fix verification.
 
 **Verification:** Typecheck, build, and all 1059 unit tests pass.
 
+### S3.7 Accessibility (a11y) Audit & Fixes
+**Files:** ~20 components across `components/`, `app/`
+**Issue:** Multiple accessibility violations found across the component library: icon-only buttons without accessible names, form labels not programmatically associated with inputs, decorative images missing meaningful `alt` text, and modal backdrops lacking `role="dialog" aria-modal="true"`.
+**Impact:**
+- Screen-reader users cannot identify the purpose of icon-only buttons (edit, save, cancel, navigate)
+- Form controls without associated labels are unreachable or confusing via assistive technology
+- Decorative avatar stacks with empty `alt` provide no context about the social-proof element
+- Modals without proper A semantics may not be announced or trapped correctly by screen readers
+**Fix:**
+
+1. **Icon-only buttons** — Added `aria-label` (Portuguese) to all icon-only buttons:
+   - `components/admin/TaxonomiaForm.tsx`: 11 buttons (save edit, cancel edit, add specialty/subcategory/service, edit category/subcategory/specialty/service)
+   - `components/agenda/availability-calendar/CalendarHeader.tsx`: prev/next month navigation buttons
+   - `components/admin/review-moderation/RejectModal.tsx`: already had `aria-label` on close button; added `role="dialog" aria-modal="true"` to backdrop
+
+2. **Form label-input association** — Added `htmlFor` + matching `id` to unassociated labels:
+   - `components/auth/CompleteAccountForm.tsx`: country, timezone, currency selects
+   - `components/auth/PasswordResetForm.tsx`: email input
+   - `components/landing/SearchCard.tsx`: category and specialty selects
+
+3. **Decorative image alt text** — Replaced empty `alt=""` with descriptive text:
+   - `components/landing/LandingPage.tsx`: avatar stack images → `alt={\`Profissional ${i + 1}\`}`
+   - `app/registrar-profissional/page.tsx`: avatar stack images → same pattern
+
+4. **Modal backdrop semantics** — Verified and added `role="dialog" aria-modal="true"` to modal containers:
+   - `components/booking/MobileBookingStickyCta.tsx`
+   - `components/booking/CancelScopeModal.tsx`
+   - `components/agenda/availability-calendar/BookingPopover.tsx`
+   - `components/agenda/professional-agenda/components/BlockTimeModal.tsx`
+   - `components/dashboard/onboarding-tracker/components/TrackerModalBody.tsx`
+   - `components/admin/review-moderation/RejectModal.tsx`
+   - `components/search/MobileFiltersDrawer.tsx`
+   - `components/agenda/ProfessionalCalendarSyncModal.tsx`
+   - `components/agenda/weekly-schedule-editor.tsx` (overlay `aria-hidden="true"`)
+   - Pre-existing on: `AuthOverlay`, `TermsModal`, `SignupSuccessModal`, `PublicBookingAuthModal`, `CookieConsentRoot`
+
+**Verification:** Typecheck passes. Unit tests run successfully.
+
 ---
 
 ## Outstanding Items (Accepted)

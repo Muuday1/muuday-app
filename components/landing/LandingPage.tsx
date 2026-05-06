@@ -84,7 +84,7 @@ export function LandingPage() {
                     <Image
                       key={i}
                       src={src}
-                      alt=""
+                      alt={`Profissional ${i + 1}`}
                       width={48}
                       height={48}
                       className="h-10 w-10 rounded-full border-2 border-[#9FE870] object-cover"

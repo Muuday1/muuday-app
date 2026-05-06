@@ -30,7 +30,7 @@ export function RejectModal({
   const isLoading = loadingId === review.id
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label={isBatch ? 'Rejeitar avaliações selecionadas' : 'Rejeitar avaliação'}>
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <h3 className="font-semibold text-slate-900 mb-1">
           {isBatch ? 'Rejeitar avaliações selecionadas' : 'Rejeitar avaliação'}

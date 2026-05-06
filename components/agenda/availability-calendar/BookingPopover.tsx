@@ -16,7 +16,7 @@ export function BookingPopover({ booking, timezone, onClose }: BookingPopoverPro
   if (!booking) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Detalhes da sessão">
       <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -34,6 +34,7 @@ export function BookingPopover({ booking, timezone, onClose }: BookingPopoverPro
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Fechar"
           >
             <X className="h-4 w-4" />
           </button>

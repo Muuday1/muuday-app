@@ -72,10 +72,11 @@ export default function CompleteAccountForm({ roleHint, safeNextPath }: Complete
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* País */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label htmlFor="country" className="block text-sm font-medium text-slate-700 mb-1.5">
             País onde você mora
           </label>
           <select
+            id="country"
             value={country}
             onChange={e => setCountry(e.target.value)}
             required
@@ -90,11 +91,12 @@ export default function CompleteAccountForm({ roleHint, safeNextPath }: Complete
 
         {/* Fuso horário */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label htmlFor="timezone" className="block text-sm font-medium text-slate-700 mb-1.5">
             Fuso horário
             <span className="text-xs text-slate-400 font-normal ml-1">(preenchido automaticamente)</span>
           </label>
           <select
+            id="timezone"
             value={timezone}
             onChange={e => setTimezone(e.target.value)}
             required
@@ -108,11 +110,12 @@ export default function CompleteAccountForm({ roleHint, safeNextPath }: Complete
 
         {/* Moeda */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label htmlFor="currency" className="block text-sm font-medium text-slate-700 mb-1.5">
             Moeda preferida
             <span className="text-xs text-slate-400 font-normal ml-1">(para exibir preços)</span>
           </label>
           <select
+            id="currency"
             value={currency}
             onChange={e => setCurrency(e.target.value)}
             required

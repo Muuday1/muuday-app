@@ -33,13 +33,13 @@ export function CalendarHeader({
       <p className="text-xs font-semibold text-slate-700 md:text-sm">{periodLabel}</p>
 
       <div className="inline-flex items-center gap-1">
-        <button type="button" onClick={onPrev} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50/70">
+        <button type="button" onClick={onPrev} aria-label="Mês anterior" className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50/70">
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
         <button type="button" onClick={onToday} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50/70">
           Hoje
         </button>
-        <button type="button" onClick={onNext} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50/70">
+        <button type="button" onClick={onNext} aria-label="Próximo mês" className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50/70">
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>

@@ -74,8 +74,9 @@ export default function PasswordResetForm() {
 
       <form onSubmit={handleReset} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">E-mail</label>
+          <label htmlFor="reset-email" className="mb-1.5 block text-sm font-medium text-slate-700">E-mail</label>
           <input
+            id="reset-email"
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}

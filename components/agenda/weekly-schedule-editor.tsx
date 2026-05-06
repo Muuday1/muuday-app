@@ -181,7 +181,7 @@ function CopyDayDropdown({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" aria-hidden="true" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
             <p className="mb-2 text-xs font-semibold text-slate-700">Copiar para:</p>
             <div className="space-y-1.5">

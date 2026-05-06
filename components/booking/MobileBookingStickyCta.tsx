@@ -78,7 +78,7 @@ export function MobileBookingStickyCta({ isLoggedIn, bookHref, priceText, durati
       </div>
 
       {!isLoggedIn && open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4" role="dialog" aria-modal="true" aria-label="Autenticação para continuar">
           <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>

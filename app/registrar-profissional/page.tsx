@@ -231,7 +231,7 @@ export default async function RegistrarProfissionalPage() {
                       <Image
                         key={i}
                         src={src}
-                        alt=""
+                        alt={`Profissional ${i + 1}`}
                         width={40}
                         height={40}
                         className="h-8 w-8 rounded-full border-2 border-[#9FE870] object-cover"

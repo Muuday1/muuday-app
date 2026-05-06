@@ -234,14 +234,14 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                     <div className="flex-1 flex items-center gap-2" onClick={e => e.stopPropagation()}>
                       <input value={editItem.name_pt} onChange={e => setEditItem({ ...editItem, name_pt: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-sm" placeholder="Nome PT" />
                       <input value={editItem.name_en} onChange={e => setEditItem({ ...editItem, name_en: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-sm" placeholder="Nome EN" />
-                      <button onClick={handleSaveEdit} className="text-green-600 hover:text-green-700"><Check className="w-4 h-4" /></button>
-                      <button onClick={() => setEditItem(null)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                      <button onClick={handleSaveEdit} aria-label="Salvar edição" className="text-green-600 hover:text-green-700"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditItem(null)} aria-label="Cancelar edição" className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
                     </div>
                   ) : (
                     <>
                       <span className={`flex-1 text-sm font-semibold ${cat.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>{cat.name_pt}</span>
                       <span className="text-xs text-slate-400 mr-2">{catSubs.length} sub</span>
-                      <button onClick={e => { e.stopPropagation(); setEditItem({ type: 'category', id: cat.id, name_pt: cat.name_pt, name_en: cat.name_en, slug: cat.slug }) }} className="text-slate-400 hover:text-slate-600"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={e => { e.stopPropagation(); setEditItem({ type: 'category', id: cat.id, name_pt: cat.name_pt, name_en: cat.name_en, slug: cat.slug }) }} aria-label="Editar categoria" className="text-slate-400 hover:text-slate-600"><Pencil className="w-3.5 h-3.5" /></button>
                       <button onClick={e => { e.stopPropagation(); handleToggleActive('category', cat.id, cat.is_active) }} className={`ml-1 text-xs px-2 py-0.5 rounded-full ${cat.is_active ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                         {actionLoading === cat.id ? '...' : cat.is_active ? 'Ativo' : 'Inativo'}
                       </button>
@@ -262,14 +262,14 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                               <div className="flex-1 flex items-center gap-2" onClick={e => e.stopPropagation()}>
                                 <input value={editItem.name_pt} onChange={e => setEditItem({ ...editItem, name_pt: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-sm" />
                                 <input value={editItem.name_en} onChange={e => setEditItem({ ...editItem, name_en: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-sm" />
-                                <button onClick={handleSaveEdit} className="text-green-600"><Check className="w-4 h-4" /></button>
-                                <button onClick={() => setEditItem(null)} className="text-slate-400"><X className="w-4 h-4" /></button>
+                                <button onClick={handleSaveEdit} aria-label="Salvar edição" className="text-green-600"><Check className="w-4 h-4" /></button>
+                                <button onClick={() => setEditItem(null)} aria-label="Cancelar edição" className="text-slate-400"><X className="w-4 h-4" /></button>
                               </div>
                             ) : (
                               <>
                                 <span className={`flex-1 text-sm ${sub.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{sub.name_pt}</span>
                                 <span className="text-xs text-slate-400 mr-2">{subSpecs.length} esp</span>
-                                <button onClick={e => { e.stopPropagation(); setEditItem({ type: 'subcategory', id: sub.id, name_pt: sub.name_pt, name_en: sub.name_en, slug: sub.slug }) }} className="text-slate-400 hover:text-slate-600"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={e => { e.stopPropagation(); setEditItem({ type: 'subcategory', id: sub.id, name_pt: sub.name_pt, name_en: sub.name_en, slug: sub.slug }) }} aria-label="Editar subcategoria" className="text-slate-400 hover:text-slate-600"><Pencil className="w-3 h-3" /></button>
                                 <button onClick={e => { e.stopPropagation(); handleToggleActive('subcategory', sub.id, sub.is_active) }} className={`ml-1 text-xs px-2 py-0.5 rounded-full ${sub.is_active ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                                   {actionLoading === sub.id ? '...' : sub.is_active ? 'Ativo' : 'Inativo'}
                                 </button>
@@ -285,13 +285,13 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                                     <div className="flex-1 flex items-center gap-2">
                                       <input value={editItem.name_pt} onChange={e => setEditItem({ ...editItem, name_pt: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-xs" />
                                       <input value={editItem.name_en} onChange={e => setEditItem({ ...editItem, name_en: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-xs" />
-                                      <button onClick={handleSaveEdit} className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
-                                      <button onClick={() => setEditItem(null)} className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
+                                      <button onClick={handleSaveEdit} aria-label="Salvar edição" className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
+                                      <button onClick={() => setEditItem(null)} aria-label="Cancelar edição" className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
                                     </div>
                                   ) : (
                                     <>
                                       <span className={`flex-1 text-xs ${sp.is_active ? 'text-slate-700' : 'text-slate-400 line-through'}`}>{sp.name_pt}</span>
-                                      <button onClick={() => setEditItem({ type: 'specialty', id: sp.id, name_pt: sp.name_pt, name_en: sp.name_en, slug: sp.slug })} className="text-slate-400 hover:text-slate-600"><Pencil className="w-3 h-3" /></button>
+                                      <button onClick={() => setEditItem({ type: 'specialty', id: sp.id, name_pt: sp.name_pt, name_en: sp.name_en, slug: sp.slug })} aria-label="Editar especialidade" className="text-slate-400 hover:text-slate-600"><Pencil className="w-3 h-3" /></button>
                                       <button onClick={() => handleToggleActive('specialty', sp.id, sp.is_active)} className={`text-xs px-2 py-0.5 rounded-full ${sp.is_active ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                                         {actionLoading === sp.id ? '...' : sp.is_active ? 'Ativo' : 'Inativo'}
                                       </button>
@@ -304,8 +304,8 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                                 <div className="flex items-center gap-2 py-1.5">
                                   <input value={addItem.name_pt} onChange={e => setAddItem({ ...addItem, name_pt: e.target.value, slug: slugify(e.target.value) })} className="flex-1 px-2 py-1 border rounded-lg text-xs" placeholder="Nome PT" autoFocus />
                                   <input value={addItem.name_en} onChange={e => setAddItem({ ...addItem, name_en: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-xs" placeholder="Nome EN" />
-                                  <button onClick={handleAddSpecialty} disabled={actionLoading === 'add'} className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
-                                  <button onClick={() => setAddItem(null)} className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
+                                  <button onClick={handleAddSpecialty} disabled={actionLoading === 'add'} aria-label="Adicionar especialidade" className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
+                                  <button onClick={() => setAddItem(null)} aria-label="Cancelar adição" className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
                                 </div>
                               ) : (
                                 <button
@@ -325,8 +325,8 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                       <div className="flex items-center gap-2 py-2 pl-6">
                         <input value={addItem.name_pt} onChange={e => setAddItem({ ...addItem, name_pt: e.target.value, slug: slugify(e.target.value) })} className="flex-1 px-2 py-1 border rounded-lg text-sm" placeholder="Nome PT" autoFocus />
                         <input value={addItem.name_en} onChange={e => setAddItem({ ...addItem, name_en: e.target.value })} className="flex-1 px-2 py-1 border rounded-lg text-sm" placeholder="Nome EN" />
-                        <button onClick={handleAddSubcategory} disabled={actionLoading === 'add'} className="text-green-600"><Check className="w-4 h-4" /></button>
-                        <button onClick={() => setAddItem(null)} className="text-slate-400"><X className="w-4 h-4" /></button>
+                        <button onClick={handleAddSubcategory} disabled={actionLoading === 'add'} aria-label="Adicionar subcategoria" className="text-green-600"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => setAddItem(null)} aria-label="Cancelar adição" className="text-slate-400"><X className="w-4 h-4" /></button>
                       </div>
                     ) : (
                       <button
@@ -373,14 +373,15 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                             onChange={e => setEditItem({ ...editItem, name_en: e.target.value })}
                             className="flex-1 px-2 py-1 border rounded-lg text-xs"
                           />
-                          <button onClick={handleSaveEdit} className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setEditItem(null)} className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
+                          <button onClick={handleSaveEdit} aria-label="Salvar edição" className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditItem(null)} aria-label="Cancelar edição" className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
                         </div>
                       ) : (
                         <>
                           <p className={`flex-1 text-xs ${option.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{option.name_pt}</p>
                           <button
                             onClick={() => setEditItem({ type: 'service_option', id: option.id, name_pt: option.name_pt, name_en: option.name_en, slug: option.slug })}
+                            aria-label="Editar opção de serviço"
                             className="text-slate-400 hover:text-slate-600"
                           >
                             <Pencil className="w-3 h-3" />
@@ -411,8 +412,8 @@ export function TaxonomiaForm({ initialData }: TaxonomiaFormProps) {
                         className="flex-1 px-2 py-1 border rounded-lg text-xs"
                         placeholder="Nome EN"
                       />
-                      <button onClick={handleAddServiceOption} disabled={actionLoading === 'add'} className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setAddItem(null)} className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
+                      <button onClick={handleAddServiceOption} disabled={actionLoading === 'add'} aria-label="Adicionar opção de serviço" className="text-green-600"><Check className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setAddItem(null)} aria-label="Cancelar adição" className="text-slate-400"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   ) : (
                     <button

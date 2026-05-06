@@ -30,10 +30,11 @@ export function SearchCard() {
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-500">Você busca</label>
+                <label htmlFor="search-category" className="text-sm font-medium text-slate-500">Você busca</label>
                 <div className="mt-2 flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 transition focus-within:border-[#9FE870]/40 focus-within:ring-2 focus-within:ring-[#9FE870]/20">
                   <Search className="h-5 w-5 text-slate-400" />
                   <select
+                    id="search-category"
                     className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
@@ -47,10 +48,10 @@ export function SearchCard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-500">Especialidade</label>
+                <label htmlFor="search-specialty" className="text-sm font-medium text-slate-500">Especialidade</label>
                 <div className="mt-2 flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 transition focus-within:border-[#9FE870]/40 focus-within:ring-2 focus-within:ring-[#9FE870]/20">
                   <Globe className="h-5 w-5 text-slate-400" />
-                  <select className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
+                  <select id="search-specialty" className="flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none">
                     <option value="">Todas as especialidades</option>
                     {specialtyOptions.map((specialty) => (
                       <option key={specialty} value={specialty}>{specialty}</option>

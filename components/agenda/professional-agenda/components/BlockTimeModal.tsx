@@ -58,7 +58,7 @@ export function BlockTimeModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Bloquear horário">
       <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
         <div className="flex items-center gap-2">
           <Lock className="h-5 w-5 text-slate-500" />
