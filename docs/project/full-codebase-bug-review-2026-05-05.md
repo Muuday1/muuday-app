@@ -539,6 +539,22 @@ Additional issues discovered during rigorous post-fix verification.
 **Resolution:** All four routes now have robust error handling with Sentry reporting and graceful degradation.
 **Verification:** Typecheck, build, and all 1059 unit tests pass.
 
+### S3.5. Additional Unbounded Query Limits (Round 2) ✅ FIXED
+**Files:** `lib/booking/availability-checks.ts`, `lib/booking/manage-booking-service.ts`, `lib/chat/chat-service.ts`, `lib/client-records/client-records-service.ts`, `components/agenda/availability-workspace/hooks/use-availability-workspace.ts`, `app/api/cron/booking-timeouts/route.ts`
+**Issue:** High-impact user-facing queries on growing tables still lacked `.limit()` clauses. These included availability rules/_exceptions, recurring booking siblings, chat participants, client records, session notes, and cron payment lookups.
+**Impact:** Potential memory exhaustion and timeouts as bookings, messages, client records, and availability data grow.
+**Fix:** Add context-appropriate `.limit()` to all identified queries:
+- `availability_rules`: 50 (7 weekdays max per professional)
+- `availability` (legacy): 50
+- `availability_exceptions`: 100
+- Recurring booking siblings: 200
+- `conversation_participants`: 10 (2 per conversation)
+- `client_records`: 200
+- `bookings` (client records lookup): 200
+- `session_notes`: 200
+- `payments` (cron timeout): 10 (1-2 per booking)
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
 ---
 
 ## Session 3: Type Safety, Observability & Performance Hardening
