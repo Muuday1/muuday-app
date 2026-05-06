@@ -603,3 +603,19 @@ Additional issues discovered during rigorous post-fix verification.
 | Item | Severity | Reason |
 |------|----------|--------|
 | `postcss` moderate vulnerability | Medium | Requires Next.js upgrade; unsafe to force-update a framework dependency. Tracked for next major Next.js bump. |
+
+### R11. Unprotected API Routes Outside v1 Namespace ✅ FIXED
+**Files:** `app/api/professional/**/*.ts`, `app/api/admin/**/*.ts`, `app/api/stripe/**/*.ts`, `app/api/agora/**/*.ts`, `app/api/auth/**/*.ts`, `app/api/push/**/*.ts`, `app/api/waitlist/**/*.ts`
+**Issue:** API routes outside the `v1/` and `sessao/` namespaces that handle revenue-critical, auth, or data-mutation operations lacked a global `try/catch`. Unexpected failures (Supabase outage, network drops, unhandled nulls) would crash the handler and return a raw HTTP 500.
+**Impact:** Checkout flows, video session tokens, password reset, push subscriptions, onboarding saves, and admin operations could all fail hard during transient outages.
+**Fix:** Apply `withApiHandler` to all unprotected routes:
+- Stripe checkout session (booking)
+- Agora token generation
+- Auth password reset
+- Push subscribe / unsubscribe / test
+- Waitlist signup
+- Professional routes: calendar disconnect/sync, credentials download, onboarding accept-term/modal-context/state, plan-pricing, profile-media health, recompute-visibility
+- Admin plan-config (GET + PUT)
+**Resolution:** Every user-facing and admin-facing API route now has uniform catastrophic-error handling via `withApiHandler`.
+**Verification:** Typecheck, build, and all 1059 unit tests pass.
+
