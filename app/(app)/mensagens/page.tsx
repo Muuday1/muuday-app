@@ -120,7 +120,7 @@ export default async function MensagensPage({
           .limit(100),
       ])
 
-      const otherUserIds = (otherParticipants || []).map((p: ParticipantRow) => p.user_id)
+      const otherUserIds = (otherParticipants || []).map((p: { user_id: string }) => p.user_id)
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name')
