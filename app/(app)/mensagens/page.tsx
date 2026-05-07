@@ -58,44 +58,46 @@ export default async function MensagensPage({
   let loadError: string | null = null
   let profissionalParam: string | undefined
 
-  try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  // Auth check outside try/catch — redirect() throws a special error that must NOT be caught
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    if (!user) {
-      redirect('/login')
-    }
+  if (!user) {
+    redirect('/login')
+  }
 
-    userId = user.id
-    const { profissional } = await searchParams
-    profissionalParam = profissional
+  userId = user.id
+  const { profissional } = await searchParams
+  profissionalParam = profissional
 
-    // Handle "Mandar mensagem" from professional profiles
-    if (profissional) {
-      const { data: bookings } = await supabase
-        .from('bookings')
+  // Handle "Mandar mensagem" from professional profiles (redirect must be outside try/catch)
+  if (profissional) {
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('professional_id', profissional)
+      .eq('user_id', user.id)
+      .in('status', ['confirmed', 'completed'])
+      .order('scheduled_at', { ascending: false })
+      .limit(1)
+
+    if (bookings && bookings.length > 0) {
+      const bookingId = bookings[0].id
+      const { data: conversation } = await supabase
+        .from('conversations')
         .select('id')
-        .eq('professional_id', profissional)
-        .eq('user_id', user.id)
-        .in('status', ['confirmed', 'completed'])
-        .order('scheduled_at', { ascending: false })
-        .limit(1)
+        .eq('booking_id', bookingId)
+        .maybeSingle()
 
-      if (bookings && bookings.length > 0) {
-        const bookingId = bookings[0].id
-        const { data: conversation } = await supabase
-          .from('conversations')
-          .select('id')
-          .eq('booking_id', bookingId)
-          .maybeSingle()
-
-        if (conversation) {
-          redirect(`/mensagens/${conversation.id}`)
-        }
+      if (conversation) {
+        redirect(`/mensagens/${conversation.id}`)
       }
     }
+  }
+
+  try {
 
     // Load conversations directly (avoid Server Action to prevent serialization issues)
     const { data: myParticipants } = await supabase
