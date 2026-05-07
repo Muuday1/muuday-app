@@ -15,9 +15,6 @@ import {
   MapPin,
   Clock,
   Briefcase,
-  Star,
-  MessageCircle,
-  Calendar,
   Globe,
 } from 'lucide-react-native'
 import { apiV1 } from '@/lib/api'
@@ -63,6 +60,17 @@ export default function ProfessionalDetailScreen() {
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
   })
+
+  const {
+    data: servicesData,
+  } = useQuery({
+    queryKey: ['professional', 'services', id],
+    queryFn: () => apiV1.professionals.getServices(id),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  })
+
+  const services = servicesData?.data?.services ?? []
 
   if (isLoading) {
     return (
@@ -237,6 +245,32 @@ export default function ProfessionalDetailScreen() {
           </View>
         )}
 
+        {/* Services */}
+        {services.length > 0 && (
+          <View className="px-4 mt-4">
+            <View className="bg-white rounded-xl border border-border p-4">
+              <Text className="text-text-primary font-semibold text-base mb-3">Serviços oferecidos</Text>
+              {services.map((service) => (
+                <View key={service.id} className="mb-3 pb-3 border-b border-border last:border-b-0 last:mb-0 last:pb-0">
+                  <View className="flex-row justify-between items-start">
+                    <Text className="text-text-primary text-sm font-medium flex-1">{service.name}</Text>
+                    <Text className="text-primary text-sm font-semibold ml-2">
+                      {formatPrice(service.price_brl, professional.session_price_currency)}
+                    </Text>
+                  </View>
+                  {service.description ? (
+                    <Text className="text-text-muted text-xs mt-1 leading-4">{service.description}</Text>
+                  ) : null}
+                  <View className="flex-row items-center mt-1.5">
+                    <Clock size={12} color="#64748B" />
+                    <Text className="text-text-muted text-xs ml-1">{service.duration_minutes} min</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Reviews */}
         {reviews.length > 0 && (
           <View className="px-4 mt-4">
@@ -277,44 +311,12 @@ export default function ProfessionalDetailScreen() {
           </View>
         )}
 
-        {/* Bottom spacing for CTA */}
+        {/* Bottom spacing */}
         <View className="h-24" />
       </ScrollView>
 
-      {/* Bottom CTA */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 pb-6">
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-text-muted text-xs">Valor da sessão</Text>
-            <Text className="text-text-primary font-bold text-lg">
-              {formatPrice(professional.session_price_brl, professional.session_price_currency)}
-            </Text>
-          </View>
-          <View className="flex-row gap-2">
-            <Pressable
-              onPress={() => {
-                // Navigate to chat - will be implemented in messaging flow
-                router.push(`/(tabs)/messages`)
-              }}
-              className="w-12 h-12 rounded-xl bg-surface-page border border-border items-center justify-center"
-            >
-              <MessageCircle size={20} color="#0F172A" />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                // Navigate to booking flow
-                router.push(`/booking/${professional.id}`)
-              }}
-              className="bg-primary rounded-xl px-6 h-12 items-center justify-center"
-            >
-              <View className="flex-row items-center">
-                <Calendar size={18} color="#0F172A" />
-                <Text className="text-text-primary font-semibold text-sm ml-2">Agendar</Text>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      </View>
+      {/* Bottom spacing */}
+      <View className="h-8" />
     </View>
   )
 }

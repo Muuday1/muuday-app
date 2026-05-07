@@ -236,6 +236,22 @@ export type Review = {
   } | null
 }
 
+export type ProfessionalService = {
+  id: string
+  name: string
+  description: string | null
+  duration_minutes: number
+  price_brl: number
+  is_active: boolean
+  created_at: string
+}
+
+export type ProfessionalServicesResponse = {
+  data: {
+    services: ProfessionalService[]
+  }
+}
+
 export type ProfessionalDetailResponse = {
   data: {
     professional: ProfessionalSearchResult
@@ -296,6 +312,8 @@ export const apiV1 = {
     getById: (id: string) => api.get<ProfessionalDetailResponse>(`/api/v1/professionals/${id}`),
     getAvailability: (id: string, query?: { startDate?: string; endDate?: string }) =>
       api.get<ProfessionalAvailabilityResponse>(`/api/v1/professionals/${id}/availability`, { query }),
+    getServices: (id: string) =>
+      api.get<ProfessionalServicesResponse>(`/api/v1/professionals/${id}/services`),
   },
 
   payments: {
