@@ -1114,7 +1114,7 @@ export async function BuscarPageContent({
                                   {specialty}
                                 </p>
                               ) : null}
-                              <ExpandableTags tags={professional.tags || []} />
+                              {/* Tags removed from search card per product decision */}
                             </div>
                             <div className="text-right flex-shrink-0">
                               <p className="font-display font-bold text-[#3d6b1f]">
@@ -1136,15 +1136,9 @@ export async function BuscarPageContent({
                           </p>
 
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                            {professional.tier && professional.tier !== 'basic' ? (
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                                  professional.tier === 'premium'
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                                    : 'bg-blue-50 text-blue-700 border border-blue-100'
-                                }`}
-                              >
-                                {professional.tier === 'premium' ? '★ Premium' : 'Profissional'}
+                            {professional.tier === 'premium' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+                                ★ Premium
                               </span>
                             ) : null}
                             {professional.video_intro_url ? (
