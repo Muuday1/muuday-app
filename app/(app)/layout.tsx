@@ -36,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       return [
         { href: '/buscar-auth', icon: 'Search', label: 'Buscar' },
         { href: '/agenda', icon: 'Calendar', label: 'Agenda' },
+        { href: '/mensagens', icon: 'MessageCircle', label: 'Mensagens' },
         { href: '/notificacoes', icon: 'Bell', label: 'Notificações' },
         { href: '/favoritos', icon: 'Heart', label: 'Favoritos' },
         { href: '/perfil', icon: 'User', label: 'Perfil' },
