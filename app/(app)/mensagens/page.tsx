@@ -6,6 +6,13 @@ import { redirect } from 'next/navigation'
 import { MessageCircle, Clock, ArrowRight } from 'lucide-react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
+
+function safeFormatShortDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return null
+  return formatInTimeZone(d, 'America/Sao_Paulo', 'd MMM', { locale: ptBR })
+}
 import { createClient } from '@/lib/supabase/server'
 import { AppEmptyState } from '@/components/ui/AppEmptyState'
 import { PageHeader, PageContainer } from '@/components/ui/AppShell'
@@ -262,17 +269,15 @@ export default async function MensagensPage({
                       <p className="truncate text-sm font-semibold text-slate-900">
                         {conv.otherParticipantName}
                       </p>
-                      {conv.lastMessageSentAt && (
-                        <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
-                          <Clock className="h-3 w-3" />
-                          {formatInTimeZone(
-                            new Date(conv.lastMessageSentAt),
-                            'America/Sao_Paulo',
-                            'd MMM',
-                            { locale: ptBR },
-                          )}
-                        </span>
-                      )}
+                      {(() => {
+                        const dateLabel = safeFormatShortDate(conv.lastMessageSentAt)
+                        return dateLabel ? (
+                          <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
+                            <Clock className="h-3 w-3" />
+                            {dateLabel}
+                          </span>
+                        ) : null
+                      })()}
                     </div>
                     <p
                       className={`mt-0.5 truncate text-sm ${

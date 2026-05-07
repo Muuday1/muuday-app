@@ -4,6 +4,13 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { Send, Loader2 } from 'lucide-react'
+
+function safeFormatMessageTime(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return null
+  return formatInTimeZone(d, 'America/Sao_Paulo', 'HH:mm', { locale: ptBR })
+}
 import { createClient } from '@/lib/supabase/client'
 
 async function sendMessageViaApi(conversationId: string, content: string) {
@@ -173,9 +180,7 @@ export function MessageThread({
                       isMe ? 'text-[#9FE870]/20' : 'text-slate-400'
                     }`}
                   >
-                    {formatInTimeZone(new Date(msg.sent_at), 'America/Sao_Paulo', 'HH:mm', {
-                      locale: ptBR,
-                    })}
+                    {safeFormatMessageTime(msg.sent_at) ?? '--'
                   </p>
                 </div>
               </div>
