@@ -166,7 +166,7 @@ export default async function MensagensPage({
       conversationsList = ((conversations as ConversationRow[]) || [])
         .map(conv => {
           const otherParticipant = (otherParticipants || []).find(
-            (p: ParticipantRow) => p.conversation_id === conv.id,
+            (p: { conversation_id: string }) => p.conversation_id === conv.id,
           )
           const otherProfile = (profiles || []).find(
             (p: ProfileRow) => p.id === otherParticipant?.user_id,
