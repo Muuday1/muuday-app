@@ -146,14 +146,20 @@ export default function FavoritesList({ initialProfessionals, userCurrency }: Fa
                           {pro.rating > 0 ? pro.rating.toFixed(1) : 'Novo'}
                           {pro.total_reviews > 0 && <span className="text-slate-400">({pro.total_reviews})</span>}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {pro.session_duration_minutes}min
-                        </span>
+                        {Number(pro.session_duration_minutes) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {pro.session_duration_minutes}min
+                          </span>
+                        )}
                       </div>
 
                       <div className="mt-3 pt-3 border-t border-slate-200/80 flex items-center justify-between">
-                        <span className="font-semibold text-slate-900">{formatCurrency(pro.session_price_brl, userCurrency)}</span>
+                        <span className="font-semibold text-slate-900">
+                          {Number(pro.session_price_brl) > 0
+                            ? formatCurrency(pro.session_price_brl, userCurrency)
+                            : 'Preço sob consulta'}
+                        </span>
                         <span className="text-xs text-[#3d6b1f] font-medium bg-[#9FE870]/8 px-2.5 py-1 rounded-full">Agendar</span>
                       </div>
                     </div>
