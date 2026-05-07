@@ -106,28 +106,26 @@ export default async function MensagensPage({
     const conversationIds = myParticipants?.map(p => p.conversation_id) || []
 
     if (conversationIds.length > 0) {
-      const [{ data: conversations }, { data: otherParticipants }, { data: profiles }] =
-        await Promise.all([
-          supabase
-            .from('conversations')
-            .select('id, booking_id')
-            .in('id', conversationIds)
-            .limit(100),
-          supabase
-            .from('conversation_participants')
-            .select('conversation_id, user_id, role')
-            .in('conversation_id', conversationIds)
-            .neq('user_id', user.id)
-            .limit(100),
-          supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in(
-              'id',
-              (otherParticipants || []).map((p: ParticipantRow) => p.user_id),
-            )
-            .limit(100),
-        ])
+      const [{ data: conversations }, { data: otherParticipants }] = await Promise.all([
+        supabase
+          .from('conversations')
+          .select('id, booking_id')
+          .in('id', conversationIds)
+          .limit(100),
+        supabase
+          .from('conversation_participants')
+          .select('conversation_id, user_id, role')
+          .in('conversation_id', conversationIds)
+          .neq('user_id', user.id)
+          .limit(100),
+      ])
+
+      const otherUserIds = (otherParticipants || []).map((p: ParticipantRow) => p.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', otherUserIds)
+        .limit(100)
 
       // Load last message and unread count for each conversation
       const lastMessages = new Map<string, MessageRow>()
