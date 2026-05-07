@@ -180,7 +180,7 @@ export function MessageThread({
                       isMe ? 'text-[#9FE870]/20' : 'text-slate-400'
                     }`}
                   >
-                    {safeFormatMessageTime(msg.sent_at) ?? '--'
+                    {safeFormatMessageTime(msg.sent_at) ?? '--'}
                   </p>
                 </div>
               </div>
