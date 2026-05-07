@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Calendar, MessageCircle } from 'lucide-react'
 import { AuthOverlay } from '@/components/auth/AuthOverlay'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { captureEvent } from '@/lib/analytics/posthog-client'
+import { createClient } from '@/lib/supabase/client'
 
 type SearchBookingCtasProps = {
   isLoggedIn: boolean
@@ -26,12 +27,25 @@ export function SearchBookingCtas({
 }: SearchBookingCtasProps) {
   const [open, setOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction>('book')
+  const [clientLoggedIn, setClientLoggedIn] = useState(isLoggedIn)
+
+  useEffect(() => {
+    // Detect session on client since public pages pass isLoggedIn={false}
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setClientLoggedIn(true)
+      }
+    })
+  }, [])
+
+  const effectiveLoggedIn = isLoggedIn || clientLoggedIn
 
   const bookButton = (
     <button
       type="button"
       onClick={() => {
-        if (isLoggedIn) return
+        if (effectiveLoggedIn) return
         setPendingAction('book')
         setOpen(true)
         captureEvent('booking_intent_auth_modal_shown', { action: 'book', source: 'search_cta' })
@@ -47,7 +61,7 @@ export function SearchBookingCtas({
     <button
       type="button"
       onClick={() => {
-        if (isLoggedIn) return
+        if (effectiveLoggedIn) return
         setPendingAction('message')
         setOpen(true)
         captureEvent('booking_intent_auth_modal_shown', { action: 'message', source: 'search_cta' })
@@ -59,7 +73,7 @@ export function SearchBookingCtas({
     </button>
   )
 
-  if (isLoggedIn) {
+  if (effectiveLoggedIn) {
     return (
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Link

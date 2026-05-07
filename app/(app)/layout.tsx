@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LogOut } from 'lucide-react'
+import { LogOut, MessageCircle } from 'lucide-react'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -123,6 +123,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <>
+                <Link
+                  href="/mensagens"
+                  className="relative flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50/70 transition-all"
+                  aria-label="Mensagens"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {unreadMessageCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                    </span>
+                  )}
+                </Link>
                 <NotificationBell />
                 <form action="/auth/signout" method="post">
                   <button
